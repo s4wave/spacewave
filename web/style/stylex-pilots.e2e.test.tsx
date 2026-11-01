@@ -10,6 +10,7 @@ import { InfoCard } from '../ui/InfoCard.js'
 import { OutputPanel } from '../ui/OutputPanel.js'
 import { CopyableField } from '../ui/CopyableField.js'
 import { RadioOption } from '../ui/RadioOption.js'
+import { Window } from '../ui/Window.js'
 
 const styles = stylex.create({
   override: { padding: 19, borderRadius: 9 },
@@ -43,6 +44,9 @@ function PilotJourney() {
         selected={radioSelected}
         onSelect={() => setRadioSelected(true)}
       />
+      <Window data-area-id="fixture-window">
+        <button type="button">Window action</button>
+      </Window>
     </main>
   )
 }
@@ -100,4 +104,10 @@ it('composes shared, app and plugin styles through the browser build', async () 
     .not.toBe(idleBorder)
   await page.getByRole('radio', { name: 'Style choice', exact: true }).click()
   expect(radio.getAttribute('aria-checked')).toBe('true')
+
+  // The existing frame hover event updates its owned border without replacing the frame.
+  const frame = document.querySelector('[data-area-id="fixture-window"]')!
+  const border = getComputedStyle(frame).borderColor
+  await page.getByRole('button', { name: 'Window action', exact: true }).hover()
+  await expect.poll(() => getComputedStyle(frame).borderColor).not.toBe(border)
 })

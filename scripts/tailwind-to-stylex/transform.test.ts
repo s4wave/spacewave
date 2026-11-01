@@ -456,6 +456,27 @@ test(
           join(root, 'toaster.tsx'),
           toaster.replace('../style/sonner.js', resolve('web/style/sonner.ts')),
         )
+        // Keep the ordinary Window frame and its owned border state in the historical comparison.
+        main = "import{Window}from'./Window';" + main
+        main = main.replace(
+          '</main>',
+          '<Window data-area-id="fixture-window"><button>Window action</button></Window></main>',
+        )
+        const window = await readFile(
+          version === 'before'
+            ? 'scripts/tailwind-to-stylex/testdata/components/Window.tsx'
+            : 'web/ui/Window.tsx',
+          'utf8',
+        )
+        await writeFile(
+          join(root, 'Window.tsx'),
+          window
+            .replace('../style/utils.js', '@s4wave/web/style/utils.js')
+            .replace(
+              /(['"])(?:\.\.\/)+(?:web\/)?style\/tokens\.stylex\.js\1/g,
+              JSON.stringify(resolve('web/style/tokens.stylex.ts')),
+            ),
+        )
         await writeFile(
           join(root, 'main.tsx'),
           version === 'before'
