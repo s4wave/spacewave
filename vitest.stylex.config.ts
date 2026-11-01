@@ -3,6 +3,18 @@ import base from './vitest.browser.config.js'
 
 export default defineConfig({
   ...base,
+  optimizeDeps: {
+    ...base.optimizeDeps,
+    // Prebundle the fixture's renderer and Radix together without the unused Bldr entrypoints.
+    include: [
+      'react',
+      'react-dom/client',
+      'vitest-browser-react',
+      '@radix-ui/react-collapsible',
+      '@radix-ui/react-dropdown-menu',
+      'cnfast',
+    ],
+  },
   test: {
     ...base.test,
     include: ['web/style/stylex-pilots.e2e.test.tsx'],

@@ -1,15 +1,59 @@
 import * as React from 'react'
 
-// https://magicui.design/docs/components/shine-border
+import * as stylex from '@stylexjs/stylex'
 
-import { cn } from '@s4wave/web/style/utils.js'
+const styles = stylex.create({
+  border: {
+    pointerEvents: 'none',
+    position: 'absolute',
+    inset: 0,
+    width: '100%',
+    height: '100%',
+    borderRadius: 'inherit',
+    backgroundImage: 'var(--shine-border-background)',
+    backgroundSize: '300% 300%',
+    mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+    WebkitMask:
+      'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+    maskPosition: '0px 0px, 0px 0px',
+    WebkitMaskComposite: 'xor',
+    maskComposite: 'exclude',
+    padding: 'var(--border-width)',
+    willChange: {
+      default: 'background-position',
+      '@media (prefers-reduced-motion: reduce)': 'auto',
+    },
+    opacity: { default: null, '@media (prefers-reduced-motion: reduce)': 0.35 },
+    animationName: {
+      default: null,
+      '@media (prefers-reduced-motion: no-preference)': 'shine',
+    },
+    animationDuration: {
+      default: null,
+      '@media (prefers-reduced-motion: no-preference)': 'var(--duration)',
+    },
+    animationTimingFunction: {
+      default: null,
+      '@media (prefers-reduced-motion: no-preference)': 'linear',
+    },
+    animationIterationCount: {
+      default: null,
+      '@media (prefers-reduced-motion: no-preference)': 'infinite',
+    },
+  },
+})
 
-interface ShineBorderProps extends React.HTMLAttributes<HTMLDivElement> {
+interface ShineBorderProps extends Omit<
+  React.HTMLAttributes<HTMLDivElement>,
+  'className'
+> {
   /**
    * Width of the border in pixels
    * @default 1
    */
   borderWidth?: number
+  sx?: stylex.StyleXStyles
+  className?: never
   /**
    * Duration of the animation in seconds
    * @default 14
@@ -22,16 +66,12 @@ interface ShineBorderProps extends React.HTMLAttributes<HTMLDivElement> {
   shineColor?: string | string[]
 }
 
-/**
- * Shine Border
- *
- * An animated background border effect component with configurable properties.
- */
+/** ShineBorder draws an animated masked border around its positioned container. */
 export function ShineBorder({
   borderWidth = 1,
   duration = 14,
   shineColor = '#000000',
-  className,
+  sx,
   style,
   ...props
 }: ShineBorderProps) {
@@ -45,12 +85,7 @@ export function ShineBorder({
         },transparent,transparent)`,
         ...style,
       }}
-      className={
-        /* TODO(stylex): global or unknown class: shine-border-mask */ cn(
-          'shine-border-mask motion-safe:animate-shine pointer-events-none absolute inset-0 size-full rounded-[inherit] will-change-[background-position] motion-reduce:opacity-35 motion-reduce:will-change-auto',
-          className,
-        )
-      }
+      sx={[styles.border, sx]}
       {...props}
     />
   )

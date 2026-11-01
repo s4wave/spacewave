@@ -2110,11 +2110,10 @@ body,
   }
 }
 
-/* Border when focusing a button */
+/* Focus defaults accept each control's own outline width and color. */
 :focus-visible {
-  /* outline: -webkit-color-focus-ring auto 1px; */
-  outline-color: var(--color-focus-ring);
-  outline-width: 1px;
+  outline-color: var(--focus-outline-color, var(--color-focus-ring));
+  outline-width: var(--focus-outline-width, 1px);
 }
 
 /* landing-finish sets the landing page's selection, focus ring, motion
@@ -3616,33 +3615,6 @@ body,
   box-shadow:
     0 -3px 16px oklch(0.7717 0.1355 16.5 / 0.2),
     0 0 6px oklch(0.7717 0.1355 16.5 / 0.12);
-}
-
-/* Collapsible section open/close animations. */
-@keyframes collapsible-down {
-  from {
-    height: 0;
-  }
-  to {
-    height: var(--radix-collapsible-content-height);
-  }
-}
-
-@keyframes collapsible-up {
-  from {
-    height: var(--radix-collapsible-content-height);
-  }
-  to {
-    height: 0;
-  }
-}
-
-.animate-collapsible-down {
-  animation: collapsible-down 150ms ease-out;
-}
-
-.animate-collapsible-up {
-  animation: collapsible-up 150ms ease-out;
 }
 
 /* Drag handles show grab cursor only inside canvas nodes. */

@@ -37,7 +37,10 @@ import {
   useSessionNavigate,
 } from '@s4wave/web/contexts/contexts.js'
 import { cn } from '@s4wave/web/style/utils.js'
-import { CollapsibleSection } from '@s4wave/web/ui/CollapsibleSection.js'
+import {
+  CollapsibleSection,
+  collapsibleSectionActionStyles,
+} from '@s4wave/web/ui/CollapsibleSection.js'
 import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
@@ -689,9 +692,9 @@ function OrgInvitesSection({
           type="button"
           onClick={() => void handleCreateInvite()}
           disabled={creatingInvite}
+          sx={collapsibleSectionActionStyles.button}
           aria-label="Create invite"
           title="Create invite"
-          className="text-foreground-alt hover:text-foreground flex size-4 items-center justify-center transition-colors disabled:cursor-not-allowed disabled:opacity-50"
         >
           <LuPlus className="size-3.5" />
         </button>
