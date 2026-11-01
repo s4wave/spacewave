@@ -63,17 +63,34 @@ func (w *writer) appendRecord(ctx context.Context, r *record) (*state, error) {
 // locked runs fn under the writer lock as a background step, recording its
 // hold as a commit's wait when a commit waited for the lock meanwhile.
 func (w *writer) locked(ctx context.Context, fn func() error) error {
-	// Hold the lock around fn and time the hold.
-	if err := w.lock(ctx); err != nil {
-		return err
+	for {
+		// Check announcements under the writer lock. Once this check passes,
+		// a newly arriving request can wait behind only this one step.
+		if err := w.take(ctx); err != nil {
+			return err
+		}
+		slot, err := w.waitingSlot()
+		if err != nil {
+			w.unlock()
+			return err
+		}
+		if slot < 0 {
+			start := time.Now()
+			err = fn()
+			if w.waiting.Load() != 0 {
+				w.db.recordWait(time.Since(start))
+			}
+			w.unlock()
+			return err
+		}
+
+		// Wait without either writer lock until the announced request takes
+		// its turn, is cancelled locally, or its remote process exits.
+		w.unlock()
+		if err := w.waitRequest(ctx, slot); err != nil {
+			return err
+		}
 	}
-	start := time.Now()
-	err := fn()
-	if w.waiting.Load() != 0 {
-		w.db.recordWait(time.Since(start))
-	}
-	w.unlock()
-	return err
 }
 
 // reserve allocates n consecutive free chunks for a job of this handle and
