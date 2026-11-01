@@ -1,3 +1,4 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
 import { LuTerminal } from 'react-icons/lu'
 
@@ -14,20 +15,35 @@ import {
 } from '@s4wave/web/ui/trace.js'
 import { statusTitle } from '@s4wave/web/ui/trace-status.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule2: { maxHeight: `calc(${themeLayout['--spacing']} * 64)` },
+})
+
 /** Tool renders a tool call as a trace line, opening once it settles with text. */
 function Tool({
   name,
   status,
   input,
   output,
-  className,
+  sx,
   ...props
-}: React.ComponentProps<'div'> & {
-  name: string
-  status: TraceStatus
-  input?: string
-  output?: string
-}) {
+}: Omit<
+  React.ComponentProps<'div'> & {
+    name: string
+    status: TraceStatus
+    input?: string
+    output?: string
+  },
+  'className'
+> & { sx?: ComponentStyles; className?: never }) {
   const expandable =
     (status === 'done' || status === 'error') && Boolean(input || output)
   const line = (
@@ -40,15 +56,15 @@ function Tool({
   )
 
   return (
-    <div data-slot="tool" className={className} {...props}>
+    <div data-slot="tool" sx={sx} {...props}>
       <Trace>
         {expandable ? (
           <TraceCollapsible>
             <TraceCollapsibleTrigger>{line}</TraceCollapsibleTrigger>
-            <TraceCollapsibleContent className="flex flex-col gap-2">
+            <TraceCollapsibleContent {...stylex.props(stylexStyles.rule1)}>
               {input ? (
                 <CodeBlock size="sm">
-                  <CodeBlockContent wrap className="max-h-64">
+                  <CodeBlockContent wrap {...stylex.props(stylexStyles.rule2)}>
                     {input}
                   </CodeBlockContent>
                 </CodeBlock>
@@ -58,7 +74,7 @@ function Tool({
                   size="sm"
                   variant={status === 'error' ? 'destructive' : 'default'}
                 >
-                  <CodeBlockContent wrap className="max-h-64">
+                  <CodeBlockContent wrap {...stylex.props(stylexStyles.rule2)}>
                     {output}
                   </CodeBlockContent>
                 </CodeBlock>

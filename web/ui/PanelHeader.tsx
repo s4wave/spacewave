@@ -3,6 +3,32 @@ import { cn } from '../style/utils.js'
 import { useObjectViewer } from '@s4wave/web/object/ObjectViewerContext.js'
 import { ComponentSelector } from '@s4wave/web/object/ComponentSelector.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    cursor: 'pointer',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-muted-foreground'],
+  },
+  rule2: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-muted-foreground'],
+  },
+})
+
 export type PanelHeaderVariant =
   | 'default'
   | 'secondary'
@@ -40,12 +66,14 @@ export function PanelHeader({
     <div
       {...props}
       data-drag-handle=""
-      className={cn(
-        'panel-header-height text-ui border-ui-outline flex shrink-0 items-center gap-2 border-b px-2',
-        showSelector && '[@media(pointer:coarse)]:min-h-11',
-        variantStyles[variant],
-        className,
-      )}
+      className={
+        /* TODO(stylex): global or unknown class: panel-header-height */ cn(
+          'panel-header-height text-ui border-ui-outline flex shrink-0 items-center gap-2 border-b px-2',
+          showSelector && '[@media(pointer:coarse)]:min-h-11',
+          variantStyles[variant],
+          className,
+        )
+      }
       style={{ '--panel-header-height': `${height}px` }}
     >
       {showSelector && viewer.selectedComponent && (
@@ -57,15 +85,11 @@ export function PanelHeader({
           selectedComponent={viewer.selectedComponent}
           onSelectComponent={viewer.onSelectComponent}
         >
-          <div className="text-muted-foreground cursor-pointer truncate text-xs">
-            {viewer.selectedComponent.name}
-          </div>
+          <div sx={stylexStyles.rule1}>{viewer.selectedComponent.name}</div>
         </ComponentSelector>
       )}
       {showStaticName && viewer.visibleComponents[0] && (
-        <div className="text-muted-foreground truncate text-xs">
-          {viewer.visibleComponents[0].name}
-        </div>
+        <div sx={stylexStyles.rule2}>{viewer.visibleComponents[0].name}</div>
       )}
       {children}
     </div>
@@ -91,10 +115,12 @@ export function PanelHeaderButton({
       type="button"
       onClick={onClick}
       title={title}
-      className={cn(
-        'hover:bg-pulldown-hover focus-ring flex items-center justify-center rounded p-0.5 transition-colors',
-        className,
-      )}
+      className={
+        /* TODO(stylex): global class adds declarations outside the utility compiler: focus-ring */ cn(
+          'hover:bg-pulldown-hover focus-ring flex items-center justify-center rounded p-0.5 transition-colors',
+          className,
+        )
+      }
     >
       {children}
     </button>

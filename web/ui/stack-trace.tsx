@@ -1,3 +1,4 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
 import { LuCircleX } from 'react-icons/lu'
 
@@ -10,6 +11,31 @@ import {
   TraceLine,
   TraceTitle,
 } from '@s4wave/web/ui/trace.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  fonts as themeFonts,
+  colors as themeColors,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule2: {
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+})
 
 /** StackFrame is one frame. An own frame may link to its source. */
 export type StackFrame = {
@@ -42,16 +68,19 @@ function frameKey(seen: Map<string, number>, text: string) {
 function StackTrace({
   error,
   frames,
-  className,
+  sx,
   ...props
-}: React.ComponentProps<'div'> & {
-  error: string
-  frames: StackFrame[]
-}) {
+}: Omit<
+  React.ComponentProps<'div'> & {
+    error: string
+    frames: StackFrame[]
+  },
+  'className'
+> & { sx?: ComponentStyles; className?: never }) {
   const seen = new Map<string, number>()
 
   return (
-    <div data-slot="stack-trace" className={className} {...props}>
+    <div data-slot="stack-trace" sx={sx} {...props}>
       <Trace>
         <TraceCollapsible defaultOpen>
           <TraceCollapsibleTrigger>
@@ -62,8 +91,8 @@ function StackTrace({
               <TraceTitle>Failed: {error}</TraceTitle>
             </TraceLine>
           </TraceCollapsibleTrigger>
-          <TraceCollapsibleContent className="flex flex-col gap-2">
-            <p className="text-destructive font-mono text-xs">{error}</p>
+          <TraceCollapsibleContent {...stylex.props(stylexStyles.rule1)}>
+            <p sx={stylexStyles.rule2}>{error}</p>
             <Trace>
               {frames.map((frame) => (
                 <StackFrameLine

@@ -13,6 +13,107 @@ import { isDesktop } from '@aptre/bldr'
 
 import { cn } from '@s4wave/web/style/utils.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  motion as themeMotion,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+    flexShrink: 0,
+    cursor: 'grab',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: themeColors['--color-popover-border'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-deep']} 80%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule3: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * .5)`,
+  },
+  rule4: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '.25rem',
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.1s',
+    '--tw-duration': '.1s',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-pulldown-hover'],
+      },
+    },
+  },
+  rule5: {
+    width: `calc(${themeLayout['--spacing']} * 2.5)`,
+    height: `calc(${themeLayout['--spacing']} * 2.5)`,
+  },
+  rule6: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '.25rem',
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-error'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.1s',
+    '--tw-duration': '.1s',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-error-bg'],
+      },
+    },
+  },
+  rule7: {
+    display: 'flex',
+    minHeight: 0,
+    flex: 1,
+    flexDirection: 'column',
+    overflow: 'hidden',
+  },
+})
+
 const MIN_Y_ELECTRON = 60
 
 // FloatingWindowManagerContext manages z-index ordering for multiple floating windows.
@@ -342,13 +443,15 @@ export function FloatingWindow({
       ref={panelRef}
       open
       aria-label={title}
-      className={cn(
-        'floating-window-position fixed m-0 flex flex-col overflow-hidden p-0 text-inherit outline-none',
-        'rounded-lg shadow-lg',
-        'bg-background-menu/95 backdrop-blur-sm',
-        'border-popover-border border',
-        className,
-      )}
+      className={
+        /* TODO(stylex): global or unknown class: floating-window-position */ cn(
+          'floating-window-position fixed m-0 flex flex-col overflow-hidden p-0 text-inherit outline-none',
+          'rounded-lg shadow-lg',
+          'bg-background-menu/95 backdrop-blur-sm',
+          'border-popover-border border',
+          className,
+        )
+      }
       style={{
         '--floating-window-left': `${state.position.x}px`,
         '--floating-window-top': `${state.position.y}px`,
@@ -363,59 +466,50 @@ export function FloatingWindow({
       {/* Header */}
       <div
         role="presentation"
-        className={cn(
-          'flex h-6 shrink-0 items-center justify-between',
-          'bg-background-deep/80 px-2',
-          'border-popover-border border-b',
-          'cursor-grab select-none',
-        )}
+        sx={[stylexStyles.rule1]}
         onMouseDown={handleDragStart}
         onDoubleClick={handleDoubleClick}
       >
-        <div className="flex items-center gap-1.5">
+        <div sx={stylexStyles.rule2}>
           {icon && (
-            <span className="text-brand flex size-3 items-center justify-center [&>svg]:h-3 [&>svg]:w-3">
+            <span
+              className={
+                /* TODO(stylex): a descendant, group, peer or compound selector: [&>svg]:h-3 */ 'text-brand flex size-3 items-center justify-center [&>svg]:h-3 [&>svg]:w-3'
+              }
+            >
               {icon}
             </span>
           )}
-          <span className="text-text-secondary text-xs font-medium">
+          <span
+            className={
+              /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary text-xs font-medium'
+            }
+          >
             {title}
           </span>
         </div>
-        <div className="flex items-center gap-0.5">
+        <div sx={stylexStyles.rule3}>
           <button
             type="button"
             onClick={handleMinimize}
             aria-label="Minimize"
-            className={cn(
-              'flex size-4 items-center justify-center rounded',
-              'text-foreground-alt hover:text-foreground',
-              'hover:bg-pulldown-hover',
-              'transition-colors duration-100',
-            )}
+            sx={[stylexStyles.rule4]}
           >
-            <LuMinus className="size-2.5" />
+            <LuMinus {...stylex.props(stylexStyles.rule5)} />
           </button>
           <button
             type="button"
             onClick={onClose ?? handleMinimize}
             aria-label="Close"
-            className={cn(
-              'flex size-4 items-center justify-center rounded',
-              'text-foreground-alt hover:text-error',
-              'hover:bg-error-bg',
-              'transition-colors duration-100',
-            )}
+            sx={[stylexStyles.rule6]}
           >
-            <LuX className="size-2.5" />
+            <LuX {...stylex.props(stylexStyles.rule5)} />
           </button>
         </div>
       </div>
 
       {/* Content */}
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        {children}
-      </div>
+      <div sx={stylexStyles.rule7}>{children}</div>
 
       {/* Resize handles */}
       <ResizeHandle edge="n" onMouseDown={handleResizeStart('n')} />
@@ -455,10 +549,12 @@ function ResizeHandle({ edge, onMouseDown }: ResizeHandleProps) {
       aria-orientation={
         edge === 'n' || edge === 's' ? 'horizontal' : 'vertical'
       }
-      className={cn(
-        'hover:bg-brand/20 absolute z-10',
-        RESIZE_HANDLE_CLASSES[edge],
-      )}
+      className={
+        /* TODO(stylex): dynamic class or forwarded className */ cn(
+          'hover:bg-brand/20 absolute z-10',
+          RESIZE_HANDLE_CLASSES[edge],
+        )
+      }
       onMouseDown={onMouseDown}
     />
   )

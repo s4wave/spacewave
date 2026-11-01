@@ -6,6 +6,184 @@ import { ProgressBar } from './ProgressBar.js'
 import { Spinner } from './Spinner.js'
 import type { LoadingState, LoadingView } from './types.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+  motion as themeMotion,
+} from '../../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: { marginTop: `calc(${themeLayout['--spacing']} * 2.5)` },
+  rule2: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule3: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2.5)`,
+    display: 'flex',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule4: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 15%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+    fontSize: '.65rem',
+    lineHeight: 1.5,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+  },
+  rule5: {
+    borderRadius: themeRadii['--radius-md'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+    fontSize: '.65rem',
+    lineHeight: 1.5,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground-alt'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule6: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule7: { minWidth: 0, flex: 1 },
+  rule8: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+  },
+  rule9: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule10: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: '.65rem',
+    lineHeight: 1.5,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule11: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 15%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+    fontSize: '.65rem',
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-destructive'],
+  },
+  rule12: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule13: {
+    position: 'relative',
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rule14: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule15: {
+    position: 'absolute',
+    right: `calc(${themeLayout['--spacing']} * -1)`,
+    bottom: `calc(${themeLayout['--spacing']} * -1)`,
+    width: `calc(${themeLayout['--spacing']} * 2.5)`,
+    height: `calc(${themeLayout['--spacing']} * 2.5)`,
+    color: themeColors['--color-brand'],
+  },
+  rule16: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+  },
+  rule17: {
+    fontSize: '.55rem',
+    lineHeight: 1.5,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-widest)',
+    letterSpacing: 'var(--tracking-widest)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    textTransform: 'uppercase',
+  },
+  rule18: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+    '--tw-numeric-spacing': 'tabular-nums',
+    fontVariantNumeric:
+      'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+  },
+})
+
 interface LoadingCardProps {
   view: LoadingView
   className?: string
@@ -23,7 +201,7 @@ const tileTone: Record<LoadingState, string> = {
 function LoadingCardProgress({ view }: { view: LoadingView }) {
   if (view.progress !== undefined || view.progressIndeterminate) {
     return (
-      <div className="mt-2.5">
+      <div sx={stylexStyles.rule1}>
         <ProgressBar
           value={view.progress === undefined ? undefined : view.progress * 100}
           indeterminate={view.progressIndeterminate}
@@ -35,7 +213,7 @@ function LoadingCardProgress({ view }: { view: LoadingView }) {
   if (!view.rate) return null
 
   return (
-    <div className="mt-2 grid grid-cols-2 gap-2">
+    <div sx={stylexStyles.rule2}>
       <RatePill label="Up" value={view.rate.up ?? '0 B/s'} />
       <RatePill label="Down" value={view.rate.down ?? '0 B/s'} />
     </div>
@@ -47,22 +225,14 @@ function LoadingCardActions({ view }: { view: LoadingView }) {
   if (!view.onRetry && !view.onCancel) return null
 
   return (
-    <div className="mt-2.5 flex gap-2">
+    <div sx={stylexStyles.rule3}>
       {view.onRetry ? (
-        <button
-          type="button"
-          onClick={view.onRetry}
-          className="border-foreground/8 bg-foreground/5 hover:bg-foreground/10 hover:border-foreground/15 text-foreground-alt hover:text-foreground micro-label rounded-md border px-2 py-1 font-medium transition duration-150"
-        >
+        <button type="button" onClick={view.onRetry} sx={stylexStyles.rule4}>
           {view.retryLabel ?? 'Retry'}
         </button>
       ) : null}
       {view.onCancel ? (
-        <button
-          type="button"
-          onClick={view.onCancel}
-          className="text-foreground-alt/60 hover:text-foreground-alt micro-label rounded-md px-2 py-1 font-medium transition-colors"
-        >
+        <button type="button" onClick={view.onCancel} sx={stylexStyles.rule5}>
           {view.cancelLabel ?? 'Cancel'}
         </button>
       ) : null}
@@ -77,40 +247,34 @@ function LoadingCardActions({ view }: { view: LoadingView }) {
 export function LoadingCard({ view, className }: LoadingCardProps) {
   return (
     <div
-      className={cn(
-        'border-foreground/6 bg-background-card/30 rounded-lg border p-3.5',
-        className,
-      )}
+      className={
+        /* TODO(stylex): dynamic class or forwarded className */ cn(
+          'border-foreground/6 bg-background-card/30 rounded-lg border p-3.5',
+          className,
+        )
+      }
     >
-      <div className="flex items-start gap-3">
+      <div sx={stylexStyles.rule6}>
         <div
-          className={cn(
-            'flex size-8 shrink-0 items-center justify-center rounded-md',
-            tileTone[view.state],
-          )}
+          className={
+            /* TODO(stylex): dynamic class or forwarded className */ cn(
+              'flex size-8 shrink-0 items-center justify-center rounded-md',
+              tileTone[view.state],
+            )
+          }
         >
           <LoadingCardIcon state={view.state} />
         </div>
-        <div className="min-w-0 flex-1">
-          <div className="text-foreground text-sm font-semibold tracking-tight">
-            {view.title}
-          </div>
+        <div sx={stylexStyles.rule7}>
+          <div sx={stylexStyles.rule8}>{view.title}</div>
           {view.detail ? (
-            <div className="text-foreground-alt/60 mt-0.5 text-xs leading-relaxed">
-              {view.detail}
-            </div>
+            <div sx={stylexStyles.rule9}>{view.detail}</div>
           ) : null}
           <LoadingCardProgress view={view} />
           {view.lastActivity ? (
-            <div className="text-foreground-alt/40 micro-label mt-2">
-              {view.lastActivity}
-            </div>
+            <div sx={stylexStyles.rule10}>{view.lastActivity}</div>
           ) : null}
-          {view.error ? (
-            <div className="bg-destructive/5 border-destructive/15 text-destructive micro-label mt-2 rounded-md border px-2 py-1 leading-relaxed">
-              {view.error}
-            </div>
-          ) : null}
+          {view.error ? <div sx={stylexStyles.rule11}>{view.error}</div> : null}
           <LoadingCardActions view={view} />
         </div>
       </div>
@@ -120,16 +284,18 @@ export function LoadingCard({ view, className }: LoadingCardProps) {
 
 function LoadingCardIcon({ state }: { state: LoadingState }) {
   if (state === 'error') {
-    return <LuCircleAlert className="size-4" aria-hidden="true" />
+    return (
+      <LuCircleAlert
+        {...stylex.props(stylexStyles.rule12)}
+        aria-hidden="true"
+      />
+    )
   }
   if (state === 'synced') {
     return (
-      <span
-        className="relative flex size-4 items-center justify-center"
-        aria-hidden="true"
-      >
-        <LuCloud className="size-3.5" />
-        <LuCircleCheck className="text-brand absolute -right-1 -bottom-1 size-2.5" />
+      <span sx={stylexStyles.rule13} aria-hidden="true">
+        <LuCloud {...stylex.props(stylexStyles.rule14)} />
+        <LuCircleCheck {...stylex.props(stylexStyles.rule15)} />
       </span>
     )
   }
@@ -138,13 +304,9 @@ function LoadingCardIcon({ state }: { state: LoadingState }) {
 
 function RatePill({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border-foreground/6 bg-foreground/5 rounded-md border px-2 py-1">
-      <div className="text-foreground-alt/50 micro-fine font-medium tracking-widest uppercase">
-        {label}
-      </div>
-      <div className="text-foreground text-xs font-semibold tabular-nums">
-        {value}
-      </div>
+    <div sx={stylexStyles.rule16}>
+      <div sx={stylexStyles.rule17}>{label}</div>
+      <div sx={stylexStyles.rule18}>{value}</div>
     </div>
   )
 }

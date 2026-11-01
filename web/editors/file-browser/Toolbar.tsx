@@ -28,6 +28,22 @@ import {
 } from '../../ui/DropdownMenu.js'
 import { cn } from '../../style/utils.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    minHeight: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+    minWidth: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+  },
+})
+
 type CollapseLevel = 'none' | 'menus' | 'nav' | 'path'
 
 function getCollapseLevel(width: number): CollapseLevel {
@@ -178,9 +194,6 @@ function ToolbarActions({
   )
 }
 
-const searchBoxClassName =
-  '[@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11'
-
 /** Toolbar keeps the file path and primary action visible as its width shrinks. */
 export function Toolbar({
   currentPath,
@@ -207,14 +220,14 @@ export function Toolbar({
   const wide = collapseLevel === 'none' || collapseLevel === 'menus'
   const showNewFolder = !!onNewFolder && (!onUploadFiles || wide)
 
-  let search = <SearchBox placeholder="Search" className={searchBoxClassName} />
+  let search = <SearchBox placeholder="Search" sx={stylexStyles.rule1} />
   if (collapseLevel !== 'none') {
     search = searchActive ? (
       <SearchBox
         placeholder="Search"
         focusOnMount
         onBlur={() => setSearchActive(false)}
-        className={searchBoxClassName}
+        sx={stylexStyles.rule1}
       />
     ) : (
       <OverflowMenu
