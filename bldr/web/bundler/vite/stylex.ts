@@ -242,7 +242,9 @@ export function stylexCss(
       const file = id.split('?')[0]!
       if (
         !/\.[cm]?[jt]sx?$/.test(file) ||
-        (!source.includes('@stylexjs/stylex') && !modules.has(file))
+        (!source.includes('@stylexjs/stylex') &&
+          !/\bsx\s*=/.test(source) &&
+          !modules.has(file))
       )
         return
       const compiled = await compile(source, file)

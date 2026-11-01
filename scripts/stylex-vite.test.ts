@@ -17,8 +17,9 @@ import { stylexCss } from '../bldr/web/bundler/vite/stylex.js'
 const appSource = (color: string) => `import React,{useState} from 'react';
 import * as stylex from '@stylexjs/stylex';
 import {metrics} from './tokens.stylex';
+import {ImportedStyle} from './ImportedStyle';
 const styles=stylex.create({button:{color:'${color}',marginTop:metrics.space}});
-export function App(){ const [count,setCount]=useState(0);return <button sx={styles.button} onClick={()=>setCount(count+1)}>{count}</button> }`
+export function App(){ const [count,setCount]=useState(0);return <button sx={styles.button} onClick={()=>setCount(count+1)}>{count}<ImportedStyle/></button> }`
 
 test('native CSS ships in the manifest and updates without losing component state', async () => {
   // Use real React, compiler, Vite assets and browsers rather than emulating CSS delivery.
@@ -42,6 +43,16 @@ void identity(assertion);
 export const metrics=stylex.defineConsts({space:'17px'});`,
   )
   await writeFile(join(root, 'App.tsx'), appSource('red'))
+
+  // An intrinsic sx consumer can import compiled styles without importing their runtime.
+  await writeFile(
+    join(root, 'SharedStyles.ts'),
+    `import * as stylex from '@stylexjs/stylex';export const shared=stylex.create({imported:{paddingLeft:19}});`,
+  )
+  await writeFile(
+    join(root, 'ImportedStyle.tsx'),
+    `import {shared} from './SharedStyles';export function ImportedStyle(){return <span data-imported-style sx={shared.imported}/>;}`,
+  )
   const options = {
     configFile: false as const,
     root,
@@ -127,6 +138,13 @@ export const metrics=stylex.defineConsts({space:'17px'});`,
             () =>
               getComputedStyle(document.querySelector('button')!).color ===
               'rgb(255, 0, 0)',
+          )
+          assert.equal(
+            await page
+              .locator('[data-imported-style]')
+              .evaluate((element) => getComputedStyle(element).paddingLeft),
+            '19px',
+            `${engine}: an imported style must compile without a local StyleX import`,
           )
           await page.goto(development.resolvedUrls!.local[0]!)
           await page.getByRole('button', { name: '0', exact: true }).click()
