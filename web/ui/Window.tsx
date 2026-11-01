@@ -1,16 +1,53 @@
-import React, { ReactNode, useState } from 'react'
-import { cn } from '../style/utils.js'
+import React, { type ReactNode, useState } from 'react'
+import * as stylex from '@stylexjs/stylex'
+import { colors, radii, utilityState } from '../style/tokens.stylex.js'
+
+const styles = stylex.create({
+  window: {
+    overflow: 'hidden',
+    borderRadius: radii['--radius-lg'],
+    borderWidth: '1px',
+    borderStyle: utilityState['--tw-border-style'],
+    transitionProperty: {
+      default: null,
+      '@media (dynamic-range: high)': 'box-shadow, border-color',
+    },
+    transitionDuration: {
+      default: null,
+      '@media (dynamic-range: high)': '.15s',
+    },
+    transitionTimingFunction: {
+      default: null,
+      '@media (dynamic-range: high)': 'ease',
+    },
+    dynamicRangeLimit: {
+      default: null,
+      '@media (dynamic-range: high)': { default: null, ':hover': 'no-limit' },
+    },
+    boxShadow: {
+      default: null,
+      '@media (dynamic-range: high)': {
+        default: null,
+        ':hover': '0 0 6px 1px var(--hdr-glow-active-shadow)',
+      },
+    },
+  },
+  idle: { borderColor: colors['--color-window-border'] },
+  hovered: { borderColor: colors['--color-ui-outline-active'] },
+})
 
 interface WindowProps {
   children: ReactNode
-  className?: string
+  sx?: stylex.StyleXStyles
+  className?: never
   style?: React.CSSProperties
   'data-area-id'?: string
 }
 
+// Window frames its content and highlights its border while hovered.
 export function Window({
   children,
-  className,
+  sx,
   style,
   'data-area-id': dataAreaId,
 }: WindowProps) {
@@ -18,13 +55,7 @@ export function Window({
 
   return (
     <div
-      className={
-        /* TODO(stylex): global or unknown class: hdr-window-glow */ cn(
-          'hdr-window-glow overflow-hidden rounded-lg border',
-          isHovered ? 'border-ui-outline-active' : 'border-window-border',
-          className,
-        )
-      }
+      sx={[styles.window, isHovered ? styles.hovered : styles.idle, sx]}
       style={style}
       data-area-id={dataAreaId}
       onMouseEnter={() => setIsHovered(true)}

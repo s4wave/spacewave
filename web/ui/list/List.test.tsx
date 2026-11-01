@@ -155,22 +155,32 @@ describe('ListRow', () => {
       expect(row.getAttribute('aria-selected')).toBeNull()
     })
 
-    it('has focus ring class when focused (focusedIndex matches itemIndex)', () => {
-      renderListRow(
+    it('focuses the keyboard row and sends Enter through its ordinary click callback', () => {
+      // Focus the row selected by keyboard navigation and invoke its existing action.
+      const { rerender, props } = renderListRow(
         { itemIndex: 0 },
         { selectedIds: [], focusedIndex: 0, sortDirection: 'asc' },
       )
       const row = screen.getByRole('row')
-      expect(row.className).toContain('ring-brand/25')
-    })
-
-    it('does not have focus ring class when not focused', () => {
-      renderListRow(
-        { itemIndex: 0 },
-        { selectedIds: [], focusedIndex: 2, sortDirection: 'asc' },
+      expect(document.activeElement).toBe(row)
+      expect(row.tabIndex).toBe(0)
+      fireEvent.keyDown(row, { key: 'Enter' })
+      expect(props.onRowClick).toHaveBeenCalledWith(
+        0,
+        props.item,
+        expect.any(Object),
+        1,
       )
-      const row = screen.getByRole('row')
-      expect(row.className).not.toContain('ring-brand/25')
+
+      // Remove the old row from keyboard traversal when the shared focus moves elsewhere.
+      rerender(
+        <ListStateContext.Provider
+          value={{ selectedIds: [], focusedIndex: 2, sortDirection: 'asc' }}
+        >
+          <ListRow {...props} />
+        </ListStateContext.Provider>,
+      )
+      expect(row.tabIndex).toBe(-1)
     })
   })
 
