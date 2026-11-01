@@ -27,9 +27,9 @@ Lineages == 1..2
 Keys == 1..4
 Target(k) == IF k <= 2 THEN k ELSE 3
 VARIABLES phase, cursor, edges, owners, record, eligible, put, seen, extra,
-          stored, release, removed, began
-vars == <<phase, cursor, edges, owners, record, eligible, put, seen, extra,
-          stored, release, removed, began>>
+          stored, release, removed, began, base, takes, current
+vars == <<phase, cursor, edges, owners, record, eligible, put, seen, extra, stored,
+      release, removed, began, base, takes, current>>
 Counting == phase \in {"complete", "forget"}
 Clearing == phase \in {"holds", "releases", "seen"}
 Holders(p) == Cardinality({k \in edges : Target(k) = p})
@@ -43,6 +43,8 @@ Init ==
   /\ eligible = [l \in Lineages |-> FALSE]
   /\ seen = {} /\ extra = [p \in Pages |-> 0]
   /\ release = [p \in Pages |-> 0] /\ removed = {}
+  /\ base = [l \in Lineages |-> 0] /\ takes = [l \in Lineages |-> 0]
+  /\ current = {}
 \* A sight leaves zero for its first holder and increments for each later one.
 Sight(es) == [p \in Pages |-> extra[p] +
   Cardinality({k \in es : Target(k) = p}) -
@@ -55,19 +57,21 @@ BeginSharing ==
        IF Boundary \in {"start", "birth"} /\ record[l] = "open"
        THEN "orphan" ELSE record[l]]
   /\ eligible' = [l \in Lineages |-> record[l] = "named"]
-  /\ UNCHANGED <<edges, owners, put, seen, extra, stored, release, removed>>
+  /\ base' = [l \in Lineages |-> IF Boundary \in {"start", "birth"}
+               /\ record[l] = "open" THEN 0 ELSE base[l]]
+  /\ UNCHANGED <<edges, owners, put, seen, extra, stored, release, removed, takes, current>>
 \* One physical transaction per action: cursor reads and sightings are atomic.
 WalkSharing ==
   /\ began /\ phase # "complete"
   /\ CASE phase = "holds" ->
        /\ extra' = [p \in Pages |-> 0] /\ phase' = "releases"
-       /\ UNCHANGED <<seen, release, cursor>>
+       /\ UNCHANGED <<seen, release, cursor, base, takes, current>>
      [] phase = "releases" ->
        /\ release' = [p \in Pages |-> 0] /\ phase' = "seen"
-       /\ UNCHANGED <<seen, extra, cursor>>
+       /\ UNCHANGED <<seen, extra, cursor, base, takes, current>>
      [] phase = "seen" ->
        /\ seen' = {} /\ phase' = "children" /\ cursor' = 1
-       /\ UNCHANGED <<extra, release>>
+       /\ UNCHANGED <<extra, release, base, takes, current>>
      [] phase = "children" ->
        LET es == edges \cap {cursor} IN
        /\ extra' = Sight(es) /\ seen' = Seen(es)
@@ -88,13 +92,15 @@ WalkSharing ==
           /\ UNCHANGED release
      [] phase = "forget" ->
        /\ seen' = {} /\ phase' = "complete"
-       /\ UNCHANGED <<extra, release, cursor>>
-  /\ UNCHANGED <<edges, owners, record, eligible, put, stored, removed, began>>
+       /\ UNCHANGED <<extra, release, cursor, base, takes, current>>
+  /\ UNCHANGED <<edges, owners, record, eligible, put, stored, removed, began, base, takes,
+      current>>
 \* Put stores a fresh root and its replay hold. AddHolds is dropped in a walk.
 \* A root's lineage is not itself an edge the walk can sight.
 Put(l) ==
   /\ l \notin put
   /\ put' = put \cup {l} /\ edges' = edges \cup {l}
+  /\ current' = current \cup {l}
   /\ stored' = stored \cup {l}
   /\ eligible' = [eligible EXCEPT ![l] = Counting]
   /\ record' = [record EXCEPT ![l] = "open"]
@@ -104,7 +110,7 @@ Put(l) ==
      IN /\ extra' = IF Counting THEN [extra EXCEPT ![l] = 1]
                    ELSE IF sight THEN Sight({l}) ELSE extra
         /\ seen' = IF sight /\ ~Counting THEN Seen({l}) ELSE seen
-  /\ UNCHANGED <<phase, cursor, owners, release, removed, began>>
+  /\ UNCHANGED <<phase, cursor, owners, release, removed, began, base, takes>>
 \* Found put/new child list; repeated identical lists add nothing.
 PutChild(k) ==
   /\ k \in 3..4 /\ k \notin edges
@@ -116,16 +122,30 @@ PutChild(k) ==
                       [extra EXCEPT ![3] = IF 3 \in stored THEN @ + 1 ELSE 0]
                     ELSE IF sight THEN Sight({k}) ELSE extra
         /\ seen' = IF sight /\ ~Counting THEN Seen({k}) ELSE seen
-  /\ UNCHANGED <<phase, cursor, owners, record, eligible, put, release, removed, began>>
+  /\ UNCHANGED <<phase, cursor, owners, record, eligible, put, release, removed, began, base,
+      takes, current>>
+\* The first post-reset take has From=nil and To=root l. It consumes no
+\* lineage but assigns To as the next From, exactly as worldDeaths.take does.
+\* In particular, observing Counting at take does NOT certify the root's
+\* earlier birth. This catches resets both before and after the walk.
+Take(l) ==
+  /\ l \in current /\ base[l] = 0 /\ takes[l] < 2
+  /\ record[l] \in {"open", "orphan"}
+  /\ base' = [base EXCEPT ![l] = l] /\ takes' = [takes EXCEPT ![l] = @ + 1]
+  /\ record' = [record EXCEPT ![l] = "open"]
+  /\ UNCHANGED <<phase, cursor, edges, owners, eligible, put, stored, release, removed,
+      began, seen, extra, current>>
 Name(l) ==
-  /\ record[l] = "open"
+  /\ record[l] = "open" /\ base[l] = l /\ l \in current
+  /\ base' = [base EXCEPT ![l] = 0] /\ current' = current \ {l}
   /\ record' = [record EXCEPT ![l] =
        IF Boundary = "birth" /\ ~eligible[l] THEN "orphan" ELSE "named"]
   /\ LET sight == UseImplied /\ phase = "owners" /\ l < cursor
                     /\ (Boundary # "birth" \/ eligible[l])
      IN /\ extra' = IF sight THEN Sight({l}) ELSE extra
         /\ seen' = IF sight THEN Seen({l}) ELSE seen
-  /\ UNCHANGED <<phase, cursor, edges, owners, eligible, put, stored, release, removed, began>>
+  /\ UNCHANGED <<phase, cursor, edges, owners, eligible, put, stored, release, removed,
+      began, takes>>
 SettleOwnerCounts(p) ==
   /\ p \in stored /\ p \notin owners /\ p \notin removed
   /\ owners' = owners \cup {p}
@@ -133,28 +153,35 @@ SettleOwnerCounts(p) ==
        /\ extra' = IF Counting THEN [extra EXCEPT ![p] = @ + 1]
                     ELSE IF sight THEN Sight({p}) ELSE extra
        /\ seen' = IF sight THEN Seen({p}) ELSE seen
-  /\ UNCHANGED <<phase, cursor, edges, record, eligible, put, stored, release, removed, began>>
+  /\ UNCHANGED <<phase, cursor, edges, record, eligible, put, stored, release, removed,
+      began, base, takes, current>>
 RemoveOwner(p) ==
   /\ p \in owners /\ p \notin removed
   /\ owners' = owners \ {p} /\ removed' = removed \cup {p}
   /\ release' = IF Counting THEN [release EXCEPT ![p] = @ + 1] ELSE release
-  /\ UNCHANGED <<phase, cursor, edges, record, eligible, put, stored, seen, extra, began>>
+  /\ UNCHANGED <<phase, cursor, edges, record, eligible, put, stored, seen, extra, began,
+      base, takes, current>>
 Apply(l) ==
   /\ Counting /\ began /\ record[l] = "named"
   /\ record' = [record EXCEPT ![l] = "applied"]
   /\ release' = [release EXCEPT ![l] = @ + 1]
-  /\ UNCHANGED <<phase, cursor, edges, owners, eligible, put, seen, extra, stored, removed, began>>
+  /\ UNCHANGED <<phase, cursor, edges, owners, eligible, put, seen, extra, stored, removed,
+      began, base, takes, current>>
 ResolveReleases(p) ==
   /\ Counting /\ release[p] > 0
   /\ release' = [release EXCEPT ![p] = @ - 1]
   /\ extra' = [extra EXCEPT ![p] = IF @ > 0 THEN @ - 1 ELSE 0]
   /\ stored' = IF extra[p] = 0 THEN stored \ {p} ELSE stored
-  /\ UNCHANGED <<phase, cursor, edges, owners, record, eligible, put, seen, removed, began>>
+  /\ UNCHANGED <<phase, cursor, edges, owners, record, eligible, put, seen, removed, began,
+      base, takes, current>>
 Next == BeginSharing \/ WalkSharing
-  \/ (\E l \in Lineages : Put(l) \/ Name(l) \/ Apply(l))
+  \/ (\E l \in Lineages : Put(l) \/ Take(l) \/ Name(l) \/ Apply(l))
   \/ (\E k \in 3..4 : PutChild(k))
   \/ (\E p \in Pages : SettleOwnerCounts(p) \/ RemoveOwner(p) \/ ResolveReleases(p))
   \/ UNCHANGED vars
+\* BeginSharing while Running, and RecountSharing while Walking, keep their
+\* cursor. Their repeated calls are stutters. A second completed recount is
+\* outside this one-walk bound; both callers start through BeginSharing here.
 Spec == Init /\ [][Next]_vars
 NoFreedRead == {Target(k) : k \in edges} \cup owners \subseteq stored
 CountsNonNegative == \A p \in Pages : extra[p] >= 0
