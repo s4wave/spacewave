@@ -1,7 +1,8 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 /* eslint-disable react-doctor/no-giant-component */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { List as VirtualList, ListImperativeAPI } from 'react-window'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import isEqual from '@s4wave/web/util/isEqual.js'
 import { ListItem } from './ListItem.js'
 import {
@@ -15,6 +16,41 @@ import {
   listReducer,
   translateIndicesToNewOrder,
 } from './ListState.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    minHeight: 0,
+    flex: 1,
+    flexDirection: 'column',
+    overflow: 'hidden',
+  },
+  rule2: {
+    display: 'flex',
+    minHeight: 0,
+    flex: 1,
+    flexDirection: 'column',
+    overflow: 'hidden',
+    padding: `calc(${themeLayout['--spacing']} * .5)`,
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+  },
+  rule3: {
+    display: 'flex',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule4: { flex: 1 },
+})
 
 export interface RowComponentProps<T> {
   item: ListItem<T>
@@ -50,9 +86,10 @@ export interface RenderHeaderProps {
 }
 
 export interface ListProps<T = void> {
+  className?: never
   items: ListItem<T>[]
   placeholder?: React.ReactNode
-  className?: string
+  sx?: ComponentStyles
   rowHeight?: number
   rowComponent: React.ComponentType<RowComponentProps<T>>
   onRowDefaultAction?: (items: ListItem<T>[]) => void
@@ -69,7 +106,7 @@ export interface ListProps<T = void> {
 export function List<T>({
   items,
   placeholder,
-  className,
+  sx,
   rowHeight = 24,
   rowComponent: RowComponentProp,
   onRowDefaultAction,
@@ -78,7 +115,10 @@ export function List<T>({
   sortFn,
   state: [state, update],
   onRowContextMenu,
-}: ListProps<T>) {
+}: Omit<ListProps<T>, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
   const listRef = useRef<ListImperativeAPI | null>(null)
 
   // Track sorted items for the reducer - use ref to avoid stale closure
@@ -365,27 +405,18 @@ export function List<T>({
   return (
     <ListStateContext.Provider value={state}>
       <ListDispatchContext.Provider value={dispatch}>
-        <div
-          className={cn(
-            'flex min-h-0 flex-1 flex-col overflow-hidden',
-            className,
-          )}
-          role="group"
-          aria-label="List"
-        >
+        <div sx={[stylexStyles.rule1, sx]} role="group" aria-label="List">
           {headerContent}
 
           <div
             ref={listContainerRef}
             tabIndex={focusedIndexVisible ? -1 : 0}
             role="rowgroup"
-            className="flex min-h-0 flex-1 flex-col overflow-hidden p-0.5 outline-none"
+            sx={stylexStyles.rule2}
             onKeyDown={handleKeyDown}
           >
             {sortedItems.length === 0 ? (
-              <div className="text-foreground-alt flex flex-1 items-center justify-center p-4">
-                {placeholder ?? 'No items'}
-              </div>
+              <div sx={stylexStyles.rule3}>{placeholder ?? 'No items'}</div>
             ) : (
               <VirtualList
                 listRef={listRef}
@@ -394,7 +425,7 @@ export function List<T>({
                 onRowsRendered={onRowsRendered}
                 rowComponent={RowComponentInternal}
                 rowProps={{}}
-                className="flex-1"
+                {...stylex.props(stylexStyles.rule4)}
               />
             )}
           </div>

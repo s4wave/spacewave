@@ -1,6 +1,13 @@
 import type { ReactNode } from 'react'
 import { cn } from '@s4wave/web/style/utils.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { colors as themeColors } from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: { color: themeColors['--color-foreground-alt'] },
+})
+
 // StatItem represents a single statistic to display.
 export interface StatItem {
   // label is the stat label text.
@@ -25,15 +32,22 @@ export function StatsBar({ stats, className }: StatsBarProps) {
 
   return (
     <div
-      className={cn(
-        'bg-background-secondary border-ui-outline flex items-center gap-4 rounded border px-2 py-1 text-xs',
-        className,
-      )}
+      className={
+        /* TODO(stylex): dynamic class or forwarded className */ cn(
+          'bg-background-secondary border-ui-outline flex items-center gap-4 rounded border px-2 py-1 text-xs',
+          className,
+        )
+      }
     >
       {stats.map((stat) => (
-        <span key={stat.label} className="text-foreground-alt">
+        <span key={stat.label} sx={stylexStyles.rule1}>
           {stat.label}:{' '}
-          <span className={stat.valueClassName ?? 'text-foreground'}>
+          <span
+            className={
+              /* TODO(stylex): fallback class expression */ stat.valueClassName ??
+              'text-foreground'
+            }
+          >
             {stat.value}
           </span>
         </span>

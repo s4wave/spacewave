@@ -93,6 +93,12 @@ import {
   useSharedObjectMount,
 } from '@s4wave/app/hooks/useSharedMounts.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: { maxWidth: 'var(--container-xs)' },
+})
+
 interface SharedObjectMutationPermission {
   canMutate: boolean
   disabledReason: string
@@ -342,7 +348,7 @@ function RemediationActionButton({
       <TooltipTrigger asChild>
         <span className="inline-flex">{button}</span>
       </TooltipTrigger>
-      <TooltipContent side="top" className="max-w-xs">
+      <TooltipContent side="top" sx={stylexStyles.rule1}>
         {disabledReason}
       </TooltipContent>
     </Tooltip>

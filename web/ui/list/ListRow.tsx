@@ -3,6 +3,17 @@ import { cn } from '@s4wave/web/style/utils.js'
 import { ListStateContext } from './ListState.js'
 import { RowComponentProps } from './List.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    flex: 1,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+  },
+})
+
 // ListRow renders a basic list row with selection state.
 export function ListRow<T>({
   item,
@@ -76,19 +87,21 @@ export function ListRow<T>({
       aria-posinset={ariaAttributes['aria-posinset']}
       aria-setsize={ariaAttributes['aria-setsize']}
       style={style}
-      className={cn(
-        'flex items-center px-2 py-[1px] text-xs leading-tight',
-        'cursor-pointer transition-colors select-none',
-        selected
-          ? 'bg-brand/10 text-foreground'
-          : 'text-foreground/90 hover:bg-foreground/5',
-        focused && !selected && 'ring-brand/25 ring-1 ring-inset',
-      )}
+      className={
+        /* TODO(stylex): conditional property composition: backgroundColor */ cn(
+          'flex items-center px-2 py-[1px] text-xs leading-tight',
+          'cursor-pointer transition-colors select-none',
+          selected
+            ? 'bg-brand/10 text-foreground'
+            : 'text-foreground/90 hover:bg-foreground/5',
+          focused && !selected && 'ring-brand/25 ring-1 ring-inset',
+        )
+      }
       onClick={handleListRowSelect}
       onKeyDown={handleListRowKeyDown}
       onContextMenu={handleContextMenu}
     >
-      <span className="flex-1 truncate">{item.id}</span>
+      <span sx={stylexStyles.rule1}>{item.id}</span>
     </div>
   )
 }

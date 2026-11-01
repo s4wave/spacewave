@@ -1,3 +1,4 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 /* eslint-disable react-doctor/rerender-state-only-in-handlers */
 import {
   useCallback,
@@ -8,7 +9,17 @@ import {
   type ReactNode,
 } from 'react'
 
-import { cn } from '@s4wave/web/style/utils.js'
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    height: '100%',
+    minHeight: 0,
+    width: '100%',
+    minWidth: 0,
+    overflow: 'hidden',
+  },
+})
 
 export interface PanelSize {
   width: number
@@ -21,7 +32,12 @@ interface ElementScale {
   y: number
 }
 
-interface PanelSizeGateProps extends HTMLAttributes<HTMLDivElement> {
+interface PanelSizeGateProps extends Omit<
+  HTMLAttributes<HTMLDivElement>,
+  'className'
+> {
+  className?: never
+  sx?: ComponentStyles
   minWidth?: number
   minHeight?: number
   fallback: ReactNode
@@ -45,9 +61,12 @@ export function PanelSizeGate({
   minHeight = 0,
   fallback,
   children,
-  className,
+  sx,
   ...props
-}: PanelSizeGateProps) {
+}: Omit<PanelSizeGateProps, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
   const containerRefValue = useRef<HTMLDivElement | null>(null)
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
   const [size, setSize] = useState<PanelSize>(defaultSize)
@@ -93,11 +112,7 @@ export function PanelSizeGate({
       (minHeight > 0 && size.height < minHeight))
 
   return (
-    <div
-      {...props}
-      ref={containerRef}
-      className={cn('h-full min-h-0 w-full min-w-0 overflow-hidden', className)}
-    >
+    <div {...props} ref={containerRef} sx={[stylexStyles.rule1, sx]}>
       {tooSmall ? fallback : children}
     </div>
   )

@@ -1,10 +1,54 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import { useState, useRef, useCallback, type KeyboardEvent } from 'react'
 import { LuSearch } from 'react-icons/lu'
-import { cn } from '../style/utils.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+  motion as themeMotion,
+  fonts as themeFonts,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderRadius: '.25rem',
+    backgroundColor: themeColors['--color-file-search-box'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.2s',
+    '--tw-duration': '.2s',
+  },
+  rule2: { width: `calc(${themeLayout['--spacing']} * 48)` },
+  rule3: { width: `calc(${themeLayout['--spacing']} * 7)` },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    flexShrink: 0,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule5: {
+    width: '100%',
+    backgroundColor: '#0000',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+  },
+  rule6: { position: 'absolute', inset: 0 },
+})
 
 interface SearchBoxProps {
+  className?: never
   placeholder?: string
-  className?: string
+  sx?: ComponentStyles
   focusOnMount?: boolean
   onSearch?: (query: string) => void
   onBlur?: () => void
@@ -13,11 +57,14 @@ interface SearchBoxProps {
 // SearchBox is an expandable search input with icon.
 export function SearchBox({
   placeholder = 'Search',
-  className,
+  sx,
   focusOnMount = false,
   onSearch,
   onBlur,
-}: SearchBoxProps) {
+}: Omit<SearchBoxProps, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
   const initialFocusRef = useRef(focusOnMount)
   const [focused, setFocused] = useState(() => initialFocusRef.current)
   const [query, setQuery] = useState('')
@@ -54,13 +101,13 @@ export function SearchBox({
 
   return (
     <div
-      className={cn(
-        'bg-file-search-box relative flex items-center gap-1 rounded px-2 py-0.5 transition-all duration-200',
-        focused ? 'w-48' : 'w-7',
-        className,
-      )}
+      sx={[
+        stylexStyles.rule1,
+        focused ? stylexStyles.rule2 : stylexStyles.rule3,
+        sx,
+      ]}
     >
-      <LuSearch className="text-foreground-alt size-3 flex-shrink-0" />
+      <LuSearch {...stylex.props(stylexStyles.rule4)} />
       {focused && (
         <input
           ref={setInputRef}
@@ -69,14 +116,14 @@ export function SearchBox({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="text-foreground w-full bg-transparent text-xs outline-none"
+          sx={stylexStyles.rule5}
           onBlur={handleSearchBlur}
         />
       )}
       {!focused && (
         <button
           type="button"
-          className="absolute inset-0"
+          sx={stylexStyles.rule6}
           onClick={() => {
             setFocused(true)
             focusInputSoon()

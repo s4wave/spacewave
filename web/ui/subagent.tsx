@@ -1,3 +1,4 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
 import {
   LuBot,
@@ -21,6 +22,78 @@ import {
 } from '@s4wave/web/ui/trace.js'
 import { statusLabel, statusTitle } from '@s4wave/web/ui/trace-status.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+  layout as themeLayout,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    animationName: 'spin',
+    animationDuration: '1s',
+    animationTimingFunction: 'linear',
+    animationIterationCount: 'infinite',
+    animationDirection: 'normal',
+    animationPlayState: 'running',
+    animationDelay: '0s',
+    animationFillMode: 'none',
+    animationTimeline: 'auto',
+  },
+  rule2: {
+    flexShrink: 0,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: {
+      default: themeColors['--color-muted-foreground'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    textUnderlineOffset: '4px',
+    textDecorationLine: {
+      default: null,
+      '@media (hover: hover)': { default: null, ':hover': 'underline' },
+    },
+  },
+  rule3: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule4: {
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+  },
+  rule5: {
+    clipPath: 'inset(50%)',
+    whiteSpace: 'nowrap',
+    borderWidth: 0,
+    width: '1px',
+    height: '1px',
+    margin: '-1px',
+    padding: 0,
+    position: 'absolute',
+    overflow: 'hidden',
+  },
+  rule6: {
+    display: 'flex',
+    minWidth: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule7: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 /** SubagentStep is one step the child session took. id is its identity. */
 export type SubagentStep = {
   id: string
@@ -31,7 +104,7 @@ export type SubagentStep = {
 /** subagentIcon picks the step icon for a child session status. */
 function subagentIcon(status: TraceStatus) {
   if (status === 'running') {
-    return <LuLoaderCircle className="animate-spin" />
+    return <LuLoaderCircle {...stylex.props(stylexStyles.rule1)} />
   }
   if (status === 'error') {
     return <LuCircleX />
@@ -93,7 +166,7 @@ function SubagentLink({ href, name }: { href?: string; name: string }) {
       href={href}
       aria-label={`Open ${name} session`}
       data-slot="subagent-link"
-      className="text-muted-foreground hover:text-foreground shrink-0 text-sm underline-offset-4 hover:underline"
+      sx={stylexStyles.rule2}
     >
       Open session
     </a>
@@ -113,10 +186,14 @@ function SubagentBadges({
   }
 
   return (
-    <div data-slot="subagent-badges" className="flex flex-wrap gap-1.5">
+    <div data-slot="subagent-badges" sx={stylexStyles.rule3}>
       {model ? <Badge variant="secondary">{model}</Badge> : null}
       {tools.map((tool) => (
-        <Badge key={tool} variant="outline" className="font-mono">
+        <Badge
+          key={tool}
+          variant="outline"
+          {...stylex.props(stylexStyles.rule4)}
+        >
           {tool}
         </Badge>
       ))}
@@ -136,7 +213,7 @@ function SubagentSteps({ steps = [] }: { steps?: SubagentStep[] }) {
         <TraceLine key={step.id} status={step.status}>
           <TraceIcon>{subagentIcon(step.status)}</TraceIcon>
           <TraceTitle>{step.title}</TraceTitle>
-          <span className="sr-only">{statusLabel(step.status)}</span>
+          <span sx={stylexStyles.rule5}>{statusLabel(step.status)}</span>
         </TraceLine>
       ))}
     </Trace>
@@ -151,7 +228,7 @@ function SubagentNote({ label, text }: { label: string; text?: string }) {
 
   return (
     <>
-      <span className="sr-only">{label}</span>
+      <span sx={stylexStyles.rule5}>{label}</span>
       <p>{text}</p>
     </>
   )
@@ -168,30 +245,33 @@ function Subagent({
   result,
   href,
   seconds,
-  className,
+  sx,
   ...props
-}: React.ComponentProps<'div'> & {
-  name: string
-  status: TraceStatus
-  task?: string
-  model?: string
-  tools?: string[]
-  steps?: SubagentStep[]
-  result?: string
-  /** href is the viewer URL. It is rendered beside the trigger, never inside it. */
-  href?: string
-  /** seconds is the settled duration, shown beside the title. */
-  seconds?: number
-}) {
+}: Omit<
+  React.ComponentProps<'div'> & {
+    name: string
+    status: TraceStatus
+    task?: string
+    model?: string
+    tools?: string[]
+    steps?: SubagentStep[]
+    result?: string
+    /** href is the viewer URL. It is rendered beside the trigger, never inside it. */
+    href?: string
+    /** seconds is the settled duration, shown beside the title. */
+    seconds?: number
+  },
+  'className'
+> & { sx?: ComponentStyles; className?: never }) {
   // Name the line and keep the viewer link beside it, outside any trigger.
   const line = <SubagentLine name={name} status={status} seconds={seconds} />
   const link = <SubagentLink href={href} name={name} />
   const hasBody = subagentHasBody({ task, model, tools, steps, result })
   if (!hasBody) {
     return (
-      <div data-slot="subagent" className={className} {...props}>
+      <div data-slot="subagent" sx={sx} {...props}>
         <Trace>
-          <div className="flex min-w-0 items-center gap-2">
+          <div sx={stylexStyles.rule6}>
             {line}
             {link}
           </div>
@@ -201,15 +281,15 @@ function Subagent({
   }
 
   return (
-    <div data-slot="subagent" className={className} {...props}>
+    <div data-slot="subagent" sx={sx} {...props}>
       <Trace>
         {/* Keyed by status so a finished run remounts closed. */}
         <TraceCollapsible key={status} defaultOpen={status === 'running'}>
-          <div className="flex min-w-0 items-center gap-2">
+          <div sx={stylexStyles.rule6}>
             <TraceCollapsibleTrigger>{line}</TraceCollapsibleTrigger>
             {link}
           </div>
-          <TraceCollapsibleContent className="flex flex-col gap-3">
+          <TraceCollapsibleContent {...stylex.props(stylexStyles.rule7)}>
             <SubagentBadges model={model} tools={tools} />
             <SubagentNote label="Task" text={task} />
             <SubagentSteps steps={steps} />

@@ -43,7 +43,12 @@ function Badge({
   return (
     <Comp
       data-slot="badge"
-      className={cn(badgeVariants({ variant }), className)}
+      className={
+        /* TODO(stylex): computed class helper */ cn(
+          badgeVariants({ variant }),
+          className,
+        )
+      }
       {...props}
     />
   )

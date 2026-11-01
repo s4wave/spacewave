@@ -15,6 +15,115 @@ import {
   type ObjectTypeMetadataById,
 } from '@s4wave/web/space/object-tree.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  layout as themeLayout,
+  fonts as themeFonts,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: '100%',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: themeColors['--color-background-primary'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    textAlign: 'left',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule2: { width: `calc(${themeLayout['--spacing']} * 72)`, padding: 0 },
+  rule3: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule5: { maxHeight: '240px', overflow: 'auto' },
+  rule6: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+      },
+    },
+  },
+  rule7: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+  },
+  rule8: {
+    flex: 1,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textAlign: 'left',
+  },
+  rule9: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule10: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: themeColors['--color-foreground'],
+  },
+  rule11: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule12: {
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule13: {
+    width: '100%',
+    borderRadius: themeRadii['--radius-lg'],
+    backgroundColor: themeColors['--color-accent'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-accent-foreground'],
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+})
+
 // objectKeySelectorLimit bounds the entries listed for one level.
 const objectKeySelectorLimit = 500
 
@@ -92,26 +201,18 @@ export function ObjectKeySelector({
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
-        <button
-          type="button"
-          disabled={disabled}
-          className="border-foreground/8 bg-background-primary text-foreground w-full rounded-lg border px-3 py-1.5 text-left text-xs"
-        >
+        <button type="button" disabled={disabled} sx={stylexStyles.rule1}>
           {displayValue}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-72 p-0">
+      <PopoverContent align="start" {...stylex.props(stylexStyles.rule2)}>
         {path.length > 0 && (
-          <button
-            type="button"
-            onClick={handleBack}
-            className="border-foreground/8 flex w-full items-center gap-1 border-b px-3 py-2 text-xs"
-          >
-            <LuChevronLeft className="size-3.5" />
+          <button type="button" onClick={handleBack} sx={stylexStyles.rule3}>
+            <LuChevronLeft {...stylex.props(stylexStyles.rule4)} />
             {prefix}
           </button>
         )}
-        <div className="max-h-[240px] overflow-auto">
+        <div sx={stylexStyles.rule5}>
           {currentNodes.map((node) => {
             const isFolder = !!node.hasChildren
             const key = node.data?.objectKey ?? node.id
@@ -123,31 +224,29 @@ export function ObjectKeySelector({
                 onClick={() =>
                   isFolder ? handleDrillIn(node.id) : handleSelect(key)
                 }
-                className="hover:bg-foreground/6 flex w-full items-center gap-2 px-3 py-1.5 text-xs"
+                sx={stylexStyles.rule6}
               >
-                <span className="size-4 shrink-0">{node.icon}</span>
-                <span className="flex-1 truncate text-left">{node.name}</span>
+                <span sx={stylexStyles.rule7}>{node.icon}</span>
+                <span sx={stylexStyles.rule8}>{node.name}</span>
                 {isFolder && (
-                  <LuChevronRight className="text-foreground-alt size-3.5" />
+                  <LuChevronRight {...stylex.props(stylexStyles.rule9)} />
                 )}
                 {!isFolder && isNodeSelected && (
-                  <LuCheck className="text-foreground size-3.5" />
+                  <LuCheck {...stylex.props(stylexStyles.rule10)} />
                 )}
               </button>
             )
           })}
           {level?.more && (
-            <div className="text-foreground-alt px-3 py-1.5 text-xs">
-              More objects not shown
-            </div>
+            <div sx={stylexStyles.rule11}>More objects not shown</div>
           )}
         </div>
-        <div className="border-foreground/8 border-t px-3 py-2">
+        <div sx={stylexStyles.rule12}>
           <button
             type="button"
             onClick={handleConfirm}
             disabled={!selected}
-            className="bg-accent text-accent-foreground w-full rounded-lg px-3 py-1 text-xs disabled:opacity-50"
+            sx={stylexStyles.rule13}
           >
             Select
           </button>

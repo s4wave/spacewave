@@ -56,6 +56,12 @@ import { OrgInviteSection } from './OrgInviteSection.js'
 import { OrgActionsSection } from './OrgActionsSection.js'
 import { OrgBillingSection } from './OrgBillingSection.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: { maxWidth: 'var(--container-xs)' },
+})
+
 type OrgOpenSection =
   | 'recovery'
   | 'members'
@@ -210,7 +216,7 @@ function RecoveryActionButton({
       <TooltipTrigger asChild>
         <span className="inline-flex">{button}</span>
       </TooltipTrigger>
-      <TooltipContent side="top" className="max-w-xs">
+      <TooltipContent side="top" sx={stylexStyles.rule1}>
         {disabledReason}
       </TooltipContent>
     </Tooltip>

@@ -34,10 +34,320 @@ import {
 } from '@s4wave/web/ui/dialog.js'
 import { Turnstile, type TurnstileInstance } from '@s4wave/web/ui/turnstile.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  colors as themeColors,
+  fonts as themeFonts,
+  layout as themeLayout,
+  utilityState as themeUtilityState,
+  radii as themeRadii,
+  motion as themeMotion,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: { color: themeColors['--color-foreground-alt'] },
+  rule2: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule3: {
+    position: 'relative',
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule4: {
+    position: 'absolute',
+    inset: 0,
+    display: 'flex',
+    alignItems: 'center',
+  },
+  rule5: {
+    width: '100%',
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+  },
+  rule6: { position: 'relative', display: 'flex', justifyContent: 'center' },
+  rule7: {
+    backgroundColor: themeColors['--color-background-get-started'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule8: {
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule9: { color: themeColors['--color-white'] },
+  rule10: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 1.5)`,
+    display: 'block',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule11: {
+    width: '100%',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      ':focus': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+    '::placeholder': {
+      color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    },
+    opacity: { default: null, ':disabled': 0.5 },
+    minHeight: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+  },
+  rule12: {
+    display: 'flex',
+    cursor: 'pointer',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule13: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    borderRadius: '.25rem',
+    accentColor: themeColors['--color-brand'],
+  },
+  rule14: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule15: {
+    display: 'inline-flex',
+    minHeight: `calc(${themeLayout['--spacing']} * 11)`,
+    alignItems: 'center',
+    color: themeColors['--color-brand'],
+    textDecorationLine: {
+      default: null,
+      '@media (hover: hover)': { default: null, ':hover': 'underline' },
+    },
+  },
+  rule16: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule17: {
+    display: 'inline-flex',
+    minHeight: `calc(${themeLayout['--spacing']} * 11)`,
+    alignItems: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-muted-foreground'],
+    textDecorationLine: 'underline',
+  },
+  rule18: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-yellow-500']} 30%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-yellow-500']} 10%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule19: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule20: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule21: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule22: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 11)`,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+      },
+    },
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+  },
+  rule23: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground'],
+  },
+  rule24: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule25: { color: themeColors['--color-foreground'] },
+  rule26: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+  },
+  rule27: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule28: { display: 'flex', gap: `calc(${themeLayout['--spacing']} * 2)` },
+  rule29: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule30: { maxWidth: 'var(--container-xs)' },
+  rule31: {
+    minHeight: `calc(${themeLayout['--spacing']} * 11)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule32: {
+    minHeight: `calc(${themeLayout['--spacing']} * 11)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+    backgroundColor: themeColors['--color-background'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule33: {
+    position: 'relative',
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+    backgroundColor: themeColors['--color-background-get-started'],
+    '--tw-shadow':
+      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+  },
+  rule34: {
+    minHeight: `calc(${themeLayout['--spacing']} * 11)`,
+    width: '100%',
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-brand'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule35: {
+    display: 'flex',
+    height: themeLayout['--spacing'],
+    gap: `calc(${themeLayout['--spacing']} * .5)`,
+    overflow: 'hidden',
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+  },
+  rule36: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+})
+
 // dnsLabelRegex validates DNS label format for usernames.
 const dnsLabelRegex = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/
-
-const labelClassName = 'text-foreground-alt mb-1.5 block text-xs select-none'
 
 const inputClassName = cn(
   'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50',
@@ -177,19 +487,25 @@ function SignInMethodButton({
       type="button"
       disabled={busy || !enabled}
       onClick={onClick}
-      className={cn(
-        'group rounded-md border transition-all duration-300',
-        fullWidth ? 'w-full' : 'flex-1',
-        'border-foreground/10 bg-background/20',
-        enabled
-          ? 'hover:border-brand/30 hover:bg-background/40'
-          : 'cursor-not-allowed opacity-40',
-        'disabled:cursor-not-allowed disabled:opacity-50',
-        'flex h-11 items-center justify-center gap-2',
-      )}
+      className={
+        /* TODO(stylex): global or unknown class: group */ cn(
+          'group rounded-md border transition-all duration-300',
+          fullWidth ? 'w-full' : 'flex-1',
+          'border-foreground/10 bg-background/20',
+          enabled
+            ? 'hover:border-brand/30 hover:bg-background/40'
+            : 'cursor-not-allowed opacity-40',
+          'disabled:cursor-not-allowed disabled:opacity-50',
+          'flex h-11 items-center justify-center gap-2',
+        )
+      }
     >
-      {loading ? <Spinner size="md" className="text-foreground-alt" /> : icon}
-      <span className="text-foreground-alt text-sm">{label}</span>
+      {loading ? (
+        <Spinner size="md" {...stylex.props(stylexStyles.rule1)} />
+      ) : (
+        icon
+      )}
+      <span sx={stylexStyles.rule2}>{label}</span>
     </button>
   )
 }
@@ -197,14 +513,12 @@ function SignInMethodButton({
 // Divider renders a centered label over a horizontal rule.
 function Divider({ label }: { label: string }) {
   return (
-    <div className="relative py-2">
-      <div className="absolute inset-0 flex items-center">
-        <div className="border-foreground/10 w-full border-t" />
+    <div sx={stylexStyles.rule3}>
+      <div sx={stylexStyles.rule4}>
+        <div sx={stylexStyles.rule5} />
       </div>
-      <div className="relative flex justify-center">
-        <span className="bg-background-get-started text-foreground-alt px-3 text-xs">
-          {label}
-        </span>
+      <div sx={stylexStyles.rule6}>
+        <span sx={stylexStyles.rule7}>{label}</span>
       </div>
     </div>
   )
@@ -310,13 +624,13 @@ function passwordSubmitBlocked(
 // LoginFooter renders the tagline below the form.
 function LoginFooter({ creatingAccount }: { creatingAccount: boolean }) {
   return (
-    <div className="text-foreground-alt text-center text-xs leading-relaxed">
+    <div sx={stylexStyles.rule8}>
       {creatingAccount ? (
         'creating a new cloud account'
       ) : (
         <>
           local-first, end-to-end encrypted,{' '}
-          <span className="text-white">no account required</span>
+          <span sx={stylexStyles.rule9}>no account required</span>
         </>
       )}
     </div>
@@ -574,9 +888,13 @@ function LoginFields({
   const confirmId = useId()
 
   return (
-    <div className="space-y-3">
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
+      }
+    >
       <div>
-        <label className={labelClassName} htmlFor={usernameId}>
+        <label sx={stylexStyles.rule10} htmlFor={usernameId}>
           Username
         </label>
         <input
@@ -587,12 +905,12 @@ function LoginFields({
           onChange={(e) => onUsernameChange(e.target.value)}
           placeholder="alice"
           disabled={busy || creatingAccount}
-          className={inputClassName}
+          sx={[stylexStyles.rule11]}
         />
       </div>
 
       <div>
-        <label className={labelClassName} htmlFor={passwordId}>
+        <label sx={stylexStyles.rule10} htmlFor={passwordId}>
           Password
         </label>
         <input
@@ -602,13 +920,13 @@ function LoginFields({
           onChange={(e) => onPasswordChange(e.target.value)}
           placeholder="Enter password"
           disabled={busy}
-          className={inputClassName}
+          sx={[stylexStyles.rule11]}
         />
       </div>
 
       {creatingAccount && (
         <div>
-          <label className={labelClassName} htmlFor={confirmId}>
+          <label sx={stylexStyles.rule10} htmlFor={confirmId}>
             Confirm password
           </label>
           <input
@@ -619,10 +937,14 @@ function LoginFields({
             onChange={(e) => onConfirmChange(e.target.value)}
             placeholder="Confirm password"
             disabled={busy}
-            className={cn(
-              inputClassName,
-              confirm.length > 0 && !passwordsMatch && 'border-destructive/50',
-            )}
+            className={
+              /* TODO(stylex): conditional property composition: borderColor */ cn(
+                inputClassName,
+                confirm.length > 0 &&
+                  !passwordsMatch &&
+                  'border-destructive/50',
+              )
+            }
           />
         </div>
       )}
@@ -643,19 +965,19 @@ function TermsAgreement({
   onChange: (agreed: boolean) => void
 }) {
   return (
-    <label className="flex cursor-pointer items-start gap-2 select-none">
+    <label sx={stylexStyles.rule12}>
       <input
         type="checkbox"
         checked={agreed}
         onChange={(e) => onChange(e.target.checked)}
         disabled={busy}
-        className="accent-brand mt-0.5 size-4 shrink-0 rounded"
+        sx={stylexStyles.rule13}
       />
-      <span className="text-foreground-alt text-xs leading-relaxed">
+      <span sx={stylexStyles.rule14}>
         I agree to the{' '}
         <a
           href="#/tos"
-          className="text-brand inline-flex min-h-11 items-center hover:underline"
+          sx={stylexStyles.rule15}
           onClick={(e) => e.stopPropagation()}
         >
           Terms of Service
@@ -663,7 +985,7 @@ function TermsAgreement({
         and{' '}
         <a
           href="#/privacy"
-          className="text-brand inline-flex min-h-11 items-center hover:underline"
+          sx={stylexStyles.rule15}
           onClick={(e) => e.stopPropagation()}
         >
           Privacy Policy
@@ -691,13 +1013,13 @@ function LoginNotices({
     <>
       {error && (
         <div>
-          <p className="text-destructive text-xs">{error}</p>
+          <p sx={stylexStyles.rule16}>{error}</p>
           {error.includes('Wrong password') && (
             <a
               href={forgotPasswordUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-muted-foreground inline-flex min-h-11 items-center text-xs underline"
+              sx={stylexStyles.rule17}
             >
               Forgot your password?
             </a>
@@ -706,31 +1028,25 @@ function LoginNotices({
       )}
 
       {rateLimitCountdown > 0 && (
-        <div className="rounded-md border border-yellow-500/30 bg-yellow-500/10 p-3">
-          <p className="text-foreground text-xs">
+        <div sx={stylexStyles.rule18}>
+          <p sx={stylexStyles.rule19}>
             Rate limited, retrying in {rateLimitCountdown}s…
           </p>
         </div>
       )}
 
       {browserAuthRequired && (
-        <div className="border-brand/30 bg-brand/10 rounded-md border p-3">
-          <p className="text-foreground mb-2 text-xs">
+        <div sx={stylexStyles.rule20}>
+          <p sx={stylexStyles.rule21}>
             Enhanced security required. Sign in via your browser.
           </p>
           <button
             type="button"
             onClick={onBrowserAuth}
-            className={cn(
-              'w-full rounded-md border transition-all duration-300',
-              'border-brand/30 bg-brand/20 hover:bg-brand/30',
-              'flex h-11 items-center justify-center gap-2',
-            )}
+            sx={[stylexStyles.rule22]}
           >
-            <LuKeyRound className="text-foreground size-4" />
-            <span className="text-foreground text-sm">
-              Open browser to sign in…
-            </span>
+            <LuKeyRound {...stylex.props(stylexStyles.rule23)} />
+            <span sx={stylexStyles.rule24}>Open browser to sign in…</span>
           </button>
         </div>
       )}
@@ -773,19 +1089,21 @@ function PasswordSubmit({
         type="button"
         onClick={onSubmit}
         disabled={disabled}
-        className={cn(
-          'group w-full rounded-md border transition-all duration-300',
-          'border-brand/30 bg-brand/10 hover:bg-brand/20',
-          'disabled:cursor-not-allowed disabled:border-foreground/10 disabled:bg-foreground/5 disabled:opacity-60 disabled:hover:bg-foreground/5',
-          'flex h-11 items-center justify-center gap-2',
-        )}
+        className={
+          /* TODO(stylex): global or unknown class: group */ cn(
+            'group w-full rounded-md border transition-all duration-300',
+            'border-brand/30 bg-brand/10 hover:bg-brand/20',
+            'disabled:cursor-not-allowed disabled:border-foreground/10 disabled:bg-foreground/5 disabled:opacity-60 disabled:hover:bg-foreground/5',
+            'flex h-11 items-center justify-center gap-2',
+          )
+        }
       >
         {busy ? (
-          <Spinner className="text-foreground" />
+          <Spinner {...stylex.props(stylexStyles.rule25)} />
         ) : (
-          <LuKeyRound className="text-foreground size-4" />
+          <LuKeyRound {...stylex.props(stylexStyles.rule23)} />
         )}
-        <span className="text-foreground text-sm">{label}</span>
+        <span sx={stylexStyles.rule24}>{label}</span>
       </button>
 
       {busy && (
@@ -804,10 +1122,13 @@ function PasswordSubmit({
 }
 
 const ssoProviders = {
-  google: { label: 'Google', icon: <FcGoogle className="size-5" /> },
+  google: {
+    label: 'Google',
+    icon: <FcGoogle {...stylex.props(stylexStyles.rule26)} />,
+  },
   github: {
     label: 'GitHub',
-    icon: <LuGithub className="text-foreground-alt size-5" />,
+    icon: <LuGithub {...stylex.props(stylexStyles.rule27)} />,
   },
 }
 
@@ -839,7 +1160,11 @@ function SignInMethods({
   if (loading === 'pem') pemLabel = 'Signing in with backup key...'
 
   return (
-    <div className="space-y-2">
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
+      }
+    >
       <input
         ref={pemInputRef}
         type="file"
@@ -852,18 +1177,18 @@ function SignInMethods({
         enabled={canUsePem}
         busy={busy}
         loading={loading === 'pem'}
-        icon={<LuKeyRound className="text-foreground-alt size-5" />}
+        icon={<LuKeyRound {...stylex.props(stylexStyles.rule27)} />}
         label={pemLabel}
         onClick={() => pemInputRef.current?.click()}
       />
-      <div className="flex gap-2">
+      <div sx={stylexStyles.rule28}>
         <Tooltip>
           <TooltipTrigger asChild>
             <SignInMethodButton
               enabled={canUsePasskey}
               busy={busy}
               loading={loading === 'passkey'}
-              icon={<LuFingerprint className="text-foreground-alt size-5" />}
+              icon={<LuFingerprint {...stylex.props(stylexStyles.rule27)} />}
               label="Passkey"
               onClick={onPasskey}
             />
@@ -911,30 +1236,42 @@ function ContinueWithoutAccount({
             type="button"
             onClick={onContinue}
             disabled={loading !== null}
-            className={cn(
-              'group relative w-full overflow-hidden rounded-md border transition-all duration-300',
-              'border-foreground/20 bg-background/20 hover:border-brand/30 hover:bg-background/40',
-              'disabled:cursor-not-allowed disabled:opacity-50',
-              'flex h-11 items-center justify-between px-4',
-            )}
+            className={
+              /* TODO(stylex): global or unknown class: group */ cn(
+                'group relative w-full overflow-hidden rounded-md border transition-all duration-300',
+                'border-foreground/20 bg-background/20 hover:border-brand/30 hover:bg-background/40',
+                'disabled:cursor-not-allowed disabled:opacity-50',
+                'flex h-11 items-center justify-between px-4',
+              )
+            }
           >
-            <div className="flex items-center gap-3">
-              <PiUserCircleDuotone className="text-foreground-alt group-hover:text-brand size-5 transition-colors" />
-              <span className="text-foreground-alt group-hover:text-foreground text-sm transition-colors">
+            <div sx={stylexStyles.rule29}>
+              <PiUserCircleDuotone
+                className={
+                  /* TODO(stylex): a descendant, group, peer or compound selector: group-hover:text-brand */ 'text-foreground-alt group-hover:text-brand size-5 transition-colors'
+                }
+              />
+              <span
+                className={
+                  /* TODO(stylex): a descendant, group, peer or compound selector: group-hover:text-foreground */ 'text-foreground-alt group-hover:text-foreground text-sm transition-colors'
+                }
+              >
                 {loading === 'continue'
                   ? 'Starting…'
                   : 'Continue without account'}
               </span>
             </div>
             <RxArrowRight
-              className={cn(
-                'text-foreground-alt group-hover:text-brand size-4 transition-all duration-300',
-                'group-hover:translate-x-1',
-              )}
+              className={
+                /* TODO(stylex): a descendant, group, peer or compound selector: group-hover:translate-x-1 */ cn(
+                  'text-foreground-alt group-hover:text-brand size-4 transition-all duration-300',
+                  'group-hover:translate-x-1',
+                )
+              }
             />
           </button>
         </TooltipTrigger>
-        <TooltipContent side="bottom" className="max-w-xs">
+        <TooltipContent side="bottom" sx={stylexStyles.rule30}>
           Creates a local account stored only on your device
         </TooltipContent>
       </Tooltip>
@@ -975,21 +1312,11 @@ function BrowserSignInDialog({
             onClick={() => {
               if (prompt) onOpenAgain(prompt)
             }}
-            className={cn(
-              'min-h-11 rounded-md border px-4 py-2 text-sm transition-colors',
-              'border-brand/30 bg-brand/10 text-foreground hover:bg-brand/20',
-            )}
+            sx={[stylexStyles.rule31]}
           >
             Open again
           </button>
-          <button
-            type="button"
-            onClick={onCancel}
-            className={cn(
-              'min-h-11 rounded-md border px-4 py-2 text-sm transition-colors',
-              'border-foreground/20 bg-background text-foreground-alt hover:text-foreground',
-            )}
-          >
+          <button type="button" onClick={onCancel} sx={[stylexStyles.rule32]}>
             Cancel attempt
           </button>
         </DialogFooter>
@@ -1299,12 +1626,21 @@ export function LoginForm({
   return (
     <div
       role="group"
-      className={cn('flex flex-col gap-4', className)}
+      className={
+        /* TODO(stylex): dynamic class or forwarded className */ cn(
+          'flex flex-col gap-4',
+          className,
+        )
+      }
       onKeyDown={handleKeyDown}
       {...props}
     >
-      <div className="border-foreground/20 bg-background-get-started relative overflow-hidden rounded-lg border shadow-lg backdrop-blur-sm">
-        <div className="space-y-3 p-6">
+      <div sx={stylexStyles.rule33}>
+        <div
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3 p-6'
+          }
+        >
           <LoginFields
             username={username}
             password={password}
@@ -1348,7 +1684,7 @@ export function LoginForm({
             <button
               type="button"
               onClick={returnToLogin}
-              className="text-foreground-alt hover:text-brand min-h-11 w-full text-center text-xs transition-colors"
+              sx={stylexStyles.rule34}
             >
               &larr; Return to login
             </button>
@@ -1404,19 +1740,25 @@ function PasswordStrength({ password }: { password: string }) {
   if (password.length === 0) return null
 
   return (
-    <div className="space-y-1">
-      <div className="bg-foreground/10 flex h-1 gap-0.5 overflow-hidden rounded-full">
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1 */ 'space-y-1'
+      }
+    >
+      <div sx={stylexStyles.rule35}>
         {[1, 2, 3].map((level) => (
           <div
             key={level}
-            className={cn(
-              'h-full flex-1 rounded-full transition-colors',
-              level <= strength ? colors[strength] : 'bg-transparent',
-            )}
+            className={
+              /* TODO(stylex): dynamic class or forwarded className */ cn(
+                'h-full flex-1 rounded-full transition-colors',
+                level <= strength ? colors[strength] : 'bg-transparent',
+              )
+            }
           />
         ))}
       </div>
-      <p className="text-foreground-alt/60 text-xs">{labels[strength]}</p>
+      <p sx={stylexStyles.rule36}>{labels[strength]}</p>
     </div>
   )
 }

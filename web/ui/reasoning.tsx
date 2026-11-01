@@ -1,3 +1,4 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
 import { LuCircleCheck, LuLoaderCircle } from 'react-icons/lu'
 
@@ -13,27 +14,47 @@ import {
   type TraceStatus,
 } from '@s4wave/web/ui/trace.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    animationName: 'spin',
+    animationDuration: '1s',
+    animationTimingFunction: 'linear',
+    animationIterationCount: 'infinite',
+    animationDirection: 'normal',
+    animationPlayState: 'running',
+    animationDelay: '0s',
+    animationFillMode: 'none',
+    animationTimeline: 'auto',
+  },
+  rule2: { whiteSpace: 'pre-wrap' },
+})
+
 /** Reasoning renders thinking as a trace line that opens while it is running. */
 function Reasoning({
   text,
   status = 'done',
   seconds,
-  className,
+  sx,
   ...props
-}: React.ComponentProps<'div'> & {
-  text: string
-  /** status is running while the model is still writing. */
-  status?: TraceStatus
-  /** seconds is the settled duration, shown beside the title. */
-  seconds?: number
-}) {
+}: Omit<
+  React.ComponentProps<'div'> & {
+    text: string
+    /** status is running while the model is still writing. */
+    status?: TraceStatus
+    /** seconds is the settled duration, shown beside the title. */
+    seconds?: number
+  },
+  'className'
+> & { sx?: ComponentStyles; className?: never }) {
   const [chosen, setChosen] = React.useState<boolean>()
   const thinking = status === 'running'
   const line = (
     <TraceLine status={status}>
       <TraceIcon>
         {thinking ? (
-          <LuLoaderCircle className="animate-spin" />
+          <LuLoaderCircle {...stylex.props(stylexStyles.rule1)} />
         ) : (
           <LuCircleCheck />
         )}
@@ -46,14 +67,14 @@ function Reasoning({
   )
 
   return (
-    <div data-slot="reasoning" className={className} {...props}>
+    <div data-slot="reasoning" sx={sx} {...props}>
       <Trace>
         {text.length === 0 ? (
           line
         ) : (
           <TraceCollapsible open={chosen ?? thinking} onOpenChange={setChosen}>
             <TraceCollapsibleTrigger>{line}</TraceCollapsibleTrigger>
-            <TraceCollapsibleContent className="whitespace-pre-wrap">
+            <TraceCollapsibleContent {...stylex.props(stylexStyles.rule2)}>
               {text}
             </TraceCollapsibleContent>
           </TraceCollapsible>

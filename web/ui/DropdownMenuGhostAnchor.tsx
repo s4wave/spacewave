@@ -17,7 +17,9 @@ export function DropdownMenuGhostAnchor({
   return createPortal(
     <div
       data-slot="dropdown-menu-ghost-anchor"
-      className="dropdown-ghost-anchor"
+      className={
+        /* TODO(stylex): global or unknown class: dropdown-ghost-anchor */ 'dropdown-ghost-anchor'
+      }
       style={{
         '--dropdown-ghost-left': `${x}px`,
         '--dropdown-ghost-top': `${y}px`,

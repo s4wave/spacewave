@@ -19,6 +19,35 @@ import {
 import { TreeRow, type TreeRowProps } from './TreeRow.js'
 import { cn } from '@s4wave/web/style/utils.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    clipPath: 'inset(50%)',
+    whiteSpace: 'nowrap',
+    borderWidth: 0,
+    width: '1px',
+    height: '1px',
+    margin: '-1px',
+    padding: 0,
+    position: 'absolute',
+    overflow: 'hidden',
+  },
+  rule2: {
+    display: 'flex',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule3: { minHeight: 0 },
+})
+
 export interface TreeProps<T = void> {
   nodes: TreeNode<T>[]
   // state is the expansion, selection, and focus the Tree shows and changes,
@@ -329,10 +358,12 @@ export function Tree<T>({
     <TreeStateContext.Provider value={state}>
       <TreeDispatchContext.Provider value={dispatch}>
         <div
-          className={cn(
-            'group flex min-h-0 flex-1 flex-col outline-none focus:outline-none',
-            className,
-          )}
+          className={
+            /* TODO(stylex): global or unknown class: group */ cn(
+              'group flex min-h-0 flex-1 flex-col outline-none focus:outline-none',
+              className,
+            )
+          }
           role="tree"
           tabIndex={state.focusedId != null ? -1 : 0}
           aria-label="Tree navigation"
@@ -354,18 +385,16 @@ export function Tree<T>({
           }
           onKeyDown={handleKeyDown}
         >
-          <div id="tree-instructions" className="sr-only">
+          <div id="tree-instructions" sx={stylexStyles.rule1}>
             Use arrow keys or j/k to navigate, Enter to select, and h/l to
             collapse/expand nodes
           </div>
           {nodes.length === 0 ? (
-            <div className="text-foreground-alt flex flex-1 items-center justify-center p-4">
-              {placeholder ?? 'No items'}
-            </div>
+            <div sx={stylexStyles.rule2}>{placeholder ?? 'No items'}</div>
           ) : (
             <List
               role="none"
-              className="min-h-0"
+              {...stylex.props(stylexStyles.rule3)}
               listRef={listRef}
               defaultHeight={600}
               overscanCount={8}

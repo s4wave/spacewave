@@ -1,6 +1,23 @@
 import type { ReactNode } from 'react'
 import { cn } from '@s4wave/web/style/utils.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  fonts as themeFonts,
+  colors as themeColors,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-error'],
+  },
+  rule2: { color: themeColors['--color-foreground-alt'] },
+})
+
 // OutputLineRule defines a coloring rule for output lines.
 export interface OutputLineRule {
   // match is either a prefix string to check or a function.
@@ -55,23 +72,28 @@ export function OutputPanel({
 
   return (
     <div
-      className={cn(
-        'flex-1 overflow-auto rounded border p-2 font-mono text-xs',
-        'bg-background-secondary text-foreground',
-        'border-ui-outline',
-        className,
-      )}
+      className={
+        /* TODO(stylex): dynamic class or forwarded className */ cn(
+          'flex-1 overflow-auto rounded border p-2 font-mono text-xs',
+          'bg-background-secondary text-foreground',
+          'border-ui-outline',
+          className,
+        )
+      }
     >
-      {error && (
-        <div className="text-error mb-2 font-medium">Error: {error}</div>
-      )}
+      {error && <div sx={stylexStyles.rule1}>Error: {error}</div>}
       {lines.length === 0 && !error && (
-        <div className="text-foreground-alt">{placeholder}</div>
+        <div sx={stylexStyles.rule2}>{placeholder}</div>
       )}
       {lines.map((line) => (
         <div
           key={line}
-          className={cn('leading-relaxed', getLineClassName(line))}
+          className={
+            /* TODO(stylex): computed class helper */ cn(
+              'leading-relaxed',
+              getLineClassName(line),
+            )
+          }
         >
           {line}
         </div>
