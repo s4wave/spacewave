@@ -1,4 +1,4 @@
-import { LuShield } from 'react-icons/lu'
+import { LuShield } from '@s4wave/web/images/icons.js'
 
 import policies from './customer-policies.json'
 import { LegalPageLayout } from './LegalPageLayout.js'

@@ -1,9 +1,15 @@
-import { LuCheck, LuShieldQuestion, LuX } from 'react-icons/lu'
+import { LuCheck, LuShieldQuestion, LuX } from '@s4wave/web/images/icons.js'
 
 import { Button } from '@s4wave/web/ui/button.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 
 import type { TerminalFrame } from '@s4wave/sdk/terminal/terminal.pb.js'
+
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: { WebkitUserSelect: 'none', userSelect: 'none' },
+})
 
 export interface TerminalSshTrustPanelProps {
   challenge: TerminalFrame
@@ -53,7 +59,7 @@ export function TerminalSshTrustPanel({
           <Button
             variant="brandOutline"
             size="brandWide"
-            className="select-none"
+            sx={stylexStyles.rule1}
             onClick={() => onRespond(true)}
             type="button"
           >

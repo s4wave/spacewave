@@ -1,9 +1,225 @@
 import { useCallback, useMemo, useState } from 'react'
 import { OptimizedLayout, Model, TabNode, IJsonModel } from '@aptre/flex-layout'
-import { LuArrowLeft, LuFile } from 'react-icons/lu'
+import { LuArrowLeft, LuFile } from '@s4wave/web/images/icons.js'
 
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { cn } from '@s4wave/web/style/utils.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  colors as themeColors,
+  layout as themeLayout,
+  fonts as themeFonts,
+  utilityState as themeUtilityState,
+  radii as themeRadii,
+  motion as themeMotion,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: themeColors['--color-background'],
+    opacity: 0.25,
+  },
+  rule2: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+  },
+  rule4: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  rule5: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule6: {
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-white']} 10%, transparent)`,
+    paddingBottom: themeLayout['--spacing'],
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule7: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule8: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rule9: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule10: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule11: {
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: '10px',
+    lineHeight: 1.5,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-brand'],
+  },
+  rule12: {
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: themeColors['--color-window-border'],
+  },
+  rule13: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule14: {
+    containerType: 'inline-size',
+    display: 'flex',
+    width: '100%',
+    flex: 1,
+    flexDirection: 'column',
+    overflowY: 'auto',
+    backgroundColor: themeColors['--color-background'],
+  },
+  rule15: {
+    marginInline: 'auto',
+    width: '100%',
+    maxWidth: 'var(--container-5xl)',
+    paddingInline: {
+      default: `calc(${themeLayout['--spacing']} * 4)`,
+      '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 8)`,
+    },
+    paddingBlock: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule16: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 6)`,
+    display: 'flex',
+    cursor: 'pointer',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule17: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule18: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: 'var(--text-3xl)',
+    lineHeight: 'var(--tw-leading, var(--text-3xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule19: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule20: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 8)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-text-muted'],
+  },
+  rule21: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 10)`,
+  },
+  rule22: {
+    display: 'grid',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    gridTemplateColumns: {
+      default: null,
+      '@container (min-width: 32rem)': 'repeat(2, minmax(0, 1fr))',
+    },
+  },
+  rule23: {
+    overflow: 'hidden',
+    borderRadius: 'var(--radius-xl)',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+  },
+  rule24: { display: 'flex', flexDirection: 'column' },
+  rule25: {
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-white']} 5%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule26: {
+    marginLeft: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule27: {
+    overflowX: 'auto',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-white']} 5%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule28: { paddingBottom: `calc(${themeLayout['--spacing']} * 8)` },
+})
 
 interface ColorScheme {
   id: string
@@ -242,10 +458,10 @@ function makeDemoModel(prefix: string): IJsonModel {
 // SampleContent renders placeholder content inside a demo tab.
 function SampleContent({ node }: { node: TabNode }) {
   return (
-    <div className="bg-background flex h-full w-full items-center justify-center opacity-25">
-      <div className="flex flex-col items-center gap-1">
-        <LuFile className="size-5" />
-        <span className="text-xs font-medium">{node.getName()}</span>
+    <div sx={stylexStyles.rule1}>
+      <div sx={stylexStyles.rule2}>
+        <LuFile {...stylex.props(stylexStyles.rule3)} />
+        <span sx={stylexStyles.rule4}>{node.getName()}</span>
       </div>
     </div>
   )
@@ -269,9 +485,16 @@ function DemoLayout({
   )
 
   return (
-    <div ref={applyVars} className="layout-colors-surface rounded-lg p-4">
+    <div
+      ref={applyVars}
+      className={
+        /* TODO(stylex): global or unknown class: layout-colors-surface */ 'layout-colors-surface rounded-lg p-4'
+      }
+    >
       <div
-        className="layout-colors-frame overflow-hidden"
+        className={
+          /* TODO(stylex): global or unknown class: layout-colors-frame */ 'layout-colors-frame overflow-hidden'
+        }
         style={{ '--layout-colors-height': `${height}px` }}
       >
         <OptimizedLayout model={model} renderTab={renderTab} />
@@ -308,14 +531,10 @@ function Section({
   children: React.ReactNode
 }) {
   return (
-    <section className="flex flex-col gap-3">
+    <section sx={stylexStyles.rule5}>
       <div>
-        <h2 className="text-foreground border-b border-white/10 pb-1 text-lg font-semibold">
-          {title}
-        </h2>
-        {subtitle && (
-          <p className="text-foreground-alt mt-1 text-xs">{subtitle}</p>
-        )}
+        <h2 sx={stylexStyles.rule6}>{title}</h2>
+        {subtitle && <p sx={stylexStyles.rule7}>{subtitle}</p>}
       </div>
       {children}
     </section>
@@ -338,12 +557,14 @@ function SchemePreviewCard({
       role="button"
       tabIndex={0}
       data-testid={`scheme-card-${scheme.id}`}
-      className={cn(
-        'group flex cursor-pointer flex-col gap-3 rounded-xl border p-4 transition-all',
-        selected
-          ? 'border-brand/50 bg-brand/5 ring-brand/20 ring-1'
-          : 'border-foreground/8 hover:border-foreground/15 bg-background-card/30',
-      )}
+      className={
+        /* TODO(stylex): global or unknown class: group */ cn(
+          'group flex cursor-pointer flex-col gap-3 rounded-xl border p-4 transition-all',
+          selected
+            ? 'border-brand/50 bg-brand/5 ring-brand/20 ring-1'
+            : 'border-foreground/8 hover:border-foreground/15 bg-background-card/30',
+        )
+      }
       onClick={onSelect}
       onKeyDown={(event) => {
         if (event.key !== 'Enter' && event.key !== ' ') return
@@ -351,23 +572,14 @@ function SchemePreviewCard({
         onSelect()
       }}
     >
-      <div className="flex items-center justify-between">
+      <div sx={stylexStyles.rule8}>
         <div>
-          <h3 className="text-foreground text-sm font-semibold">
-            {scheme.name}
-          </h3>
-          <p className="text-foreground-alt text-xs">{scheme.description}</p>
+          <h3 sx={stylexStyles.rule9}>{scheme.name}</h3>
+          <p sx={stylexStyles.rule10}>{scheme.description}</p>
         </div>
-        {selected && (
-          <span className="bg-brand/20 text-brand micro-ten rounded-full px-2 py-0.5 font-semibold">
-            Selected
-          </span>
-        )}
+        {selected && <span sx={stylexStyles.rule11}>Selected</span>}
       </div>
-      <div
-        ref={useColorSchemeVars(scheme.vars)}
-        className="border-window-border overflow-hidden rounded-lg border"
-      >
+      <div ref={useColorSchemeVars(scheme.vars)} sx={stylexStyles.rule12}>
         <DemoLayout
           prefix={`card-${scheme.id}`}
           height={160}
@@ -392,16 +604,18 @@ const SWATCH_KEYS = [
 
 function SwatchRow({ scheme }: { scheme: ColorScheme }) {
   return (
-    <div className="flex flex-wrap gap-3">
+    <div sx={stylexStyles.rule13}>
       {SWATCH_KEYS.map((s) => {
         const value = scheme.vars[s.key]
         return (
-          <div key={s.key} className="flex flex-col items-center gap-1">
+          <div key={s.key} sx={stylexStyles.rule2}>
             <div
-              className="layout-colors-swatch size-8 rounded border border-white/10"
+              className={
+                /* TODO(stylex): global or unknown class: layout-colors-swatch */ 'layout-colors-swatch size-8 rounded border border-white/10'
+              }
               style={{ '--layout-color-swatch': value || `var(${s.key})` }}
             />
-            <span className="text-foreground-alt text-xs">{s.label}</span>
+            <span sx={stylexStyles.rule10}>{s.label}</span>
           </div>
         )
       })}
@@ -424,33 +638,27 @@ export function LayoutColorsDebug() {
   )
 
   return (
-    <div className="bg-background @container flex w-full flex-1 flex-col overflow-y-auto">
-      <div className="mx-auto w-full max-w-5xl px-4 py-6 @lg:px-8">
-        <button
-          type="button"
-          onClick={goBack}
-          className="text-foreground-alt hover:text-foreground mb-6 flex cursor-pointer items-center gap-2 transition-colors"
-        >
-          <LuArrowLeft className="size-4" />
+    <div sx={stylexStyles.rule14}>
+      <div sx={stylexStyles.rule15}>
+        <button type="button" onClick={goBack} sx={stylexStyles.rule16}>
+          <LuArrowLeft {...stylex.props(stylexStyles.rule17)} />
           Back to home
         </button>
 
-        <h1 className="text-foreground mb-2 text-3xl font-semibold">
-          Monokai Spectrum Lab
-        </h1>
-        <p className="text-foreground-alt mb-2 text-sm">
+        <h1 sx={stylexStyles.rule18}>Monokai Spectrum Lab</h1>
+        <p sx={stylexStyles.rule19}>
           Compare the current warm theme against Monokai Spectrum-inspired
           variants. Each isolates a different axis: backgrounds, brand color,
           text tint, or the full combination.
         </p>
-        <p className="text-text-muted mb-8 text-xs">
+        <p sx={stylexStyles.rule20}>
           Click a variant to select it. The enlarged preview and swatches update
           to show the selected scheme.
         </p>
 
-        <div className="flex flex-col gap-10">
+        <div sx={stylexStyles.rule21}>
           <Section title="Monokai Variants">
-            <div className="grid gap-4 @lg:grid-cols-2">
+            <div sx={stylexStyles.rule22}>
               {SCHEMES.map((s) => (
                 <SchemePreviewCard
                   key={s.id}
@@ -463,15 +671,11 @@ export function LayoutColorsDebug() {
           </Section>
 
           <Section title="Selected Variant — Enlarged">
-            <div className="border-foreground/8 overflow-hidden rounded-xl border">
-              <div className="flex flex-col">
-                <div className="bg-background-card/50 border-b border-white/5 px-4 py-2">
-                  <span className="text-foreground text-sm font-semibold">
-                    {selected.name}
-                  </span>
-                  <span className="text-foreground-alt ml-2 text-xs">
-                    {selected.description}
-                  </span>
+            <div sx={stylexStyles.rule23}>
+              <div sx={stylexStyles.rule24}>
+                <div sx={stylexStyles.rule25}>
+                  <span sx={stylexStyles.rule9}>{selected.name}</span>
+                  <span sx={stylexStyles.rule26}>{selected.description}</span>
                 </div>
                 <div ref={useColorSchemeVars(selected.vars)}>
                   <DemoLayout
@@ -489,7 +693,7 @@ export function LayoutColorsDebug() {
           </Section>
 
           <Section title="Configuration">
-            <pre className="bg-background-card/50 text-foreground-alt overflow-x-auto rounded-lg border border-white/5 p-4 font-mono text-xs leading-relaxed">
+            <pre sx={stylexStyles.rule27}>
               {JSON.stringify(
                 { id: selected.id, name: selected.name, vars: selected.vars },
                 null,
@@ -498,7 +702,7 @@ export function LayoutColorsDebug() {
             </pre>
           </Section>
 
-          <div className="pb-8" />
+          <div sx={stylexStyles.rule28} />
         </div>
       </div>
     </div>

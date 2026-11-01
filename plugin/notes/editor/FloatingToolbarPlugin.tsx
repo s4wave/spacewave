@@ -8,7 +8,7 @@ import {
 } from 'lexical'
 import { $isLinkNode, TOGGLE_LINK_COMMAND } from '@lexical/link'
 import { cn } from '@s4wave/web/style/utils.js'
-import { LuBold, LuItalic, LuCode, LuLink } from 'react-icons/lu'
+import { LuBold, LuItalic, LuCode, LuLink } from '@s4wave/web/images/icons.js'
 import { TextInputDialog } from '../NoteDialogs.js'
 
 // FloatingToolbarPlugin shows a floating toolbar when text is selected.

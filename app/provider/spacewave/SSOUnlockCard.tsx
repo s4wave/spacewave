@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { LuArrowLeft, LuCheck, LuLock } from 'react-icons/lu'
+import { LuArrowLeft, LuCheck, LuLock } from '@s4wave/web/images/icons.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
 

@@ -9,7 +9,7 @@ import {
   LuMonitor,
   LuNotebookPen,
   LuPenLine,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import type { QuickstartRegistration } from '@s4wave/sdk/quickstart/registry/registry.pb.js'
 

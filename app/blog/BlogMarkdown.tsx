@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import Markdown from 'markdown-to-jsx'
-import { LuExternalLink } from 'react-icons/lu'
+import { LuExternalLink } from '@s4wave/web/images/icons.js'
 
 import { MarkdownLink } from '@s4wave/app/docs/MarkdownLink.js'
 

@@ -1,5 +1,5 @@
 import type { ComponentProps } from 'react'
-import { LuCircleAlert, LuRotateCw } from 'react-icons/lu'
+import { LuCircleAlert, LuRotateCw } from '@s4wave/web/images/icons.js'
 
 import { UnixFSBrowserShell } from './UnixFSBrowserShell.js'
 

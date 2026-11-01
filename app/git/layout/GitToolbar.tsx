@@ -1,4 +1,8 @@
-import { LuChevronLeft, LuChevronRight, LuChevronUp } from 'react-icons/lu'
+import {
+  LuChevronLeft,
+  LuChevronRight,
+  LuChevronUp,
+} from '@s4wave/web/images/icons.js'
 
 import type { ListRefsResponse } from '@s4wave/sdk/git/repo.pb.js'
 

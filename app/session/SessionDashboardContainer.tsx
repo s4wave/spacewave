@@ -4,7 +4,7 @@ import {
   useResource,
   useResourceValue,
 } from '@aptre/bldr-sdk/hooks/useResource.js'
-import { LuTriangleAlert } from 'react-icons/lu'
+import { LuTriangleAlert } from '@s4wave/web/images/icons.js'
 
 import { useVisibleQuickstartOptions } from '@s4wave/app/quickstart/useQuickstartOptions.js'
 import { SelfEnrollmentGateState } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'

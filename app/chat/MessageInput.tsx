@@ -1,4 +1,4 @@
-import { LuSendHorizontal } from 'react-icons/lu'
+import { LuSendHorizontal } from '@s4wave/web/images/icons.js'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 interface MessageInputProps {

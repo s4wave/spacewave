@@ -10,7 +10,7 @@ import {
   LuPlus,
   LuTrash2,
   LuX,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import { useOpenCommand } from '@s4wave/web/command/CommandContext.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'

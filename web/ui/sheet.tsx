@@ -1,7 +1,7 @@
 import type { StyleXStyles } from '@stylexjs/stylex'
 import * as React from 'react'
 import * as SheetPrimitive from '@radix-ui/react-dialog'
-import { LuX as XIcon } from 'react-icons/lu'
+import { LuX as XIcon } from '@s4wave/web/images/icons.js'
 
 import * as stylex from '@stylexjs/stylex'
 import {

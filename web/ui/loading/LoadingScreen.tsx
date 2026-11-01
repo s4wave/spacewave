@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import '@fontsource-variable/manrope'
-import { LuArrowLeft, LuRotateCw } from 'react-icons/lu'
+import { LuArrowLeft, LuRotateCw } from '@s4wave/web/images/icons.js'
 
 import spacewaveIcon from '@s4wave/web/images/spacewave-icon.png'
 import { cn } from '@s4wave/web/style/utils.js'

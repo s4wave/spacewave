@@ -6,7 +6,7 @@ import {
   LuShieldCheck,
   LuUsers,
   LuLayers,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import { Config as BlockEncCfg } from '@go/github.com/s4wave/spacewave/db/block/transform/blockenc/blockenc.pb.js'
 import { BlockEnc } from '@go/github.com/s4wave/spacewave/db/util/blockenc/blockenc.pb.js'
@@ -31,6 +31,126 @@ import {
 
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../style/tokens.stylex.js'
+
+import {
+  layout as themeLayout2,
+  radii as themeRadii,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    cursor: 'default',
+    alignItems: 'center',
+    gap: `calc(${themeLayout2['--spacing']} * 3)`,
+    paddingInline: `calc(${themeLayout2['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout2['--spacing']} * 2)`,
+  },
+  rule2: {
+    display: 'flex',
+    width: `calc(${themeLayout2['--spacing']} * 5)`,
+    height: `calc(${themeLayout2['--spacing']} * 5)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout2['--spacing']} * 3)`,
+    height: `calc(${themeLayout2['--spacing']} * 3)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule4: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout2['--spacing']} * 2)`,
+  },
+  rule5: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule6: {
+    fontSize: '.6rem',
+    lineHeight: 1.5,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule7: {
+    display: 'flex',
+    cursor: 'default',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout2['--spacing']} * 3)`,
+    paddingInline: `calc(${themeLayout2['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout2['--spacing']} * 1.5)`,
+  },
+  rule8: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 12%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 6%, transparent)`,
+    color: `color-mix(in oklab, ${themeColors['--color-brand']} 80%, transparent)`,
+  },
+  rule9: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 3%, transparent)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule10: {
+    display: 'flex',
+    minWidth: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout2['--spacing']} * 2)`,
+  },
+  rule11: {
+    width: `calc(${themeLayout2['--spacing']} * 3)`,
+    height: `calc(${themeLayout2['--spacing']} * 3)`,
+    flexShrink: 0,
+  },
+  rule12: {
+    color: `color-mix(in oklab, ${themeColors['--color-brand']} 80%, transparent)`,
+  },
+  rule13: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule14: {
+    fontSize: '.55rem',
+    lineHeight: 1.5,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    letterSpacing: '.14em',
+    textTransform: 'uppercase',
+  },
+  rule15: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: '.65rem',
+    lineHeight: 1.5,
+  },
+  rule16: {
+    color: `color-mix(in oklab, ${themeColors['--color-brand']} 90%, transparent)`,
+  },
+  rule17: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule18: {
+    display: 'flex',
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: themeLayout2['--spacing'],
+    fontSize: '.55rem',
+    lineHeight: 1.5,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  rule19: {
+    width: `calc(${themeLayout2['--spacing']} * 2.5)`,
+    height: `calc(${themeLayout2['--spacing']} * 2.5)`,
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: { maxWidth: `calc(${themeLayout['--spacing']} * 64)` },
@@ -245,36 +365,30 @@ export function TransformConfigDisplay({ info }: TransformConfigDisplayProps) {
 
   return (
     <div
-      className={cn(
-        hasEncryption
-          ? 'transform-config-shadow-encryption'
-          : 'transform-config-shadow-default',
-        'divide-foreground/6 divide-y overflow-hidden rounded-lg border',
-        hasEncryption
-          ? 'border-brand/12 bg-background-card/40'
-          : 'border-foreground/6 bg-background-card/30',
-      )}
+      className={
+        /* TODO(stylex): global or unknown class: transform-config-shadow-encryption */ cn(
+          hasEncryption
+            ? 'transform-config-shadow-encryption'
+            : 'transform-config-shadow-default',
+          'divide-foreground/6 divide-y overflow-hidden rounded-lg border',
+          hasEncryption
+            ? 'border-brand/12 bg-background-card/40'
+            : 'border-foreground/6 bg-background-card/30',
+        )
+      }
     >
       {contentSteps.map((step) => {
         const Icon = step.icon
         return (
           <Tooltip key={`${step.label}-${step.detail}`}>
             <TooltipTrigger asChild>
-              <div className="flex cursor-default items-center gap-3 px-4 py-2">
-                <div
-                  className={cn(
-                    'bg-foreground/5 flex size-5 shrink-0 items-center justify-center rounded-md',
-                  )}
-                >
-                  <Icon className="text-foreground-alt size-3" />
+              <div sx={stylexStyles2.rule1}>
+                <div sx={[stylexStyles2.rule2]}>
+                  <Icon {...stylex.props(stylexStyles2.rule3)} />
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-foreground-alt text-xs font-medium">
-                    {step.label}
-                  </span>
-                  <span className="text-foreground-alt/50 micro-text">
-                    {step.detail}
-                  </span>
+                <div sx={stylexStyles2.rule4}>
+                  <span sx={stylexStyles2.rule5}>{step.label}</span>
+                  <span sx={stylexStyles2.rule6}>{step.detail}</span>
                 </div>
               </div>
             </TooltipTrigger>
@@ -288,15 +402,13 @@ export function TransformConfigDisplay({ info }: TransformConfigDisplayProps) {
       {storageBytes > 0n && (
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="flex cursor-default items-center gap-3 px-4 py-2">
-              <div className="bg-foreground/5 flex size-5 shrink-0 items-center justify-center rounded-md">
-                <LuHardDrive className="text-foreground-alt size-3" />
+            <div sx={stylexStyles2.rule1}>
+              <div sx={stylexStyles2.rule2}>
+                <LuHardDrive {...stylex.props(stylexStyles2.rule3)} />
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-foreground-alt text-xs font-medium">
-                  Storage
-                </span>
-                <span className="text-foreground-alt/50 micro-text">
+              <div sx={stylexStyles2.rule4}>
+                <span sx={stylexStyles2.rule5}>Storage</span>
+                <span sx={stylexStyles2.rule6}>
                   {formatBytes(storageBytes)}
                 </span>
               </div>
@@ -311,35 +423,31 @@ export function TransformConfigDisplay({ info }: TransformConfigDisplayProps) {
       <Tooltip>
         <TooltipTrigger asChild>
           <div
-            className={cn(
-              'flex cursor-default items-center justify-between gap-3 px-4 py-1.5',
-              hasEncryption
-                ? 'bg-brand/6 border-brand/12 text-brand/80'
-                : 'bg-foreground/3 text-foreground-alt/60',
-            )}
+            sx={[
+              stylexStyles2.rule7,
+              hasEncryption ? stylexStyles2.rule8 : stylexStyles2.rule9,
+            ]}
           >
-            <div className="flex min-w-0 items-center gap-2">
+            <div sx={stylexStyles2.rule10}>
               <LuLock
-                className={cn(
-                  'size-3 shrink-0',
-                  hasEncryption ? 'text-brand/80' : 'text-foreground-alt/40',
-                )}
+                {...stylex.props([
+                  stylexStyles2.rule11,
+                  hasEncryption ? stylexStyles2.rule12 : stylexStyles2.rule13,
+                ])}
               />
-              <span className="micro-fine tracking-brand-label font-medium uppercase">
-                Encryption
-              </span>
+              <span sx={stylexStyles2.rule14}>Encryption</span>
               <span
-                className={cn(
-                  'truncate micro-label',
-                  hasEncryption ? 'text-brand/90' : 'text-foreground-alt/60',
-                )}
+                sx={[
+                  stylexStyles2.rule15,
+                  hasEncryption ? stylexStyles2.rule16 : stylexStyles2.rule17,
+                ]}
               >
                 {encryptionStep?.detail ?? 'Not encrypted'}
               </span>
             </div>
             {hasEncryption && grantCount > 0 && (
-              <div className="micro-fine flex shrink-0 items-center gap-1 font-medium">
-                <LuUsers className="size-2.5" />
+              <div sx={stylexStyles2.rule18}>
+                <LuUsers {...stylex.props(stylexStyles2.rule19)} />
                 {grantCount} {grantCount === 1 ? 'key' : 'keys'}
               </div>
             )}

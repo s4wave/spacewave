@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { LuBuilding2, LuPlus } from 'react-icons/lu'
+import { LuBuilding2, LuPlus } from '@s4wave/web/images/icons.js'
 
 import type { Session } from '@s4wave/sdk/session/session.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'

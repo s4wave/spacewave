@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
-import { LuCheck, LuCopy } from 'react-icons/lu'
+import { LuCheck, LuCopy } from '@s4wave/web/images/icons.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
 import { Button } from '@s4wave/web/ui/button.js'
@@ -124,7 +124,7 @@ function CodeBlockCopyButton({
   value,
   variant = 'ghost',
   size = 'iconXs',
-  className,
+  sx,
   onClick,
   ...props
 }: React.ComponentProps<typeof Button> & { value: string }) {
@@ -147,9 +147,7 @@ function CodeBlockCopyButton({
         variant={variant}
         size={size}
         aria-label={copied ? 'Copied' : 'Copy'}
-        className={
-          /* TODO(stylex): dynamic class or forwarded className */ cn(className)
-        }
+        sx={sx}
         onClick={(event) => {
           onClick?.(event)
           void navigator.clipboard.writeText(value).then(

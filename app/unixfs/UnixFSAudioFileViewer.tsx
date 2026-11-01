@@ -4,7 +4,7 @@ import {
   useCallback,
   useState,
 } from 'react'
-import { LuMusic, LuTriangleAlert } from 'react-icons/lu'
+import { LuMusic, LuTriangleAlert } from '@s4wave/web/images/icons.js'
 import { createPlayer } from '@videojs/react'
 import { Audio, audioFeatures, AudioSkin } from '@videojs/react/audio'
 import '@videojs/react/audio/skin.css'

@@ -15,7 +15,7 @@ import {
   LuFolderPlus,
   LuSearch,
   LuUpload,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 import { PanelHeader } from '../../ui/PanelHeader.js'
 import { PathBar } from './PathBar.js'
 import { SearchBox } from '../../ui/SearchBox.js'
@@ -26,10 +26,112 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../../ui/DropdownMenu.js'
-import { cn } from '../../style/utils.js'
 
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../style/tokens.stylex.js'
+
+import {
+  layout as themeLayout2,
+  motion as themeMotion,
+  colors as themeColors,
+} from '../../style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout2['--spacing']} * .5)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout2['--spacing']} * 4)`,
+    height: `calc(${themeLayout2['--spacing']} * 4)`,
+  },
+  rule3: { flex: 1 },
+  rule4: {
+    display: 'flex',
+    width: {
+      default: `calc(${themeLayout2['--spacing']} * 6)`,
+      '@media (pointer: coarse)': `calc(${themeLayout2['--spacing']} * 11)`,
+    },
+    height: {
+      default: `calc(${themeLayout2['--spacing']} * 6)`,
+      '@media (pointer: coarse)': `calc(${themeLayout2['--spacing']} * 11)`,
+    },
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '.25rem',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule5: {
+    cursor: 'default',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 30%, transparent)`,
+  },
+  rule6: {
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+  },
+  rule7: {
+    display: 'flex',
+    width: {
+      default: `calc(${themeLayout2['--spacing']} * 6)`,
+      '@media (pointer: coarse)': `calc(${themeLayout2['--spacing']} * 11)`,
+    },
+    height: {
+      default: `calc(${themeLayout2['--spacing']} * 6)`,
+      '@media (pointer: coarse)': `calc(${themeLayout2['--spacing']} * 11)`,
+    },
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '.25rem',
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+  },
+  rule8: { minWidth: `calc(${themeLayout2['--spacing']} * 35)` },
+  rule9: {
+    minHeight: {
+      default: null,
+      '@media not all and (min-width: 40rem)': `calc(${themeLayout2['--spacing']} * 12)`,
+      '@media (pointer: coarse)': `calc(${themeLayout2['--spacing']} * 12)`,
+    },
+  },
+  rule10: {
+    width: `calc(${themeLayout2['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout2['--spacing']} * 3.5)`,
+  },
+})
 
 const stylexStyles = stylex.create({
   header: {
@@ -149,21 +251,21 @@ function ToolbarNav({
   upDrop: ReturnType<typeof upDropHandlers>
 }) {
   return (
-    <div className="flex items-center gap-0.5">
+    <div sx={stylexStyles2.rule1}>
       <NavIconButton
-        icon={<LuChevronLeft className="size-4" />}
+        icon={<LuChevronLeft {...stylex.props(stylexStyles2.rule2)} />}
         label="Back"
         onClick={onBack}
         disabled={!canGoBack}
       />
       <NavIconButton
-        icon={<LuChevronRight className="size-4" />}
+        icon={<LuChevronRight {...stylex.props(stylexStyles2.rule2)} />}
         label="Forward"
         onClick={onForward}
         disabled={!canGoForward}
       />
       <NavIconButton
-        icon={<LuChevronUp className="size-4" />}
+        icon={<LuChevronUp {...stylex.props(stylexStyles2.rule2)} />}
         label="Up"
         onClick={onUp}
         disabled={!canGoUp}
@@ -186,17 +288,17 @@ function ToolbarActions({
   if (!showNewFolder && !onUploadFiles) return null
 
   return (
-    <div className="flex items-center gap-0.5">
+    <div sx={stylexStyles2.rule1}>
       {showNewFolder && (
         <NavIconButton
-          icon={<LuFolderPlus className="size-4" />}
+          icon={<LuFolderPlus {...stylex.props(stylexStyles2.rule2)} />}
           label="New folder"
           onClick={onNewFolder}
         />
       )}
       {onUploadFiles && (
         <NavIconButton
-          icon={<LuUpload className="size-4" />}
+          icon={<LuUpload {...stylex.props(stylexStyles2.rule2)} />}
           label="Upload files"
           onClick={onUploadFiles}
         />
@@ -293,7 +395,7 @@ export function Toolbar({
           onPathTargetDrop={onPathTargetDrop}
         />
       ) : (
-        <div className="flex-1" />
+        <div sx={stylexStyles2.rule3} />
       )}
 
       <ToolbarActions
@@ -335,12 +437,10 @@ function NavIconButton({
       onDrop={onDrop}
       title={label}
       aria-label={label}
-      className={cn(
-        'flex size-6 items-center justify-center rounded transition-colors [@media(pointer:coarse)]:size-11',
-        disabled
-          ? 'text-foreground-alt/30 cursor-default'
-          : 'text-foreground-alt hover:text-foreground hover:bg-foreground/5',
-      )}
+      sx={[
+        stylexStyles2.rule4,
+        disabled ? stylexStyles2.rule5 : stylexStyles2.rule6,
+      ]}
     >
       {icon}
     </button>
@@ -385,40 +485,44 @@ function OverflowMenu({
         <button
           type="button"
           aria-label="More actions"
-          className="text-foreground-alt hover:text-foreground hover:bg-foreground/5 flex size-6 items-center justify-center rounded transition-colors [@media(pointer:coarse)]:size-11"
+          sx={stylexStyles2.rule7}
         >
-          <LuEllipsisVertical className="size-4" />
+          <LuEllipsisVertical {...stylex.props(stylexStyles2.rule2)} />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" variant="compact" className="min-w-35">
+      <DropdownMenuContent
+        align="end"
+        variant="compact"
+        {...stylex.props(stylexStyles2.rule8)}
+      >
         <DropdownMenuItem
-          className="max-sm:min-h-12 [@media(pointer:coarse)]:min-h-12"
+          {...stylex.props(stylexStyles2.rule9)}
           onClick={onSearchClick}
         >
-          <LuSearch className="size-3.5" />
+          <LuSearch {...stylex.props(stylexStyles2.rule10)} />
           Search
         </DropdownMenuItem>
         {showNavItems && (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              className="max-sm:min-h-12 [@media(pointer:coarse)]:min-h-12"
+              {...stylex.props(stylexStyles2.rule9)}
               onClick={onBack}
               disabled={!canGoBack}
             >
-              <LuChevronLeft className="size-3.5" />
+              <LuChevronLeft {...stylex.props(stylexStyles2.rule10)} />
               Back
             </DropdownMenuItem>
             <DropdownMenuItem
-              className="max-sm:min-h-12 [@media(pointer:coarse)]:min-h-12"
+              {...stylex.props(stylexStyles2.rule9)}
               onClick={onForward}
               disabled={!canGoForward}
             >
-              <LuChevronRight className="size-3.5" />
+              <LuChevronRight {...stylex.props(stylexStyles2.rule10)} />
               Forward
             </DropdownMenuItem>
             <DropdownMenuItem
-              className="max-sm:min-h-12 [@media(pointer:coarse)]:min-h-12"
+              {...stylex.props(stylexStyles2.rule9)}
               onClick={onUp}
               disabled={!canGoUp}
               {...upDropHandlers(
@@ -428,7 +532,7 @@ function OverflowMenu({
                 onPathTargetDrop,
               )}
             >
-              <LuChevronUp className="size-3.5" />
+              <LuChevronUp {...stylex.props(stylexStyles2.rule10)} />
               Up
             </DropdownMenuItem>
           </>
@@ -437,10 +541,10 @@ function OverflowMenu({
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              className="max-sm:min-h-12 [@media(pointer:coarse)]:min-h-12"
+              {...stylex.props(stylexStyles2.rule9)}
               onClick={onNewFolder}
             >
-              <LuFolderPlus className="size-3.5" />
+              <LuFolderPlus {...stylex.props(stylexStyles2.rule10)} />
               New folder
             </DropdownMenuItem>
           </>

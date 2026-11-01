@@ -1,6 +1,12 @@
 import { useCallback, useState } from 'react'
-import { LuX, LuEye, LuInfo, LuDownload, LuTrash2 } from 'react-icons/lu'
-import { RxCube } from 'react-icons/rx'
+import {
+  LuX,
+  LuEye,
+  LuInfo,
+  LuDownload,
+  LuTrash2,
+} from '@s4wave/web/images/icons.js'
+import { RxCube } from '@s4wave/web/images/icons.js'
 
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
@@ -24,6 +30,352 @@ import {
 } from '@s4wave/web/ui/dialog.js'
 
 import type { ObjectViewerComponent } from './object.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  colors as themeColors,
+  layout as themeLayout,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+  radii as themeRadii,
+  motion as themeMotion,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    overflow: 'auto',
+    backgroundColor: themeColors['--color-background-primary'],
+  },
+  rule2: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule3: {
+    display: 'flex',
+    minWidth: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+  },
+  rule5: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+  },
+  rule6: { flexShrink: 0, color: themeColors['--color-foreground-alt'] },
+  rule7: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule8: {
+    flex: 1,
+    overflow: 'auto',
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule9: {
+    marginInline: 'auto',
+    width: '100%',
+    maxWidth: 'var(--container-5xl)',
+  },
+  rule10: {
+    display: 'grid',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    gridTemplateColumns: {
+      default: null,
+      '@media (min-width: 64rem)': 'repeat(2, minmax(0, 1fr))',
+    },
+  },
+  rule11: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rule12: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule13: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule14: { minWidth: 0, flex: 1 },
+  rule15: {
+    display: 'flex',
+    minWidth: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule16: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule17: {
+    flexShrink: 0,
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: '.65rem',
+    lineHeight: 1.5,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-brand'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule18: {
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: '.6rem',
+    lineHeight: 1.5,
+    wordBreak: 'break-all',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule19: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    width: '100%',
+    cursor: 'pointer',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
+      },
+    },
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-brand'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule20: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 14)`,
+    width: '100%',
+    cursor: { default: 'pointer', ':disabled': 'default' },
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      },
+    },
+    padding: `calc(${themeLayout['--spacing']} * 2.5)`,
+    textAlign: 'left',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+    opacity: { default: null, ':disabled': 1 },
+  },
+  rule21: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+  },
+  rule22: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: themeColors['--color-foreground'],
+  },
+  rule23: { display: 'flex', minWidth: 0, flex: 1, flexDirection: 'column' },
+  rule24: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule25: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 15%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 2.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule26: {
+    '--tw-leading': 'var(--leading-relaxed)',
+    lineHeight: 'var(--leading-relaxed)',
+    color: themeColors['--color-destructive'],
+  },
+  rule27: {
+    flexShrink: 0,
+    borderRadius: themeRadii['--radius-md'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-destructive'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+      },
+    },
+  },
+  rule28: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: themeColors['--color-destructive'],
+  },
+  rule29: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-destructive'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule30: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-destructive']} 80%, transparent)`,
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule31: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule32: {
+    borderRadius: themeRadii['--radius-md'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule33: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-destructive'],
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+})
 
 export interface ObjectViewerDetailsProps {
   objectKey: string
@@ -72,18 +424,18 @@ export function ObjectViewerDetails({
   )
 
   return (
-    <div className="bg-background-primary flex h-full w-full flex-col overflow-auto">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center justify-between border-b px-4">
-        <div className="text-foreground flex min-w-0 items-center gap-2 text-sm font-semibold select-none">
-          <RxCube className="size-4 shrink-0" />
-          <span className="truncate tracking-tight">{objectKey}</span>
-          <span className="text-foreground-alt shrink-0">· Object</span>
+    <div sx={stylexStyles.rule1}>
+      <div sx={stylexStyles.rule2}>
+        <div sx={stylexStyles.rule3}>
+          <RxCube {...stylex.props(stylexStyles.rule4)} />
+          <span sx={stylexStyles.rule5}>{objectKey}</span>
+          <span sx={stylexStyles.rule6}>· Object</span>
         </div>
         {onCloseClick && (
           <Tooltip>
             <TooltipTrigger asChild>
               <DashboardButton
-                icon={<LuX className="size-4" />}
+                icon={<LuX {...stylex.props(stylexStyles.rule7)} />}
                 onClick={onCloseClick}
               />
             </TooltipTrigger>
@@ -92,20 +444,28 @@ export function ObjectViewerDetails({
         )}
       </div>
 
-      <div className="flex-1 overflow-auto px-4 py-3">
-        <div className="mx-auto w-full max-w-5xl">
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div className="min-w-0 space-y-3">
+      <div sx={stylexStyles.rule8}>
+        <div sx={stylexStyles.rule9}>
+          <div sx={stylexStyles.rule10}>
+            <div
+              className={
+                /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'min-w-0 space-y-3'
+              }
+            >
               <section>
-                <div className="mb-2 flex items-center justify-between">
-                  <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-                    <LuInfo className="size-3.5" />
+                <div sx={stylexStyles.rule11}>
+                  <h2 sx={stylexStyles.rule12}>
+                    <LuInfo {...stylex.props(stylexStyles.rule13)} />
                     About this object
                   </h2>
                 </div>
 
                 <InfoCard>
-                  <div className="space-y-3">
+                  <div
+                    className={
+                      /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
+                    }
+                  >
                     <CopyableField label="Object key" value={objectKey} />
                     {missingComponentID && (
                       <CopyableField
@@ -119,11 +479,15 @@ export function ObjectViewerDetails({
 
               <CollapsibleSection
                 title="Technical details"
-                icon={<LuInfo className="size-3.5" />}
+                icon={<LuInfo {...stylex.props(stylexStyles.rule13)} />}
                 open={technicalDetailsOpen}
                 onOpenChange={setTechnicalDetailsOpen}
               >
-                <div className="space-y-2">
+                <div
+                  className={
+                    /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
+                  }
+                >
                   <CopyableField label="Type ID" value={typeID} />
                   {rootRef && (
                     <CopyableField label="Root Ref" value={rootRef} />
@@ -132,20 +496,28 @@ export function ObjectViewerDetails({
               </CollapsibleSection>
             </div>
 
-            <div className="min-w-0 space-y-3">
+            <div
+              className={
+                /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'min-w-0 space-y-3'
+              }
+            >
               {exportUrl && <ExportDataSection exportUrl={exportUrl} />}
 
               {availableComponents.length > 0 && (
                 <section>
-                  <div className="mb-2 flex items-center justify-between">
-                    <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-                      <LuEye className="size-3.5" />
+                  <div sx={stylexStyles.rule11}>
+                    <h2 sx={stylexStyles.rule12}>
+                      <LuEye {...stylex.props(stylexStyles.rule13)} />
                       Viewer
                     </h2>
                   </div>
 
                   <InfoCard>
-                    <div className="space-y-1.5">
+                    <div
+                      className={
+                        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ 'space-y-1.5'
+                      }
+                    >
                       {availableComponents.map((component) => {
                         const isSelected =
                           displayedSelectedComponentID === component.componentID
@@ -155,23 +527,21 @@ export function ObjectViewerDetails({
                             type="button"
                             aria-pressed={isSelected}
                             onClick={() => handleComponentSelect(component)}
-                            className={cn(
-                              'border-foreground/10 hover:border-foreground/20 hover:bg-foreground/5 flex w-full cursor-pointer items-start justify-between gap-3 rounded-lg border p-2.5 text-left transition-colors',
-                              isSelected && 'border-brand/30 bg-brand/10',
-                            )}
+                            className={
+                              /* TODO(stylex): conditional property composition: borderColor */ cn(
+                                'border-foreground/10 hover:border-foreground/20 hover:bg-foreground/5 flex w-full cursor-pointer items-start justify-between gap-3 rounded-lg border p-2.5 text-left transition-colors',
+                                isSelected && 'border-brand/30 bg-brand/10',
+                              )
+                            }
                           >
-                            <div className="min-w-0 flex-1">
-                              <div className="flex min-w-0 items-center gap-2">
-                                <p className="text-foreground text-sm font-medium select-none">
-                                  {component.name}
-                                </p>
+                            <div sx={stylexStyles.rule14}>
+                              <div sx={stylexStyles.rule15}>
+                                <p sx={stylexStyles.rule16}>{component.name}</p>
                                 {isSelected && (
-                                  <span className="border-brand/30 bg-brand/10 text-brand micro-label shrink-0 rounded border px-1.5 py-0.5 font-medium select-none">
-                                    Active
-                                  </span>
+                                  <span sx={stylexStyles.rule17}>Active</span>
                                 )}
                               </div>
-                              <p className="text-foreground-alt/50 micro-text font-mono break-all select-none">
+                              <p sx={stylexStyles.rule18}>
                                 ID: {component.componentID}
                               </p>
                             </div>
@@ -184,9 +554,9 @@ export function ObjectViewerDetails({
                       <button
                         type="button"
                         onClick={onCloseClick}
-                        className="border-brand/30 bg-brand/10 text-brand hover:bg-brand/15 mt-3 flex h-7 w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border text-xs font-medium transition-colors"
+                        sx={stylexStyles.rule19}
                       >
-                        <LuEye className="size-3.5" />
+                        <LuEye {...stylex.props(stylexStyles.rule13)} />
                         Open viewer
                       </button>
                     )}
@@ -230,26 +600,30 @@ function ExportDataSection({ exportUrl }: { exportUrl: string }) {
 
   return (
     <section>
-      <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-          <LuDownload className="size-3.5" />
+      <div sx={stylexStyles.rule11}>
+        <h2 sx={stylexStyles.rule12}>
+          <LuDownload {...stylex.props(stylexStyles.rule13)} />
           Data
         </h2>
       </div>
 
-      <div className="space-y-2">
+      <div
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
+        }
+      >
         <button
           type="button"
           onClick={() => void handleExport()}
           disabled={status === 'busy' || status === 'success'}
           aria-busy={status === 'busy'}
-          className="border-foreground/10 hover:border-foreground/20 hover:bg-foreground/5 flex h-14 w-full cursor-pointer items-center gap-3 rounded-lg border p-2.5 text-left transition-colors disabled:cursor-default disabled:opacity-100"
+          sx={stylexStyles.rule20}
         >
-          <div className="bg-foreground/5 flex size-8 shrink-0 items-center justify-center rounded-md">
-            <LuDownload className="text-foreground size-3.5" />
+          <div sx={stylexStyles.rule21}>
+            <LuDownload {...stylex.props(stylexStyles.rule22)} />
           </div>
-          <div className="flex min-w-0 flex-1 flex-col">
-            <h4 className="text-foreground text-sm font-medium select-none">
+          <div sx={stylexStyles.rule23}>
+            <h4 sx={stylexStyles.rule16}>
               {status === 'busy'
                 ? 'Preparing export…'
                 : status === 'success'
@@ -258,7 +632,7 @@ function ExportDataSection({ exportUrl }: { exportUrl: string }) {
                     ? 'Export could not be prepared'
                     : 'Export Data'}
             </h4>
-            <p className="text-foreground-alt text-xs leading-relaxed select-none">
+            <p sx={stylexStyles.rule24}>
               {status === 'busy'
                 ? 'Preparing a downloadable archive…'
                 : status === 'success'
@@ -271,14 +645,12 @@ function ExportDataSection({ exportUrl }: { exportUrl: string }) {
         </button>
 
         {status === 'failure' && (
-          <div className="border-destructive/15 bg-destructive/5 flex items-center justify-between gap-3 rounded-lg border p-2.5 text-xs">
-            <p className="text-destructive leading-relaxed">
-              Export could not be prepared.
-            </p>
+          <div sx={stylexStyles.rule25}>
+            <p sx={stylexStyles.rule26}>Export could not be prepared.</p>
             <button
               type="button"
               onClick={() => void handleExport()}
-              className="text-destructive hover:bg-destructive/10 shrink-0 rounded-md px-2 py-1 font-medium transition-colors"
+              sx={stylexStyles.rule27}
             >
               Try again
             </button>
@@ -334,16 +706,20 @@ function DangerZoneSection({
         <button
           type="button"
           onClick={() => setDialogOpen(true)}
-          className="border-destructive/30 bg-destructive/5 hover:border-destructive hover:bg-destructive/10 group flex w-full cursor-pointer items-center gap-3 rounded-lg border p-2.5 text-left transition-colors"
+          className={
+            /* TODO(stylex): global or unknown class: group */ 'border-destructive/30 bg-destructive/5 hover:border-destructive hover:bg-destructive/10 group flex w-full cursor-pointer items-center gap-3 rounded-lg border p-2.5 text-left transition-colors'
+          }
         >
-          <div className="bg-destructive/20 group-hover:bg-destructive/30 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors">
-            <LuTrash2 className="text-destructive size-3.5" />
+          <div
+            className={
+              /* TODO(stylex): a descendant, group, peer or compound selector: group-hover:bg-destructive/30 */ 'bg-destructive/20 group-hover:bg-destructive/30 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors'
+            }
+          >
+            <LuTrash2 {...stylex.props(stylexStyles.rule28)} />
           </div>
-          <div className="flex min-w-0 flex-1 flex-col">
-            <h4 className="text-destructive text-xs font-medium select-none">
-              Delete Object
-            </h4>
-            <p className="text-destructive/80 text-xs select-none">
+          <div sx={stylexStyles.rule23}>
+            <h4 sx={stylexStyles.rule29}>Delete Object</h4>
+            <p sx={stylexStyles.rule30}>
               Permanently remove this object and all its data
             </p>
           </div>
@@ -360,14 +736,14 @@ function DangerZoneSection({
             </DialogDescription>
           </DialogHeader>
 
-          {error && <p className="text-destructive text-xs">{error}</p>}
+          {error && <p sx={stylexStyles.rule31}>{error}</p>}
 
           <DialogFooter>
             <button
               type="button"
               onClick={() => handleDialogOpenChange(false)}
               disabled={submitting}
-              className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
+              sx={stylexStyles.rule32}
             >
               Cancel
             </button>
@@ -375,11 +751,7 @@ function DangerZoneSection({
               type="button"
               onClick={() => void handleDelete()}
               disabled={submitting}
-              className={cn(
-                'rounded-md border px-4 py-2 text-sm transition-all',
-                'border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20',
-                'disabled:cursor-not-allowed disabled:opacity-50',
-              )}
+              sx={[stylexStyles.rule33]}
             >
               {submitting ? 'Deleting…' : 'Delete Object'}
             </button>

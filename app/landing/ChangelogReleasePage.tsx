@@ -1,4 +1,4 @@
-import { LuArrowLeft } from 'react-icons/lu'
+import { LuArrowLeft } from '@s4wave/web/images/icons.js'
 
 import type { Release } from '@s4wave/core/changelog/changelog.pb.js'
 

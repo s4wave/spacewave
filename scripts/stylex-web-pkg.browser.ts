@@ -7,6 +7,13 @@ for (const [engine, launcher] of Object.entries({ chromium, webkit })) {
   try {
     const page = await browser.newPage()
     page.setDefaultTimeout(15_000)
+    page.on('pageerror', (error) =>
+      console.error(`${engine}: ${error.message}`),
+    )
+    page.on('response', (response) => {
+      if (response.status() >= 400)
+        console.error(`${engine}: ${response.status()} ${response.url()}`)
+    })
     let release!: () => void
     const held = new Promise<void>((resolve) => {
       release = resolve
@@ -28,6 +35,29 @@ for (const [engine, launcher] of Object.entries({ chromium, webkit })) {
     )
     release()
     await page.locator('#target[data-state=ready]').waitFor()
+    if (process.argv[3] === 'buttons') {
+      const icon = page.locator('#native-button svg')
+      await icon.waitFor()
+      const actual = await icon.evaluate((element) => {
+        const style = getComputedStyle(element)
+        return {
+          width: style.width,
+          height: style.height,
+          pointerEvents: style.pointerEvents,
+          color: style.color,
+        }
+      })
+      assert.deepEqual(actual, {
+        width: '16px',
+        height: '16px',
+        pointerEvents: 'none',
+        color: 'rgb(17, 34, 51)',
+      })
+      console.log(
+        `${engine}: shared native button styles its caller's icon after CSS delivery`,
+      )
+      continue
+    }
     const style = await page.locator('#target').evaluate((element) => {
       const style = getComputedStyle(element)
       return { color: style.color, padding: style.padding }

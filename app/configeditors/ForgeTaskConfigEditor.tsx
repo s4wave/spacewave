@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { LuBriefcase } from 'react-icons/lu'
+import { LuBriefcase } from '@s4wave/web/images/icons.js'
 
 import type { ConfigEditorProps } from '@s4wave/web/configtype/configtype.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'

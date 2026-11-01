@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from 'react'
-import { LuPencil, LuSave, LuUserCog, LuX } from 'react-icons/lu'
+import { LuPencil, LuSave, LuUserCog, LuX } from '@s4wave/web/images/icons.js'
 
 import type { Session } from '@s4wave/sdk/session/session.js'
 import { CollapsibleSection } from '@s4wave/web/ui/CollapsibleSection.js'

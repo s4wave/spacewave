@@ -31,7 +31,11 @@ export function PluginLifecycleBadge({
 }) {
   const label = pluginLifecycleLabel(plugin)
   const tone = lifecycleTone(label)
-  return <span className={tone}>{label}</span>
+  return (
+    <span className={/* TODO(stylex): computed class helper */ tone}>
+      {label}
+    </span>
+  )
 }
 
 function lifecycleTone(label: string): string {

@@ -1,5 +1,10 @@
 import { useCallback, useState } from 'react'
-import { LuCheck, LuCloud, LuCloudOff, LuPlus } from 'react-icons/lu'
+import {
+  LuCheck,
+  LuCloud,
+  LuCloudOff,
+  LuPlus,
+} from '@s4wave/web/images/icons.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { LegalPageLayout } from './LegalPageLayout.js'

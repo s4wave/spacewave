@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import { LuCheck, LuLink, LuX } from 'react-icons/lu'
+import { LuCheck, LuLink, LuX } from '@s4wave/web/images/icons.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'

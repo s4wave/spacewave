@@ -1,5 +1,5 @@
 import { useCallback, useReducer } from 'react'
-import { LuSiren } from 'react-icons/lu'
+import { LuSiren } from '@s4wave/web/images/icons.js'
 
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { AlarmState, AcknowledgeAlarmOp } from '@s4wave/sdk/alarm/alarm.pb.js'

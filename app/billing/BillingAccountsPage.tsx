@@ -1,7 +1,7 @@
 import { useBillingConsent } from '../provider/spacewave/useBillingConsent.js'
 /* eslint-disable react-doctor/no-giant-component */
 import { useCallback, useMemo, useState } from 'react'
-import { LuCheck, LuCreditCard, LuPlus, LuX } from 'react-icons/lu'
+import { LuCheck, LuCreditCard, LuPlus, LuX } from '@s4wave/web/images/icons.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
 import { useNavigate } from '@s4wave/web/router/router.js'

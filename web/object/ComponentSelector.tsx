@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react'
-import { LuCheck } from 'react-icons/lu'
+import { LuCheck } from '@s4wave/web/images/icons.js'
 
 import type { ObjectViewerComponent } from './object.js'
 import {
@@ -10,6 +10,36 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@s4wave/web/ui/DropdownMenu.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    maxWidth: '100%',
+    minWidth: {
+      default: 0,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+    cursor: 'pointer',
+    alignItems: 'center',
+    minHeight: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+  },
+  rule2: { minWidth: `calc(${themeLayout['--spacing']} * 50)` },
+  rule3: {
+    marginLeft: 'auto',
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: themeColors['--color-brand'],
+  },
+})
 
 // CategoryGroup represents a group of components under a category label.
 interface CategoryGroup {
@@ -67,17 +97,14 @@ export function ComponentSelector({
   return (
     <DropdownMenu open={open} onOpenChange={onOpenChange}>
       <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          className="flex max-w-full min-w-0 cursor-pointer items-center [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11"
-        >
+        <button type="button" sx={stylexStyles.rule1}>
           {children}
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
         side={placement === 'below' ? 'bottom' : 'top'}
         align={placement === 'below' ? 'start' : 'end'}
-        className="min-w-50"
+        {...stylex.props(stylexStyles.rule2)}
       >
         <DropdownMenuLabel>Available Components</DropdownMenuLabel>
         {groups.map((group, index) => (
@@ -97,7 +124,7 @@ export function ComponentSelector({
                 >
                   <span>{comp.name}</span>
                   {selected && (
-                    <LuCheck className="text-brand ml-auto size-3.5" />
+                    <LuCheck {...stylex.props(stylexStyles.rule3)} />
                   )}
                 </DropdownMenuItem>
               )

@@ -17,7 +17,7 @@ import {
   LuSmartphone,
   LuUsers,
   LuZap,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 

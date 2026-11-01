@@ -1,5 +1,10 @@
 import { useCallback } from 'react'
-import { LuArrowRight, LuCheck, LuLaptop, LuUser } from 'react-icons/lu'
+import {
+  LuArrowRight,
+  LuCheck,
+  LuLaptop,
+  LuUser,
+} from '@s4wave/web/images/icons.js'
 
 import type { HandoffRequest } from '@s4wave/core/session/handoff/handoff.pb.js'
 import { useNavigate } from '@s4wave/web/router/router.js'

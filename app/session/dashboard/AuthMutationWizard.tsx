@@ -10,7 +10,7 @@ import {
   LuShieldCheck,
   LuTrash2,
   LuUpload,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import {
   Dialog,

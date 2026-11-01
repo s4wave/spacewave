@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { LuActivity, LuPlay } from 'react-icons/lu'
+import { LuActivity, LuPlay } from '@s4wave/web/images/icons.js'
 
 import {
   Pass,

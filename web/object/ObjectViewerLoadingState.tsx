@@ -2,6 +2,24 @@ import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 
 import * as stylex from '@stylexjs/stylex'
 
+import {
+  colors as themeColors,
+  layout as themeLayout,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: themeColors['--color-background-primary'],
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: { width: '100%', maxWidth: 'var(--container-sm)' },
 })
@@ -15,7 +33,7 @@ export function ObjectViewerLoadingState({
   detail?: string
 }) {
   return (
-    <div className="bg-background-primary flex h-full w-full flex-1 items-center justify-center p-4">
+    <div sx={stylexStyles2.rule1}>
       <LoadingCard
         view={{
           state: 'loading',

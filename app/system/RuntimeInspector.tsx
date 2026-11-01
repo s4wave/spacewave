@@ -1,5 +1,5 @@
 import { useDeferredValue, useMemo, useState, type ReactNode } from 'react'
-import { LuChevronRight, LuSearch } from 'react-icons/lu'
+import { LuChevronRight, LuSearch } from '@s4wave/web/images/icons.js'
 
 import type { ControllerInfo, StoreInfo } from '@s4wave/sdk/status/status.pb.js'
 import { cn } from '@s4wave/web/style/utils.js'

@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { isDesktop } from '@aptre/bldr'
-import { FcGoogle } from 'react-icons/fc'
-import { LuFingerprint, LuGithub, LuLock, LuLockOpen } from 'react-icons/lu'
+import { FcGoogle } from '@s4wave/web/images/icons.js'
+import {
+  LuFingerprint,
+  LuGithub,
+  LuLock,
+  LuLockOpen,
+} from '@s4wave/web/images/icons.js'
 
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import {

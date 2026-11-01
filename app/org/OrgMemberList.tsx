@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { LuUserMinus } from 'react-icons/lu'
+import { LuUserMinus } from '@s4wave/web/images/icons.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import type { OrgMemberInfo } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'

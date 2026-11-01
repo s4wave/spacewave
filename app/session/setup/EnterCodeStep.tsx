@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LuCamera, LuLink } from 'react-icons/lu'
+import { LuCamera, LuLink } from '@s4wave/web/images/icons.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'

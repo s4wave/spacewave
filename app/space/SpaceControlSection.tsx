@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { LuCheck, LuCrown, LuUsers } from 'react-icons/lu'
+import { LuCheck, LuCrown, LuUsers } from '@s4wave/web/images/icons.js'
 
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { SOConfigChangeType } from '@s4wave/core/sobject/sobject.pb.js'

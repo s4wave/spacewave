@@ -1,4 +1,9 @@
-import { LuEyeOff, LuLocateFixed, LuPlus, LuTrash2 } from 'react-icons/lu'
+import {
+  LuEyeOff,
+  LuLocateFixed,
+  LuPlus,
+  LuTrash2,
+} from '@s4wave/web/images/icons.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
 

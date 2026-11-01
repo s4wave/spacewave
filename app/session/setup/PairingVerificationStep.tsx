@@ -1,5 +1,5 @@
 import { useEffect, useEffectEvent, useState } from 'react'
-import { LuCircleCheck, LuShieldCheck, LuX } from 'react-icons/lu'
+import { LuCircleCheck, LuShieldCheck, LuX } from '@s4wave/web/images/icons.js'
 import { useRetryWithAbort } from '@aptre/bldr-react'
 
 import {

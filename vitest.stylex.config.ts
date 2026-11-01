@@ -12,6 +12,9 @@ export default defineConfig({
       '@radix-ui/react-collapsible',
       '@radix-ui/react-dropdown-menu',
       '@radix-ui/react-dialog',
+      '@radix-ui/react-slot',
+      'react-icons',
+      'react-icons/lu',
       'cnfast',
     ],
   },
@@ -20,6 +23,7 @@ export default defineConfig({
     include: ['web/style/stylex-pilots.e2e.test.tsx'],
     browser: {
       ...base.test.browser,
+      connectTimeout: 30000,
       instances: [{ browser: 'chromium' }, { browser: 'webkit' }],
     },
   },

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
-import { LuArrowRightLeft } from 'react-icons/lu'
+import { LuArrowRightLeft } from '@s4wave/web/images/icons.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 
 import {

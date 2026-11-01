@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useNavigate } from '@s4wave/web/router/router.js'
-import { LuArrowLeft } from 'react-icons/lu'
+import { LuArrowLeft } from '@s4wave/web/images/icons.js'
 import { LegalFooter } from '@s4wave/app/landing/LegalFooter.js'
 import { PostList } from './PostList.js'
 import type { BlogPost } from './types.js'

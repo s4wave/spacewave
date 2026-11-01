@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react'
-import { LuBriefcase } from 'react-icons/lu'
+import { LuBriefcase } from '@s4wave/web/images/icons.js'
 
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { toast } from '@s4wave/web/ui/toaster.js'

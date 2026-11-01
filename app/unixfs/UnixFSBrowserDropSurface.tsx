@@ -1,5 +1,5 @@
 import type { DragEvent, MouseEvent, ReactNode } from 'react'
-import { LuUpload } from 'react-icons/lu'
+import { LuUpload } from '@s4wave/web/images/icons.js'
 
 interface UnixFSBrowserDropSurfaceProps {
   children: ReactNode

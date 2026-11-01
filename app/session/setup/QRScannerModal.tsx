@@ -1,6 +1,6 @@
 import { useEffect, useEffectEvent, useRef } from 'react'
 import { Html5Qrcode } from 'html5-qrcode'
-import { LuX } from 'react-icons/lu'
+import { LuX } from '@s4wave/web/images/icons.js'
 
 export interface QRScannerModalProps {
   title: string

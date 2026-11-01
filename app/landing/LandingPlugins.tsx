@@ -1,5 +1,10 @@
 import type { ComponentType } from 'react'
-import { LuDatabase, LuLayoutGrid, LuPuzzle, LuTable } from 'react-icons/lu'
+import {
+  LuDatabase,
+  LuLayoutGrid,
+  LuPuzzle,
+  LuTable,
+} from '@s4wave/web/images/icons.js'
 
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
 

@@ -1,11 +1,157 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { LuCopy, LuRefreshCw, LuX } from 'react-icons/lu'
+import { LuCopy, LuRefreshCw, LuX } from '@s4wave/web/images/icons.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
 import {
   useResourceDevToolsContext,
   type TrackedResource,
 } from '@aptre/bldr-sdk/hooks/ResourceDevToolsContext.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  motion as themeMotion,
+  fonts as themeFonts,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 56)`,
+    flexShrink: 0,
+    flexDirection: 'column',
+    overflow: 'hidden',
+    borderLeftStyle: themeUtilityState['--tw-border-style'],
+    borderLeftWidth: '1px',
+    borderColor: themeColors['--color-popover-border'],
+  },
+  rule2: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-popover-border']} 50%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-deep']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule3: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '.25rem',
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.1s',
+    '--tw-duration': '.1s',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-pulldown-hover'],
+      },
+    },
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule5: {
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    overflow: 'auto',
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule6: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule7: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule8: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-error'],
+  },
+  rule9: {
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: themeColors['--color-error-border'],
+    backgroundColor: themeColors['--color-error-bg'],
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    overflowWrap: 'break-word',
+  },
+  rule10: {
+    maxHeight: `calc(${themeLayout['--spacing']} * 24)`,
+    overflow: 'auto',
+    borderRadius: '.25rem',
+    backgroundColor: themeColors['--color-background-deep'],
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    overflowWrap: 'break-word',
+    whiteSpace: 'pre-wrap',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule11: {
+    display: 'flex',
+    flexShrink: 0,
+    gap: themeLayout['--spacing'],
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-popover-border']} 50%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-deep']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule12: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule13: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
 
 interface ResourceDetailsPanelProps {
   resource: TrackedResource
@@ -74,37 +220,25 @@ export function ResourceDetailsPanel({ resource }: ResourceDetailsPanelProps) {
   }, [resource.state])
 
   return (
-    <div
-      className={cn(
-        'border-popover-border flex w-56 shrink-0 flex-col overflow-hidden border-l',
-      )}
-      data-testid="resource-details-panel"
-    >
+    <div sx={[stylexStyles.rule1]} data-testid="resource-details-panel">
       {/* Header */}
-      <div
-        className={cn(
-          'border-popover-border/50 flex h-6 shrink-0 items-center justify-between border-b px-2',
-          'bg-background-deep/30',
-        )}
-      >
-        <span className="text-text-secondary text-xs font-medium">Details</span>
-        <button
-          type="button"
-          onClick={handleClose}
-          className={cn(
-            'flex size-4 items-center justify-center rounded',
-            'text-foreground-alt hover:text-foreground hover:bg-pulldown-hover',
-            'transition-colors duration-100',
-          )}
+      <div sx={[stylexStyles.rule2]}>
+        <span
+          className={
+            /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary text-xs font-medium'
+          }
         >
-          <LuX className="size-3" />
+          Details
+        </span>
+        <button type="button" onClick={handleClose} sx={[stylexStyles.rule3]}>
+          <LuX {...stylex.props(stylexStyles.rule4)} />
         </button>
       </div>
 
       {/* Content */}
-      <div className="flex flex-1 flex-col gap-3 overflow-auto p-3">
+      <div sx={stylexStyles.rule5}>
         {/* Type & ID */}
-        <div className="flex flex-col gap-1.5">
+        <div sx={stylexStyles.rule6}>
           <DetailRow
             label="Type"
             value={resource.resourceType ?? '(unknown)'}
@@ -120,7 +254,7 @@ export function ResourceDetailsPanel({ resource }: ResourceDetailsPanelProps) {
         </div>
 
         {/* Status */}
-        <div className="flex flex-col gap-1.5">
+        <div sx={stylexStyles.rule6}>
           <DetailRow
             label="State"
             value={resource.state}
@@ -146,10 +280,8 @@ export function ResourceDetailsPanel({ resource }: ResourceDetailsPanelProps) {
         {/* Debug Details */}
         {resource.debugDetails &&
           Object.keys(resource.debugDetails).length > 0 && (
-            <div className="flex flex-col gap-1.5">
-              <span className="text-foreground-alt text-xs font-medium">
-                Debug Info
-              </span>
+            <div sx={stylexStyles.rule6}>
+              <span sx={stylexStyles.rule7}>Debug Info</span>
               {Object.entries(resource.debugDetails).map(([key, value]) => (
                 <DetailRow
                   key={key}
@@ -163,37 +295,18 @@ export function ResourceDetailsPanel({ resource }: ResourceDetailsPanelProps) {
 
         {/* Error section */}
         {resource.error && (
-          <div className="flex flex-col gap-1.5">
-            <span className="text-error text-xs font-medium">Error</span>
-            <div
-              className={cn(
-                'bg-error-bg border-error-border rounded border p-2 font-mono text-xs',
-                'break-words',
-              )}
-            >
-              {resource.error.message}
-            </div>
+          <div sx={stylexStyles.rule6}>
+            <span sx={stylexStyles.rule8}>Error</span>
+            <div sx={[stylexStyles.rule9]}>{resource.error.message}</div>
             {resource.error.stack && (
-              <pre
-                className={cn(
-                  'bg-background-deep text-foreground-alt max-h-24 overflow-auto rounded p-2 font-mono text-xs',
-                  'break-words whitespace-pre-wrap',
-                )}
-              >
-                {resource.error.stack}
-              </pre>
+              <pre sx={[stylexStyles.rule10]}>{resource.error.stack}</pre>
             )}
           </div>
         )}
       </div>
 
       {/* Actions footer */}
-      <div
-        className={cn(
-          'border-popover-border/50 flex shrink-0 gap-1 border-t p-2',
-          'bg-background-deep/30',
-        )}
-      >
+      <div sx={[stylexStyles.rule11]}>
         <ActionButton onClick={handleRetry} icon={<LuRefreshCw />}>
           Retry
         </ActionButton>
@@ -214,14 +327,16 @@ interface DetailRowProps {
 
 function DetailRow({ label, value, mono, valueClassName }: DetailRowProps) {
   return (
-    <div className="flex items-center justify-between gap-2">
-      <span className="text-foreground-alt text-xs">{label}</span>
+    <div sx={stylexStyles.rule12}>
+      <span sx={stylexStyles.rule13}>{label}</span>
       <span
-        className={cn(
-          'text-foreground truncate text-xs',
-          mono && 'font-mono',
-          valueClassName,
-        )}
+        className={
+          /* TODO(stylex): dynamic class or forwarded className */ cn(
+            'text-foreground truncate text-xs',
+            mono && 'font-mono',
+            valueClassName,
+          )
+        }
       >
         {value}
       </span>
@@ -240,14 +355,22 @@ function ActionButton({ onClick, icon, children }: ActionButtonProps) {
     <button
       type="button"
       onClick={onClick}
-      className={cn(
-        'flex flex-1 items-center justify-center gap-1 rounded py-1 text-xs',
-        'bg-background-deep text-text-secondary',
-        'hover:bg-pulldown-hover hover:text-foreground',
-        'transition-colors duration-100',
-      )}
+      className={
+        /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ cn(
+          'flex flex-1 items-center justify-center gap-1 rounded py-1 text-xs',
+          'bg-background-deep text-text-secondary',
+          'hover:bg-pulldown-hover hover:text-foreground',
+          'transition-colors duration-100',
+        )
+      }
     >
-      <span className="[&>svg]:h-3 [&>svg]:w-3">{icon}</span>
+      <span
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: [&>svg]:h-3 */ '[&>svg]:h-3 [&>svg]:w-3'
+        }
+      >
+        {icon}
+      </span>
       {children}
     </button>
   )

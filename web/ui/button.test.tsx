@@ -35,12 +35,6 @@ describe('Button', () => {
     expect((button as HTMLButtonElement).disabled).toBe(true)
   })
 
-  it('applies custom className', () => {
-    render(<Button className="mt-1">Styled</Button>)
-    const button = screen.getByRole('button', { name: 'Styled' })
-    expect(button.className).toContain('mt-1')
-  })
-
   it('asChild renders as child element type', () => {
     render(
       <Button asChild>

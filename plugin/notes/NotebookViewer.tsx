@@ -4,7 +4,12 @@ import { useObjectName } from '@s4wave/web/object/ObjectViewerContext.js'
 import { useAccessTypedHandle } from '@s4wave/web/hooks/useAccessTypedHandle.js'
 import { ViewerStatusShell } from '@s4wave/web/object/ViewerStatusShell.js'
 import { cn } from '@s4wave/web/style/utils.js'
-import { LuArrowLeft, LuChevronDown, LuMenu, LuX } from 'react-icons/lu'
+import {
+  LuArrowLeft,
+  LuChevronDown,
+  LuMenu,
+  LuX,
+} from '@s4wave/web/images/icons.js'
 
 import { Notebook } from './proto/notebook.pb.js'
 import { NotebookHandle, NotebookTypeID } from './sdk/notebook.js'

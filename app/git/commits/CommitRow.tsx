@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { LuChevronDown, LuChevronRight } from 'react-icons/lu'
+import { LuChevronDown, LuChevronRight } from '@s4wave/web/images/icons.js'
 
 import type { CommitInfo, DiffFileStat } from '@s4wave/sdk/git/repo.pb.js'
 

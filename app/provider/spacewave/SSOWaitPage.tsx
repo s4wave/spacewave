@@ -1,7 +1,7 @@
 /* eslint-disable react-doctor/rerender-state-only-in-handlers */
 import { useCallback, useEffect, useState } from 'react'
 import { isDesktop } from '@aptre/bldr'
-import { LuArrowLeft } from 'react-icons/lu'
+import { LuArrowLeft } from '@s4wave/web/images/icons.js'
 
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'

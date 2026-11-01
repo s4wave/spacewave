@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { LuArrowDownAZ, LuArrowUpAZ } from 'react-icons/lu'
+import { LuArrowDownAZ, LuArrowUpAZ } from '@s4wave/web/images/icons.js'
 
 import { Input } from '@s4wave/web/ui/input.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'

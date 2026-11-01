@@ -24,7 +24,7 @@ import {
   LuScale,
   LuTable,
   LuWrench,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import {
   SPACE_SETTINGS_BLOCK_TYPE,
@@ -38,6 +38,16 @@ import {
   type ObjectTypeMetadata,
   type ObjectTypeRegistration,
 } from '@s4wave/sdk/objecttype/registry/registry.pb.js'
+
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
 
 // ObjectTreeNode holds metadata for a node in the object tree.
 export interface ObjectTreeNode {
@@ -84,8 +94,6 @@ export function isHiddenSpaceObject(
   }
   return HIDDEN_OBJECT_TYPES.has(objectType ?? '')
 }
-
-const iconSize = 'h-3.5 w-3.5'
 
 const metadataIcons: Record<
   string,
@@ -171,7 +179,7 @@ export function getObjectTypeIcon(
   metadataById?: ObjectTypeMetadataById,
 ): React.ReactNode {
   const Icon = getObjectTypeIconComponent(typeId, metadataById)
-  return <Icon className={iconSize} />
+  return <Icon {...stylex.props(stylexStyles.rule1)} />
 }
 
 // getObjectTypeLabel returns a human-readable label for a given object type ID.
@@ -434,7 +442,7 @@ export function buildObjectLevel(
               id.split(OBJECT_KEY_DELIMITER).at(-1) ?? id,
             ),
             detail: '',
-            icon: <LuFolder className={iconSize} />,
+            icon: <LuFolder {...stylex.props(stylexStyles.rule1)} />,
             data: {
               objectKey: id,
               objectType: '',

@@ -1,5 +1,10 @@
 import { useState } from 'react'
-import { LuPlay, LuRotateCcw, LuSlidersHorizontal, LuTv } from 'react-icons/lu'
+import {
+  LuPlay,
+  LuRotateCcw,
+  LuSlidersHorizontal,
+  LuTv,
+} from '@s4wave/web/images/icons.js'
 
 import { Button } from '@s4wave/web/ui/button.js'
 import { CollapsibleSection } from '@s4wave/web/ui/CollapsibleSection.js'

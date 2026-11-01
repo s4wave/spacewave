@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react'
-import { LuCircleCheck, LuUpload } from 'react-icons/lu'
+import { LuCircleCheck, LuUpload } from '@s4wave/web/images/icons.js'
 import { isDesktop } from '@aptre/bldr'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 

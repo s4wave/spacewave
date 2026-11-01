@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
-import { LuCheck, LuFolder } from 'react-icons/lu'
+import { LuCheck, LuFolder } from '@s4wave/web/images/icons.js'
 import type { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
 import { usePromise } from '@s4wave/web/hooks/usePromise.js'
 import { cn } from '@s4wave/web/style/utils.js'

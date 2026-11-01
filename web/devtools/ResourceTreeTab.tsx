@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import {
   Tree,
   useTreeState,
@@ -14,6 +13,56 @@ import {
   getResourceLabel,
   type TrackedResource,
 } from '@aptre/bldr-sdk/hooks/ResourceDevToolsContext.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    overflow: 'hidden',
+  },
+  rule2: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-popover-border']} 50%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-deep']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule3: {
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule4: { flex: 1 },
+  rule5: {
+    height: `calc(${themeLayout['--spacing']} * 2)`,
+    width: `calc(${themeLayout['--spacing']} * 2)`,
+    flexShrink: 0,
+    borderRadius: '3.40282e38px',
+  },
+  rule6: { backgroundColor: themeColors['--color-success'] },
+  rule7: { backgroundColor: themeColors['--color-foreground-alt'] },
+  rule8: { backgroundColor: themeColors['--color-warning'] },
+  rule9: { backgroundColor: themeColors['--color-error'] },
+})
 
 // ResourceTreeTab displays resources in a hierarchical tree view.
 export function ResourceTreeTab() {
@@ -58,20 +107,17 @@ export function ResourceTreeTab() {
   const resourceCount = resources.size
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
+    <div sx={stylexStyles.rule1}>
       {/* Section header */}
-      <div
-        className={cn(
-          'border-popover-border/50 flex h-6 shrink-0 items-center justify-between border-b px-2',
-          'bg-background-deep/30',
-        )}
-      >
-        <span className="text-text-secondary text-xs font-medium">
+      <div sx={[stylexStyles.rule2]}>
+        <span
+          className={
+            /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary text-xs font-medium'
+          }
+        >
           Resources
         </span>
-        <span className="text-foreground-alt font-mono text-xs">
-          {resourceCount}
-        </span>
+        <span sx={stylexStyles.rule3}>{resourceCount}</span>
       </div>
 
       {/* Tree content */}
@@ -79,7 +125,7 @@ export function ResourceTreeTab() {
         nodes={nodes}
         state={[treeState, updateTree]}
         placeholder="No resources tracked"
-        className="flex-1"
+        {...stylex.props(stylexStyles.rule4)}
       />
     </div>
   )
@@ -156,13 +202,13 @@ interface StateIndicatorProps {
 function StateIndicator({ state, released }: StateIndicatorProps) {
   return (
     <span
-      className={cn(
-        'h-2 w-2 shrink-0 rounded-full',
-        state === 'ready' && !released && 'bg-success',
-        state === 'ready' && released && 'bg-foreground-alt',
-        state === 'loading' && 'bg-warning',
-        state === 'error' && 'bg-error',
-      )}
+      sx={[
+        stylexStyles.rule5,
+        !!(state === 'ready' && !released) && stylexStyles.rule6,
+        !!(state === 'ready' && released) && stylexStyles.rule7,
+        state === 'loading' && stylexStyles.rule8,
+        state === 'error' && stylexStyles.rule9,
+      ]}
       title={released ? `${state} (released)` : state}
     />
   )

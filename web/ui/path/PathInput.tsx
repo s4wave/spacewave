@@ -8,7 +8,7 @@ import {
   type DragEvent,
   type KeyboardEvent,
 } from 'react'
-import { LuChevronRight, LuHouse } from 'react-icons/lu'
+import { LuChevronRight, LuHouse } from '@s4wave/web/images/icons.js'
 import { cn } from '@s4wave/web/style/utils.js'
 
 import * as stylex from '@stylexjs/stylex'

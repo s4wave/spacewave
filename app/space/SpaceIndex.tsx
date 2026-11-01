@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react'
-import { LuBox } from 'react-icons/lu'
+import { LuBox } from '@s4wave/web/images/icons.js'
 
 import {
   parseObjectUri,

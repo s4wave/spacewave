@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { LuCheck, LuX } from 'react-icons/lu'
+import { LuCheck, LuX } from '@s4wave/web/images/icons.js'
 
 import type { RenderEntryCallback } from '@s4wave/web/editors/file-browser/FileListEntry.js'
 import type { FileEntry } from '@s4wave/web/editors/file-browser/types.js'

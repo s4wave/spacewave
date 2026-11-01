@@ -19,7 +19,7 @@ import {
   LuLockOpen,
   LuLogIn,
   LuShieldCheck,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 import { isDesktop } from '@aptre/bldr'
 import {
   useResourceValue,

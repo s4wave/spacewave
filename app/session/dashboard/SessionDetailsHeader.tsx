@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
-import { LuLock, LuLogOut, LuUserCog, LuX } from 'react-icons/lu'
-import { RxPerson } from 'react-icons/rx'
+import { LuLock, LuLogOut, LuUserCog, LuX } from '@s4wave/web/images/icons.js'
+import { RxPerson } from '@s4wave/web/images/icons.js'
 
 import { CopyButton } from '@s4wave/web/ui/CopyButton.js'
 import {

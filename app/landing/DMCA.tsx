@@ -1,4 +1,4 @@
-import { LuShield } from 'react-icons/lu'
+import { LuShield } from '@s4wave/web/images/icons.js'
 import { LegalPageLayout } from './LegalPageLayout.js'
 
 export const metadata = {

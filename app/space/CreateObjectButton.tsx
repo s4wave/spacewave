@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { LuPlus } from 'react-icons/lu'
+import { LuPlus } from '@s4wave/web/images/icons.js'
 
 import { BottomBarLevel } from '@s4wave/web/frame/bottom-bar-level.js'
 import { BottomBarItem } from '@s4wave/web/frame/bottom-bar-item.js'

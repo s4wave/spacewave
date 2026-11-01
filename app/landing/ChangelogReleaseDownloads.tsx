@@ -1,5 +1,5 @@
 import { useCallback, useId, useMemo, useState } from 'react'
-import { LuMonitorDown } from 'react-icons/lu'
+import { LuMonitorDown } from '@s4wave/web/images/icons.js'
 
 import {
   isReleaseVersion,

@@ -5,7 +5,7 @@ import {
   LuPinOff,
   LuTableProperties,
   LuX,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'

@@ -21,7 +21,7 @@ import {
   BorderNode,
   Actions,
 } from '@aptre/flex-layout'
-import { LuExternalLink, LuPlus, LuX } from 'react-icons/lu'
+import { LuExternalLink, LuPlus, LuX } from '@s4wave/web/images/icons.js'
 
 import { useNavigate, useParams } from '@s4wave/web/router/router.js'
 

@@ -5,7 +5,7 @@ import {
   LuFolder,
   LuLayoutGrid,
   LuNotebookPen,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
 

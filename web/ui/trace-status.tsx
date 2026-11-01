@@ -1,4 +1,9 @@
-import { LuCircle, LuCircleCheck, LuCircleDot, LuCircleX } from 'react-icons/lu'
+import {
+  LuCircle,
+  LuCircleCheck,
+  LuCircleDot,
+  LuCircleX,
+} from '@s4wave/web/images/icons.js'
 
 import type { TraceStatus } from '@s4wave/web/ui/trace.js'
 

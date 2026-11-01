@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react'
-import { LuArrowRight, LuX } from 'react-icons/lu'
+import { LuArrowRight, LuX } from '@s4wave/web/images/icons.js'
 
 import {
   useNavigate,

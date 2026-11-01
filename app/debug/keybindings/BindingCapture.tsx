@@ -1,11 +1,21 @@
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
-import { LuCircleX, LuKeyboard, LuRotateCcw } from 'react-icons/lu'
+import { LuCircleX, LuKeyboard, LuRotateCcw } from '@s4wave/web/images/icons.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
 import { Button } from '@s4wave/web/ui/button.js'
 
 import { Keycap } from './Keycap.js'
 import { chordFromKeyboardEvent } from './keyboard-utils.js'
+
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    minWidth: `calc(${themeLayout['--spacing']} * 28)`,
+    justifyContent: 'center',
+  },
+})
 
 interface BindingCaptureProps {
   binding: string
@@ -85,7 +95,7 @@ export function BindingCapture({
         aria-pressed={capturing}
         variant="capture"
         data-capturing={capturing}
-        className="min-w-28 justify-center"
+        sx={stylexStyles.rule1}
         onBlur={cancelCapture}
         onClick={capturing ? cancelCapture : startCapture}
       >

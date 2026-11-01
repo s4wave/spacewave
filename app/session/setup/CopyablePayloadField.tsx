@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LuCopy } from 'react-icons/lu'
+import { LuCopy } from '@s4wave/web/images/icons.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
 

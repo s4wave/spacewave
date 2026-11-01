@@ -1,6 +1,6 @@
 /* eslint-disable react-doctor/no-giant-component */
 import { useCallback, useState, type ReactNode } from 'react'
-import type { IconType } from 'react-icons'
+import type { IconType } from '@s4wave/web/images/icons.js'
 import {
   LuArrowLeft,
   LuClock3,
@@ -10,7 +10,7 @@ import {
   LuShield,
   LuTrash2,
   LuTriangleAlert,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { useNavigate } from '@s4wave/web/router/router.js'

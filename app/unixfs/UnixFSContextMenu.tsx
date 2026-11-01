@@ -7,7 +7,7 @@ import {
   LuTrash2,
   LuFolderPlus,
   LuUpload,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 import {
   DropdownMenu,
   DropdownMenuContent,

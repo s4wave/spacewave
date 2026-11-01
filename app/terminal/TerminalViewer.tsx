@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react'
-import { LuTerminal } from 'react-icons/lu'
+import { LuTerminal } from '@s4wave/web/images/icons.js'
 
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import { useAccessTypedHandle } from '@s4wave/web/hooks/useAccessTypedHandle.js'
