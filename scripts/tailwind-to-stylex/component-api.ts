@@ -8,14 +8,22 @@ type Edit = { start: number; end: number; text: string }
 
 const sharedApis = new Map<string, Promise<ReadonlySet<string>>>()
 
-// sharedPath resolves only owned shared UI modules, whose APIs this migration controls.
+// sharedPath resolves owned source modules so style inputs can follow forwarding wrappers.
 function sharedPath(target: string, filename: string): string | undefined {
-  if (target.startsWith('@s4wave/web/ui/'))
-    return resolve('web/ui', target.slice('@s4wave/web/ui/'.length))
-  if (target.startsWith('.')) {
-    const path = resolve(dirname(filename), target)
-    if (path.startsWith(resolve('web/ui') + sep)) return path
-  }
+  // Resolve project aliases and relative imports before reading a component's actual API.
+  const roots = ['web', 'app', 'plugin']
+  let path: string | undefined
+  if (target.startsWith('.')) path = resolve(dirname(filename), target)
+  else
+    for (const root of roots) {
+      const prefix = `@s4wave/${root}/`
+      if (target.startsWith(prefix))
+        path = resolve(root, target.slice(prefix.length))
+    }
+
+  // Keep assets and imports outside the owned source areas out of the API scan.
+  if (!path || /\.(?![cm]?[jt]sx?$)[^./]+$/.test(path)) return
+  if (roots.some((root) => path!.startsWith(resolve(root) + sep))) return path
 }
 
 /** readSharedStyleApis reads existing sx exports instead of assuming every shared API has migrated. */
@@ -24,7 +32,11 @@ export async function readSharedStyleApis(source: string, filename: string) {
     filename,
     configFile: false,
     babelrc: false,
-    parserOpts: { plugins: ['typescript', 'jsx'] },
+    parserOpts: {
+      plugins: /\.[cm]?ts$/.test(filename)
+        ? ['typescript']
+        : ['typescript', 'jsx'],
+    },
   })!
   const imports = new Map<string, ReadonlySet<string>>()
   for (const statement of ast.program.body) {
@@ -71,7 +83,11 @@ export async function readSharedStyleApis(source: string, filename: string) {
           filename: resolved,
           configFile: false,
           babelrc: false,
-          parserOpts: { plugins: ['typescript', 'jsx'] },
+          parserOpts: {
+            plugins: /\.[cm]?ts$/.test(resolved)
+              ? ['typescript']
+              : ['typescript', 'jsx'],
+          },
         })!
         for (const item of parsed.program.body) {
           if (item.type === 'ExportDefaultDeclaration') {
@@ -120,7 +136,11 @@ export function prepareComponentStyles(
     filename,
     configFile: false,
     babelrc: false,
-    parserOpts: { plugins: ['typescript', 'jsx'] },
+    parserOpts: {
+      plugins: /\.[cm]?ts$/.test(filename)
+        ? ['typescript']
+        : ['typescript', 'jsx'],
+    },
   })!
   const edits = new Map<string, Edit>()
   const identifiers = new Set<string>()
@@ -163,6 +183,7 @@ export function prepareComponentStyles(
   for (let suffix = 2; identifiers.has(typeName); suffix++)
     typeName = `ComponentStyles${suffix}`
   const wrappedTypes: Node[] = []
+  const ownedProps = new Set<string>()
   let converted = 0
   let needsType = false
 
@@ -204,27 +225,38 @@ export function prepareComponentStyles(
           if (key.name === 'sx' && name) components.add(name)
           if (key.name !== 'className' || options.convertProps === false)
             continue
-          if (name) components.add(name)
           const value = property.node.value
           const identifier =
             value.type === 'AssignmentPattern' ? value.left : value
           if (identifier.type !== 'Identifier') continue
+          if (
+            value.type === 'AssignmentPattern' &&
+            (value.right.type !== 'StringLiteral' || value.right.value !== '')
+          )
+            continue
           const binding = path.scope.getBinding(identifier.name)
           if (!binding) continue
+          if (name) components.add(name)
           if (
             parameter.node.typeAnnotation?.type === 'TSTypeAnnotation' &&
             !wrappedTypes.includes(parameter.node.typeAnnotation.typeAnnotation)
           ) {
             const type = parameter.node.typeAnnotation.typeAnnotation
+            if (
+              type.type === 'TSTypeReference' &&
+              type.typeName.type === 'Identifier'
+            )
+              ownedProps.add(type.typeName.name)
             wrappedTypes.push(type)
             change(
               type,
-              `Omit<${source.slice(type.start!, type.end!)}, 'className'> & {sx?:${typeName}}`,
+              `Omit<${source.slice(type.start!, type.end!)}, 'className'> & {sx?:${typeName};className?:never}`,
             )
             needsType = true
           }
-          change(key, 'sx')
-          change(identifier, 'sx')
+          if (value.type !== 'AssignmentPattern' || key.start !== value.start)
+            change(key, 'sx')
+          change(value.type === 'AssignmentPattern' ? value : identifier, 'sx')
           for (const reference of binding.referencePaths) {
             const parent = reference.parentPath
             change(
@@ -261,9 +293,12 @@ export function prepareComponentStyles(
         path.node.typeAnnotation?.typeAnnotation.type !== 'TSStringKeyword'
       )
         return
+      const owner = path.findParent((parent) =>
+        parent.isTSInterfaceDeclaration(),
+      )
       if (
-        !path.parentPath.isTSInterfaceBody() &&
-        !path.parentPath.parentPath?.isTSTypeAnnotation()
+        !owner?.isTSInterfaceDeclaration() ||
+        !ownedProps.has(owner.node.id.name)
       )
         return
       change(key, 'sx')
@@ -271,22 +306,12 @@ export function prepareComponentStyles(
       needsType = true
     },
     TSInterfaceDeclaration(path) {
+      // Keep unrelated native and pass-through prop records intact.
+      if (!ownedProps.has(path.node.id.name)) return
+
       // Interface heritage excludes raw class names; its body declares the replacement input.
       let styled = false
       for (const heritage of path.node.extends ?? []) {
-        const name = heritage.expression
-        if (
-          name.type !== 'TSQualifiedName' ||
-          name.left.type !== 'Identifier' ||
-          name.left.name !== 'React' ||
-          ![
-            'ComponentProps',
-            'ComponentPropsWithRef',
-            'HTMLAttributes',
-            'ButtonHTMLAttributes',
-          ].includes(name.right.name)
-        )
-          continue
         change(
           heritage,
           `Omit<${source.slice(heritage.start!, heritage.end!)}, 'className'>`,
@@ -294,44 +319,29 @@ export function prepareComponentStyles(
         styled = true
       }
 
-      // Add the shared style type only to interfaces whose native prop inheritance changed.
-      if (styled) {
-        const offset = path.node.body.start! + 1
-        edits.set(`interface:${offset}`, {
-          start: offset,
-          end: offset,
-          text: `sx?:${typeName};`,
-        })
-        needsType = true
-      }
+      // Forbid raw classes even through JSX spreads, and add the owned style input when inherited props need it.
+      const hasStyleField = path.node.body.body.some(
+        (member) =>
+          member.type === 'TSPropertySignature' &&
+          member.key.type === 'Identifier' &&
+          ['className', 'sx'].includes(member.key.name),
+      )
+      const offset = path.node.body.start! + 1
+      edits.set(`interface:${offset}`, {
+        start: offset,
+        end: offset,
+        text: `className?:never;${styled && !hasStyleField ? `sx?:${typeName};` : ''}`,
+      })
+      needsType = true
     },
-    TSTypeReference(path) {
-      // Preserve the single enclosing parameter edit when it already owns this type.
-      if (
-        wrappedTypes.some(
-          (type) =>
-            path.node.start! >= type.start! && path.node.end! <= type.end!,
-        )
-      )
-        return
-
-      // Other native prop references expose the same composable style input.
-      const name = path.node.typeName
-      if (
-        name.type !== 'TSQualifiedName' ||
-        name.left.type !== 'Identifier' ||
-        name.left.name !== 'React' ||
-        ![
-          'ComponentProps',
-          'ComponentPropsWithRef',
-          'HTMLAttributes',
-          'ButtonHTMLAttributes',
-        ].includes(name.right.name)
-      )
-        return
+    TSTypeAliasDeclaration(path) {
+      // Only an owned component's alias changes; pass-through and library props keep their contracts.
+      if (!ownedProps.has(path.node.id.name)) return
+      const type = path.node.typeAnnotation
+      wrappedTypes.push(type)
       change(
-        path.node,
-        `Omit<${source.slice(path.node.start!, path.node.end!)}, 'className'> & {sx?:${typeName}}`,
+        type,
+        `Omit<${source.slice(type.start!, type.end!)}, 'className'> & {sx?:${typeName};className?:never}`,
       )
       needsType = true
     },

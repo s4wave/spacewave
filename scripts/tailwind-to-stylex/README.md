@@ -51,3 +51,8 @@ Class strings passed through `cn` use the actual `cnfast` normalizer before
 utility extraction. Plain JSX class strings retain Tailwind's canonical CSS
 order. This distinction preserves cases such as `cn('p-2 p-1')`, where the
 helper removes `p-2` before the browser sees it.
+
+Animation utilities become explicit longhands through the native CSS parser;
+StyleX drops the CSS `animation` shorthand. Font-mono styles also carry the
+repository's console rendering properties, which formerly depended on its
+utility class. Default font rendering belongs to the reset layer.

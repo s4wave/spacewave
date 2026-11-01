@@ -22,6 +22,7 @@ export function ExpressionCases() {
     <div data-existing={`${stylexStyles}-${stylexStyles2}-${themeColors}`}>
       <span
         className={combine(
+          true,
           rowClasses,
           { 'select-none': true },
           recipe({ compact: true }),

@@ -344,3 +344,9 @@ export const colors = stylex.defineVars({
 export const motion = stylex.defineVars({
   '--default-transition-timing-function': 'cubic-bezier(0.4, 0, 0.2, 1)',
 })
+
+/** utilityState types the enum variables shared by border and outline declarations. */
+export const utilityState = stylex.defineVars({
+  '--tw-border-style': 'solid' as const,
+  '--tw-outline-style': 'solid' as const,
+})

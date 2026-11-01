@@ -35,7 +35,7 @@ export function compileVariants(
     if (!node || node.type === 'NullLiteral') return 'false'
     if (node.type === 'StringLiteral') return literal(node.value)
     if (node.type === 'ArrayExpression')
-      return `[${node.elements.map(classes).join(',')}]`
+      return `([${node.elements.map(classes).join(',')}] as const)`
     throw new Error('dynamic cva classes')
   }
   const base = classes(node.arguments[0])
@@ -66,7 +66,7 @@ export function compileVariants(
       ? scalar(defaults.get(name)!)
       : 'undefined'
     declarations.push(
-      `const ${raw}=props?.[${JSON.stringify(name)}];const ${variable}=${raw}===undefined?${fallback}:${raw};`,
+      `// Resolve ${JSON.stringify(name)} once, retaining explicit null instead of its default.\nconst ${raw}=props?.[${JSON.stringify(name)}];const ${variable}=${raw}===undefined?${fallback}:${raw};\n`,
     )
     const choiceTypes = [...choices.keys()].map((key) =>
       ['true', 'false'].includes(key) ? key : JSON.stringify(key),
@@ -95,7 +95,7 @@ export function compileVariants(
           : `${variable}===${scalar(value)}`,
       )
     }
-    const styles = `[${classes(fields.get('class'))},${classes(fields.get('className'))}]`
+    const styles = `([${classes(fields.get('class'))},${classes(fields.get('className'))}] as const)`
     selected.push(
       `(${conditions.length ? conditions.join('&&') : 'true'}&&${styles})`,
     )
@@ -105,5 +105,5 @@ export function compileVariants(
     `className?:${binding}.StyleXStyles`,
   )
   selected.push('props?.class', 'props?.className')
-  return `(props?:{${types.join(';')}})=>{${declarations.join('')}return [${selected.join(',')}] as const}`
+  return `(props?:{${types.join(';')}})=>{\n${declarations.join('\n')}\n// Compose the base, matching variants and caller styles in order.\nreturn [${selected.join(',')}] as const\n}`
 }
