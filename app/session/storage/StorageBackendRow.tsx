@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
-import { LuPlugZap, LuStar, LuStarOff, LuTrash2 } from 'react-icons/lu'
+import {
+  LuPlugZap,
+  LuStar,
+  LuStarOff,
+  LuTrash2,
+} from '@s4wave/web/images/icons.js'
 import { isDesktop } from '@aptre/bldr'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 

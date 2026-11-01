@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { LuTerminal } from 'react-icons/lu'
+import { LuTerminal } from '@s4wave/web/images/icons.js'
 
 import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { Root } from '@s4wave/sdk/root/root.js'

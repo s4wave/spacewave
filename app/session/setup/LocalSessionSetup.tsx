@@ -6,7 +6,7 @@ import {
   LuCloud,
   LuMonitor,
   LuTriangleAlert,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 import superjson from 'superjson'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 

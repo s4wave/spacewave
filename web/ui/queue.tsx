@@ -1,6 +1,6 @@
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
-import { LuListChecks, LuListTodo } from 'react-icons/lu'
+import { LuListChecks, LuListTodo } from '@s4wave/web/images/icons.js'
 
 import {
   Trace,

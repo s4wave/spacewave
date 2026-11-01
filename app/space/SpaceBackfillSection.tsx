@@ -1,5 +1,8 @@
 import { useCallback, useState } from 'react'
-import { LuHardDriveDownload, LuMousePointerClick } from 'react-icons/lu'
+import {
+  LuHardDriveDownload,
+  LuMousePointerClick,
+} from '@s4wave/web/images/icons.js'
 
 import { useWatchStateRpc } from '@aptre/bldr-react'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'

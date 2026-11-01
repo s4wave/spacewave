@@ -4,7 +4,7 @@ import {
   LuGitMerge,
   LuListOrdered,
   LuMonitor,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import { useWatchStateRpc } from '@aptre/bldr-react'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LuMenu, LuX } from 'react-icons/lu'
+import { LuMenu, LuX } from '@s4wave/web/images/icons.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { LegalFooter } from '@s4wave/app/landing/LegalFooter.js'
 import {

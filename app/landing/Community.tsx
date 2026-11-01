@@ -13,7 +13,7 @@ import {
   LuBookOpen,
   LuArrowRight,
   LuSearch,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 import {
   DISCORD_INVITE_URL,
   GITHUB_ISSUES_URL,

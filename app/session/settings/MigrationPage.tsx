@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { LuArrowLeft, LuCpu } from 'react-icons/lu'
+import { LuArrowLeft, LuCpu } from '@s4wave/web/images/icons.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
 import { useNavigate } from '@s4wave/web/router/router.js'

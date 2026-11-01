@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { LuArrowRight, LuBookOpen } from 'react-icons/lu'
+import { LuArrowRight, LuBookOpen } from '@s4wave/web/images/icons.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import type { DocSection } from './types.js'
 

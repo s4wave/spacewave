@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { LuActivity } from 'react-icons/lu'
+import { LuActivity } from '@s4wave/web/images/icons.js'
 
 import type { BackgroundPlugin } from '@s4wave/core/session/session.pb.js'
 import { knownSpacePlugin } from '@s4wave/app/space/known-plugins.js'

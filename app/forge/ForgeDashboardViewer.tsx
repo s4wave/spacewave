@@ -7,7 +7,7 @@ import {
   LuBriefcase,
   LuPlus,
   LuServer,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'

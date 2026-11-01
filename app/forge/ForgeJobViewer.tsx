@@ -6,7 +6,7 @@ import {
   LuList,
   LuListTodo,
   LuPlus,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import { Job, State } from '@go/github.com/s4wave/spacewave/forge/job/job.pb.js'
 import {

@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { LuArrowRight, LuChevronDown } from 'react-icons/lu'
+import { LuArrowRight, LuChevronDown } from '@s4wave/web/images/icons.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { SpacewaveOrgListContext } from '@s4wave/web/contexts/SpacewaveOrgListContext.js'

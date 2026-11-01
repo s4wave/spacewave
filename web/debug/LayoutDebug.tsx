@@ -1,8 +1,286 @@
 import { useCallback, useMemo, useState } from 'react'
 import { OptimizedLayout, Model, TabNode, IJsonModel } from '@aptre/flex-layout'
-import { LuArrowLeft, LuFile } from 'react-icons/lu'
+import { LuArrowLeft, LuFile } from '@s4wave/web/images/icons.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { cn } from '@s4wave/web/style/utils.js'
+import * as stylex from '@stylexjs/stylex'
+import {
+  colors as themeColors,
+  layout as themeLayout,
+  fonts as themeFonts,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: themeColors['--color-background'],
+    opacity: 0.25,
+  },
+  rule2: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+  },
+  rule4: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  rule5: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rule6: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule7: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule8: {
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: '10px',
+    lineHeight: 1.5,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-brand'],
+  },
+  rule9: {
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: themeColors['--color-window-border'],
+  },
+  rule10: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule11: {
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-white']} 10%, transparent)`,
+    paddingBottom: themeLayout['--spacing'],
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule12: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule13: {
+    containerType: 'inline-size',
+    display: 'flex',
+    width: '100%',
+    flex: 1,
+    flexDirection: 'column',
+    overflowY: 'auto',
+    backgroundColor: themeColors['--color-background'],
+  },
+  rule14: {
+    marginInline: 'auto',
+    width: '100%',
+    maxWidth: 'var(--container-5xl)',
+    paddingInline: {
+      default: `calc(${themeLayout['--spacing']} * 4)`,
+      '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 8)`,
+    },
+    paddingBlock: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule15: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 6)`,
+    display: 'flex',
+    cursor: 'pointer',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule16: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule17: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: 'var(--text-3xl)',
+    lineHeight: 'var(--tw-leading, var(--text-3xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule18: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule19: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 8)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-text-muted'],
+  },
+  rule20: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 10)`,
+  },
+  rule21: {
+    display: 'grid',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    gridTemplateColumns: {
+      default: null,
+      '@container (min-width: 32rem)': 'repeat(2, minmax(0, 1fr))',
+    },
+  },
+  rule22: {
+    overflow: 'hidden',
+    borderRadius: 'var(--radius-xl)',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+  },
+  rule23: { display: 'flex', flexDirection: 'column' },
+  rule24: {
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-white']} 5%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule25: {
+    marginLeft: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule26: {
+    display: 'flex',
+    cursor: 'pointer',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: 'var(--radius-xl)',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule27: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+    '--tw-ring-shadow':
+      'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    '--tw-ring-color': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+  },
+  rule28: {
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 15%, transparent)`,
+      },
+    },
+  },
+  rule29: {
+    display: 'flex',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule30: {
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule31: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule32: {
+    fontSize: '10px',
+    lineHeight: 1.5,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule33: {
+    flexShrink: 0,
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: '10px',
+    lineHeight: 1.5,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-brand'],
+  },
+  rule34: {
+    overflowX: 'auto',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-white']} 5%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule35: { paddingBottom: `calc(${themeLayout['--spacing']} * 8)` },
+})
+
 // Variant CSS lives in web/style/app.css after the baked Heavy Frost styles.
 // Selectors omit :not(.flexlayout__tab *) because this page renders inside the
 // shell's tab content panel.
@@ -94,10 +372,10 @@ function makeDemoModel(prefix: string): IJsonModel {
 
 function SampleContent({ node }: { node: TabNode }) {
   return (
-    <div className="bg-background flex h-full w-full items-center justify-center opacity-25">
-      <div className="flex flex-col items-center gap-1">
-        <LuFile className="size-5" />
-        <span className="text-xs font-medium">{node.getName()}</span>
+    <div sx={stylexStyles.rule1}>
+      <div sx={stylexStyles.rule2}>
+        <LuFile {...stylex.props(stylexStyles.rule3)} />
+        <span sx={stylexStyles.rule4}>{node.getName()}</span>
       </div>
     </div>
   )
@@ -136,7 +414,9 @@ function VariantLayout({
 
   return (
     <div
-      className="layout-debug-frame shell-flexlayout bg-editor-border overflow-hidden"
+      className={
+        /* TODO(stylex): global or unknown class: layout-debug-frame */ 'layout-debug-frame shell-flexlayout bg-editor-border overflow-hidden'
+      }
       style={{ '--layout-debug-height': `${height}px` }}
       {...dataAttrs}
     >
@@ -165,12 +445,14 @@ function VariantPreview({
       role="button"
       tabIndex={0}
       data-testid={`variant-card-${id}`}
-      className={cn(
-        'group flex cursor-pointer flex-col gap-3 rounded-xl border p-4 transition-all',
-        selected
-          ? 'border-brand/50 bg-brand/5 ring-brand/20 ring-1'
-          : 'border-foreground/8 hover:border-foreground/15 bg-background-card/30',
-      )}
+      className={
+        /* TODO(stylex): global or unknown class: group */ cn(
+          'group flex cursor-pointer flex-col gap-3 rounded-xl border p-4 transition-all',
+          selected
+            ? 'border-brand/50 bg-brand/5 ring-brand/20 ring-1'
+            : 'border-foreground/8 hover:border-foreground/15 bg-background-card/30',
+        )
+      }
       onClick={onSelect}
       onKeyDown={(event) => {
         if (event.key !== 'Enter' && event.key !== ' ') return
@@ -178,20 +460,14 @@ function VariantPreview({
         onSelect()
       }}
     >
-      <div className="flex items-center justify-between">
+      <div sx={stylexStyles.rule5}>
         <div>
-          <h3 className="text-foreground text-sm font-semibold">{name}</h3>
-          <p className="text-foreground-alt text-xs">{description}</p>
+          <h3 sx={stylexStyles.rule6}>{name}</h3>
+          <p sx={stylexStyles.rule7}>{description}</p>
         </div>
-        {selected && (
-          <span className="bg-brand/20 text-brand micro-ten rounded-full px-2 py-0.5 font-semibold">
-            Selected
-          </span>
-        )}
+        {selected && <span sx={stylexStyles.rule8}>Selected</span>}
       </div>
-      <div className="border-window-border overflow-hidden rounded-lg border">
-        {children}
-      </div>
+      <div sx={stylexStyles.rule9}>{children}</div>
     </div>
   )
 }
@@ -246,14 +522,10 @@ function Section({
   children: React.ReactNode
 }) {
   return (
-    <section className="flex flex-col gap-3">
+    <section sx={stylexStyles.rule10}>
       <div>
-        <h2 className="text-foreground border-b border-white/10 pb-1 text-lg font-semibold">
-          {title}
-        </h2>
-        {subtitle && (
-          <p className="text-foreground-alt mt-1 text-xs">{subtitle}</p>
-        )}
+        <h2 sx={stylexStyles.rule11}>{title}</h2>
+        {subtitle && <p sx={stylexStyles.rule12}>{subtitle}</p>}
       </div>
       {children}
     </section>
@@ -388,33 +660,27 @@ export function LayoutDebug() {
   }, [selectedVariant, selectedModifiers])
 
   return (
-    <div className="bg-background @container flex w-full flex-1 flex-col overflow-y-auto">
-      <div className="mx-auto w-full max-w-5xl px-4 py-6 @lg:px-8">
-        <button
-          type="button"
-          onClick={goBack}
-          className="text-foreground-alt hover:text-foreground mb-6 flex cursor-pointer items-center gap-2 transition-colors"
-        >
-          <LuArrowLeft className="size-4" />
+    <div sx={stylexStyles.rule13}>
+      <div sx={stylexStyles.rule14}>
+        <button type="button" onClick={goBack} sx={stylexStyles.rule15}>
+          <LuArrowLeft {...stylex.props(stylexStyles.rule16)} />
           Back to home
         </button>
 
-        <h1 className="text-foreground mb-2 text-3xl font-semibold">
-          Layout UI Lab
-        </h1>
-        <p className="text-foreground-alt mb-2 text-sm">
+        <h1 sx={stylexStyles.rule17}>Layout UI Lab</h1>
+        <p sx={stylexStyles.rule18}>
           Compare tab styling variants using real FlexLayout instances. Click to
           select. Each preview uses the baked Heavy Frost base with
           variant-specific CSS overrides.
         </p>
-        <p className="text-text-muted mb-8 text-xs">
+        <p sx={stylexStyles.rule19}>
           Split view with two tabsets and a splitter. Compare tab shape, color,
           frost/transparency, borders, shadows, and spacing across variants.
         </p>
 
-        <div className="flex flex-col gap-10">
+        <div sx={stylexStyles.rule20}>
           <Section title="Tab Bar Variants">
-            <div className="grid gap-4 @lg:grid-cols-2">
+            <div sx={stylexStyles.rule21}>
               {VARIANTS.map((v) => (
                 <VariantPreview
                   key={v.id}
@@ -431,19 +697,15 @@ export function LayoutDebug() {
           </Section>
 
           <Section title="Selected Variant — Enlarged">
-            <div className="border-foreground/8 overflow-hidden rounded-xl border">
+            <div sx={stylexStyles.rule22}>
               {(() => {
                 const v = VARIANTS.find((x) => x.id === selectedVariant)
                 if (!v) return null
                 return (
-                  <div className="flex flex-col">
-                    <div className="bg-background-card/50 border-b border-white/5 px-4 py-2">
-                      <span className="text-foreground text-sm font-semibold">
-                        {v.name}
-                      </span>
-                      <span className="text-foreground-alt ml-2 text-xs">
-                        {v.description}
-                      </span>
+                  <div sx={stylexStyles.rule23}>
+                    <div sx={stylexStyles.rule24}>
+                      <span sx={stylexStyles.rule6}>{v.name}</span>
+                      <span sx={stylexStyles.rule25}>{v.description}</span>
                     </div>
                     <VariantLayout
                       key={`enlarged-${v.id}`}
@@ -463,7 +725,7 @@ export function LayoutDebug() {
               title={`${section.title} — ${VARIANTS.find((v) => v.id === selectedVariant)?.name ?? selectedVariant}`}
               subtitle={section.subtitle}
             >
-              <div className="grid gap-4 @lg:grid-cols-2">
+              <div sx={stylexStyles.rule21}>
                 {section.options.map((opt) => {
                   const picked =
                     selectedModifiers[section.attrKey] === opt.value
@@ -472,12 +734,10 @@ export function LayoutDebug() {
                       role="button"
                       tabIndex={0}
                       key={opt.value}
-                      className={cn(
-                        'flex cursor-pointer flex-col gap-1.5 rounded-xl border p-3 transition-all',
-                        picked
-                          ? 'border-brand/50 bg-brand/5 ring-brand/20 ring-1'
-                          : 'border-foreground/8 hover:border-foreground/15',
-                      )}
+                      sx={[
+                        stylexStyles.rule26,
+                        picked ? stylexStyles.rule27 : stylexStyles.rule28,
+                      ]}
                       onClick={() =>
                         setSelectedModifiers((prev) => ({
                           ...prev,
@@ -493,22 +753,18 @@ export function LayoutDebug() {
                         }))
                       }}
                     >
-                      <div className="flex items-baseline justify-between gap-2">
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-foreground text-xs font-semibold">
-                            {opt.label}
-                          </span>
-                          <span className="text-foreground-alt micro-ten">
+                      <div sx={stylexStyles.rule29}>
+                        <div sx={stylexStyles.rule30}>
+                          <span sx={stylexStyles.rule31}>{opt.label}</span>
+                          <span sx={stylexStyles.rule32}>
                             {opt.description}
                           </span>
                         </div>
                         {picked && (
-                          <span className="bg-brand/20 text-brand micro-ten shrink-0 rounded-full px-2 py-0.5 font-semibold">
-                            Selected
-                          </span>
+                          <span sx={stylexStyles.rule33}>Selected</span>
                         )}
                       </div>
-                      <div className="border-window-border overflow-hidden rounded-lg border">
+                      <div sx={stylexStyles.rule9}>
                         <VariantLayout
                           key={`${section.attrKey}-${opt.value}-${selectedVariant}`}
                           variant={selectedVariant}
@@ -532,14 +788,14 @@ export function LayoutDebug() {
             title="Candidate Preview"
             subtitle={`${VARIANTS.find((v) => v.id === selectedVariant)?.name ?? selectedVariant} with your selected modifiers applied.`}
           >
-            <div className="border-foreground/8 overflow-hidden rounded-xl border">
-              <div className="flex flex-col">
-                <div className="bg-background-card/50 border-b border-white/5 px-4 py-2">
-                  <span className="text-foreground text-sm font-semibold">
+            <div sx={stylexStyles.rule22}>
+              <div sx={stylexStyles.rule23}>
+                <div sx={stylexStyles.rule24}>
+                  <span sx={stylexStyles.rule6}>
                     {VARIANTS.find((v) => v.id === selectedVariant)?.name ??
                       selectedVariant}
                   </span>
-                  <span className="text-foreground-alt ml-2 text-xs">
+                  <span sx={stylexStyles.rule25}>
                     {Object.entries(selectedModifiers)
                       .flatMap(([k, v]) =>
                         v !== 'default' ? [`${k}: ${v}`] : [],
@@ -559,12 +815,12 @@ export function LayoutDebug() {
           </Section>
 
           <Section title="Configuration">
-            <pre className="bg-background-card/50 text-foreground-alt overflow-x-auto rounded-lg border border-white/5 p-4 font-mono text-xs leading-relaxed">
+            <pre sx={stylexStyles.rule34}>
               {JSON.stringify(config, null, 2)}
             </pre>
           </Section>
 
-          <div className="pb-8" />
+          <div sx={stylexStyles.rule35} />
         </div>
       </div>
     </div>

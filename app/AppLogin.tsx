@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { LuFolderOpen, LuLink } from 'react-icons/lu'
+import { LuFolderOpen, LuLink } from '@s4wave/web/images/icons.js'
 
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { useAddSpaceRootAlias } from '@s4wave/app/hooks/useAddSpaceRootAlias.js'

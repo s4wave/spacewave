@@ -1,5 +1,5 @@
 import { useId } from 'react'
-import { LuDatabase } from 'react-icons/lu'
+import { LuDatabase } from '@s4wave/web/images/icons.js'
 
 import { accountStorageChoice } from '@s4wave/app/session/storage/storage-backend.js'
 import { useStorageBackends } from '@s4wave/app/session/storage/useStorageBackends.js'

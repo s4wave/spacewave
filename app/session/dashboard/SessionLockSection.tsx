@@ -1,5 +1,5 @@
 import { useCallback, useId, useState } from 'react'
-import { LuLock, LuLockOpen } from 'react-icons/lu'
+import { LuLock, LuLockOpen } from '@s4wave/web/images/icons.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'

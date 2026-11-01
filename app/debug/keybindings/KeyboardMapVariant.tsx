@@ -4,7 +4,7 @@ import {
   LuMousePointer2,
   LuSearch,
   LuTriangleAlert,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import { Badge } from '@s4wave/web/ui/badge.js'
 import { Button } from '@s4wave/web/ui/button.js'
@@ -20,6 +20,17 @@ import {
 } from './keybindings-model.js'
 import { currentKeybindingPlatform } from './keyboard-utils.js'
 import type { KeybindingVariantProps } from './variant-types.js'
+
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    height: 'auto',
+    width: '100%',
+    justifyContent: 'space-between',
+    textAlign: 'left',
+  },
+})
 
 export function KeyboardMapVariant({
   commands,
@@ -168,7 +179,7 @@ export function KeyboardMapVariant({
                   command.id === selectedCommand?.id ? 'brandGhost' : 'ghost'
                 }
                 size="commandRow"
-                className="h-auto w-full justify-between text-left"
+                sx={stylexStyles.rule1}
                 aria-pressed={command.id === selectedCommand?.id}
                 onClick={() => selectCommand(command.id)}
               >

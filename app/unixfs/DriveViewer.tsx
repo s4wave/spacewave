@@ -6,7 +6,7 @@ import {
   LuUpload,
   LuUserPlus,
   LuX,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import { useInvokeCommand } from '@s4wave/web/command/CommandContext.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'

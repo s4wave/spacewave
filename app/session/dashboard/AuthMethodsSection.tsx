@@ -7,8 +7,8 @@ import {
   LuLock,
   LuPlus,
   LuTrash2,
-} from 'react-icons/lu'
-import { FcGoogle } from 'react-icons/fc'
+} from '@s4wave/web/images/icons.js'
+import { FcGoogle } from '@s4wave/web/images/icons.js'
 
 import { downloadPemFile } from '@s4wave/web/download.js'
 import { cn } from '@s4wave/web/style/utils.js'

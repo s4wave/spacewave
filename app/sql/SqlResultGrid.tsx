@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import { LuDownload } from 'react-icons/lu'
+import { LuDownload } from '@s4wave/web/images/icons.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
 import { Button } from '@s4wave/web/ui/button.js'

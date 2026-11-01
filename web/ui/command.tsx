@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Command as CommandPrimitive } from 'cmdk'
-import { LuSearch } from 'react-icons/lu'
+import { LuSearch } from '@s4wave/web/images/icons.js'
 import { cva, type VariantProps } from 'class-variance-authority'
 
 import { cn } from '@s4wave/web/style/utils.js'

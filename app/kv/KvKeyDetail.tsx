@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { LuSave, LuTrash2, LuUndo2 } from 'react-icons/lu'
+import { LuSave, LuTrash2, LuUndo2 } from '@s4wave/web/images/icons.js'
 
 import {
   useResource,

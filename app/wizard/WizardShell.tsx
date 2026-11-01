@@ -1,5 +1,5 @@
 import { useCallback, type FocusEvent, type ReactNode } from 'react'
-import { LuArrowLeft, LuCheck, LuTrash2 } from 'react-icons/lu'
+import { LuArrowLeft, LuCheck, LuTrash2 } from '@s4wave/web/images/icons.js'
 
 import { Button } from '@s4wave/web/ui/button.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'

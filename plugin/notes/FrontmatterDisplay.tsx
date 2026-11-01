@@ -3,7 +3,12 @@ import { useMemo } from 'react'
 import type { Frontmatter } from './frontmatter.js'
 import { getFrontmatterTags, stripWikiLinks } from './frontmatter.js'
 import { cn } from '@s4wave/web/style/utils.js'
-import { LuTag, LuUser, LuCalendar, LuExternalLink } from 'react-icons/lu'
+import {
+  LuTag,
+  LuUser,
+  LuCalendar,
+  LuExternalLink,
+} from '@s4wave/web/images/icons.js'
 
 interface FrontmatterDisplayProps {
   frontmatter: Frontmatter

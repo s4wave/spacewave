@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { TagChip } from './TagChip.js'
-import { LuArrowRight } from 'react-icons/lu'
+import { LuArrowRight } from '@s4wave/web/images/icons.js'
 import { safeHref } from './safe-href.js'
 import type { BlogPost } from './types.js'
 

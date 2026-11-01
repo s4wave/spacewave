@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import { LuMonitor, LuSquareTerminal } from 'react-icons/lu'
+import { LuMonitor, LuSquareTerminal } from '@s4wave/web/images/icons.js'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 

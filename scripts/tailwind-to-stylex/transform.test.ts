@@ -15,6 +15,7 @@ import { transform } from './transform.js'
 import { prepareComponentStyles } from './component-api.js'
 import { writeSheetFixture } from './sheet-fixture.js'
 import { writeInputFixture } from './input-fixture.js'
+import { writeButtonFixture } from './button-fixture.js'
 import { stylexCss } from '../../bldr/web/bundler/vite/stylex.js'
 import { capture } from '../style-parity/capture.js'
 import { compareCaptures } from '../style-parity/compare.js'
@@ -89,6 +90,16 @@ test(
       /conditional property composition/,
     )
 
+    // Dead class constants and mixed recipe imports leave no unused runtime helpers.
+    const cleaned = transform(
+      `import{cn}from'cnfast';import{cva,type VariantProps}from'class-variance-authority';const recipe=cva('p-1',{variants:{tone:{muted:'text-muted-foreground'}}});export function Example({tone}:VariantProps<typeof recipe>){const classes=cn('border');return <div className={cn(classes,recipe({tone}))}/>}`,
+      'cleanup.tsx',
+      oracle,
+    )
+    assert.equal(cleaned.remaining.length, 0)
+    assert.doesNotMatch(cleaned.source, /\bimport\s*\{[^}]*\b(?:cn|cva)\b/)
+    assert.match(cleaned.source, /\bVariantProps\b/)
+
     // Keep partially converted inputs available for their coordinated hand pass.
     const mixed = `function Mixed({className,sx}:{className?:string;sx?:unknown}){return <div className={className}/>}`
     assert.equal(prepareComponentStyles(mixed, 'mixed.tsx').source, mixed)
@@ -107,11 +118,17 @@ test(
         // Keep the original button API in the before capture as shared primitives continue converting.
         await writeFile(
           join(root, 'button.tsx'),
-          await readFile(
-            version === 'before'
-              ? 'scripts/tailwind-to-stylex/testdata/components/button.tsx'
-              : 'web/ui/button.tsx',
-            'utf8',
+          (
+            await readFile(
+              version === 'before'
+                ? 'scripts/tailwind-to-stylex/testdata/components/button.tsx'
+                : 'web/ui/button.tsx',
+              'utf8',
+            )
+          ).replace(
+            /(['"])(?:\.\.\/)+(?:web\/)?style\/([\w-]+)\.stylex\.js\1/g,
+            (_, quote, name) =>
+              JSON.stringify(resolve('web/style', name + '.stylex.ts')),
           ),
         )
         let main = `import React from 'react';import{createRoot}from'react-dom/client';import{VmErrorBanner}from'./VmErrorBanner';import{TagChip}from'./TagChip';import{InfoCard}from'./InfoCard';import{Separator}from'./separator';import{EmptyState}from'./EmptyState';import{ErrorState}from'./ErrorState';import{ExpressionCases}from'./ExpressionCases';import{OwnedStyles}from'./OwnedStyles';import${JSON.stringify(resolve('web/style/app.css'))};createRoot(document.getElementById('root')!).render(<main><VmErrorBanner title="VM unavailable" message="Choose an available image to continue."/><TagChip tag="example"/><InfoCard title="Status" icon={<span>!</span>}>Ready</InfoCard><InfoCard compact title="Compact">Ready</InfoCard><InfoCard icon={<span>!</span>}>Untitled</InfoCard><ExpressionCases/><OwnedStyles/><Separator/><EmptyState title="Empty"/><EmptyState title="Compact" variant="compact" action={{label:'Create',onClick:()=>{}}}/><EmptyState title="Panel" variant="panel" className="p-6"/><ErrorState message="Try again" onRetry={()=>{}}/><ErrorState message="Inline" variant="inline"/><ErrorState message="Fullscreen" variant="fullscreen" className="p-6"/></main>);`
@@ -566,11 +583,13 @@ test(
         // Isolate modal overlays from the ordinary page's hover and layout states.
         await writeSheetFixture(root, version)
         await writeInputFixture(root, version)
+        await writeButtonFixture(root, version)
+        main = "import{ButtonSamples}from'./ButtonSamples';" + main
         main = "import{InputSamples}from'./InputSamples';" + main
         main = "import{SheetSamples}from'./SheetSamples';" + main
         main = main.replace(
           "createRoot(document.getElementById('root')!).render",
-          "if(new URLSearchParams(location.search).has('input'))createRoot(document.getElementById('root')!).render(<InputSamples/>);else if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
+          "if(new URLSearchParams(location.search).has('buttons'))createRoot(document.getElementById('root')!).render(<ButtonSamples/>);else if(new URLSearchParams(location.search).has('input'))createRoot(document.getElementById('root')!).render(<InputSamples/>);else if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
         )
         await writeFile(
           join(root, 'main.tsx'),
@@ -709,6 +728,28 @@ test(
                 .hover()
             },
           },
+          ...['default', 'focused', 'hovered'].map((mode) => ({
+            id: `buttons-${mode}`,
+            path: `/?buttons=${mode}`,
+            ready: async (page: import('playwright').Page) => {
+              await page
+                .getByRole('button', { name: 'Focus button', exact: true })
+                .waitFor()
+            },
+            setup: async (page: import('playwright').Page) => {
+              if (mode === 'focused')
+                await page
+                  .getByRole('button', { name: 'Focus button', exact: true })
+                  .focus()
+              if (mode === 'hovered')
+                await page
+                  .getByRole('button', {
+                    name: 'Dashboard active',
+                    exact: true,
+                  })
+                  .hover()
+            },
+          })),
           ...['default', 'focused'].map((mode) => ({
             id: `input-${mode}`,
             path: `/?input=${mode}`,
@@ -745,32 +786,89 @@ test(
           })),
         ],
       }
-      const paths = await capture(
-        manifest,
-        servers[0]!.resolvedUrls!.local[0]!,
-        join(parent, 'before-capture'),
-        context.signal,
-      )
-      await capture(
-        manifest,
-        servers[1]!.resolvedUrls!.local[0]!,
-        join(parent, 'after-capture'),
-        context.signal,
-      )
-      for (const path of paths) {
-        const differences = await Array.fromAsync(
-          compareCaptures(
-            join(parent, 'before-capture', path),
-            join(parent, 'after-capture', path),
-          ),
+      // A focused follow-up retains the same browser protocol while selecting its changed states.
+      const selected = process.env.STYLEX_MIGRATION_STATES?.split(',')
+      if (selected) {
+        for (const id of selected)
+          assert(
+            manifest.states.some((state) => state.id === id),
+            `Unknown migration state: ${id}`,
+          )
+        manifest.states = manifest.states.filter((state) =>
+          selected.includes(state.id),
         )
-        assert.deepEqual(
-          differences,
-          [],
-          `${path}: ${JSON.stringify(differences.slice(0, 5))}`,
-        )
+        console.log(`Selected migration states: ${selected.join(',')}`)
       }
-      passed = true
+      // Give each bounded area its own deadline and close its browser when that deadline expires.
+      const groups = [
+        {
+          name: 'shared components',
+          ids: ['components', 'reduced-motion', 'hovered'],
+        },
+        {
+          name: 'sheets and fields',
+          ids: [
+            'input-default',
+            'input-focused',
+            'sheet-inline',
+            'sheet-modal',
+            'sheet-modal-absolute',
+          ],
+        },
+        {
+          name: 'buttons',
+          ids: ['buttons-default', 'buttons-focused', 'buttons-hovered'],
+        },
+      ]
+      for (const state of manifest.states)
+        assert(
+          groups.some((group) => group.ids.includes(state.id)),
+          `Ungrouped migration state: ${state.id}`,
+        )
+      let allPassed = true
+      for (const group of groups) {
+        const states = manifest.states.filter((state) =>
+          group.ids.includes(state.id),
+        )
+        if (!states.length) continue
+        let groupPassed = false
+        await context.test(
+          group.name,
+          { timeout: 300_000 },
+          async (subtest) => {
+            // Observe both built revisions through the same isolated browser protocol.
+            const before = join(parent, 'before-capture', group.name)
+            const after = join(parent, 'after-capture', group.name)
+            const paths = await capture(
+              { states },
+              servers[0]!.resolvedUrls!.local[0]!,
+              before,
+              subtest.signal,
+            )
+            await capture(
+              { states },
+              servers[1]!.resolvedUrls!.local[0]!,
+              after,
+              subtest.signal,
+            )
+
+            // Retain every exact geometry, accessibility, style and raster comparison.
+            for (const path of paths) {
+              const differences = await Array.fromAsync(
+                compareCaptures(join(before, path), join(after, path)),
+              )
+              assert.deepEqual(
+                differences,
+                [],
+                `${path}: ${JSON.stringify(differences.slice(0, 5))}`,
+              )
+            }
+            groupPassed = true
+          },
+        )
+        allPassed &&= groupPassed
+      }
+      passed = allPassed
     } finally {
       for (const server of servers)
         await new Promise<void>((resolve, reject) =>

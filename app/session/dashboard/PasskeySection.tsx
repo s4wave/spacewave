@@ -1,6 +1,10 @@
 import { useCallback, useState } from 'react'
 import { isDesktop } from '@aptre/bldr'
-import { LuFingerprint, LuShieldCheck, LuShieldAlert } from 'react-icons/lu'
+import {
+  LuFingerprint,
+  LuShieldCheck,
+  LuShieldAlert,
+} from '@s4wave/web/images/icons.js'
 import { startRegistration } from '@simplewebauthn/browser'
 
 import { cn } from '@s4wave/web/style/utils.js'
@@ -28,6 +32,12 @@ import {
   getCredentialPrfOutput,
   wrapPemWithPasskeyPrf,
 } from '@s4wave/app/provider/spacewave/passkey-prf.js'
+
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: { width: '100%', justifyContent: 'center' },
+})
 
 export interface PasskeySectionProps {
   account: Resource<Account>
@@ -161,7 +171,7 @@ export function PasskeySection({
             <DashboardButton
               icon={<LuFingerprint className="size-4" />}
               onClick={() => void handleRegister()}
-              className="w-full justify-center"
+              sx={stylexStyles.rule1}
             >
               Start registration
             </DashboardButton>
@@ -213,7 +223,7 @@ export function PasskeySection({
               <DashboardButton
                 icon={<></>}
                 onClick={() => handleClose(false)}
-                className="w-full justify-center"
+                sx={stylexStyles.rule1}
               >
                 Done
               </DashboardButton>
@@ -226,7 +236,7 @@ export function PasskeySection({
               <DashboardButton
                 icon={<LuFingerprint className="size-4" />}
                 onClick={() => void handleRegister()}
-                className="w-full justify-center"
+                sx={stylexStyles.rule1}
               >
                 Try again
               </DashboardButton>

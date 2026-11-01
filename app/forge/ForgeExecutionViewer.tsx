@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
-import { LuActivity } from 'react-icons/lu'
+import { LuActivity } from '@s4wave/web/images/icons.js'
 
 import {
   Execution,

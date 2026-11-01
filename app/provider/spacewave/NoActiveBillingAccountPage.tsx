@@ -1,7 +1,12 @@
 /* eslint-disable react-doctor/no-giant-component */
 import { useCallback, useMemo, useState } from 'react'
-import { LuBuilding2, LuPlus, LuSettings, LuZap } from 'react-icons/lu'
-import { RxPerson } from 'react-icons/rx'
+import {
+  LuBuilding2,
+  LuPlus,
+  LuSettings,
+  LuZap,
+} from '@s4wave/web/images/icons.js'
+import { RxPerson } from '@s4wave/web/images/icons.js'
 
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'

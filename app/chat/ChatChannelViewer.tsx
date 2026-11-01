@@ -1,4 +1,4 @@
-import { LuCircleAlert, LuHash, LuRefreshCw } from 'react-icons/lu'
+import { LuCircleAlert, LuHash, LuRefreshCw } from '@s4wave/web/images/icons.js'
 import { useCallback, useEffect, useState } from 'react'
 
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'

@@ -1,11 +1,21 @@
 import { useCallback } from 'react'
-import { LuCheck, LuCommand, LuTriangleAlert } from 'react-icons/lu'
+import {
+  LuCheck,
+  LuCommand,
+  LuTriangleAlert,
+} from '@s4wave/web/images/icons.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
 import { Button } from '@s4wave/web/ui/button.js'
 
 import { Keycap } from './Keycap.js'
 import type { KeybindingCommand } from './keybindings-model.js'
+
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: { width: '100%', justifyContent: 'flex-start', textAlign: 'left' },
+})
 
 interface FinderResultProps {
   id: string
@@ -33,7 +43,7 @@ export function FinderResult({
       tabIndex={-1}
       variant={selected ? 'selectedFinder' : 'unselectedFinder'}
       size="finderRow"
-      className="w-full justify-start text-left"
+      sx={stylexStyles.rule1}
       onClick={select}
     >
       <span

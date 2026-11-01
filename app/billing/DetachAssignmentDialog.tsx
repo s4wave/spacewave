@@ -1,4 +1,4 @@
-import { LuUnlink } from 'react-icons/lu'
+import { LuUnlink } from '@s4wave/web/images/icons.js'
 
 import {
   Dialog,

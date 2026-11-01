@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react'
-import { LuArrowLeft, LuExternalLink } from 'react-icons/lu'
+import { LuArrowLeft, LuExternalLink } from '@s4wave/web/images/icons.js'
 import { GITHUB_REPO_URL } from '@s4wave/app/github.js'
 import { ExternalLink } from '@s4wave/app/landing/ExternalLink.js'
 import { useNavigate } from '@s4wave/web/router/router.js'

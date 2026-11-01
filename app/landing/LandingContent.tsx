@@ -31,7 +31,7 @@ import {
   LuWifiOff,
   LuX,
   LuZap,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 import {
   PiRocketLaunchDuotone,
   PiAppStoreLogoBold,

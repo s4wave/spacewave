@@ -5,7 +5,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { LuMonitor, LuPlus } from 'react-icons/lu'
+import { LuMonitor, LuPlus } from '@s4wave/web/images/icons.js'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'

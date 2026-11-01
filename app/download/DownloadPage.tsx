@@ -1,5 +1,5 @@
 import { useMemo, useSyncExternalStore } from 'react'
-import { LuDownload } from 'react-icons/lu'
+import { LuDownload } from '@s4wave/web/images/icons.js'
 
 import { LegalPageLayout } from '@s4wave/app/landing/LegalPageLayout.js'
 import { detectPlatform } from '@s4wave/web/platform/detect-platform.js'

@@ -5,7 +5,7 @@ import {
   LuPencil,
   LuTrash2,
   LuTriangleAlert,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import {
   PanelKind,

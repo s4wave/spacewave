@@ -1,5 +1,5 @@
 import { useCallback, useId, useReducer } from 'react'
-import { LuX } from 'react-icons/lu'
+import { LuX } from '@s4wave/web/images/icons.js'
 
 import {
   Dialog,

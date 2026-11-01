@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useRef } from 'react'
-import { LuSearch } from 'react-icons/lu'
+import { LuSearch } from '@s4wave/web/images/icons.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import type { DocPage } from './types.js'
 

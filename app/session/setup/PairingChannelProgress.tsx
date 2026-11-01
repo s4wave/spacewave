@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { LuLink } from 'react-icons/lu'
+import { LuLink } from '@s4wave/web/images/icons.js'
 
 import { PairingStatus } from '@s4wave/sdk/session/session.pb.js'
 import { ProgressBar } from '@s4wave/web/ui/loading/ProgressBar.js'

@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react'
-import { LuActivity, LuCpu } from 'react-icons/lu'
+import { LuActivity, LuCpu } from '@s4wave/web/images/icons.js'
 
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'

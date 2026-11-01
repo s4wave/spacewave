@@ -1,6 +1,5 @@
 import { useCallback, useMemo } from 'react'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import { Button } from '@s4wave/web/ui/button.js'
 
 import {
@@ -11,6 +10,96 @@ import {
   useStateInspectorValue,
   type StateInspectorEntry,
 } from './useStateInspectorEntries.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 64)`,
+    flexShrink: 0,
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    overflow: 'auto',
+    borderLeftStyle: themeUtilityState['--tw-border-style'],
+    borderLeftWidth: '1px',
+    borderColor: themeColors['--color-popover-border'],
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rule3: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+  },
+  rule4: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+  },
+  rule5: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule6: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule7: {
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    gap: themeLayout['--spacing'],
+    overflow: 'hidden',
+  },
+  rule8: {
+    flex: 1,
+    overflow: 'auto',
+    borderRadius: '.25rem',
+    backgroundColor: themeColors['--color-background-deep'],
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    overflowWrap: 'break-word',
+    whiteSpace: 'pre-wrap',
+  },
+  rule9: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'flex',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+})
 
 interface StateDetailsPanelProps {
   entry: StateInspectorEntry
@@ -40,52 +129,36 @@ export function StateDetailsPanel({ entry }: StateDetailsPanelProps) {
     selectedPath.length > 0 ? selectedPath.join('.') : '(root)'
 
   return (
-    <div
-      className={cn(
-        'border-popover-border flex w-64 shrink-0 flex-col gap-2 overflow-auto border-l p-3',
-      )}
-      data-testid="state-details-panel"
-    >
-      <div className="flex items-center justify-between">
-        <span className="text-text-secondary text-xs font-medium">
+    <div sx={[stylexStyles.rule1]} data-testid="state-details-panel">
+      <div sx={stylexStyles.rule2}>
+        <span
+          className={
+            /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary text-xs font-medium'
+          }
+        >
           {entry.label}
         </span>
-        <button
-          type="button"
-          onClick={handleClose}
-          className="text-foreground-alt hover:text-foreground text-xs"
-        >
+        <button type="button" onClick={handleClose} sx={stylexStyles.rule3}>
           Close
         </button>
       </div>
 
-      <div className="flex items-center gap-1">
-        <span className="text-foreground-alt text-xs">Path:</span>
-        <span className="text-foreground truncate font-mono text-xs">
-          {pathDisplay}
-        </span>
+      <div sx={stylexStyles.rule4}>
+        <span sx={stylexStyles.rule5}>Path:</span>
+        <span sx={stylexStyles.rule6}>{pathDisplay}</span>
       </div>
 
-      <div className="flex items-center gap-1">
-        <span className="text-foreground-alt text-xs">Scope:</span>
-        <span className="text-foreground truncate font-mono text-xs">
-          {entry.scope}
-        </span>
+      <div sx={stylexStyles.rule4}>
+        <span sx={stylexStyles.rule5}>Scope:</span>
+        <span sx={stylexStyles.rule6}>{entry.scope}</span>
       </div>
 
-      <div className="flex flex-1 flex-col gap-1 overflow-hidden">
-        <span className="text-foreground-alt text-xs">Value:</span>
-        <pre
-          className={cn(
-            'bg-background-deep flex-1 overflow-auto rounded p-2 font-mono text-xs',
-            'break-words whitespace-pre-wrap',
-          )}
-        >
-          {displayValue}
-        </pre>
+      <div sx={stylexStyles.rule7}>
+        <span sx={stylexStyles.rule5}>Value:</span>
+        <pre sx={[stylexStyles.rule8]}>{displayValue}</pre>
       </div>
 
-      <div className="mt-2 flex gap-2">
+      <div sx={stylexStyles.rule9}>
         <Button size="sm" variant="outline" onClick={handleCopy}>
           Copy
         </Button>

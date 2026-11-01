@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { LuChevronDown, LuChevronRight } from 'react-icons/lu'
+import { LuChevronDown, LuChevronRight } from '@s4wave/web/images/icons.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import type { StatusEntry } from '@s4wave/sdk/git/worktree.pb.js'
 import { FileStatusCode } from '@s4wave/sdk/git/worktree.pb.js'

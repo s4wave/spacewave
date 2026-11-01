@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { isDesktop } from '@aptre/bldr'
-import { FcGoogle } from 'react-icons/fc'
-import { LuArrowUpRight, LuCircleAlert, LuGithub } from 'react-icons/lu'
+import { FcGoogle } from '@s4wave/web/images/icons.js'
+import {
+  LuArrowUpRight,
+  LuCircleAlert,
+  LuGithub,
+} from '@s4wave/web/images/icons.js'
 
 import {
   useResourceValue,

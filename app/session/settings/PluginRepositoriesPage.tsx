@@ -1,5 +1,5 @@
 import { useCallback, useId, useState } from 'react'
-import { LuArrowLeft, LuGitBranch } from 'react-icons/lu'
+import { LuArrowLeft, LuGitBranch } from '@s4wave/web/images/icons.js'
 import {
   useResource,
   type Resource,

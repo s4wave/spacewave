@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react'
 import * as Collapsible from '@radix-ui/react-collapsible'
-import { LuChevronDown } from 'react-icons/lu'
+import { LuChevronDown } from '@s4wave/web/images/icons.js'
 
 import * as stylex from '@stylexjs/stylex'
 import {

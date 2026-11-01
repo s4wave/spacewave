@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, type FormEvent } from 'react'
 import { isDesktop } from '@aptre/bldr'
 import { useNavigate } from '@s4wave/web/router/router.js'
-import { LuCheck, LuArrowRight, LuGithub } from 'react-icons/lu'
+import { LuCheck, LuArrowRight, LuGithub } from '@s4wave/web/images/icons.js'
 
 import { EmailCaptureRequest } from '@s4wave/core/provider/spacewave/api/api.pb.js'
 import {

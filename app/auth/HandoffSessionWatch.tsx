@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { LuCircleX, LuTimerOff } from 'react-icons/lu'
+import { LuCircleX, LuTimerOff } from '@s4wave/web/images/icons.js'
 
 import { useParams } from '@s4wave/web/router/router.js'
 import { useCloudProviderConfig } from '@s4wave/app/provider/spacewave/useSpacewaveAuth.js'

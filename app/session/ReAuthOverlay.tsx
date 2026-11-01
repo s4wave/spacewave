@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { LuKeyRound, LuLogOut } from 'react-icons/lu'
+import { LuKeyRound, LuLogOut } from '@s4wave/web/images/icons.js'
 
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { cn } from '@s4wave/web/style/utils.js'

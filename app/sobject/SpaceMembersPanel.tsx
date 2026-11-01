@@ -1,6 +1,12 @@
 /* eslint-disable react-doctor/async-await-in-loop */
 import { useCallback, useMemo, useReducer } from 'react'
-import { LuCheck, LuShield, LuTrash2, LuUsers, LuX } from 'react-icons/lu'
+import {
+  LuCheck,
+  LuShield,
+  LuTrash2,
+  LuUsers,
+  LuX,
+} from '@s4wave/web/images/icons.js'
 
 import { SOParticipantRole } from '@s4wave/core/sobject/sobject.pb.js'
 import type { SOInvite } from '@s4wave/core/sobject/sobject.pb.js'

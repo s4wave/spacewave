@@ -11,10 +11,867 @@ import {
   LuFolderPlus,
   LuRotateCw,
   LuUpload,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { cn } from '@s4wave/web/style/utils.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  colors as themeColors,
+  layout as themeLayout,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+  fonts as themeFonts,
+  radii as themeRadii,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    overflow: 'auto',
+    backgroundColor: themeColors['--color-background'],
+  },
+  rule2: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule3: {
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule5: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule6: {
+    flex: 1,
+    overflow: 'auto',
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule7: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule8: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+  },
+  rule9: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule10: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule11: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule12: {
+    display: 'flex',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule13: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-wide)',
+    letterSpacing: 'var(--tracking-wide)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule14: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule15: {
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 40%, transparent)`,
+  },
+  rule16: { backgroundColor: themeColors['--color-file-back'] },
+  rule17: {
+    display: 'flex',
+    minWidth: `calc(${themeLayout['--spacing']} * 30)`,
+    flex: 1,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    overflow: 'hidden',
+  },
+  rule18: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: themeColors['--color-file-folder-icon'],
+  },
+  rule19: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule20: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+  },
+  rule21: {
+    width: `calc(${themeLayout['--spacing']} * 35)`,
+    minWidth: `calc(${themeLayout['--spacing']} * 25)`,
+    flexShrink: 1,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    opacity: 0.7,
+  },
+  rule22: {
+    width: `calc(${themeLayout['--spacing']} * 17.5)`,
+    minWidth: `calc(${themeLayout['--spacing']} * 12.5)`,
+    flexShrink: 1,
+    textAlign: 'right',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    opacity: 0.7,
+  },
+  rule23: {
+    position: 'absolute',
+    top: themeLayout['--spacing'],
+    bottom: themeLayout['--spacing'],
+    left: 0,
+    width: `calc(${themeLayout['--spacing']} * .5)`,
+    borderTopRightRadius: '.25rem',
+    borderBottomRightRadius: '.25rem',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 80%, transparent)`,
+  },
+  rule24: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+  },
+  rule25: { color: themeColors['--color-brand'] },
+  rule26: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 80%, transparent)`,
+  },
+  rule27: { color: themeColors['--color-foreground'] },
+  rule28: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule29: {
+    width: `calc(${themeLayout['--spacing']} * 35)`,
+    minWidth: `calc(${themeLayout['--spacing']} * 25)`,
+    flexShrink: 1,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule30: {
+    width: `calc(${themeLayout['--spacing']} * 17.5)`,
+    minWidth: `calc(${themeLayout['--spacing']} * 12.5)`,
+    flexShrink: 1,
+    textAlign: 'right',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule31: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule32: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule33: {
+    minWidth: 0,
+    flex: 1,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+  },
+  rule34: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule35: {
+    display: { default: 'none', '@media (min-width: 40rem)': 'block' },
+    width: `calc(${themeLayout['--spacing']} * 30)`,
+    flexShrink: 1,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: '.65rem',
+    lineHeight: 1.5,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule36: {
+    width: `calc(${themeLayout['--spacing']} * 15)`,
+    flexShrink: 1,
+    textAlign: 'right',
+    fontSize: '.65rem',
+    lineHeight: 1.5,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule37: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: themeColors['--color-panel-header'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule38: { display: 'flex' },
+  rule39: {
+    borderRadius: '.25rem',
+    padding: `calc(${themeLayout['--spacing']} * .5)`,
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-pulldown-hover'],
+      },
+    },
+  },
+  rule40: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule41: {
+    cursor: 'default',
+    borderRadius: '.25rem',
+    padding: `calc(${themeLayout['--spacing']} * .5)`,
+    opacity: 0.4,
+  },
+  rule42: {
+    marginInline: themeLayout['--spacing'],
+    display: 'flex',
+    flex: 1,
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 50%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule43: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule44: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground']} 90%, transparent)`,
+  },
+  rule45: { display: 'flex', gap: themeLayout['--spacing'] },
+  rule46: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule47: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * .5)`,
+  },
+  rule48: {
+    marginInline: themeLayout['--spacing'],
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+    flex: 1,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 15%, transparent)`,
+      },
+    },
+    backgroundColor: '#0000',
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule49: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    flexShrink: 0,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule50: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 80%, transparent)`,
+  },
+  rule51: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 6)`,
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '.25rem',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule52: {
+    cursor: 'default',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 30%, transparent)`,
+  },
+  rule53: {
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+  },
+  rule54: {
+    display: 'flex',
+    minHeight: `calc(${themeLayout['--spacing']} * 40)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: themeColors['--color-file-back'],
+  },
+  rule55: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    textAlign: 'center',
+  },
+  rule56: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule57: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule58: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule59: {
+    display: 'flex',
+    minHeight: `calc(${themeLayout['--spacing']} * 40)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: themeColors['--color-file-back'],
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule60: {
+    width: '100%',
+    maxWidth: 'var(--container-xs)',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule61: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 2.5)`,
+  },
+  rule62: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+  },
+  rule63: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule64: { minWidth: 0 },
+  rule65: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule66: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule67: {
+    marginTop: themeLayout['--spacing'],
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule68: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule69: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+  },
+  rule70: {
+    position: 'relative',
+    height: `calc(${themeLayout['--spacing']} * 45)`,
+    backgroundColor: themeColors['--color-file-back'],
+  },
+  rule71: {
+    pointerEvents: 'none',
+    position: 'absolute',
+    inset: 0,
+    zIndex: 10,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: 'dashed',
+    borderWidth: '2px',
+    '--tw-border-style': 'dashed',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+  },
+  rule72: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule73: {
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    color: themeColors['--color-brand'],
+  },
+  rule74: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-brand'],
+  },
+  rule75: {
+    pointerEvents: 'none',
+    position: 'absolute',
+    inset: 0,
+    zIndex: 10,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: 'dashed',
+    borderWidth: '1px',
+    '--tw-border-style': 'dashed',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+  },
+  rule76: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2.5)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 40%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule77: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 7)`,
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
+  },
+  rule78: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: themeColors['--color-brand'],
+  },
+  rule79: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule80: { opacity: 0.6 },
+  rule81: {
+    display: 'flex',
+    alignItems: 'center',
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule82: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule83: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule84: {
+    display: 'flex',
+    minHeight: `calc(${themeLayout['--spacing']} * 40)`,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: themeColors['--color-file-back'],
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule85: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule86: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-brand'],
+    textDecorationLine: 'underline',
+  },
+  rule87: {
+    width: '100%',
+    maxWidth: 'var(--container-sm)',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule88: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: themeColors['--color-destructive'],
+  },
+  rule89: { minWidth: 0, flex: 1 },
+  rule90: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule91: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    display: 'flex',
+    justifyContent: 'flex-end',
+  },
+  rule92: {
+    display: 'inline-flex',
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 50%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 15%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 2.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+  },
+  rule93: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule94: {
+    minHeight: `calc(${themeLayout['--spacing']} * 40)`,
+    backgroundColor: themeColors['--color-file-back'],
+  },
+  rule95: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule96: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: themeColors['--color-destructive'],
+  },
+  rule97: {
+    minWidth: 0,
+    flex: 1,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground']} 80%, transparent)`,
+  },
+  rule98: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule99: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    backgroundColor: themeColors['--color-background'],
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule100: {
+    borderRadius: themeRadii['--radius-md'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-accent'],
+      },
+    },
+  },
+  rule101: {
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: {
+      default: themeColors['--color-destructive'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 90%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive-foreground'],
+  },
+  rule102: {
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    borderRadius: themeRadii['--radius-md'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule103: {
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 50%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 15%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+  },
+})
 
 // UnixFSBrowserDebug renders prototype variants for the UnixFS browser
 // surfaces (file row, toolbar, empty state, drag overlay, error state,
@@ -27,23 +884,25 @@ export function UnixFSBrowserDebug() {
   }, [navigate])
 
   return (
-    <div className="bg-background flex h-full w-full flex-col overflow-auto">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-4">
+    <div sx={stylexStyles.rule1}>
+      <div sx={stylexStyles.rule2}>
         <button
           type="button"
           onClick={goBack}
-          className="text-foreground-alt hover:text-foreground transition-colors"
+          sx={stylexStyles.rule3}
           aria-label="Back"
         >
-          <LuArrowLeft className="size-4" />
+          <LuArrowLeft {...stylex.props(stylexStyles.rule4)} />
         </button>
-        <span className="text-foreground text-sm font-semibold tracking-tight select-none">
-          UnixFS Browser UI Prototype
-        </span>
+        <span sx={stylexStyles.rule5}>UnixFS Browser UI Prototype</span>
       </div>
 
-      <div className="flex-1 overflow-auto px-4 py-3">
-        <div className="mx-auto max-w-3xl space-y-6">
+      <div sx={stylexStyles.rule6}>
+        <div
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-6 */ 'mx-auto max-w-3xl space-y-6'
+          }
+        >
           <Intro />
           <FileRowSection />
           <ToolbarSection />
@@ -59,20 +918,20 @@ export function UnixFSBrowserDebug() {
 
 function Intro() {
   return (
-    <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-      <p className="text-foreground text-sm font-semibold tracking-tight">
-        UnixFS browser variant gallery
-      </p>
-      <p className="text-foreground-alt/70 mt-1 text-xs leading-relaxed">
+    <div sx={stylexStyles.rule7}>
+      <p sx={stylexStyles.rule8}>UnixFS browser variant gallery</p>
+      <p sx={stylexStyles.rule9}>
         Side-by-side variants for the surfaces that compose UnixFSBrowser (file
         row, toolbar, empty state, drag overlay, error state, delete dialog).
         Each section shows the current production rendering, then candidate
         variants drawn from the modern token set.
       </p>
-      <p className="text-foreground-alt/70 mt-2 text-xs leading-relaxed">
-        Decisions live in production code:
-      </p>
-      <ul className="text-foreground-alt/70 mt-1 list-disc space-y-0.5 pl-5 text-xs leading-relaxed">
+      <p sx={stylexStyles.rule10}>Decisions live in production code:</p>
+      <ul
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-0.5 */ 'text-foreground-alt/70 mt-1 list-disc space-y-0.5 pl-5 text-xs leading-relaxed'
+        }
+      >
         <li>
           File row: B (compact dense, modern tokens, brand left bar on selected)
           in web/editors/file-browser/FileListEntry.tsx.
@@ -108,12 +967,14 @@ interface SectionProps {
 
 function Section({ title, description, children }: SectionProps) {
   return (
-    <section className="space-y-3">
+    <section
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
+      }
+    >
       <div>
-        <h2 className="text-foreground text-sm font-semibold tracking-tight select-none">
-          {title}
-        </h2>
-        <p className="text-foreground-alt/60 mt-0.5 text-xs">{description}</p>
+        <h2 sx={stylexStyles.rule5}>{title}</h2>
+        <p sx={stylexStyles.rule11}>{description}</p>
       </div>
       {children}
     </section>
@@ -128,16 +989,16 @@ interface VariantProps {
 
 function Variant({ label, note, children }: VariantProps) {
   return (
-    <div className="border-foreground/6 bg-background-card/30 space-y-2 rounded-lg border p-3.5">
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="text-foreground text-xs font-medium tracking-wide select-none">
-          {label}
-        </span>
-        {note && <span className="text-foreground-alt/50 text-xs">{note}</span>}
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'border-foreground/6 bg-background-card/30 space-y-2 rounded-lg border p-3.5'
+      }
+    >
+      <div sx={stylexStyles.rule12}>
+        <span sx={stylexStyles.rule13}>{label}</span>
+        {note && <span sx={stylexStyles.rule14}>{note}</span>}
       </div>
-      <div className="border-foreground/6 bg-background/40 overflow-hidden rounded-md border">
-        {children}
-      </div>
+      <div sx={stylexStyles.rule15}>{children}</div>
     </div>
   )
 }
@@ -206,7 +1067,7 @@ function FileRowSection() {
         label="A. Current (alternating rows + legacy tokens)"
         note="text-file-browser-row, bg-ui-selected, bg-file-row-alternate"
       >
-        <div className="bg-file-back">
+        <div sx={stylexStyles.rule16}>
           {FILE_ROWS.map((row, i) => (
             <CurrentRow
               key={row.id}
@@ -239,7 +1100,11 @@ function FileRowSection() {
         label="C. Card rows (rounded, gapped)"
         note="Each row a glass card; readable in lists < 12 entries"
       >
-        <div className="space-y-1.5 p-2">
+        <div
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ 'space-y-1.5 p-2'
+          }
+        >
           {FILE_ROWS.map((row) => (
             <CardRow
               key={row.id}
@@ -275,27 +1140,25 @@ function CurrentRow({
         event.preventDefault()
         onSelect()
       }}
-      className={cn(
-        'group text-file-browser-row flex items-center px-3 py-1.5 text-xs',
-        'hover:bg-outliner-selected-highlight cursor-pointer transition-colors select-none',
-        selected && 'bg-ui-selected hover:bg-ui-selected',
-        index % 2 === 1 && !selected && 'bg-file-row-alternate',
-      )}
+      className={
+        /* TODO(stylex): global or unknown class: group */ cn(
+          'group text-file-browser-row flex items-center px-3 py-1.5 text-xs',
+          'hover:bg-outliner-selected-highlight cursor-pointer transition-colors select-none',
+          selected && 'bg-ui-selected hover:bg-ui-selected',
+          index % 2 === 1 && !selected && 'bg-file-row-alternate',
+        )
+      }
     >
-      <div className="flex min-w-30 flex-1 items-center gap-2 overflow-hidden">
+      <div sx={stylexStyles.rule17}>
         {row.isDir ? (
-          <LuFolder className="text-file-folder-icon size-4 shrink-0" />
+          <LuFolder {...stylex.props(stylexStyles.rule18)} />
         ) : (
-          <LuFile className="text-foreground-alt size-4 shrink-0" />
+          <LuFile {...stylex.props(stylexStyles.rule19)} />
         )}
-        <span className="truncate">{row.name}</span>
+        <span sx={stylexStyles.rule20}>{row.name}</span>
       </div>
-      <div className="text-foreground-alt w-35 min-w-25 shrink text-xs opacity-70">
-        {row.modTime}
-      </div>
-      <div className="text-foreground-alt w-17.5 min-w-12.5 shrink text-right text-xs opacity-70">
-        {row.size}
-      </div>
+      <div sx={stylexStyles.rule21}>{row.modTime}</div>
+      <div sx={stylexStyles.rule22}>{row.size}</div>
     </div>
   )
 }
@@ -319,40 +1182,36 @@ function DenseRow({
         event.preventDefault()
         onSelect()
       }}
-      className={cn(
-        'group relative flex cursor-pointer items-center px-3 py-1.5 text-xs transition-colors select-none',
-        selected
-          ? 'bg-brand/10 text-foreground'
-          : 'text-foreground/90 hover:bg-foreground/5',
-      )}
+      className={
+        /* TODO(stylex): global or unknown class: group */ cn(
+          'group relative flex cursor-pointer items-center px-3 py-1.5 text-xs transition-colors select-none',
+          selected
+            ? 'bg-brand/10 text-foreground'
+            : 'text-foreground/90 hover:bg-foreground/5',
+        )
+      }
     >
-      {selected && (
-        <span className="bg-brand/80 absolute top-1 bottom-1 left-0 w-0.5 rounded-r" />
-      )}
-      <div className="flex min-w-30 flex-1 items-center gap-2 overflow-hidden">
+      {selected && <span sx={stylexStyles.rule23} />}
+      <div sx={stylexStyles.rule17}>
         {row.isDir ? (
           <LuFolder
-            className={cn(
-              'size-4 shrink-0',
-              selected ? 'text-brand' : 'text-foreground-alt/80',
-            )}
+            {...stylex.props([
+              stylexStyles.rule24,
+              selected ? stylexStyles.rule25 : stylexStyles.rule26,
+            ])}
           />
         ) : (
           <LuFile
-            className={cn(
-              'size-4 shrink-0',
-              selected ? 'text-foreground' : 'text-foreground-alt/60',
-            )}
+            {...stylex.props([
+              stylexStyles.rule24,
+              selected ? stylexStyles.rule27 : stylexStyles.rule28,
+            ])}
           />
         )}
-        <span className="truncate">{row.name}</span>
+        <span sx={stylexStyles.rule20}>{row.name}</span>
       </div>
-      <div className="text-foreground-alt/50 w-35 min-w-25 shrink text-xs">
-        {row.modTime}
-      </div>
-      <div className="text-foreground-alt/50 w-17.5 min-w-12.5 shrink text-right text-xs">
-        {row.size}
-      </div>
+      <div sx={stylexStyles.rule29}>{row.modTime}</div>
+      <div sx={stylexStyles.rule30}>{row.size}</div>
     </div>
   )
 }
@@ -376,46 +1235,46 @@ function CardRow({
         event.preventDefault()
         onSelect()
       }}
-      className={cn(
-        'group flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2 text-xs transition-all duration-150 select-none',
-        selected
-          ? 'border-brand/30 bg-brand/5'
-          : 'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50',
-      )}
+      className={
+        /* TODO(stylex): global or unknown class: group */ cn(
+          'group flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2 text-xs transition-all duration-150 select-none',
+          selected
+            ? 'border-brand/30 bg-brand/5'
+            : 'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50',
+        )
+      }
     >
       <span
-        className={cn(
-          'flex size-7 shrink-0 items-center justify-center rounded-md transition-colors',
-          selected
-            ? 'bg-brand/15'
-            : 'bg-foreground/5 group-hover:bg-foreground/8',
-        )}
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: group-hover:bg-foreground/8 */ cn(
+            'flex size-7 shrink-0 items-center justify-center rounded-md transition-colors',
+            selected
+              ? 'bg-brand/15'
+              : 'bg-foreground/5 group-hover:bg-foreground/8',
+          )
+        }
       >
         {row.isDir ? (
           <LuFolder
-            className={cn(
-              'size-3.5',
-              selected ? 'text-brand' : 'text-foreground-alt/70',
-            )}
+            {...stylex.props([
+              stylexStyles.rule31,
+              selected ? stylexStyles.rule25 : stylexStyles.rule32,
+            ])}
           />
         ) : (
           <LuFile
-            className={cn(
-              'size-3.5',
-              selected ? 'text-foreground' : 'text-foreground-alt/60',
-            )}
+            {...stylex.props([
+              stylexStyles.rule31,
+              selected ? stylexStyles.rule27 : stylexStyles.rule28,
+            ])}
           />
         )}
       </span>
-      <div className="min-w-0 flex-1 truncate">
-        <div className="text-foreground truncate font-medium">{row.name}</div>
+      <div sx={stylexStyles.rule33}>
+        <div sx={stylexStyles.rule34}>{row.name}</div>
       </div>
-      <div className="text-foreground-alt/50 micro-label hidden w-30 shrink truncate sm:block">
-        {row.modTime}
-      </div>
-      <div className="text-foreground-alt/50 micro-label w-15 shrink text-right">
-        {row.size}
-      </div>
+      <div sx={stylexStyles.rule35}>{row.modTime}</div>
+      <div sx={stylexStyles.rule36}>{row.size}</div>
     </div>
   )
 }
@@ -449,48 +1308,28 @@ function ToolbarSection() {
 
 function CurrentToolbar() {
   return (
-    <div className="bg-panel-header border-foreground/8 flex h-9 items-center gap-1 border-b px-2">
-      <div className="flex">
-        <button
-          type="button"
-          aria-label="Back"
-          className="hover:bg-pulldown-hover rounded p-0.5"
-        >
-          <LuChevronLeft className="text-foreground-alt size-4" />
+    <div sx={stylexStyles.rule37}>
+      <div sx={stylexStyles.rule38}>
+        <button type="button" aria-label="Back" sx={stylexStyles.rule39}>
+          <LuChevronLeft {...stylex.props(stylexStyles.rule40)} />
         </button>
-        <button
-          type="button"
-          aria-label="Forward"
-          className="cursor-default rounded p-0.5 opacity-40"
-        >
-          <LuChevronRight className="text-foreground-alt size-4" />
+        <button type="button" aria-label="Forward" sx={stylexStyles.rule41}>
+          <LuChevronRight {...stylex.props(stylexStyles.rule40)} />
         </button>
-        <button
-          type="button"
-          aria-label="Up"
-          className="hover:bg-pulldown-hover rounded p-0.5"
-        >
-          <LuChevronUp className="text-foreground-alt size-4" />
+        <button type="button" aria-label="Up" sx={stylexStyles.rule39}>
+          <LuChevronUp {...stylex.props(stylexStyles.rule40)} />
         </button>
       </div>
-      <div className="border-foreground/10 bg-background/50 mx-1 flex flex-1 items-center gap-1 rounded border px-2 py-0.5 text-xs">
-        <LuFolderOpen className="text-foreground-alt/50 size-3.5 shrink-0" />
-        <span className="text-foreground/90 truncate">/photos/2026/april</span>
+      <div sx={stylexStyles.rule42}>
+        <LuFolderOpen {...stylex.props(stylexStyles.rule43)} />
+        <span sx={stylexStyles.rule44}>/photos/2026/april</span>
       </div>
-      <div className="flex gap-1">
-        <button
-          type="button"
-          title="New folder"
-          className="hover:bg-pulldown-hover rounded p-0.5"
-        >
-          <LuFolderPlus className="text-foreground-alt size-4" />
+      <div sx={stylexStyles.rule45}>
+        <button type="button" title="New folder" sx={stylexStyles.rule39}>
+          <LuFolderPlus {...stylex.props(stylexStyles.rule40)} />
         </button>
-        <button
-          type="button"
-          title="Upload files"
-          className="hover:bg-pulldown-hover rounded p-0.5"
-        >
-          <LuUpload className="text-foreground-alt size-4" />
+        <button type="button" title="Upload files" sx={stylexStyles.rule39}>
+          <LuUpload {...stylex.props(stylexStyles.rule40)} />
         </button>
       </div>
     </div>
@@ -499,32 +1338,33 @@ function CurrentToolbar() {
 
 function ModernToolbar() {
   return (
-    <div className="border-foreground/8 flex h-9 items-center gap-1.5 border-b px-3">
-      <div className="flex items-center gap-0.5">
+    <div sx={stylexStyles.rule46}>
+      <div sx={stylexStyles.rule47}>
         <NavIconButton
-          icon={<LuChevronLeft className="size-3.5" />}
+          icon={<LuChevronLeft {...stylex.props(stylexStyles.rule31)} />}
           label="Back"
         />
         <NavIconButton
-          icon={<LuChevronRight className="size-3.5" />}
+          icon={<LuChevronRight {...stylex.props(stylexStyles.rule31)} />}
           label="Forward"
           disabled
         />
-        <NavIconButton icon={<LuChevronUp className="size-3.5" />} label="Up" />
-      </div>
-      <div className="border-foreground/8 hover:border-foreground/15 mx-1 flex h-6 flex-1 items-center gap-1.5 rounded-md border bg-transparent px-2 transition-colors">
-        <LuFolderOpen className="text-foreground-alt/60 size-3 shrink-0" />
-        <span className="text-foreground-alt/80 truncate text-xs">
-          /photos/2026/april
-        </span>
-      </div>
-      <div className="flex items-center gap-0.5">
         <NavIconButton
-          icon={<LuFolderPlus className="size-3.5" />}
+          icon={<LuChevronUp {...stylex.props(stylexStyles.rule31)} />}
+          label="Up"
+        />
+      </div>
+      <div sx={stylexStyles.rule48}>
+        <LuFolderOpen {...stylex.props(stylexStyles.rule49)} />
+        <span sx={stylexStyles.rule50}>/photos/2026/april</span>
+      </div>
+      <div sx={stylexStyles.rule47}>
+        <NavIconButton
+          icon={<LuFolderPlus {...stylex.props(stylexStyles.rule31)} />}
           label="New folder"
         />
         <NavIconButton
-          icon={<LuUpload className="size-3.5" />}
+          icon={<LuUpload {...stylex.props(stylexStyles.rule31)} />}
           label="Upload"
         />
       </div>
@@ -547,12 +1387,10 @@ function NavIconButton({
       title={label}
       aria-label={label}
       disabled={disabled}
-      className={cn(
-        'flex size-6 items-center justify-center rounded transition-colors',
-        disabled
-          ? 'text-foreground-alt/30 cursor-default'
-          : 'text-foreground-alt hover:text-foreground hover:bg-foreground/5',
-      )}
+      sx={[
+        stylexStyles.rule51,
+        disabled ? stylexStyles.rule52 : stylexStyles.rule53,
+      ]}
     >
       {icon}
     </button>
@@ -573,15 +1411,11 @@ function EmptyStateSection() {
         label="A. Current (centered three-line)"
         note="text-foreground-alt + text-foreground-alt/70, no icon"
       >
-        <div className="bg-file-back flex min-h-40 items-center justify-center">
-          <div className="flex flex-col items-center text-center">
-            <div className="text-foreground-alt text-sm">
-              UnixFS object not found
-            </div>
-            <div className="text-foreground-alt/70 mt-1 text-xs">
-              Object: 0x0a1b2c3d4e5f…
-            </div>
-            <div className="text-foreground-alt/70 mt-2 text-xs">
+        <div sx={stylexStyles.rule54}>
+          <div sx={stylexStyles.rule55}>
+            <div sx={stylexStyles.rule56}>UnixFS object not found</div>
+            <div sx={stylexStyles.rule57}>Object: 0x0a1b2c3d4e5f…</div>
+            <div sx={stylexStyles.rule58}>
               Create a drive via quickstart to initialize demo content.
             </div>
           </div>
@@ -592,22 +1426,18 @@ function EmptyStateSection() {
         label="B. Compact card (design-system)"
         note="border-foreground/6 bg-background-card/30, muted icon + headline + helper"
       >
-        <div className="bg-file-back flex min-h-40 items-center justify-center p-6">
-          <div className="border-foreground/6 bg-background-card/30 w-full max-w-xs rounded-lg border p-4">
-            <div className="flex items-start gap-2.5">
-              <span className="bg-foreground/5 flex size-8 shrink-0 items-center justify-center rounded-md">
-                <LuFolder className="text-foreground-alt/60 size-4" />
+        <div sx={stylexStyles.rule59}>
+          <div sx={stylexStyles.rule60}>
+            <div sx={stylexStyles.rule61}>
+              <span sx={stylexStyles.rule62}>
+                <LuFolder {...stylex.props(stylexStyles.rule63)} />
               </span>
-              <div className="min-w-0">
-                <p className="text-foreground text-xs font-medium select-none">
-                  UnixFS object not found
-                </p>
-                <p className="text-foreground-alt/60 mt-0.5 text-xs leading-relaxed">
+              <div sx={stylexStyles.rule64}>
+                <p sx={stylexStyles.rule65}>UnixFS object not found</p>
+                <p sx={stylexStyles.rule66}>
                   Create a drive via quickstart to initialize demo content.
                 </p>
-                <p className="text-foreground-alt/40 mt-1 font-mono text-xs">
-                  0x0a1b2c3d4e5f…
-                </p>
+                <p sx={stylexStyles.rule67}>0x0a1b2c3d4e5f…</p>
               </div>
             </div>
           </div>
@@ -618,9 +1448,9 @@ function EmptyStateSection() {
         label="C. Single-line muted"
         note="Matches design-system 'compact empty state', text-foreground-alt/40"
       >
-        <div className="bg-file-back flex min-h-40 items-center justify-center p-6">
-          <div className="text-foreground-alt/40 flex items-center gap-2 text-xs">
-            <LuFolder className="size-3.5 shrink-0" />
+        <div sx={stylexStyles.rule59}>
+          <div sx={stylexStyles.rule68}>
+            <LuFolder {...stylex.props(stylexStyles.rule69)} />
             <span>No UnixFS object yet. Create a drive via quickstart.</span>
           </div>
         </div>
@@ -643,14 +1473,12 @@ function DragOverlaySection() {
         label="A. Current (large dashed border + h-8 icon)"
         note="border-brand/50, bg-brand/5, text-sm"
       >
-        <div className="bg-file-back relative h-45">
+        <div sx={stylexStyles.rule70}>
           <DummyRows />
-          <div className="border-brand/50 bg-brand/5 pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-md border-2 border-dashed">
-            <div className="flex flex-col items-center gap-2">
-              <LuUpload className="text-brand size-8" />
-              <span className="text-brand text-sm font-medium">
-                Drop files to upload
-              </span>
+          <div sx={stylexStyles.rule71}>
+            <div sx={stylexStyles.rule72}>
+              <LuUpload {...stylex.props(stylexStyles.rule73)} />
+              <span sx={stylexStyles.rule74}>Drop files to upload</span>
             </div>
           </div>
         </div>
@@ -660,20 +1488,16 @@ function DragOverlaySection() {
         label="B. Glass card overlay"
         note="border-brand/30 dashed, glass background, compact icon + caption"
       >
-        <div className="bg-file-back relative h-45">
+        <div sx={stylexStyles.rule70}>
           <DummyRows />
-          <div className="border-brand/30 bg-brand/5 pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-md border border-dashed backdrop-blur-sm">
-            <div className="border-brand/30 bg-background-card/40 flex items-center gap-2.5 rounded-lg border px-3.5 py-2">
-              <span className="bg-brand/15 flex size-7 shrink-0 items-center justify-center rounded-md">
-                <LuUpload className="text-brand size-3.5" />
+          <div sx={stylexStyles.rule75}>
+            <div sx={stylexStyles.rule76}>
+              <span sx={stylexStyles.rule77}>
+                <LuUpload {...stylex.props(stylexStyles.rule78)} />
               </span>
-              <div className="min-w-0">
-                <p className="text-foreground text-xs font-medium select-none">
-                  Drop files to upload
-                </p>
-                <p className="text-foreground-alt/60 text-xs">
-                  to /photos/2026/april
-                </p>
+              <div sx={stylexStyles.rule64}>
+                <p sx={stylexStyles.rule65}>Drop files to upload</p>
+                <p sx={stylexStyles.rule79}>to /photos/2026/april</p>
               </div>
             </div>
           </div>
@@ -685,16 +1509,16 @@ function DragOverlaySection() {
 
 function DummyRows() {
   return (
-    <div className="opacity-60">
+    <div sx={stylexStyles.rule80}>
       {FILE_ROWS.slice(0, 4).map((row) => (
-        <div key={row.id} className="flex items-center px-3 py-1.5 text-xs">
-          <div className="flex min-w-30 flex-1 items-center gap-2 overflow-hidden">
+        <div key={row.id} sx={stylexStyles.rule81}>
+          <div sx={stylexStyles.rule17}>
             {row.isDir ? (
-              <LuFolder className="text-foreground-alt/60 size-4 shrink-0" />
+              <LuFolder {...stylex.props(stylexStyles.rule82)} />
             ) : (
-              <LuFile className="text-foreground-alt/60 size-4 shrink-0" />
+              <LuFile {...stylex.props(stylexStyles.rule82)} />
             )}
-            <span className="text-foreground-alt/70 truncate">{row.name}</span>
+            <span sx={stylexStyles.rule83}>{row.name}</span>
           </div>
         </div>
       ))}
@@ -716,12 +1540,12 @@ function ErrorStateSection() {
         label="A. Current (plain text + underline link)"
         note="text-destructive headline, text-brand underline retry"
       >
-        <div className="bg-file-back flex min-h-40 flex-col items-center justify-center p-6">
-          <div className="text-destructive text-xs">Error loading files</div>
-          <div className="text-foreground-alt/70 mt-1 text-xs">
+        <div sx={stylexStyles.rule84}>
+          <div sx={stylexStyles.rule85}>Error loading files</div>
+          <div sx={stylexStyles.rule57}>
             failed to read directory: permission denied
           </div>
-          <button type="button" className="text-brand mt-2 text-xs underline">
+          <button type="button" sx={stylexStyles.rule86}>
             Retry
           </button>
         </div>
@@ -731,25 +1555,20 @@ function ErrorStateSection() {
         label="B. Tinted destructive callout"
         note="border-destructive/20 bg-destructive/5 + LuCircleAlert + retry chip"
       >
-        <div className="bg-file-back flex min-h-40 items-center justify-center p-6">
-          <div className="border-destructive/20 bg-destructive/5 w-full max-w-sm rounded-lg border p-3.5">
-            <div className="flex items-start gap-2.5">
-              <LuCircleAlert className="text-destructive mt-0.5 size-3.5 shrink-0" />
-              <div className="min-w-0 flex-1">
-                <p className="text-foreground text-xs font-medium select-none">
-                  Error loading files
-                </p>
-                <p className="text-foreground-alt/70 mt-0.5 text-xs leading-relaxed">
+        <div sx={stylexStyles.rule59}>
+          <div sx={stylexStyles.rule87}>
+            <div sx={stylexStyles.rule61}>
+              <LuCircleAlert {...stylex.props(stylexStyles.rule88)} />
+              <div sx={stylexStyles.rule89}>
+                <p sx={stylexStyles.rule65}>Error loading files</p>
+                <p sx={stylexStyles.rule90}>
                   failed to read directory: permission denied
                 </p>
               </div>
             </div>
-            <div className="mt-3 flex justify-end">
-              <button
-                type="button"
-                className="border-destructive/30 bg-destructive/10 hover:border-destructive/50 hover:bg-destructive/15 text-foreground inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition duration-150"
-              >
-                <LuRotateCw className="size-3" />
+            <div sx={stylexStyles.rule91}>
+              <button type="button" sx={stylexStyles.rule92}>
+                <LuRotateCw {...stylex.props(stylexStyles.rule93)} />
                 Retry
               </button>
             </div>
@@ -761,17 +1580,14 @@ function ErrorStateSection() {
         label="C. Inline strip (one-line)"
         note="Slim banner, fits under the toolbar without disrupting the file list"
       >
-        <div className="bg-file-back min-h-40">
-          <div className="border-destructive/20 bg-destructive/5 flex items-center gap-2 border-b px-3 py-1.5">
-            <LuCircleAlert className="text-destructive size-3.5 shrink-0" />
-            <p className="text-foreground/80 min-w-0 flex-1 truncate text-xs">
+        <div sx={stylexStyles.rule94}>
+          <div sx={stylexStyles.rule95}>
+            <LuCircleAlert {...stylex.props(stylexStyles.rule96)} />
+            <p sx={stylexStyles.rule97}>
               Error loading files: permission denied
             </p>
-            <button
-              type="button"
-              className="text-foreground-alt hover:text-foreground inline-flex items-center gap-1 text-xs font-medium transition-colors"
-            >
-              <LuRotateCw className="size-3" />
+            <button type="button" sx={stylexStyles.rule98}>
+              <LuRotateCw {...stylex.props(stylexStyles.rule93)} />
               Retry
             </button>
           </div>
@@ -796,17 +1612,11 @@ function DestructiveDialogSection() {
         label="A. Current (solid destructive)"
         note="bg-destructive + text-destructive-foreground"
       >
-        <div className="bg-background flex justify-end gap-2 p-3">
-          <button
-            type="button"
-            className="hover:bg-accent rounded-md px-4 py-2 text-xs"
-          >
+        <div sx={stylexStyles.rule99}>
+          <button type="button" sx={stylexStyles.rule100}>
             Cancel
           </button>
-          <button
-            type="button"
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-md px-4 py-2 text-xs"
-          >
+          <button type="button" sx={stylexStyles.rule101}>
             Delete
           </button>
         </div>
@@ -816,17 +1626,11 @@ function DestructiveDialogSection() {
         label="B. Tinted destructive outline"
         note="border-destructive/30 bg-destructive/10 hover:bg-destructive/15"
       >
-        <div className="bg-background flex justify-end gap-2 p-3">
-          <button
-            type="button"
-            className="text-foreground-alt hover:text-foreground h-7 rounded-md px-3 text-xs transition-colors"
-          >
+        <div sx={stylexStyles.rule99}>
+          <button type="button" sx={stylexStyles.rule102}>
             Cancel
           </button>
-          <button
-            type="button"
-            className="border-destructive/30 bg-destructive/10 hover:border-destructive/50 hover:bg-destructive/15 text-foreground h-7 rounded-md border px-3 text-xs font-medium transition duration-150"
-          >
+          <button type="button" sx={stylexStyles.rule103}>
             Delete
           </button>
         </div>

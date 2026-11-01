@@ -57,7 +57,7 @@ import "embed"
 //go:embed space/index.ts space/usePluginFrontend.ts space/object-tree.tsx space/space-object-navigation-actions.ts
 //go:embed state/StateAtomRegistry.tsx
 //go:embed state/global.ts state/index.tsx state/interaction.ts state/persist.tsx state/useBackendStateAtom.tsx
-//go:embed style/tokens.stylex.ts style/media.stylex.ts
+//go:embed style/tokens.stylex.ts style/media.stylex.ts style/button-icons.stylex.ts
 //go:embed state/useStateAtomResource.tsx style/app.css style/sonner.css style/sonner.ts style/flexlayout/base.css
 //go:embed style/flexlayout/flexlayout.css style/shadcn.css style/utils.ts title/DocumentTitleContext.tsx
 //go:embed title/DocumentTitleFocusContext.ts transform/TransformConfigDisplay.tsx ui/BackButton.tsx
@@ -79,5 +79,5 @@ import "embed"
 //go:embed ui/tooltip.tsx ui/trace-status.tsx ui/trace.tsx ui/tree/Tree.tsx ui/tree/TreeNode.tsx ui/tree/TreeRow.tsx ui/tree/TreeState.tsx
 //go:embed ui/tree/index.ts ui/turnstile.tsx util/isEqual.ts
 //go:embed sync/index.ts sync/react.tsx sync/app-hooks.ts sync/useAppAttachment.ts sync/useObjectQuery.ts
-//go:embed react-css.d.ts
+//go:embed react-css.d.ts images/icons.ts
 var DistSources embed.FS

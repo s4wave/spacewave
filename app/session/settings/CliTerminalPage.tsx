@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react'
 import { useBldrContext } from '@aptre/bldr-react'
 import { Client as SRPCClient } from 'starpc'
 import type { MessageStream } from 'starpc'
-import { LuTerminal } from 'react-icons/lu'
+import { LuTerminal } from '@s4wave/web/images/icons.js'
 
 import {
   CliTerminalServiceClient,

@@ -15,7 +15,7 @@ import {
   LuQrCode,
   LuSearch,
   LuUserPlus,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import {
   SOInviteMessage,

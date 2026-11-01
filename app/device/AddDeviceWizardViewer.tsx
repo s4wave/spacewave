@@ -7,7 +7,7 @@ import {
   LuLogIn,
   LuServer,
   LuTerminal,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import {
@@ -59,6 +59,13 @@ import { WizardField } from '../wizard/WizardField.js'
 import { WizardTextareaField } from '../wizard/WizardTextareaField.js'
 import { ComputersDashboardTypeID } from './computers.js'
 import { buildCreateSshHostTerminalOpData } from './terminal-action.js'
+
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: { marginTop: `calc(${themeLayout['--spacing']} * 3)` },
+})
 
 const DEFAULT_SSH_PORT = 22
 const DEVICE_APPROVAL_CLOUD_REQUIRED =
@@ -1179,7 +1186,7 @@ function SpaceLinkApprovalPanel({
           variant="brandOutline"
           size="toolbarWide"
           onClick={onSignIn}
-          className="mt-3"
+          sx={stylexStyles.rule1}
         >
           <LuLogIn className="size-3.5" />
           Sign in or create account
@@ -1265,7 +1272,7 @@ function SpaceLinkApprovalPanel({
             disabled={busy}
             variant="brandOutline"
             size="toolbarWide"
-            className="mt-3"
+            sx={stylexStyles.rule1}
           >
             <LuClipboardCheck className="size-3.5" />
             {busy ? 'Checking ticket…' : 'Approve'}

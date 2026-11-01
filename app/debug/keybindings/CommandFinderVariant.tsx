@@ -6,7 +6,11 @@ import {
   type ChangeEvent,
   type KeyboardEvent,
 } from 'react'
-import { LuCornerDownLeft, LuSearch, LuTriangleAlert } from 'react-icons/lu'
+import {
+  LuCornerDownLeft,
+  LuSearch,
+  LuTriangleAlert,
+} from '@s4wave/web/images/icons.js'
 import { Badge } from '@s4wave/web/ui/badge.js'
 import { Input } from '@s4wave/web/ui/input.js'
 

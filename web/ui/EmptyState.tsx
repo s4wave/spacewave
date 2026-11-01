@@ -1,6 +1,6 @@
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import { ReactNode } from 'react'
-import { LuFolderOpen, LuPlus } from 'react-icons/lu'
+import { LuFolderOpen, LuPlus } from '@s4wave/web/images/icons.js'
 
 import { Button } from './button.js'
 
@@ -156,9 +156,7 @@ export function EmptyState({
           variant="outline"
           size={isCompact ? 'sm' : 'default'}
           onClick={action.onClick}
-          {...stylex.props(
-            isCompact ? stylexStyles.rule15 : stylexStyles.rule16,
-          )}
+          sx={isCompact ? stylexStyles.rule15 : stylexStyles.rule16}
         >
           <LuPlus {...stylex.props(stylexStyles.rule17)} />
           {action.label}

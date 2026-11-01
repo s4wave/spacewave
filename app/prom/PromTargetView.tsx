@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { LuActivity } from 'react-icons/lu'
+import { LuActivity } from '@s4wave/web/images/icons.js'
 
 import type { TargetInfo, TargetStatus } from '@s4wave/sdk/prom/prom.pb.js'
 import { cn } from '@s4wave/web/style/utils.js'

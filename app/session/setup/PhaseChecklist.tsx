@@ -1,4 +1,4 @@
-import { LuCheck } from 'react-icons/lu'
+import { LuCheck } from '@s4wave/web/images/icons.js'
 
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 import { cn } from '@s4wave/web/style/utils.js'
