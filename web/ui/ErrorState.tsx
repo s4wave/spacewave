@@ -1,13 +1,139 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import { type ReactNode } from 'react'
 import { LuCircleAlert, LuRefreshCw } from 'react-icons/lu'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { Button } from './button.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+  fonts as themeFonts,
+  radii as themeRadii,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '3.40282e38px',
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 16)`,
+    height: `calc(${themeLayout['--spacing']} * 16)`,
+    backgroundColor: themeColors['--color-error-bg'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    backgroundColor: themeColors['--color-error-bg'],
+  },
+  rule4: { color: themeColors['--color-error'] },
+  rule5: {
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+  },
+  rule6: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+  },
+  rule7: { textAlign: 'center' },
+  rule8: { marginTop: `calc(${themeLayout['--spacing']} * 4)` },
+  rule9: { marginTop: `calc(${themeLayout['--spacing']} * 3)` },
+  rule10: {
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-error-text'],
+  },
+  rule11: {
+    fontSize: 'var(--text-xl)',
+    lineHeight: 'var(--tw-leading, var(--text-xl--line-height))',
+  },
+  rule12: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+  },
+  rule13: {
+    marginTop: themeLayout['--spacing'],
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule14: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule15: {
+    borderColor: themeColors['--color-error-border'],
+    color: themeColors['--color-error'],
+    '@media (hover: hover)': {
+      ':hover': { backgroundColor: themeColors['--color-error-bg'] },
+    },
+  },
+  rule16: { marginTop: `calc(${themeLayout['--spacing']} * 6)` },
+  rule17: {
+    marginRight: `calc(${themeLayout['--spacing']} * 2)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule18: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: 'solid',
+    borderWidth: '1px',
+    borderColor: themeColors['--color-error-border'],
+    backgroundColor: themeColors['--color-error-bg'],
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule19: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: '0',
+    color: themeColors['--color-error'],
+  },
+  rule20: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-error-text'],
+  },
+  rule21: {
+    marginLeft: 'auto',
+    flexShrink: '0',
+    color: themeColors['--color-error'],
+    '@media (hover: hover)': {
+      ':hover': { backgroundColor: themeColors['--color-error-bg'] },
+    },
+  },
+  rule22: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule23: {
+    display: 'flex',
+    height: '100%',
+    minHeight: '0',
+    width: '100%',
+    flex: '1',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule24: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+})
 
 interface ErrorStateProps {
   title?: string
   message: string
   onRetry?: () => void
-  className?: string
+  sx?: ComponentStyles
   variant?: 'inline' | 'card' | 'fullscreen'
   children?: ReactNode
 }
@@ -17,46 +143,48 @@ export function ErrorState({
   title = 'Error',
   message,
   onRetry,
-  className,
+  sx,
   variant = 'card',
   children,
-}: ErrorStateProps) {
+}: Omit<ErrorStateProps, 'className'> & { sx?: ComponentStyles }) {
   const content = (
     <>
       <div
-        className={cn(
-          'flex items-center justify-center rounded-full',
-          variant === 'fullscreen'
-            ? 'bg-error-bg size-16'
-            : 'bg-error-bg size-10',
-        )}
+        sx={[
+          stylexStyles.rule1,
+          variant === 'fullscreen' ? stylexStyles.rule2 : stylexStyles.rule3,
+        ]}
       >
         <LuCircleAlert
-          className={cn(
-            'text-error',
-            variant === 'fullscreen' ? 'size-8' : 'size-5',
-          )}
+          {...stylex.props([
+            stylexStyles.rule4,
+            variant === 'fullscreen' ? stylexStyles.rule5 : stylexStyles.rule6,
+          ])}
         />
       </div>
       <div
-        className={cn(
-          'text-center',
-          variant === 'fullscreen' ? 'mt-4' : 'mt-3',
-        )}
+        sx={[
+          stylexStyles.rule7,
+          variant === 'fullscreen' ? stylexStyles.rule8 : stylexStyles.rule9,
+        ]}
       >
         <h3
-          className={cn(
-            'text-error-text font-semibold',
-            variant === 'fullscreen' ? 'text-xl' : 'text-sm',
-          )}
+          sx={[
+            stylexStyles.rule10,
+            variant === 'fullscreen'
+              ? stylexStyles.rule11
+              : stylexStyles.rule12,
+          ]}
         >
           {title}
         </h3>
         <p
-          className={cn(
-            'text-foreground-alt mt-1',
-            variant === 'fullscreen' ? 'text-sm' : 'text-xs',
-          )}
+          sx={[
+            stylexStyles.rule13,
+            variant === 'fullscreen'
+              ? stylexStyles.rule12
+              : stylexStyles.rule14,
+          ]}
         >
           {message}
         </p>
@@ -66,12 +194,12 @@ export function ErrorState({
           variant="outline"
           size={variant === 'fullscreen' ? 'default' : 'sm'}
           onClick={onRetry}
-          className={cn(
-            'border-error-border text-error hover:bg-error-bg',
-            variant === 'fullscreen' ? 'mt-6' : 'mt-4',
-          )}
+          {...stylex.props([
+            stylexStyles.rule15,
+            variant === 'fullscreen' ? stylexStyles.rule16 : stylexStyles.rule8,
+          ])}
         >
-          <LuRefreshCw className="mr-2 size-4" />
+          <LuRefreshCw {...stylex.props(stylexStyles.rule17)} />
           Retry
         </Button>
       )}
@@ -81,22 +209,17 @@ export function ErrorState({
 
   if (variant === 'inline') {
     return (
-      <div
-        className={cn(
-          'border-error-border bg-error-bg flex items-center gap-3 rounded-md border p-3',
-          className,
-        )}
-      >
-        <LuCircleAlert className="text-error size-4 shrink-0" />
-        <p className="text-error-text text-sm">{message}</p>
+      <div sx={[stylexStyles.rule18, sx]}>
+        <LuCircleAlert {...stylex.props(stylexStyles.rule19)} />
+        <p sx={stylexStyles.rule20}>{message}</p>
         {onRetry && (
           <Button
             variant="ghost"
             size="sm"
             onClick={onRetry}
-            className="text-error hover:bg-error-bg ml-auto shrink-0"
+            {...stylex.props(stylexStyles.rule21)}
           >
-            <LuRefreshCw className="size-3" />
+            <LuRefreshCw {...stylex.props(stylexStyles.rule22)} />
           </Button>
         )}
       </div>
@@ -104,23 +227,8 @@ export function ErrorState({
   }
 
   if (variant === 'fullscreen') {
-    return (
-      <div
-        className={cn(
-          'flex h-full min-h-0 w-full flex-1 flex-col items-center justify-center p-4',
-          className,
-        )}
-      >
-        {content}
-      </div>
-    )
+    return <div sx={[stylexStyles.rule23, sx]}>{content}</div>
   }
 
-  return (
-    <div
-      className={cn('flex flex-col items-center justify-center p-6', className)}
-    >
-      {content}
-    </div>
-  )
+  return <div sx={[stylexStyles.rule24, sx]}>{content}</div>
 }
