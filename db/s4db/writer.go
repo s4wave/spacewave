@@ -126,7 +126,7 @@ func (w *writer) create() error {
 		if _, err := s.ReadAt(hdr, headerPage*pageSize); err != nil {
 			return err
 		}
-		if [8]byte(hdr[:8]) == magic || size > fileOff(chunkStart(3)) {
+		if [8]byte(hdr[:8]) == magic || size > fileOff(chunkStart(4)) {
 			return nil
 		}
 	}
@@ -141,6 +141,10 @@ func (w *writer) create() error {
 	m := newManifest()
 	*m.table.at(1) = chunkEntry{kind: chunkManifest, owner: m.version}
 	*m.table.at(2) = chunkEntry{kind: chunkLog}
+	*m.table.at(3) = chunkEntry{kind: chunkLog}
+	if err := backLog(s, 2, 2); err != nil {
+		return err
+	}
 	mb := m.encode()
 	if _, err := s.WriteAt(mb, fileOff(chunkStart(1))); err != nil {
 		return err
@@ -156,8 +160,9 @@ func (w *writer) create() error {
 		logEnd:   chunkStart(3),
 		memPos:   chunkStart(2),
 		memEnd:   chunkStart(3),
+		logSpare: 3, memSpare: 3,
 	}
-	if err := s.truncate(fileOff(chunkStart(3))); err != nil {
+	if err := s.truncate(fileOff(chunkStart(4))); err != nil {
 		return err
 	}
 	if _, err := s.WriteAt(sb.encode(), sb.page()*pageSize); err != nil {
@@ -253,28 +258,16 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, move
 		return nil
 	}
 
-	// Find where the record goes.
-	seq := base.seq + 1
-	bound := uint64(recordHeader + r.bound()) // #nosec G115 -- sizes are not negative.
-	pos, end, prev := base.pos, base.end, base.crc
-	var link []byte
-	linkPos := pos
-
-	// Continue the log in new chunks when the record may not fit, keeping
-	// room for the link at the end of every chunk.
-	durable, _ := db.flush.marks()
-	if pos+bound+linkSize > end {
-		span := max(chunksFor(bound+linkSize), 1)
-		l := &record{seq: seq, kind: kindLink, writer: db.id, prevWriter: base.writer, durable: durable, span: span}
-		l.next = next.m.table.alloc(span, chunkLog, 0)
-		link = l.encode(prev)
-		next.apply(l, db.budget)
-		seq, prev = seq+1, l.crc
-		pos = chunkStart(l.next)
-		r.prevWriter = db.id
+	// Reserve the log and its standby before writing values or publishing.
+	r.durable, _ = db.flush.marks()
+	pos, link, err := w.placeLog(base, next, r)
+	if err != nil {
+		return err
 	}
-	r.seq = seq
-	db.ownSeq.Store(seq)
+	linkPos, prev := base.pos, base.crc
+	if link != nil {
+		prev = next.crc
+	}
 
 	// Write the values, then the record. A tail of this handle that began
 	// before the writer lock and reads the record first publishes the same
@@ -282,7 +275,6 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, move
 	if err := w.writeValues(writes); err != nil {
 		return err
 	}
-	r.durable = durable
 	rec := r.encode(prev)
 	if link != nil {
 		if _, err := db.s.WriteAt(link, fileOff(linkPos)); err != nil {

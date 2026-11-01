@@ -36,7 +36,8 @@ type header struct {
 // memtable bytes.
 func newHeader(memtable int64) *header {
 	return &header{
-		version:   2,
+		version:   3,
+		incompat:  incompatLogSpare,
 		checksum:  checksumCRC32C,
 		index:     indexLogRuns,
 		values:    valuesChunked,
@@ -80,7 +81,7 @@ func decodeHeader(b []byte) (*header, error) {
 	}
 
 	// Refuse what this version cannot read.
-	unsupported := binary.LittleEndian.Uint32(b[12:]) != pageSize ||
+	unsupported := h.version != 3 || h.incompat&incompatLogSpare == 0 || binary.LittleEndian.Uint32(b[12:]) != pageSize ||
 		h.incompat&^incompatKnown != 0 ||
 		h.rocompat&^rocompatKnown != 0 ||
 		h.checksum != checksumCRC32C ||
