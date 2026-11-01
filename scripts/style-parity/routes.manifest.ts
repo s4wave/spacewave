@@ -74,6 +74,75 @@ async function quickstartReady(page: Page): Promise<void> {
   await page.locator('[data-testid="session-account-menu-button"]').waitFor()
 }
 
+// viewerReady requires loaded viewer content beyond the session shell and its loading status.
+async function viewerReady(page: Page, id: string): Promise<void> {
+  await quickstartReady(page)
+  switch (id) {
+    case 'space':
+      await page
+        .getByRole('heading', { name: 'Choose an object', exact: true })
+        .waitFor()
+      break
+    case 'git':
+      await page.getByText('Empty Repository', { exact: true }).waitFor()
+      break
+    case 'notebook':
+      await page
+        .getByTestId('notes-note-row')
+        .first()
+        .waitFor({ state: 'attached' })
+      break
+    case 'chat':
+      await page
+        .getByRole('region', { name: 'Chat channel', exact: true })
+        .waitFor()
+      await page.waitForFunction(
+        () =>
+          document.querySelector<HTMLTextAreaElement>(
+            'textarea[aria-label="Message"]',
+          )?.disabled === false,
+      )
+      break
+    case 'kv':
+      await page
+        .getByRole('listbox', { name: 'Keys', exact: true })
+        .getByRole('option')
+        .first()
+        .waitFor()
+      break
+    case 'sql':
+      await page
+        .getByRole('tree', { name: 'Schemas', exact: true })
+        .getByRole('treeitem', { name: 'quickstart', exact: true })
+        .waitFor()
+      break
+    case 'docs':
+      // The existing narrow layout collapses the content pane between its two sidebars.
+      await page
+        .getByTestId('notes-content-view')
+        .waitFor({ state: 'attached' })
+      await page
+        .getByRole('heading', { name: 'Documentation', exact: true })
+        .waitFor({ state: 'attached' })
+      break
+    case 'blog':
+      await page
+        .getByRole('heading', { name: 'Hello World', exact: true })
+        .waitFor()
+      break
+    case 'device':
+      await page
+        .getByRole('heading', { name: 'No computers added', exact: true })
+        .waitFor()
+      break
+    case 'forge':
+      await page.getByTestId('forge-viewer').waitFor()
+      break
+    default:
+      throw new Error(`Missing readiness contract for ${id}`)
+  }
+}
+
 // sessionState preserves the running document when opening a session page.
 function sessionState(id: string, path: string, ready: string): ParityState {
   return {
@@ -123,12 +192,30 @@ const routesManifest: ParityManifest = {
       ['login', 'input[placeholder=alice]'],
       ['signup', 'input[placeholder=alice]'],
       ['recover', 'h1:has-text("Recover Account")'],
-      ['sessions', '[data-testid="session-selector"]'],
       ['pair', 'input[placeholder="XXXX XXXX"]'],
       ['docs', 'h1:has-text("Documentation")'],
       ['changelog', 'h1:has-text("Changelog")'],
       ['debug', 'h1:has-text("Debug tools")'],
     ].map(([id, ready]) => ({ id: id!, path: '/#/' + id, ready: ready! })),
+    {
+      id: 'sessions-empty',
+      path: '/#/sessions',
+      ready: async (page) => {
+        await page.waitForFunction(() => location.hash === '#/landing')
+        await page.getByRole('combobox').waitFor()
+      },
+    },
+    {
+      id: 'sessions',
+      path: '/#/quickstart/drive',
+      setup: async (page) => {
+        await driveReady(page)
+        await page.evaluate(() => {
+          location.hash = '/sessions'
+        })
+      },
+      ready: '[data-testid="session-selector"]',
+    },
     {
       id: 'viewer-drive',
       path: '/#/quickstart/drive',
@@ -160,19 +247,48 @@ const routesManifest: ParityManifest = {
       'sql',
       'docs',
       'blog',
-      'v86',
       'device',
       'forge',
     ].map((id) => ({
       id: 'viewer-' + id,
       path: '/#/quickstart/' + id,
-      ready: quickstartReady,
+      ready: (page: Page) => viewerReady(page, id),
     })),
-    sessionState('session-storage', '/settings/storage', 'h1'),
-    sessionState('session-plugins', '/settings/plugins', 'h1'),
-    sessionState('session-transfers', '/settings/transfer', 'h1'),
-    sessionState('session-cli', '/settings/cli', 'h1'),
-    sessionState('session-billing', '/billing', 'h1'),
+    {
+      // This isolated fixture has no optional VM image catalog; capture its actual creation state.
+      id: 'wizard-vm-catalog-loading',
+      path: '/#/quickstart/v86',
+      ready: async (page) => {
+        await quickstartReady(page)
+        await page
+          .getByRole('textbox', { name: 'VM name', exact: true })
+          .waitFor()
+        await page
+          .getByText('Loading the catalog image', { exact: true })
+          .waitFor()
+      },
+    },
+    sessionState(
+      'session-storage',
+      '/settings/storage',
+      'h1:has-text("Storage health")',
+    ),
+    sessionState(
+      'session-plugins',
+      '/settings/plugins',
+      'h1:has-text("Plugins")',
+    ),
+    sessionState(
+      'session-transfers',
+      '/settings/transfer',
+      'h1:has-text("Transfer Sessions")',
+    ),
+    sessionState('session-cli', '/settings/cli', 'h1:has-text("Command Line")'),
+    sessionState(
+      'session-billing-unavailable',
+      '/billing',
+      'main:has-text("SpacewaveOrgList context not found")',
+    ),
     {
       id: 'overlay-account',
       path: '/#/quickstart/drive',
@@ -200,7 +316,9 @@ const routesManifest: ParityManifest = {
       path: '/#/quickstart/drive',
       setup: async (page) => {
         await driveReady(page)
-        await page.keyboard.press('Control+k')
+        await page
+          .getByRole('button', { name: 'Open command palette', exact: true })
+          .click()
       },
       ready: '[role="dialog"] [cmdk-input]',
     },
