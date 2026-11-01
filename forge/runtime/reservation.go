@@ -12,38 +12,44 @@ import (
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/quad"
 	"github.com/s4wave/spacewave/db/world"
 )
 
 const reservationObjectKeyPrefix = "forge/runtime/reservation/"
 
-// BuildReservationObjectKey builds the deterministic object key for the
-// reservation of an Execution attempt. A resumed attempt reuses the key at the
-// next reservation generation.
+// BuildReservationObjectKey builds the deterministic reservation key for a
+// capacity holder. Execution retries and standing node claims reuse the key
+// at the next reservation generation.
 func BuildReservationObjectKey(executionObjectKey string) string {
 	hash := sha256.Sum256([]byte(executionObjectKey))
 	return reservationObjectKeyPrefix + hex.EncodeToString(hash[:12])
 }
 
-// Reservation records one generation-fenced and lease-fenced capacity grant.
+// Reservation records a generation-fenced capacity grant. Runtime custody
+// follows its lease; a standing grant follows its placement edge.
 // The record is the durable truth: a Worker restart reconciles by reading it.
 type Reservation struct {
 	// WorkerObjectKey is the Forge Worker object key holding the capacity.
 	WorkerObjectKey string `json:"workerObjectKey,omitempty"`
-	// ExecutionObjectKey is the owning Execution attempt object key.
+	// ExecutionObjectKey is the holder identity used to derive this grant key:
+	// an Execution attempt object key or a logical standing node identity.
 	ExecutionObjectKey string `json:"executionObjectKey,omitempty"`
 	// Request is the reserved capacity request.
 	Request ResourceRequest `json:"request"`
 	// Generation fences runtime custody. Resume after uncertainty increments
 	// the generation; calls fenced against an older generation are stale.
 	Generation uint64
-	// LeaseExpiresAt is when unobserved custody expires. Expiry releases the
-	// debited capacity exactly once.
+	// LeaseExpiresAt is when unobserved runtime custody expires. Standing
+	// grants retain their debit until the placement edge is removed.
 	LeaseExpiresAt *timestamp.Timestamp
 	// State is the reservation lifecycle state.
 	State ReservationState
 	// Runtime identifies the claimed backend runtime, set on activation.
 	Runtime BackendRuntimeIdentity
+	// Placement snapshots the edge that owns a standing grant. The graph edge
+	// is the lifetime authority; this receipt locates it after a restart.
+	Placement *quad.Quad
 	// Cleanup records the terminal cleanup receipt, set on release.
 	Cleanup *CleanupReceipt
 }
@@ -68,9 +74,12 @@ func (r *Reservation) Validate() error {
 	case r.LeaseExpiresAt == nil:
 		return errors.New("lease_expires_at must be set")
 	}
-	if err := r.Request.Validate(); err != nil {
+	if err := r.Request.Validate(); err != nil && r.Placement == nil {
 		// Validate the reserved resources and custody lease.
 		return errors.Wrap(err, "request")
+	}
+	if r.Placement != nil && (r.Request.Backend == "" || !r.Runtime.IsZero()) {
+		return errors.New("placement grants require a backend and cannot hold runtime custody")
 	}
 	if err := r.LeaseExpiresAt.Validate(false); err != nil {
 		return errors.Wrap(err, "lease_expires_at")
@@ -110,9 +119,10 @@ func (r *Reservation) Outcome(now time.Time) ReservationOutcome {
 	}
 }
 
-// LeaseExpired reports whether the lease is past due at the given time.
+// LeaseExpired reports whether runtime custody is past due. Standing grants
+// follow their placement edge rather than a runtime lease.
 func (r *Reservation) LeaseExpired(now time.Time) bool {
-	return r.LeaseExpiresAt != nil && now.After(r.LeaseExpiresAt.AsTime())
+	return r.Placement == nil && r.LeaseExpiresAt != nil && now.After(r.LeaseExpiresAt.AsTime())
 }
 
 // Reset resets the block.
@@ -137,6 +147,20 @@ func (r *Reservation) MarshalJSON() ([]byte, error) {
 	obj := arena.NewObject()
 	setStringJSONField(&arena, obj, "workerObjectKey", r.WorkerObjectKey)
 	setStringJSONField(&arena, obj, "executionObjectKey", r.ExecutionObjectKey)
+
+	// Persist the placement lifetime independently of leased runtime custody.
+	if r.Placement != nil {
+		data, err := r.Placement.MarshalJSON()
+		if err != nil {
+			return nil, err
+		}
+		var placementParser fastjson.Parser
+		value, err := placementParser.ParseBytes(data)
+		if err != nil {
+			return nil, err
+		}
+		obj.Set("placement", value)
+	}
 
 	// Encode the reserved resource request and generation.
 	req := arena.NewObject()
@@ -227,6 +251,14 @@ func (r *Reservation) UnmarshalJSON(data []byte) error {
 			return errors.Wrap(err, "unmarshal lease_expires_at")
 		}
 		r.LeaseExpiresAt = ts
+	}
+
+	// Restore the standing grant's placement lifetime.
+	if placement := value.Get("placement"); placement != nil {
+		r.Placement = &quad.Quad{}
+		if err := r.Placement.UnmarshalJSON(placement.MarshalTo(nil)); err != nil {
+			return err
+		}
 	}
 
 	// Restore backend runtime custody and its stop environment.

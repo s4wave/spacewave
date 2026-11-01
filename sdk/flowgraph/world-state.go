@@ -150,6 +150,13 @@ func UpdateBoundFlowgraph(ctx context.Context, ws world.WorldState, b bus.Bus, e
 		}
 	}
 
+	// Requirements changes return claimed nodes to unplaced before re-admission.
+	for id, node := range state.Nodes {
+		if !node.GetRequirements().EqualVT(previous.GetState().GetNodes()[id].GetRequirements()) && previous.GetState().GetNodes()[id].GetRequirements() != nil {
+			delete(next.Placements, id)
+		}
+	}
+
 	// Remove replaced or deleted placement edges.
 	var placed bool
 	for id, placement := range previous.GetPlacements() {
@@ -158,6 +165,9 @@ func UpdateBoundFlowgraph(ctx context.Context, ws world.WorldState, b bus.Bus, e
 		}
 		edge, err := PlacementQuad(key, id, placement)
 		if err != nil {
+			return nil, err
+		}
+		if err := ReleaseNodeCapacity(ctx, ws, key, id); err != nil {
 			return nil, err
 		}
 		if err := ws.DeleteGraphQuad(ctx, edge); err != nil {

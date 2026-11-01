@@ -636,6 +636,10 @@ export interface Device {
    * UpdatedAt is when this Device object was last updated.
    */
   updatedAt?: Date
+  /**
+   * Labels contains stored selectors, overriding derived hostname, os and arch.
+   */
+  labels?: { [key: string]: string }
 }
 
 export const Device: MessageType<Device> =
@@ -650,6 +654,7 @@ export const Device: MessageType<Device> =
     [8, 'capabilities', 11, 1, DeviceCapability.codec],
     [9, 'created_at', 11, 0, Timestamp.codec],
     [10, 'updated_at', 11, 0, Timestamp.codec],
+    [11, 'labels', 9, 584],
   ])
 
 /**

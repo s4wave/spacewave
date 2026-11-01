@@ -12,6 +12,11 @@ func (n *FlowgraphNode) Validate() error {
 		return errors.New("step instructions are required only for a step node")
 	}
 
+	// Requirements reserve standing capacity; Steps use Forge Execution admission.
+	if n.GetRequirements() != nil && n.GetStep() != nil {
+		return errors.New("requirements are only supported on standing nodes")
+	}
+
 	// Require one identity and a data contract for each port.
 	seen := make(map[string]struct{}, len(n.GetPorts()))
 	for _, port := range n.GetPorts() {

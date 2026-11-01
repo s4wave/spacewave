@@ -7,6 +7,7 @@ package s4wave_device
 import (
 	fmt "fmt"
 	io "io"
+	maps "maps"
 	slices "slices"
 	strconv "strconv"
 
@@ -771,6 +772,8 @@ type Device struct {
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"createdAt,omitempty"`
 	// UpdatedAt is when this Device object was last updated.
 	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=updated_at,json=updatedAt,proto3" json:"updatedAt,omitempty"`
+	// Labels contains stored selectors, overriding derived hostname, os and arch.
+	Labels map[string]string `protobuf:"bytes,11,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }
 
 func (x *Device) Reset() {
@@ -845,6 +848,13 @@ func (x *Device) GetCreatedAt() *timestamppb.Timestamp {
 func (x *Device) GetUpdatedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.UpdatedAt
+	}
+	return nil
+}
+
+func (x *Device) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
 	}
 	return nil
 }
@@ -1195,6 +1205,32 @@ func (x *AccessCheckoutRootResponse) GetWriteApprovalRef() string {
 	return ""
 }
 
+type Device_LabelsEntry struct {
+	unknownFields []byte
+	Key           string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Value         string `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+}
+
+func (x *Device_LabelsEntry) Reset() {
+	*x = Device_LabelsEntry{}
+}
+
+func (*Device_LabelsEntry) ProtoMessage() {}
+
+func (x *Device_LabelsEntry) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *Device_LabelsEntry) GetValue() string {
+	if x != nil {
+		return x.Value
+	}
+	return ""
+}
+
 func (m *DevicePlatform) CloneVT() *DevicePlatform {
 	if m == nil {
 		return (*DevicePlatform)(nil)
@@ -1347,6 +1383,7 @@ func (m *Device) CloneVT() *Device {
 	r.Capabilities = protobuf_go_lite.CloneVTSlice(m.Capabilities)
 	r.CreatedAt = protobuf_go_lite.CloneVTValue(m.CreatedAt)
 	r.UpdatedAt = protobuf_go_lite.CloneVTValue(m.UpdatedAt)
+	r.Labels = protobuf_go_lite.CloneMap(m.Labels)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1782,6 +1819,9 @@ func (this *Device) EqualVT(that *Device) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.UpdatedAt, that.UpdatedAt) {
+		return false
+	}
+	if !protobuf_go_lite.EqualMap(this.Labels, that.Labels) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2881,6 +2921,56 @@ func (x *ForgeWorkerDeclaration) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the Device_LabelsEntry message to JSON.
+func (x *Device_LabelsEntry) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Key != "" || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		s.WriteString(x.Key)
+	}
+	if x.Value != "" || s.HasField("value") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("value")
+		s.WriteString(x.Value)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the Device_LabelsEntry to JSON.
+func (x *Device_LabelsEntry) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the Device_LabelsEntry message from JSON.
+func (x *Device_LabelsEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "key":
+			s.AddField("key")
+			x.Key = s.ReadString()
+		case "value":
+			s.AddField("value")
+			x.Value = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the Device_LabelsEntry from JSON.
+func (x *Device_LabelsEntry) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the Device message to JSON.
 func (x *Device) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -2944,6 +3034,19 @@ func (x *Device) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("updatedAt")
 		x.UpdatedAt.MarshalProtoJSON(s.WithField("updatedAt"))
+	}
+	if x.Labels != nil || s.HasField("labels") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("labels")
+		s.WriteObjectStart()
+		var wroteElement bool
+		for _, k := range slices.Sorted(maps.Keys(x.Labels)) {
+			v := x.Labels[k]
+			s.WriteMoreIf(&wroteElement)
+			s.WriteObjectStringField(k)
+			s.WriteString(v)
+		}
+		s.WriteObjectEnd()
 	}
 	s.WriteObjectEnd()
 }
@@ -3023,6 +3126,16 @@ func (x *Device) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.UpdatedAt = &timestamppb.Timestamp{}
 			x.UpdatedAt.UnmarshalProtoJSON(s.WithField("updated_at", true))
+		case "labels":
+			s.AddField("labels")
+			if s.ReadNil() {
+				x.Labels = nil
+				return
+			}
+			x.Labels = make(map[string]string)
+			s.ReadStringMap(func(key string) {
+				x.Labels[key] = s.ReadString()
+			})
 		}
 	})
 }
@@ -4061,6 +4174,21 @@ func (m *Device) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.Labels) > 0 {
+		for k := range m.Labels {
+			v := m.Labels[k]
+			baseI := i
+			i = protobuf_go_lite.EncodeString(dAtA, i, v)
+			i--
+			dAtA[i] = 0x12
+			i = protobuf_go_lite.EncodeString(dAtA, i, k)
+			i--
+			dAtA[i] = 0xa
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0x5a
+		}
+	}
 	if m.UpdatedAt != nil {
 		size, err := m.UpdatedAt.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -4781,6 +4909,12 @@ func (m *Device) SizeVT() (n int) {
 		l = m.UpdatedAt.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	for k, v := range m.Labels {
+		_ = k
+		_ = v
+		mapEntrySize := protobuf_go_lite.SizeStringValue(1, k) + protobuf_go_lite.SizeStringValue(1, v)
+		n += protobuf_go_lite.SizeMessage(1, mapEntrySize)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -5169,6 +5303,24 @@ func (x *ForgeWorkerDeclaration) String() string {
 	return x.MarshalProtoText()
 }
 
+func (x *Device_LabelsEntry) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "LabelsEntry")
+	if x.Key != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "key")
+		protobuf_go_lite.TextWriteString(&sb, x.Key)
+	}
+	if x.Value != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "value")
+		protobuf_go_lite.TextWriteString(&sb, x.Value)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *Device_LabelsEntry) String() string {
+	return x.MarshalProtoText()
+}
+
 func (x *Device) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "Device")
@@ -5219,6 +5371,17 @@ func (x *Device) MarshalProtoText() string {
 	if x.UpdatedAt != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "updated_at")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.UpdatedAt)
+	}
+	if len(x.Labels) > 0 {
+		protobuf_go_lite.TextWriteMapStart(&sb, initialLen, "labels")
+		for _, k := range slices.Sorted(maps.Keys(x.Labels)) {
+			v := x.Labels[k]
+			protobuf_go_lite.TextWriteMapEntryPrefix(&sb)
+			protobuf_go_lite.TextWriteString(&sb, k)
+			protobuf_go_lite.TextWriteMapKeyValueSeparator(&sb)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteMapEnd(&sb)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -6232,6 +6395,48 @@ func (m *Device) UnmarshalVT(dAtA []byte) error {
 			if err := m.UpdatedAt.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
+			iNdEx = postIndex
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Labels", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			iNdEx = msgStart
+			if m.Labels == nil {
+				m.Labels = make(map[string]string)
+			}
+			var mapkey string
+			var mapvalue string
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+				if err != nil {
+					return err
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					mapkey, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+					if err != nil {
+						return err
+					}
+				} else if fieldNum == 2 {
+					mapvalue, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+					if err != nil {
+						return err
+					}
+				} else {
+					iNdEx = entryPreIndex
+					iNdEx, err = protobuf_go_lite.SkipWithin(dAtA, iNdEx, postIndex)
+					if err != nil {
+						return err
+					}
+				}
+			}
+			m.Labels[mapkey] = mapvalue
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

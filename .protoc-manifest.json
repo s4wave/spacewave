@@ -3811,7 +3811,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/device": {
-      "hash": "ee922534a878a02a1cf329ec6e3dd562572f7bd466acaf305330c159347a71be",
+      "hash": "07cda971f851c5c1a9cb05077fb18bdef57c7f2496ae07687b32cff734e1c2a6",
       "generatedFiles": [
         "sdk/device/device.pb.go",
         "sdk/device/device.pb.ts",
@@ -3835,7 +3835,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/flowgraph": {
-      "hash": "8c35374a7ece14f83e167b79487615749c401588160a39d6af119040cdcdb45d",
+      "hash": "579937b81038ccec4b81509a6ecf56c07ff5d63f53900c01ac0810df7e94139b",
       "generatedFiles": [
         "sdk/flowgraph/flowgraph.pb.go",
         "sdk/flowgraph/flowgraph.pb.ts",

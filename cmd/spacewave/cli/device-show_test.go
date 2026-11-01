@@ -55,7 +55,7 @@ func TestDeviceShowAvailability(t *testing.T) {
 	} {
 		t.Run(availability.Reason, func(t *testing.T) {
 			// Preserve the generated Device fields while adding the derived summary.
-			data, err := marshalDeviceShow(device, availability)
+			data, err := marshalDeviceShow("devices/self", device, availability)
 			if err != nil {
 				t.Fatal(err)
 			}

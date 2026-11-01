@@ -25,8 +25,8 @@ import (
 // compiles each allowed node through its node type, applies the compiled
 // entries as one ConfigSet on the Device Session's bus, and writes each node's
 // state into the Device object. A node that fails shows as rejected with its
-// error while the other nodes keep running. The daemon is the only writer of
-// the Device object.
+// error while the other nodes keep running. Device reports preserve independently
+// written labels.
 type Reconciler struct {
 	// le reports reconciliation failures.
 	le *logrus.Entry
@@ -227,7 +227,12 @@ func (r *Reconciler) reconcile(ctx context.Context, reads *world.ReadSet) error 
 	}
 	r.setHeld(len(entries) != 0)
 	r.forgeWorker.Set(r.deviceKey, acceptedForgeWorker(reports))
-	return r.project(ctx, reads, reports)
+
+	// Publish the observed node states before claiming eligible standing work.
+	if err := r.project(ctx, reads, reports); err != nil {
+		return err
+	}
+	return r.claimRequirements(ctx, reads, acceptedForgeWorker(reports))
 }
 
 // compilePlaced compiles each node placed on this Device from one World

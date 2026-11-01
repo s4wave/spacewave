@@ -216,6 +216,10 @@ export interface FlowgraphNode {
    * from the World when the graph is read and is never stored.
    */
   objectKey?: string
+  /**
+   * Requirements selects an eligible Device when this standing node is unplaced.
+   */
+  requirements?: FlowgraphRequirements
 }
 
 export const FlowgraphNode: MessageType<FlowgraphNode> =
@@ -227,6 +231,42 @@ export const FlowgraphNode: MessageType<FlowgraphNode> =
       [3, 'ports', 11, 1, FlowgraphPort.codec],
       [4, 'step', 11, 0, FlowgraphStep.codec],
       [5, 'object_key', 9],
+      [6, 'requirements', 11, 0, FlowgraphRequirements.codec],
+    ],
+  )
+
+/**
+ * FlowgraphRequirements constrains a standing node's Device and capacity grant.
+ *
+ * @generated from message s4wave.flowgraph.FlowgraphRequirements
+ */
+export interface FlowgraphRequirements {
+  /**
+   * MilliCpu is the reserved CPU in thousandths of a core.
+   */
+  milliCpu?: bigint
+  /**
+   * MemoryBytes is the reserved memory in bytes.
+   */
+  memoryBytes?: bigint
+  /**
+   * RuntimeBackend selects a Forge backend; empty accepts any declared backend.
+   */
+  runtimeBackend?: string
+  /**
+   * MatchLabels requires each key and value in the Device's effective labels.
+   */
+  matchLabels?: { [key: string]: string }
+}
+
+export const FlowgraphRequirements: MessageType<FlowgraphRequirements> =
+  /* @__PURE__ */ createMessageType<FlowgraphRequirements>(
+    's4wave.flowgraph.FlowgraphRequirements',
+    () => [
+      [1, 'milli_cpu', 4],
+      [2, 'memory_bytes', 4],
+      [3, 'runtime_backend', 9],
+      [4, 'match_labels', 9, 584],
     ],
   )
 

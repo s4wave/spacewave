@@ -132,13 +132,6 @@ func (w *WorkerAdmission) ApplyDeclaration(ctx context.Context, deviceKey string
 		if err != nil {
 			return errors.Wrap(ErrWorkerStopPending, err.Error())
 		}
-		capacity, err = w.admission.LookupWorkerCapacityAdmission(ctx, w.workerKey)
-		if err != nil {
-			return err
-		}
-		if capacity.MilliCPUReserved != 0 || capacity.MemoryBytesReserved != 0 {
-			return ErrWorkerStopPending
-		}
 	}
 
 	// A removed Docker backend must stop existing Docker custody before the

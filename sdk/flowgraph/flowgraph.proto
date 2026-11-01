@@ -32,6 +32,20 @@ message FlowgraphNode {
   // repository. It is empty for an unbound node. The binding state is derived
   // from the World when the graph is read and is never stored.
   string object_key = 5;
+  // Requirements selects an eligible Device when this standing node is unplaced.
+  FlowgraphRequirements requirements = 6;
+}
+
+// FlowgraphRequirements constrains a standing node's Device and capacity grant.
+message FlowgraphRequirements {
+  // MilliCpu is the reserved CPU in thousandths of a core.
+  uint64 milli_cpu = 1;
+  // MemoryBytes is the reserved memory in bytes.
+  uint64 memory_bytes = 2;
+  // RuntimeBackend selects a Forge backend; empty accepts any declared backend.
+  string runtime_backend = 3;
+  // MatchLabels requires each key and value in the Device's effective labels.
+  map<string, string> match_labels = 4;
 }
 
 // FlowgraphPortDirection selects the end of a directed connection.

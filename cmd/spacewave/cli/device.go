@@ -10,6 +10,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"maps"
 	"math"
 	"os"
 	"path/filepath"
@@ -241,6 +242,7 @@ func newDeviceCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 			newDevicePolicyCommand(),
 			newDeviceStatusCommand(),
 			newDeviceShowCommand(),
+			newDeviceLabelCommand(),
 		},
 	}
 }
@@ -1253,10 +1255,11 @@ func deviceObjectFromSetupRecord(record *deviceSetupRecord, now time.Time) *s4wa
 }
 
 func mergeDeviceObjectState(next *s4wave_device.Device, existing *s4wave_device.Device) {
-	// Keep the existing created-at, status, update state, and capabilities.
+	// Keep the stored labels and daemon state when enrollment reports again.
 	if next == nil || existing == nil {
 		return
 	}
+	next.Labels = maps.Clone(existing.GetLabels())
 	if existing.GetCreatedAt() != nil {
 		next.CreatedAt = existing.GetCreatedAt().CloneVT()
 	}

@@ -248,6 +248,8 @@ type FlowgraphNode struct {
 	// repository. It is empty for an unbound node. The binding state is derived
 	// from the World when the graph is read and is never stored.
 	ObjectKey string `protobuf:"bytes,5,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+	// Requirements selects an eligible Device when this standing node is unplaced.
+	Requirements *FlowgraphRequirements `protobuf:"bytes,6,opt,name=requirements,proto3" json:"requirements,omitempty"`
 }
 
 func (x *FlowgraphNode) Reset() {
@@ -289,6 +291,60 @@ func (x *FlowgraphNode) GetObjectKey() string {
 		return x.ObjectKey
 	}
 	return ""
+}
+
+func (x *FlowgraphNode) GetRequirements() *FlowgraphRequirements {
+	if x != nil {
+		return x.Requirements
+	}
+	return nil
+}
+
+// FlowgraphRequirements constrains a standing node's Device and capacity grant.
+type FlowgraphRequirements struct {
+	unknownFields []byte
+	// MilliCpu is the reserved CPU in thousandths of a core.
+	MilliCpu uint64 `protobuf:"varint,1,opt,name=milli_cpu,json=milliCpu,proto3" json:"milliCpu,omitempty"`
+	// MemoryBytes is the reserved memory in bytes.
+	MemoryBytes uint64 `protobuf:"varint,2,opt,name=memory_bytes,json=memoryBytes,proto3" json:"memoryBytes,omitempty"`
+	// RuntimeBackend selects a Forge backend; empty accepts any declared backend.
+	RuntimeBackend string `protobuf:"bytes,3,opt,name=runtime_backend,json=runtimeBackend,proto3" json:"runtimeBackend,omitempty"`
+	// MatchLabels requires each key and value in the Device's effective labels.
+	MatchLabels map[string]string `protobuf:"bytes,4,rep,name=match_labels,json=matchLabels,proto3" json:"matchLabels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+}
+
+func (x *FlowgraphRequirements) Reset() {
+	*x = FlowgraphRequirements{}
+}
+
+func (*FlowgraphRequirements) ProtoMessage() {}
+
+func (x *FlowgraphRequirements) GetMilliCpu() uint64 {
+	if x != nil {
+		return x.MilliCpu
+	}
+	return 0
+}
+
+func (x *FlowgraphRequirements) GetMemoryBytes() uint64 {
+	if x != nil {
+		return x.MemoryBytes
+	}
+	return 0
+}
+
+func (x *FlowgraphRequirements) GetRuntimeBackend() string {
+	if x != nil {
+		return x.RuntimeBackend
+	}
+	return ""
+}
+
+func (x *FlowgraphRequirements) GetMatchLabels() map[string]string {
+	if x != nil {
+		return x.MatchLabels
+	}
+	return nil
 }
 
 // FlowgraphPort declares a node-local connection endpoint.
@@ -1490,6 +1546,32 @@ func (x *FlowgraphNode_ParametersEntry) GetValue() string {
 	return ""
 }
 
+type FlowgraphRequirements_MatchLabelsEntry struct {
+	unknownFields []byte
+	Key           string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Value         string `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+}
+
+func (x *FlowgraphRequirements_MatchLabelsEntry) Reset() {
+	*x = FlowgraphRequirements_MatchLabelsEntry{}
+}
+
+func (*FlowgraphRequirements_MatchLabelsEntry) ProtoMessage() {}
+
+func (x *FlowgraphRequirements_MatchLabelsEntry) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *FlowgraphRequirements_MatchLabelsEntry) GetValue() string {
+	if x != nil {
+		return x.Value
+	}
+	return ""
+}
+
 type FlowgraphSkill_ParametersEntry struct {
 	unknownFields []byte
 	Key           string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
@@ -1752,6 +1834,7 @@ func (m *FlowgraphNode) CloneVT() *FlowgraphNode {
 	r.Parameters = protobuf_go_lite.CloneMap(m.Parameters)
 	r.Ports = protobuf_go_lite.CloneVTSlice(m.Ports)
 	r.Step = protobuf_go_lite.CloneVTValue(m.Step)
+	r.Requirements = protobuf_go_lite.CloneVTValue(m.Requirements)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1759,6 +1842,25 @@ func (m *FlowgraphNode) CloneVT() *FlowgraphNode {
 }
 
 func (m *FlowgraphNode) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *FlowgraphRequirements) CloneVT() *FlowgraphRequirements {
+	if m == nil {
+		return (*FlowgraphRequirements)(nil)
+	}
+	r := new(FlowgraphRequirements)
+	r.MilliCpu = m.MilliCpu
+	r.MemoryBytes = m.MemoryBytes
+	r.RuntimeBackend = m.RuntimeBackend
+	r.MatchLabels = protobuf_go_lite.CloneMap(m.MatchLabels)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *FlowgraphRequirements) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -2314,11 +2416,43 @@ func (this *FlowgraphNode) EqualVT(that *FlowgraphNode) bool {
 	if this.ObjectKey != that.ObjectKey {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.Requirements, that.Requirements) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *FlowgraphNode) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*FlowgraphNode)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *FlowgraphRequirements) EqualVT(that *FlowgraphRequirements) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.MilliCpu != that.MilliCpu {
+		return false
+	}
+	if this.MemoryBytes != that.MemoryBytes {
+		return false
+	}
+	if this.RuntimeBackend != that.RuntimeBackend {
+		return false
+	}
+	if !protobuf_go_lite.EqualMap(this.MatchLabels, that.MatchLabels) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *FlowgraphRequirements) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*FlowgraphRequirements)
 	if !ok {
 		return false
 	}
@@ -3522,6 +3656,11 @@ func (x *FlowgraphNode) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("objectKey")
 		s.WriteString(x.ObjectKey)
 	}
+	if x.Requirements != nil || s.HasField("requirements") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("requirements")
+		x.Requirements.MarshalProtoJSON(s.WithField("requirements"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -3580,12 +3719,150 @@ func (x *FlowgraphNode) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "object_key", "objectKey":
 			s.AddField("object_key")
 			x.ObjectKey = s.ReadString()
+		case "requirements":
+			if s.ReadNil() {
+				x.Requirements = nil
+				return
+			}
+			x.Requirements = &FlowgraphRequirements{}
+			x.Requirements.UnmarshalProtoJSON(s.WithField("requirements", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the FlowgraphNode from JSON.
 func (x *FlowgraphNode) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the FlowgraphRequirements_MatchLabelsEntry message to JSON.
+func (x *FlowgraphRequirements_MatchLabelsEntry) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Key != "" || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		s.WriteString(x.Key)
+	}
+	if x.Value != "" || s.HasField("value") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("value")
+		s.WriteString(x.Value)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the FlowgraphRequirements_MatchLabelsEntry to JSON.
+func (x *FlowgraphRequirements_MatchLabelsEntry) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the FlowgraphRequirements_MatchLabelsEntry message from JSON.
+func (x *FlowgraphRequirements_MatchLabelsEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "key":
+			s.AddField("key")
+			x.Key = s.ReadString()
+		case "value":
+			s.AddField("value")
+			x.Value = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the FlowgraphRequirements_MatchLabelsEntry from JSON.
+func (x *FlowgraphRequirements_MatchLabelsEntry) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the FlowgraphRequirements message to JSON.
+func (x *FlowgraphRequirements) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.MilliCpu != 0 || s.HasField("milliCpu") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("milliCpu")
+		s.WriteUint64(x.MilliCpu)
+	}
+	if x.MemoryBytes != 0 || s.HasField("memoryBytes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("memoryBytes")
+		s.WriteUint64(x.MemoryBytes)
+	}
+	if x.RuntimeBackend != "" || s.HasField("runtimeBackend") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("runtimeBackend")
+		s.WriteString(x.RuntimeBackend)
+	}
+	if x.MatchLabels != nil || s.HasField("matchLabels") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("matchLabels")
+		s.WriteObjectStart()
+		var wroteElement bool
+		for _, k := range slices.Sorted(maps.Keys(x.MatchLabels)) {
+			v := x.MatchLabels[k]
+			s.WriteMoreIf(&wroteElement)
+			s.WriteObjectStringField(k)
+			s.WriteString(v)
+		}
+		s.WriteObjectEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the FlowgraphRequirements to JSON.
+func (x *FlowgraphRequirements) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the FlowgraphRequirements message from JSON.
+func (x *FlowgraphRequirements) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "milli_cpu", "milliCpu":
+			s.AddField("milli_cpu")
+			x.MilliCpu = s.ReadUint64()
+		case "memory_bytes", "memoryBytes":
+			s.AddField("memory_bytes")
+			x.MemoryBytes = s.ReadUint64()
+		case "runtime_backend", "runtimeBackend":
+			s.AddField("runtime_backend")
+			x.RuntimeBackend = s.ReadString()
+		case "match_labels", "matchLabels":
+			s.AddField("match_labels")
+			if s.ReadNil() {
+				x.MatchLabels = nil
+				return
+			}
+			x.MatchLabels = make(map[string]string)
+			s.ReadStringMap(func(key string) {
+				x.MatchLabels[key] = s.ReadString()
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the FlowgraphRequirements from JSON.
+func (x *FlowgraphRequirements) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -6100,6 +6377,16 @@ func (m *FlowgraphNode) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Requirements != nil {
+		size, err := m.Requirements.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x32
+	}
 	if len(m.ObjectKey) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.ObjectKey)
 		i--
@@ -6146,6 +6433,68 @@ func (m *FlowgraphNode) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.TypeId)
 		i--
 		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *FlowgraphRequirements) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *FlowgraphRequirements) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *FlowgraphRequirements) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.MatchLabels) > 0 {
+		for k := range m.MatchLabels {
+			v := m.MatchLabels[k]
+			baseI := i
+			i = protobuf_go_lite.EncodeString(dAtA, i, v)
+			i--
+			dAtA[i] = 0x12
+			i = protobuf_go_lite.EncodeString(dAtA, i, k)
+			i--
+			dAtA[i] = 0xa
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if len(m.RuntimeBackend) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.RuntimeBackend)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.MemoryBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.MemoryBytes))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.MilliCpu != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.MilliCpu))
+		i--
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -7737,6 +8086,29 @@ func (m *FlowgraphNode) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectKey)
+	if m.Requirements != nil {
+		l = m.Requirements.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *FlowgraphRequirements) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.MilliCpu)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.MemoryBytes)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.RuntimeBackend)
+	for k, v := range m.MatchLabels {
+		_ = k
+		_ = v
+		mapEntrySize := protobuf_go_lite.SizeStringValue(1, k) + protobuf_go_lite.SizeStringValue(1, v)
+		n += protobuf_go_lite.SizeMessage(1, mapEntrySize)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -8391,10 +8763,65 @@ func (x *FlowgraphNode) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "object_key")
 		protobuf_go_lite.TextWriteString(&sb, x.ObjectKey)
 	}
+	if x.Requirements != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "requirements")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Requirements)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *FlowgraphNode) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *FlowgraphRequirements_MatchLabelsEntry) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "MatchLabelsEntry")
+	if x.Key != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "key")
+		protobuf_go_lite.TextWriteString(&sb, x.Key)
+	}
+	if x.Value != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "value")
+		protobuf_go_lite.TextWriteString(&sb, x.Value)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *FlowgraphRequirements_MatchLabelsEntry) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *FlowgraphRequirements) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "FlowgraphRequirements")
+	if x.MilliCpu != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "milli_cpu")
+		protobuf_go_lite.TextWriteUint(&sb, x.MilliCpu)
+	}
+	if x.MemoryBytes != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "memory_bytes")
+		protobuf_go_lite.TextWriteUint(&sb, x.MemoryBytes)
+	}
+	if x.RuntimeBackend != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "runtime_backend")
+		protobuf_go_lite.TextWriteString(&sb, x.RuntimeBackend)
+	}
+	if len(x.MatchLabels) > 0 {
+		protobuf_go_lite.TextWriteMapStart(&sb, initialLen, "match_labels")
+		for _, k := range slices.Sorted(maps.Keys(x.MatchLabels)) {
+			v := x.MatchLabels[k]
+			protobuf_go_lite.TextWriteMapEntryPrefix(&sb)
+			protobuf_go_lite.TextWriteString(&sb, k)
+			protobuf_go_lite.TextWriteMapKeyValueSeparator(&sb)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteMapEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *FlowgraphRequirements) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -9588,6 +10015,134 @@ func (m *FlowgraphNode) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ObjectKey = v
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Requirements", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Requirements == nil {
+				m.Requirements = &FlowgraphRequirements{}
+			}
+			if err := m.Requirements.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *FlowgraphRequirements) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: FlowgraphRequirements: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: FlowgraphRequirements: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MilliCpu", wireType)
+			}
+			m.MilliCpu = 0
+			m.MilliCpu, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MemoryBytes", wireType)
+			}
+			m.MemoryBytes = 0
+			m.MemoryBytes, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RuntimeBackend", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.RuntimeBackend = v
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MatchLabels", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			iNdEx = msgStart
+			if m.MatchLabels == nil {
+				m.MatchLabels = make(map[string]string)
+			}
+			var mapkey string
+			var mapvalue string
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+				if err != nil {
+					return err
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					mapkey, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+					if err != nil {
+						return err
+					}
+				} else if fieldNum == 2 {
+					mapvalue, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+					if err != nil {
+						return err
+					}
+				} else {
+					iNdEx = entryPreIndex
+					iNdEx, err = protobuf_go_lite.SkipWithin(dAtA, iNdEx, postIndex)
+					if err != nil {
+						return err
+					}
+				}
+			}
+			m.MatchLabels[mapkey] = mapvalue
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

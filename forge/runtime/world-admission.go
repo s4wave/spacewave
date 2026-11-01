@@ -7,9 +7,13 @@ import (
 
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block/quad"
 	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/world"
 )
+
+// PlacementReservationPredicate indexes live standing grants by their Device.
+const PlacementReservationPredicate = "<forge/runtime/placement>"
 
 // RuntimeStopper stops one backend runtime by identity. The Forge runtime
 // backend owns the mechanics; admission owns the fence and the ledger.
@@ -26,10 +30,8 @@ type RuntimeStopper interface {
 // Every reservation and capacity mutation applies inside one world write
 // transaction, so create-plus-debit and release-plus-credit are atomic even
 // across a crash. All mutations for one Worker serialize on a per-Worker lock;
-// the durable boundary assumes exactly one writer instance per Forge Worker
-// capacity record. A second process writing the same Worker's capacity record
-// is outside this contract and must not be attempted: run one admission owner
-// per Worker.
+// World commits reject stale roots, so transaction-scoped placement mutations
+// also serialize with the Worker's admission owner without a second ledger.
 type WorldRuntimeAdmission struct {
 	// eng is the world engine holding the durable state.
 	eng world.Engine
@@ -456,7 +458,7 @@ func (a *WorldRuntimeAdmission) StopWorkerReservations(
 		if err != nil {
 			return err
 		}
-		if res.WorkerObjectKey != workerObjectKey || res.State.Terminal() {
+		if res.WorkerObjectKey != workerObjectKey || res.State.Terminal() || res.Placement != nil {
 			continue
 		}
 		if res.State == ReservationStatePendingStop {
@@ -477,7 +479,7 @@ func (a *WorldRuntimeAdmission) StopWorkerReservations(
 		if err != nil {
 			return err
 		}
-		if res.WorkerObjectKey == workerObjectKey && !res.State.Terminal() {
+		if res.WorkerObjectKey == workerObjectKey && !res.State.Terminal() && res.Placement == nil {
 			return errors.Errorf("worker %s still holds reservation %s", workerObjectKey, key)
 		}
 	}
@@ -609,104 +611,133 @@ func (a *WorldRuntimeAdmission) reserve(
 	// Create or reuse the reservation in one capacity transaction.
 	var out *Reservation
 	err := a.withTx(ctx, true, func(ctx context.Context, ws world.WorldState) error {
-		// Find the reservation for this Execution attempt.
-		resKey := BuildReservationObjectKey(executionObjectKey)
-		existing, err := LookupReservation(ctx, ws, resKey)
-		if err != nil && !errors.Is(err, ErrReservationNotFound) {
-			return err
-		}
-		if existing != nil && !existing.State.Terminal() {
-			// Reuse a live matching reservation only after proving its debit.
-			switch {
-			case existing.LeaseExpired(a.now()):
-				return ErrReservationExpired
-			case existing.WorkerObjectKey != workerObjectKey || existing.Request != request:
-				return ErrRequestMismatch
-			}
-
-			// Prove the debit is still present before returning idempotently.
-			capacity, err := LookupWorkerCapacity(ctx, ws, workerObjectKey)
-			if err != nil {
-				return err
-			}
-			if ref != nil {
-				if err := verifyLiveClaim(capacity, *ref, a.now()); err != nil {
-					return err
-				}
-				if capacity.OwnerEpoch != epoch {
-					return ErrCapacityOwned
-				}
-			}
-			if err := capacity.OwnerClaimActive(a.now()); err != nil {
-				return err
-			}
-			if remainingMilliCPU(capacity)+existing.Request.MilliCPU < existing.Request.MilliCPU ||
-				capacity.MilliCPUReserved < existing.Request.MilliCPU ||
-				capacity.MemoryBytesReserved < existing.Request.MemoryBytes {
-				return errors.Wrapf(ErrCapacityExhausted, "debit missing for %s", resKey)
-			}
-			out = existing
-			return nil
-		}
-
-		// Require an active Worker claim with enough backend capacity.
-		capacity, err := LookupWorkerCapacity(ctx, ws, workerObjectKey)
-		if err != nil {
-			return err
-		}
-		if ref != nil {
-			if err := verifyLiveClaim(capacity, *ref, a.now()); err != nil {
-				return err
-			}
-			if capacity.OwnerEpoch != epoch {
-				return ErrCapacityOwned
-			}
-		}
-		if err := capacity.OwnerClaimActive(a.now()); err != nil {
-			return err
-		}
-		if !capacity.SupportsBackend(request.Backend) {
-			return errors.Wrapf(ErrBackendUnsupported, "backend %q", request.Backend)
-		}
-		if remainingMilliCPU(capacity) < request.MilliCPU || remainingMemoryBytes(capacity) < request.MemoryBytes {
-			return errors.Wrapf(ErrCapacityExhausted, "worker %s", workerObjectKey)
-		}
-
-		// Build the leased reservation. A released reservation means the
-		// Execution resumes after its runtime stopped, so the next generation
-		// fences calls from the old runtime.
-		now := a.now().UTC()
-		res := &Reservation{
-			WorkerObjectKey:    workerObjectKey,
-			ExecutionObjectKey: executionObjectKey,
-			Request:            request,
-			Generation:         1,
-			LeaseExpiresAt:     timestamp.New(now.Add(a.lease)),
-			State:              ReservationStateReserved,
-		}
-		persist := func() error { return persistNewReservation(ctx, ws, res) }
-		if existing != nil {
-			res.Generation = existing.Generation + 1
-			persist = func() error { return persistReservation(ctx, ws, resKey, res) }
-		}
-		if err := res.Validate(); err != nil {
-			return err
-		}
-
-		// Persist the reservation and debit the Worker atomically.
-		if err := persist(); err != nil {
-			return err
-		}
-		if err := debitCapacity(ctx, ws, workerObjectKey, request); err != nil {
-			return err
-		}
-		out = res
-		return nil
+		var err error
+		out, err = a.ReserveInTx(ctx, ws, workerObjectKey, executionObjectKey, request, ref, epoch, nil)
+		return err
 	})
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
+}
+
+// ReserveInTx reserves capacity in the caller's World write transaction.
+// The caller discards on error and retries stale commits. A placement grant
+// lives until its edge is removed; a nil placement retains Forge's leased custody.
+func (a *WorldRuntimeAdmission) ReserveInTx(
+	ctx context.Context, ws world.WorldState,
+	workerObjectKey, holderObjectKey string, request ResourceRequest,
+	ref *WorkerClaimRef, epoch uint64, placement *quad.Quad,
+) (*Reservation, error) {
+	// Validate the holder and request before mutating the shared capacity ledger.
+	if workerObjectKey == "" || holderObjectKey == "" {
+		return nil, errors.Wrap(world.ErrEmptyObjectKey, "worker and holder keys")
+	}
+	if err := request.Validate(); err != nil && placement == nil {
+		return nil, errors.Wrap(err, "resource request")
+	}
+
+	// Find the reservation for this Execution attempt.
+	resKey := BuildReservationObjectKey(holderObjectKey)
+	existing, err := LookupReservation(ctx, ws, resKey)
+	if err != nil && !errors.Is(err, ErrReservationNotFound) {
+		return nil, err
+	}
+	if existing != nil && !existing.State.Terminal() {
+		// Reuse a live matching reservation only after proving its debit.
+		switch {
+		case existing.LeaseExpired(a.now()):
+			return nil, ErrReservationExpired
+		case existing.WorkerObjectKey != workerObjectKey || existing.Request != request || !existing.Placement.EqualVT(placement):
+			return nil, ErrRequestMismatch
+		}
+
+		// Prove the debit is still present before returning idempotently.
+		capacity, err := LookupWorkerCapacity(ctx, ws, workerObjectKey)
+		if err != nil {
+			return nil, err
+		}
+		if ref != nil {
+			if err := verifyLiveClaim(capacity, *ref, a.now()); err != nil {
+				return nil, err
+			}
+			if capacity.OwnerEpoch != epoch {
+				return nil, ErrCapacityOwned
+			}
+		}
+		if err := capacity.OwnerClaimActive(a.now()); err != nil {
+			return nil, err
+		}
+		if remainingMilliCPU(capacity)+existing.Request.MilliCPU < existing.Request.MilliCPU ||
+			capacity.MilliCPUReserved < existing.Request.MilliCPU ||
+			capacity.MemoryBytesReserved < existing.Request.MemoryBytes {
+			return nil, errors.Wrapf(ErrCapacityExhausted, "debit missing for %s", resKey)
+		}
+		return existing, nil
+	}
+
+	// Require an active Worker claim with enough backend capacity.
+	capacity, err := LookupWorkerCapacity(ctx, ws, workerObjectKey)
+	if err != nil {
+		return nil, err
+	}
+	if ref != nil {
+		if err := verifyLiveClaim(capacity, *ref, a.now()); err != nil {
+			return nil, err
+		}
+		if capacity.OwnerEpoch != epoch {
+			return nil, ErrCapacityOwned
+		}
+	}
+	if err := capacity.OwnerClaimActive(a.now()); err != nil {
+		return nil, err
+	}
+	if !capacity.SupportsBackend(request.Backend) {
+		return nil, errors.Wrapf(ErrBackendUnsupported, "backend %q", request.Backend)
+	}
+	if remainingMilliCPU(capacity) < request.MilliCPU || remainingMemoryBytes(capacity) < request.MemoryBytes {
+		return nil, errors.Wrapf(ErrCapacityExhausted, "worker %s", workerObjectKey)
+	}
+
+	// Build the leased reservation. A released reservation means the
+	// Execution resumes after its runtime stopped, so the next generation
+	// fences calls from the old runtime.
+	now := a.now().UTC()
+	res := &Reservation{
+		WorkerObjectKey:    workerObjectKey,
+		ExecutionObjectKey: holderObjectKey,
+		Request:            request,
+		Generation:         1,
+		LeaseExpiresAt:     timestamp.New(now.Add(a.lease)),
+		State:              ReservationStateReserved,
+	}
+	persist := func() error { return persistNewReservation(ctx, ws, res) }
+	if existing != nil {
+		res.Generation = existing.Generation + 1
+		persist = func() error { return persistReservation(ctx, ws, resKey, res) }
+	}
+	res.Placement = placement
+	if err := res.Validate(); err != nil {
+		return nil, err
+	}
+
+	// Persist the reservation and debit the Worker atomically.
+	if err := persist(); err != nil {
+		return nil, err
+	}
+	if placement != nil {
+		deviceKey, err := world.GraphValueToKey(placement.GetObj())
+		if err != nil {
+			return nil, err
+		}
+		if err := ws.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(resKey, PlacementReservationPredicate, deviceKey, "")); err != nil {
+			return nil, err
+		}
+	}
+	if err := debitCapacity(ctx, ws, workerObjectKey, request); err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // Activate claims the reserved capacity for one backend runtime before launch.
@@ -848,20 +879,24 @@ func (a *WorldRuntimeAdmission) RenewLease(ctx context.Context, ref WorkerClaimR
 	return out, nil
 }
 
-// RenewWorkerReservations extends every live reservation held by the Worker.
+// RenewWorkerReservations extends live runtime leases held by the Worker.
+// Standing grants follow their placement edge and require no lease renewal.
 // The durable reservation records supply the renewal set after controller
 // exits, policy transitions, and Worker restarts.
 func (a *WorldRuntimeAdmission) RenewWorkerReservations(ctx context.Context, workerObjectKey string, ref WorkerClaimRef) error {
+	// Discover leased runtimes after controller exits and Worker restarts.
 	keys, err := a.listReservationKeys(ctx)
 	if err != nil {
 		return err
 	}
+
+	// Renew runtime leases; standing grants follow their placement edge instead.
 	for _, key := range keys {
 		res, err := a.LookupReservation(ctx, key)
 		if err != nil {
 			return err
 		}
-		if res.WorkerObjectKey != workerObjectKey || !res.State.Live() {
+		if res.WorkerObjectKey != workerObjectKey || !res.State.Live() || res.Placement != nil {
 			continue
 		}
 		if _, err := a.RenewLease(ctx, ref, key); err != nil && !errors.Is(err, ErrReservationTerminal) {
@@ -1214,87 +1249,109 @@ func (a *WorldRuntimeAdmission) finalizeStop(
 			return err
 		}
 
-		// Require the same pending reservation and Execution generation.
-		res, err := LookupReservation(ctx, ws, objKey)
-		if err != nil {
-			return err
-		}
-		if res.Generation != generation {
-			return ErrStaleGeneration
-		}
-		if res.ExecutionObjectKey != executionObjectKey {
-			return ErrRequestMismatch
-		}
-		if res.State.Terminal() {
-			out = res.Cleanup
-			return nil
-		}
-		if res.State != ReservationStatePendingStop {
-			return errors.Errorf("cannot finalize from state %d", res.State)
-		}
-
-		// Preserve the cleanup reason from the pending-stop receipt.
-		prior := res.Cleanup
-		if prior != nil && prior.Reason != "" {
-			reason = prior.Reason
-		}
-
-		// Retain the partial cleanup receipt while the runtime stop is unconfirmed.
-		if !runtimeStopped {
-			// The stop did not confirm; keep the truthful partial receipt and
-			// hold the debit for reconciliation.
-			receipt := &CleanupReceipt{
-				ReservationObjectKey: objKey,
-				ExecutionObjectKey:   res.ExecutionObjectKey,
-				RuntimeIdentity:      runtimeIdentity,
-				Generation:           generation,
-				RuntimeStopped:       false,
-				CapacityReleased:     false,
-				Reason:               reason,
-			}
-			partial := *res
-			partial.Cleanup = receipt
-			if err := partial.Validate(); err != nil {
-				return err
-			}
-			if err := persistReservation(ctx, ws, objKey, &partial); err != nil {
-				return err
-			}
-			out = receipt
-			return nil
-		}
-
-		// Complete the receipt and release the reservation after a confirmed stop.
-		receipt := &CleanupReceipt{
-			ReservationObjectKey: objKey,
-			ExecutionObjectKey:   res.ExecutionObjectKey,
-			RuntimeIdentity:      runtimeIdentity,
-			Generation:           generation,
-			RuntimeStopped:       true,
-			CapacityReleased:     true,
-			Reason:               reason,
-		}
-		finalized := *res
-		finalized.State = ReservationStateReleased
-		finalized.Cleanup = receipt
-		if err := finalized.Validate(); err != nil {
-			return err
-		}
-
-		// Persist the release and credit the Worker capacity exactly once.
-		if err := persistReservation(ctx, ws, objKey, &finalized); err != nil {
-			return err
-		}
-		if err := creditCapacity(ctx, ws, res.WorkerObjectKey, res.Request); err != nil {
-			return err
-		}
-		out = receipt
-		return nil
+		var err error
+		out, err = a.ReleaseInTx(ctx, ws, objKey, executionObjectKey, runtimeIdentity, generation, runtimeStopped, reason)
+		return err
 	})
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
+}
+
+// ReleaseInTx records confirmed cleanup and credits capacity exactly once in
+// the caller's transaction. Runtime custody must already be pending-stop; a
+// placement grant has no Forge runtime and may release directly from reserved.
+// The caller verifies runtime ownership before stopping an Execution. Placement
+// removal may release after the Worker claim expired, since its edge is authority.
+func (a *WorldRuntimeAdmission) ReleaseInTx(
+	ctx context.Context, ws world.WorldState,
+	objKey, executionObjectKey, runtimeIdentity string, generation uint64,
+	runtimeStopped bool, reason string,
+) (*CleanupReceipt, error) {
+	// Require the same pending reservation and Execution generation.
+	res, err := LookupReservation(ctx, ws, objKey)
+	if err != nil {
+		return nil, err
+	}
+	if res.Generation != generation {
+		return nil, ErrStaleGeneration
+	}
+	if res.ExecutionObjectKey != executionObjectKey {
+		return nil, ErrRequestMismatch
+	}
+	if res.State.Terminal() {
+		return res.Cleanup, nil
+	}
+	standing := res.Placement != nil && res.State == ReservationStateReserved && res.Runtime.IsZero()
+	if res.State != ReservationStatePendingStop && !standing {
+		return nil, errors.Errorf("cannot finalize from state %d", res.State)
+	}
+
+	// Preserve the cleanup reason from the pending-stop receipt.
+	prior := res.Cleanup
+	if prior != nil && prior.Reason != "" {
+		reason = prior.Reason
+	}
+
+	// Retain the partial cleanup receipt while the runtime stop is unconfirmed.
+	if !runtimeStopped {
+		// The stop did not confirm; keep the truthful partial receipt and
+		// hold the debit for reconciliation.
+		receipt := &CleanupReceipt{
+			ReservationObjectKey: objKey,
+			ExecutionObjectKey:   res.ExecutionObjectKey,
+			RuntimeIdentity:      runtimeIdentity,
+			Generation:           generation,
+			RuntimeStopped:       false,
+			CapacityReleased:     false,
+			Reason:               reason,
+		}
+		partial := *res
+		partial.Cleanup = receipt
+		if err := partial.Validate(); err != nil {
+			return nil, err
+		}
+		if err := persistReservation(ctx, ws, objKey, &partial); err != nil {
+			return nil, err
+		}
+		return receipt, nil
+	}
+
+	// Complete the receipt and release the reservation after a confirmed stop.
+	receipt := &CleanupReceipt{
+		ReservationObjectKey: objKey,
+		ExecutionObjectKey:   res.ExecutionObjectKey,
+		RuntimeIdentity:      runtimeIdentity,
+		Generation:           generation,
+		RuntimeStopped:       true,
+		CapacityReleased:     true,
+		Reason:               reason,
+	}
+	finalized := *res
+	finalized.State = ReservationStateReleased
+	finalized.Cleanup = receipt
+	if err := finalized.Validate(); err != nil {
+		return nil, err
+	}
+
+	// Persist the release and credit the Worker capacity exactly once.
+	if err := persistReservation(ctx, ws, objKey, &finalized); err != nil {
+		return nil, err
+	}
+	if res.Placement != nil {
+		deviceKey, err := world.GraphValueToKey(res.Placement.GetObj())
+		if err != nil {
+			return nil, err
+		}
+		if err := ws.DeleteGraphQuad(ctx, world.NewGraphQuadWithKeys(objKey, PlacementReservationPredicate, deviceKey, "")); err != nil {
+			return nil, err
+		}
+	}
+	if err := creditCapacity(ctx, ws, res.WorkerObjectKey, res.Request); err != nil {
+		return nil, err
+	}
+	return receipt, nil
 }
 
 // reconcilePendingStop confirms the stop of one pending-stop reservation.

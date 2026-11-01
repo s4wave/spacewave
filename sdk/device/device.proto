@@ -218,6 +218,8 @@ message Device {
   .google.protobuf.Timestamp created_at = 9;
   // UpdatedAt is when this Device object was last updated.
   .google.protobuf.Timestamp updated_at = 10;
+  // Labels contains stored selectors, overriding derived hostname, os and arch.
+  map<string, string> labels = 11;
 }
 
 // ComputersDashboard is the Space-local dashboard for managed Devices and

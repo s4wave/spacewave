@@ -4,7 +4,9 @@ package spacewave_cli
 
 import (
 	"io"
+	"maps"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -93,7 +95,7 @@ func (a *deviceShowArgs) Run(c *cli.Context) error {
 
 	// Print documents in the requested format.
 	if a.output == "json" || a.output == "yaml" {
-		data, err := marshalDeviceShow(device, availability)
+		data, err := marshalDeviceShow(mount.ObjectKey, device, availability)
 		if err != nil {
 			return errors.Wrap(err, "marshal device")
 		}
@@ -105,8 +107,8 @@ func (a *deviceShowArgs) Run(c *cli.Context) error {
 	return nil
 }
 
-// marshalDeviceShow adds derived availability without changing the Device schema.
-func marshalDeviceShow(device *s4wave_device.Device, availability forge_runtime.DeviceAvailability) ([]byte, error) {
+// marshalDeviceShow adds effective labels and availability without changing the stored Device schema.
+func marshalDeviceShow(objectKey string, device *s4wave_device.Device, availability forge_runtime.DeviceAvailability) ([]byte, error) {
 	// Preserve the generated Device JSON representation.
 	data, err := device.MarshalJSON()
 	if err != nil {
@@ -129,6 +131,13 @@ func marshalDeviceShow(device *s4wave_device.Device, availability forge_runtime.
 	claim.Set("expiresAt", arena.NewString(formatDeviceClaimExpiry(availability.ExpiresAt)))
 	claim.Set("ownerState", arena.NewString(formatDeviceOwnerState(availability.OwnerState)))
 
+	// Expose the selector values that requirement placement actually matches.
+	labels := arena.NewObject()
+	for key, value := range device.EffectiveLabels(objectKey) {
+		labels.Set(key, arena.NewString(value))
+	}
+	obj.Set("effectiveLabels", labels)
+
 	// Add the read-only summary without changing the stored Device representation.
 	obj.Set("availability", claim)
 	return obj.MarshalTo(nil), nil
@@ -148,6 +157,16 @@ func writeDeviceShow(w io.Writer, objectKey string, device *s4wave_device.Device
 		{"Owner state", formatDeviceOwnerState(availability.OwnerState)},
 		{"Last liveness", strings.TrimPrefix(device.GetLastStatus().GetLiveness().String(), "DEVICE_LIVENESS_")},
 	})
+
+	// Show derived selectors and stored overrides in stable key order.
+	labels := device.EffectiveLabels(objectKey)
+	io.WriteString(w, "\nLABELS:\n")
+	rows := make([][]string, 0, len(labels)+1)
+	rows = append(rows, []string{"KEY", "VALUE"})
+	for _, key := range slices.Sorted(maps.Keys(labels)) {
+		rows = append(rows, []string{key, labels[key]})
+	}
+	writeTable(w, "  ", rows)
 
 	// Keep capability reports visible as diagnostics, not admission evidence.
 	if capabilities := device.GetCapabilities(); len(capabilities) != 0 {

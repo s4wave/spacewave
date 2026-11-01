@@ -6,7 +6,8 @@ import "github.com/pkg/errors"
 type CleanupReceipt struct {
 	// ReservationObjectKey is the released reservation object key.
 	ReservationObjectKey string
-	// ExecutionObjectKey is the owning Execution object key.
+	// ExecutionObjectKey is the Execution attempt or logical standing node
+	// identity whose capacity grant was released.
 	ExecutionObjectKey string
 	// RuntimeIdentity is the stopped runtime identity, empty when no runtime launched.
 	RuntimeIdentity string

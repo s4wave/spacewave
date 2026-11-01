@@ -94,6 +94,11 @@ func parsePlacementQuad(edge world.GraphQuad) (string, *FlowgraphPlacement, erro
 
 // ValidatePlacement checks the destination without interpreting actor objects.
 func ValidatePlacement(ctx context.Context, ws world.WorldState, node *FlowgraphNode, placement *FlowgraphPlacement) error {
+	// A requirements-bearing node waits unplaced until an eligible Device claims it.
+	if placement == nil && node.GetRequirements() != nil {
+		return nil
+	}
+
 	// Require a destination object before checking the placement's execution kind.
 	exists, err := ws.HasObject(ctx, placement.GetObjectKey())
 	if err != nil {
