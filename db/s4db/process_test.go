@@ -21,6 +21,17 @@ const churnEnv = "S4DB_TEST_CHURN"
 // childKeys is the number of keys each process writes.
 const childKeys = 400
 
+// spareKeys bounds the metadata transaction used to force a one-chunk rollover.
+const spareKeys = 400
+
+// processSpareKey has the maximum legal length, so three bounded transactions
+// fill a log extent without allocating large user values.
+func processSpareKey(i int) []byte {
+	key := bytes.Repeat([]byte("s"), MaxKeySize)
+	copy(key, fmt.Appendf(nil, "standby/%06d/", i))
+	return key
+}
+
 // TestMain runs the child the environment selects in place of the tests.
 func TestMain(m *testing.M) {
 	// Run the child, if this is one.
@@ -110,7 +121,51 @@ func runChild(path string) error {
 		_ = db.Close()
 		return err
 	}
-	fmt.Println(db.Seq())
+
+	// Force a single-chunk rollover and a subsequent real checkpoint.
+	initialSpare := db.cur.Load().spare
+	for range 3 {
+		tx, err := db.NewTransaction(ctx, true)
+		if err != nil {
+			return err
+		}
+		for i := range spareKeys {
+			if err := tx.Set(ctx, processSpareKey(i), []byte("standby")); err != nil {
+				tx.Discard()
+				return err
+			}
+		}
+		if err := tx.Commit(ctx); err != nil {
+			return err
+		}
+	}
+	target := db.cur.Load().seq
+	if err := db.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
+		st := db.cur.Load()
+		return st.flushed >= target, nil
+	}); err != nil {
+		return err
+	}
+
+	// A flush past its record completes its checkpoint even when stop cancels it.
+	db.sched.stop()
+	if _, err := db.s.lock(lockFlush, true); err != nil {
+		return err
+	}
+
+	// Read the completed checkpoint while excluding the peer flusher.
+	sb, _, readErr := db.readSuper()
+	unlockErr := db.s.unlock(lockFlush)
+	if readErr != nil {
+		return readErr
+	}
+	if unlockErr != nil {
+		return unlockErr
+	}
+	if sb.through < target || sb.memSpare == 0 || sb.memSpare != db.cur.Load().spare || db.cur.Load().spare == initialSpare {
+		return fmt.Errorf("checkpoint did not follow the changed standby")
+	}
+	fmt.Println(db.Seq(), db.cur.Load().spare)
 	return db.Close()
 }
 
@@ -143,14 +198,22 @@ func TestTwoProcesses(t *testing.T) {
 
 	// Wait for the child's last record without writing, then check both key
 	// sets through the tail alone.
-	var seq uint64
-	if _, err := fmt.Sscan(out.String(), &seq); err != nil {
+	var seq, childSpare uint64
+	if _, err := fmt.Sscan(out.String(), &seq, &childSpare); err != nil {
 		t.Fatalf("child output %q: %v", out.String(), err)
 	}
 	if err := db.WaitSeq(ctx, seq); err != nil {
 		t.Fatal(err)
 	}
+
+	// Tailing must agree on both ownership and the producer's new standby.
+	if st := db.cur.Load(); st.spare != childSpare || st.replay.spare != childSpare || st.m.table.at(childSpare).kind != chunkLog {
+		t.Fatal("processes disagree on the standby")
+	}
 	m := make(model)
+	for i := range spareKeys {
+		m[string(processSpareKey(i))] = []byte("standby")
+	}
 	for i := range childKeys {
 		for _, who := range []string{"child", "parent"} {
 			m[string(processKey(who, i))] = processValue(i)
@@ -166,6 +229,9 @@ func TestTwoProcesses(t *testing.T) {
 	db = openTest(t, path, opts)
 	defer db.Close()
 	m.check(t, db)
+	if db.cur.Load().spare != childSpare {
+		t.Fatal("checkpoint replay lost the peer standby")
+	}
 }
 
 // TestOpenInProcess checks that a second handle of an open file in one

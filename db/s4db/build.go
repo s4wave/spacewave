@@ -184,8 +184,7 @@ func (b *builder) finish(opts Options) error {
 		logEnd:   chunkStart(b.logChunk + 1),
 		through:  seq,
 		memPos:   chunkStart(b.logChunk),
-		memEnd:   chunkStart(b.logChunk + 1),
-		logSpare: b.logChunk + 1, memSpare: b.logChunk + 1,
+		memEnd:   chunkStart(b.logChunk + 1), memSpare: b.logChunk + 1,
 	}
 	if _, err := b.s.WriteAt(make([]byte, pageSize), slotPage*pageSize); err != nil {
 		return err

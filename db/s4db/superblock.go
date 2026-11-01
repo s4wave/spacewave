@@ -22,8 +22,6 @@ type superblock struct {
 	logPos uint64
 	// logEnd is the end of the log chunk holding logPos.
 	logEnd uint64
-	// logSpare is the physically backed standby chunk after seq.
-	logSpare uint64
 	// logCrc is the checksum of record seq, which the record at logPos
 	// continues.
 	logCrc uint32
@@ -82,7 +80,6 @@ func decodeSuperblock(b []byte) (superblock, bool) {
 		memEnd:    u(11),
 		memCrc:    binary.LittleEndian.Uint32(b[96:]),
 		memWriter: u(13),
-		logSpare:  u(14),
 		memSpare:  u(15),
 	}
 	return s, s.gen != 0
@@ -117,8 +114,8 @@ func (s *superblock) encode() []byte {
 	binary.LittleEndian.PutUint32(b[96:], s.memCrc)
 	binary.LittleEndian.PutUint64(b[104:], s.memWriter)
 
-	// Retain both standby pointers and seal the checkpoint.
-	binary.LittleEndian.PutUint64(b[112:], s.logSpare)
+	// Retain the replay standby and seal the checkpoint. The current standby
+	// is reconstructed from the replayed records, rather than stored twice.
 	binary.LittleEndian.PutUint64(b[120:], s.memSpare)
 	binary.LittleEndian.PutUint32(b[superSize-4:], checksum(b[:superSize-4]))
 	return b
