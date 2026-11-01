@@ -10,7 +10,7 @@ import { createOracle } from './oracle.js'
 import { transform } from './transform.js'
 import { stylexCss } from '../../bldr/web/bundler/vite/stylex.js'
 import { capture } from '../style-parity/capture.js'
-import { compareSnapshot } from '../style-parity/model.js'
+import { compareCaptures } from '../style-parity/compare.js'
 
 // projectSources are real application components with layout, colors, borders and hover variants.
 const projectSources = [
@@ -119,13 +119,12 @@ test(
         join(parent, 'after-capture'),
       )
       for (const path of paths) {
-        const before = JSON.parse(
-          await readFile(join(parent, 'before-capture', path), 'utf8'),
+        const differences = await Array.fromAsync(
+          compareCaptures(
+            join(parent, 'before-capture', path),
+            join(parent, 'after-capture', path),
+          ),
         )
-        const after = JSON.parse(
-          await readFile(join(parent, 'after-capture', path), 'utf8'),
-        )
-        const differences = [...compareSnapshot(before, after)]
         assert.deepEqual(
           differences,
           [],

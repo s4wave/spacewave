@@ -72,7 +72,13 @@ The final `capture.json` appears only after every state succeeds. Failed states
 save an error record and a diagnostic screenshot and accessibility tree when
 the page can still supply them. The tool continues with the remaining states,
 then fails the command. Comparison requires the same manifest and capture matrix
-and exits with status 1 when any value differs. The JSONL report streams one
+and exits with status 1 when any structured value or significant pixel differs.
+A lone image difference of at most one 8-bit channel level is recorded in the
+separate `.raster.jsonl` report when all computed properties, geometry and
+accessibility match exactly. Chromium can vary by that rounding level between
+otherwise identical text paints. Any structured change retains its screenshot
+difference, including a real one-level CSS color change. Raw captures and
+screenshots are retained. The JSONL report streams one
 pair of screens at a time.
 
 Run `bun run test:style-parity` for the repeatability and single-property check,

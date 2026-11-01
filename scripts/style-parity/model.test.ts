@@ -1,13 +1,16 @@
 import { test } from 'node:test'
+import { createHash } from 'node:crypto'
+import { PNG } from 'pngjs'
 import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
 import { once } from 'node:events'
-import { mkdtemp, mkdir, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, writeFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { capture, type ParityManifest } from './capture.js'
 import { compareSnapshot, type Snapshot } from './model.js'
+import { compareCaptures } from './compare.js'
 
 test('parity detects one changed property in both engines at every size', async () => {
   // Serve a deterministic page with an animation and an accessible control.
@@ -49,7 +52,14 @@ test('parity detects one changed property in both engines at every size', async 
   // Compare separate captures, then change only the button's outline color.
   let passed = false
   try {
-    for (const name of ['before', 'same', 'changed', 'pseudo', 'selection'])
+    for (const name of [
+      'before',
+      'same',
+      'changed',
+      'pseudo',
+      'selection',
+      'subtle',
+    ])
       await mkdir(join(root, name))
     const paths = await capture(manifest, base, join(root, 'before'))
     await capture(manifest, base, join(root, 'same'))
@@ -59,6 +69,8 @@ test('parity detects one changed property in both engines at every size', async 
     await capture(manifest, base, join(root, 'pseudo'))
     selectionColor = 'rgb(255, 0, 255)'
     await capture(manifest, base, join(root, 'selection'))
+    color = 'rgb(0, 0, 254)'
+    await capture(manifest, base, join(root, 'subtle'))
     for (const path of paths) {
       const read = async (name: string): Promise<Snapshot> =>
         JSON.parse(await readFile(join(root, name, path), 'utf8'))
@@ -102,6 +114,53 @@ test('parity detects one changed property in both engines at every size', async 
       assert.equal(changed.after, 'rgb(0, 0, 255)')
     }
     assert.equal(paths.length, 6)
+
+    // A real CSS color change of one channel level retains both its property and image difference.
+    for (const path of paths) {
+      const differences = await Array.fromAsync(
+        compareCaptures(
+          join(root, 'selection', path),
+          join(root, 'subtle', path),
+        ),
+      )
+      assert.deepEqual(differences.map(({ property }) => property).sort(), [
+        'screenshot',
+        'styles.outline-color',
+      ])
+    }
+
+    // A one-level raster-only variation remains recorded separately; a two-level image defect still fails.
+    const originalFile = join(root, 'before', paths[0]!)
+    const rasterFile = join(root, 'raster.json')
+    const raster: Snapshot = JSON.parse(await readFile(originalFile, 'utf8'))
+    const png = PNG.sync.read(
+      await readFile(originalFile.replace(/\.json$/, '.png')),
+    )
+    const noise: Array<{ pixels: number; maxChannelDelta: number }> = []
+    for (const delta of [1, 2]) {
+      png.data[0] = 255 - delta
+      raster.screenshot = createHash('sha256')
+        .update(`${png.width}x${png.height}:`)
+        .update(png.data)
+        .digest('hex')
+      await writeFile(rasterFile, JSON.stringify(raster))
+      await writeFile(
+        rasterFile.replace(/\.json$/, '.png'),
+        PNG.sync.write(png),
+      )
+      const differences = await Array.fromAsync(
+        compareCaptures(originalFile, rasterFile, (variance) => {
+          noise.push(variance)
+        }),
+      )
+      assert.deepEqual(
+        differences.map(({ property }) => property),
+        delta === 1 ? [] : ['screenshot'],
+      )
+    }
+    assert.equal(noise.length, 1)
+    assert.equal(noise[0]!.pixels, 1)
+    assert.equal(noise[0]!.maxChannelDelta, 1)
 
     // Attribute a native control's pseudo-element change to its CSS property.
     for (const path of paths) {

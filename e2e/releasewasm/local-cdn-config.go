@@ -3,6 +3,7 @@
 package releasewasm
 
 import (
+	"os"
 	"path/filepath"
 
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
@@ -120,11 +121,17 @@ func localCDNProject(repoRoot, baseURL string, signer crypto.PrivKey) (*project.
 		return nil, "", err
 	}
 
+	// Full parity captures exercise viewers outside the minimal startup closure.
+	startupManifests := []string{"spacewave-core", "spacewave-web", "spacewave-app", "spacewave-code"}
+	if os.Getenv("STYLE_PARITY_FULL") == "1" {
+		startupManifests = conf.Publish["spacewave-release"].Manifests
+	}
+
 	// Build the actual startup closure separately from its two embedded plugins.
 	// The local provider keeps foreground storage and RPC without cloud signaling.
 	core := conf.Build["release-web-e2e-goscript"].ManifestOverrides["spacewave-core"].CloneVT()
 	conf.Build["local-startup-plugins"] = &project.BuildConfig{
-		Manifests:         []string{"spacewave-core", "spacewave-web", "spacewave-app", "spacewave-code"},
+		Manifests:         startupManifests,
 		PlatformIds:       []string{"js", "web/js/wasm"},
 		ManifestOverrides: map[string]*configset_proto.ControllerConfig{"spacewave-core": core},
 	}
@@ -146,7 +153,7 @@ func localCDNProject(repoRoot, baseURL string, signer crypto.PrivKey) (*project.
 
 	// Select the startup plugin and web manifests for local publication.
 	plugins := conf.Publish["spacewave-release"]
-	plugins.Manifests = []string{"spacewave-core", "spacewave-web", "spacewave-app", "spacewave-code"}
+	plugins.Manifests = startupManifests
 	plugins.PlatformIds = []string{"js", "web/js/wasm"}
 	web := plugins.CloneVT()
 	web.Manifests = []string{"web"}
