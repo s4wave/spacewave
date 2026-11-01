@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -29,6 +30,23 @@ func TestReleaseStyleParity(t *testing.T) {
 		out = filepath.Join(testHarness.repoRoot, out)
 	}
 
+	// Attribute the served fixture to the checkout that built its artifacts.
+	gitValue := func(args ...string) string {
+		// Read the checkout metadata used to build the served artifacts.
+		command := exec.CommandContext(t.Context(), "git", args...)
+		command.Dir = testHarness.repoRoot
+		value, err := command.Output()
+		if err != nil {
+			t.Fatalf("read fixture source: %v", err)
+		}
+		return strings.TrimSpace(string(value))
+	}
+	revision := gitValue("rev-parse", "HEAD")
+	status := gitValue("status", "--porcelain", "--untracked-files=normal")
+	if status == "" {
+		status = "clean"
+	}
+
 	// Keep repeated captures on one origin and one distribution generation.
 	paths := []string{out}
 	repeat := os.Getenv("STYLE_PARITY_REPEAT") == "1"
@@ -48,6 +66,7 @@ func TestReleaseStyleParity(t *testing.T) {
 		commands = append(commands, []string{
 			"node", ".bldr/style-parity-tools/style-parity.mjs", "capture",
 			"--base", testHarness.baseURL, "--manifest", manifest, "--out", path,
+			"--revision", revision, "--source-status", status,
 		})
 	}
 	if repeat {

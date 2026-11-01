@@ -16,12 +16,6 @@ globalThis.readStyleParity = function readStyleParity(): ElementStyle[] {
         .sort()
         .map((property) => [property, style.getPropertyValue(property)]),
     )
-  const pseudo = (element: Element, selector: string) => {
-    const style = getComputedStyle(element, selector)
-    return style.content === 'none' || style.content === 'normal'
-      ? null
-      : read(style)
-  }
   const pathOf = (element: Element): string => {
     // Locate each element by its tag and sibling position, independent of classes.
     const parent = element.parentElement
@@ -49,14 +43,30 @@ globalThis.readStyleParity = function readStyleParity(): ElementStyle[] {
       box.width > 0 &&
       box.height > 0
     ) {
+      // Include generated content and native control/list pseudo-elements.
+      const pseudos: ElementStyle['pseudos'] = {}
+      for (const selector of ['::before', '::after']) {
+        const generated = getComputedStyle(element, selector)
+        if (generated.content !== 'none' && generated.content !== 'normal')
+          pseudos[selector] = read(generated)
+      }
+      const selectors = ['::selection']
+      if (element.matches('input[placeholder], textarea[placeholder]'))
+        selectors.push('::placeholder')
+      if (style.display === 'list-item') selectors.push('::marker')
+      if (element.matches('input[type="file"]'))
+        selectors.push('::file-selector-button')
+      if (element.matches('dialog[open], :popover-open'))
+        selectors.push('::backdrop')
+      for (const selector of selectors)
+        pseudos[selector] = read(getComputedStyle(element, selector))
       elements.push({
         path: pathOf(element),
         role: getRole(element) ?? '',
         name: computeAccessibleName(element),
         box: [box.x, box.y, box.width, box.height],
         styles: read(style),
-        before: pseudo(element, '::before'),
-        after: pseudo(element, '::after'),
+        pseudos,
       })
     }
     element = walker.nextNode() as Element | null

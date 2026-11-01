@@ -12,15 +12,17 @@ import { compareSnapshot, type Snapshot } from './model.js'
 test('parity detects one changed property in both engines at every size', async () => {
   // Serve a deterministic page with an animation and an accessible control.
   let color = 'rgb(255, 0, 0)'
+  let placeholder = 'rgb(0, 128, 0)'
   const server = createServer((request, response) => {
     response.statusCode = request.url === '/missing' ? 404 : 200
     response.setHeader('Content-Type', 'text/html')
     response.end(`<!doctype html><html lang="en"><head><style>
       body { background: white; margin: 16px; }
       button { outline: 2px solid ${color}; }
+      input::placeholder { color: ${placeholder}; }
       @keyframes pulse { from { opacity: 1; } to { opacity: 0.5; } }
       span { animation: pulse 1s linear infinite; }
-    </style></head><body><h1>Parity</h1><button>Open</button><span>Ready</span></body></html>`)
+    </style></head><body><h1>Parity</h1><button>Open</button><span>Ready</span><input aria-label="Search" placeholder="Search"></body></html>`)
   })
   server.listen(0, '127.0.0.1')
   await once(server, 'listening')
@@ -39,12 +41,14 @@ test('parity detects one changed property in both engines at every size', async 
 
   // Compare separate captures, then change only the button's outline color.
   try {
-    for (const name of ['before', 'same', 'changed'])
+    for (const name of ['before', 'same', 'changed', 'pseudo'])
       await mkdir(join(root, name))
     const paths = await capture(manifest, base, join(root, 'before'))
     await capture(manifest, base, join(root, 'same'))
     color = 'rgb(0, 0, 255)'
     await capture(manifest, base, join(root, 'changed'))
+    placeholder = 'rgb(255, 0, 255)'
+    await capture(manifest, base, join(root, 'pseudo'))
     for (const path of paths) {
       const read = async (name: string): Promise<Snapshot> =>
         JSON.parse(await readFile(join(root, name, path), 'utf8'))
@@ -66,6 +70,22 @@ test('parity detects one changed property in both engines at every size', async 
       assert.equal(changed.after, 'rgb(0, 0, 255)')
     }
     assert.equal(paths.length, 6)
+
+    // Attribute a native control's pseudo-element change to its CSS property.
+    for (const path of paths) {
+      const read = async (name: string): Promise<Snapshot> =>
+        JSON.parse(await readFile(join(root, name, path), 'utf8'))
+      const differences = [
+        ...compareSnapshot(await read('changed'), await read('pseudo')),
+      ]
+      const color = differences.find(
+        ({ property }) => property === '::placeholder.color',
+      )
+      assert(color, `Missing placeholder color difference: ${path}`)
+      assert.equal(color.before, 'rgb(0, 128, 0)')
+      assert.equal(color.after, 'rgb(255, 0, 255)')
+      assert(differences.some(({ property }) => property === 'screenshot'))
+    }
 
     // A failed state preserves diagnostics while later states still capture.
     const failureDir = join(root, 'failure')
