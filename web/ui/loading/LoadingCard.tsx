@@ -1,4 +1,4 @@
-import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
+import type { StyleXStyles } from '@stylexjs/stylex'
 import { LuCircleAlert, LuCircleCheck, LuCloud } from 'react-icons/lu'
 
 import { ProgressBar } from './ProgressBar.js'
@@ -15,63 +15,53 @@ import {
   motion as themeMotion,
 } from '../../style/tokens.stylex.js'
 
-import {
-  radii as themeRadii2,
-  utilityState as themeUtilityState2,
-  colors as themeColors2,
-  layout as themeLayout2,
-} from '../../style/tokens.stylex.js'
-
-const stylexStyles2 = stylex.create({
-  rule1: {
-    borderRadius: themeRadii2['--radius-lg'],
-    borderStyle: themeUtilityState2['--tw-border-style'],
+const styles = stylex.create({
+  root: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors2['--color-foreground']} 6%, transparent)`,
-    backgroundColor: `color-mix(in oklab, ${themeColors2['--color-background-card']} 30%, transparent)`,
-    padding: `calc(${themeLayout2['--spacing']} * 3.5)`,
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
-  rule2: {
+  iconBox: {
     display: 'flex',
-    width: `calc(${themeLayout2['--spacing']} * 8)`,
-    height: `calc(${themeLayout2['--spacing']} * 8)`,
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
     flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: themeRadii2['--radius-md'],
+    borderRadius: themeRadii['--radius-md'],
   },
-  rule3: {
-    backgroundColor: `color-mix(in oklab, ${themeColors2['--color-foreground']} 5%, transparent)`,
-    color: themeColors2['--color-foreground-alt'],
+  loading: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    color: themeColors['--color-foreground-alt'],
   },
-  rule4: {
-    backgroundColor: `color-mix(in oklab, ${themeColors2['--color-brand']} 10%, transparent)`,
-    color: themeColors2['--color-brand'],
+  active: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    color: themeColors['--color-brand'],
   },
-  rule5: {
-    backgroundColor: `color-mix(in oklab, ${themeColors2['--color-foreground']} 5%, transparent)`,
-    color: themeColors2['--color-brand'],
+  synced: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    color: themeColors['--color-brand'],
   },
-  rule6: {
-    backgroundColor: `color-mix(in oklab, ${themeColors2['--color-destructive']} 10%, transparent)`,
-    color: themeColors2['--color-destructive'],
+  error: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+    color: themeColors['--color-destructive'],
   },
-})
-
-const stylexStyles = stylex.create({
-  rule1: { marginTop: `calc(${themeLayout['--spacing']} * 2.5)` },
-  rule2: {
+  progress: { marginTop: `calc(${themeLayout['--spacing']} * 2.5)` },
+  rates: {
     marginTop: `calc(${themeLayout['--spacing']} * 2)`,
     display: 'grid',
     gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
     gap: `calc(${themeLayout['--spacing']} * 2)`,
   },
-  rule3: {
+  actions: {
     marginTop: `calc(${themeLayout['--spacing']} * 2.5)`,
     display: 'flex',
     gap: `calc(${themeLayout['--spacing']} * 2)`,
   },
-  rule4: {
+  retryButton: {
     borderRadius: themeRadii['--radius-md'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
@@ -108,7 +98,7 @@ const stylexStyles = stylex.create({
     transitionDuration: '.15s',
     '--tw-duration': '.15s',
   },
-  rule5: {
+  cancelButton: {
     borderRadius: themeRadii['--radius-md'],
     paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
     paddingBlock: themeLayout['--spacing'],
@@ -129,13 +119,13 @@ const stylexStyles = stylex.create({
     transitionDuration:
       'var(--tw-duration, var(--default-transition-duration))',
   },
-  rule6: {
+  header: {
     display: 'flex',
     alignItems: 'flex-start',
     gap: `calc(${themeLayout['--spacing']} * 3)`,
   },
-  rule7: { minWidth: 0, flex: 1 },
-  rule8: {
+  body: { minWidth: 0, flex: 1 },
+  title: {
     fontSize: themeFonts['--text-sm'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     '--tw-font-weight': 'var(--font-weight-semibold)',
@@ -144,20 +134,20 @@ const stylexStyles = stylex.create({
     letterSpacing: 'var(--tracking-tight)',
     color: themeColors['--color-foreground'],
   },
-  rule9: {
+  detail: {
     marginTop: `calc(${themeLayout['--spacing']} * .5)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: 'var(--leading-relaxed)',
     '--tw-leading': 'var(--leading-relaxed)',
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
   },
-  rule10: {
+  lastActivity: {
     marginTop: `calc(${themeLayout['--spacing']} * 2)`,
     fontSize: '.65rem',
     lineHeight: 1.5,
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
   },
-  rule11: {
+  errorMessage: {
     marginTop: `calc(${themeLayout['--spacing']} * 2)`,
     borderRadius: themeRadii['--radius-md'],
     borderStyle: themeUtilityState['--tw-border-style'],
@@ -171,11 +161,11 @@ const stylexStyles = stylex.create({
     '--tw-leading': 'var(--leading-relaxed)',
     color: themeColors['--color-destructive'],
   },
-  rule12: {
+  errorIcon: {
     width: `calc(${themeLayout['--spacing']} * 4)`,
     height: `calc(${themeLayout['--spacing']} * 4)`,
   },
-  rule13: {
+  syncedIcon: {
     position: 'relative',
     display: 'flex',
     width: `calc(${themeLayout['--spacing']} * 4)`,
@@ -183,11 +173,11 @@ const stylexStyles = stylex.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  rule14: {
+  cloudIcon: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
     height: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
-  rule15: {
+  checkIcon: {
     position: 'absolute',
     right: `calc(${themeLayout['--spacing']} * -1)`,
     bottom: `calc(${themeLayout['--spacing']} * -1)`,
@@ -195,7 +185,7 @@ const stylexStyles = stylex.create({
     height: `calc(${themeLayout['--spacing']} * 2.5)`,
     color: themeColors['--color-brand'],
   },
-  rule16: {
+  ratePill: {
     borderRadius: themeRadii['--radius-md'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
@@ -204,7 +194,7 @@ const stylexStyles = stylex.create({
     paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
     paddingBlock: themeLayout['--spacing'],
   },
-  rule17: {
+  rateLabel: {
     fontSize: '.55rem',
     lineHeight: 1.5,
     '--tw-font-weight': themeFonts['--font-weight-medium'],
@@ -214,7 +204,7 @@ const stylexStyles = stylex.create({
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
     textTransform: 'uppercase',
   },
-  rule18: {
+  rateValue: {
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     '--tw-font-weight': 'var(--font-weight-semibold)',
@@ -229,7 +219,7 @@ const stylexStyles = stylex.create({
 interface LoadingCardProps {
   className?: never
   view: LoadingView
-  sx?: ComponentStyles
+  sx?: StyleXStyles
 }
 
 // LoadingCardProgress renders the progress bar, or the transfer rates when no
@@ -237,7 +227,7 @@ interface LoadingCardProps {
 function LoadingCardProgress({ view }: { view: LoadingView }) {
   if (view.progress !== undefined || view.progressIndeterminate) {
     return (
-      <div sx={stylexStyles.rule1}>
+      <div sx={styles.progress}>
         <ProgressBar
           value={view.progress === undefined ? undefined : view.progress * 100}
           indeterminate={view.progressIndeterminate}
@@ -249,7 +239,7 @@ function LoadingCardProgress({ view }: { view: LoadingView }) {
   if (!view.rate) return null
 
   return (
-    <div sx={stylexStyles.rule2}>
+    <div sx={styles.rates}>
       <RatePill label="Up" value={view.rate.up ?? '0 B/s'} />
       <RatePill label="Down" value={view.rate.down ?? '0 B/s'} />
     </div>
@@ -261,14 +251,14 @@ function LoadingCardActions({ view }: { view: LoadingView }) {
   if (!view.onRetry && !view.onCancel) return null
 
   return (
-    <div sx={stylexStyles.rule3}>
+    <div sx={styles.actions}>
       {view.onRetry ? (
-        <button type="button" onClick={view.onRetry} sx={stylexStyles.rule4}>
+        <button type="button" onClick={view.onRetry} sx={styles.retryButton}>
           {view.retryLabel ?? 'Retry'}
         </button>
       ) : null}
       {view.onCancel ? (
-        <button type="button" onClick={view.onCancel} sx={stylexStyles.rule5}>
+        <button type="button" onClick={view.onCancel} sx={styles.cancelButton}>
           {view.cancelLabel ?? 'Cancel'}
         </button>
       ) : null}
@@ -280,40 +270,32 @@ function LoadingCardActions({ view }: { view: LoadingView }) {
 // box, title, detail, optional progress, rate pills, last-activity footer,
 // error box, and retry / cancel buttons. Four states: loading / active /
 // synced / error.
-export function LoadingCard({
-  view,
-  sx,
-}: Omit<LoadingCardProps, 'className'> & {
-  sx?: ComponentStyles
-  className?: never
-}) {
+export function LoadingCard({ view, sx }: LoadingCardProps) {
   return (
-    <div sx={[stylexStyles2.rule1, sx]}>
-      <div sx={stylexStyles.rule6}>
+    <div sx={[styles.root, sx]}>
+      <div sx={styles.header}>
         <div
           sx={[
-            stylexStyles2.rule2,
+            styles.iconBox,
             view.state === 'loading'
-              ? stylexStyles2.rule3
+              ? styles.loading
               : view.state === 'active'
-                ? stylexStyles2.rule4
+                ? styles.active
                 : view.state === 'synced'
-                  ? stylexStyles2.rule5
-                  : stylexStyles2.rule6,
+                  ? styles.synced
+                  : styles.error,
           ]}
         >
           <LoadingCardIcon state={view.state} />
         </div>
-        <div sx={stylexStyles.rule7}>
-          <div sx={stylexStyles.rule8}>{view.title}</div>
-          {view.detail ? (
-            <div sx={stylexStyles.rule9}>{view.detail}</div>
-          ) : null}
+        <div sx={styles.body}>
+          <div sx={styles.title}>{view.title}</div>
+          {view.detail ? <div sx={styles.detail}>{view.detail}</div> : null}
           <LoadingCardProgress view={view} />
           {view.lastActivity ? (
-            <div sx={stylexStyles.rule10}>{view.lastActivity}</div>
+            <div sx={styles.lastActivity}>{view.lastActivity}</div>
           ) : null}
-          {view.error ? <div sx={stylexStyles.rule11}>{view.error}</div> : null}
+          {view.error ? <div sx={styles.errorMessage}>{view.error}</div> : null}
           <LoadingCardActions view={view} />
         </div>
       </div>
@@ -324,17 +306,14 @@ export function LoadingCard({
 function LoadingCardIcon({ state }: { state: LoadingState }) {
   if (state === 'error') {
     return (
-      <LuCircleAlert
-        {...stylex.props(stylexStyles.rule12)}
-        aria-hidden="true"
-      />
+      <LuCircleAlert {...stylex.props(styles.errorIcon)} aria-hidden="true" />
     )
   }
   if (state === 'synced') {
     return (
-      <span sx={stylexStyles.rule13} aria-hidden="true">
-        <LuCloud {...stylex.props(stylexStyles.rule14)} />
-        <LuCircleCheck {...stylex.props(stylexStyles.rule15)} />
+      <span sx={styles.syncedIcon} aria-hidden="true">
+        <LuCloud {...stylex.props(styles.cloudIcon)} />
+        <LuCircleCheck {...stylex.props(styles.checkIcon)} />
       </span>
     )
   }
@@ -343,9 +322,9 @@ function LoadingCardIcon({ state }: { state: LoadingState }) {
 
 function RatePill({ label, value }: { label: string; value: string }) {
   return (
-    <div sx={stylexStyles.rule16}>
-      <div sx={stylexStyles.rule17}>{label}</div>
-      <div sx={stylexStyles.rule18}>{value}</div>
+    <div sx={styles.ratePill}>
+      <div sx={styles.rateLabel}>{label}</div>
+      <div sx={styles.rateValue}>{value}</div>
     </div>
   )
 }

@@ -813,15 +813,6 @@
     width: min(300px, calc(100vw - 24px));
   }
 
-  .dropdown-ghost-anchor {
-    position: fixed;
-    left: var(--dropdown-ghost-left);
-    top: var(--dropdown-ghost-top);
-    width: 0;
-    height: 0;
-    pointer-events: none;
-  }
-
   .feature-reveal-delay {
     transition-delay: var(--feature-reveal-delay);
   }

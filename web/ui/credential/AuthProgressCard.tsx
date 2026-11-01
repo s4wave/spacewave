@@ -1,4 +1,4 @@
-import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
+import type { StyleXStyles } from '@stylexjs/stylex'
 import { LuCheck, LuKeyRound, LuShield } from 'react-icons/lu'
 
 import { ProgressBar } from '@s4wave/web/ui/loading/ProgressBar.js'
@@ -11,34 +11,25 @@ import {
   colors as themeColors,
   fonts as themeFonts,
   motion as themeMotion,
-} from '../../style/tokens.stylex.js'
-
-import {
-  radii as themeRadii2,
   utilityState as themeUtilityState,
-  colors as themeColors2,
-  layout as themeLayout2,
 } from '../../style/tokens.stylex.js'
 
-const stylexStyles2 = stylex.create({
-  rule1: {
-    borderRadius: themeRadii2['--radius-lg'],
+const styles = stylex.create({
+  root: {
+    borderRadius: themeRadii['--radius-lg'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors2['--color-foreground']} 6%, transparent)`,
-    backgroundColor: `color-mix(in oklab, ${themeColors2['--color-background-card']} 30%, transparent)`,
-    padding: `calc(${themeLayout2['--spacing']} * 3.5)`,
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
-  rule2: { marginTop: `calc(${themeLayout2['--spacing']} * 3)` },
-})
-
-const stylexStyles = stylex.create({
-  rule1: {
+  steps: { marginTop: `calc(${themeLayout['--spacing']} * 3)` },
+  header: {
     display: 'flex',
     alignItems: 'flex-start',
     gap: `calc(${themeLayout['--spacing']} * 3)`,
   },
-  rule2: {
+  iconBox: {
     display: 'flex',
     width: `calc(${themeLayout['--spacing']} * 8)`,
     height: `calc(${themeLayout['--spacing']} * 8)`,
@@ -49,8 +40,8 @@ const stylexStyles = stylex.create({
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
     color: themeColors['--color-brand'],
   },
-  rule3: { minWidth: 0, flex: 1 },
-  rule4: {
+  body: { minWidth: 0, flex: 1 },
+  title: {
     fontSize: themeFonts['--text-sm'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     '--tw-font-weight': 'var(--font-weight-semibold)',
@@ -59,15 +50,15 @@ const stylexStyles = stylex.create({
     letterSpacing: 'var(--tracking-tight)',
     color: themeColors['--color-foreground'],
   },
-  rule5: {
+  detail: {
     marginTop: `calc(${themeLayout['--spacing']} * .5)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: 'var(--leading-relaxed)',
     '--tw-leading': 'var(--leading-relaxed)',
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
   },
-  rule6: { marginTop: `calc(${themeLayout['--spacing']} * 2.5)` },
-  rule7: {
+  progress: { marginTop: `calc(${themeLayout['--spacing']} * 2.5)` },
+  step: {
     marginBlockStart: { default: null, ':not(:last-child)': 0 },
     marginBlockEnd: {
       default: null,
@@ -84,11 +75,11 @@ const stylexStyles = stylex.create({
     transitionDuration:
       'var(--tw-duration, var(--default-transition-duration))',
   },
-  rule8: { color: themeColors['--color-foreground'] },
-  rule9: {
+  activeLabel: { color: themeColors['--color-foreground'] },
+  pendingLabel: {
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
   },
-  rule10: {
+  stepIconBox: {
     display: 'flex',
     width: `calc(${themeLayout['--spacing']} * 5)`,
     height: `calc(${themeLayout['--spacing']} * 5)`,
@@ -97,14 +88,14 @@ const stylexStyles = stylex.create({
     justifyContent: 'center',
     borderRadius: themeRadii['--radius-md'],
   },
-  rule11: {
+  activeIcon: {
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
     color: themeColors['--color-brand'],
   },
-  rule12: {
+  pendingIcon: {
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
   },
-  rule13: {
+  stepIcon: {
     width: `calc(${themeLayout['--spacing']} * 3)`,
     height: `calc(${themeLayout['--spacing']} * 3)`,
   },
@@ -115,7 +106,7 @@ interface AuthProgressCardProps {
   title: string
   detail: string
   steps: string[]
-  sx?: ComponentStyles
+  sx?: StyleXStyles
 }
 
 // AuthProgressCard shows honest indeterminate progress for auth flows whose
@@ -125,52 +116,49 @@ export function AuthProgressCard({
   detail,
   steps,
   sx,
-}: Omit<AuthProgressCardProps, 'className'> & {
-  sx?: ComponentStyles
-  className?: never
-}) {
+}: AuthProgressCardProps) {
   return (
-    <div sx={[stylexStyles2.rule1, sx]} role="status" aria-live="polite">
-      <div sx={stylexStyles.rule1}>
-        <div sx={stylexStyles.rule2}>
+    <div sx={[styles.root, sx]} role="status" aria-live="polite">
+      <div sx={styles.header}>
+        <div sx={styles.iconBox}>
           <Spinner size="md" />
         </div>
-        <div sx={stylexStyles.rule3}>
-          <div sx={stylexStyles.rule4}>{title}</div>
-          <div sx={stylexStyles.rule5}>{detail}</div>
-          <div sx={stylexStyles.rule6}>
+        <div sx={styles.body}>
+          <div sx={styles.title}>{title}</div>
+          <div sx={styles.detail}>{detail}</div>
+          <div sx={styles.progress}>
             <ProgressBar indeterminate />
           </div>
-          <div sx={stylexStyles2.rule2}>
+          <div sx={styles.steps}>
             {steps.map((step, index) => {
               const active = index === 0
               return (
                 <div
                   key={step}
                   sx={[
-                    stylexStyles.rule7,
-                    active ? stylexStyles.rule8 : stylexStyles.rule9,
+                    styles.step,
+                    active ? styles.activeLabel : styles.pendingLabel,
                   ]}
                 >
                   <div
                     sx={[
-                      stylexStyles.rule10,
-                      active ? stylexStyles.rule11 : stylexStyles.rule12,
+                      styles.stepIconBox,
+                      active ? styles.activeIcon : styles.pendingIcon,
                     ]}
                   >
                     {active ? (
                       <LuKeyRound
-                        {...stylex.props(stylexStyles.rule13)}
+                        {...stylex.props(styles.stepIcon)}
                         aria-hidden="true"
                       />
                     ) : index === steps.length - 1 ? (
                       <LuCheck
-                        {...stylex.props(stylexStyles.rule13)}
+                        {...stylex.props(styles.stepIcon)}
                         aria-hidden="true"
                       />
                     ) : (
                       <LuShield
-                        {...stylex.props(stylexStyles.rule13)}
+                        {...stylex.props(styles.stepIcon)}
                         aria-hidden="true"
                       />
                     )}
