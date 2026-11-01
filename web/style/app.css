@@ -1,4 +1,5 @@
 /* Tailwind CSS */
+@import './sonner.css';
 @import 'tailwindcss';
 @source '../../app';
 @source '../../web';
