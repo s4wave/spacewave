@@ -1,0 +1,25 @@
+---
+title: "Publish a durable manifest before reusing old chunks"
+---
+stateDiagram-v2
+  s0: Original manifest, reader holds original
+  s1: Original manifest, reader ended
+  s2: Superblock awaiting sync, reader holds original
+  s3: Superblock awaiting sync, reader ended
+  s4: Manifest durable, reader holds original
+  s5: Manifest durable, reader ended
+  s6: Some old chunks reused
+  s7: Old chunks reused
+  [*] --> s0
+  s0 --> s1: Discard
+  s0 --> s2: SuperWrite
+  s2 --> s3: Discard
+  s2 --> s4: SuperSync
+  s1 --> s3: SuperWrite
+  s3 --> s5: SuperSync
+  s4 --> s5: Discard
+  s5 --> s6: Release
+  s4 --> s2: SuperWrite
+  s6 --> s7: Release
+  s5 --> s3: SuperWrite
+  s3 --> s6: Release
