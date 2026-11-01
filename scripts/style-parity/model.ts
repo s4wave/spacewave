@@ -16,6 +16,7 @@ export interface ElementStyle {
 
 /** Snapshot is one settled render of one manifest state. */
 export interface Snapshot {
+  format: 2
   id: string
   engine: string
   viewport: Viewport
@@ -27,6 +28,7 @@ export interface Snapshot {
 
 /** CaptureIndex is published only after every requested state was captured. */
 export interface CaptureIndex {
+  format: 2
   revision: string
   sourceStatus: string
   manifestHash: string
@@ -49,6 +51,12 @@ export function* compareSnapshot(
   before: Snapshot,
   after: Snapshot,
 ): Generator<Difference> {
+  // A collector protocol change requires new captures, not a comparison of unlike observations.
+  if (before.format !== 2 || after.format !== 2)
+    throw new Error(
+      'Capture format changed; recapture both revisions with format 2',
+    )
+
   // Reject comparisons of different states instead of producing misleading diffs.
   const state = `${before.engine}/${before.viewport.width}x${before.viewport.height}/${before.id}`
   if (

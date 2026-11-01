@@ -313,7 +313,7 @@ export class DevelopmentEnvironment {
       oxc: config.oxc === false ? false : { target: 'es2022', ...config.oxc },
       customLogger: createSilentViteLogger(),
       plugins: [
-        stylexCss(),
+        stylexCss(dist),
         adapter,
         ...(config.plugins ?? []),
         goTsResolver(root, dist),

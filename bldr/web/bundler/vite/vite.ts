@@ -358,7 +358,7 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
         alias: buildGoAliases(projectRoot, distDir),
       }
     }
-    mergedConfig.plugins.unshift(stylexCss())
+    mergedConfig.plugins.unshift(stylexCss(distDir))
     mergedConfig.plugins.push(
       createWorkerSafeModulePreloadPlugin(),
       ...(allExternal.length > 0
@@ -630,7 +630,7 @@ async function buildWebPkg(
       // packages and converts their require() calls to ESM imports. Also
       // remap non-BldrExternal sibling web packages to /b/pkg/ URLs.
       plugins: [
-        stylexCss(),
+        stylexCss(distRoot),
         goTsResolver(projectRoot, distRoot),
         createWorkerSafeModulePreloadPlugin(),
         ...(allExternal.length > 0

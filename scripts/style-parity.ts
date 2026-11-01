@@ -46,6 +46,8 @@ async function main(argv: string[]) {
     : 'unspecified'
   const out = resolve(option('--out'))
   const manifestPath = resolve(option('--manifest'))
+  const manifestBytes = await readFile(manifestPath)
+  const manifestHash = createHash('sha256').update(manifestBytes).digest('hex')
   const { default: manifest } = (await import(
     pathToFileURL(manifestPath).href
   )) as { default: ParityManifest }
@@ -55,12 +57,15 @@ async function main(argv: string[]) {
   const startedAt = new Date().toISOString()
   const started = performance.now()
   const snapshots = await capture(manifest, base, out)
+  if (!(await readFile(manifestPath)).equals(manifestBytes))
+    throw new Error(
+      'The manifest changed during capture; rerun with one fixed manifest',
+    )
   const index: CaptureIndex = {
+    format: 2,
     revision,
     sourceStatus,
-    manifestHash: createHash('sha256')
-      .update(await readFile(manifestPath))
-      .digest('hex'),
+    manifestHash,
     startedAt,
     elapsedMs: performance.now() - started,
     snapshots,
@@ -76,6 +81,8 @@ async function compare(beforeDir: string, afterDir: string, out: string) {
   const before = await readIndex(beforeDir)
   const after = await readIndex(afterDir)
   if (
+    before.format !== 2 ||
+    after.format !== 2 ||
     before.manifestHash !== after.manifestHash ||
     JSON.stringify(before.snapshots) !== JSON.stringify(after.snapshots)
   ) {

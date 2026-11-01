@@ -2,9 +2,11 @@ import { createHash } from 'node:crypto'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { PNG } from 'pngjs'
 import { chromium, webkit, type BrowserContext, type Page } from 'playwright'
 
 import type { ElementStyle, Snapshot, Viewport } from './model.js'
+import type {} from './browser.js'
 
 /** ParityState supplies the real route and interaction that establish a screen. */
 export interface ParityState {
@@ -61,100 +63,151 @@ export async function capture(
             join(out, engine, `${viewport.width}x${viewport.height}`),
             { recursive: true },
           )
-          let context: BrowserContext | undefined
-          let page: Page | undefined
-          try {
-            context = await browser.newContext({
-              viewport,
-              deviceScaleFactor: 1,
-              colorScheme: 'dark',
-              locale: 'en-US',
-              timezoneId: 'UTC',
-            })
-            page = await context.newPage()
-            page.setDefaultTimeout(120_000)
+          for (let attempt = 1; attempt <= 2; attempt++) {
+            let context: BrowserContext | undefined
+            let page: Page | undefined
             const errors: string[] = []
-            page.on('pageerror', (error) => errors.push(error.message))
-            await page.clock.setFixedTime(new Date('2026-10-31T12:00:00Z'))
-            const response = await page.goto(new URL(state.path, base).href, {
-              waitUntil: 'domcontentloaded',
-            })
-            if (response && !response.ok())
-              throw new Error(`${state.path}: HTTP ${response.status()}`)
-            await state.setup?.(page)
-            if (typeof state.ready === 'string') {
-              await page
-                .locator(state.ready)
-                .first()
-                .waitFor({ state: 'visible' })
-            } else {
-              await state.ready(page)
-            }
-            await settle(page)
-            if (errors.length)
-              throw new Error(`${state.id}: ${errors.join('\n')}`)
-            const elements = await readElements(page)
-            const png = await page.screenshot({
-              path: join(out, `${relative}.png`),
-              fullPage: true,
-              caret: 'hide',
-              animations: 'disabled',
-            })
-            const snapshot: Snapshot = {
-              id: state.id,
-              engine,
-              viewport,
-              url: state.path,
-              elements,
-              aria: await page.locator('body').ariaSnapshot(),
-              screenshot: createHash('sha256').update(png).digest('hex'),
-            }
-            await writeFile(
-              join(out, `${relative}.json`),
-              JSON.stringify(snapshot),
-            )
-            paths.push(`${relative}.json`)
-            console.log(`captured ${relative}: ${elements.length} elements`)
-          } catch (error) {
-            // Retain failed states and continue so one broken screen cannot hide others.
-            const message =
-              error instanceof Error ? error.message : String(error)
-            const probes = page
-              ? await Promise.allSettled([
-                  page.screenshot({
-                    path: join(out, `${relative}.failed.png`),
-                    timeout: 10_000,
-                  }),
-                  page
-                    .locator('body')
-                    .ariaSnapshot({ timeout: 10_000 })
-                    .then((aria) =>
-                      writeFile(join(out, `${relative}.failed.aria.txt`), aria),
+            const networkFailures: string[] = []
+            let stage = 'create-context'
+            try {
+              context = await browser.newContext({
+                viewport,
+                deviceScaleFactor: 1,
+                colorScheme: 'dark',
+                locale: 'en-US',
+                timezoneId: 'UTC',
+              })
+              page = await context.newPage()
+              page.setDefaultTimeout(120_000)
+              page.on('pageerror', (error) => errors.push(error.message))
+              page.on('requestfailed', (request) => {
+                if (networkFailures.length < 20)
+                  networkFailures.push(
+                    `${request.url()}: ${request.failure()?.errorText}`,
+                  )
+              })
+              await page.clock.setFixedTime(new Date('2026-10-31T12:00:00Z'))
+              stage = 'navigate'
+              const response = await page.goto(new URL(state.path, base).href, {
+                waitUntil: 'domcontentloaded',
+              })
+              if (response && !response.ok())
+                throw new Error(`${state.path}: HTTP ${response.status()}`)
+              stage = 'setup'
+              await state.setup?.(page)
+              stage = 'ready'
+              if (typeof state.ready === 'string') {
+                await page
+                  .locator(state.ready)
+                  .first()
+                  .waitFor({ state: 'visible' })
+              } else {
+                await state.ready(page)
+              }
+              stage = 'settle'
+              await settle(page)
+              if (errors.length)
+                throw new Error(`${state.id}: ${errors.join('\n')}`)
+              stage = 'screenshot'
+              const png = await page.screenshot({
+                path: join(out, `${relative}.png`),
+                fullPage: true,
+                caret: 'hide',
+                animations: 'disabled',
+              })
+              // Screenshot cleanup can restart CSS timelines; observe the same static sample as its pixels.
+              stage = 'resample'
+              await settle(page)
+              stage = 'collect'
+              const elements = await readElements(page)
+
+              // Compare rendered pixels, independently of PNG metadata and compression.
+              const pixels = PNG.sync.read(png)
+              const snapshot: Snapshot = {
+                format: 2,
+                id: state.id,
+                engine,
+                viewport,
+                url: state.path,
+                elements,
+                aria: await page.locator('body').ariaSnapshot(),
+                screenshot: createHash('sha256')
+                  .update(`${pixels.width}x${pixels.height}:`)
+                  .update(pixels.data)
+                  .digest('hex'),
+              }
+              await writeFile(
+                join(out, `${relative}.json`),
+                JSON.stringify(snapshot),
+              )
+              paths.push(`${relative}.json`)
+              console.log(`captured ${relative}: ${elements.length} elements`)
+              break
+            } catch (error) {
+              // Retain failed states and continue so one broken screen cannot hide others.
+              const message =
+                error instanceof Error ? error.message : String(error)
+              // A browser transport reset can interrupt unrelated module requests together.
+              const retry =
+                attempt === 1 &&
+                networkFailures.some((failure) =>
+                  failure.includes('net::ERR_NETWORK_CHANGED'),
+                )
+              const diagnostic = retry
+                ? `${relative}.attempt-${attempt}`
+                : relative
+              const probes = page
+                ? await Promise.allSettled([
+                    page.screenshot({
+                      path: join(out, `${diagnostic}.failed.png`),
+                      timeout: 10_000,
+                    }),
+                    page
+                      .locator('body')
+                      .ariaSnapshot({ timeout: 10_000 })
+                      .then((aria) =>
+                        writeFile(
+                          join(out, `${diagnostic}.failed.aria.txt`),
+                          aria,
+                        ),
+                      ),
+                  ])
+                : []
+              await writeFile(
+                join(out, `${diagnostic}.failure.json`),
+                JSON.stringify(
+                  {
+                    id: state.id,
+                    engine,
+                    viewport,
+                    error: message,
+                    stage,
+                    attempt,
+                    retry,
+                    pageErrors: errors,
+                    networkFailures,
+                    probes: probes.map((result) =>
+                      result.status === 'fulfilled'
+                        ? 'saved'
+                        : String(result.reason),
                     ),
-                ])
-              : []
-            await writeFile(
-              join(out, `${relative}.failure.json`),
-              JSON.stringify(
-                {
-                  id: state.id,
-                  engine,
-                  viewport,
-                  error: message,
-                  probes: probes.map((result) =>
-                    result.status === 'fulfilled'
-                      ? 'saved'
-                      : String(result.reason),
-                  ),
-                },
-                null,
-                2,
-              ),
-            )
-            failures.push(relative)
-            console.error(`failed ${relative}: ${message}`)
-          } finally {
-            await context?.close()
+                  },
+                  null,
+                  2,
+                ),
+              )
+              if (retry) {
+                console.error(
+                  `retrying ${relative} after a browser network change; first attempt saved`,
+                )
+              } else {
+                failures.push(relative)
+                console.error(`failed ${relative}: ${message}`)
+                break
+              }
+            } finally {
+              await context?.close()
+            }
           }
         }
       }
@@ -169,24 +222,45 @@ export async function capture(
   return paths
 }
 
-// settle waits for fonts, images and layout, then freezes animation progress.
+// settle finishes finite transitions and stops repeating effects before sampling static styles.
 async function settle(page: Page) {
   await page.evaluate(async () => {
-    // Finish rendering assets before freezing animation progress.
+    // Complete resource-driven layout before choosing the animation sample.
     await document.fonts.ready
     for (const image of document.images) {
       if (image.currentSrc) await image.decode()
     }
-    const animations = document.getAnimations()
-    for (const animation of animations) {
-      animation.pause()
-      const end = animation.effect?.getComputedTiming().endTime ?? Infinity
-      animation.currentTime = Number.isFinite(end) ? Number(end) : 0
+
+    // Keep CSS declarations intact while sampling static styles and SVG’s separate timeline.
+    const deadline = performance.now() + 10_000
+    let quietFrames = 0
+    while (quietFrames < 3) {
+      for (const svg of document.querySelectorAll('svg')) {
+        svg.pauseAnimations()
+        svg.setCurrentTime(0)
+      }
+      const animations = document.getAnimations()
+      let transitioning = false
+      for (const animation of animations) {
+        const end = animation.effect?.getComputedTiming().endTime ?? Infinity
+        if (Number.isFinite(end)) {
+          if (animation.playState !== 'finished' || animation.pending) {
+            animation.finish()
+            transitioning = true
+          }
+        } else {
+          animation.cancel()
+        }
+      }
+      quietFrames = transitioning ? 0 : quietFrames + 1
+      if (performance.now() > deadline)
+        throw new Error(
+          `Animations kept restarting during the static sample: ${JSON.stringify(document.getAnimations().map((animation) => ({ state: animation.playState, pending: animation.pending, timing: animation.effect?.getComputedTiming() })))}`,
+        )
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => resolve()),
+      )
     }
-    await Promise.all(animations.map((animation) => animation.ready))
-    await new Promise<void>((resolve) =>
-      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
-    )
   })
 }
 
