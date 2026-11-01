@@ -113,13 +113,13 @@ func TestPreparedRegistrationReplacement(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	check := func(instanceKey, label string) {
+	check := func(instanceKey, label, owner string) {
 		// Check the type and Quickstart selected for this installation.
 		t.Helper()
 		if got := types.LookupRegistration("colors/app", instanceKey).GetMetadata().GetDisplayName(); got != label {
 			t.Fatalf("type = %q, want %q", got, label)
 		}
-		if got := seeds.LookupRegistration("colors/app", instanceKey); got.GetName() != label || got.GetManifestRoot() != label {
+		if got, gotOwner := seeds.LookupRegistration("colors/app", instanceKey); got.GetName() != label || got.GetManifestRoot() != label || gotOwner != owner {
 			t.Fatalf("Quickstart = %v, want generation %q", got, label)
 		}
 
@@ -157,9 +157,9 @@ func TestPreparedRegistrationReplacement(t *testing.T) {
 	// Preparation is invisible, and a failed candidate never hides the old group.
 	oldRef, old := open("colors", "old", "")
 	register(old, "old")
-	check("", "")
+	check("", "", "")
 	activate(old)
-	check("", "old")
+	check("", "old", "")
 
 	// Reject an incomplete candidate while preserving the active generation.
 	failedRef, failed := open("colors", "failed", "")
@@ -170,14 +170,14 @@ func TestPreparedRegistrationReplacement(t *testing.T) {
 		t.Fatal("invalid candidate viewer succeeded")
 	}
 	failedRef.Release()
-	check("", "old")
+	check("", "old", "")
 
 	// Losing a candidate after publication but before the old worker retires
 	// restores the retained old group, including its immutable viewer path.
 	interruptedRef, interrupted := open("colors", "interrupted", "")
 	register(interrupted, "interrupted")
 	activate(interrupted)
-	check("", "interrupted")
+	check("", "interrupted", "")
 	interruptedRef.Release()
 
 	// Observe the interrupted generation roll back through the Quickstart watch.
@@ -195,15 +195,15 @@ func TestPreparedRegistrationReplacement(t *testing.T) {
 			break
 		}
 	}
-	check("", "old")
+	check("", "old", "")
 
 	// Admission switches all readers, and releasing the old group preserves it.
 	newRef, next := open("colors", "new", "")
 	register(next, "new")
-	check("", "old")
+	check("", "old", "")
 	activate(next)
 	activate(next)
-	check("", "new")
+	check("", "new", "")
 
 	// Reject retired activation and extensions to an admitted generation.
 	if _, err := plugin_registration.NewSRPCGenerationServiceClient(old).Activate(ctx, &plugin_registration.ActivateRequest{}); err == nil {
@@ -213,7 +213,7 @@ func TestPreparedRegistrationReplacement(t *testing.T) {
 		t.Fatal("admitted generation accepted a partial extension")
 	}
 	oldRef.Release()
-	check("", "new")
+	check("", "new", "")
 
 	// Two Spaces independently select the same names. Preparing, replacing, and
 	// releasing one Space leaves the other Space and the global defaults intact.
@@ -221,15 +221,15 @@ func TestPreparedRegistrationReplacement(t *testing.T) {
 	register(spaceA, "space-a-one")
 	spaceBRef, spaceB := open("colors", "space-b-one", "space/b")
 	register(spaceB, "space-b-one")
-	check("space/a", "new")
+	check("space/a", "new", "")
 
 	// Admit both Space generations and verify their independent registrations.
 	activate(spaceA)
 	activate(spaceB)
-	check("space/a", "space-a-one")
-	check("space/b", "space-b-one")
-	check("", "new")
-	check("space/c", "new")
+	check("space/a", "space-a-one", "space/a")
+	check("space/b", "space-b-one", "space/b")
+	check("", "new", "")
+	check("space/c", "new", "")
 
 	// Require different operation registrations for the two Spaces.
 	if ops.LookupRegistrationByOpType("colors/like", "space/a").GetRegistrationId() == ops.LookupRegistrationByOpType("colors/like", "space/b").GetRegistrationId() {
@@ -239,10 +239,10 @@ func TestPreparedRegistrationReplacement(t *testing.T) {
 	// Replace the first Space generation while retaining the second Space.
 	spaceANextRef, spaceANext := open("colors", "space-a-two", "space/a")
 	register(spaceANext, "space-a-two")
-	check("space/a", "space-a-one")
+	check("space/a", "space-a-one", "space/a")
 	activate(spaceANext)
-	check("space/a", "space-a-two")
-	check("space/b", "space-b-one")
+	check("space/a", "space-a-two", "space/a")
+	check("space/b", "space-b-one", "space/b")
 
 	// Release the first Space generations and watch its global fallback return.
 	spaceARef.Release()
@@ -263,8 +263,8 @@ func TestPreparedRegistrationReplacement(t *testing.T) {
 	}
 
 	// Verify the released Space uses global defaults while the other stays active.
-	check("space/a", "new")
-	check("space/b", "space-b-one")
+	check("space/a", "new", "")
+	check("space/b", "space-b-one", "space/b")
 	spaceBRef.Release()
 
 	// A different family cannot reserve a type already held by this family.
@@ -290,5 +290,5 @@ func TestPreparedRegistrationReplacement(t *testing.T) {
 			break
 		}
 	}
-	check("", "")
+	check("", "", "")
 }
