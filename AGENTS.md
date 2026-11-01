@@ -157,3 +157,20 @@ Each page in `app/docs/content/` serves one audience:
 - `users/`: say what to click and what happens, in the words the app shows. Drive, Space and `getting-started.md` belong here. Internal names such as SharedObject, World, UnixFS and provider IDs belong in developer pages. Keep CLI commands, flags, paths and environment variables exact, because users type them.
 - `self-hosters/`: explain disks, backups, servers and recovery in the product's operational names.
 - `developers/`: explain APIs, packages, protocols and internal mechanisms by their exact technical names.
+
+## Formal models
+
+Use TLA+ for critical behavior, concurrency, protocols, storage ordering and
+lifecycles. Put each `<Name>.tla` and its bounded `<Name>.cfg` configurations
+beside the code it models. Model the current implementation's callers,
+interleaving steps, cancellation and failure paths. State the abstraction and
+bounds, check safety and relevant liveness with `bun run check:tla`, and test
+important guards with failing mutants outside the passing configurations.
+
+Lean supplements TLA+ when a mathematical proof adds value: cryptographic
+security assumptions and authorization, configuration-chain induction,
+deterministic ordering, quorum intersection and consensus agreement. Keep
+those proofs and their Go conformance checks focused on the mathematical
+contract. Use TLA+ for host, worker, transport and storage lifecycle models.
+A component may have both Lean and TLA+ models, or TLA+ alone; existing Lean
+coverage is a reason to retain useful proofs and add temporal coverage too.

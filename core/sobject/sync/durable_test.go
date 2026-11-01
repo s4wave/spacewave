@@ -64,7 +64,7 @@ func TestWriteMessagesWaitsDurable(t *testing.T) {
 	t.Cleanup(func() { cancel(); <-done })
 
 	// The frame waits in WaitDurable and has not been written.
-	outbound <- leanSyncWriterMessage(1)
+	outbound <- &SOSyncMessage{Body: &SOSyncMessage_Snapshot{Snapshot: &SOSyncSnapshot{SoState: []byte("snapshot")}}}
 	select {
 	case <-waiting:
 	case <-ctx.Done():
@@ -82,8 +82,8 @@ func TestWriteMessagesWaitsDurable(t *testing.T) {
 	if err := stream_packet.NewSession(right, maxMessageSize).RecvMsg(received); err != nil {
 		t.Fatal(err)
 	}
-	if leanSyncWriterKind(received) != 1 {
-		t.Fatalf("received frame kind %d, want snapshot", leanSyncWriterKind(received))
+	if received.GetSnapshot() == nil {
+		t.Fatal("received frame is not a snapshot")
 	}
 	if err := <-sent; err != nil {
 		t.Fatal(err)
