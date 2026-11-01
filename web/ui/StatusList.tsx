@@ -1,21 +1,16 @@
-import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
+import type { StyleXStyles } from '@stylexjs/stylex'
 import { useEffect, useRef, type ReactNode } from 'react'
 
 import * as stylex from '@stylexjs/stylex'
 import {
   colors as themeColors,
   layout as themeLayout,
-} from '../style/tokens.stylex.js'
-
-import {
-  colors as themeColors2,
   utilityState as themeUtilityState,
-  layout as themeLayout2,
   fonts as themeFonts,
 } from '../style/tokens.stylex.js'
 
-const stylexStyles2 = stylex.create({
-  rule1: {
+const styles = stylex.create({
+  indicator: {
     fontSize: '10px',
     lineHeight: 1.5,
     '--tw-font-weight': 'var(--font-weight-bold)',
@@ -40,19 +35,19 @@ const stylexStyles2 = stylex.create({
     animationFillMode: { default: null, ':is([data-status-changed])': 'none' },
     animationTimeline: { default: null, ':is([data-status-changed])': 'auto' },
   },
-  rule2: { color: themeColors2['--color-success'] },
-  rule3: { color: themeColors2['--color-error'] },
-  rule4: { color: themeColors2['--color-warning'] },
-  rule5: { color: themeColors2['--color-foreground-alt'] },
-  rule6: {
+  success: { color: themeColors['--color-success'] },
+  error: { color: themeColors['--color-error'] },
+  pending: { color: themeColors['--color-warning'] },
+  none: { color: themeColors['--color-foreground-alt'] },
+  root: {
     flex: 1,
     overflow: 'auto',
     borderRadius: '.25rem',
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: themeColors2['--color-ui-outline'],
-    backgroundColor: themeColors2['--color-background-secondary'],
-    padding: `calc(${themeLayout2['--spacing']} * 2)`,
+    borderColor: themeColors['--color-ui-outline'],
+    backgroundColor: themeColors['--color-background-secondary'],
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
     fontFamily: themeFonts['--font-mono'],
     WebkitFontSmoothing: 'subpixel-antialiased',
     MozOsxFontSmoothing: 'auto',
@@ -60,32 +55,33 @@ const stylexStyles2 = stylex.create({
     textShadow: '0 0 0.25px currentColor',
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors2['--color-foreground'],
+    color: themeColors['--color-foreground'],
   },
-})
-
-const stylexStyles = stylex.create({
-  rule1: { color: themeColors['--color-foreground-alt'] },
-  rule2: {
+  empty: { color: themeColors['--color-foreground-alt'] },
+  label: {
     display: 'flex',
     alignItems: 'center',
     gap: `calc(${themeLayout['--spacing']} * 1.5)`,
   },
-  rule3: { textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' },
-  rule4: {
+  itemLabel: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+  },
+  detail: {
     flexShrink: 0,
     fontSize: '10px',
     lineHeight: 1.5,
     color: themeColors['--color-foreground-alt'],
   },
-  rule5: {
+  row: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: `calc(${themeLayout['--spacing']} * 2)`,
     paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
   },
-  rule6: {
+  button: {
     display: 'flex',
     width: '100%',
     cursor: 'pointer',
@@ -128,8 +124,8 @@ export interface StatusListProps {
   emptyMessage?: ReactNode
   // statusLabels are optional custom labels for each status.
   statusLabels?: Partial<Record<StatusListItemStatus, string>>
-  // className is an optional CSS class for the container.
-  sx?: ComponentStyles
+  // sx overrides the container styles.
+  sx?: StyleXStyles
   // onItemClick is an optional click handler for items.
   onItemClick?: (item: StatusListItem) => void
 }
@@ -163,14 +159,14 @@ function StatusIndicator({
   return (
     <span
       sx={[
-        stylexStyles2.rule1,
+        styles.indicator,
         status === 'success'
-          ? stylexStyles2.rule2
+          ? styles.success
           : status === 'error'
-            ? stylexStyles2.rule3
+            ? styles.error
             : status === 'pending'
-              ? stylexStyles2.rule4
-              : stylexStyles2.rule5,
+              ? styles.pending
+              : styles.none,
       ]}
       {...(changed ? { 'data-status-changed': '' } : {})}
     >
@@ -186,34 +182,29 @@ export function StatusList({
   statusLabels = defaultCustomStatusLabels,
   sx,
   onItemClick,
-}: Omit<StatusListProps, 'className'> & {
-  sx?: ComponentStyles
-  className?: never
-}) {
+}: StatusListProps) {
   const labels = { ...defaultStatusLabels, ...statusLabels }
   return (
-    <div sx={[stylexStyles2.rule6, sx]}>
+    <div sx={[styles.root, sx]}>
       {items.length === 0 ? (
-        <div sx={stylexStyles.rule1}>{emptyMessage}</div>
+        <div sx={styles.empty}>{emptyMessage}</div>
       ) : (
         items.map((item) => {
           const content = (
             <>
-              <span sx={stylexStyles.rule2}>
+              <span sx={styles.label}>
                 <StatusIndicator
                   status={item.status}
                   label={labels[item.status]}
                 />
-                <span sx={stylexStyles.rule3}>{item.label}</span>
+                <span sx={styles.itemLabel}>{item.label}</span>
               </span>
-              {item.detail && (
-                <span sx={stylexStyles.rule4}>{item.detail}</span>
-              )}
+              {item.detail && <span sx={styles.detail}>{item.detail}</span>}
             </>
           )
           if (!onItemClick) {
             return (
-              <div key={item.id} sx={stylexStyles.rule5}>
+              <div key={item.id} sx={styles.row}>
                 {content}
               </div>
             )
@@ -222,7 +213,7 @@ export function StatusList({
             <button
               key={item.id}
               type="button"
-              sx={stylexStyles.rule6}
+              sx={styles.button}
               onClick={() => onItemClick(item)}
             >
               {content}

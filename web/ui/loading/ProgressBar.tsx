@@ -5,10 +5,8 @@ import {
   fonts as themeFonts,
 } from '../../style/tokens.stylex.js'
 
-import { colors as themeColors2 } from '../../style/tokens.stylex.js'
-
-const stylexStyles2 = stylex.create({
-  rule1: {
+const styles = stylex.create({
+  indeterminate: {
     position: 'absolute',
     insetBlock: 0,
     width: {
@@ -25,15 +23,15 @@ const stylexStyles2 = stylex.create({
     animationFillMode: 'none',
     animationTimeline: 'auto',
     borderRadius: '3.40282e38px',
-    backgroundColor: themeColors2['--color-brand'],
+    backgroundColor: themeColors['--color-brand'],
     left: { default: null, '@media (prefers-reduced-motion: reduce)': 0 },
     opacity: { default: null, '@media (prefers-reduced-motion: reduce)': 0.7 },
   },
-  rule2: {
+  determinate: {
     height: '100%',
     width: 'var(--progress-width)',
     borderRadius: '3.40282e38px',
-    backgroundColor: themeColors2['--color-brand'],
+    backgroundColor: themeColors['--color-brand'],
     transitionProperty: {
       default: 'width',
       '@media (prefers-reduced-motion: reduce)': 'none',
@@ -43,16 +41,13 @@ const stylexStyles2 = stylex.create({
     '--tw-duration': '.2s',
     '--tw-ease': 'ease',
   },
-})
-
-const stylexStyles = stylex.create({
-  rule1: {
+  root: {
     display: 'flex',
     width: '100%',
     alignItems: 'center',
     gap: `calc(${themeLayout['--spacing']} * 3)`,
   },
-  rule2: {
+  track: {
     position: 'relative',
     height: `calc(${themeLayout['--spacing']} * 1.5)`,
     flex: 1,
@@ -60,7 +55,7 @@ const stylexStyles = stylex.create({
     borderRadius: '3.40282e38px',
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
   },
-  rule3: {
+  rate: {
     fontFamily: themeFonts['--font-mono'],
     WebkitFontSmoothing: 'subpixel-antialiased',
     MozOsxFontSmoothing: 'auto',
@@ -73,7 +68,7 @@ const stylexStyles = stylex.create({
     fontVariantNumeric:
       'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
   },
-  rule4: {
+  percentage: {
     width: `calc(${themeLayout['--spacing']} * 8)`,
     textAlign: 'right',
     fontFamily: themeFonts['--font-mono'],
@@ -107,21 +102,21 @@ export function ProgressBar({ value, indeterminate, rate }: ProgressBarProps) {
   const pct =
     value === undefined ? 0 : Math.max(0, Math.min(100, Math.round(value)))
   return (
-    <div sx={stylexStyles.rule1}>
-      <div sx={stylexStyles.rule2}>
+    <div sx={styles.root}>
+      <div sx={styles.track}>
         {indeterminate ? (
-          <div sx={stylexStyles2.rule1} />
+          <div sx={styles.indeterminate} />
         ) : (
           <div
-            sx={stylexStyles2.rule2}
+            sx={styles.determinate}
             style={{ '--progress-width': `${pct}%` }}
           />
         )}
       </div>
       {rate ? (
-        <span sx={stylexStyles.rule3}>{rate}</span>
+        <span sx={styles.rate}>{rate}</span>
       ) : !indeterminate ? (
-        <span sx={stylexStyles.rule4}>{pct}%</span>
+        <span sx={styles.percentage}>{pct}%</span>
       ) : null}
     </div>
   )

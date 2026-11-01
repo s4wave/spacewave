@@ -1,19 +1,48 @@
-import { cn } from '@s4wave/web/style/utils.js'
+import type { StyleXStyles } from '@stylexjs/stylex'
 
 import * as stylex from '@stylexjs/stylex'
 import {
   layout as themeLayout,
   colors as themeColors,
   fonts as themeFonts,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
 } from '../style/tokens.stylex.js'
 
-const stylexStyles = stylex.create({
-  rule1: {
+const styles = stylex.create({
+  root: {
+    display: 'grid',
+    gridAutoFlow: 'column',
+    gridAutoColumns: 'minmax(0, 1fr)',
+    borderRadius: themeRadii['--radius-lg'],
+    borderWidth: '1px',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+  },
+  cell: {
+    '--tw-divide-x-reverse': { default: null, ':not(:last-child)': 0 },
+    borderInlineStartWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * var(--tw-divide-x-reverse))',
+    },
+    borderInlineEndWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * calc(1 - var(--tw-divide-x-reverse)))',
+    },
+    borderInlineStyle: {
+      default: null,
+      ':not(:last-child)': themeUtilityState['--tw-border-style'],
+    },
+    borderColor: {
+      default: null,
+      ':not(:last-child)': `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    },
     minWidth: 0,
     paddingInline: `calc(${themeLayout['--spacing']} * 3.5)`,
     paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
   },
-  rule2: {
+  label: {
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
@@ -28,7 +57,7 @@ const stylexStyles = stylex.create({
     WebkitUserSelect: 'none',
     userSelect: 'none',
   },
-  rule3: {
+  value: {
     marginTop: `calc(${themeLayout['--spacing']} * 1.5)`,
     fontSize: 'var(--text-2xl)',
     lineHeight: 'var(--leading-tight)',
@@ -42,7 +71,7 @@ const stylexStyles = stylex.create({
     WebkitUserSelect: 'none',
     userSelect: 'none',
   },
-  rule4: {
+  unit: {
     marginLeft: themeLayout['--spacing'],
     fontSize: themeFonts['--text-sm'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
@@ -50,7 +79,7 @@ const stylexStyles = stylex.create({
     fontWeight: 'var(--font-weight-normal)',
     color: themeColors['--color-foreground-alt'],
   },
-  rule5: {
+  detail: {
     marginTop: themeLayout['--spacing'],
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
@@ -76,29 +105,23 @@ export interface Figure {
 // FigureStripProps are the props for FigureStrip.
 export interface FigureStripProps {
   figures: Figure[]
-  className?: string
+  sx?: StyleXStyles
+  className?: never
 }
 
 // FigureStrip shows a few figures side by side in one panel, each with a
 // capital label, the value, and an optional line of context.
-export function FigureStrip({ figures, className }: FigureStripProps) {
+export function FigureStrip({ figures, sx }: FigureStripProps) {
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: divide-x */ cn(
-          'border-foreground/6 bg-background-card/30 divide-foreground/6 grid auto-cols-fr grid-flow-col divide-x rounded-lg border',
-          className,
-        )
-      }
-    >
+    <div sx={[styles.root, sx]}>
       {figures.map((figure) => (
-        <div key={figure.label} sx={stylexStyles.rule1}>
-          <div sx={stylexStyles.rule2}>{figure.label}</div>
-          <div sx={stylexStyles.rule3}>
+        <div key={figure.label} sx={styles.cell}>
+          <div sx={styles.label}>{figure.label}</div>
+          <div sx={styles.value}>
             {figure.value}
-            {figure.unit && <span sx={stylexStyles.rule4}>{figure.unit}</span>}
+            {figure.unit && <span sx={styles.unit}>{figure.unit}</span>}
           </div>
-          {figure.detail && <div sx={stylexStyles.rule5}>{figure.detail}</div>}
+          {figure.detail && <div sx={styles.detail}>{figure.detail}</div>}
         </div>
       ))}
     </div>
