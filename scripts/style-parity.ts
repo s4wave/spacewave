@@ -1,4 +1,3 @@
-import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { readFile, writeFile, mkdir } from 'node:fs/promises'
 import { resolve, join } from 'node:path'
@@ -35,12 +34,16 @@ async function main(argv: string[]) {
   }
   if (command !== 'capture') {
     throw new Error(
-      'Usage: style-parity capture --base URL --manifest FILE --out DIR | compare --before DIR --after DIR --out FILE',
+      'Usage: style-parity capture --base URL --revision COMMIT --manifest FILE --out DIR | compare --before DIR --after DIR --out FILE',
     )
   }
 
   // Validate the command before reserving its fresh output directory.
   const base = new URL(option('--base')).href
+  const revision = option('--revision')
+  const sourceStatus = args.includes('--source-status')
+    ? option('--source-status')
+    : 'unspecified'
   const out = resolve(option('--out'))
   const manifestPath = resolve(option('--manifest'))
   const { default: manifest } = (await import(
@@ -49,14 +52,12 @@ async function main(argv: string[]) {
 
   // Capture the complete matrix before publishing its success index.
   await mkdir(out, { recursive: false })
-  const revision = execFileSync('git', ['rev-parse', 'HEAD'], {
-    encoding: 'utf8',
-  }).trim()
   const startedAt = new Date().toISOString()
   const started = performance.now()
   const snapshots = await capture(manifest, base, out)
   const index: CaptureIndex = {
     revision,
+    sourceStatus,
     manifestHash: createHash('sha256')
       .update(await readFile(manifestPath))
       .digest('hex'),

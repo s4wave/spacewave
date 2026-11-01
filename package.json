@@ -248,7 +248,8 @@
     "lint:style-parity": "oxlint -c oxlint.style-parity.config.ts scripts/style-parity.ts scripts/style-parity",
     "style-parity:build": "bun build scripts/style-parity.ts scripts/style-parity/model.test.ts --target=node --external=playwright --outdir .bldr/style-parity-tools --entry-naming [name].mjs && bun build scripts/style-parity/browser.ts --target=browser --format=iife --outfile .bldr/style-parity-tools/browser.js",
     "test:style-parity": "bun run style-parity:build && node --test --test-timeout=120000 .bldr/style-parity-tools/model.test.mjs",
-    "style-parity:release": "cross-env ENABLE_E2E_RELEASE_WASM=true E2E_RELEASE_WASM_LOCAL_CDN=1 E2E_RELEASE_WASM_GOSCRIPT=true go test -count=1 -timeout=30m -v ./e2e/releasewasm -run ^TestReleaseStyleParity$"
+    "style-parity:release": "cross-env ENABLE_E2E_RELEASE_WASM=true E2E_RELEASE_WASM_LOCAL_CDN=1 E2E_RELEASE_WASM_GOSCRIPT=true go test -count=1 -timeout=30m -v ./e2e/releasewasm -run ^TestReleaseStyleParity$",
+    "style-parity:install-browsers": "playwright install chromium webkit"
   },
   "devDependencies": {
     "@aptre/common": "0.38.1",
