@@ -288,6 +288,11 @@ func sourceRolldownCurrent(depsRoot string) bool {
 		return false
 	}
 
+	// A package version cannot prove installed patch bytes; the content-addressed installer owns that check.
+	if patches := manifest.GetObject("patchedDependencies"); patches != nil && patches.Len() != 0 {
+		return false
+	}
+
 	// Compare the installed Rolldown manifest version and entrypoint file.
 	requiredVersion := string(manifest.GetStringBytes("dependencies", "rolldown"))
 	if requiredVersion == "" {

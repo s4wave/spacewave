@@ -105,13 +105,6 @@ func RunOneShot(
 		return context.Canceled
 	}
 
-	// A script outside the repository cannot see the project node_modules.
-	cleanupNodeModules, err := linkProjectNodeModules(filepath.Dir(viteScriptPath), sourcePath, distSourcePath)
-	if err != nil {
-		return err
-	}
-	defer cleanupNodeModules()
-
 	// Start the bun process.
 	if err := cmd.Start(); err != nil {
 		return errors.Wrap(err, "start vite process")
@@ -151,65 +144,4 @@ func RunOneShot(
 	_ = cmd.Wait()
 
 	return fnErr
-}
-
-// linkProjectNodeModules exposes project node_modules to a script directory
-// that cannot walk to one, and returns cleanup for any symlink it creates.
-// Bun resolves imports from the script directory, and a script under a temp dir
-// otherwise loads packages from the global cache, where dependencies may be
-// absent.
-func linkProjectNodeModules(scriptDir, sourcePath, distSourcePath string) (func(), error) {
-	// Replace an old one-shot symlink so relocated projects use their current dependencies.
-	link := filepath.Join(scriptDir, "node_modules")
-	if info, err := os.Lstat(link); err == nil {
-		if info.Mode()&os.ModeSymlink == 0 {
-			return func() {}, nil
-		}
-		if err := os.Remove(link); err != nil {
-			return nil, err
-		}
-	} else if !errors.Is(err, os.ErrNotExist) {
-		return nil, err
-	}
-
-	// Leave a script that can already see a parent node_modules tree alone.
-	if projectNodeModules(scriptDir) != "" {
-		return func() {}, nil
-	}
-
-	// Prefer the project tree, then the distribution tree.
-	modules := projectNodeModules(sourcePath)
-	if modules == "" {
-		modules = projectNodeModules(distSourcePath)
-	}
-	if modules == "" {
-		return func() {}, nil
-	}
-	if err := os.Symlink(modules, link); err != nil {
-		return nil, err
-	}
-	return func() { _ = os.Remove(link) }, nil
-}
-
-// projectNodeModules returns the node_modules directory visible from dir.
-func projectNodeModules(dir string) string {
-	// An empty start has no tree to walk.
-	if dir == "" {
-		return ""
-	}
-	dir = filepath.Clean(dir)
-
-	// Stop at the first ancestor that contains node_modules.
-	for {
-		candidate := filepath.Join(dir, "node_modules")
-		info, err := os.Stat(candidate)
-		if err == nil && info.IsDir() {
-			return candidate
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			return ""
-		}
-		dir = parent
-	}
 }
