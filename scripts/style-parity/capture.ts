@@ -68,6 +68,7 @@ export async function capture(
             let page: Page | undefined
             const errors: string[] = []
             const networkFailures: string[] = []
+            const consoleFailures: string[] = []
             let stage = 'create-context'
             try {
               context = await browser.newContext({
@@ -80,6 +81,12 @@ export async function capture(
               page = await context.newPage()
               page.setDefaultTimeout(120_000)
               page.on('pageerror', (error) => errors.push(error.message))
+              page.on('console', (message) => {
+                if (message.type() !== 'warning' && message.type() !== 'error')
+                  return
+                consoleFailures.push(message.text().slice(0, 4000))
+                if (consoleFailures.length > 20) consoleFailures.shift()
+              })
               page.on('requestfailed', (request) => {
                 if (networkFailures.length < 20)
                   networkFailures.push(
@@ -186,6 +193,7 @@ export async function capture(
                     retry,
                     pageErrors: errors,
                     networkFailures,
+                    consoleFailures,
                     probes: probes.map((result) =>
                       result.status === 'fulfilled'
                         ? 'saved'
