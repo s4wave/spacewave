@@ -135,16 +135,19 @@ export function SessionDashboard({
   topStatus,
   objectTypeMetadataById,
 }: SessionDashboardProps) {
+  // Resolve dashboard loading, available quickstarts and the selected storage.
   const navigate = usePageNavigate()
   const isLoading = spaces === undefined
   const isEmpty = spaces?.length === 0
   const quickstartOptions = useVisibleQuickstartOptions()
   const [storage, setStorage] = useState('')
 
+  // Open the community page from the dashboard.
   const goToCommunity = useCallback(() => {
     navigate({ path: '/community' })
   }, [navigate])
 
+  // Carry the chosen storage into quickstart creation.
   const handleQuickstartClick = useCallback(
     (quickstartId: string) => {
       onQuickstartClick?.(quickstartId, storage || undefined)
@@ -322,22 +325,28 @@ function InlineSecureAccountSection(props: {
   accountResource?: Resource<Account | null>
   session?: Session
 }) {
+  // Keep credential form identities and the current onboarding status together.
   const passwordInputId = useId()
   const pinInputId = useId()
   const confirmPinInputId = useId()
   const onboarding = useSessionOnboardingState()
 
+  // Keep backup-key input and download feedback within this account panel.
   const [password, setPassword] = useState('')
   const [downloading, setDownloading] = useState(false)
   const [pemError, setPemError] = useState<string | null>(null)
 
+  // Keep lock-mode editing and its save state together.
   const [lock, dispatchLock] = useReducer(lockReducer, initialLockState)
   const [savingLock, setSavingLock] = useState(false)
 
+  // Use the account and session supplied to this dashboard panel.
   const account = props.accountResource?.value
   const session = props.session
 
+  // Generate and download a password-protected backup key for the current account.
   const handleDownloadPem = useCallback(async () => {
+    // Require both an account and password before generating its backup key.
     if (!account) return
     if (!password) {
       setPemError('Password is required to generate a backup key')
@@ -371,6 +380,7 @@ function InlineSecureAccountSection(props: {
     }
   }, [account, password, onboarding])
 
+  // Validate and persist the selected account lock mode.
   const handleSetLockMode = useCallback(async () => {
     if (lock.mode === 'pin') {
       if (lock.pin.length < 4) {
@@ -603,6 +613,7 @@ function InlineSecureAccountSection(props: {
 // CreateOrgSection renders a prompt to create an organization.
 // Only shown for cloud subscribers in the welcome state.
 function CreateOrgSection() {
+  // Keep organization creation and its feedback tied to the current session.
   const sessionResource = SessionContext.useContext()
   const session = useResourceValue(sessionResource)
   const [orgName, setOrgName] = useState('')
@@ -610,6 +621,7 @@ function CreateOrgSection() {
   const [error, setError] = useState<string | null>(null)
   const [created, setCreated] = useState(false)
 
+  // Create the named organization and retain its completed state.
   const handleCreate = useCallback(async () => {
     if (!session || !orgName.trim()) return
     setCreating(true)
@@ -627,6 +639,7 @@ function CreateOrgSection() {
     }
   }, [session, orgName])
 
+  // Replace the creation form with confirmation after the organization is created.
   if (created) {
     return (
       <div className="mt-4 w-full max-w-md">
@@ -700,6 +713,7 @@ interface DashboardCommandPaletteProps {
 
 // DashboardJoinGroup owns navigation to the two non-creation entry points.
 function DashboardJoinGroup() {
+  // Resolve navigation and the account menu's persisted detail path.
   const navigate = useNavigate()
   const setOpenMenu = useBottomBarSetOpenMenu()
   const namespace = useStateNamespace(['session-settings'])
@@ -709,6 +723,7 @@ function DashboardJoinGroup() {
     '/',
   )
 
+  // Open device linking inside the account menu.
   const handleLinkDevice = useCallback(() => {
     setDetailsPath('/link-device')
     setOpenMenu?.('account')
@@ -961,9 +976,11 @@ function DashboardCommandPalette({
   isEmpty,
   canCreate,
 }: DashboardCommandPaletteProps) {
+  // Resolve the command input and navigation for this dashboard.
   const inputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
 
+  // Offer creation quickstarts only when this account may create spaces.
   const createQuickstartOptions = useMemo(
     () =>
       canCreate
@@ -974,6 +991,7 @@ function DashboardCommandPalette({
     [canCreate, quickstartOptions],
   )
 
+  // Separate primary, blank-space and browsing quickstarts for the dashboard commands.
   const primaryQuickstart =
     createQuickstartOptions.find((opt) => opt.id === 'drive') ??
     createQuickstartOptions[0]
@@ -989,10 +1007,12 @@ function DashboardCommandPalette({
   // scrolls past the fixed palette height instead of truncating the list.
   const recentSpaces = useMemo(() => spaces ?? [], [spaces])
 
+  // Keep command filtering and the recent-spaces scroll cue together.
   const hasSpaces = recentSpaces.length > 0
   const [query, setQuery] = useState('')
   const showScrollCue = recentSpaces.length > 2 && query.length === 0
 
+  // Open the selected existing space through the dashboard's callback.
   const handleSpaceSelect = useCallback(
     (space: DashboardSpace) => {
       onSpaceClick?.(space)
@@ -1000,6 +1020,7 @@ function DashboardCommandPalette({
     [onSpaceClick],
   )
 
+  // Use the caller's quickstart action or the normal quickstart route.
   const handleQuickstartSelect = useCallback(
     (opt: QuickstartOption) => {
       if (onQuickstartClick) {
@@ -1011,7 +1032,9 @@ function DashboardCommandPalette({
     [navigate, onQuickstartClick],
   )
 
+  // Group recent spaces into personal and organization command sections.
   const { personalSpaces, orgSections } = useMemo(() => {
+    // Preserve recent-space order while grouping each organization's spaces.
     const personal: DashboardSpace[] = []
     const orgMap = new Map<string, DashboardSpace[]>()
     for (const space of recentSpaces) {

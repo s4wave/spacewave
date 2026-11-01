@@ -1,9 +1,11 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import type { WizardState } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 
 import { toWizardView } from '../status/wizard.js'
 
 interface WizardLoadingCardProps {
+  className?: never
   state: WizardState | null | undefined
   loading: boolean
   errorMessage?: string
@@ -11,7 +13,7 @@ interface WizardLoadingCardProps {
   activeStepLabel?: string
   onRetry?: () => void
   onCancel?: () => void
-  className?: string
+  sx?: ComponentStyles
 }
 
 // WizardLoadingCard renders a wizard handle state as a LoadingCard with step
@@ -25,8 +27,11 @@ export function WizardLoadingCard({
   activeStepLabel,
   onRetry,
   onCancel,
-  className,
-}: WizardLoadingCardProps) {
+  sx,
+}: Omit<WizardLoadingCardProps, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
   return (
     <LoadingCard
       view={toWizardView({
@@ -38,7 +43,7 @@ export function WizardLoadingCard({
         onRetry,
         onCancel,
       })}
-      className={className}
+      sx={sx}
     />
   )
 }

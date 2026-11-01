@@ -1,5 +1,11 @@
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: { width: '100%', maxWidth: 'var(--container-sm)' },
+})
+
 // ObjectViewerLoadingState renders the shared object-viewer loading surface.
 export function ObjectViewerLoadingState({
   title = 'Loading object',
@@ -16,7 +22,7 @@ export function ObjectViewerLoadingState({
           title,
           detail,
         }}
-        className="w-full max-w-sm"
+        sx={stylexStyles.rule1}
       />
     </div>
   )

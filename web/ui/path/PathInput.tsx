@@ -59,6 +59,7 @@ export function PathInput({
   className,
   mobileTouchTargets = false,
 }: PathInputProps) {
+  // Keep the path draft scoped to the path currently being edited.
   const [isEditing, setIsEditing] = useState(false)
   const [editState, setEditState] = useState({ path, value: path })
   const inputRef = useRef<HTMLInputElement>(null)
@@ -68,6 +69,7 @@ export function PathInput({
     [path],
   )
 
+  // Select the path text when its editor becomes active.
   useEffect(() => {
     if (isEditing && inputRef.current) {
       inputRef.current.focus()
@@ -75,8 +77,10 @@ export function PathInput({
     }
   }, [isEditing])
 
+  // Resolve the current path into navigable breadcrumb segments.
   const pathSegments = useMemo(() => path.split('/').filter(Boolean), [path])
 
+  // Navigate to the ancestor represented by the selected breadcrumb.
   const handleBreadcrumbClick = useCallback(
     (index: number) => {
       const newPath = '/' + pathSegments.slice(0, index + 1).join('/')
@@ -85,14 +89,17 @@ export function PathInput({
     [pathSegments, onNavigate],
   )
 
+  // Navigate directly to the root path.
   const handleRootClick = useCallback(() => {
     onNavigate?.('/')
   }, [onNavigate])
 
+  // Open the current path for editing.
   const handleEditClick = useCallback(() => {
     setIsEditing(true)
   }, [])
 
+  // Commit a changed path when focus leaves its editor.
   const handleInputBlur = useCallback(() => {
     setIsEditing(false)
     if (editValue !== path) {
@@ -100,6 +107,7 @@ export function PathInput({
     }
   }, [editValue, path, onPathChange])
 
+  // Commit with Enter or discard editing with Escape.
   const handleInputKeyDown = useCallback(
     (e: KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'Enter') {
@@ -116,6 +124,7 @@ export function PathInput({
     [editValue, path, onPathChange],
   )
 
+  // Render the editable path or its navigation breadcrumbs.
   if (isEditing) {
     return (
       <div
@@ -170,7 +179,7 @@ export function PathInput({
         onDragOver={(e) => onPathTargetDragOver?.('/', e)}
         onDrop={(e) => onPathTargetDrop?.('/', e)}
         className={
-          /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-highlight */ cn(
+          /* TODO(stylex): conditional property composition: paddingInline */ cn(
             'hover:bg-pulldown-hover flex items-center rounded px-1 transition-colors',
             mobileTouchTargets &&
               '[@media(pointer:coarse)]:size-11 [@media(pointer:coarse)]:shrink-0 [@media(pointer:coarse)]:justify-center [@media(pointer:coarse)]:px-0',
@@ -215,7 +224,7 @@ export function PathInput({
               )
             }
             className={
-              /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-highlight */ cn(
+              /* TODO(stylex): conditional property composition: whiteSpace */ cn(
                 'hover:bg-pulldown-hover rounded px-1 whitespace-nowrap transition-colors',
                 mobileTouchTargets &&
                   '[@media(pointer:coarse)]:min-h-11 max-sm:min-w-0 max-sm:flex-1 max-sm:truncate max-sm:px-2 max-sm:text-left',

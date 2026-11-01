@@ -119,11 +119,13 @@ export function List<T>({
   sx?: ComponentStyles
   className?: never
 }) {
+  // Keep the virtual list handle and latest item order available to event handlers.
   const listRef = useRef<ListImperativeAPI | null>(null)
 
   // Track sorted items for the reducer - use ref to avoid stale closure
   const sortedItemsRef = useRef<ListItem<T>[]>(items)
 
+  // Apply selection actions to the latest sorted item snapshot.
   const dispatch = useCallback(
     (action: ListAction) =>
       update((prev) => listReducer(sortedItemsRef.current, prev, action)),
@@ -168,6 +170,7 @@ export function List<T>({
     stateRef.current = state
   }, [state])
 
+  // Open the currently selected items in their displayed order.
   const handleOpenItems = useCallback(() => {
     if (!onRowDefaultAction) return
     const selectedItemIds = new Set(stateRef.current?.selectedIds)
@@ -177,6 +180,7 @@ export function List<T>({
     onRowDefaultAction(selectedItems)
   }, [onRowDefaultAction])
 
+  // Translate row clicks and modifiers into list selection or the default action.
   const handleRowClick = useCallback(
     (
       _index: number,
@@ -231,6 +235,7 @@ export function List<T>({
     [dispatch, onRowDefaultAction],
   )
 
+  // Select an unselected row before opening its context menu.
   const handleContextMenu = useCallback(
     (_index: number, item: ListItem<T>, event: React.MouseEvent) => {
       if (item.id && !stateRef.current?.selectedIds?.includes(item.id)) {
@@ -244,14 +249,17 @@ export function List<T>({
     [dispatch, onRowContextMenu],
   )
 
+  // Translate keyboard navigation into the list's selection actions.
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
+      // Resolve selection modifiers before handling the requested navigation key.
       const { key, ctrlKey, metaKey } = e
       let { shiftKey } = e
       let focus = ctrlKey || metaKey
       let toggle = false
       let offset: number | undefined
 
+      // Handle selection, navigation and default-action keys through the list reducer.
       switch (key) {
         case 'a':
           if (ctrlKey || metaKey) {
@@ -305,6 +313,7 @@ export function List<T>({
           return
       }
 
+      // Prevent native scrolling and apply the resolved list navigation.
       e.preventDefault()
       dispatch({
         type: 'SELECT_ITEM',
@@ -317,6 +326,7 @@ export function List<T>({
     [dispatch, handleOpenItems],
   )
 
+  // Keep the last selected row within the virtual list viewport.
   useEffect(() => {
     if (
       listRef?.current &&
@@ -331,11 +341,13 @@ export function List<T>({
     }
   }, [state.lastSelectedIndex, sortedItems.length])
 
+  // Retain the currently rendered row range for focus management.
   const [visibleItems, setVisibleItems] = useState<{
     visibleStartIndex: number
     visibleStopIndex: number
   } | null>(null)
 
+  // Update the visible range only when the virtual list changes it.
   const onRowsRendered = useCallback(
     (
       visibleRows: { startIndex: number; stopIndex: number },
@@ -352,12 +364,14 @@ export function List<T>({
     [],
   )
 
+  // Check whether the focused row is mounted in the visible range.
   const focusedIndexVisible =
     state.focusedIndex !== undefined &&
     visibleItems &&
     state.focusedIndex >= visibleItems.visibleStartIndex &&
     state.focusedIndex <= visibleItems.visibleStopIndex
 
+  // Return keyboard focus to the list while its focused row is virtualized out.
   const listContainerRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!focusedIndexVisible && listContainerRef.current) {
@@ -365,6 +379,7 @@ export function List<T>({
     }
   }, [focusedIndexVisible])
 
+  // Render each visible row with the current item and selection callbacks.
   const RowComponentInternal = useCallback(
     ({
       index,

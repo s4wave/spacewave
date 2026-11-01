@@ -40,6 +40,7 @@ export interface InfoCardProps {
   children: React.ReactNode
   compact?: boolean
   sx?: stylex.StyleXStyles
+  className?: never
 }
 
 /** InfoCard displays related content with an optional heading and compact spacing. */

@@ -1,15 +1,17 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 
 import { toResourceView } from '../status/resource.js'
 
 interface ResourceLoadingCardProps<T> {
+  className?: never
   resource: Resource<T> | null | undefined
   title: string
   loadingDetail?: string
   loadedDetail?: string
   onCancel?: () => void
-  className?: string
+  sx?: ComponentStyles
 }
 
 // ResourceLoadingCard is the catch-all wrapper for SDK Resources that only
@@ -20,8 +22,11 @@ export function ResourceLoadingCard<T>({
   loadingDetail,
   loadedDetail,
   onCancel,
-  className,
-}: ResourceLoadingCardProps<T>) {
+  sx,
+}: Omit<ResourceLoadingCardProps<T>, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
   return (
     <LoadingCard
       view={toResourceView(resource, {
@@ -30,7 +35,7 @@ export function ResourceLoadingCard<T>({
         loadedDetail,
         onCancel,
       })}
-      className={className}
+      sx={sx}
     />
   )
 }

@@ -146,10 +146,12 @@ export function ObjectKeySelector({
   disabled,
   placeholder,
 }: ObjectKeySelectorProps) {
+  // Keep the open selector, drilled path and pending selection together.
   const [open, setOpen] = useState(false)
   const [path, setPath] = useState<string[]>([])
   const [selected, setSelected] = useState<string | null>(null)
 
+  // Start each opened selector at its root without a pending selection.
   const handleOpenChange = useCallback((next: boolean) => {
     setOpen(next)
     if (next) {
@@ -158,6 +160,7 @@ export function ObjectKeySelector({
     }
   }, [])
 
+  // Watch the current object level only while the selector is open.
   const prefix = objectLevelPrefix(path.at(-1) ?? '')
   const level = useWorldQuery(
     world,
@@ -175,20 +178,24 @@ export function ObjectKeySelector({
   ).value
   const currentNodes = level?.nodes ?? []
 
+  // Enter a child level and clear the selection from the previous level.
   const handleDrillIn = useCallback((id: string) => {
     setPath((prev) => [...prev, id])
     setSelected(null)
   }, [])
 
+  // Return to the parent level without carrying a child selection.
   const handleBack = useCallback(() => {
     setPath((prev) => prev.slice(0, -1))
     setSelected(null)
   }, [])
 
+  // Keep selection pending until the person confirms the object.
   const handleSelect = useCallback((key: string) => {
     setSelected(key)
   }, [])
 
+  // Publish the confirmed key and close the selector.
   const handleConfirm = useCallback(() => {
     if (selected) {
       onChange(selected)
@@ -196,6 +203,7 @@ export function ObjectKeySelector({
     }
   }, [selected, onChange])
 
+  // Use the current key or the configured empty prompt for the trigger.
   const displayValue = value || placeholder || 'Select...'
 
   return (

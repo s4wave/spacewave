@@ -105,6 +105,7 @@ function getRecoverySummary(health?: SharedObjectHealth | null): {
   description: string
   hint: string
 } {
+  // Explain why an unavailable organization root leaves the dashboard in degraded mode.
   if (!health) {
     return {
       tone: 'closed',
@@ -115,6 +116,7 @@ function getRecoverySummary(health?: SharedObjectHealth | null): {
     }
   }
 
+  // Show verification while the organization root is still loading.
   if (health.status === SharedObjectHealthStatus.LOADING) {
     return {
       tone: 'loading',
@@ -125,6 +127,7 @@ function getRecoverySummary(health?: SharedObjectHealth | null): {
     }
   }
 
+  // Distinguish rejected initial state from a recoverable mount failure.
   if (
     health.commonReason ===
     SharedObjectHealthCommonReason.INITIAL_STATE_REJECTED
@@ -138,6 +141,7 @@ function getRecoverySummary(health?: SharedObjectHealth | null): {
     }
   }
 
+  // Explain missing organization data and its recovery choices.
   if (health.commonReason === SharedObjectHealthCommonReason.BLOCK_NOT_FOUND) {
     return {
       tone: 'closed',
@@ -148,6 +152,7 @@ function getRecoverySummary(health?: SharedObjectHealth | null): {
     }
   }
 
+  // Keep partially available organization state on the repair path.
   if (health.status === SharedObjectHealthStatus.DEGRADED) {
     return {
       tone: 'degraded',
@@ -550,16 +555,20 @@ function OrgMembersSection({
 
 /** useUsernameInvite sends an org invite to a Spacewave username. */
 function useUsernameInvite(session: Session | null, orgId: string) {
+  // Keep the invitation recipient, pending request and sent acknowledgement together.
   const [username, setUsername] = useState('')
   const [pending, setPending] = useState(false)
   const [sent, setSent] = useState(false)
 
+  // Clear the sent acknowledgement when the recipient changes.
   const change = useCallback((next: string) => {
     setUsername(next)
     setSent(false)
   }, [])
 
+  // Send one invitation to the currently entered username.
   const submit = useCallback(async () => {
+    // Require a session and recipient before starting the invitation request.
     const target = username.trim()
     if (!session || !target || pending) return
     setPending(true)
@@ -635,9 +644,11 @@ function OrgInvitesSection({
   open,
   onOpenChange,
 }: SectionProps & { orgId: string; invites: OrgInviteInfo[] }) {
+  // Keep invitation creation tied to the current session and organization.
   const session = SessionContext.useContext().value
   const [creatingInvite, setCreatingInvite] = useState(false)
 
+  // Create one invitation code and clear its pending state on completion.
   const handleCreateInvite = useCallback(async () => {
     if (!session || creatingInvite) return
     setCreatingInvite(true)
@@ -648,6 +659,7 @@ function OrgInvitesSection({
     }
   }, [session, creatingInvite, orgId])
 
+  // Revoke the selected invitation and tolerate a prior revocation.
   const handleRevokeInvite = useCallback(
     async (inviteId: string) => {
       if (!session) return
@@ -698,20 +710,24 @@ function focusInput(node: HTMLInputElement | null) {
 
 /** useOrgRename edits and saves the organization display name. */
 function useOrgRename(session: Session | null, orgId: string, orgName: string) {
+  // Keep the organization rename draft and save state together.
   const [value, setValue] = useState('')
   const [renaming, setRenaming] = useState(false)
   const [saving, setSaving] = useState(false)
 
+  // Seed the rename editor with the current organization name.
   const start = useCallback(() => {
     setValue(orgName)
     setRenaming(true)
   }, [orgName])
 
+  // Discard the rename draft when editing is cancelled.
   const cancel = useCallback(() => {
     setRenaming(false)
     setValue('')
   }, [])
 
+  // Persist a changed organization name before closing its editor.
   const save = useCallback(async () => {
     if (!session || saving || value.trim() === orgName) return
     setSaving(true)
@@ -974,6 +990,7 @@ export function OrganizationDetails({
   isOwner,
   onCloseClick,
 }: OrganizationDetailsProps) {
+  // Persist which organization section is open for this dashboard.
   const ns = useStateNamespace(['org-details'])
   const [openSection, setOpenSection] = useStateAtom<OrgOpenSection>(
     ns,
@@ -981,6 +998,7 @@ export function OrganizationDetails({
     degraded ? 'recovery' : 'members',
   )
 
+  // Bind each section's controls to the single open-section value.
   const sectionProps = useCallback<SectionPropsFor>(
     (section) => ({
       open: openSection === section,
@@ -989,9 +1007,11 @@ export function OrganizationDetails({
     [openSection, setOpenSection],
   )
 
+  // Resolve the organization name and role from the available identity.
   const info = orgState?.organization
   const { orgName, roleLabel } = orgIdentity(info, fallbackOrgName, isOwner)
 
+  // Wait for organization state unless the dashboard is explicitly degraded.
   if (!orgState && !degraded) {
     return <OrgLoading />
   }

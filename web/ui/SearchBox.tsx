@@ -65,6 +65,7 @@ export function SearchBox({
   sx?: ComponentStyles
   className?: never
 }) {
+  // Retain pending focus requests until the search input mounts.
   const initialFocusRef = useRef(focusOnMount)
   const [focused, setFocused] = useState(() => initialFocusRef.current)
   const [query, setQuery] = useState('')
@@ -82,6 +83,7 @@ export function SearchBox({
     }
   }, [])
 
+  // Commit a nonempty search before notifying the caller that focus left.
   const handleSearchBlur = useCallback(() => {
     setFocused(false)
     if (query.trim() && onSearch) {
@@ -90,6 +92,7 @@ export function SearchBox({
     onBlur?.()
   }, [query, onSearch, onBlur])
 
+  // Commit the current query when Enter is pressed.
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'Enter' && query.trim() && onSearch) {

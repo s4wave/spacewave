@@ -57,6 +57,7 @@ export function PanelHeader({
   variant = 'default',
   ...props
 }: PanelHeaderProps) {
+  // Choose the component selector or static viewer name from the current viewer.
   const [selectorOpen, setSelectorOpen] = useState(false)
   const viewer = useObjectViewer()
   const showSelector = viewer && viewer.visibleComponents.length > 1
@@ -116,7 +117,7 @@ export function PanelHeaderButton({
       onClick={onClick}
       title={title}
       className={
-        /* TODO(stylex): global class adds declarations outside the utility compiler: focus-ring */ cn(
+        /* TODO(stylex): global or unknown class: focus-ring */ cn(
           'hover:bg-pulldown-hover focus-ring flex items-center justify-center rounded p-0.5 transition-colors',
           className,
         )

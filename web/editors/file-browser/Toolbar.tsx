@@ -98,19 +98,24 @@ function upDropHandlers(
 
 // useCollapseLevel tracks how far the toolbar must collapse for its width.
 function useCollapseLevel() {
+  // Keep the toolbar's collapse level tied to its mounted width.
   const [collapseLevel, setCollapseLevel] = useState<CollapseLevel>('none')
   const toolbarRef = useRef<HTMLDivElement>(null)
 
+  // Resolve the available controls from the toolbar's current width.
   const checkWidth = useCallback(() => {
     if (!toolbarRef.current) return
     setCollapseLevel(getCollapseLevel(toolbarRef.current.clientWidth))
   }, [])
 
+  // Measure the toolbar on mount and watch subsequent width changes.
   useEffect(() => {
+    // Require a mounted toolbar before attaching its resize observer.
     checkWidth()
     const toolbar = toolbarRef.current
     if (!toolbar) return
 
+    // Disconnect the width observer when this toolbar is replaced.
     const observer = new ResizeObserver(checkWidth)
     observer.observe(toolbar)
     return () => observer.disconnect()
@@ -213,6 +218,7 @@ export function Toolbar({
   height,
   hideNav,
 }: ToolbarProps) {
+  // Keep compact search activation beside the measured toolbar layout.
   const { collapseLevel, toolbarRef } = useCollapseLevel()
   const [searchActive, setSearchActive] = useState(false)
 
@@ -220,6 +226,7 @@ export function Toolbar({
   const wide = collapseLevel === 'none' || collapseLevel === 'menus'
   const showNewFolder = !!onNewFolder && (!onUploadFiles || wide)
 
+  // Choose the expanded search field or compact search trigger.
   let search = <SearchBox placeholder="Search" sx={stylexStyles.rule1} />
   if (collapseLevel !== 'none') {
     search = searchActive ? (

@@ -1,6 +1,5 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import { LuCircleAlert, LuCircleCheck, LuCloud } from 'react-icons/lu'
-
-import { cn } from '@s4wave/web/style/utils.js'
 
 import { ProgressBar } from './ProgressBar.js'
 import { Spinner } from './Spinner.js'
@@ -15,6 +14,49 @@ import {
   fonts as themeFonts,
   motion as themeMotion,
 } from '../../style/tokens.stylex.js'
+
+import {
+  radii as themeRadii2,
+  utilityState as themeUtilityState2,
+  colors as themeColors2,
+  layout as themeLayout2,
+} from '../../style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    borderRadius: themeRadii2['--radius-lg'],
+    borderStyle: themeUtilityState2['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors2['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors2['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout2['--spacing']} * 3.5)`,
+  },
+  rule2: {
+    display: 'flex',
+    width: `calc(${themeLayout2['--spacing']} * 8)`,
+    height: `calc(${themeLayout2['--spacing']} * 8)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii2['--radius-md'],
+  },
+  rule3: {
+    backgroundColor: `color-mix(in oklab, ${themeColors2['--color-foreground']} 5%, transparent)`,
+    color: themeColors2['--color-foreground-alt'],
+  },
+  rule4: {
+    backgroundColor: `color-mix(in oklab, ${themeColors2['--color-brand']} 10%, transparent)`,
+    color: themeColors2['--color-brand'],
+  },
+  rule5: {
+    backgroundColor: `color-mix(in oklab, ${themeColors2['--color-foreground']} 5%, transparent)`,
+    color: themeColors2['--color-brand'],
+  },
+  rule6: {
+    backgroundColor: `color-mix(in oklab, ${themeColors2['--color-destructive']} 10%, transparent)`,
+    color: themeColors2['--color-destructive'],
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: { marginTop: `calc(${themeLayout['--spacing']} * 2.5)` },
@@ -185,15 +227,9 @@ const stylexStyles = stylex.create({
 })
 
 interface LoadingCardProps {
+  className?: never
   view: LoadingView
-  className?: string
-}
-
-const tileTone: Record<LoadingState, string> = {
-  loading: 'bg-foreground/5 text-foreground-alt',
-  active: 'bg-brand/10 text-brand',
-  synced: 'bg-foreground/5 text-brand',
-  error: 'bg-destructive/10 text-destructive',
+  sx?: ComponentStyles
 }
 
 // LoadingCardProgress renders the progress bar, or the transfer rates when no
@@ -244,24 +280,27 @@ function LoadingCardActions({ view }: { view: LoadingView }) {
 // box, title, detail, optional progress, rate pills, last-activity footer,
 // error box, and retry / cancel buttons. Four states: loading / active /
 // synced / error.
-export function LoadingCard({ view, className }: LoadingCardProps) {
+export function LoadingCard({
+  view,
+  sx,
+}: Omit<LoadingCardProps, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
   return (
-    <div
-      className={
-        /* TODO(stylex): dynamic class or forwarded className */ cn(
-          'border-foreground/6 bg-background-card/30 rounded-lg border p-3.5',
-          className,
-        )
-      }
-    >
+    <div sx={[stylexStyles2.rule1, sx]}>
       <div sx={stylexStyles.rule6}>
         <div
-          className={
-            /* TODO(stylex): dynamic class or forwarded className */ cn(
-              'flex size-8 shrink-0 items-center justify-center rounded-md',
-              tileTone[view.state],
-            )
-          }
+          sx={[
+            stylexStyles2.rule2,
+            view.state === 'loading'
+              ? stylexStyles2.rule3
+              : view.state === 'active'
+                ? stylexStyles2.rule4
+                : view.state === 'synced'
+                  ? stylexStyles2.rule5
+                  : stylexStyles2.rule6,
+          ]}
         >
           <LoadingCardIcon state={view.state} />
         </div>

@@ -39,6 +39,12 @@ import {
 import { BASE_MODEL } from './layout.js'
 import { BaseLayoutContext } from './BaseLayoutContext.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: { width: '100%', maxWidth: 'var(--container-sm)' },
+})
+
 // jsonModelToModel converts a json model to a model
 //
 // writes tab data to tabDataMap.
@@ -122,6 +128,7 @@ class BaseLayoutTabWrapper extends PureComponent<
   private nameTab: (objectKey: string, name: string) => void
 
   constructor(props: { tabID: string; baseLayout: BaseLayout }) {
+    // Seed this tab's content and retain its tab-data subscription.
     super(props)
     const tabData = props.baseLayout.getTabData(props.tabID)
     this.state = { tabData }
@@ -190,6 +197,7 @@ export class BaseLayout extends AbortComponent<
   private objectTabNames: { [tabID: string]: string }
 
   constructor(props: IBaseLayoutProps) {
+    // Initialize layout state, pending tab data and the bound model callbacks.
     super(props)
     this.state = {
       localState: props.localState || { tabSetSelected: {} },
@@ -240,7 +248,7 @@ export class BaseLayout extends AbortComponent<
               title: 'Loading layout',
               detail: 'Waiting for the layout host to publish its model.',
             }}
-            className="w-full max-w-sm"
+            sx={stylexStyles.rule1}
           />
         </div>
       )
@@ -264,6 +272,7 @@ export class BaseLayout extends AbortComponent<
 
   // getModelTabData returns config-backed tab bytes from the live model.
   private getModelTabData(tabID: string): Uint8Array | undefined {
+    // Read model data only from a tab node carrying encoded configuration.
     const node = this.state.model?.getNodeById(tabID)
     if (typeof node !== 'object' || node === null) return undefined
     if (!(node instanceof TabNode)) return undefined
@@ -275,6 +284,7 @@ export class BaseLayout extends AbortComponent<
   // shows. The tab keeps a name the user gave it: it follows the object only
   // while its name derives from objectKey or is the name nameTab last gave it.
   public nameTab(tabID: string, objectKey: string, name: string) {
+    // Update an object-derived tab name without overwriting a user rename.
     const model = this.state.model
     const node = model?.getNodeById(tabID)
     if (!model || !(node instanceof TabNode)) return
@@ -292,9 +302,11 @@ export class BaseLayout extends AbortComponent<
 
   // getTabData returns the tab data for the given tab id.
   public getTabData(tabID: string): Uint8Array | undefined {
+    // Prefer pending tab data until the model acknowledges it.
     const pending = this.pendingTabData[tabID]
     if (pending !== undefined) return pending
 
+    // Use acknowledged tab data before falling back to the model node.
     const stateData = this.state.tabDataMap?.[tabID]
     if (stateData !== undefined) return stateData
 
@@ -316,6 +328,7 @@ export class BaseLayout extends AbortComponent<
     }
     let removed = false
     return () => {
+      // Remove this subscription once while preserving the other tab-data listeners.
       if (removed) {
         return
       }
@@ -357,11 +370,13 @@ export class BaseLayout extends AbortComponent<
 
   // addTab adds a new tab to the layout.
   public addTab(request: AddTabRequest): Promise<AddTabResponse> {
+    // Require a loaded layout model before adding a tab.
     const model = this.state.model
     if (!model) {
       return Promise.resolve({ tabId: '' })
     }
 
+    // Require a tab request before resolving its target tabset.
     const tab = request.tab
     if (!tab) {
       return Promise.resolve({ tabId: '' })
@@ -384,6 +399,7 @@ export class BaseLayout extends AbortComponent<
       }
     }
 
+    // Return an empty result when no target tabset exists.
     if (!targetTabSetId) {
       console.warn('addTab: no tabset found')
       return Promise.resolve({ tabId: '' })
@@ -405,6 +421,7 @@ export class BaseLayout extends AbortComponent<
       }
     }
 
+    // Reuse an existing tab identity and select it when requested.
     const tabId = tab.id || `tab-${Date.now()}`
     const existingTab = model.getNodeById(tabId)
     if (existingTab) {
@@ -487,6 +504,7 @@ export class BaseLayout extends AbortComponent<
 
   // onLayoutModelUpdate is called when the layout model is updated by the Go code.
   private onLayoutModelUpdate(layoutModel: LayoutModel) {
+    // Apply a changed remote layout model while ignoring an identical snapshot.
     if (
       this.state.protoModel &&
       layoutModel &&
@@ -514,6 +532,7 @@ export class BaseLayout extends AbortComponent<
   // FlexLayout passes the already-updated model - we should NOT create a new Model instance
   // as that would break FlexLayout's internal drag state.
   private onModelChange(model: Model) {
+    // Allow the owner to transform or reject a local model edit.
     const prevModelJson = this.state.modelJson
     let modelJson = model.toJson()
     if (this.context?.onModelChange && prevModelJson) {
@@ -524,6 +543,7 @@ export class BaseLayout extends AbortComponent<
       modelJson = nextModelJson
     }
 
+    // Combine pending tab data with the updated model and local selection state.
     const nextLocalState: ILocalState = { tabSetSelected: {} }
     const tabDataMap = {
       ...this.state.tabDataMap,
@@ -541,6 +561,7 @@ export class BaseLayout extends AbortComponent<
       nextLocalState,
     )
 
+    // Publish local selection changes even when the persistent layout stays identical.
     if (
       this.state.protoModel &&
       LayoutModel.equals(layoutModel, this.state.protoModel)
@@ -567,6 +588,7 @@ export class BaseLayout extends AbortComponent<
           : nextLocalState,
     }
 
+    // Commit the changed model and notify its local and remote state consumers.
     this.setState(nextState, () => {
       this.updateTabData()
     })

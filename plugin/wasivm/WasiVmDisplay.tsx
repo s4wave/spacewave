@@ -16,6 +16,16 @@ import { openGpuRenderer } from './display-gpu.js'
 import { keysymOf, xButtons } from './display-input.js'
 import { Scene, type SceneRenderer, type SceneScreen } from './display-scene.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    position: 'absolute',
+    width: '100%',
+    maxWidth: 'var(--container-sm)',
+  },
+})
+
 // WasiVmDisplayConnector opens the display stream of a running VM.
 export type WasiVmDisplayConnector = (
   input: MessageStream<WasiVmDisplayInput>,
@@ -419,7 +429,7 @@ export function WasiVmDisplay({
       />
       {status.kind !== 'ready' && (
         <LoadingCard
-          className="absolute w-full max-w-sm"
+          sx={stylexStyles.rule1}
           view={
             status.kind === 'waiting'
               ? views.waiting

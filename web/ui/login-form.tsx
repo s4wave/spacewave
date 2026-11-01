@@ -239,14 +239,15 @@ const stylexStyles = stylex.create({
     height: `calc(${themeLayout['--spacing']} * 5)`,
     color: themeColors['--color-foreground-alt'],
   },
-  rule28: { display: 'flex', gap: `calc(${themeLayout['--spacing']} * 2)` },
-  rule29: {
+
+  rule29: { display: 'flex', gap: `calc(${themeLayout['--spacing']} * 2)` },
+  rule30: {
     display: 'flex',
     alignItems: 'center',
     gap: `calc(${themeLayout['--spacing']} * 3)`,
   },
-  rule30: { maxWidth: 'var(--container-xs)' },
-  rule31: {
+  rule31: { maxWidth: 'var(--container-xs)' },
+  rule32: {
     minHeight: `calc(${themeLayout['--spacing']} * 11)`,
     borderRadius: themeRadii['--radius-md'],
     borderStyle: themeUtilityState['--tw-border-style'],
@@ -270,7 +271,7 @@ const stylexStyles = stylex.create({
     transitionDuration:
       'var(--tw-duration, var(--default-transition-duration))',
   },
-  rule32: {
+  rule33: {
     minHeight: `calc(${themeLayout['--spacing']} * 11)`,
     borderRadius: themeRadii['--radius-md'],
     borderStyle: themeUtilityState['--tw-border-style'],
@@ -294,7 +295,7 @@ const stylexStyles = stylex.create({
     transitionDuration:
       'var(--tw-duration, var(--default-transition-duration))',
   },
-  rule33: {
+  rule34: {
     position: 'relative',
     overflow: 'hidden',
     borderRadius: themeRadii['--radius-lg'],
@@ -312,7 +313,7 @@ const stylexStyles = stylex.create({
     backdropFilter:
       'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
   },
-  rule34: {
+  rule35: {
     minHeight: `calc(${themeLayout['--spacing']} * 11)`,
     width: '100%',
     textAlign: 'center',
@@ -331,7 +332,7 @@ const stylexStyles = stylex.create({
     transitionDuration:
       'var(--tw-duration, var(--default-transition-duration))',
   },
-  rule35: {
+  rule36: {
     display: 'flex',
     height: themeLayout['--spacing'],
     gap: `calc(${themeLayout['--spacing']} * .5)`,
@@ -339,7 +340,7 @@ const stylexStyles = stylex.create({
     borderRadius: '3.40282e38px',
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
   },
-  rule36: {
+  rule37: {
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
@@ -500,11 +501,7 @@ function SignInMethodButton({
         )
       }
     >
-      {loading ? (
-        <Spinner size="md" {...stylex.props(stylexStyles.rule1)} />
-      ) : (
-        icon
-      )}
+      {loading ? <Spinner size="md" sx={stylexStyles.rule1} /> : icon}
       <span sx={stylexStyles.rule2}>{label}</span>
     </button>
   )
@@ -591,6 +588,7 @@ interface PasswordFormState {
 // passwordFormError returns why the password form cannot be submitted, or null
 // when it can.
 function passwordFormError(form: PasswordFormState): string | null {
+  // Validate the current password form before sending an authentication request.
   if (!form.usernameValid) {
     return 'Username must be a valid DNS label (lowercase letters, numbers, hyphens)'
   }
@@ -640,15 +638,19 @@ function LoginFooter({ creatingAccount }: { creatingAccount: boolean }) {
 // useRateLimitCountdown counts down a server rate limit and remembers that the
 // password submit should be retried once the countdown ends.
 function useRateLimitCountdown() {
+  // Keep the displayed retry countdown, timer and pending retry together.
   const [countdown, setCountdown] = useState(0)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendingRetryRef = useRef(false)
 
+  // Release the countdown timer when its owning form unmounts.
   useEffect(() => {
     return () => clearTimeout(timerRef.current ?? undefined)
   }, [])
 
+  // Start a countdown for the server's retry delay.
   const start = useCallback((seconds: number) => {
+    // Retain one pending retry while decrementing the displayed delay.
     setCountdown(seconds)
     pendingRetryRef.current = true
     let remaining = seconds
@@ -690,10 +692,12 @@ function useBrowserSignIn({
   onError,
   ...handlers
 }: BrowserSignInOptions) {
+  // Keep the active browser sign-in prompt and cancellation controls together.
   const [prompt, setPrompt] = useState<BrowserSignInAction | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
+  // Clear both the delayed prompt and its visible state.
   const clearPrompt = useCallback(() => {
     if (timerRef.current) {
       clearTimeout(timerRef.current)
@@ -702,6 +706,7 @@ function useBrowserSignIn({
     setPrompt(null)
   }, [])
 
+  // Cancel the current browser authentication and release its busy state.
   const cancel = useCallback(() => {
     abortRef.current?.abort()
     abortRef.current = null
@@ -709,6 +714,7 @@ function useBrowserSignIn({
     setLoading(null)
   }, [clearPrompt, setLoading])
 
+  // Abort browser authentication and clear its prompt timer on unmount.
   useEffect(() => {
     return () => {
       abortRef.current?.abort()
@@ -716,9 +722,11 @@ function useBrowserSignIn({
     }
   }, [])
 
+  // Choose the configured runner for the requested browser sign-in method.
   const { onBrowserAuth, onContinueWithPasskey, onSignInWithSSO } = handlers
   const start = useCallback(
     async (action: BrowserSignInAction) => {
+      // Require an available authentication runner before starting its request.
       const runner = browserSignInRunner(action, {
         onBrowserAuth,
         onContinueWithPasskey,
@@ -726,6 +734,7 @@ function useBrowserSignIn({
       })
       if (!runner) return
 
+      // Replace the previous request and show its delayed browser prompt.
       abortRef.current?.abort()
       const controller = new AbortController()
       abortRef.current = controller
@@ -738,6 +747,7 @@ function useBrowserSignIn({
         setPrompt(action)
       }, browserSignInPromptDelayMs)
 
+      // Complete the selected authentication while ignoring cancellation feedback.
       try {
         await runner(controller.signal)
       } catch (err) {
@@ -790,8 +800,10 @@ function useSignInActions({
   onBrowserAuth,
   onSignInWithSSO,
 }: SignInActionsOptions) {
+  // Keep the chosen backup-key filename with the form's sign-in actions.
   const [pemFileName, setPemFileName] = useState<string | null>(null)
 
+  // Run an available sign-in action with shared busy and error feedback.
   const runAction = useCallback(
     async (action: string, handler?: () => void | Promise<void>) => {
       if (!handler) return
@@ -808,6 +820,7 @@ function useSignInActions({
     [setError, setLoading],
   )
 
+  // Read the selected backup key through the existing file handler.
   const changePemFile = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0]
@@ -829,6 +842,7 @@ function useSignInActions({
     [runAction, onLoginWithPem, onNavigateToSession, setError],
   )
 
+  // Run the selected SSO provider with the form's shared request feedback.
   const signInWithSSO = useCallback(
     async (provider: 'google' | 'github') => {
       if (!onSignInWithSSO) return
@@ -1099,7 +1113,7 @@ function PasswordSubmit({
         }
       >
         {busy ? (
-          <Spinner {...stylex.props(stylexStyles.rule25)} />
+          <Spinner sx={stylexStyles.rule25} />
         ) : (
           <LuKeyRound {...stylex.props(stylexStyles.rule23)} />
         )}
@@ -1152,7 +1166,7 @@ function SignInMethods({
   onPasskey: () => void
   onSSO: (provider: 'google' | 'github') => void
 }) {
-  // Resolve the backup-key picker and its current sign-in label.
+  // Resolve the backup-key control's label and current busy state.
   const pemInputRef = useRef<HTMLInputElement>(null)
   const busy = loading !== null
   let pemLabel = 'Backup key (.pem)'
@@ -1181,7 +1195,7 @@ function SignInMethods({
         label={pemLabel}
         onClick={() => pemInputRef.current?.click()}
       />
-      <div sx={stylexStyles.rule28}>
+      <div sx={stylexStyles.rule29}>
         <Tooltip>
           <TooltipTrigger asChild>
             <SignInMethodButton
@@ -1245,7 +1259,7 @@ function ContinueWithoutAccount({
               )
             }
           >
-            <div sx={stylexStyles.rule29}>
+            <div sx={stylexStyles.rule30}>
               <PiUserCircleDuotone
                 className={
                   /* TODO(stylex): a descendant, group, peer or compound selector: group-hover:text-brand */ 'text-foreground-alt group-hover:text-brand size-5 transition-colors'
@@ -1271,7 +1285,7 @@ function ContinueWithoutAccount({
             />
           </button>
         </TooltipTrigger>
-        <TooltipContent side="bottom" sx={stylexStyles.rule30}>
+        <TooltipContent side="bottom" sx={stylexStyles.rule31}>
           Creates a local account stored only on your device
         </TooltipContent>
       </Tooltip>
@@ -1312,11 +1326,11 @@ function BrowserSignInDialog({
             onClick={() => {
               if (prompt) onOpenAgain(prompt)
             }}
-            sx={[stylexStyles.rule31]}
+            sx={[stylexStyles.rule32]}
           >
             Open again
           </button>
-          <button type="button" onClick={onCancel} sx={[stylexStyles.rule32]}>
+          <button type="button" onClick={onCancel} sx={[stylexStyles.rule33]}>
             Cancel attempt
           </button>
         </DialogFooter>
@@ -1359,6 +1373,7 @@ async function submitPassword(
   >,
   actions: { confirmCreate: () => void; fail: (message: string) => void },
 ) {
+  // Create the account or submit the existing account's password credentials.
   const { username, password, token } = credentials
   const {
     onLoginWithPassword,
@@ -1375,6 +1390,7 @@ async function submitPassword(
     return
   }
 
+  // Apply the login result through the configured navigation and recovery actions.
   const result = await onLoginWithPassword?.(username, password, token)
   if (result) {
     applyLoginResult(result, {
@@ -1425,6 +1441,79 @@ function readBackupKey(
   reader.readAsArrayBuffer(file)
 }
 
+// SignInAlternatives groups the non-password methods available to this form.
+function SignInAlternatives({
+  visible,
+  loading,
+  actions,
+  canUsePem,
+  canUsePasskey,
+  ssoEnabled,
+  canContinueWithoutAccount,
+}: {
+  visible: boolean
+  loading: string | null
+  actions: ReturnType<typeof useSignInActions>
+  canUsePem: boolean
+  canUsePasskey: boolean
+  ssoEnabled: ReturnType<typeof loginConfig>['ssoEnabled']
+  canContinueWithoutAccount: boolean
+}) {
+  if (!visible) return null
+
+  return (
+    <>
+      <Divider label="or sign in with" />
+      <SignInMethods
+        loading={loading}
+        pemFileName={actions.pemFileName}
+        canUsePem={canUsePem}
+        canUsePasskey={canUsePasskey}
+        ssoEnabled={ssoEnabled}
+        onPemFileChange={actions.changePemFile}
+        onPasskey={actions.signInWithPasskey}
+        onSSO={actions.signInWithSSO}
+      />
+      {canContinueWithoutAccount && (
+        <ContinueWithoutAccount
+          loading={loading}
+          onContinue={actions.continueWithoutAccount}
+        />
+      )}
+    </>
+  )
+}
+
+// useAuthBusyState keeps the owner's busy indication tied to the form's lifetime.
+function useAuthBusyState(
+  onAuthBusyChange: LoginFormProps['onAuthBusyChange'],
+) {
+  // Track the active authentication method for this mounted form.
+  const [loading, setLoadingState] = useState<string | null>(null)
+
+  // Notify the owner whenever authentication enters or leaves a busy state.
+  const onAuthBusyChangeRef = useLatestRef(onAuthBusyChange)
+  const setLoading = useCallback(
+    (value: string | null) => {
+      setLoadingState(value)
+      onAuthBusyChangeRef.current?.(value !== null)
+    },
+    [onAuthBusyChangeRef],
+  )
+
+  // Use the latest owner callback when this form becomes idle on unmount.
+  const notifyAuthIdleOnUnmount = useEffectEvent(() => {
+    onAuthBusyChange?.(false)
+  })
+
+  // Release the owner's busy indication when this form unmounts.
+  useEffect(() => {
+    return () => notifyAuthIdleOnUnmount()
+  }, [])
+
+  return [loading, setLoading] as const
+}
+
 // LoginForm renders a unified authentication screen with username+password
 // fields and a "Continue with password" button that handles both new account
 // creation and login to existing accounts.
@@ -1443,7 +1532,8 @@ export function LoginForm({
   onAuthBusyChange,
   ...props
 }: LoginFormProps) {
-  const [loading, setLoadingState] = useState<string | null>(null)
+  // Keep the current sign-in draft, mode and request feedback together.
+  const [loading, setLoading] = useAuthBusyState(onAuthBusyChange)
   const [username, setUsername] = useState(
     () => initialUsername?.toLowerCase() ?? '',
   )
@@ -1453,6 +1543,8 @@ export function LoginForm({
   const [mode, setMode] = useState<LoginMode>('login')
   const [agreed, setAgreed] = useState(false)
   const [browserAuthRequired, setBrowserAuthRequired] = useState(false)
+
+  // Resolve server verification and the controls for the current authentication mode.
   const turnstileRef = useRef<TurnstileInstance>(null)
   const {
     turnstileSiteKey,
@@ -1465,29 +1557,15 @@ export function LoginForm({
   const busy = loading !== null
   const passwordBusy = loading === 'password'
 
+  // Derive field eligibility from the current username and password draft.
   const usernameValid = dnsLabelRegex.test(username)
   const passwordValid = password.length >= 8
   const passwordsMatch = password === confirm
 
-  const onAuthBusyChangeRef = useLatestRef(onAuthBusyChange)
-  const setLoading = useCallback(
-    (value: string | null) => {
-      setLoadingState(value)
-      onAuthBusyChangeRef.current?.(value !== null)
-    },
-    [onAuthBusyChangeRef],
-  )
-
-  const notifyAuthIdleOnUnmount = useEffectEvent(() => {
-    onAuthBusyChange?.(false)
-  })
-
-  useEffect(() => {
-    return () => notifyAuthIdleOnUnmount()
-  }, [])
-
+  // Share the retry countdown with the form's authentication error handling.
   const rateLimit = useRateLimitCountdown()
 
+  // Require browser verification while allowing native desktop authentication.
   const getTurnstileToken = useCallback(async (): Promise<string> => {
     if (isDesktop) return ''
     const token = (await turnstileRef.current?.takeToken()) ?? ''
@@ -1495,9 +1573,11 @@ export function LoginForm({
     return token
   }, [])
 
+  // Translate authentication failures into browser sign-in, retry delay or visible error state.
   const startRateLimit = rateLimit.start
   const handleAuthError = useCallback(
     (err: unknown) => {
+      // Distinguish browser-required and rate-limited authentication from ordinary failures.
       const msg = errorText(err)
       if (isBrowserAuthRequired(msg)) {
         setBrowserAuthRequired(true)
@@ -1516,6 +1596,7 @@ export function LoginForm({
     [publicHost, startRateLimit],
   )
 
+  // Bind browser sign-in to the form's current loading and error controls.
   const browserSignIn = useBrowserSignIn({
     setLoading,
     setError,
@@ -1537,6 +1618,7 @@ export function LoginForm({
     onSignInWithSSO,
   })
 
+  // Keep password submission eligibility in one derived form snapshot.
   const passwordForm = useMemo<PasswordFormState>(
     () => ({
       usernameValid,
@@ -1556,12 +1638,14 @@ export function LoginForm({
     ],
   )
   const handleContinueWithPassword = useCallback(async () => {
+    // Validate the current password form before starting its request.
     const invalid = passwordFormError(passwordForm)
     if (invalid) {
       setError(invalid)
       return
     }
 
+    // Acquire verification and submit password authentication with shared request feedback.
     setError(null)
     setLoading('password')
     try {
@@ -1594,6 +1678,7 @@ export function LoginForm({
     setLoading,
   ])
 
+  // Submit the current password form when Enter is pressed while idle.
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
       if (event.key === 'Enter' && loading === null) {
@@ -1614,6 +1699,7 @@ export function LoginForm({
     return () => clearTimeout(id)
   }, [loading, rateLimitCountdown, consumeRetry])
 
+  // Clear stale errors when the draft changes and reset confirmation on return to login.
   const edit = useCallback((set: (value: string) => void, value: string) => {
     set(value)
     setError(null)
@@ -1635,7 +1721,7 @@ export function LoginForm({
       onKeyDown={handleKeyDown}
       {...props}
     >
-      <div sx={stylexStyles.rule33}>
+      <div sx={stylexStyles.rule34}>
         <div
           className={
             /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3 p-6'
@@ -1684,33 +1770,21 @@ export function LoginForm({
             <button
               type="button"
               onClick={returnToLogin}
-              sx={stylexStyles.rule34}
+              sx={stylexStyles.rule35}
             >
               &larr; Return to login
             </button>
           )}
 
-          {!passwordBusy && mode === 'login' && (
-            <>
-              <Divider label="or sign in with" />
-              <SignInMethods
-                loading={loading}
-                pemFileName={actions.pemFileName}
-                canUsePem={!!onLoginWithPem}
-                canUsePasskey={!!onContinueWithPasskey}
-                ssoEnabled={ssoEnabled}
-                onPemFileChange={actions.changePemFile}
-                onPasskey={actions.signInWithPasskey}
-                onSSO={actions.signInWithSSO}
-              />
-              {onContinueWithoutAccount && (
-                <ContinueWithoutAccount
-                  loading={loading}
-                  onContinue={actions.continueWithoutAccount}
-                />
-              )}
-            </>
-          )}
+          <SignInAlternatives
+            visible={!passwordBusy && mode === 'login'}
+            loading={loading}
+            actions={actions}
+            canUsePem={!!onLoginWithPem}
+            canUsePasskey={!!onContinueWithPasskey}
+            ssoEnabled={ssoEnabled}
+            canContinueWithoutAccount={!!onContinueWithoutAccount}
+          />
         </div>
       </div>
 
@@ -1726,6 +1800,7 @@ export function LoginForm({
 }
 
 function PasswordStrength({ password }: { password: string }) {
+  // Resolve the current password's strength label and indicator color.
   const strength =
     password.length === 0
       ? 0
@@ -1737,6 +1812,7 @@ function PasswordStrength({ password }: { password: string }) {
   const labels = ['', 'Weak', 'Fair', 'Strong']
   const colors = ['', 'bg-destructive', 'bg-yellow-500', 'bg-green-500']
 
+  // Hide the strength indicator until the person enters a password.
   if (password.length === 0) return null
 
   return (
@@ -1745,7 +1821,7 @@ function PasswordStrength({ password }: { password: string }) {
         /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1 */ 'space-y-1'
       }
     >
-      <div sx={stylexStyles.rule35}>
+      <div sx={stylexStyles.rule36}>
         {[1, 2, 3].map((level) => (
           <div
             key={level}
@@ -1758,7 +1834,7 @@ function PasswordStrength({ password }: { password: string }) {
           />
         ))}
       </div>
-      <p sx={stylexStyles.rule36}>{labels[strength]}</p>
+      <p sx={stylexStyles.rule37}>{labels[strength]}</p>
     </div>
   )
 }

@@ -30,6 +30,10 @@ import {
 } from './types.js'
 import type { FileListDragEnvelopeContext } from './FileList.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({ rule1: { flexShrink: 0 } })
+
 function isEditableElement(el: Element | null): el is HTMLElement {
   return (
     el instanceof HTMLElement &&
@@ -39,6 +43,7 @@ function isEditableElement(el: Element | null): el is HTMLElement {
 }
 
 function formatBytes(bytes: number, decimals = 0): string {
+  // Choose a binary size unit and round the displayed quantity.
   if (bytes === 0) return '0 Bytes'
   const k = 1024
   const dm = decimals < 0 ? 0 : decimals
@@ -104,6 +109,7 @@ function useEntryDrag(
   // cancels the drag when the entry offers none.
   const handleDragStart = useCallback(
     (e: DragEvent<HTMLDivElement>) => {
+      // Resolve the drag payloads offered for this row's current selection.
       const selection = { selectedIds }
       const dragEnvelope = getDragEnvelope?.(entry, selection) ?? null
       const downloadDragTarget =
@@ -113,6 +119,7 @@ function useEntryDrag(
         return
       }
 
+      // Publish the supported app and download payloads to the native drag operation.
       if (dragEnvelope) {
         writeAppDragEnvelope(e.dataTransfer, dragEnvelope)
       }
@@ -128,10 +135,12 @@ function useEntryDrag(
     [selectedIds, entry, getDownloadDragTarget, getDragEnvelope],
   )
 
+  // Clear the app drag payload when the row's drag ends.
   const handleDragEnd = useCallback(() => {
     clearActiveAppDragEnvelope()
   }, [])
 
+  // Accept a move only when this entry's drop handler allows it.
   const handleDragOver = useCallback(
     (e: DragEvent<HTMLDivElement>) => {
       if (!onEntryDragOver?.(entry, e)) return
@@ -142,6 +151,7 @@ function useEntryDrag(
     [entry, onEntryDragOver],
   )
 
+  // Notify the entry when the drag leaves its drop target.
   const handleDragLeave = useCallback(
     (e: DragEvent<HTMLDivElement>) => {
       onEntryDragLeave?.(entry, e)
@@ -149,6 +159,7 @@ function useEntryDrag(
     [entry, onEntryDragLeave],
   )
 
+  // Deliver an accepted drop through the entry's existing callback.
   const handleDrop = useCallback(
     (e: DragEvent<HTMLDivElement>) => {
       if (!onEntryDragOver?.(entry, e)) return
@@ -174,6 +185,7 @@ function useEntryDrag(
 function useFocusRow(focused: boolean) {
   const divRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
+    // Focus the active row without stealing focus from an editable control.
     if (!focused || !divRef.current) return
     const hasInput = divRef.current.querySelector(
       'input, textarea, select, [contenteditable="true"]',
@@ -209,6 +221,7 @@ function useRowHandlers(
   onRowClick: RowHandlerProps['onRowClick'],
   onContextMenu: RowHandlerProps['onContextMenu'],
 ) {
+  // Deliver a single row click with its current item and index.
   const select = useCallback(
     (e: MouseEvent) => {
       onRowClick?.(itemIndex, item, e, 1)
@@ -216,6 +229,7 @@ function useRowHandlers(
     [itemIndex, item, onRowClick],
   )
 
+  // Deliver the row's default action with a double-click count.
   const doubleClick = useCallback(
     (e: MouseEvent) => {
       onRowClick?.(itemIndex, item, e, 2)
@@ -223,6 +237,7 @@ function useRowHandlers(
     [itemIndex, item, onRowClick],
   )
 
+  // Deliver keyboard activation through the same row-click contract.
   const keyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key !== 'Enter' && e.key !== ' ') return
@@ -232,6 +247,7 @@ function useRowHandlers(
     [itemIndex, item, onRowClick],
   )
 
+  // Open the row context menu without also selecting its parent.
   const contextMenu = useCallback(
     (e: MouseEvent) => {
       e.preventDefault()
@@ -241,6 +257,7 @@ function useRowHandlers(
     [itemIndex, item, onContextMenu],
   )
 
+  // Open the row menu from its trailing control without bubbling the click.
   const dotsClick = useCallback(
     (e: MouseEvent) => {
       e.stopPropagation()
@@ -282,7 +299,7 @@ function FileEntryName({
       />
     )
   }
-  if (loading) icon = <Spinner variant="brand" className="shrink-0" />
+  if (loading) icon = <Spinner variant="brand" sx={stylexStyles.rule1} />
 
   return (
     <div className="flex min-w-30 flex-1 items-center gap-2 overflow-hidden">
@@ -320,6 +337,7 @@ function FileEntryRow({
   style,
   ariaAttributes,
 }: FileListEntryProps & { entry: FileEntry }) {
+  // Bind the row's selection, focus and drag behavior to the shared list state.
   const context = use(ListStateContext)
   const selectedIds = context?.selectedIds
   const selected = selectedIds?.includes(entry.id) ?? false
@@ -334,6 +352,7 @@ function FileEntryRow({
     onEntryDrop,
   })
 
+  // Load optional details through the caller's cancellable entry reader.
   const fetchDetails = useCallback(
     (signal: AbortSignal) => {
       if (!getEntryDetails) {
@@ -344,8 +363,10 @@ function FileEntryRow({
     [entry, itemIndex, getEntryDetails],
   )
 
+  // Use the current details result without replacing the row's identity.
   const { data: entryDetails } = usePromise(fetchDetails)
 
+  // Render the ordinary file name when the caller provides no replacement.
   const defaultNode = (
     <FileEntryName
       entry={entry}
