@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { act, useState } from 'react'
+import { createRoot } from 'react-dom/client'
 import * as stylex from '@stylexjs/stylex'
-import { expect, it } from 'vitest'
+import { expect, it, onTestFinished } from 'vitest'
 import { page, userEvent } from 'vitest/browser'
-import { render } from 'vitest-browser-react'
 
 import { VmErrorBanner } from '../../app/vm/VmErrorBanner.js'
 import { TagChip } from '../../plugin/notes/blog/TagChip.js'
@@ -11,6 +11,7 @@ import { OutputPanel } from '../ui/OutputPanel.js'
 import { CopyableField } from '../ui/CopyableField.js'
 import { RadioOption } from '../ui/RadioOption.js'
 import { Window } from '../ui/Window.js'
+import { Input } from '../ui/input.js'
 import { PanelHeader, PanelHeaderButton } from '../ui/PanelHeader.js'
 import {
   Sheet,
@@ -45,6 +46,13 @@ function PilotJourney() {
 
   return (
     <main>
+      <Input
+        aria-label="Native input"
+        variant="config"
+        placeholder="Field value"
+        sx={styles.headerOverride}
+      />
+      <Input aria-label="Disabled native input" disabled />
       <InfoCard compact title="Details" sx={styles.override}>
         <VmErrorBanner title="Unavailable" message="Try again" />
         <TagChip tag="native-css" onSelectTag={setSelected} />
@@ -111,7 +119,16 @@ function PilotJourney() {
 
 it('composes shared, app and plugin styles through the browser build', async () => {
   // Render production components through Vitest's normal React and native Vite CSS pipeline.
-  await render(<PilotJourney />)
+  const host = document.createElement('div')
+  document.body.appendChild(host)
+  const root = createRoot(host)
+  onTestFinished(() => {
+    act(() => root.unmount())
+    host.remove()
+  })
+  await act(() => root.render(<PilotJourney />))
+
+  // Observe the app and plugin content after the production React mount.
   await expect
     .poll(() => document.querySelector('[role=alert]')?.textContent)
     .toBe('UnavailableTry again')
@@ -254,4 +271,15 @@ it('composes shared, app and plugin styles through the browser build', async () 
   await expect
     .poll(() => dialog.query()?.checkVisibility() ?? false)
     .toBe(false)
+
+  // Native field behavior and compiled caller styles survive ordinary input events.
+  const field = page.getByRole('textbox', { name: 'Native input', exact: true })
+  await field.fill('Written value')
+  await expect.element(field).toHaveValue('Written value')
+  expect(getComputedStyle(field.element()).padding).toBe('19px')
+  await expect
+    .element(
+      page.getByRole('textbox', { name: 'Disabled native input', exact: true }),
+    )
+    .toBeDisabled()
 })
