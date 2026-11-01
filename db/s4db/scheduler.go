@@ -27,6 +27,9 @@ type scheduler struct {
 	// releaseCursor resumes bounded free batches without rescanning their prefix.
 	// mtx guards it with the other release state.
 	releaseCursor int
+	// releaseRemaining counts the entries left in a bounded release pass.
+	// mtx guards it; a positive count schedules the next batch immediately.
+	releaseRemaining int
 	// db is the database.
 	db *DB
 	// idle runs background reads and writes at background priority.
@@ -74,6 +77,15 @@ func (s *scheduler) run() {
 			st = s.db.cur.Load()
 			wait = getWaitCh()
 		})
+
+		// Finish a known release pass before starting work that needs its space.
+		// Every batch reacquires writer admission, so foreground requests still win.
+		if s.releaseQueued() {
+			if err := s.releaseStep(s.ctx); err == nil {
+				quietAt = time.Now()
+				continue
+			}
+		}
 
 		// Flush when the memtable or the log since the last flush passed the
 		// budget, and merge when a level is over its target.

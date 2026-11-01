@@ -148,4 +148,40 @@ func TestBuild(t *testing.T) {
 	if _, err := os.Stat(bad); !os.IsNotExist(err) {
 		t.Fatalf("bad file left: %v", err)
 	}
+
+	// A valid checksum cannot make an older record layout safe to interpret.
+	for _, oldVersion := range []bool{true, false} {
+		t.Run(fmt.Sprintf("unsupported-header-%t", oldVersion), func(t *testing.T) {
+			// Build a real file, then change only its format declaration.
+			path := filepath.Join(t.TempDir(), "unsupported.s4db")
+			if err := Build(ctx, path, Options{}, func(func([]byte, []byte) error) error { return nil }); err != nil {
+				t.Fatal(err)
+			}
+			f, err := os.OpenFile(path, os.O_RDWR, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// Encode the unsupported declaration with a valid checksum.
+			h := newHeader(defaultMemtable)
+			if oldVersion {
+				h.version = 2
+			}
+			h.incompat = 0
+			if _, err := f.WriteAt(h.encode(), headerPage*pageSize); err != nil {
+				t.Fatal(err)
+			}
+			if err := f.Close(); err != nil {
+				t.Fatal(err)
+			}
+
+			// Refuse the unsupported layout before any log or checkpoint is replayed.
+			if db, err := Open(path, Options{}); !errors.Is(err, ErrUnsupported) {
+				if db != nil {
+					_ = db.Close()
+				}
+				t.Fatalf("unsupported header: %v", err)
+			}
+		})
+	}
 }
