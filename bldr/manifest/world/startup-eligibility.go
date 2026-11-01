@@ -101,7 +101,10 @@ func collectStartupManifestEligibilityForManifestID(
 			var ref *bucket.ObjectRef
 			objectType, err := getStartupManifestCandidateObjectType(ctx, ws, objKey)
 			if err != nil {
-				return nil, err
+				if ctxErr := startupContextError(err); ctxErr != nil {
+					return nil, ctxErr
+				}
+				continue
 			}
 			if objectType == ManifestStoreTypeID || objectType == ManifestBundleTypeID {
 				continue
@@ -109,19 +112,33 @@ func collectStartupManifestEligibilityForManifestID(
 			if objectType != ManifestTypeID {
 				stored, _, err := lookupManifestRefForStartupEligibility(ctx, ws, objKey)
 				if err != nil {
-					return nil, err
+					if ctxErr := startupContextError(err); ctxErr != nil {
+						return nil, ctxErr
+					}
+					if objectType != "" {
+						continue
+					}
+				} else {
+					ref = stored.GetManifestRef()
 				}
-				ref = stored.GetManifestRef()
-			} else {
-				// Direct manifests already identify the executable without reading its payload.
+			}
+
+			// Direct and untyped legacy manifests identify the executable at their own root.
+			if ref == nil {
 				object, err := world.MustGetObject(ctx, ws, objKey)
 				if err != nil {
-					return nil, err
+					if ctxErr := startupContextError(err); ctxErr != nil {
+						return nil, ctxErr
+					}
+					continue
 				}
 				ref, _, err = object.GetRootRef(ctx)
 				world.ReleaseObjectState(object)
 				if err != nil {
-					return nil, err
+					if ctxErr := startupContextError(err); ctxErr != nil {
+						return nil, ctxErr
+					}
+					continue
 				}
 			}
 			if ref.GetRootRef().GetHash().MarshalString() != manifestRoot {
