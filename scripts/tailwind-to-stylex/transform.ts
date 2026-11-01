@@ -264,6 +264,27 @@ export function transform(
   let resolveRecipe: (name: string) => Syntax | undefined = () => undefined
   const slice = (node: Syntax) => source.slice(node.start!, node.end!)
 
+  // Preserve already-boolean conditions while excluding numeric falsy values from StyleX arrays.
+  const truthy = (node: Syntax): string => {
+    const boolean =
+      node.type === 'BooleanLiteral' ||
+      (node.type === 'UnaryExpression' && node.operator === '!') ||
+      (node.type === 'BinaryExpression' &&
+        [
+          '===',
+          '!==',
+          '==',
+          '!=',
+          '<',
+          '>',
+          '<=',
+          '>=',
+          'in',
+          'instanceof',
+        ].includes(node.operator as string))
+    return boolean ? `(${slice(node)})` : `!!(${slice(node)})`
+  }
+
   // Keep an attribute manual when separate namespaces would replace another namespace's conditions.
   const checkComposition = (styles: string) => {
     // Recipes contribute their referenced namespaces just like direct class expressions.
@@ -369,7 +390,7 @@ export function transform(
         return 'false'
       case 'LogicalExpression':
         if (node.operator !== '&&') throw new Error('fallback class expression')
-        return `(!!(${slice(node.left as Syntax)}) && ${expression(node.right as Syntax, normalize)})`
+        return `(${truthy(node.left as Syntax)} && ${expression(node.right as Syntax, normalize)})`
       case 'ConditionalExpression':
         return `(${slice(node.test as Syntax)} ? ${expression(node.consequent as Syntax, normalize)} : ${expression(node.alternate as Syntax, normalize)})`
       case 'ArrayExpression':
@@ -383,7 +404,7 @@ export function transform(
               (property.key as Syntax).type !== 'StringLiteral'
             )
               throw new Error('computed class object')
-            return `(!!(${slice(property.value as Syntax)}) && ${literal((property.key as Syntax).value as string, normalize)})`
+            return `(${truthy(property.value as Syntax)} && ${literal((property.key as Syntax).value as string, normalize)})`
           })
           .join(', ')}]`
       case 'CallExpression': {
