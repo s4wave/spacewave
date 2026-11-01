@@ -6,7 +6,9 @@ function Toaster({ ...props }: ToasterProps) {
   return (
     <Sonner
       theme="dark"
-      className="toaster group"
+      className={
+        /* TODO(stylex): global or unknown class: toaster */ 'toaster group'
+      }
       position="bottom-right"
       offset={{ bottom: 50, right: 12 }}
       mobileOffset={{ bottom: 50, right: 12 }}

@@ -1,6 +1,52 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { cn } from '@s4wave/web/style/utils.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  colors as themeColors,
+  layout as themeLayout,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: { color: themeColors['--color-foreground-alt'] },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule3: { textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' },
+  rule4: {
+    flexShrink: 0,
+    fontSize: '10px',
+    lineHeight: 1.5,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule5: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+  },
+  rule6: {
+    display: 'flex',
+    width: '100%',
+    cursor: 'pointer',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    textAlign: 'left',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-background-tertiary'],
+      },
+    },
+  },
+})
+
 // StatusListItemStatus defines the status of an item.
 export type StatusListItemStatus = 'success' | 'error' | 'pending' | 'none'
 
@@ -65,10 +111,12 @@ function StatusIndicator({
 
   return (
     <span
-      className={cn(
-        'hdr-status-flash micro-ten font-bold',
-        statusClassNames[status],
-      )}
+      className={
+        /* TODO(stylex): global or unknown class: hdr-status-flash */ cn(
+          'hdr-status-flash micro-ten font-bold',
+          statusClassNames[status],
+        )
+      }
       {...(changed ? { 'data-status-changed': '' } : {})}
     >
       {label}
@@ -87,39 +135,36 @@ export function StatusList({
   const labels = { ...defaultStatusLabels, ...statusLabels }
   return (
     <div
-      className={cn(
-        'flex-1 overflow-auto rounded border p-2 font-mono text-xs',
-        'bg-background-secondary text-foreground',
-        'border-ui-outline',
-        className,
-      )}
+      className={
+        /* TODO(stylex): dynamic class or forwarded className */ cn(
+          'flex-1 overflow-auto rounded border p-2 font-mono text-xs',
+          'bg-background-secondary text-foreground',
+          'border-ui-outline',
+          className,
+        )
+      }
     >
       {items.length === 0 ? (
-        <div className="text-foreground-alt">{emptyMessage}</div>
+        <div sx={stylexStyles.rule1}>{emptyMessage}</div>
       ) : (
         items.map((item) => {
           const content = (
             <>
-              <span className="flex items-center gap-1.5">
+              <span sx={stylexStyles.rule2}>
                 <StatusIndicator
                   status={item.status}
                   label={labels[item.status]}
                 />
-                <span className="truncate">{item.label}</span>
+                <span sx={stylexStyles.rule3}>{item.label}</span>
               </span>
               {item.detail && (
-                <span className="text-foreground-alt micro-ten shrink-0">
-                  {item.detail}
-                </span>
+                <span sx={stylexStyles.rule4}>{item.detail}</span>
               )}
             </>
           )
           if (!onItemClick) {
             return (
-              <div
-                key={item.id}
-                className="flex items-center justify-between gap-2 py-0.5"
-              >
+              <div key={item.id} sx={stylexStyles.rule5}>
                 {content}
               </div>
             )
@@ -128,7 +173,7 @@ export function StatusList({
             <button
               key={item.id}
               type="button"
-              className="hover:bg-background-tertiary flex w-full cursor-pointer items-center justify-between gap-2 py-0.5 text-left"
+              sx={stylexStyles.rule6}
               onClick={() => onItemClick(item)}
             >
               {content}

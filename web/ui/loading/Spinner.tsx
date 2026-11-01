@@ -48,12 +48,14 @@ interface SpinnerProps {
 export function Spinner({ size = 'md', variant, className }: SpinnerProps) {
   return (
     <LuLoader
-      className={cn(
-        'animate-spin motion-reduce:animate-none',
-        sizeClasses[size],
-        spinnerVariants({ variant }),
-        className,
-      )}
+      className={
+        /* TODO(stylex): dynamic class or forwarded className */ cn(
+          'animate-spin motion-reduce:animate-none',
+          sizeClasses[size],
+          spinnerVariants({ variant }),
+          className,
+        )
+      }
       aria-hidden="true"
     />
   )

@@ -43,7 +43,12 @@ function ButtonGroup({
       role="group"
       data-slot="button-group"
       data-orientation={orientation}
-      className={cn(buttonGroupVariants({ orientation }), className)}
+      className={
+        /* TODO(stylex): computed class helper */ cn(
+          buttonGroupVariants({ orientation }),
+          className,
+        )
+      }
       {...props}
     />
   )
@@ -60,10 +65,12 @@ function ButtonGroupText({
 
   return (
     <Comp
-      className={cn(
-        "bg-muted flex items-center gap-2 rounded-md border px-4 text-sm font-medium shadow-xs [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4",
-        className,
-      )}
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: [&_svg]:pointer-events-none */ cn(
+          "bg-muted flex items-center gap-2 rounded-md border px-4 text-sm font-medium shadow-xs [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4",
+          className,
+        )
+      }
       {...props}
     />
   )

@@ -5,6 +5,33 @@ import { LuCheck, LuCopy } from 'react-icons/lu'
 import { cn } from '@s4wave/web/style/utils.js'
 import { Button } from '@s4wave/web/ui/button.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    clipPath: 'inset(50%)',
+    whiteSpace: 'nowrap',
+    borderWidth: 0,
+    width: '1px',
+    height: '1px',
+    margin: '-1px',
+    padding: 0,
+    position: 'absolute',
+    overflow: 'hidden',
+  },
+  rule2: {
+    display: 'grid',
+    minHeight: '1lh',
+    minWidth: { default: 'max-content', ':where([data-wrap] *)': 0 },
+    alignContent: 'flex-start',
+    gridTemplateColumns: {
+      default: null,
+      ':where([data-numbered] *)': 'auto 1fr',
+    },
+  },
+  rule3: { minWidth: 0 },
+})
+
 const codeBlockVariants = cva(
   'group/code-block relative flex w-full min-w-0 flex-col overflow-hidden rounded-lg text-sm has-[>[data-slot=code-block-content]:focus-visible]:ring-3 has-[>[data-slot=code-block-content]:focus-visible]:ring-ring/50 data-[size=sm]:text-xs',
   {
@@ -34,7 +61,12 @@ function CodeBlock({
       data-slot="code-block"
       data-variant={variant}
       data-size={size}
-      className={cn(codeBlockVariants({ variant }), className)}
+      className={
+        /* TODO(stylex): global or unknown class: group/code-block */ cn(
+          codeBlockVariants({ variant }),
+          className,
+        )
+      }
       {...props}
     />
   )
@@ -44,10 +76,12 @@ function CodeBlockHeader({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="code-block-header"
-      className={cn(
-        'flex min-w-0 shrink-0 items-center gap-2 px-3 pt-3 text-muted-foreground group-data-[size=sm]/code-block:px-2.5 group-data-[size=sm]/code-block:pt-2.5 group-data-[variant=destructive]/code-block:text-destructive *:has-[>[data-slot=code-block-title]]:min-w-0',
-        className,
-      )}
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: group-data-[size=sm]/code-block:px-2.5 */ cn(
+          'flex min-w-0 shrink-0 items-center gap-2 px-3 pt-3 text-muted-foreground group-data-[size=sm]/code-block:px-2.5 group-data-[size=sm]/code-block:pt-2.5 group-data-[variant=destructive]/code-block:text-destructive *:has-[>[data-slot=code-block-title]]:min-w-0',
+          className,
+        )
+      }
       {...props}
     />
   )
@@ -57,10 +91,12 @@ function CodeBlockTitle({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="code-block-title"
-      className={cn(
-        "min-w-0 truncate font-sans text-sm font-medium text-foreground group-data-[size=sm]/code-block:text-xs group-data-[variant=destructive]/code-block:text-destructive [&_svg]:pointer-events-none [&_svg]:inline-block [&_svg]:align-middle [&_svg:not([class*='size-'])]:size-3.5 *:[svg]:me-1.5",
-        className,
-      )}
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: group-data-[size=sm]/code-block:text-xs */ cn(
+          "min-w-0 truncate font-sans text-sm font-medium text-foreground group-data-[size=sm]/code-block:text-xs group-data-[variant=destructive]/code-block:text-destructive [&_svg]:pointer-events-none [&_svg]:inline-block [&_svg]:align-middle [&_svg:not([class*='size-'])]:size-3.5 *:[svg]:me-1.5",
+          className,
+        )
+      }
       {...props}
     />
   )
@@ -73,10 +109,12 @@ function CodeBlockActions({
   return (
     <div
       data-slot="code-block-actions"
-      className={cn(
-        '-my-1 ms-auto -me-1.5 flex shrink-0 items-center gap-1 [[data-slot=code-block]>&]:absolute [[data-slot=code-block]>&]:end-2 [[data-slot=code-block]>&]:top-2 [[data-slot=code-block]>&]:z-10 [[data-slot=code-block]>&]:m-0 [[data-slot=code-block]>&]:opacity-0 [[data-slot=code-block]>&]:transition-opacity [[data-slot=code-block]>&]:group-focus-within/code-block:opacity-100 [[data-slot=code-block]>&]:group-hover/code-block:opacity-100 group-data-[size=sm]/code-block:[[data-slot=code-block]>&]:end-1.5 group-data-[size=sm]/code-block:[[data-slot=code-block]>&]:top-1.5 [[data-slot=code-block]>&]:pointer-coarse:opacity-100 [[data-slot=code-block]>&]:*:[button]:bg-background [[data-slot=code-block]>&]:*:[button]:ring-1 [[data-slot=code-block]>&]:*:[button]:ring-foreground/10',
-        className,
-      )}
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: [[data-slot=code-block]>&]:absolute */ cn(
+          '-my-1 ms-auto -me-1.5 flex shrink-0 items-center gap-1 [[data-slot=code-block]>&]:absolute [[data-slot=code-block]>&]:end-2 [[data-slot=code-block]>&]:top-2 [[data-slot=code-block]>&]:z-10 [[data-slot=code-block]>&]:m-0 [[data-slot=code-block]>&]:opacity-0 [[data-slot=code-block]>&]:transition-opacity [[data-slot=code-block]>&]:group-focus-within/code-block:opacity-100 [[data-slot=code-block]>&]:group-hover/code-block:opacity-100 group-data-[size=sm]/code-block:[[data-slot=code-block]>&]:end-1.5 group-data-[size=sm]/code-block:[[data-slot=code-block]>&]:top-1.5 [[data-slot=code-block]>&]:pointer-coarse:opacity-100 [[data-slot=code-block]>&]:*:[button]:bg-background [[data-slot=code-block]>&]:*:[button]:ring-1 [[data-slot=code-block]>&]:*:[button]:ring-foreground/10',
+          className,
+        )
+      }
       {...props}
     />
   )
@@ -109,7 +147,9 @@ function CodeBlockCopyButton({
         variant={variant}
         size={size}
         aria-label={copied ? 'Copied' : 'Copy'}
-        className={cn(className)}
+        className={
+          /* TODO(stylex): dynamic class or forwarded className */ cn(className)
+        }
         onClick={(event) => {
           onClick?.(event)
           void navigator.clipboard.writeText(value).then(
@@ -121,7 +161,7 @@ function CodeBlockCopyButton({
       >
         {copied ? <LuCheck /> : <LuCopy />}
       </Button>
-      <span aria-live="polite" className="sr-only">
+      <span aria-live="polite" sx={stylexStyles.rule1}>
         {copied ? 'Copied' : ''}
       </span>
     </>
@@ -164,16 +204,15 @@ function CodeBlockContent({
       dir="ltr"
       tabIndex={0}
       style={{ ...style, '--code-block-start': startLine - 1 }}
-      className={cn(
-        'min-h-0 min-w-0 scroll-fade-x scrollbar-thin overflow-auto px-3 py-3 text-start font-mono leading-relaxed outline-none group-has-data-[slot=code-block-footer]/code-block:pb-2 group-has-data-[slot=code-block-header]/code-block:pt-2 group-data-[size=sm]/code-block:px-2.5 group-data-[size=sm]/code-block:py-2.5 group-data-[size=sm]/code-block:group-has-data-[slot=code-block-header]/code-block:pt-1.5 data-wrap:scroll-fade-y data-wrap:wrap-break-word data-wrap:whitespace-pre-wrap',
-        className,
-      )}
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: group-has-data-[slot=code-block-footer]/code-block:pb-2 */ cn(
+          'min-h-0 min-w-0 scroll-fade-x scrollbar-thin overflow-auto px-3 py-3 text-start font-mono leading-relaxed outline-none group-has-data-[slot=code-block-footer]/code-block:pb-2 group-has-data-[slot=code-block-header]/code-block:pt-2 group-data-[size=sm]/code-block:px-2.5 group-data-[size=sm]/code-block:py-2.5 group-data-[size=sm]/code-block:group-has-data-[slot=code-block-header]/code-block:pt-1.5 data-wrap:scroll-fade-y data-wrap:wrap-break-word data-wrap:whitespace-pre-wrap',
+          className,
+        )
+      }
       {...props}
     >
-      <code
-        data-slot="code-block-code"
-        className="grid min-h-lh min-w-max content-start in-data-numbered:grid-cols-[auto_1fr] in-data-wrap:min-w-0"
-      >
+      <code data-slot="code-block-code" sx={stylexStyles.rule2}>
         {lineNumbers && typeof children === 'string'
           ? numberedCodeLines(children)
           : children}
@@ -216,10 +255,15 @@ function CodeBlockLine({
     <span
       data-slot="code-block-line"
       data-variant={variant}
-      className={cn(codeBlockLineVariants({ variant }), className)}
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: group-data-[size=sm]/code-block:-mx-2.5 */ cn(
+          codeBlockLineVariants({ variant }),
+          className,
+        )
+      }
       {...props}
     >
-      <span data-slot="code-block-line-content" className="min-w-0">
+      <span data-slot="code-block-line-content" sx={stylexStyles.rule3}>
         {empty ? '\n' : children}
       </span>
     </span>
@@ -230,10 +274,12 @@ function CodeBlockFooter({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="code-block-footer"
-      className={cn(
-        'flex min-w-0 shrink-0 items-center gap-2 px-3 pb-3 text-muted-foreground group-data-[size=sm]/code-block:px-2.5 group-data-[size=sm]/code-block:pb-2.5',
-        className,
-      )}
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: group-data-[size=sm]/code-block:px-2.5 */ cn(
+          'flex min-w-0 shrink-0 items-center gap-2 px-3 pb-3 text-muted-foreground group-data-[size=sm]/code-block:px-2.5 group-data-[size=sm]/code-block:pb-2.5',
+          className,
+        )
+      }
       {...props}
     />
   )

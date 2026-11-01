@@ -1,3 +1,4 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
 import { LuTerminal } from 'react-icons/lu'
 
@@ -13,6 +14,13 @@ import {
   type TraceStatus,
 } from '@s4wave/web/ui/trace.js'
 import { statusTitle } from '@s4wave/web/ui/trace-status.js'
+
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: { maxHeight: `calc(${themeLayout['--spacing']} * 64)` },
+})
 
 /** terminalStatus is running until the command exits, then done or error. */
 function terminalStatus(exitCode: number | undefined): TraceStatus {
@@ -39,14 +47,17 @@ function Terminal({
   command,
   output = '',
   exitCode,
-  className,
+  sx,
   ...props
-}: React.ComponentProps<'div'> & {
-  command: string
-  output?: string
-  /** exitCode is unset while the command is still running. */
-  exitCode?: number
-}) {
+}: Omit<
+  React.ComponentProps<'div'> & {
+    command: string
+    output?: string
+    /** exitCode is unset while the command is still running. */
+    exitCode?: number
+  },
+  'className'
+> & { sx?: ComponentStyles; className?: never }) {
   // Remember a person's open choice. Until then, open once output arrives.
   const [chosen, setChosen] = React.useState<boolean>()
   const status = terminalStatus(exitCode)
@@ -61,20 +72,20 @@ function Terminal({
   )
   if (output.length === 0) {
     return (
-      <div data-slot="terminal" className={className} {...props}>
+      <div data-slot="terminal" sx={sx} {...props}>
         <Trace>{line}</Trace>
       </div>
     )
   }
 
   return (
-    <div data-slot="terminal" className={className} {...props}>
+    <div data-slot="terminal" sx={sx} {...props}>
       <Trace>
         <TraceCollapsible open={chosen ?? true} onOpenChange={setChosen}>
           <TraceCollapsibleTrigger>{line}</TraceCollapsibleTrigger>
           <TraceCollapsibleContent>
             <CodeBlock size="sm" variant={failed ? 'destructive' : 'default'}>
-              <CodeBlockContent wrap className="max-h-64">
+              <CodeBlockContent wrap {...stylex.props(stylexStyles.rule1)}>
                 {output}
               </CodeBlockContent>
             </CodeBlock>

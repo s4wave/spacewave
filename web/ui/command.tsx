@@ -12,6 +12,52 @@ import {
   DialogTitle,
 } from '@s4wave/web/ui/dialog'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    clipPath: 'inset(50%)',
+    whiteSpace: 'nowrap',
+    borderWidth: 0,
+    width: '1px',
+    height: '1px',
+    margin: '-1px',
+    padding: 0,
+    position: 'absolute',
+    overflow: 'hidden',
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule3: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+  },
+  rule4: {
+    borderRadius: '.25rem',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-muted']} 50%, transparent)`,
+    paddingInline: themeLayout['--spacing'],
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: '10px',
+    lineHeight: 1,
+    '--tw-leading': '1',
+  },
+})
+
 const commandVariants = cva('', {
   variants: {
     variant: {
@@ -132,11 +178,13 @@ function Command({
   return (
     <CommandPrimitive
       data-slot="command"
-      className={cn(
-        'bg-popover text-popover-foreground flex max-h-[inherit] w-full flex-col overflow-hidden',
-        commandVariants({ variant }),
-        className,
-      )}
+      className={
+        /* TODO(stylex): computed class helper */ cn(
+          'bg-popover text-popover-foreground flex max-h-[inherit] w-full flex-col overflow-hidden',
+          commandVariants({ variant }),
+          className,
+        )
+      }
       {...props}
     />
   )
@@ -159,20 +207,26 @@ function CommandDialog({
 }) {
   return (
     <Dialog {...props}>
-      <DialogHeader className="sr-only">
+      <DialogHeader {...stylex.props(stylexStyles.rule1)}>
         <DialogTitle>{title}</DialogTitle>
         <DialogDescription>{description}</DialogDescription>
       </DialogHeader>
       <DialogContent
-        className={cn(
-          'top-[38%] max-h-[min(28rem,calc(100vh-6rem))] overflow-hidden p-0 sm:max-w-xl',
-          variant === 'palette' &&
-            'border-foreground/10 bg-background-card/95 bottom-4 top-auto max-h-(--max-height-command-palette) w-(--width-command-editor) translate-y-0 shadow-none sm:max-w-none',
-          className,
-        )}
+        className={
+          /* TODO(stylex): dynamic class or forwarded className */ cn(
+            'top-[38%] max-h-[min(28rem,calc(100vh-6rem))] overflow-hidden p-0 sm:max-w-xl',
+            variant === 'palette' &&
+              'border-foreground/10 bg-background-card/95 bottom-4 top-auto max-h-(--max-height-command-palette) w-(--width-command-editor) translate-y-0 shadow-none sm:max-w-none',
+            className,
+          )
+        }
         showCloseButton={showCloseButton}
       >
-        <Command className="[&_[cmdk-group-heading]]:text-foreground-alt **:data-[slot=command-input-wrapper]:h-10 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-1.5 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-4 [&_[cmdk-input-wrapper]_svg]:w-4 [&_[cmdk-input]]:h-10 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-1.5 [&_[cmdk-item]_svg]:h-4 [&_[cmdk-item]_svg]:w-4">
+        <Command
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: **:data-[slot=command-input-wrapper]:h-10 */ '[&_[cmdk-group-heading]]:text-foreground-alt **:data-[slot=command-input-wrapper]:h-10 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-1.5 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-4 [&_[cmdk-input-wrapper]_svg]:w-4 [&_[cmdk-input]]:h-10 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-1.5 [&_[cmdk-item]_svg]:h-4 [&_[cmdk-item]_svg]:w-4'
+          }
+        >
           {children}
         </Command>
       </DialogContent>
@@ -189,19 +243,23 @@ function CommandInput({
   return (
     <div
       data-slot="command-input-wrapper"
-      className={cn(
-        'border-border/60 flex h-10 items-center gap-2 border-b px-3',
-        commandInputWrapperVariants({ variant }),
-      )}
+      className={
+        /* TODO(stylex): computed class helper */ cn(
+          'border-border/60 flex h-10 items-center gap-2 border-b px-3',
+          commandInputWrapperVariants({ variant }),
+        )
+      }
     >
-      <LuSearch className="text-foreground-alt size-4 shrink-0" />
+      <LuSearch {...stylex.props(stylexStyles.rule2)} />
       <CommandPrimitive.Input
         data-slot="command-input"
-        className={cn(
-          'placeholder:text-foreground-alt/60 flex h-10 w-full bg-transparent outline-hidden disabled:cursor-not-allowed disabled:opacity-50',
-          commandInputVariants({ variant }),
-          className,
-        )}
+        className={
+          /* TODO(stylex): computed class helper */ cn(
+            'placeholder:text-foreground-alt/60 flex h-10 w-full bg-transparent outline-hidden disabled:cursor-not-allowed disabled:opacity-50',
+            commandInputVariants({ variant }),
+            className,
+          )
+        }
         {...props}
       />
     </div>
@@ -217,11 +275,13 @@ function CommandList({
   return (
     <CommandPrimitive.List
       data-slot="command-list"
-      className={cn(
-        'min-h-0 flex-1 scroll-py-1 overflow-x-hidden overflow-y-auto',
-        commandListVariants({ variant }),
-        className,
-      )}
+      className={
+        /* TODO(stylex): computed class helper */ cn(
+          'min-h-0 flex-1 scroll-py-1 overflow-x-hidden overflow-y-auto',
+          commandListVariants({ variant }),
+          className,
+        )
+      }
       {...props}
     />
   )
@@ -236,11 +296,13 @@ function CommandEmpty({
   return (
     <CommandPrimitive.Empty
       data-slot="command-empty"
-      className={cn(
-        'text-foreground-alt/60 py-8 text-center text-sm',
-        commandEmptyVariants({ variant }),
-        className,
-      )}
+      className={
+        /* TODO(stylex): computed class helper */ cn(
+          'text-foreground-alt/60 py-8 text-center text-sm',
+          commandEmptyVariants({ variant }),
+          className,
+        )
+      }
       {...props}
     />
   )
@@ -255,11 +317,13 @@ function CommandGroup({
   return (
     <CommandPrimitive.Group
       data-slot="command-group"
-      className={cn(
-        'text-foreground overflow-hidden p-1',
-        commandGroupVariants({ variant }),
-        className,
-      )}
+      className={
+        /* TODO(stylex): computed class helper */ cn(
+          'text-foreground overflow-hidden p-1',
+          commandGroupVariants({ variant }),
+          className,
+        )
+      }
       {...props}
     />
   )
@@ -275,11 +339,13 @@ function CommandSeparator({
   return (
     <CommandPrimitive.Separator
       data-slot="command-separator"
-      className={cn(
-        'bg-border/60 -mx-1 h-px',
-        variant === 'subtle' && 'bg-foreground/8',
-        className,
-      )}
+      className={
+        /* TODO(stylex): dynamic class or forwarded className */ cn(
+          'bg-border/60 -mx-1 h-px',
+          variant === 'subtle' && 'bg-foreground/8',
+          className,
+        )
+      }
       {...props}
     />
   )
@@ -294,11 +360,13 @@ function CommandItem({
   return (
     <CommandPrimitive.Item
       data-slot="command-item"
-      className={cn(
-        "data-[selected=true]:bg-menu-selected data-[selected=true]:text-foreground [&_svg:not([class*='text-'])]:text-foreground-alt relative flex cursor-default items-center gap-2 rounded-md px-2 py-1.5 text-sm outline-hidden transition-colors select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-        commandItemVariants({ variant }),
-        className,
-      )}
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: [&_svg]:pointer-events-none */ cn(
+          "data-[selected=true]:bg-menu-selected data-[selected=true]:text-foreground [&_svg:not([class*='text-'])]:text-foreground-alt relative flex cursor-default items-center gap-2 rounded-md px-2 py-1.5 text-sm outline-hidden transition-colors select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+          commandItemVariants({ variant }),
+          className,
+        )
+      }
       {...props}
     />
   )
@@ -313,11 +381,13 @@ function CommandShortcut({
   return (
     <span
       data-slot="command-shortcut"
-      className={cn(
-        'text-foreground-alt/60 ml-auto font-mono text-metadata tracking-wide',
-        commandShortcutVariants({ variant }),
-        className,
-      )}
+      className={
+        /* TODO(stylex): computed class helper */ cn(
+          'text-foreground-alt/60 ml-auto font-mono text-metadata tracking-wide',
+          commandShortcutVariants({ variant }),
+          className,
+        )
+      }
       {...props}
     />
   )
@@ -327,28 +397,24 @@ function CommandFooter({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="command-footer"
-      className={cn(
-        'border-border/60 text-foreground-alt/50 flex items-center justify-center gap-4 border-t px-3 py-1.5 micro-ten',
-        className,
-      )}
+      className={
+        /* TODO(stylex): dynamic class or forwarded className */ cn(
+          'border-border/60 text-foreground-alt/50 flex items-center justify-center gap-4 border-t px-3 py-1.5 micro-ten',
+          className,
+        )
+      }
       {...props}
     >
-      <span className="flex items-center gap-1">
-        <kbd className="bg-muted/50 micro-ten rounded px-1 py-0.5 font-mono leading-none">
-          &#8593;&#8595;
-        </kbd>
+      <span sx={stylexStyles.rule3}>
+        <kbd sx={stylexStyles.rule4}>&#8593;&#8595;</kbd>
         Navigate
       </span>
-      <span className="flex items-center gap-1">
-        <kbd className="bg-muted/50 micro-ten rounded px-1 py-0.5 font-mono leading-none">
-          &#8629;
-        </kbd>
+      <span sx={stylexStyles.rule3}>
+        <kbd sx={stylexStyles.rule4}>&#8629;</kbd>
         Select
       </span>
-      <span className="flex items-center gap-1">
-        <kbd className="bg-muted/50 micro-ten rounded px-1 py-0.5 font-mono leading-none">
-          Esc
-        </kbd>
+      <span sx={stylexStyles.rule3}>
+        <kbd sx={stylexStyles.rule4}>Esc</kbd>
         Close
       </span>
     </div>

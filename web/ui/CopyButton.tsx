@@ -1,3 +1,4 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import {
   useCallback,
   useEffect,
@@ -7,14 +8,80 @@ import {
 } from 'react'
 import { LuCheck, LuCopy, LuTriangleAlert } from 'react-icons/lu'
 
-import { cn } from '@s4wave/web/style/utils.js'
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+  motion as themeMotion,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule3: { color: themeColors['--color-emerald-500'] },
+  rule4: { color: themeColors['--color-destructive'] },
+  rule5: {
+    display: 'flex',
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '.25rem',
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule6: {
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+  },
+  rule7: {
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    width: `calc(${themeLayout['--spacing']} * 7)`,
+  },
+  rule8: {
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+    width: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule9: {
+    clipPath: 'inset(50%)',
+    whiteSpace: 'nowrap',
+    borderWidth: 0,
+    width: '1px',
+    height: '1px',
+    margin: '-1px',
+    padding: 0,
+    position: 'absolute',
+    overflow: 'hidden',
+  },
+})
 
 // CopyButtonProps configures the CopyButton.
 export interface CopyButtonProps {
+  className?: never
   // text is the string copied to the clipboard when the button is pressed.
   text: string
   // className is appended to the rendered button's class list.
-  className?: string
+  sx?: ComponentStyles
   // label overrides the default aria-label used in the idle state.
   label?: string
   // size selects between the small and medium icon sizes.
@@ -30,15 +97,28 @@ function CopyButtonIcon({
   status: 'idle' | 'copied' | 'error'
   size: NonNullable<CopyButtonProps['size']>
 }) {
-  const iconCls = size === 'md' ? 'h-4 w-4' : 'h-3.5 w-3.5'
   return (
     <>
       {status === 'copied' ? (
-        <LuCheck className={cn(iconCls, 'text-emerald-500')} />
+        <LuCheck
+          {...stylex.props([
+            size === 'md' ? stylexStyles.rule1 : stylexStyles.rule2,
+            stylexStyles.rule3,
+          ])}
+        />
       ) : status === 'error' ? (
-        <LuTriangleAlert className={cn(iconCls, 'text-destructive')} />
+        <LuTriangleAlert
+          {...stylex.props([
+            size === 'md' ? stylexStyles.rule1 : stylexStyles.rule2,
+            stylexStyles.rule4,
+          ])}
+        />
       ) : (
-        <LuCopy className={iconCls} />
+        <LuCopy
+          {...stylex.props(
+            size === 'md' ? stylexStyles.rule1 : stylexStyles.rule2,
+          )}
+        />
       )}
     </>
   )
@@ -52,11 +132,14 @@ const COPIED_RESET_MS = 2000
 // for inline copy buttons across the app.
 export function CopyButton({
   text,
-  className,
+  sx,
   label = 'Copy',
   size = 'sm',
   variant = 'default',
-}: CopyButtonProps) {
+}: Omit<CopyButtonProps, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
   // Keep copy feedback, its reset timer and click generation together.
   const [status, setStatus] = useState<'idle' | 'copied' | 'error'>('idle')
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -104,7 +187,6 @@ export function CopyButton({
   }, [])
 
   // Keep the configured hit target separate from the feedback icon size.
-  const boxCls = size === 'md' ? 'h-7 w-7' : 'h-6 w-6'
 
   return (
     <button
@@ -121,14 +203,14 @@ export function CopyButton({
             ? 'Copy failed'
             : label
       }
-      className={cn(
-        'text-foreground-alt hover:text-foreground flex shrink-0 items-center justify-center rounded transition-colors',
-        variant === 'toolbar' && 'hover:bg-foreground/5',
-        boxCls,
-        className,
-      )}
+      sx={[
+        stylexStyles.rule5,
+        variant === 'toolbar' && stylexStyles.rule6,
+        size === 'md' ? stylexStyles.rule7 : stylexStyles.rule8,
+        sx,
+      ]}
     >
-      <span className="sr-only" role="status" aria-live="polite">
+      <span sx={stylexStyles.rule9} role="status" aria-live="polite">
         {status === 'copied'
           ? 'Copied'
           : status === 'error'

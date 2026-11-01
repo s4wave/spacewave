@@ -29,6 +29,13 @@ import {
   TooltipTrigger,
 } from '@s4wave/web/ui/tooltip.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: { maxWidth: `calc(${themeLayout['--spacing']} * 64)` },
+})
+
 // formatBytes formats a byte count as a human-readable string.
 export function formatBytes(bytes: bigint | number): string {
   const units = ['B', 'KB', 'MB', 'GB', 'TB']
@@ -268,7 +275,7 @@ export function TransformConfigDisplay({ info }: TransformConfigDisplayProps) {
                 </div>
               </div>
             </TooltipTrigger>
-            <TooltipContent side="top" className="max-w-64">
+            <TooltipContent side="top" sx={stylexStyles.rule1}>
               {step.tooltip}
             </TooltipContent>
           </Tooltip>
@@ -292,7 +299,7 @@ export function TransformConfigDisplay({ info }: TransformConfigDisplayProps) {
               </div>
             </div>
           </TooltipTrigger>
-          <TooltipContent side="top" className="max-w-64">
+          <TooltipContent side="top" sx={stylexStyles.rule1}>
             Total storage used by this space on disk.
           </TooltipContent>
         </Tooltip>
@@ -335,7 +342,7 @@ export function TransformConfigDisplay({ info }: TransformConfigDisplayProps) {
             )}
           </div>
         </TooltipTrigger>
-        <TooltipContent side="top" className="max-w-64">
+        <TooltipContent side="top" sx={stylexStyles.rule1}>
           {encryptionStep?.tooltip ??
             'Data is not encrypted before storage. Anyone with access to the storage can read it.'}
         </TooltipContent>

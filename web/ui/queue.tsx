@@ -1,3 +1,4 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
 import { LuListChecks, LuListTodo } from 'react-icons/lu'
 
@@ -13,6 +14,22 @@ import {
 } from '@s4wave/web/ui/trace.js'
 import { statusLabel, stepIcon } from '@s4wave/web/ui/trace-status.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    clipPath: 'inset(50%)',
+    whiteSpace: 'nowrap',
+    borderWidth: 0,
+    width: '1px',
+    height: '1px',
+    margin: '-1px',
+    padding: 0,
+    position: 'absolute',
+    overflow: 'hidden',
+  },
+})
+
 /** QueueItem is one todo. id is the caller's identity for the item. */
 export type QueueItem = {
   id: string
@@ -27,7 +44,7 @@ function QueueItemLine({ item }: { item: QueueItem }) {
     <TraceLine status={item.status}>
       <TraceIcon>{stepIcon(item.status)}</TraceIcon>
       <TraceTitle>{item.title}</TraceTitle>
-      <span className="sr-only">{statusLabel(item.status)}</span>
+      <span sx={stylexStyles.rule1}>{statusLabel(item.status)}</span>
     </TraceLine>
   )
   if (!item.description) {
@@ -76,16 +93,19 @@ function QueueSection({
 /** Queue renders the todo list, split into what is left and what is done. */
 function Queue({
   items,
-  className,
+  sx,
   ...props
-}: React.ComponentProps<'div'> & {
-  items: QueueItem[]
-}) {
+}: Omit<
+  React.ComponentProps<'div'> & {
+    items: QueueItem[]
+  },
+  'className'
+> & { sx?: ComponentStyles; className?: never }) {
   const todo = items.filter((item) => item.status !== 'done')
   const completed = items.filter((item) => item.status === 'done')
 
   return (
-    <div data-slot="queue" className={className} {...props}>
+    <div data-slot="queue" sx={sx} {...props}>
       <Trace>
         {todo.length > 0 ? (
           <QueueSection title="to do" icon={<LuListTodo />} items={todo} />

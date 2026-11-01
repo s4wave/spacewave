@@ -45,10 +45,12 @@ export function ShineBorder({
         },transparent,transparent)`,
         ...style,
       }}
-      className={cn(
-        'shine-border-mask motion-safe:animate-shine pointer-events-none absolute inset-0 size-full rounded-[inherit] will-change-[background-position] motion-reduce:opacity-35 motion-reduce:will-change-auto',
-        className,
-      )}
+      className={
+        /* TODO(stylex): global or unknown class: shine-border-mask */ cn(
+          'shine-border-mask motion-safe:animate-shine pointer-events-none absolute inset-0 size-full rounded-[inherit] will-change-[background-position] motion-reduce:opacity-35 motion-reduce:will-change-auto',
+          className,
+        )
+      }
       {...props}
     />
   )
