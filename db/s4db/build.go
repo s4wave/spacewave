@@ -205,7 +205,7 @@ type valueChunkWriter struct {
 	s storage
 	// table accounts the chunks.
 	table *chunkTable
-	// chunk is the open chunk, zero before the first.
+	// chunk is the open chunk, zero when none is open.
 	chunk uint64
 	// buf holds the open chunk's bytes.
 	buf []byte
@@ -251,12 +251,13 @@ func (w *valueChunkWriter) put(key, val []byte) (ref, error) {
 	return ref{off: off + uint64(hdr), n: uint32(len(val)), crc: crc}, nil // #nosec G115 -- n fits a chunk.
 }
 
-// flush writes the open chunk's bytes.
+// flush writes the open chunk's bytes and closes the chunk, so the next entry
+// opens another instead of writing over this one from its start.
 func (w *valueChunkWriter) flush() error {
-	if len(w.buf) == 0 {
-		return nil
+	var err error
+	if len(w.buf) != 0 {
+		_, err = w.s.WriteAt(w.buf, fileOff(chunkStart(w.chunk)))
 	}
-	_, err := w.s.WriteAt(w.buf, fileOff(chunkStart(w.chunk)))
-	w.buf = w.buf[:0]
+	w.chunk, w.buf = 0, w.buf[:0]
 	return err
 }
