@@ -10,14 +10,22 @@ import { buildForgeObjectKey } from '../space/create-op-builders.js'
 import { useWizardState } from './useWizardState.js'
 import { WizardShell } from './WizardShell.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: { width: '100%', maxWidth: 'var(--container-sm)' },
+})
+
 export const ForgeTaskWizardTypeID = 'wizard/forge/task'
 
 // ForgeTaskWizardViewer is a custom wizard viewer for creating Forge Tasks.
 // Step 0: select a job. Step 1: task name. Finalize creates the task linked to the job.
 export function ForgeTaskWizardViewer(props: ObjectViewerComponentProps) {
+  // Read the current task wizard and its editable configuration.
   const ws = useWizardState(props, 'forge/task')
   const { state, configEditor } = ws
 
+  // Resolve the selected job from the task draft.
   const config = configEditor.value as ForgeTaskCreateOp | undefined
   const selectedJob = config?.jobKey ?? ''
 
@@ -36,6 +44,7 @@ export function ForgeTaskWizardViewer(props: ObjectViewerComponentProps) {
     prevJobRef.current = selectedJob
   }, [selectedJob, ws])
 
+  // Create the named task only when its job and wizard state are available.
   const handleFinalize = useCallback(async () => {
     if (!state || ws.creating || !selectedJob || !ws.localName.trim()) return
 
@@ -68,14 +77,17 @@ export function ForgeTaskWizardViewer(props: ObjectViewerComponentProps) {
     }
   }, [state, ws, selectedJob])
 
+  // Start task creation from the final confirmation control.
   const handleFinalizeClick = useCallback(() => {
     void handleFinalize()
   }, [handleFinalize])
 
+  // Cancel the current task wizard through its owning handle.
   const handleCancel = useCallback(() => {
     void ws.handleCancel()
   }, [ws])
 
+  // Show wizard initialization until its state is available.
   if (!state) {
     return (
       <div className="flex flex-1 items-center justify-center p-4">
@@ -85,7 +97,7 @@ export function ForgeTaskWizardViewer(props: ObjectViewerComponentProps) {
             title: 'Loading wizard',
             detail: 'Initializing Forge task configuration.',
           }}
-          className="w-full max-w-sm"
+          sx={stylexStyles.rule1}
         />
       </div>
     )

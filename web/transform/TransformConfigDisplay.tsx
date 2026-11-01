@@ -38,6 +38,7 @@ const stylexStyles = stylex.create({
 
 // formatBytes formats a byte count as a human-readable string.
 export function formatBytes(bytes: bigint | number): string {
+  // Choose a binary unit for the supplied byte quantity.
   const units = ['B', 'KB', 'MB', 'GB', 'TB']
   let size = typeof bytes === 'bigint' ? Number(bytes) : bytes
   let idx = 0
@@ -100,6 +101,7 @@ function decodeBlockEnc(config?: Uint8Array): {
 }
 
 function decodeLZ4(config?: Uint8Array): { detail: string; tooltip: string } {
+  // Use LZ4 defaults unless its optional encoded configuration supplies supported values.
   let blockSize = '4 MB'
   let level = 0
   if (config && config.length > 0) {
@@ -233,6 +235,7 @@ export interface TransformConfigDisplayProps {
 
 // TransformConfigDisplay renders transform pipeline info as an integrated card with rows.
 export function TransformConfigDisplay({ info }: TransformConfigDisplayProps) {
+  // Separate encryption from content transforms and resolve their storage summary.
   const steps = useMemo(() => (info.steps ?? []).map(parseStep), [info.steps])
   const encryptionStep = steps.find((s) => s.isEncryption)
   const contentSteps = steps.filter((s) => !s.isEncryption)

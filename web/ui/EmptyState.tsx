@@ -91,6 +91,7 @@ interface EmptyStateProps {
     onClick: () => void
   }
   sx?: ComponentStyles
+  className?: never
   variant?: 'default' | 'compact' | 'panel'
 }
 

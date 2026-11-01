@@ -134,6 +134,7 @@ interface ErrorStateProps {
   message: string
   onRetry?: () => void
   sx?: ComponentStyles
+  className?: never
   variant?: 'inline' | 'card' | 'fullscreen'
   children?: ReactNode
 }

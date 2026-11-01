@@ -1,11 +1,68 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import { useEffect, useRef, type ReactNode } from 'react'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import * as stylex from '@stylexjs/stylex'
 import {
   colors as themeColors,
   layout as themeLayout,
 } from '../style/tokens.stylex.js'
+
+import {
+  colors as themeColors2,
+  utilityState as themeUtilityState,
+  layout as themeLayout2,
+  fonts as themeFonts,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    fontSize: '10px',
+    lineHeight: 1.5,
+    '--tw-font-weight': 'var(--font-weight-bold)',
+    fontWeight: 'var(--font-weight-bold)',
+    dynamicRangeLimit: 'no-limit',
+    animationName: { default: null, ':is([data-status-changed])': 'hdr-flash' },
+    animationDuration: { default: null, ':is([data-status-changed])': '.2s' },
+    animationTimingFunction: {
+      default: null,
+      ':is([data-status-changed])': 'ease-out',
+    },
+    animationIterationCount: { default: null, ':is([data-status-changed])': 1 },
+    animationDirection: {
+      default: null,
+      ':is([data-status-changed])': 'normal',
+    },
+    animationPlayState: {
+      default: null,
+      ':is([data-status-changed])': 'running',
+    },
+    animationDelay: { default: null, ':is([data-status-changed])': '0s' },
+    animationFillMode: { default: null, ':is([data-status-changed])': 'none' },
+    animationTimeline: { default: null, ':is([data-status-changed])': 'auto' },
+  },
+  rule2: { color: themeColors2['--color-success'] },
+  rule3: { color: themeColors2['--color-error'] },
+  rule4: { color: themeColors2['--color-warning'] },
+  rule5: { color: themeColors2['--color-foreground-alt'] },
+  rule6: {
+    flex: 1,
+    overflow: 'auto',
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: themeColors2['--color-ui-outline'],
+    backgroundColor: themeColors2['--color-background-secondary'],
+    padding: `calc(${themeLayout2['--spacing']} * 2)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors2['--color-foreground'],
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: { color: themeColors['--color-foreground-alt'] },
@@ -64,6 +121,7 @@ export interface StatusListItem {
 
 // StatusListProps are the props for the StatusList component.
 export interface StatusListProps {
+  className?: never
   // items is the array of items to display.
   items: StatusListItem[]
   // emptyMessage is shown when items is empty.
@@ -71,7 +129,7 @@ export interface StatusListProps {
   // statusLabels are optional custom labels for each status.
   statusLabels?: Partial<Record<StatusListItemStatus, string>>
   // className is an optional CSS class for the container.
-  className?: string
+  sx?: ComponentStyles
   // onItemClick is an optional click handler for items.
   onItemClick?: (item: StatusListItem) => void
 }
@@ -85,13 +143,6 @@ const defaultStatusLabels: Record<StatusListItemStatus, string> = {
 
 const defaultCustomStatusLabels: Partial<Record<StatusListItemStatus, string>> =
   {}
-
-const statusClassNames: Record<StatusListItemStatus, string> = {
-  success: 'text-success',
-  error: 'text-error',
-  pending: 'text-warning',
-  none: 'text-foreground-alt',
-}
 
 // StatusIndicator renders a status label and triggers the HDR flash animation
 // when the status value changes.
@@ -111,12 +162,16 @@ function StatusIndicator({
 
   return (
     <span
-      className={
-        /* TODO(stylex): global or unknown class: hdr-status-flash */ cn(
-          'hdr-status-flash micro-ten font-bold',
-          statusClassNames[status],
-        )
-      }
+      sx={[
+        stylexStyles2.rule1,
+        status === 'success'
+          ? stylexStyles2.rule2
+          : status === 'error'
+            ? stylexStyles2.rule3
+            : status === 'pending'
+              ? stylexStyles2.rule4
+              : stylexStyles2.rule5,
+      ]}
       {...(changed ? { 'data-status-changed': '' } : {})}
     >
       {label}
@@ -129,21 +184,15 @@ export function StatusList({
   items,
   emptyMessage = 'No items',
   statusLabels = defaultCustomStatusLabels,
-  className,
+  sx,
   onItemClick,
-}: StatusListProps) {
+}: Omit<StatusListProps, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
   const labels = { ...defaultStatusLabels, ...statusLabels }
   return (
-    <div
-      className={
-        /* TODO(stylex): dynamic class or forwarded className */ cn(
-          'flex-1 overflow-auto rounded border p-2 font-mono text-xs',
-          'bg-background-secondary text-foreground',
-          'border-ui-outline',
-          className,
-        )
-      }
-    >
+    <div sx={[stylexStyles2.rule6, sx]}>
       {items.length === 0 ? (
         <div sx={stylexStyles.rule1}>{emptyMessage}</div>
       ) : (

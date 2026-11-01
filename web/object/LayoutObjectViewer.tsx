@@ -40,6 +40,12 @@ import { getObjectKey } from './object.js'
 import { TabContentContainer } from './TabContent.js'
 import { buildObjectLayoutExternalDrag } from './layout-object-app-drag.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: { width: '100%', maxWidth: 'var(--container-sm)' },
+})
+
 // ObjectLayoutTypeID is the type identifier for ObjectLayout objects.
 export const ObjectLayoutTypeID = 'alpha/object-layout'
 
@@ -106,7 +112,9 @@ function useObjectLayoutController({
   objectInfo,
   worldState,
 }: ObjectViewerComponentProps) {
+  // Scope persisted layout state to this shared object's identity.
   const objectKey = getObjectKey(objectInfo)
+
   // Create namespace for persisting local state
   const namespace = useStateNamespace(['layout', objectKey])
 
@@ -125,6 +133,7 @@ function useObjectLayoutController({
     ObjectLayoutTypeID,
   )
 
+  // Use the mounted layout host for subsequent layout actions.
   const layoutHost = useResourceValue(typedObjectResource)
 
   // Handle local state changes
@@ -165,12 +174,14 @@ function useObjectLayoutController({
     [],
   )
 
+  // Translate app drag payloads into the existing object-layout drop contract.
   const handleExternalDrag = useCallback(
     (event: Parameters<typeof buildObjectLayoutExternalDrag>[0]) =>
       buildObjectLayoutExternalDrag(event),
     [],
   )
 
+  // Keep the active model and tab menu editing state together.
   const latestModelRef = useRef<Model | null>(null)
   const [contextMenu, setContextMenu] =
     useState<ObjectLayoutTabContextMenuState | null>(null)
@@ -182,8 +193,10 @@ function useObjectLayoutController({
       ? selectedTabIds[0]
       : null
 
+  // Render the object tab's label and close control from its current model.
   const handleRenderTab = useCallback(
     (node: TabNode, renderValues: ITabRenderValues) => {
+      // Keep tab renaming tied to the model currently being rendered.
       const model = node.getModel()
       const tabId = node.getId()
       latestModelRef.current = model
@@ -199,6 +212,7 @@ function useObjectLayoutController({
       )
       if (node.isEnableClose()) return
 
+      // Allow closing a tab only while another object tab remains.
       const canCloseTabs = countObjectLayoutTabs(model) > 1
       renderValues.buttons.push(
         <button
@@ -226,8 +240,10 @@ function useObjectLayoutController({
     [renamingTabId],
   )
 
+  // Open a menu for the tab under the pointer.
   const handleContextMenu = useCallback(
     (node: TabNode | TabSetNode | BorderNode, event: ReactMouseEvent) => {
+      // Capture the selected tab, model and pointer position for its menu.
       if (node.getType() !== 'tab') return
       event.preventDefault()
       const model = node.getModel()
@@ -242,6 +258,7 @@ function useObjectLayoutController({
     [],
   )
 
+  // Preserve the last tab when the layout requests a close.
   const handleLayoutAction = useCallback((action: Action) => {
     if (
       action.type === Actions.DELETE_TAB &&
@@ -252,14 +269,18 @@ function useObjectLayoutController({
     return action
   }, [])
 
+  // Duplicate a tab beside its source in the same tabset.
   const handleDuplicateTab = useCallback(
     (tabId: string) => {
+      // Require the source tab and its current tabset before copying it.
       const model = contextMenu?.model
       const node = model?.getNodeById(tabId)
       if (!model || !node || node.getType() !== 'tab') return
       const tabNode = node as TabNode
       const parent = tabNode.getParent()
       if (!parent || parent.getType() !== 'tabset') return
+
+      // Copy the source configuration into a newly selected sibling tab.
       const json = tabNode.toJson()
       if (!json) return
       const children = parent.getChildren()
@@ -282,8 +303,10 @@ function useObjectLayoutController({
     [contextMenu],
   )
 
+  // Close the other tabs while preserving the chosen tab.
   const handleCloseOtherTabs = useCallback(
     (keepTabId: string) => {
+      // Collect the other tab identities before deleting them from the mutable model.
       const model = contextMenu?.model
       if (!model || countObjectLayoutTabs(model) <= 1) return
       const tabIds: string[] = []
@@ -299,6 +322,7 @@ function useObjectLayoutController({
     [contextMenu],
   )
 
+  // Close the chosen tab only while another tab remains.
   const handleCloseTab = useCallback(
     (tabId: string) => {
       const model = contextMenu?.model
@@ -308,6 +332,7 @@ function useObjectLayoutController({
     [contextMenu],
   )
 
+  // Build tab menu actions from the current model's close eligibility.
   const canCloseContextTabs = contextMenu
     ? countObjectLayoutTabs(contextMenu.model) > 1
     : false
@@ -350,6 +375,7 @@ function useObjectLayoutController({
     ],
   )
 
+  // Keep the layout library's close icon stable between renders.
   const icons = useMemo(
     () => ({
       close: <LuX className="size-2.5" />,
@@ -357,6 +383,7 @@ function useObjectLayoutController({
     [],
   )
 
+  // Keep layout callbacks and icons stable while their dependencies stay unchanged.
   const flexLayoutProps = useMemo(
     () => ({
       onExternalDrag: handleExternalDrag,
@@ -409,7 +436,7 @@ export function LayoutObjectViewer({
       <div className="flex h-full items-center justify-center p-4">
         <LoadingCard
           view={{ state: 'loading', title: 'Loading layout' }}
-          className="w-full max-w-sm"
+          sx={stylexStyles.rule1}
         />
       </div>
     )

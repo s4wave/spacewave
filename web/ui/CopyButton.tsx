@@ -10,23 +10,13 @@ import { LuCheck, LuCopy, LuTriangleAlert } from 'react-icons/lu'
 
 import * as stylex from '@stylexjs/stylex'
 import {
-  layout as themeLayout,
   colors as themeColors,
   motion as themeMotion,
+  layout as themeLayout,
 } from '../style/tokens.stylex.js'
 
 const stylexStyles = stylex.create({
   rule1: {
-    height: `calc(${themeLayout['--spacing']} * 4)`,
-    width: `calc(${themeLayout['--spacing']} * 4)`,
-  },
-  rule2: {
-    height: `calc(${themeLayout['--spacing']} * 3.5)`,
-    width: `calc(${themeLayout['--spacing']} * 3.5)`,
-  },
-  rule3: { color: themeColors['--color-emerald-500'] },
-  rule4: { color: themeColors['--color-destructive'] },
-  rule5: {
     display: 'flex',
     flexShrink: 0,
     alignItems: 'center',
@@ -45,7 +35,7 @@ const stylexStyles = stylex.create({
     transitionDuration:
       'var(--tw-duration, var(--default-transition-duration))',
   },
-  rule6: {
+  rule2: {
     backgroundColor: {
       default: null,
       '@media (hover: hover)': {
@@ -54,15 +44,15 @@ const stylexStyles = stylex.create({
       },
     },
   },
-  rule7: {
+  rule3: {
     height: `calc(${themeLayout['--spacing']} * 7)`,
     width: `calc(${themeLayout['--spacing']} * 7)`,
   },
-  rule8: {
+  rule4: {
     height: `calc(${themeLayout['--spacing']} * 6)`,
     width: `calc(${themeLayout['--spacing']} * 6)`,
   },
-  rule9: {
+  rule5: {
     clipPath: 'inset(50%)',
     whiteSpace: 'nowrap',
     borderWidth: 0,
@@ -73,6 +63,16 @@ const stylexStyles = stylex.create({
     position: 'absolute',
     overflow: 'hidden',
   },
+  rule6: {
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule7: {
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule8: { color: themeColors['--color-emerald-500'] },
+  rule9: { color: themeColors['--color-destructive'] },
 })
 
 // CopyButtonProps configures the CopyButton.
@@ -80,7 +80,7 @@ export interface CopyButtonProps {
   className?: never
   // text is the string copied to the clipboard when the button is pressed.
   text: string
-  // className is appended to the rendered button's class list.
+  // sx overrides the button's styles.
   sx?: ComponentStyles
   // label overrides the default aria-label used in the idle state.
   label?: string
@@ -102,21 +102,21 @@ function CopyButtonIcon({
       {status === 'copied' ? (
         <LuCheck
           {...stylex.props([
-            size === 'md' ? stylexStyles.rule1 : stylexStyles.rule2,
-            stylexStyles.rule3,
+            size === 'md' ? stylexStyles.rule6 : stylexStyles.rule7,
+            stylexStyles.rule8,
           ])}
         />
       ) : status === 'error' ? (
         <LuTriangleAlert
           {...stylex.props([
-            size === 'md' ? stylexStyles.rule1 : stylexStyles.rule2,
-            stylexStyles.rule4,
+            size === 'md' ? stylexStyles.rule6 : stylexStyles.rule7,
+            stylexStyles.rule9,
           ])}
         />
       ) : (
         <LuCopy
           {...stylex.props(
-            size === 'md' ? stylexStyles.rule1 : stylexStyles.rule2,
+            size === 'md' ? stylexStyles.rule6 : stylexStyles.rule7,
           )}
         />
       )}
@@ -186,8 +186,6 @@ export function CopyButton({
     }
   }, [])
 
-  // Keep the configured hit target separate from the feedback icon size.
-
   return (
     <button
       type="button"
@@ -204,13 +202,13 @@ export function CopyButton({
             : label
       }
       sx={[
-        stylexStyles.rule5,
-        variant === 'toolbar' && stylexStyles.rule6,
-        size === 'md' ? stylexStyles.rule7 : stylexStyles.rule8,
+        stylexStyles.rule1,
+        !!(variant === 'toolbar') && stylexStyles.rule2,
+        size === 'md' ? stylexStyles.rule3 : stylexStyles.rule4,
         sx,
       ]}
     >
-      <span sx={stylexStyles.rule9} role="status" aria-live="polite">
+      <span sx={stylexStyles.rule5} role="status" aria-live="polite">
         {status === 'copied'
           ? 'Copied'
           : status === 'error'

@@ -102,10 +102,12 @@ function treeRowLabel<T>(
   hasChildren: boolean,
   isExpanded: boolean,
 ): string {
+  // Include row details before deciding whether expansion information applies.
   let label = node.name
   if (node.detail) label += `, ${node.detail}`
   if (!hasChildren) return label
 
+  // Add expansion state and known child count to an expandable row's label.
   label += `, ${isExpanded ? 'expanded' : 'collapsed'}`
   if (node.children) label += `, ${node.children.length} items`
   return label
@@ -210,8 +212,10 @@ function useTreeRowHandlers<T>({
   onRowContextMenu,
   onRowDragStart,
 }: TreeRowProps<T>) {
+  // Use the tree's shared dispatcher for all row actions.
   const dispatch = use(TreeDispatchContext)
 
+  // Translate row selection modifiers into the existing tree action.
   const handleTreeItemSelect = useCallback(
     (e: React.MouseEvent) => {
       dispatch?.({
@@ -224,6 +228,7 @@ function useTreeRowHandlers<T>({
     [dispatch, node.id, isSelected],
   )
 
+  // Open this row without also activating its parent.
   const handleDoubleClick = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault()
@@ -235,6 +240,7 @@ function useTreeRowHandlers<T>({
     [node, onRowDefaultAction],
   )
 
+  // Select an unselected row before opening its context menu.
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault()
@@ -246,6 +252,7 @@ function useTreeRowHandlers<T>({
     [dispatch, isSelected, node, onRowContextMenu],
   )
 
+  // Toggle expansion without changing the surrounding row selection.
   const handleToggle = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault()
@@ -255,6 +262,7 @@ function useTreeRowHandlers<T>({
     [dispatch, node.id],
   )
 
+  // Update tree focus only when this row itself receives focus.
   const handleTreeItemFocus = useCallback(
     (e: React.FocusEvent) => {
       if (e.target === e.currentTarget && !isFocused) {
@@ -264,6 +272,7 @@ function useTreeRowHandlers<T>({
     [dispatch, isFocused, node.id],
   )
 
+  // Use the ordinary row click path for Enter and Space.
   const handleTreeItemKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key !== 'Enter' && e.key !== ' ') return
     e.preventDefault()
@@ -278,6 +287,7 @@ function useTreeRowHandlers<T>({
     (el: HTMLDivElement | null) => {
       if (isFocused && el && document.activeElement !== el) {
         requestAnimationFrame(() => {
+          // Keep late-mounted rows from stealing focus outside their tree.
           const active = document.activeElement
           const tree = el.closest('[role="tree"]')
           if (active && active !== document.body && !tree?.contains(active)) {
@@ -291,6 +301,7 @@ function useTreeRowHandlers<T>({
     [isFocused],
   )
 
+  // Deliver the current row and drag event through the tree's handler.
   const onDragStart = useCallback(
     (e: React.DragEvent<HTMLElement>) => onRowDragStart?.(e, node),
     [onRowDragStart, node],
@@ -311,6 +322,7 @@ function useTreeRowHandlers<T>({
 // TreeRowImpl renders one row from its own selection, focus, and expansion, so
 // a change of the tree state renders only the rows it changes.
 function TreeRowImpl<T = void>(props: TreeRowProps<T>) {
+  // Resolve expansion and bound actions from the current row state.
   const { node, level, index, isSelected, isFocused } = props
   const hasChildren = isExpandable(node)
   const isExpanded = hasChildren && props.isExpanded

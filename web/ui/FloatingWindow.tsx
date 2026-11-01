@@ -134,19 +134,23 @@ export function FloatingWindowManagerProvider({
 }: {
   children: ReactNode
 }) {
+  // Keep window stacking order and its subscribers within one manager.
   const baseZIndex = 1000
   const windowOrderRef = useRef<string[]>([])
   const subscribersRef = useRef(new Set<() => void>())
 
+  // Notify every stacking-order subscriber after a window order change.
   const notifySubscribers = useCallback(() => {
     subscribersRef.current.forEach((cb) => cb())
   }, [])
 
+  // Retain a stacking subscriber until its owner releases it.
   const subscribe = useCallback((callback: () => void) => {
     subscribersRef.current.add(callback)
     return () => subscribersRef.current.delete(callback)
   }, [])
 
+  // Append a newly registered window to the stacking order.
   const register = useCallback(
     (id: string) => {
       if (!windowOrderRef.current.includes(id)) {
@@ -157,6 +161,7 @@ export function FloatingWindowManagerProvider({
     [notifySubscribers],
   )
 
+  // Remove a departing window and notify the remaining subscribers.
   const unregister = useCallback(
     (id: string) => {
       const prev = windowOrderRef.current
@@ -168,8 +173,10 @@ export function FloatingWindowManagerProvider({
     [notifySubscribers],
   )
 
+  // Move an existing window to the front of its stacking group.
   const bringToFront = useCallback(
     (id: string) => {
+      // Change the order only when this registered window is behind another.
       const prev = windowOrderRef.current
       if (!prev.includes(id)) return
       if (prev[prev.length - 1] === id) return
@@ -179,11 +186,13 @@ export function FloatingWindowManagerProvider({
     [notifySubscribers],
   )
 
+  // Resolve each registered window's position above the shared base index.
   const getZIndex = useCallback((id: string) => {
     const index = windowOrderRef.current.indexOf(id)
     return index === -1 ? baseZIndex : baseZIndex + index
   }, [])
 
+  // Expose stable window-order operations through the manager context.
   const value = useMemo(
     () => ({ bringToFront, getZIndex, register, unregister, subscribe }),
     [bringToFront, getZIndex, register, unregister, subscribe],
@@ -278,6 +287,7 @@ export function FloatingWindow({
   onClose,
   testId,
 }: FloatingWindowProps) {
+  // Resolve the floating panel, its manager and platform bounds.
   const manager = useFloatingWindowManager()
   const panelRef = useRef<HTMLDialogElement>(null)
   const minY = isDesktop ? MIN_Y_ELECTRON : 0
@@ -297,6 +307,7 @@ export function FloatingWindow({
     current.current = { pos: state.position, size: state.size }
   }, [state.position, state.size])
 
+  // Apply the current drag geometry directly to the mounted dialog.
   const applyStyle = useCallback(() => {
     const el = panelRef.current
     if (!el) return
@@ -309,10 +320,12 @@ export function FloatingWindow({
     })
   }, [])
 
+  // Collapse the window through its existing state callback.
   const handleMinimize = useCallback(() => {
     onStateChange({ ...state, expanded: false })
   }, [state, onStateChange])
 
+  // Restore the window's configured position and size.
   const handleDoubleClick = useCallback(() => {
     onStateChange({
       ...state,
@@ -326,16 +339,20 @@ export function FloatingWindow({
     manager?.bringToFront(id)
   }, [manager, id])
 
+  // Begin dragging the active window from the pointer's current offset.
   const handleDragStart = useCallback(
     (e: React.MouseEvent) => {
+      // Bring the dragged window forward and retain its pointer offset.
       e.preventDefault()
       manager?.bringToFront(id)
       const { pos } = current.current
       dragOffset.current = { x: e.clientX - pos.x, y: e.clientY - pos.y }
 
+      // Keep a usable part of the dragged window inside the viewport.
       const maxX = window.innerWidth - 100
       const maxY = window.innerHeight - 100
 
+      // Update the drag position within the current viewport bounds.
       const onMove = (e: MouseEvent) => {
         current.current.pos = {
           x: Math.max(0, Math.min(maxX, e.clientX - dragOffset.current.x)),
@@ -344,6 +361,7 @@ export function FloatingWindow({
         applyStyle()
       }
 
+      // Release drag listeners and publish the completed window geometry.
       const onUp = () => {
         document.removeEventListener('mousemove', onMove)
         document.removeEventListener('mouseup', onUp)
@@ -351,32 +369,40 @@ export function FloatingWindow({
         onStateChange({ ...state, position: pos, size })
       }
 
+      // Track pointer movement only for this active drag.
       document.addEventListener('mousemove', onMove)
       document.addEventListener('mouseup', onUp)
     },
     [state, onStateChange, minY, applyStyle, manager, id],
   )
 
+  // Resize the active window from the selected edge.
   const handleResizeStart = useCallback(
     (edge: string) => (e: React.MouseEvent) => {
+      // Keep resize gestures on the active window without bubbling them to its parent.
       e.preventDefault()
       e.stopPropagation()
       manager?.bringToFront(id)
 
+      // Retain the pointer and window geometry at the start of this resize.
       const startX = e.clientX
       const startY = e.clientY
       const startPos = { ...current.current.pos }
       const startSize = { ...current.current.size }
 
+      // Resolve viewport bounds before tracking the active resize.
       const maxWidth = window.innerWidth - startPos.x - 20
       const maxHeight = window.innerHeight - startPos.y - 20
 
+      // Update the selected edges from the current pointer displacement.
       const onMove = (e: MouseEvent) => {
+        // Resolve the resize displacement against the original position and size.
         const dx = e.clientX - startX
         const dy = e.clientY - startY
         const pos = { ...startPos }
         const size = { ...startSize }
 
+        // Constrain every resized edge to the window's minimum size and viewport.
         if (edge.includes('e')) {
           size.width = Math.max(
             minWidth,
@@ -402,10 +428,12 @@ export function FloatingWindow({
             newY < minY ? startPos.y + startSize.height - minY : newHeight
         }
 
+        // Apply the current resize geometry without committing each pointer movement.
         current.current = { pos, size }
         applyStyle()
       }
 
+      // Release resize listeners and publish the completed window geometry.
       const onUp = () => {
         document.removeEventListener('mousemove', onMove)
         document.removeEventListener('mouseup', onUp)
@@ -413,6 +441,7 @@ export function FloatingWindow({
         onStateChange({ ...state, position: pos, size })
       }
 
+      // Track pointer movement only for this active resize.
       document.addEventListener('mousemove', onMove)
       document.addEventListener('mouseup', onUp)
     },
@@ -428,10 +457,12 @@ export function FloatingWindow({
     [manager],
   )
 
+  // Read this window's current stacking position from its manager.
   const getZIndexSnapshot = useCallback(() => {
     return manager?.getZIndex(id) ?? 1000
   }, [manager, id])
 
+  // Watch the manager's stacking changes through its shared subscription.
   const zIndex = useSyncExternalStore(
     subscribeToManager,
     getZIndexSnapshot,

@@ -1,6 +1,6 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import { LuCheck, LuKeyRound, LuShield } from 'react-icons/lu'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import { ProgressBar } from '@s4wave/web/ui/loading/ProgressBar.js'
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 
@@ -12,6 +12,25 @@ import {
   fonts as themeFonts,
   motion as themeMotion,
 } from '../../style/tokens.stylex.js'
+
+import {
+  radii as themeRadii2,
+  utilityState as themeUtilityState,
+  colors as themeColors2,
+  layout as themeLayout2,
+} from '../../style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    borderRadius: themeRadii2['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors2['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors2['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout2['--spacing']} * 3.5)`,
+  },
+  rule2: { marginTop: `calc(${themeLayout2['--spacing']} * 3)` },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -49,6 +68,11 @@ const stylexStyles = stylex.create({
   },
   rule6: { marginTop: `calc(${themeLayout['--spacing']} * 2.5)` },
   rule7: {
+    marginBlockStart: { default: null, ':not(:last-child)': 0 },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(${themeLayout['--spacing']} * 1.5)`,
+    },
     display: 'flex',
     alignItems: 'center',
     gap: `calc(${themeLayout['--spacing']} * 2)`,
@@ -87,10 +111,11 @@ const stylexStyles = stylex.create({
 })
 
 interface AuthProgressCardProps {
+  className?: never
   title: string
   detail: string
   steps: string[]
-  className?: string
+  sx?: ComponentStyles
 }
 
 // AuthProgressCard shows honest indeterminate progress for auth flows whose
@@ -99,19 +124,13 @@ export function AuthProgressCard({
   title,
   detail,
   steps,
-  className,
-}: AuthProgressCardProps) {
+  sx,
+}: Omit<AuthProgressCardProps, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
   return (
-    <div
-      className={
-        /* TODO(stylex): dynamic class or forwarded className */ cn(
-          'border-foreground/6 bg-background-card/30 rounded-lg border p-3.5',
-          className,
-        )
-      }
-      role="status"
-      aria-live="polite"
-    >
+    <div sx={[stylexStyles2.rule1, sx]} role="status" aria-live="polite">
       <div sx={stylexStyles.rule1}>
         <div sx={stylexStyles.rule2}>
           <Spinner size="md" />
@@ -122,11 +141,7 @@ export function AuthProgressCard({
           <div sx={stylexStyles.rule6}>
             <ProgressBar indeterminate />
           </div>
-          <div
-            className={
-              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ 'mt-3 space-y-1.5'
-            }
-          >
+          <div sx={stylexStyles2.rule2}>
             {steps.map((step, index) => {
               const active = index === 0
               return (

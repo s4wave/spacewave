@@ -10,18 +10,27 @@ import { buildForgeObjectKey } from '../space/create-op-builders.js'
 import { useWizardState } from './useWizardState.js'
 import { WizardShell } from './WizardShell.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: { width: '100%', maxWidth: 'var(--container-sm)' },
+})
+
 export const ForgeJobWizardTypeID = 'wizard/forge/job'
 
 // ForgeJobWizardViewer is a custom wizard viewer for creating Forge Jobs.
 // Step 0: config editor (cluster + tasks). Step 1: job name. Finalize creates the job.
 export function ForgeJobWizardViewer(props: ObjectViewerComponentProps) {
+  // Read the current job wizard and its editable configuration.
   const ws = useWizardState(props, 'forge/job')
   const { state, configEditor } = ws
 
+  // Resolve the selected cluster and task definitions from the draft.
   const config = configEditor.value as ForgeJobCreateOp | undefined
   const selectedCluster = config?.clusterKey ?? ''
   const taskDefs = useMemo(() => config?.taskDefs ?? [], [config?.taskDefs])
 
+  // Persist the job draft before advancing to its review step.
   const handleNext = useCallback(async () => {
     const handle = ws.wizardResource.value
     if (!handle) return
@@ -29,7 +38,9 @@ export function ForgeJobWizardViewer(props: ObjectViewerComponentProps) {
     await handle.updateState({ step: 1 })
   }, [ws])
 
+  // Create the configured job after its required inputs are complete.
   const handleFinalize = useCallback(async () => {
+    // Keep only named task definitions before creating the job.
     if (!state || ws.creating || !selectedCluster || !ws.localName.trim())
       return
     const validTasks = taskDefs.flatMap((task) => {
@@ -38,6 +49,7 @@ export function ForgeJobWizardViewer(props: ObjectViewerComponentProps) {
     })
     if (validTasks.length === 0) return
 
+    // Persist the final draft and create the job with its task definitions.
     ws.setCreating(true)
     try {
       await ws.persistDraftState()
@@ -67,14 +79,17 @@ export function ForgeJobWizardViewer(props: ObjectViewerComponentProps) {
     }
   }, [state, ws, selectedCluster, taskDefs])
 
+  // Start job creation from the final confirmation control.
   const handleFinalizeClick = useCallback(() => {
     void handleFinalize()
   }, [handleFinalize])
 
+  // Cancel the current job wizard through its owning handle.
   const handleCancel = useCallback(() => {
     void ws.handleCancel()
   }, [ws])
 
+  // Show wizard initialization until its state is available.
   if (!state) {
     return (
       <div className="flex flex-1 items-center justify-center p-4">
@@ -84,7 +99,7 @@ export function ForgeJobWizardViewer(props: ObjectViewerComponentProps) {
             title: 'Loading wizard',
             detail: 'Initializing Forge job configuration.',
           }}
-          className="w-full max-w-sm"
+          sx={stylexStyles.rule1}
         />
       </div>
     )

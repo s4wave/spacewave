@@ -5,6 +5,46 @@ import {
   fonts as themeFonts,
 } from '../../style/tokens.stylex.js'
 
+import { colors as themeColors2 } from '../../style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    position: 'absolute',
+    insetBlock: 0,
+    width: {
+      default: '33.3333%',
+      '@media (prefers-reduced-motion: reduce)': '100%',
+    },
+    animationName: 'progress-indeterminate',
+    animationDuration: '1.4s',
+    animationTimingFunction: 'ease-in-out',
+    animationIterationCount: 'infinite',
+    animationDirection: 'normal',
+    animationPlayState: 'running',
+    animationDelay: '0s',
+    animationFillMode: 'none',
+    animationTimeline: 'auto',
+    borderRadius: '3.40282e38px',
+    backgroundColor: themeColors2['--color-brand'],
+    left: { default: null, '@media (prefers-reduced-motion: reduce)': 0 },
+    opacity: { default: null, '@media (prefers-reduced-motion: reduce)': 0.7 },
+  },
+  rule2: {
+    height: '100%',
+    width: 'var(--progress-width)',
+    borderRadius: '3.40282e38px',
+    backgroundColor: themeColors2['--color-brand'],
+    transitionProperty: {
+      default: 'width',
+      '@media (prefers-reduced-motion: reduce)': 'none',
+    },
+    transitionTimingFunction: 'ease',
+    transitionDuration: '.2s',
+    '--tw-duration': '.2s',
+    '--tw-ease': 'ease',
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     display: 'flex',
@@ -62,7 +102,7 @@ interface ProgressBarProps {
 
 // ProgressBar renders a slim progress track with an optional right-side label.
 // Determinate mode shows percent or a rate label; indeterminate mode runs the
-// animate-progress-indeterminate keyframe.
+// progress-indeterminate keyframe.
 export function ProgressBar({ value, indeterminate, rate }: ProgressBarProps) {
   const pct =
     value === undefined ? 0 : Math.max(0, Math.min(100, Math.round(value)))
@@ -70,16 +110,10 @@ export function ProgressBar({ value, indeterminate, rate }: ProgressBarProps) {
     <div sx={stylexStyles.rule1}>
       <div sx={stylexStyles.rule2}>
         {indeterminate ? (
-          <div
-            className={
-              /* TODO(stylex): global or unknown class: animate-progress-indeterminate */ 'bg-brand animate-progress-indeterminate absolute inset-y-0 w-1/3 rounded-full motion-reduce:left-0 motion-reduce:w-full motion-reduce:animate-none motion-reduce:opacity-70'
-            }
-          />
+          <div sx={stylexStyles2.rule1} />
         ) : (
           <div
-            className={
-              /* TODO(stylex): global or unknown class: progress-width */ 'bg-brand progress-width progress-width-transition h-full rounded-full motion-reduce:transition-none'
-            }
+            sx={stylexStyles2.rule2}
             style={{ '--progress-width': `${pct}%` }}
           />
         )}
