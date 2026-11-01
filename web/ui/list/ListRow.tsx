@@ -23,21 +23,26 @@ export function ListRow<T>({
   style,
   ariaAttributes,
 }: RowComponentProps<T>) {
+  // Keep click grouping and its timer within this mounted row.
   const clickCountRef = useRef(0)
   const clickTimerRef = useRef<number | null>(null)
 
+  // Report the first click immediately and group subsequent clicks.
   const handleListRowSelect = useCallback(
     (e: React.MouseEvent) => {
+      // Report the current row and increment its pending click count.
       const newCount = clickCountRef.current + 1
       clickCountRef.current = newCount
       if (onRowClick) {
         onRowClick(itemIndex, item, e, 1)
       }
 
+      // Replace the previous click window before waiting for additional clicks.
       if (clickTimerRef.current) {
         clearTimeout(clickTimerRef.current)
       }
 
+      // Report a completed multiple click and clear its grouping state.
       clickTimerRef.current = window.setTimeout(() => {
         if (newCount > 1 && onRowClick) {
           onRowClick(itemIndex, item, e, newCount)
@@ -49,6 +54,7 @@ export function ListRow<T>({
     [itemIndex, item, onRowClick],
   )
 
+  // Suppress the browser menu before notifying the row's context-menu handler.
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault()
@@ -59,6 +65,7 @@ export function ListRow<T>({
     [itemIndex, item, onContextMenu],
   )
 
+  // Use the same row click path for Enter and Space.
   const handleListRowKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key !== 'Enter' && e.key !== ' ') return
     e.preventDefault()
@@ -67,10 +74,12 @@ export function ListRow<T>({
     )
   }, [])
 
+  // Resolve this row's selection and focus from the shared list state.
   const context = use(ListStateContext)
   const selected = context?.selectedIds?.includes(item.id) ?? false
   const focused = itemIndex === context?.focusedIndex
 
+  // Move browser focus to the row selected by keyboard navigation.
   const divRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (focused && divRef.current) {

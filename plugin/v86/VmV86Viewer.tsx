@@ -31,6 +31,12 @@ import { useVmRequest, watchVmObject } from '@s4wave/app/vm/vm-object.js'
 import { VmMachineCard, type OverrideSlot } from './VmMachineCard.js'
 import { VmRunningView } from './VmRunningView.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: { width: '100%', maxWidth: 'var(--container-sm)' },
+})
+
 // overridePredicate links a VmV86 to a per-asset override, which takes
 // precedence over the V86Image's asset when the VM boots. Mirrors sdk/vm
 // PredV86{Kernel,Rootfs,Bios,Wasm}Override, bare IRIs like PRED_V86_IMAGE.
@@ -212,7 +218,7 @@ export default function VmV86Viewer({
               title: 'Loading virtual machine',
               detail: 'Reading its settings from this Space.',
             }}
-            className="w-full max-w-sm"
+            sx={stylexStyles.rule1}
           />
         )}
       </div>

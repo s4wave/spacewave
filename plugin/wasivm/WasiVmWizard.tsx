@@ -29,6 +29,12 @@ import {
   listCdnWasiVmImages,
 } from './wasivm-images.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: { width: '100%', maxWidth: 'var(--container-sm)' },
+})
+
 // imageChoicePrefix and fsChoicePrefix mark a root filesystem choice as a
 // published image or a filesystem in this Space.
 const imageChoicePrefix = 'image:'
@@ -38,6 +44,7 @@ const fsChoicePrefix = 'fs:'
 // either a published image or a UnixFS object in the Space, and the init
 // program it runs.
 export default function WasiVmWizard(props: ObjectViewerComponentProps) {
+  // Keep the wizard, root filesystem choice and executable draft together.
   const ws = useWizardState(props, undefined)
   const { state } = ws
   const [rootfsChoice, setRootfsChoice] = useState('')
@@ -117,6 +124,7 @@ export default function WasiVmWizard(props: ObjectViewerComponentProps) {
     }
   }, [state, ws, name, image, rootfsKey, root, initPath])
 
+  // Wait for wizard state before showing its configuration controls.
   if (!state) {
     return (
       <div className="flex flex-1 items-center justify-center p-4">
@@ -126,7 +134,7 @@ export default function WasiVmWizard(props: ObjectViewerComponentProps) {
             title: 'Loading wizard',
             detail: 'Preparing the virtual machine settings.',
           }}
-          className="w-full max-w-sm"
+          sx={stylexStyles.rule1}
         />
       </div>
     )

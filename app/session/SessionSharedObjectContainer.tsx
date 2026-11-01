@@ -116,6 +116,7 @@ function getHealthSummary(health: SharedObjectHealth): {
   description: string
   hint: string
 } {
+  // Distinguish opening the space from loading its body contents.
   if (health.status === SharedObjectHealthStatus.LOADING) {
     if (health.layer === SharedObjectHealthLayer.BODY) {
       return {
@@ -133,6 +134,7 @@ function getHealthSummary(health: SharedObjectHealth): {
     }
   }
 
+  // Explain when the requested shared object no longer exists.
   if (health.commonReason === SharedObjectHealthCommonReason.NOT_FOUND) {
     return {
       badge: 'Closed',
@@ -142,6 +144,8 @@ function getHealthSummary(health: SharedObjectHealth): {
       hint: 'Ask the owner for an updated link or confirm the object still exists.',
     }
   }
+
+  // Explain when the session no longer has access to this object.
   if (health.commonReason === SharedObjectHealthCommonReason.ACCESS_REVOKED) {
     return {
       badge: 'Closed',
@@ -151,6 +155,8 @@ function getHealthSummary(health: SharedObjectHealth): {
       hint: 'Request access again or confirm the correct account is open.',
     }
   }
+
+  // Explain why failed initial-state verification closed the mount.
   if (
     health.commonReason ===
     SharedObjectHealthCommonReason.INITIAL_STATE_REJECTED
@@ -163,6 +169,8 @@ function getHealthSummary(health: SharedObjectHealth): {
       hint: 'The owner needs to repair or republish the shared object state.',
     }
   }
+
+  // Keep provider blocks distinct from missing source data.
   if (health.commonReason === SharedObjectHealthCommonReason.RESOURCE_BLOCKED) {
     return {
       badge: 'Closed',
@@ -171,6 +179,8 @@ function getHealthSummary(health: SharedObjectHealth): {
       hint: 'Retry after the block is lifted.',
     }
   }
+
+  // Explain the missing block and when replication may still recover it.
   if (health.commonReason === SharedObjectHealthCommonReason.BLOCK_NOT_FOUND) {
     return {
       badge: 'Closed',
@@ -180,6 +190,8 @@ function getHealthSummary(health: SharedObjectHealth): {
       hint: 'Retry if the data may still be syncing; otherwise the source data needs repair.',
     }
   }
+
+  // Require repair of an unreadable transform configuration.
   if (
     health.commonReason ===
     SharedObjectHealthCommonReason.TRANSFORM_CONFIG_DECODE_FAILED
@@ -192,6 +204,8 @@ function getHealthSummary(health: SharedObjectHealth): {
       hint: 'The shared object data needs repair before it can be opened.',
     }
   }
+
+  // Explain why unreadable body metadata needs repair or a compatible viewer.
   if (
     health.commonReason ===
     SharedObjectHealthCommonReason.BODY_CONFIG_DECODE_FAILED
@@ -204,6 +218,8 @@ function getHealthSummary(health: SharedObjectHealth): {
       hint: 'The body metadata needs repair or a compatible viewer.',
     }
   }
+
+  // Keep partial availability distinct from a closed mount.
   if (health.status === SharedObjectHealthStatus.DEGRADED) {
     return {
       badge: 'Degraded',
@@ -213,6 +229,8 @@ function getHealthSummary(health: SharedObjectHealth): {
       hint: '',
     }
   }
+
+  // Describe the failed layer when no more specific recovery reason is available.
   return {
     badge: 'Closed',
     title:
@@ -233,6 +251,7 @@ function getSharedObjectMutationPermission(
   organizations: OrganizationInfo[],
   organizationsLoading: boolean,
 ): SharedObjectMutationPermission {
+  // Use organization ownership when deciding whether the account may change this object.
   const org = organizations.find(
     (org) => !!org.id && (org.spaceIds?.includes(sharedObjectId) ?? false),
   )
@@ -247,6 +266,7 @@ function getSharedObjectMutationPermission(
     }
   }
 
+  // Allow mutation of a shared object this account created directly.
   const spaceEntry = resourcesList?.spacesList?.find(
     (entry) => entry.entry?.ref?.providerResourceRef?.id === sharedObjectId,
   )
@@ -254,6 +274,7 @@ function getSharedObjectMutationPermission(
     return { canMutate: true, disabledReason: '' }
   }
 
+  // Wait for ownership evidence before offering a shared object repair.
   if (organizationsLoading || !resourcesList) {
     return {
       canMutate: false,
@@ -374,11 +395,13 @@ function SharedObjectHealthCard({
   mutationPending: boolean
   mutationError: string
 }) {
+  // Resolve the health summary and recovery flow for this mount state.
   const summary = getHealthSummary(health)
   const isLoading = health.status === SharedObjectHealthStatus.LOADING
   const isDegraded = health.status === SharedObjectHealthStatus.DEGRADED
   const flow = useRemediationFlow(onRepair, onReinitialize)
 
+  // Keep mounting on the progress screen until health leaves loading.
   if (isLoading) {
     return (
       <SpaceMountingScreen
@@ -390,6 +413,7 @@ function SharedObjectHealthCard({
     )
   }
 
+  // Describe a failed or degraded mount with its recovery controls.
   const tone = getSharedObjectHealthTone(isLoading, isDegraded)
 
   // Layer label appears in error/degraded states. The body vs shared object
@@ -723,11 +747,14 @@ type SharedObjectBodyResource = MountedSharedObject['sharedObjectBodyResource']
 // /u/:idx/org/:orgId/so/:spaceId when the space is org-owned. It skips the
 // redirect when the route is already nested under /org/.
 function useSpaceOrgRedirect(sharedObjectId: string) {
+  // Read the current route and organization context for this shared object.
   const navigateSession = useSessionNavigate()
   const parentPaths = useParentPaths()
   const orgListCtx = SpacewaveOrgListContext.useContextSafe()
 
+  // Find the owning organization when the current route is outside it.
   const orgRedirectId = useMemo(() => {
+    // Avoid redirecting a missing object or a route already under an organization.
     if (!sharedObjectId) return ''
     const underOrg = parentPaths.some((p) => p.includes('/org/'))
     if (underOrg) return ''
@@ -740,6 +767,7 @@ function useSpaceOrgRedirect(sharedObjectId: string) {
     return ''
   }, [orgListCtx, parentPaths, sharedObjectId])
 
+  // Replace a personal object route with its owning organization route.
   useEffect(() => {
     if (!orgRedirectId) return
     navigateSession({
@@ -757,6 +785,7 @@ function useMountedSharedObject(
   sharedObjectId: string,
   navigateSession: SessionNavigate,
 ) {
+  // Mount the shared object before mounting its body resource.
   const sharedObjectResource = useSharedObjectMount(session, sharedObjectId)
   const sharedObjectBodyResource =
     useSharedObjectBodyMount(sharedObjectResource)
@@ -794,15 +823,18 @@ function useMissingSpaceGuard(
   mounted: boolean,
   resourcesList: WatchResourcesListResponse | null | undefined,
 ): boolean {
+  // Identify this session's quickstart route within the running app instance.
   const environment = useAppEnvironment()
   const sessionIndex = useSessionIndex()
   const instanceKey = environment.instanceKey
 
+  // Retain the quickstart route while this container owns it.
   useEffect(
     () => retainQuickstartRoute(sessionIndex, sharedObjectId, instanceKey),
     [sessionIndex, sharedObjectId, instanceKey],
   )
 
+  // Check whether the normal resources watch has caught up with the new space.
   const inResourcesList = useMemo(
     () =>
       resourcesList?.spacesList?.some(
@@ -811,6 +843,7 @@ function useMissingSpaceGuard(
     [resourcesList, sharedObjectId],
   )
 
+  // Clear quickstart's temporary routing allowance when the space is listed.
   useEffect(() => {
     if (inResourcesList) {
       clearQuickstartRouteAwaitingResourcesList(
@@ -821,6 +854,7 @@ function useMissingSpaceGuard(
     }
   }, [sessionIndex, inResourcesList, sharedObjectId, instanceKey])
 
+  // Wait for the resources watch before treating a new quickstart space as missing.
   const awaitingResourcesList =
     !inResourcesList &&
     isQuickstartRouteAwaitingResourcesList(
@@ -842,6 +876,7 @@ function useSharedObjectRemediation(
   sessionValue: Session | null | undefined,
   onRetry: () => void,
 ) {
+  // Keep remediation requests and credential dialogs tied to the current account.
   const { providerId, accountId } = useSessionInfo(sessionValue)
   const selfEnrollmentStatus = useSessionSelfEnrollmentStatus()
   const [mutationPending, setMutationPending] = useState(false)
@@ -851,6 +886,7 @@ function useSharedObjectRemediation(
     useState(false)
   const [selfEnrollmentAutoOpenKey, setSelfEnrollmentAutoOpenKey] = useState('')
 
+  // Require step-up only for the enrolled shared objects named by the watched status.
   const needsSelfEnrollmentStepUp = useMemo(
     () =>
       !!sharedObjectId &&
@@ -875,6 +911,7 @@ function useSharedObjectRemediation(
     setSelfEnrollmentStepUpOpen(true)
   }
 
+  // Run the selected recovery action through the session's shared object service.
   const runRepairAction = useCallback(
     async (kind: SharedObjectRemediationAction) => {
       if (!sharedObjectId || !sessionValue || mutationPending) {
@@ -914,6 +951,7 @@ function useSharedObjectRemediation(
     ],
   )
 
+  // Retry credential repair after the account key has been unlocked.
   const confirmCredentialRepair = useCallback(async () => {
     if (!sharedObjectId || !sessionValue) {
       return
@@ -936,6 +974,7 @@ function useSharedObjectRemediation(
     }
   }, [onRetry, sessionValue, sharedObjectId])
 
+  // Complete the pending enrollment step-up before retrying the mount.
   const confirmSelfEnrollmentStepUp = useCallback(async () => {
     if (!selfEnrollmentStatus.resource) return
     setMutationPending(true)
@@ -1083,8 +1122,10 @@ function SharedObjectRouteState({
   mutationPending: boolean
   mutationError: string
 }) {
+  // Resolve the policy link for an unavailable shared object.
   const dmcaHref = useStaticHref('/dmca')
 
+  // Render mounted contents or the corresponding unavailable state.
   if (mounted) {
     return (
       <>
@@ -1152,6 +1193,7 @@ function SharedObjectRouteState({
 
 // SessionSharedObjectContainer displays a shared object.
 export function SessionSharedObjectContainer() {
+  // Resolve the routed shared object and the current session's contexts.
   const params = useParams()
   const sharedObjectId = params['sharedObjectId'] ?? ''
   const navigate = useNavigate()
@@ -1160,8 +1202,10 @@ export function SessionSharedObjectContainer() {
   const sessionValue = useResourceValue(session)
   const orgListCtx = SpacewaveOrgListContext.useContextSafe()
 
+  // Use the owning organization's route when one is available.
   useSpaceOrgRedirect(sharedObjectId)
 
+  // Watch the session's accessible spaces through the existing shared stream.
   const resourcesList = useWatchStateRpc(
     useCallback(
       (req: WatchResourcesListRequest, signal: AbortSignal) =>
@@ -1173,6 +1217,7 @@ export function SessionSharedObjectContainer() {
     WatchResourcesListResponse.equals,
   )
 
+  // Watch this shared object's reported health beside its mounted resources.
   const sharedObjectHealthResp = useWatchStateRpc(
     useCallback(
       (req: WatchSharedObjectHealthRequest, signal: AbortSignal) =>
@@ -1184,18 +1229,22 @@ export function SessionSharedObjectContainer() {
     WatchSharedObjectHealthResponse.equals,
   )
 
+  // Mount the shared object and body through their existing resource owners.
   const { sharedObjectResource, sharedObjectBodyResource } =
     useMountedSharedObject(session, sharedObjectId, navigateSession)
 
+  // Guard a missing space while allowing an unfinished quickstart listing.
   const shouldRedirectMissingSpace = useMissingSpaceGuard(
     sharedObjectId,
     !!sharedObjectResource.value,
     resourcesList,
   )
 
+  // Use the first mount failure reported by the object or its body.
   const resourceError =
     sharedObjectResource.error ?? sharedObjectBodyResource.error
 
+  // Reconcile watched health with the current object and body mount states.
   const activeHealth = useMemo(() => {
     return getSharedObjectRouteHealth({
       mounted: !!sharedObjectResource.value,
@@ -1212,10 +1261,12 @@ export function SessionSharedObjectContainer() {
     sharedObjectResource.value,
   ])
 
+  // Distinguish provider blocks from ordinary mount failures.
   const isBlocked =
     activeHealth?.commonReason ===
     SharedObjectHealthCommonReason.RESOURCE_BLOCKED
 
+  // Open storage recovery when the mount reports a quota incident.
   if (resourceError && isStorageQuotaError(resourceError)) {
     queueMicrotask(() =>
       navigateSession({
@@ -1237,10 +1288,12 @@ export function SessionSharedObjectContainer() {
     sharedObjectResource.retry()
   }, [sharedObjectBodyResource, sharedObjectResource])
 
+  // Return to the parent route from this shared object.
   const handleBack = useCallback(() => {
     navigate({ path: '../' })
   }, [navigate])
 
+  // Bind remediation and account unlocking to the selected shared object.
   const remediation = useSharedObjectRemediation(
     sharedObjectId,
     sessionValue,
@@ -1252,6 +1305,7 @@ export function SessionSharedObjectContainer() {
     remediation.accountId,
   )
 
+  // Resolve whether this account may mutate the unavailable shared object.
   const mutationPermission = useMemo(
     () =>
       getSharedObjectMutationPermission(

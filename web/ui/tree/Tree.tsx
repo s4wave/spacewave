@@ -144,12 +144,14 @@ export function Tree<T>({
   onRowDefaultAction,
   onRowContextMenu,
 }: TreeProps<T>) {
+  // Resolve initial focus from the stored tree state and first root node.
   const firstNodeID = nodes[0]?.id
   const state = useMemo(
     () => withDefaultFocus(storedState, firstNodeID),
     [storedState, firstNodeID],
   )
 
+  // Flatten the expanded nodes into the currently visible row order.
   const rows = useMemo(
     () => flattenTree(nodes, state.expandedIds),
     [nodes, state.expandedIds],
@@ -166,6 +168,7 @@ export function Tree<T>({
     stateRef.current = state
   }, [nodes, rows, state])
 
+  // Apply tree actions against the latest nodes and normalized focus state.
   const dispatch = useCallback(
     (action: TreeAction) =>
       update((prev) =>
@@ -178,16 +181,20 @@ export function Tree<T>({
     [update],
   )
 
+  // Translate keyboard navigation into the tree's existing selection actions.
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
+      // Resolve keyboard selection modifiers before locating the focused node.
       const { key } = e
       const metaKey = e.metaKey || e.ctrlKey
       const shiftKey = e.shiftKey
 
+      // Find the current focused node before applying its requested action.
       const focusedNode = state.focusedId
         ? findNodeById(nodes, state.focusedId)
         : undefined
 
+      // Handle activation, expansion and selection through the tree reducer.
       switch (key) {
         case 'Enter': {
           if (focusedNode) {
@@ -308,6 +315,7 @@ export function Tree<T>({
           return
       }
 
+      // Prevent the browser's native action after handling a tree navigation key.
       e.preventDefault()
     },
     [dispatch, state, nodes, onRowDefaultAction],
@@ -316,6 +324,7 @@ export function Tree<T>({
   // A dragged row that is not selected becomes the selection it drags.
   const handleRowDragStart = useCallback(
     (e: React.DragEvent<HTMLElement>, node: TreeNode<T>) => {
+      // Preserve a selected drag group or select the newly dragged row.
       const current = stateRef.current
       if (!node.onDragStart) return
       if (current.selectedIds.has(node.id)) {
@@ -342,6 +351,7 @@ export function Tree<T>({
     }
   }, [listRef, state.focusedId])
 
+  // Build row props from the current pointer mode and tree state.
   const coarsePointer = useMediaQuery(coarsePointerQuery)
   const rowProps = useMemo(
     (): TreeListRowProps<T> => ({
@@ -370,6 +380,7 @@ export function Tree<T>({
           aria-multiselectable="true"
           aria-orientation="vertical"
           onFocus={(e) => {
+            // Forward tree-container focus to its current mounted row.
             if (e.target !== e.currentTarget || !state.focusedId) return
             const focusedElement = document.getElementById(state.focusedId)
             if (!focusedElement) return

@@ -72,7 +72,8 @@ const stylexStyles = stylex.create({
   rule7: {
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
   },
-  rule8: {
+
+  rule9: {
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     color: themeColors['--color-destructive'],
@@ -202,7 +203,7 @@ export function CredentialProofInput({
           </div>
         </>
       )}
-      {error && <p sx={stylexStyles.rule8}>{error}</p>}
+      {error && <p sx={stylexStyles.rule9}>{error}</p>}
     </div>
   )
 }

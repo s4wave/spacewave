@@ -8,6 +8,12 @@ import { cn } from '@s4wave/web/style/utils.js'
 
 import { v86SerialChannelName, type SerialFrame } from './serial-channel.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: { width: '100%', maxWidth: 'var(--container-sm)' },
+})
+
 // VmSerialConsoleProps configures the serial console of one VM.
 export interface VmSerialConsoleProps {
   // objectKey is the VmV86 whose serial port the console attaches to.
@@ -28,6 +34,7 @@ export function VmSerialConsole({
   const [hasOutput, setHasOutput] = useState(false)
 
   useEffect(() => {
+    // Require the mounted host and VM identity before opening the serial console.
     const host = hostRef.current
     if (!host || !objectKey) return
 
@@ -91,7 +98,7 @@ export function VmSerialConsole({
                   'Waiting for the guest to write to its console.',
               },
             )}
-            className="w-full max-w-sm"
+            sx={stylexStyles.rule1}
           />
         </div>
       )}

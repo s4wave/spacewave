@@ -1,16 +1,18 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import { SessionLockMode } from '@s4wave/core/session/session.pb.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 
 import { toLockView } from '../status/lock.js'
 
 interface SessionLockLoadingOverlayProps {
+  className?: never
   mode?: SessionLockMode
   locked: boolean
   unlocking?: boolean
   errorMessage?: string
   onRetry?: () => void
   onCancel?: () => void
-  className?: string
+  sx?: ComponentStyles
 }
 
 // SessionLockLoadingOverlay renders session lock state as a LoadingCard for
@@ -22,8 +24,11 @@ export function SessionLockLoadingOverlay({
   errorMessage,
   onRetry,
   onCancel,
-  className,
-}: SessionLockLoadingOverlayProps) {
+  sx,
+}: Omit<SessionLockLoadingOverlayProps, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
   return (
     <LoadingCard
       view={toLockView({
@@ -34,7 +39,7 @@ export function SessionLockLoadingOverlay({
         onRetry,
         onCancel,
       })}
-      className={className}
+      sx={sx}
     />
   )
 }

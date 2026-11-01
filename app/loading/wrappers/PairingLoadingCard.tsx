@@ -1,15 +1,17 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import type { PairingStatus } from '@s4wave/sdk/session/session.pb.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 
 import { toPairingView } from '../status/pairing.js'
 
 interface PairingLoadingCardProps {
+  className?: never
   status?: PairingStatus
   pairingCode?: string
   errorMessage?: string
   onRetry?: () => void
   onCancel?: () => void
-  className?: string
+  sx?: ComponentStyles
 }
 
 // PairingLoadingCard renders a pairing status snapshot as a LoadingCard with
@@ -20,8 +22,11 @@ export function PairingLoadingCard({
   errorMessage,
   onRetry,
   onCancel,
-  className,
-}: PairingLoadingCardProps) {
+  sx,
+}: Omit<PairingLoadingCardProps, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
   return (
     <LoadingCard
       view={toPairingView({
@@ -31,7 +36,7 @@ export function PairingLoadingCard({
         onRetry,
         onCancel,
       })}
-      className={className}
+      sx={sx}
     />
   )
 }
