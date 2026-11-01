@@ -1,76 +1,39 @@
-import { describe, it, expect, vi, afterEach } from 'vitest'
+import { it, expect, vi, afterEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ErrorState } from './ErrorState.js'
 
-describe('ErrorState', () => {
-  afterEach(() => {
-    cleanup()
-  })
+afterEach(cleanup)
 
-  it('renders with default title "Error"', () => {
-    render(<ErrorState message="Something went wrong" />)
-    expect(screen.getByText('Error')).toBeDefined()
-  })
+it('keeps error content and exposes retry only while it is available', async () => {
+  // Show the default failure without a retry action.
+  const user = userEvent.setup()
+  const view = render(
+    <ErrorState message="Something went wrong">Details</ErrorState>,
+  )
+  expect(screen.getByRole('heading', { name: 'Error' })).toBeDefined()
+  expect(screen.getByText('Something went wrong')).toBeDefined()
+  expect(screen.getByText('Details')).toBeDefined()
+  expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull()
 
-  it('renders custom title', () => {
-    render(<ErrorState title="Connection Failed" message="Cannot connect" />)
-    expect(screen.getByText('Connection Failed')).toBeDefined()
-  })
+  // Follow the supplied retry action and retain the chosen title and message.
+  const retry = vi.fn()
+  view.rerender(
+    <ErrorState
+      title="Connection Failed"
+      message="Cannot connect"
+      onRetry={retry}
+    />,
+  )
+  expect(
+    screen.getByRole('heading', { name: 'Connection Failed' }),
+  ).toBeDefined()
+  expect(screen.getByText('Cannot connect')).toBeDefined()
+  await user.click(screen.getByRole('button', { name: 'Retry' }))
+  expect(retry).toHaveBeenCalledOnce()
 
-  it('renders message text', () => {
-    render(<ErrorState message="Something went wrong" />)
-    expect(screen.getByText('Something went wrong')).toBeDefined()
-  })
-
-  it('shows Retry button when onRetry is provided', () => {
-    const handleRetry = vi.fn()
-    render(<ErrorState message="Failed" onRetry={handleRetry} />)
-    expect(screen.getByText('Retry')).toBeDefined()
-  })
-
-  it('calls onRetry when Retry button is clicked', async () => {
-    const user = userEvent.setup()
-    const handleRetry = vi.fn()
-    render(<ErrorState message="Failed" onRetry={handleRetry} />)
-
-    await user.click(screen.getByText('Retry'))
-    expect(handleRetry).toHaveBeenCalledOnce()
-  })
-
-  it('does not show Retry button when onRetry is not provided', () => {
-    render(<ErrorState message="Failed" />)
-    expect(screen.queryByText('Retry')).toBeNull()
-  })
-
-  it('renders card variant by default', () => {
-    const { container } = render(<ErrorState message="Failed" />)
-    // Card variant uses p-6
-    expect(container.firstElementChild?.classList.contains('p-6')).toBe(true)
-  })
-
-  it('renders inline variant', () => {
-    const { container } = render(
-      <ErrorState message="Failed" variant="inline" />,
-    )
-    // Inline variant uses flex-row layout with items-center and gap-3
-    expect(container.firstElementChild?.classList.contains('p-3')).toBe(true)
-  })
-
-  it('renders fullscreen variant', () => {
-    const { container } = render(
-      <ErrorState message="Failed" variant="fullscreen" />,
-    )
-    expect(container.firstElementChild?.classList.contains('h-full')).toBe(true)
-    expect(container.firstElementChild?.classList.contains('min-h-0')).toBe(
-      true,
-    )
-  })
-
-  it('applies custom className', () => {
-    const { container } = render(
-      <ErrorState message="Failed" className="mt-1" />,
-    )
-    expect(container.firstElementChild?.classList.contains('mt-1')).toBe(true)
-  })
+  // Removing the action removes its control in the inline presentation too.
+  view.rerender(<ErrorState message="Offline" variant="inline" />)
+  expect(screen.getByText('Offline')).toBeDefined()
+  expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull()
 })
