@@ -24,8 +24,19 @@ export const state = (v: Lease) => {
 }
 
 export const step = (action: string, from: Lease, to: Lease) => {
+  // Distinguish process death from an explicit lease release.
+  if (action === 'Die') {
+    if (state(from) === state(to)) return null
+    return from.owner === 'P2' && to.owner !== 'P2'
+      ? 'P2 process exits'
+      : 'P1 process exits'
+  }
+
+  // Show when the other process acquires or drops its lock.
   if (from.owner !== 'P2' && to.owner === 'P2') return 'P2 locks'
   if (from.owner === 'P2' && to.owner !== 'P2') return 'P2 unlocks'
+
+  // Describe the local caller's lease transition.
   if (p1(from) === p1(to)) return null
   switch (action) {
     case 'Claim':
