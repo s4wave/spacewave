@@ -94,54 +94,21 @@ func collectStartupManifestEligibilityForManifestID(
 	}
 	edgeLabels := startupManifestCandidateEdgeLabels(edges, manifestID)
 	out := make([]*StartupManifestCandidateEligibility, 0, len(candidates))
+	var rootReadErr error
 	for _, objKey := range candidates {
 		if manifestRoot != "" {
-			// Signed reference wrappers retain another object's executable identity.
-			// Read the local envelope before classifying its target, so unrelated closed buckets stay unopened.
-			var ref *bucket.ObjectRef
-			objectType, err := getStartupManifestCandidateObjectType(ctx, ws, objKey)
+			// Defer an unidentified sibling's read error while looking for the exact executable.
+			matched, err := startupManifestCandidateMatchesRoot(ctx, ws, objKey, manifestRoot)
 			if err != nil {
 				if ctxErr := startupContextError(err); ctxErr != nil {
 					return nil, ctxErr
 				}
+				if rootReadErr == nil {
+					rootReadErr = errors.Wrapf(err, "read pinned manifest candidate %s", objKey)
+				}
 				continue
 			}
-			if objectType == ManifestStoreTypeID || objectType == ManifestBundleTypeID {
-				continue
-			}
-			if objectType != ManifestTypeID {
-				stored, _, err := lookupManifestRefForStartupEligibility(ctx, ws, objKey)
-				if err != nil {
-					if ctxErr := startupContextError(err); ctxErr != nil {
-						return nil, ctxErr
-					}
-					if objectType != "" {
-						continue
-					}
-				} else {
-					ref = stored.GetManifestRef()
-				}
-			}
-
-			// Direct and untyped legacy manifests identify the executable at their own root.
-			if ref == nil {
-				object, err := world.MustGetObject(ctx, ws, objKey)
-				if err != nil {
-					if ctxErr := startupContextError(err); ctxErr != nil {
-						return nil, ctxErr
-					}
-					continue
-				}
-				ref, _, err = object.GetRootRef(ctx)
-				world.ReleaseObjectState(object)
-				if err != nil {
-					if ctxErr := startupContextError(err); ctxErr != nil {
-						return nil, ctxErr
-					}
-					continue
-				}
-			}
-			if ref.GetRootRef().GetHash().MarshalString() != manifestRoot {
+			if !matched {
 				continue
 			}
 		}
@@ -158,7 +125,47 @@ func collectStartupManifestEligibilityForManifestID(
 		}
 		out = append(out, candidate)
 	}
+
+	// An unknown root is not proof of absence: preserve the running pin and its retry path.
+	if len(out) == 0 && rootReadErr != nil {
+		return nil, rootReadErr
+	}
 	return out, nil
+}
+
+// startupManifestCandidateMatchesRoot reads local identity without opening an unrelated executable bucket.
+func startupManifestCandidateMatchesRoot(ctx context.Context, ws world.WorldState, objKey, root string) (bool, error) {
+	// Intermediate catalog objects never identify an executable.
+	objectType, err := getStartupManifestCandidateObjectType(ctx, ws, objKey)
+	if err != nil {
+		return false, err
+	}
+	if objectType == ManifestStoreTypeID || objectType == ManifestBundleTypeID {
+		return false, nil
+	}
+
+	// Signed wrappers identify their referenced executable, while untyped legacy objects may be direct.
+	if objectType != ManifestTypeID {
+		stored, _, err := lookupManifestRefForStartupEligibility(ctx, ws, objKey)
+		if err == nil {
+			return stored.GetManifestRef().GetRootRef().GetHash().MarshalString() == root, nil
+		}
+		if objectType != "" {
+			return false, err
+		}
+	}
+
+	// A direct manifest's own root identifies it without reading executable blocks.
+	object, err := world.MustGetObject(ctx, ws, objKey)
+	if err != nil {
+		return false, err
+	}
+	ref, _, err := object.GetRootRef(ctx)
+	world.ReleaseObjectState(object)
+	if err != nil {
+		return false, err
+	}
+	return ref.GetRootRef().GetHash().MarshalString() == root, nil
 }
 
 // SummarizeStartupManifestEligibility builds a compact status string.
