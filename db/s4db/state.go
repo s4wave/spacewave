@@ -96,7 +96,7 @@ func (st *state) superblock() superblock {
 	return superblock{
 		version: st.m.version,
 		seq:     st.seq,
-		logPos:  st.pos, logEnd: st.end, logCrc: st.crc, logWriter: st.writer, logSpare: st.spare,
+		logPos:  st.pos, logEnd: st.end, logCrc: st.crc, logWriter: st.writer,
 		through: st.flushed,
 		memPos:  st.replay.pos, memEnd: st.replay.end, memCrc: st.replay.crc, memWriter: st.replay.writer, memSpare: st.replay.spare,
 	}
