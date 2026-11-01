@@ -1,11 +1,13 @@
 ---- MODULE Conversion ----
 \* As implemented in convertPrevious, resumeConverted, buildConverted and
-\* installConverted. s4dbv1.Open owns the old inode's writer lock during the
-\* stream/build/verify/marker steps; src.Close releases it BEFORE install.
-\* An old-engine process can then reopen that inode and commit. A restarted
-\* converter accepts a marker using convertedHolds (key count only), without
-\* comparing its digest with the current source. Tags 1 and 2 are different
-\* contents with the SAME key count. No corruption assumption is needed.
+\* installConverted. s4dbv1.Open owns the old inode's writer lock until after
+\* rename and directory sync. On Windows the source handle permits deletion
+\* sharing and FileRenameInfoEx uses POSIX replacement semantics so the name
+\* changes atomically while the old inode remains locked and readable.
+\* Resume compares the marker to the current source digest and re-verifies
+\* every converted pair. OpenFile shares one process registry across both
+\* formats; rejected local probes never close a descriptor of the locked source.
+\* Tags 1 and 2 differ even with the SAME key count.
 \* NewVolume calls conversion at open; CopyPreviousFormat streams/verifies
 \* without installing and is outside this replacement lifecycle. A second
 \* converter and same-process POSIX lock semantics are excluded, so failures
@@ -24,7 +26,7 @@ Init ==
   /\ locked = FALSE /\ pathNew = FALSE /\ backup = FALSE
 Open ==
   /\ pc = "open" /\ ~pathNew /\ locked' = TRUE
-  /\ pc' = IF marker /\ temp # 0 THEN "close" ELSE "build"
+  /\ pc' = IF marker /\ temp = source THEN "link" ELSE "build"
   /\ UNCHANGED <<source, temp, marker, pathNew, backup>>
 Build ==
   /\ pc = "build" /\ locked
@@ -35,11 +37,11 @@ Verify ==
   /\ pc' = "marker"
   /\ UNCHANGED <<source, temp, marker, locked, pathNew, backup>>
 Marker ==
-  /\ pc = "marker" /\ marker' = TRUE /\ pc' = "close"
+  /\ pc = "marker" /\ marker' = TRUE /\ pc' = "link"
   /\ UNCHANGED <<source, temp, locked, pathNew, backup>>
 CloseSource ==
-  /\ pc = "close" /\ locked
-  /\ locked' = FALSE /\ pc' = "link"
+  /\ pc = "done" /\ locked
+  /\ locked' = FALSE /\ pc' = "closed"
   /\ UNCHANGED <<source, temp, marker, pathNew, backup>>
 OldCommit ==
   /\ ~locked /\ ~pathNew /\ source = 1
@@ -56,11 +58,14 @@ Crash ==
   /\ ~pathNew /\ pc # "open"
   /\ pc' = "open" /\ locked' = FALSE
   /\ UNCHANGED <<source, temp, marker, pathNew, backup>>
-Next == Open \/ Build \/ Verify \/ Marker \/ CloseSource \/ OldCommit
+\* A local format probe is refused before opening another source descriptor.
+ProbeSource == UNCHANGED vars
+
+Next == ProbeSource \/ Open \/ Build \/ Verify \/ Marker \/ CloseSource \/ OldCommit
   \/ Link \/ Rename \/ Crash \/ UNCHANGED vars
 Spec == Init /\ [][Next]_vars
 
-\* These weaker guarantees actually hold, even when the installed copy is old.
+\* Installation keeps the original and every acknowledged source write.
 OriginalRetained == pathNew => backup
 InstalledWasBuilt == pathNew => temp # 0
 \* Required acceptance: the installed file includes every source commit that

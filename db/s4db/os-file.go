@@ -15,23 +15,20 @@ type osFile struct {
 	*os.File
 	// path is the file's path.
 	path string
-	// id registers the file in the process's open files.
-	id fileID
+	// closeFile closes the descriptor and releases its process claim.
+	closeFile func() error
 }
 
 // Open opens or creates the database at path.
 func Open(path string, opts Options) (*DB, error) {
 	// Open the file once per process.
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0o600) // #nosec G703 -- the caller chooses the path.
+	f, closeFile, err := OpenFile(path, func(name string) (*os.File, error) {
+		return os.OpenFile(name, os.O_RDWR|os.O_CREATE, 0o600) // #nosec G703 -- the caller chooses the path.
+	})
 	if err != nil {
 		return nil, err
 	}
-	id, err := openFiles.claim(f)
-	if err != nil {
-		_ = f.Close()
-		return nil, err
-	}
-	return open(&osFile{File: f, path: path, id: id}, opts)
+	return open(&osFile{File: f, path: path, closeFile: closeFile}, opts)
 }
 
 // Build creates the database at path and writes the pairs source yields, in
@@ -45,19 +42,15 @@ func Open(path string, opts Options) (*DB, error) {
 // for a database.
 func Build(ctx context.Context, path string, opts Options, source func(yield func(key, value []byte) error) error) error {
 	// Create the file and register it as open in this process.
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0o600) // #nosec G703 -- the caller chooses the path.
+	f, closeFile, err := OpenFile(path, func(name string) (*os.File, error) {
+		return os.OpenFile(name, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0o600) // #nosec G703 -- the caller chooses the path.
+	})
 	if err != nil {
-		return err
-	}
-	id, err := openFiles.claim(f)
-	if err != nil {
-		_ = f.Close()
-		_ = os.Remove(path)
 		return err
 	}
 
 	// Build into it, keeping the file only on success.
-	s := &osFile{File: f, path: path, id: id}
+	s := &osFile{File: f, path: path, closeFile: closeFile}
 	err = build(ctx, s, opts, runTarget, source)
 	if cerr := s.close(); err == nil {
 		err = cerr
@@ -109,7 +102,5 @@ func (f *osFile) watch(slot int) (watcher, error) {
 
 // close closes the file and releases its registration.
 func (f *osFile) close() error {
-	err := f.Close()
-	openFiles.release(f.id)
-	return err
+	return f.closeFile()
 }
