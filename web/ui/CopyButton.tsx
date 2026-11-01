@@ -22,6 +22,28 @@ export interface CopyButtonProps {
   variant?: 'default' | 'toolbar'
 }
 
+// CopyButtonIcon renders the current feedback icon at the button's configured size.
+function CopyButtonIcon({
+  status,
+  size,
+}: {
+  status: 'idle' | 'copied' | 'error'
+  size: NonNullable<CopyButtonProps['size']>
+}) {
+  const iconCls = size === 'md' ? 'h-4 w-4' : 'h-3.5 w-3.5'
+  return (
+    <>
+      {status === 'copied' ? (
+        <LuCheck className={cn(iconCls, 'text-emerald-500')} />
+      ) : status === 'error' ? (
+        <LuTriangleAlert className={cn(iconCls, 'text-destructive')} />
+      ) : (
+        <LuCopy className={iconCls} />
+      )}
+    </>
+  )
+}
+
 // COPIED_RESET_MS is how long the "Copied" affordance stays visible.
 const COPIED_RESET_MS = 2000
 
@@ -35,13 +57,16 @@ export function CopyButton({
   size = 'sm',
   variant = 'default',
 }: CopyButtonProps) {
+  // Keep copy feedback, its reset timer and click generation together.
   const [status, setStatus] = useState<'idle' | 'copied' | 'error'>('idle')
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const generationRef = useRef(0)
   const mountedRef = useRef(true)
 
+  // Bind the clipboard action to the text currently shown by this button.
   const handleCopy = useCallback(
     async (event: MouseEvent<HTMLButtonElement>) => {
+      // Keep clipboard feedback within this click's generation.
       event.preventDefault()
       event.stopPropagation()
       const generation = ++generationRef.current
@@ -65,6 +90,7 @@ export function CopyButton({
     [text],
   )
 
+  // Invalidate pending clipboard work and reset timers when the button unmounts.
   useEffect(() => {
     mountedRef.current = true
     return () => {
@@ -77,7 +103,7 @@ export function CopyButton({
     }
   }, [])
 
-  const iconCls = size === 'md' ? 'h-4 w-4' : 'h-3.5 w-3.5'
+  // Keep the configured hit target separate from the feedback icon size.
   const boxCls = size === 'md' ? 'h-7 w-7' : 'h-6 w-6'
 
   return (
@@ -109,13 +135,7 @@ export function CopyButton({
             ? 'Copy failed'
             : ''}
       </span>
-      {status === 'copied' ? (
-        <LuCheck className={cn(iconCls, 'text-emerald-500')} />
-      ) : status === 'error' ? (
-        <LuTriangleAlert className={cn(iconCls, 'text-destructive')} />
-      ) : (
-        <LuCopy className={iconCls} />
-      )}
+      <CopyButtonIcon status={status} size={size} />
     </button>
   )
 }

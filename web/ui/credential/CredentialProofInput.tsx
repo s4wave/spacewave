@@ -118,7 +118,7 @@ export function CredentialProofInput({
               accept=".pem"
               onChange={onFileChange}
               disabled={disabled}
-              className="hidden"
+              hidden
             />
           </div>
         </>

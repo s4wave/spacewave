@@ -831,6 +831,7 @@ function SignInMethods({
   onPasskey: () => void
   onSSO: (provider: 'google' | 'github') => void
 }) {
+  // Resolve the backup-key picker and its current sign-in label.
   const pemInputRef = useRef<HTMLInputElement>(null)
   const busy = loading !== null
   let pemLabel = 'Backup key (.pem)'
@@ -844,7 +845,7 @@ function SignInMethods({
         type="file"
         accept=".pem"
         onChange={onPemFileChange}
-        className="hidden"
+        hidden
       />
       <SignInMethodButton
         fullWidth
