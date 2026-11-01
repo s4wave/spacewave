@@ -13,9 +13,13 @@ import {
   fonts as themeFonts,
 } from '../style/tokens.stylex.js'
 
-const stylexStyles2 = stylex.create({
-  rule1: { gap: `calc(${themeLayout2['--spacing']} * 1.5)` },
-  rule2: {
+const styles = stylex.create({
+  chevron: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  base: { gap: `calc(${themeLayout2['--spacing']} * 1.5)` },
+  outline: {
     height: 'auto',
     borderColor: {
       default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
@@ -43,7 +47,7 @@ const stylexStyles2 = stylex.create({
       },
     },
   },
-  rule3: {
+  ghost: {
     height: 'auto',
     paddingInline: 0,
     paddingBlock: 0,
@@ -65,13 +69,6 @@ const stylexStyles2 = stylex.create({
         ':hover': themeColors['--color-brand'],
       },
     },
-  },
-})
-
-const stylexStyles = stylex.create({
-  rule1: {
-    width: `calc(${themeLayout['--spacing']} * 3)`,
-    height: `calc(${themeLayout['--spacing']} * 3)`,
   },
 })
 
@@ -105,15 +102,15 @@ export function DropdownTriggerButton({
       variant={triggerStyle === 'ghost' ? 'ghost' : 'outline'}
       size="sm"
       sx={[
-        stylexStyles2.rule1,
-        triggerStyle === 'outline' ? stylexStyles2.rule2 : stylexStyles2.rule3,
+        styles.base,
+        triggerStyle === 'outline' ? styles.outline : styles.ghost,
         sx,
       ]}
       {...props}
     >
       {icon}
       <span>{children}</span>
-      {showChevron && <LuChevronDown {...stylex.props(stylexStyles.rule1)} />}
+      {showChevron && <LuChevronDown {...stylex.props(styles.chevron)} />}
     </Button>
   )
 }

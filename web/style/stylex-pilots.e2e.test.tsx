@@ -12,7 +12,7 @@ import { CopyableField } from '../ui/CopyableField.js'
 import { RadioOption } from '../ui/RadioOption.js'
 import { Window } from '../ui/Window.js'
 import { Input } from '../ui/input.js'
-import { Button } from '../ui/button.js'
+import { Button, buttonVariants } from '../ui/button.js'
 import { DashboardButton } from '../ui/DashboardButton.js'
 import { DropdownTriggerButton } from '../ui/DropdownTriggerButton.js'
 import { IconContext, LuPlus } from '../images/icons.js'
@@ -38,6 +38,7 @@ const styles = stylex.create({
   firstRule: { color: 'rgb(17, 34, 51)' },
   secondRule: { color: 'rgb(68, 85, 102)' },
   largeIcon: { width: 32, height: 32 },
+  minimumWidth: (minWidth: number) => ({ minWidth }),
 })
 
 // PilotJourney exercises shared composition together with real app and plugin consumers.
@@ -54,7 +55,8 @@ function PilotJourney() {
     <main>
       <IconContext.Provider value={{ color: 'rgb(17, 34, 51)' }}>
         <Button
-          sx={styles.headerOverride}
+          sx={[styles.headerOverride, styles.minimumWidth(123)]}
+          style={{ '--native-button-test': 'retained' }}
           onClick={() => setButtonActions((value) => value + 1)}
         >
           <LuPlus {...stylex.props(styles.largeIcon)} />
@@ -73,6 +75,12 @@ function PilotJourney() {
           Native dropdown action
         </DropdownTriggerButton>
       </IconContext.Provider>
+      <button
+        type="button"
+        sx={buttonVariants({ variant: 'outline', size: 'sm' })}
+      >
+        Recipe action
+      </button>
       <output aria-label="Native button actions">{buttonActions}</output>
       <Input
         aria-label="Native input"
@@ -330,6 +338,19 @@ it('composes shared, app and plugin styles through the browser build', async () 
     .element(page.getByRole('status', { name: 'Native button actions' }))
     .toHaveTextContent('1')
   expect(getComputedStyle(action.element()).padding).toBe('19px')
+  expect(getComputedStyle(action.element()).minWidth).toBe('123px')
+  expect(
+    getComputedStyle(action.element()).getPropertyValue('--native-button-test'),
+  ).toBe('retained')
+
+  // The public recipe composes directly on a native element too.
+  expect(
+    getComputedStyle(
+      page
+        .getByRole('button', { name: 'Recipe action', exact: true })
+        .element(),
+    ).height,
+  ).toBe('32px')
 
   // Every compact control applies its icon dimensions at the SVG owner.
   for (const name of [

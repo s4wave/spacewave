@@ -972,7 +972,7 @@ export interface ButtonProps extends Omit<
   asChild?: boolean
 }
 
-/** buttonVariants composes a complete button recipe and compiled caller styles. */
+/** buttonVariants returns compiled styles for sx or stylex.props composition. */
 export function buttonVariants({
   variant,
   size,
@@ -993,7 +993,14 @@ export function buttonVariants({
 /** Button renders an action or lends its behavior and styles to one child.
  * Shared icon exports inherit its SVG dimensions and pointer rules.
  */
-function Button({ sx, variant, size, asChild = false, ...props }: ButtonProps) {
+function Button({
+  sx,
+  variant,
+  size,
+  asChild = false,
+  style,
+  ...props
+}: ButtonProps) {
   // Preserve icon context while applying the button's descendant rule at each icon.
   const inheritedIcons = React.useContext(IconContext)
   const icons = React.useMemo(
@@ -1005,15 +1012,24 @@ function Button({ sx, variant, size, asChild = false, ...props }: ButtonProps) {
     }),
     [inheritedIcons],
   )
+
+  // Retain dynamic StyleX variables alongside the native inline override.
+  const attributes = stylex.props(
+    buttonVariants({ variant, size, sx }),
+    buttonMarker,
+  )
   const Comp = asChild ? Slot : 'button'
+  /* eslint-disable shadcn/no-inline-styles -- Merge native caller styles with compiler-generated dynamic CSS variables. */
   return (
     <IconContext.Provider value={icons}>
       <Comp
-        {...stylex.props(buttonVariants({ variant, size, sx }), buttonMarker)}
+        {...attributes}
         {...props}
+        style={style ? { ...attributes.style, ...style } : attributes.style}
       />
     </IconContext.Provider>
   )
+  /* eslint-enable shadcn/no-inline-styles */
 }
 Button.displayName = 'Button'
 export { Button }
