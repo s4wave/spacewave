@@ -2,8 +2,7 @@
 \* As implemented in convertPrevious, resumeConverted, buildConverted and
 \* installConverted. s4dbv1.Open owns the old inode's writer lock until after
 \* rename and directory sync. On Windows the source handle permits deletion
-\* sharing and FileRenameInfoEx uses POSIX replacement semantics so the name
-\* changes atomically while the old inode remains locked and readable.
+\* sharing so the name can change while its writer lock remains held.
 \* Resume compares the marker to the current source digest and re-verifies
 \* every converted pair. OpenFile shares one process registry across both
 \* formats; rejected local probes never close a descriptor of the locked source.

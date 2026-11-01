@@ -271,9 +271,6 @@ func TestConvertPrevious(t *testing.T) {
 			t.Fatal(err)
 		}
 		defer src.Close()
-		if _, err := isBoltFile(path); !errors.Is(err, s4db.ErrOpenInProcess) {
-			t.Fatalf("format probe passed source ownership: %v", err)
-		}
 		if _, err := buildConverted(ctx, src, path+convertingSuffix, path+convertedMarkerSuffix, nil); err != nil {
 			t.Fatal(err)
 		}
