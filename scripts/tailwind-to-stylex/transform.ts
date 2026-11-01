@@ -287,21 +287,67 @@ export function transform(
 
   // Keep an attribute manual when separate namespaces would replace another namespace's conditions.
   const checkComposition = (styles: string) => {
-    // Recipes contribute their referenced namespaces just like direct class expressions.
-    const references = new Set<string>()
-    const collect = (value: string) => {
-      for (const match of value.matchAll(
+    // Ternary branches never compose with each other; retain their structural choices.
+    const references = new Map<string, Map<number, boolean>[]>()
+    const expressionAst = parseSync(`(${styles})`, {
+      configFile: false,
+      babelrc: false,
+      parserOpts: { plugins: ['typescript'] },
+    })!
+    traverse(expressionAst, {
+      MemberExpression(path) {
+        // Only generated namespace references contribute to this attribute's composition.
+        const { object, property } = path.node
+        if (
+          object.type !== 'Identifier' ||
+          object.name !== prefix ||
+          property.type !== 'Identifier'
+        )
+          return
+        const name = property.name
+        const choices = new Map<number, boolean>()
+        const ancestors = path.getAncestry()
+
+        // A reference in one ternary arm excludes references in that ternary's other arm.
+        for (let index = 1; index < ancestors.length; index++) {
+          const parent = ancestors[index]!
+          if (!parent.isConditionalExpression()) continue
+          const branch = ancestors[index - 1]!.key
+          if (branch === 'test') return
+          choices.set(parent.node.start!, branch === 'consequent')
+        }
+        const paths = references.get(name) ?? []
+        paths.push(choices)
+        references.set(name, paths)
+      },
+    })
+
+    // Recipes retain the conservative check until their variant selections are modeled.
+    for (const [name, recipe] of variantDefinitions) {
+      if (!styles.includes(name + '(')) continue
+      for (const match of recipe.source.matchAll(
         new RegExp(`\\b${prefix}\\.([\\w$]+)`, 'g'),
       ))
-        references.add(match[1]!)
+        references.set(match[1]!, [new Map()])
     }
-    collect(styles)
-    for (const [name, recipe] of variantDefinitions)
-      if (styles.includes(name + '(')) collect(recipe.source)
+
+    // Two namespaces can coexist when at least one occurrence pair shares every structural choice.
+    const canCompose = (left: string, right: string) =>
+      references.get(left)!.some((leftPath) =>
+        references.get(right)!.some((rightPath) => {
+          for (const [choice, branch] of leftPath)
+            if (rightPath.has(choice) && rightPath.get(choice) !== branch)
+              return false
+          return true
+        }),
+      )
 
     // StyleX composition owns every condition of a property; Tailwind's cascade merges them separately.
-    const seen = new Map<string, boolean>()
-    const check = (rule: StyleRule, prefix = '') => {
+    const seen = new Map<
+      string,
+      { namespace: string; conditional: boolean }[]
+    >()
+    const check = (rule: StyleRule, namespace: string, prefix = '') => {
       for (const [property, value] of Object.entries(rule)) {
         const key = prefix + property
         if (
@@ -309,17 +355,26 @@ export function transform(
           value !== null &&
           typeof value === 'object'
         )
-          check(value, key + '.')
+          check(value, namespace, key + '.')
         else {
           const conditional = value !== null && typeof value === 'object'
-          if (seen.has(key) && (seen.get(key) || conditional))
+          const previous = seen.get(key) ?? []
+          if (
+            previous.some(
+              (entry) =>
+                (entry.conditional || conditional) &&
+                canCompose(entry.namespace, namespace),
+            )
+          )
             throw new Error(`conditional property composition: ${key}`)
-          seen.set(key, conditional)
+          previous.push({ namespace, conditional })
+          seen.set(key, previous)
         }
       }
     }
     for (const entry of namespaces.values())
-      if (references.has(entry.name)) check(propertyStyles(entry.style))
+      if (references.has(entry.name))
+        check(propertyStyles(entry.style), entry.name)
   }
 
   // Compile a whole class set in Tailwind order, including responsive and pseudo conditions.
