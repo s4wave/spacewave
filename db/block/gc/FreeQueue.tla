@@ -3,7 +3,9 @@
 \* claimed here. The existing release resolver and ledger supply zero counts
 \* and the adoption/oldest-reader watermark. Queue and deletion are separate
 \* durable transactions. A crash loses the worker's acquisition, not the queue.
-\* Two blocks, three clock values, two chunks, and one waiting World writer.
+\* Two blocks, four clock values, two chunks, two revivals and one waiting
+\* World writer. Two chunks suffice to violate a one-chunk bound; the model
+\* does not claim a wall-clock scheduling bound.
 \* Put is the publication writer's durable put/count update: it cancels a
 \* queued free atomically. A live read starts only after that publication.
 \* An uncommitted writer's memory is not a durable root; publication ordering
@@ -18,8 +20,8 @@ CONSTANTS Recheck, Grace, CancelPut, YieldWriter
 Blocks == 1..2
 VARIABLES stored, count, names, deadAt, base, pin, queue, now, acquired,
           writer, waited, chunks, deletedAt, queuedAt, budget, restarted, selected
-vars == <<stored, count, names, deadAt, base, pin, queue, now, acquired,
-          writer, waited, chunks, deletedAt, queuedAt, budget, restarted, selected>>
+vars == <<stored, count, names, deadAt, base, pin, queue, now, acquired, writer,
+      waited, chunks, deletedAt, queuedAt, budget, restarted, selected>>
 Init ==
   /\ stored = Blocks /\ count = [b \in Blocks |-> 0] /\ names = {}
   /\ deadAt = [b \in Blocks |-> b] /\ base = 0 /\ pin = 0
@@ -29,41 +31,52 @@ Init ==
   /\ budget = 2 /\ restarted = FALSE /\ selected = {}
 Adopt ==
   /\ base < 2 /\ base' = base + 1
-  /\ UNCHANGED <<stored, count, names, deadAt, pin, queue, now, acquired,
-       writer, waited, chunks, deletedAt, queuedAt, budget, restarted, selected>>
+  /\ UNCHANGED <<stored, count, names, deadAt, pin, queue, now, acquired, writer, waited,
+      chunks, deletedAt, queuedAt, budget, restarted, selected>>
 ReleasePin ==
   /\ pin = 0 /\ pin' = 2
-  /\ UNCHANGED <<stored, count, names, deadAt, base, queue, now, acquired,
-       writer, waited, chunks, deletedAt, queuedAt, budget, restarted, selected>>
+  /\ UNCHANGED <<stored, count, names, deadAt, base, queue, now, acquired, writer, waited,
+      chunks, deletedAt, queuedAt, budget, restarted, selected>>
 Queue(b) ==
   /\ b \in stored \ queue /\ b \notin names /\ count[b] = 0
   /\ deadAt[b] <= base /\ deadAt[b] <= pin /\ deletedAt[b] = 0
   /\ queue' = queue \cup {b} /\ queuedAt' = [queuedAt EXCEPT ![b] = now]
-  /\ UNCHANGED <<stored, count, names, deadAt, base, pin, now, acquired,
-       writer, waited, chunks, deletedAt, budget, restarted, selected>>
+  /\ UNCHANGED <<stored, count, names, deadAt, base, pin, now, acquired, writer, waited,
+      chunks, deletedAt, budget, restarted, selected>>
 Tick ==
   /\ now < 3 /\ now' = now + 1
-  /\ UNCHANGED <<stored, count, names, deadAt, base, pin, queue, acquired,
-       writer, waited, chunks, deletedAt, queuedAt, budget, restarted, selected>>
+  /\ UNCHANGED <<stored, count, names, deadAt, base, pin, queue, acquired, writer, waited,
+      chunks, deletedAt, queuedAt, budget, restarted, selected>>
 \* Put/adoption of a queued block adds its live holder and cancels its token.
 Put(b) ==
   /\ b \in stored /\ b \notin names /\ budget > 0
   /\ count' = [count EXCEPT ![b] = @ + 1] /\ names' = names \cup {b}
   /\ queue' = IF CancelPut THEN queue \ {b} ELSE queue
   /\ budget' = budget - 1
-  /\ UNCHANGED <<stored, deadAt, base, pin, now, acquired,
-       writer, waited, chunks, deletedAt, queuedAt, restarted, selected>>
+  /\ UNCHANGED <<stored, deadAt, base, pin, now, acquired, writer, waited, chunks, deletedAt,
+      queuedAt, restarted, selected>>
+\* A revived block can die again. That zero-holder transition installs a
+\* new retirement stamp and grace deadline, even if an old acquired chunk
+\* still contains its key. The initial reader has already released before
+\* the first queue admission; this model has no later old-version reader.
+Release(b) ==
+  /\ b \in names /\ count[b] = 1 /\ pin >= base /\ base > 0
+  /\ names' = names \ {b} /\ count' = [count EXCEPT ![b] = 0]
+  /\ deadAt' = [deadAt EXCEPT ![b] = base]
+  /\ queue' = queue \cup {b} /\ queuedAt' = [queuedAt EXCEPT ![b] = now]
+  /\ UNCHANGED <<stored, base, pin, now, acquired, writer, waited, chunks, deletedAt, budget,
+      restarted, selected>>
 \* Worker acquisition precedes a writer request; it covers at most one chunk.
 Acquire ==
   /\ acquired = 0 /\ queue # {} /\ writer # "waiting" /\ chunks < 2
   /\ ~Grace \/ \E b \in queue : now >= queuedAt[b] + 2
   /\ acquired' = 1 /\ selected' = {b \in queue : ~Grace \/ now >= queuedAt[b] + 2}
-  /\ UNCHANGED <<stored, count, names, deadAt, base, pin, queue, now,
-       writer, waited, chunks, deletedAt, queuedAt, budget, restarted>>
+  /\ UNCHANGED <<stored, count, names, deadAt, base, pin, queue, now, writer, waited, chunks,
+      deletedAt, queuedAt, budget, restarted>>
 RequestWriter ==
   /\ writer = "idle" /\ writer' = "waiting"
-  /\ UNCHANGED <<stored, count, names, deadAt, base, pin, queue, now, acquired,
-       waited, chunks, deletedAt, queuedAt, budget, restarted, selected>>
+  /\ UNCHANGED <<stored, count, names, deadAt, base, pin, queue, now, acquired, waited,
+      chunks, deletedAt, queuedAt, budget, restarted, selected>>
 \* Acquire keeps a bounded candidate chunk across writer transactions. A put
 \* can cancel its durable queue token after acquisition, so recheck is needed
 \* even with correct cancellation. One delete per chunk. The count is re-read in the deleting transaction;
@@ -78,19 +91,18 @@ DeleteChunk(b) ==
   /\ waited' = IF writer = "waiting" THEN waited + 1 ELSE waited
   /\ acquired' = IF (YieldWriter /\ writer = "waiting") \/ selected \ {b} = {}
                     \/ chunks + 1 = 2 THEN 0 ELSE acquired
-  /\ UNCHANGED <<count, names, deadAt, base, pin, now, writer, queuedAt,
-                  budget, restarted>>
+  /\ UNCHANGED <<count, names, deadAt, base, pin, now, writer, queuedAt, budget, restarted>>
 ServeWriter ==
   /\ writer = "waiting" /\ acquired = 0 /\ writer' = "done"
-  /\ UNCHANGED <<stored, count, names, deadAt, base, pin, queue, now, acquired,
-       waited, chunks, deletedAt, queuedAt, budget, restarted, selected>>
+  /\ UNCHANGED <<stored, count, names, deadAt, base, pin, queue, now, acquired, waited,
+      chunks, deletedAt, queuedAt, budget, restarted, selected>>
 Crash ==
   /\ ~restarted /\ acquired = 1
   /\ acquired' = 0 /\ restarted' = TRUE /\ selected' = {}
-  /\ UNCHANGED <<stored, count, names, deadAt, base, pin, queue, now,
-       writer, waited, chunks, deletedAt, queuedAt, budget>>
+  /\ UNCHANGED <<stored, count, names, deadAt, base, pin, queue, now, writer, waited, chunks,
+      deletedAt, queuedAt, budget>>
 Next == Adopt \/ ReleasePin \/ Tick \/ Acquire \/ RequestWriter \/ ServeWriter \/ Crash
-  \/ (\E b \in Blocks : Queue(b) \/ Put(b) \/ DeleteChunk(b))
+  \/ (\E b \in Blocks : Queue(b) \/ Put(b) \/ Release(b) \/ DeleteChunk(b))
   \/ UNCHANGED vars
 Spec == Init /\ [][Next]_vars
 NoFreedRead == names \subseteq stored
