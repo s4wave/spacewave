@@ -34,6 +34,7 @@ import (
 //go:embed web/bldr/shared-worker.ts web/bldr/shutdown.ts
 //go:embed web/bldr/simple-event-emitter.ts web/bldr/startup-marks.ts
 //go:embed web/bldr/storage-durability-owner.ts web/bldr/timeout.ts
+//go:embed web/bldr/stylex-order.ts web/bldr/stylex-priorities.ts
 //go:embed web/bldr/ulid.ts web/bldr/wasm-detect.ts
 //go:embed web/bldr/web-document-lock.ts web/bldr/web-document-tracker.ts
 //go:embed web/bldr/web-document.ts web/bldr/web-pkg-imports.ts
