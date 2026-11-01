@@ -27,6 +27,7 @@ type Oracle = Awaited<ReturnType<typeof createOracle>>
 export interface TransformOptions {
   components?: ReadonlySet<string>
   componentProps?: boolean
+  onlyComponents?: boolean
 }
 
 // mergeStyle retains independent conditions while later utilities replace the same declaration.
@@ -423,6 +424,10 @@ export function transform(
       const tag = opening.name as Syntax
       const native =
         tag.type === 'JSXIdentifier' && /^[a-z]/.test(tag.name as string)
+      const owned = options.components?.has(
+        tag.type === 'JSXIdentifier' ? (tag.name as string) : slice(tag),
+      )
+      if (options.onlyComponents && !owned) return
       for (const attribute of opening.attributes as Syntax[]) {
         if (
           attribute.type !== 'JSXAttribute' ||
@@ -443,12 +448,7 @@ export function transform(
             start: attribute.start!,
             end: attribute.end!,
             text:
-              native ||
-              options.components?.has(
-                tag.type === 'JSXIdentifier'
-                  ? (tag.name as string)
-                  : slice(tag).split('.')[0]!,
-              )
+              native || owned
                 ? `sx={${styles}}`
                 : `{...${binding}.props(${styles})}`,
           })

@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
-import { __unstable__loadDesignSystem } from '@tailwindcss/node'
+import { __unstable__loadDesignSystem, optimize } from '@tailwindcss/node'
 import postcss, { type Container, type Declaration } from 'postcss'
 import { parseSync } from '@babel/core'
 import { join } from 'node:path'
@@ -30,7 +30,12 @@ function readRule(container: Container, selector: string): StyleRule {
     if (node.type === 'decl') {
       const declaration = node as Declaration
       if (declaration.important) throw new Error('important declaration')
-      style[propertyName(declaration.prop)] = declaration.value
+      // Tailwind's non-inheriting border-style variable defaults to solid; its style utilities set the property too.
+      style[propertyName(declaration.prop)] =
+        declaration.prop === 'border-style' &&
+        declaration.value === 'var(--tw-border-style)'
+          ? 'solid'
+          : declaration.value
     } else if (node.type === 'atrule') {
       if (!['media', 'container', 'supports'].includes(node.name))
         throw new Error(`@${node.name} rule`)
@@ -113,11 +118,15 @@ export async function createOracle(theme: string) {
     if (!css) result = { kind: 'manual', reason: 'global or unknown class' }
     else {
       try {
-        const root = postcss.parse(css)
-        root.walkAtRules('property', (rule) => {
+        const declarations = postcss.parse(css)
+        declarations.walkAtRules('property', (rule) => {
           globalRules.add(rule.toString())
           rule.remove()
         })
+        // Tailwind's Vite plugin optimizes declarations before native CSS processing.
+        const root = postcss.parse(
+          optimize(declarations.toString(), { file: theme }).code,
+        )
         let selector = ''
         root.walkRules((rule) => {
           if (!selector)
