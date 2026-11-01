@@ -18,8 +18,6 @@
 \*   modeled, the writer prunes below a found page and puts nothing there.
 \* - SetRootRef from a supplied reference (db/world/block/object-state.go and
 \*   sdk/world): modeled, a Commit whose new root is stored.
-\* - tx.Adopt, not built: modeled, a found page under a new parent; it is the
-\*   same holder edge as a found put, without the put.
 \* - The deadlist writer (the World engine's nameWorld): modeled. Each commit
 \*   joins its lineage's interval, and Name composes the interval into the
 \*   records it queues, as Compose sets.
@@ -35,7 +33,7 @@
 \* The record's split between pages the commit wrote and pages that existed is
 \* Deadlist.Existed, which ReplacementStep.Net derives from the put results.
 \* The code nets a named interval of commits once, where the model queues one
-\* record per commit; CheckLineage is not built yet.
+\* record per commit in the legacy sequence configs; interval adds receipt netting.
 \*
 \* The put is the one place existence is exact, so the Volume counts there a
 \* page the put finds stored whose parent in the new tree it did not also find
@@ -85,8 +83,6 @@
 \* - Refined: an unlisted child's change depends on whether its parent in the
 \*   new tree was written by this record's commit (an edge the old page hands
 \*   over) or already existed (an edge already counted).
-\* - CheckLineage and ClearLineage: the birth lineage refusal, and clearing a
-\*   page's lineage once another holder protects it.
 \* - PutRule: "reported" adds a count for each page the put finds stored whose
 \*   parent the put did not find stored, and the record learns which pages the
 \*   put found; "batch-parent" counts the same way but the record treats every
@@ -106,7 +102,7 @@
 EXTENDS Integers, FiniteSets, Sequences
 
 CONSTANTS Lineages, MaxCommits, Serial, PushDown, Refined,
-          CheckLineage, ClearLineage, Race, PutRule, RaceApply, Compose,
+          Race, PutRule, RaceApply, Compose,
           Fails, Pins, HoldAtMove
 
 None == "none"
@@ -135,14 +131,14 @@ VARIABLES
   root,     \* each lineage's root
   stored,   \* pages in the store
   extra,    \* each page's count record: holders minus one
-  born,     \* each page's birth lineage, or None once cleared
   queue,    \* each lineage's records, oldest first
   pending,  \* each lineage's taken root awaiting its put, or None
   ivl,      \* each lineage's commit records since its last Name, oldest first
   pin,      \* each lineage's pinned root, or None
   rel,      \* each page's release records not yet resolved
-  commits
-vars == <<root, stored, extra, born, queue, pending, ivl, pin, rel, commits>>
+  commits,
+  receiptState \* interval receipt model; inactive in the sequence models
+legacyvars == <<root, stored, extra, queue, pending, ivl, pin, rel, commits>>
 
 Pinned == {pin[l] : l \in {m \in Lineages : pin[m] # None}}
 Named == UNION {Reach(p) : p \in {root[l] : l \in Lineages} \cup Pinned}
@@ -157,13 +153,11 @@ Roots(l) ==
   IF ~Race THEN {"R1", "R2", "X", "X2", "N"}
   ELSE IF l = First THEN {"P1", "N"} ELSE {"P2", "N"}
 
-Init ==
+LegacyInit ==
   /\ root = [l \in Lineages |-> IF l = First /\ ~Race THEN "X" ELSE "N"]
   /\ pin = [l \in Lineages |-> None]
   /\ stored = Named
   /\ extra = [p \in Pages |-> IF p \in Named THEN Holders(p) - 1 ELSE 0]
-  /\ born = [p \in Pages |-> IF p \in Reach(root[First]) /\ ~Race
-                                THEN First ELSE None]
   /\ queue = [l \in Lineages |-> <<>>]
   /\ pending = [l \in Lineages |-> None]
   /\ ivl = [l \in Lineages |-> <<>>]
@@ -194,10 +188,6 @@ Land(l, r) ==
      /\ extra' = [p \in Pages |->
                     (IF p \in written THEN 0 ELSE extra[p])
                     + (IF p \in atPut THEN 1 ELSE 0)]
-     /\ born' = [p \in Pages |->
-                   IF p \in written THEN l
-                   ELSE IF ClearLineage /\ p \in atPut THEN None
-                   ELSE born[p]]
      /\ ivl' = [ivl EXCEPT ![l] = Append(@,
                 [old |-> old, new |-> r, dead |-> dead, loss |-> loss,
                  written |-> view, put |-> batch, fresh |-> written,
@@ -222,7 +212,7 @@ Take(l, r) ==
   /\ pending[l] = None
   /\ r # root[l]
   /\ pending' = [pending EXCEPT ![l] = r]
-  /\ UNCHANGED <<root, stored, extra, born, queue, ivl, pin, rel, commits>>
+  /\ UNCHANGED <<root, stored, extra, queue, ivl, pin, rel, commits>>
 
 \* Put finishes lineage l's taken commit.
 Put(l) ==
@@ -280,7 +270,7 @@ Name(l) ==
                     ELSE [p \in Pages |-> extra[p]
                             + Cardinality({i \in 1..Len(recs) : recs[i].old = p})]
   /\ ivl' = [ivl EXCEPT ![l] = <<>>]
-  /\ UNCHANGED <<root, stored, born, pending, pin, rel, commits>>
+  /\ UNCHANGED <<root, stored, pending, pin, rel, commits>>
 
 InFlight(m) == queue[m] # <<>> /\ Head(queue[m]).done # {}
 
@@ -298,11 +288,9 @@ Apply(l, p) ==
      /\ pars \subseteq rec.done
      /\ LET protected == pars \cap rec.alive # {}
             counted == ~protected /\ extra[p] > 0
-            refused == ~protected /\ ~counted /\ CheckLineage
-                         /\ born[p] \notin {l, None}
-            frees == ~protected /\ ~counted /\ ~refused
+            frees == ~protected /\ ~counted
             alive == protected \/ counted
-            \* A refused page stays stored and still names its children.
+            \* A surviving page stays stored and still names its children.
             names == ~frees
             unlisted == Kids(p) \ rec.dead
             handedOver(c) == c = rec.new \/ Parent(rec.new, c) \in rec.written
@@ -316,10 +304,6 @@ Apply(l, p) ==
            /\ extra' = [q \in Pages |->
                           extra[q] - (IF q = p /\ counted THEN 1 ELSE 0)
                                    + (IF q \in unlisted THEN delta(q) ELSE 0)]
-           /\ born' = [q \in Pages |->
-                         IF ClearLineage /\ ((q = p /\ alive)
-                              \/ (q \in unlisted /\ delta(q) > 0))
-                         THEN None ELSE born[q]]
            /\ queue' = IF rec2.done = rec.dead /\ rec.loss = {}
                        THEN [queue EXCEPT ![l] = Tail(@)]
                        ELSE [queue EXCEPT ![l] = <<rec2>> \o Tail(@)]
@@ -337,7 +321,7 @@ ApplyLoss(l) ==
      /\ extra' = [q \in Pages |->
                     extra[q] - Cardinality({x \in rec.loss : x[1] = q})]
      /\ queue' = [queue EXCEPT ![l] = Tail(@)]
-     /\ UNCHANGED <<root, stored, born, pending, ivl, pin, rel, commits>>
+     /\ UNCHANGED <<root, stored, pending, ivl, pin, rel, commits>>
 
 ApplyAny ==
   \/ \E l \in Lineages, p \in Pages : Apply(l, p)
@@ -352,7 +336,7 @@ Fail(l) ==
   /\ pending[l] # None
   /\ pending' = [pending EXCEPT ![l] = None]
   /\ commits' = commits + 1
-  /\ UNCHANGED <<root, stored, extra, born, queue, ivl, pin, rel>>
+  /\ UNCHANGED <<root, stored, extra, queue, ivl, pin, rel>>
 
 \* Pin names lineage l's current root as a reader does. The owner edge counts
 \* at once. A pin spends a commit of the budget, which keeps behaviors finite.
@@ -363,7 +347,6 @@ Pin(l) ==
   /\ pending[l] = None
   /\ pin' = [pin EXCEPT ![l] = root[l]]
   /\ extra' = [extra EXCEPT ![root[l]] = @ + 1]
-  /\ born' = IF ClearLineage THEN [born EXCEPT ![root[l]] = None] ELSE born
   /\ commits' = commits + 1
   /\ UNCHANGED <<root, stored, queue, pending, ivl, rel>>
 
@@ -372,7 +355,7 @@ Unpin(l) ==
   /\ pin[l] # None
   /\ pin' = [pin EXCEPT ![l] = None]
   /\ rel' = [rel EXCEPT ![pin[l]] = @ + 1]
-  /\ UNCHANGED <<root, stored, extra, born, queue, pending, ivl, commits>>
+  /\ UNCHANGED <<root, stored, extra, queue, pending, ivl, commits>>
 
 \* Resolve takes one release of page p: a counted page loses one count and
 \* lives; an uncounted one frees and releases each child.
@@ -388,7 +371,7 @@ Resolve(p) ==
           /\ rel' = [q \in Pages |-> rel[q] - (IF q = p THEN 1 ELSE 0)
                                     + (IF q \in Kids(p) THEN 1 ELSE 0)]
           /\ UNCHANGED extra
-  /\ UNCHANGED <<root, born, queue, pending, ivl, pin, commits>>
+  /\ UNCHANGED <<root, queue, pending, ivl, pin, commits>>
 
 ResolveAny == \E p \in Pages : Resolve(p)
 
@@ -396,7 +379,7 @@ PutAny == \E l \in Lineages : Put(l)
 
 NameAny == \E l \in Lineages : Name(l)
 
-Next ==
+LegacyNext ==
   \/ \E l \in Lineages : \E r \in Roots(l) : Commit(l, r) \/ Take(l, r)
   \/ PutAny
   \/ \E l \in Lineages : Fail(l)
@@ -404,17 +387,24 @@ Next ==
   \/ ApplyAny
   \/ \E l \in Lineages : Pin(l) \/ Unpin(l)
   \/ ResolveAny
-  \/ UNCHANGED vars
+  \/ UNCHANGED legacyvars
 
-Spec == Init /\ [][Next]_vars /\ WF_vars(ApplyAny) /\ WF_vars(PutAny)
-          /\ WF_vars(NameAny) /\ WF_vars(ResolveAny)
+
+Interval == INSTANCE SharedInterval WITH state <- receiptState, Guard <- PutRule
+vars == <<legacyvars, receiptState>>
+Init == LegacyInit /\ IF Compose = "interval" THEN Interval!Init ELSE receiptState = None
+Next == IF Compose = "interval"
+        THEN Interval!Next /\ UNCHANGED legacyvars
+        ELSE LegacyNext /\ UNCHANGED receiptState
+Spec == Init /\ [][Next]_vars /\ WF_vars(ApplyAny /\ UNCHANGED receiptState) /\ WF_vars(PutAny /\ UNCHANGED receiptState)
+          /\ WF_vars(NameAny /\ UNCHANGED receiptState) /\ WF_vars(ResolveAny /\ UNCHANGED receiptState)
 
 Quiet == /\ \A l \in Lineages :
               queue[l] = <<>> /\ pending[l] = None /\ ivl[l] = <<>>
          /\ \A p \in Pages : rel[p] = 0
 
 \* No live root names a freed page.
-NoFreedRead == Named \subseteq stored
+NoFreedRead == IF Compose = "interval" THEN Interval!NoFreedRead ELSE Named \subseteq stored
 
 \* A page the old and new trees share is stored while the commit waits for
 \* its put: the log marks it counted, and a marked page the put stored afresh
@@ -423,14 +413,14 @@ KeptStored == \A l \in Lineages : pending[l] # None =>
                 (Reach(root[l]) \cap Reach(pending[l])) \subseteq stored
 
 \* A release names a stored page, so no page frees twice.
-ReleasesStored == \A p \in Pages : rel[p] > 0 => p \in stored
+ReleasesStored == IF Compose = "interval" THEN Interval!ReleasesStored ELSE \A p \in Pages : rel[p] > 0 => p \in stored
 
 \* No count record goes below zero.
-CountsNonNegative == \A p \in Pages : extra[p] >= 0
+CountsNonNegative == IF Compose = "interval" THEN Interval!CountsNonNegative ELSE \A p \in Pages : extra[p] >= 0
 
 \* Once every record has applied, no count record is below the page's holders
 \* minus one. A count above it leaks; one below it frees a live page.
-CountsCover == Quiet => \A p \in Named : extra[p] >= Holders(p) - 1
+CountsCover == IF Compose = "interval" THEN Interval!CountsCover ELSE Quiet => \A p \in Named : extra[p] >= Holders(p) - 1
 
 \* Once every record has applied, each count record equals the page's holders
 \* minus one, so the next death of each page frees or keeps it correctly.
