@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { chromium, webkit, type Page } from 'playwright'
+import { chromium, webkit, type BrowserContext, type Page } from 'playwright'
 
 import type { ElementStyle, Snapshot, Viewport } from './model.js'
 
@@ -61,15 +61,17 @@ export async function capture(
             join(out, engine, `${viewport.width}x${viewport.height}`),
             { recursive: true },
           )
-          const context = await browser.newContext({
-            viewport,
-            deviceScaleFactor: 1,
-            colorScheme: 'dark',
-            locale: 'en-US',
-            timezoneId: 'UTC',
-          })
-          const page = await context.newPage()
+          let context: BrowserContext | undefined
+          let page: Page | undefined
           try {
+            context = await browser.newContext({
+              viewport,
+              deviceScaleFactor: 1,
+              colorScheme: 'dark',
+              locale: 'en-US',
+              timezoneId: 'UTC',
+            })
+            page = await context.newPage()
             page.setDefaultTimeout(120_000)
             const errors: string[] = []
             page.on('pageerror', (error) => errors.push(error.message))
@@ -117,18 +119,20 @@ export async function capture(
             // Retain failed states and continue so one broken screen cannot hide others.
             const message =
               error instanceof Error ? error.message : String(error)
-            const probes = await Promise.allSettled([
-              page.screenshot({
-                path: join(out, `${relative}.failed.png`),
-                timeout: 10_000,
-              }),
-              page
-                .locator('body')
-                .ariaSnapshot({ timeout: 10_000 })
-                .then((aria) =>
-                  writeFile(join(out, `${relative}.failed.aria.txt`), aria),
-                ),
-            ])
+            const probes = page
+              ? await Promise.allSettled([
+                  page.screenshot({
+                    path: join(out, `${relative}.failed.png`),
+                    timeout: 10_000,
+                  }),
+                  page
+                    .locator('body')
+                    .ariaSnapshot({ timeout: 10_000 })
+                    .then((aria) =>
+                      writeFile(join(out, `${relative}.failed.aria.txt`), aria),
+                    ),
+                ])
+              : []
             await writeFile(
               join(out, `${relative}.failure.json`),
               JSON.stringify(
@@ -150,7 +154,7 @@ export async function capture(
             failures.push(relative)
             console.error(`failed ${relative}: ${message}`)
           } finally {
-            await context.close()
+            await context?.close()
           }
         }
       }
