@@ -167,4 +167,18 @@ func TestPinnedManifestRetainsExactRevision(t *testing.T) {
 	if selected == nil || !selected.manifestSnapshot.GetManifestRef().EqualVT(old.GetManifestRef()) {
 		t.Fatal("legacy pinned artifact was blocked by an unreadable sibling")
 	}
+
+	// An unreadable candidate is not proof that a running pin disappeared.
+	if err := ws.DeleteGraphQuad(ctx, manifest_world.NewManifestQuad(hostKey, legacyKey, "colors")); err != nil {
+		t.Fatal(err)
+	}
+	obj, err := world.MustGetObject(ctx, ws, hostKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _, selectErr := instance.processManifestWorldState(ctx, le, hosts, ws, obj)
+	world.ReleaseObjectState(obj)
+	if selectErr == nil || instance.executePluginRoutine.GetState() == nil {
+		t.Fatal("unidentified read failure stopped the running pin instead of retaining its retry")
+	}
 }
