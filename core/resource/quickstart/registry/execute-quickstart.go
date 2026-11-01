@@ -42,14 +42,14 @@ func (r *QuickstartRegistryResource) ExecuteQuickstart(
 	}
 
 	// Find the Quickstart registration visible to the Space engine.
-	reg := r.LookupRegistration(quickstartID, spaceResource.GetWorldEngineID())
+	reg, instanceKey := r.LookupRegistration(quickstartID, spaceResource.GetWorldEngineID())
 	if reg == nil {
 		return nil, ErrQuickstartNotRegistered
 	}
 
 	// Connect to the Quickstart plugin at its registered manifest.
 	resourceClientCtx := resourceCtx.Context()
-	resources, err := s4wave_plugin.ConnectPluginResourcesAtManifest(resourceClientCtx, r.b, reg.GetPluginId(), reg.GetManifestRoot())
+	resources, err := s4wave_plugin.ConnectPluginResourcesAtManifest(resourceClientCtx, r.b, reg.GetPluginId(), instanceKey, reg.GetManifestRoot())
 	if err != nil {
 		return nil, errors.Wrap(err, "connect to quickstart plugin")
 	}

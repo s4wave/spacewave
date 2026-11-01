@@ -55,6 +55,10 @@ func TestPinnedOperationReplay(t *testing.T) {
 	load := &testWorldOpPluginLoadController{
 		client:    client("replay/latest"),
 		manifests: map[string]srpc.Client{oldHash.MarshalString(): client("replay/original")},
+		instancedManifests: map[string]map[string]srpc.Client{
+			"space/a": {oldHash.MarshalString(): client("replay/space-a")},
+			"space/b": {oldHash.MarshalString(): client("replay/space-b")},
+		},
 	}
 
 	// Add the plugin load controller to the testbed bus.
@@ -136,6 +140,37 @@ func TestPinnedOperationReplay(t *testing.T) {
 	var rejection *world.OperationRejection
 	if !errors.As(err, &rejection) || rejection.Code != "UNAVAILABLE" {
 		t.Fatalf("missing executable error = %v, expected UNAVAILABLE", err)
+	}
+
+	// The same retained executable in another installation cannot receive this Space's operation.
+	read.Discard()
+	scoped := newBridgeOperation(le, tb.Bus, &registry.WorldOpRegistration{PluginId: "test-plugin"}, id, tb.EngineID)
+	scoped.instanceKey = "space/a"
+	scoped.manifestRoot = oldHash.MarshalString()
+	scoped.handlerID = "colors/like"
+
+	// Apply through the retained installation and verify its observable write.
+	write, err := tb.Engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer write.Discard()
+	if _, err := scoped.ApplyWorldOp(ctx, le, write, tb.Volume.GetPeerID()); err != nil {
+		t.Fatal(err)
+	}
+	if err := write.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	assertWorldObjectExists(t, ctx, tb.Engine, "replay/space-a")
+
+	// A neighboring installation stays untouched even though it offers the same plugin and executable root.
+	final, err := tb.Engine.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer final.Discard()
+	if found, err := final.HasObject(ctx, "replay/space-b"); err != nil || found {
+		t.Fatalf("neighboring installation ran: found=%t, err=%v", found, err)
 	}
 }
 

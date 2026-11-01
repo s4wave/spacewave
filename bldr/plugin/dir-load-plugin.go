@@ -152,11 +152,11 @@ func ExPluginLoadInstancedWaitClient(
 	return waitRunningPluginClient(rp, rpRef, err)
 }
 
-// ExPluginLoadAtManifestWaitClient loads exactly one retained manifest.
+// ExPluginLoadAtManifestWaitClient loads one retained executable in its installation.
 // A missing or ineligible artifact returns an error rather than selecting newer code.
-func ExPluginLoadAtManifestWaitClient(ctx context.Context, b bus.Bus, pluginID, manifestRoot string) (srpc.Client, directive.Reference, error) {
+func ExPluginLoadAtManifestWaitClient(ctx context.Context, b bus.Bus, pluginID, instanceKey, manifestRoot string) (srpc.Client, directive.Reference, error) {
 	rp, _, ref, err := bus.ExecWaitValue[RunningPlugin](
-		ctx, b, NewLoadPluginAtManifest(pluginID, "", manifestRoot),
+		ctx, b, NewLoadPluginAtManifest(pluginID, instanceKey, manifestRoot),
 		bus.ReturnIfIdle(true), nil, nil,
 	)
 	if err == nil && rp == nil {

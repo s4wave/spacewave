@@ -595,18 +595,18 @@ func TestLookupQuickstartRegistrationReturnsClone(t *testing.T) {
 	})
 
 	// Look up an independent quickstart registration record.
-	reg := r.LookupRegistration("sample-workspace", "")
-	if reg == nil {
-		t.Fatal("expected registration")
+	reg, owner := r.LookupRegistration("sample-workspace", "")
+	if reg == nil || owner != "" {
+		t.Fatal("expected a global registration")
 	}
 
 	// Verify mutating the returned record preserves the stored quickstart.
 	reg.QuickstartId = "mutated"
-	reg = r.LookupRegistration("sample-workspace", "")
+	reg, owner = r.LookupRegistration("sample-workspace", "")
 	if reg == nil {
 		t.Fatal("expected registration after mutating clone")
 	}
-	if reg.GetQuickstartId() != "sample-workspace" {
+	if reg.GetQuickstartId() != "sample-workspace" || owner != "" {
 		t.Fatalf("stored registration was mutated: got %s", reg.GetQuickstartId())
 	}
 }
