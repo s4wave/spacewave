@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/s4db"
 )
 
 // row is one streamed pair as the fixture's expected files record it: the
@@ -105,6 +106,31 @@ func TestStream(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Duplicate and hard-link opens must not drop this reader's source lock.
+	alias := path + ".alias"
+	if err := os.Link(path, alias); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{path, alias} {
+		other, err := Open(name)
+		if other != nil {
+			other.Close()
+		}
+		if !errors.Is(err, ErrInUse) {
+			t.Fatalf("duplicate source %s: %v", name, err)
+		}
+	}
+
+	// A new-engine format probe must not open and close the locked old inode.
+	if db, err := s4db.Open(alias, s4db.Options{}); !errors.Is(err, s4db.ErrOpenInProcess) {
+		if db != nil {
+			db.Close()
+		}
+		t.Fatalf("engine probe passed source ownership: %v", err)
+	}
+
+	// Keep the original reader usable after every refused probe.
 	if r.LiveBytes() <= 0 {
 		t.Fatalf("live bytes %d", r.LiveBytes())
 	}
