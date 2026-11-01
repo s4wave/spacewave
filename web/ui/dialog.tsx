@@ -5,6 +5,22 @@ import { LuX } from 'react-icons/lu'
 import { cn } from '@s4wave/web/style/utils.js'
 import { useAppEnvironment } from '@s4wave/web/sdk/app/environment.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    clipPath: 'inset(50%)',
+    whiteSpace: 'nowrap',
+    borderWidth: 0,
+    width: '1px',
+    height: '1px',
+    margin: '-1px',
+    padding: 0,
+    position: 'absolute',
+    overflow: 'hidden',
+  },
+})
+
 function Dialog({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Root>) {
@@ -36,10 +52,12 @@ function DialogOverlay({
   return (
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
-      className={cn(
-        'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50 backdrop-blur-sm',
-        className,
-      )}
+      className={
+        /* TODO(stylex): dynamic class or forwarded className */ cn(
+          'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50 backdrop-blur-sm',
+          className,
+        )
+      }
       {...props}
     />
   )
@@ -62,25 +80,29 @@ function DialogContent({
       <DialogPrimitive.Content
         data-spacewave-app={environment.id || undefined}
         data-slot="dialog-content"
-        className={cn(
-          'bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg',
-          variant === 'compact' && 'gap-0 p-0',
-          variant === 'editor' &&
-            'bg-background-card flex h-dvh w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 p-0 sm:h-(--height-keybinding-editor) sm:w-(--width-command-editor) sm:!max-w-5xl sm:rounded-lg sm:border',
-          variant === 'panel' &&
-            'border-foreground/10 bg-background-get-started max-w-md overflow-hidden border p-0',
-          className,
-        )}
+        className={
+          /* TODO(stylex): important declaration: sm:!max-w-5xl */ cn(
+            'bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg',
+            variant === 'compact' && 'gap-0 p-0',
+            variant === 'editor' &&
+              'bg-background-card flex h-dvh w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 p-0 sm:h-(--height-keybinding-editor) sm:w-(--width-command-editor) sm:!max-w-5xl sm:rounded-lg sm:border',
+            variant === 'panel' &&
+              'border-foreground/10 bg-background-get-started max-w-md overflow-hidden border p-0',
+            className,
+          )
+        }
         {...props}
       >
         {children}
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
-            className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+            className={
+              /* TODO(stylex): a descendant, group, peer or compound selector: [&_svg]:pointer-events-none */ "ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+            }
           >
             <LuX />
-            <span className="sr-only">Close</span>
+            <span sx={stylexStyles.rule1}>Close</span>
           </DialogPrimitive.Close>
         )}
       </DialogPrimitive.Content>
@@ -98,14 +120,16 @@ function DialogHeader({
   return (
     <div
       data-slot="dialog-header"
-      className={cn(
-        'flex flex-col gap-2 text-center sm:text-left',
-        variant === 'editor' &&
-          'border-foreground/8 shrink-0 border-b px-4 py-3 pr-12 text-left sm:px-5 sm:py-4',
-        variant === 'panel' &&
-          'border-foreground/8 border-b px-6 py-5 text-left',
-        className,
-      )}
+      className={
+        /* TODO(stylex): dynamic class or forwarded className */ cn(
+          'flex flex-col gap-2 text-center sm:text-left',
+          variant === 'editor' &&
+            'border-foreground/8 shrink-0 border-b px-4 py-3 pr-12 text-left sm:px-5 sm:py-4',
+          variant === 'panel' &&
+            'border-foreground/8 border-b px-6 py-5 text-left',
+          className,
+        )
+      }
       {...props}
     />
   )
@@ -115,10 +139,12 @@ function DialogFooter({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="dialog-footer"
-      className={cn(
-        'flex flex-col-reverse gap-2 sm:flex-row sm:justify-end',
-        className,
-      )}
+      className={
+        /* TODO(stylex): dynamic class or forwarded className */ cn(
+          'flex flex-col-reverse gap-2 sm:flex-row sm:justify-end',
+          className,
+        )
+      }
       {...props}
     />
   )
@@ -134,13 +160,15 @@ function DialogTitle({
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn(
-        'text-lg leading-none font-semibold',
-        variant === 'withIcon' && 'flex items-center gap-2',
-        variant === 'editor' &&
-          'flex items-center gap-2 text-base font-semibold tracking-tight',
-        className,
-      )}
+      className={
+        /* TODO(stylex): dynamic class or forwarded className */ cn(
+          'text-lg leading-none font-semibold',
+          variant === 'withIcon' && 'flex items-center gap-2',
+          variant === 'editor' &&
+            'flex items-center gap-2 text-base font-semibold tracking-tight',
+          className,
+        )
+      }
       {...props}
     />
   )
@@ -156,12 +184,14 @@ function DialogDescription({
   return (
     <DialogPrimitive.Description
       data-slot="dialog-description"
-      className={cn(
-        'text-muted-foreground text-sm',
-        variant === 'editor' && 'text-foreground-alt/70 text-xs',
-        variant === 'relaxed' && 'leading-relaxed',
-        className,
-      )}
+      className={
+        /* TODO(stylex): dynamic class or forwarded className */ cn(
+          'text-muted-foreground text-sm',
+          variant === 'editor' && 'text-foreground-alt/70 text-xs',
+          variant === 'relaxed' && 'leading-relaxed',
+          className,
+        )
+      }
       {...props}
     />
   )

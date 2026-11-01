@@ -65,6 +65,30 @@ import {
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
 import { RadioOption } from '@s4wave/web/ui/RadioOption.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    position: 'absolute',
+    top: '50%',
+    right: {
+      default: themeLayout['--spacing'],
+      '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 2)`,
+    },
+    width: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 7)`,
+    },
+    height: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 7)`,
+    },
+    '--tw-translate-y': 'calc(calc(1 / 2 * 100%) * -1)',
+    translate: 'var(--tw-translate-x) var(--tw-translate-y)',
+  },
+})
+
 export interface DashboardSpace {
   id: string
   name: string
@@ -1240,7 +1264,7 @@ function DashboardItem({
         text={identifier}
         label={`Copy ${label} ID`}
         variant="toolbar"
-        className="fine-pointer:right-2 fine-pointer:size-7 absolute top-1/2 right-1 size-11 -translate-y-1/2"
+        sx={stylexStyles.rule1}
       />
     </div>
   )

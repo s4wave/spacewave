@@ -1,11 +1,22 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import { type ReactNode } from 'react'
-import { cn } from '../style/utils.js'
+
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({ rule1: { display: 'flex', gap: '1px' } })
 
 interface MenuButtonGroupProps {
+  className?: never
   children: ReactNode
-  className?: string
+  sx?: ComponentStyles
 }
 
-export function MenuButtonGroup({ children, className }: MenuButtonGroupProps) {
-  return <div className={cn('flex gap-px', className)}>{children}</div>
+export function MenuButtonGroup({
+  children,
+  sx,
+}: Omit<MenuButtonGroupProps, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
+  return <div sx={[stylexStyles.rule1, sx]}>{children}</div>
 }

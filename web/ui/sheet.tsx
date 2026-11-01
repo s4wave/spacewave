@@ -4,6 +4,82 @@ import { LuX as XIcon } from 'react-icons/lu'
 
 import { cn } from '@s4wave/web/style/utils.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+  motion as themeMotion,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: { position: 'absolute', inset: 0 },
+  rule2: {
+    position: 'absolute',
+    top: `calc(${themeLayout['--spacing']} * 4)`,
+    right: `calc(${themeLayout['--spacing']} * 4)`,
+    borderRadius: 'var(--radius-xs)',
+    opacity: {
+      default: 0.7,
+      '@media (hover: hover)': { default: null, ':hover': 1 },
+    },
+    '--tw-ring-offset-color': themeColors['--color-background'],
+    transitionProperty: 'opacity',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus':
+        'var(--tw-ring-inset, ) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    boxShadow: {
+      default: null,
+      ':focus':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    '--tw-ring-color': { default: null, ':focus': themeColors['--color-ring'] },
+    '--tw-ring-offset-width': { default: null, ':focus': '2px' },
+    '--tw-ring-offset-shadow': {
+      default: null,
+      ':focus':
+        'var(--tw-ring-inset, ) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color)',
+    },
+    '--tw-outline-style': { default: null, ':focus': 'none' },
+    outlineStyle: { default: null, ':focus': 'none' },
+    outlineOffset: {
+      default: null,
+      '@media (forced-colors: active)': { default: null, ':focus': '2px' },
+    },
+    outline: {
+      default: null,
+      '@media (forced-colors: active)': {
+        default: null,
+        ':focus': '2px solid #0000',
+      },
+    },
+    pointerEvents: { default: null, ':disabled': 'none' },
+    backgroundColor: {
+      default: null,
+      ':is([data-state="open"])': themeColors['--color-secondary'],
+    },
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule4: {
+    clipPath: 'inset(50%)',
+    whiteSpace: 'nowrap',
+    borderWidth: 0,
+    width: '1px',
+    height: '1px',
+    margin: '-1px',
+    padding: 0,
+    position: 'absolute',
+    overflow: 'hidden',
+  },
+})
+
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />
 }
@@ -33,10 +109,12 @@ function SheetOverlay({
   return (
     <SheetPrimitive.Overlay
       data-slot="sheet-overlay"
-      className={cn(
-        'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50',
-        className,
-      )}
+      className={
+        /* TODO(stylex): dynamic class or forwarded className */ cn(
+          'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50',
+          className,
+        )
+      }
       {...props}
     />
   )
@@ -61,31 +139,35 @@ function SheetContent({
   return (
     <SheetPortal container={portalContainer}>
       <SheetOverlay
-        className={position === 'absolute' ? 'absolute inset-0' : undefined}
+        {...stylex.props(
+          position === 'absolute' ? stylexStyles.rule1 : undefined,
+        )}
       />
       <SheetPrimitive.Content
         data-slot="sheet-content"
-        className={cn(
-          'bg-background data-[state=open]:animate-in data-[state=closed]:animate-out z-50 flex flex-col gap-4 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500',
-          position === 'absolute' ? 'absolute' : 'fixed',
-          side === 'right' &&
-            'data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right inset-y-0 right-0 h-full w-3/4 border-l sm:max-w-sm',
-          side === 'left' &&
-            'data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left inset-y-0 left-0 h-full w-3/4 border-r sm:max-w-sm',
-          side === 'top' &&
-            'data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top inset-x-0 top-0 h-auto border-b',
-          side === 'bottom' &&
-            'data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom inset-x-0 bottom-0 h-auto border-t',
-          (variant === 'docs' || variant === 'docsPlain') && 'gap-0 p-0',
-          className,
-        )}
+        className={
+          /* TODO(stylex): dynamic class or forwarded className */ cn(
+            'bg-background data-[state=open]:animate-in data-[state=closed]:animate-out z-50 flex flex-col gap-4 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500',
+            position === 'absolute' ? 'absolute' : 'fixed',
+            side === 'right' &&
+              'data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right inset-y-0 right-0 h-full w-3/4 border-l sm:max-w-sm',
+            side === 'left' &&
+              'data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left inset-y-0 left-0 h-full w-3/4 border-r sm:max-w-sm',
+            side === 'top' &&
+              'data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top inset-x-0 top-0 h-auto border-b',
+            side === 'bottom' &&
+              'data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom inset-x-0 bottom-0 h-auto border-t',
+            (variant === 'docs' || variant === 'docsPlain') && 'gap-0 p-0',
+            className,
+          )
+        }
         {...props}
       >
         {children}
         {showCloseButton && (
-          <SheetPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">
-            <XIcon className="size-4" />
-            <span className="sr-only">Close</span>
+          <SheetPrimitive.Close {...stylex.props(stylexStyles.rule2)}>
+            <XIcon {...stylex.props(stylexStyles.rule3)} />
+            <span sx={stylexStyles.rule4}>Close</span>
           </SheetPrimitive.Close>
         )}
       </SheetPrimitive.Content>
@@ -97,7 +179,12 @@ function SheetHeader({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="sheet-header"
-      className={cn('flex flex-col gap-1.5 p-4', className)}
+      className={
+        /* TODO(stylex): dynamic class or forwarded className */ cn(
+          'flex flex-col gap-1.5 p-4',
+          className,
+        )
+      }
       {...props}
     />
   )
@@ -107,7 +194,12 @@ function SheetFooter({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="sheet-footer"
-      className={cn('mt-auto flex flex-col gap-2 p-4', className)}
+      className={
+        /* TODO(stylex): dynamic class or forwarded className */ cn(
+          'mt-auto flex flex-col gap-2 p-4',
+          className,
+        )
+      }
       {...props}
     />
   )
@@ -123,13 +215,15 @@ function SheetTitle({
   return (
     <SheetPrimitive.Title
       data-slot="sheet-title"
-      className={cn(
-        'text-foreground font-semibold',
-        (variant === 'docs' || variant === 'docsPlain') &&
-          'flex items-center gap-2 text-sm font-semibold tracking-tight',
-        variant === 'docsPlain' && 'gap-0',
-        className,
-      )}
+      className={
+        /* TODO(stylex): dynamic class or forwarded className */ cn(
+          'text-foreground font-semibold',
+          (variant === 'docs' || variant === 'docsPlain') &&
+            'flex items-center gap-2 text-sm font-semibold tracking-tight',
+          variant === 'docsPlain' && 'gap-0',
+          className,
+        )
+      }
       {...props}
     />
   )
@@ -142,7 +236,12 @@ function SheetDescription({
   return (
     <SheetPrimitive.Description
       data-slot="sheet-description"
-      className={cn('text-muted-foreground text-sm', className)}
+      className={
+        /* TODO(stylex): dynamic class or forwarded className */ cn(
+          'text-muted-foreground text-sm',
+          className,
+        )
+      }
       {...props}
     />
   )

@@ -1,3 +1,4 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
 import { LuRoute } from 'react-icons/lu'
 
@@ -13,6 +14,28 @@ import {
   type TraceStatus,
 } from '@s4wave/web/ui/trace.js'
 import { statusLabel, stepIcon } from '@s4wave/web/ui/trace-status.js'
+
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule2: {
+    clipPath: 'inset(50%)',
+    whiteSpace: 'nowrap',
+    borderWidth: 0,
+    width: '1px',
+    height: '1px',
+    margin: '-1px',
+    padding: 0,
+    position: 'absolute',
+    overflow: 'hidden',
+  },
+})
 
 /** PlanStep is one step in the plan. id is the caller's identity for the step. */
 export type PlanStep = {
@@ -40,17 +63,20 @@ function Plan({
   title,
   description,
   steps,
-  className,
+  sx,
   ...props
-}: React.ComponentProps<'div'> & {
-  title: string
-  description?: string
-  steps: PlanStep[]
-}) {
+}: Omit<
+  React.ComponentProps<'div'> & {
+    title: string
+    description?: string
+    steps: PlanStep[]
+  },
+  'className'
+> & { sx?: ComponentStyles; className?: never }) {
   const done = steps.filter((step) => step.status === 'done').length
 
   return (
-    <div data-slot="plan" className={className} {...props}>
+    <div data-slot="plan" sx={sx} {...props}>
       <Trace>
         <TraceCollapsible defaultOpen>
           <TraceCollapsibleTrigger>
@@ -64,14 +90,16 @@ function Plan({
               </TraceDescription>
             </TraceLine>
           </TraceCollapsibleTrigger>
-          <TraceCollapsibleContent className="flex flex-col gap-3">
+          <TraceCollapsibleContent {...stylex.props(stylexStyles.rule1)}>
             {description ? <p>{description}</p> : null}
             <Trace>
               {steps.map((step) => (
                 <TraceLine key={step.id} status={step.status}>
                   <TraceIcon>{stepIcon(step.status)}</TraceIcon>
                   <TraceTitle>{step.title}</TraceTitle>
-                  <span className="sr-only">{statusLabel(step.status)}</span>
+                  <span sx={stylexStyles.rule2}>
+                    {statusLabel(step.status)}
+                  </span>
                 </TraceLine>
               ))}
             </Trace>

@@ -37,40 +37,98 @@ export function LoadingScreen({
 
   return (
     <div
-      className={cn('swl-canvas', containerClassName)}
+      className={
+        /* TODO(stylex): global or unknown class: swl-canvas */ cn(
+          'swl-canvas',
+          containerClassName,
+        )
+      }
       data-state={view.state}
       data-sw-reduced-motion={reducedMotion ? 'true' : undefined}
     >
       {topLeftSlot}
-      <div className="swl-main">
-        <div className="swl-emblem" aria-hidden="true">
+      <div
+        className={
+          /* TODO(stylex): global or unknown class: swl-main */ 'swl-main'
+        }
+      >
+        <div
+          className={
+            /* TODO(stylex): global or unknown class: swl-emblem */ 'swl-emblem'
+          }
+          aria-hidden="true"
+        >
           {logo ?? <img src={spacewaveIcon} alt="" width={56} height={56} />}
         </div>
-        <div className="swl-console">
-          <div className="swl-brand" aria-hidden="true">
+        <div
+          className={
+            /* TODO(stylex): global or unknown class: swl-console */ 'swl-console'
+          }
+        >
+          <div
+            className={
+              /* TODO(stylex): global or unknown class: swl-brand */ 'swl-brand'
+            }
+            aria-hidden="true"
+          >
             Spacewave
           </div>
-          <div className="swl-head" aria-live="polite" aria-atomic="true">
-            <h1 className="swl-title">{view.title}</h1>
+          <div
+            className={
+              /* TODO(stylex): global or unknown class: swl-head */ 'swl-head'
+            }
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            <h1
+              className={
+                /* TODO(stylex): global or unknown class: swl-title */ 'swl-title'
+              }
+            >
+              {view.title}
+            </h1>
           </div>
           {view.error ? (
-            <p className="swl-error" role="alert">
+            <p
+              className={
+                /* TODO(stylex): global or unknown class: swl-error */ 'swl-error'
+              }
+              role="alert"
+            >
               {view.error}
             </p>
           ) : null}
           {children ? (
-            <div className="swl-phases">{children}</div>
+            <div
+              className={
+                /* TODO(stylex): global or unknown class: swl-phases */ 'swl-phases'
+              }
+            >
+              {children}
+            </div>
           ) : view.detail ? (
-            <p className="swl-detail">{view.detail}</p>
+            <p
+              className={
+                /* TODO(stylex): global or unknown class: swl-detail */ 'swl-detail'
+              }
+            >
+              {view.detail}
+            </p>
           ) : null}
           {!failed && progress !== undefined ? (
             <>
-              <div className="swl-transfer">
+              <div
+                className={
+                  /* TODO(stylex): global or unknown class: swl-transfer */ 'swl-transfer'
+                }
+              >
                 <span>Current download</span>
                 <span>{Math.round(progress * 100)}%</span>
               </div>
               <div
-                className="swl-transfer-track"
+                className={
+                  /* TODO(stylex): global or unknown class: swl-transfer-track */ 'swl-transfer-track'
+                }
                 role="progressbar"
                 aria-label="Current download"
                 aria-valuemin={0}
@@ -78,18 +136,26 @@ export function LoadingScreen({
                 aria-valuenow={Math.round(progress * 100)}
               >
                 <div
-                  className="bg-brand progress-width h-full"
+                  className={
+                    /* TODO(stylex): global or unknown class: progress-width */ 'bg-brand progress-width h-full'
+                  }
                   style={{ '--progress-width': `${progress * 100}%` }}
                 />
               </div>
             </>
           ) : null}
-          <div className="swl-footer">
+          <div
+            className={
+              /* TODO(stylex): global or unknown class: swl-footer */ 'swl-footer'
+            }
+          >
             {view.onRetry ? (
               <button
                 type="button"
                 onClick={view.onRetry}
-                className="swl-action swl-action--primary"
+                className={
+                  /* TODO(stylex): global or unknown class: swl-action */ 'swl-action swl-action--primary'
+                }
               >
                 <LuRotateCw aria-hidden="true" />
                 {view.retryLabel ?? 'Retry'}
@@ -99,7 +165,9 @@ export function LoadingScreen({
               <button
                 type="button"
                 onClick={view.onCancel}
-                className="swl-action"
+                className={
+                  /* TODO(stylex): global or unknown class: swl-action */ 'swl-action'
+                }
               >
                 <LuArrowLeft aria-hidden="true" />
                 {view.cancelLabel ?? 'Back'}

@@ -18,11 +18,13 @@ export function Window({
 
   return (
     <div
-      className={cn(
-        'hdr-window-glow overflow-hidden rounded-lg border',
-        isHovered ? 'border-ui-outline-active' : 'border-window-border',
-        className,
-      )}
+      className={
+        /* TODO(stylex): global or unknown class: hdr-window-glow */ cn(
+          'hdr-window-glow overflow-hidden rounded-lg border',
+          isHovered ? 'border-ui-outline-active' : 'border-window-border',
+          className,
+        )
+      }
       style={style}
       data-area-id={dataAreaId}
       onMouseEnter={() => setIsHovered(true)}

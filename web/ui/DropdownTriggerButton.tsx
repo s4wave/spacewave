@@ -5,6 +5,16 @@ import { cn } from '@s4wave/web/style/utils.js'
 
 import { Button } from './button.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 export interface DropdownTriggerButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   icon?: React.ReactNode
   triggerStyle?: 'outline' | 'ghost'
@@ -26,24 +36,26 @@ export function DropdownTriggerButton({
       type={type}
       variant={triggerStyle === 'ghost' ? 'ghost' : 'outline'}
       size="sm"
-      className={cn(
-        'gap-1.5',
-        triggerStyle === 'outline' && [
-          'border-foreground/10 bg-foreground/5 text-foreground-alt',
-          'hover:border-brand/30 hover:bg-brand/10 hover:text-brand',
-          'h-auto px-2.5 py-1 text-xs',
-        ],
-        triggerStyle === 'ghost' && [
-          'text-foreground-alt hover:text-brand hover:bg-transparent',
-          'h-auto px-0 py-0 text-metadata font-normal shadow-none',
-        ],
-        className,
-      )}
+      className={
+        /* TODO(stylex): dynamic class or forwarded className */ cn(
+          'gap-1.5',
+          triggerStyle === 'outline' && [
+            'border-foreground/10 bg-foreground/5 text-foreground-alt',
+            'hover:border-brand/30 hover:bg-brand/10 hover:text-brand',
+            'h-auto px-2.5 py-1 text-xs',
+          ],
+          triggerStyle === 'ghost' && [
+            'text-foreground-alt hover:text-brand hover:bg-transparent',
+            'h-auto px-0 py-0 text-metadata font-normal shadow-none',
+          ],
+          className,
+        )
+      }
       {...props}
     >
       {icon}
       <span>{children}</span>
-      {showChevron && <LuChevronDown className="size-3" />}
+      {showChevron && <LuChevronDown {...stylex.props(stylexStyles.rule1)} />}
     </Button>
   )
 }

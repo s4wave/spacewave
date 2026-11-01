@@ -13,6 +13,23 @@ import {
   TooltipTrigger,
 } from '@s4wave/web/ui/tooltip.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: { display: { default: null, '@media (min-width: 48rem)': 'none' } },
+  rule2: {
+    width: {
+      default: `calc(${themeLayout['--spacing']} * 5)`,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+    height: {
+      default: `calc(${themeLayout['--spacing']} * 5)`,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+  },
+})
+
 // formatMiddleEllipsis shortens value to its head and tail around an ellipsis.
 function formatMiddleEllipsis(value: string): string {
   const head = 6
@@ -48,7 +65,7 @@ function HeaderAction({
       </TooltipTrigger>
       <TooltipContent
         side="bottom"
-        className={collapseLabel ? 'md:hidden' : undefined}
+        sx={collapseLabel ? stylexStyles.rule1 : undefined}
       >
         {tooltip}
       </TooltipContent>
@@ -153,7 +170,7 @@ function PeerIdBadge({ peerId }: { peerId: string }): ReactNode {
         text={peerId}
         label="Copy session ID"
         variant="toolbar"
-        className="size-5 [@media(pointer:coarse)]:size-11"
+        sx={stylexStyles.rule2}
       />
     </span>
   )

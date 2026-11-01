@@ -1,9 +1,54 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import type React from 'react'
 import { LuArrowLeft } from 'react-icons/lu'
 
-import { cn } from '@s4wave/web/style/utils.js'
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  fonts as themeFonts,
+  colors as themeColors,
+  motion as themeMotion,
+} from '../style/tokens.stylex.js'
 
-export interface BackButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-brand'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule2: {
+    position: 'absolute',
+    top: `calc(${themeLayout['--spacing']} * 4)`,
+    left: `calc(${themeLayout['--spacing']} * 4)`,
+    zIndex: 20,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule4: { WebkitUserSelect: 'none', userSelect: 'none' },
+})
+
+export interface BackButtonProps extends Omit<
+  React.ButtonHTMLAttributes<HTMLButtonElement>,
+  'className'
+> {
+  className?: never
+  sx?: ComponentStyles
   floating?: boolean
 }
 
@@ -11,23 +56,22 @@ export interface BackButtonProps extends React.ButtonHTMLAttributes<HTMLButtonEl
 // full-page overlays.
 export function BackButton({
   floating,
-  className,
+  sx,
   children,
   type = 'button',
   ...props
-}: BackButtonProps) {
+}: Omit<BackButtonProps, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
   return (
     <button
       type={type}
-      className={cn(
-        'text-foreground-alt hover:text-brand flex items-center gap-2 text-sm transition-colors',
-        floating && 'absolute top-4 left-4 z-20',
-        className,
-      )}
+      sx={[stylexStyles.rule1, !!floating && stylexStyles.rule2, sx]}
       {...props}
     >
-      <LuArrowLeft className="size-4" />
-      <span className="select-none">{children}</span>
+      <LuArrowLeft {...stylex.props(stylexStyles.rule3)} />
+      <span sx={stylexStyles.rule4}>{children}</span>
     </button>
   )
 }

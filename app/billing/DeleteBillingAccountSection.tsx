@@ -20,6 +20,12 @@ import {
 import { BillingStatus } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 import { deleteBillingAccountDisabledReason } from './billing-utils.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: { maxWidth: 'var(--container-xs)' },
+})
+
 export interface DeleteBillingAccountSectionProps {
   billingAccountId: string
   displayName: string
@@ -109,7 +115,7 @@ export function DeleteBillingAccountSection({
           <TooltipTrigger asChild>
             <span className="inline-flex">{button}</span>
           </TooltipTrigger>
-          <TooltipContent side="top" className="max-w-xs">
+          <TooltipContent side="top" sx={stylexStyles.rule1}>
             {disabledReason}
           </TooltipContent>
         </Tooltip>
