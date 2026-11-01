@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -23,8 +24,9 @@ import (
 // TestWebPkgChunksKeepStableNames builds two releases through the production
 // Vite service, including native StyleX CSS, and keeps lazy importers stable.
 func TestWebPkgChunksKeepStableNames(t *testing.T) {
-	// Build an ESM package with one lazy module.
-	ctx, cancel := context.WithTimeout(t.Context(), 45*time.Second)
+	// Build an ESM package with lazy modules and enough media queries to warm the parser.
+	started := time.Now()
+	ctx, cancel := context.WithTimeout(t.Context(), 75*time.Second)
 	defer cancel()
 	root, err := filepath.Abs("../../../..")
 	if err != nil {
@@ -34,13 +36,28 @@ func TestWebPkgChunksKeepStableNames(t *testing.T) {
 	outDir := t.TempDir()
 	for name, text := range map[string]string{
 		"package.json": `{"name":"stable-chunks","type":"module"}`,
-		"index.js":     `export const load = () => import('./lazy.js'); export const loadOther = () => import('./other.js')`,
 		"other.js":     `import * as stylex from '@stylexjs/stylex'; const styles=stylex.create({root:{backgroundColor:'blue',marginTop:7}}); export const attrs=stylex.props(styles.root)`,
 		"lazy.js":      `export const value = 'first'`,
 	} {
 		if err := os.WriteFile(filepath.Join(pkgRoot, name), []byte(text), 0o644); err != nil {
 			t.Fatal(err)
 		}
+	}
+
+	// Keep responsive exports live so the service exercises the optimized media parser.
+	var entrySource strings.Builder
+	entrySource.WriteString(`export const load = () => import('./lazy.js'); export const loadOther = () => import('./other.js');`)
+	for index := range 32 {
+		suffix := strconv.Itoa(index)
+		name := "responsive" + suffix + ".js"
+		entrySource.WriteString("export {attrs as responsive" + suffix + "} from './" + name + "';")
+		text := `import * as stylex from '@stylexjs/stylex'; const styles=stylex.create({root:{gap:{default:'32px','@media (max-width: 960px)':'24px','@media (max-width: 720px)':'12px'}}}); export const attrs=stylex.props(styles.root);`
+		if err := os.WriteFile(filepath.Join(pkgRoot, name), []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(pkgRoot, "index.js"), []byte(entrySource.String()), 0o644); err != nil {
+		t.Fatal(err)
 	}
 
 	// Run both release builds through the real bundler RPC.
@@ -53,6 +70,9 @@ func TestWebPkgChunksKeepStableNames(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = os.RemoveAll(workingPath) })
 	err = RunOneShot(ctx, logrus.NewEntry(logrus.New()), root, root, workingPath, func(ctx context.Context, client bldr_vite.SRPCViteBundlerClient) error {
+		// Record service startup before compiling browser packages.
+		t.Log("Vite service connected after", time.Since(started))
+
 		// Build the same pinned ESM runtime that Bldr's import map serves to browser packages.
 		runtime, err := client.BuildWebPkg(ctx, &bldr_vite.BuildWebPkgRequest{
 			PkgId: "@stylexjs/stylex", PkgRoot: filepath.Join(root, "node_modules", "@stylexjs", "stylex"),
@@ -126,13 +146,18 @@ func TestWebPkgChunksKeepStableNames(t *testing.T) {
 			if !bytes.Contains(css, []byte("stylex.priority3000")) || !bytes.Contains(css, []byte("color:red")) || !bytes.Contains(css, []byte("margin-top:7px")) || strings.Contains(string(lazy), "stylex.create") {
 				return errors.Errorf("StyleX did not compile through native package CSS: %s", css)
 			}
+			if !bytes.Contains(css, []byte("gap:32px")) || !bytes.Contains(css, []byte("960px")) || !bytes.Contains(css, []byte("720px")) {
+				return errors.Errorf("responsive exports lost their native media rules: %s", css)
+			}
 
 			// A chunk edit changes only its bytes, not its importing module.
 			if value == "first" {
+				t.Log("Responsive package built after", time.Since(started))
 				if os.Getenv("STYLEX_WEBPKG_BROWSER") == "1" {
 					if err := checkWebPkgBrowser(ctx, root, outDir, runtimeDir, runtimePath); err != nil {
 						return err
 					}
+					t.Log("Both browser engines completed after", time.Since(started))
 				}
 				firstEntry, firstLazy, firstFiles = entry, lazy, files
 				continue
