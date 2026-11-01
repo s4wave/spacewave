@@ -1,12 +1,58 @@
 import { useCallback, use, useEffect, useRef } from 'react'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { ListStateContext } from './ListState.js'
 import { RowComponentProps } from './List.js'
 
 import * as stylex from '@stylexjs/stylex'
 
-const stylexStyles = stylex.create({
-  rule1: {
+import {
+  layout as themeLayout,
+  fonts as themeFonts,
+  motion as themeMotion,
+  colors as themeColors,
+} from '../../style/tokens.stylex.js'
+
+const styles = stylex.create({
+  row: {
+    display: 'flex',
+    cursor: 'pointer',
+    alignItems: 'center',
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: '1px',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-tight)',
+    '--tw-leading': 'var(--leading-tight)',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  selected: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    color: themeColors['--color-foreground'],
+  },
+  unselected: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground']} 90%, transparent)`,
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+  },
+  focused: {
+    '--tw-ring-shadow':
+      'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    '--tw-ring-color': `color-mix(in oklab, ${themeColors['--color-brand']} 25%, transparent)`,
+    '--tw-ring-inset': 'inset',
+  },
+  label: {
     flex: 1,
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
@@ -96,21 +142,16 @@ export function ListRow<T>({
       aria-posinset={ariaAttributes['aria-posinset']}
       aria-setsize={ariaAttributes['aria-setsize']}
       style={style}
-      className={
-        /* TODO(stylex): conditional property composition: backgroundColor */ cn(
-          'flex items-center px-2 py-[1px] text-xs leading-tight',
-          'cursor-pointer transition-colors select-none',
-          selected
-            ? 'bg-brand/10 text-foreground'
-            : 'text-foreground/90 hover:bg-foreground/5',
-          focused && !selected && 'ring-brand/25 ring-1 ring-inset',
-        )
-      }
+      sx={[
+        styles.row,
+        selected ? styles.selected : styles.unselected,
+        !!(focused && !selected) && styles.focused,
+      ]}
       onClick={handleListRowSelect}
       onKeyDown={handleListRowKeyDown}
       onContextMenu={handleContextMenu}
     >
-      <span sx={stylexStyles.rule1}>{item.id}</span>
+      <span sx={styles.label}>{item.id}</span>
     </div>
   )
 }
