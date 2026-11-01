@@ -96,15 +96,33 @@ func collectStartupManifestEligibilityForManifestID(
 	out := make([]*StartupManifestCandidateEligibility, 0, len(candidates))
 	for _, objKey := range candidates {
 		if manifestRoot != "" {
-			// Stored executables are direct Manifest objects whose root is code identity.
-			object, err := world.MustGetObject(ctx, ws, objKey)
+			// Signed reference wrappers retain another object's executable identity.
+			// Read the local envelope before classifying its target, so unrelated closed buckets stay unopened.
+			var ref *bucket.ObjectRef
+			objectType, err := getStartupManifestCandidateObjectType(ctx, ws, objKey)
 			if err != nil {
 				return nil, err
 			}
-			ref, _, err := object.GetRootRef(ctx)
-			world.ReleaseObjectState(object)
-			if err != nil {
-				return nil, err
+			if objectType == ManifestStoreTypeID || objectType == ManifestBundleTypeID {
+				continue
+			}
+			if objectType != ManifestTypeID {
+				stored, _, err := lookupManifestRefForStartupEligibility(ctx, ws, objKey)
+				if err != nil {
+					return nil, err
+				}
+				ref = stored.GetManifestRef()
+			} else {
+				// Direct manifests already identify the executable without reading its payload.
+				object, err := world.MustGetObject(ctx, ws, objKey)
+				if err != nil {
+					return nil, err
+				}
+				ref, _, err = object.GetRootRef(ctx)
+				world.ReleaseObjectState(object)
+				if err != nil {
+					return nil, err
+				}
 			}
 			if ref.GetRootRef().GetHash().MarshalString() != manifestRoot {
 				continue
