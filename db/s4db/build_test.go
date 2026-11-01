@@ -13,12 +13,13 @@ import (
 )
 
 // buildValue returns the value of key number i: mostly inline, every seventh
-// in a value chunk, and the first past a whole chunk.
+// in a value chunk, and every ten-thousandth past a whole chunk, so a large
+// value also arrives while a value chunk is partly filled.
 func buildValue(i int) []byte {
 	// Pick the size, then fill it from the index.
 	n := 40 + i%200
 	switch {
-	case i == 0:
+	case i%10_000 == 0:
 		n = chunkSize + 1234
 	case i%7 == 0:
 		n = inlineMax + 1 + i%3000
