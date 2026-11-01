@@ -1,5 +1,9 @@
 import type { ComponentType } from 'react'
-import { LuHash, LuLayoutGrid, LuMessageSquare } from 'react-icons/lu'
+import {
+  LuHash,
+  LuLayoutGrid,
+  LuMessageSquare,
+} from '@s4wave/web/images/icons.js'
 
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
 

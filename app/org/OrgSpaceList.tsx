@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { LuBox } from 'react-icons/lu'
+import { LuBox } from '@s4wave/web/images/icons.js'
 import { useSessionNavigate } from '@s4wave/web/contexts/contexts.js'
 import type { OrgSpaceInfo } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 

@@ -11,7 +11,7 @@ import {
   LuTrash2,
   LuArrowUp,
   LuArrowDown,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 interface NotebookSidebarProps {
   sources: NotebookSource[]

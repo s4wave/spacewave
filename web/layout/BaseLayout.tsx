@@ -41,6 +41,24 @@ import { BaseLayoutContext } from './BaseLayoutContext.js'
 
 import * as stylex from '@stylexjs/stylex'
 
+import {
+  colors as themeColors,
+  layout as themeLayout,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: themeColors['--color-background-primary'],
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: { width: '100%', maxWidth: 'var(--container-sm)' },
 })
@@ -237,11 +255,7 @@ export class BaseLayout extends AbortComponent<
   public render() {
     if (!this.state.model) {
       return (
-        <div
-          role="status"
-          aria-label="Loading layout"
-          className="bg-background-primary flex h-full w-full flex-1 items-center justify-center p-4"
-        >
+        <div role="status" aria-label="Loading layout" sx={stylexStyles2.rule1}>
           <LoadingCard
             view={{
               state: 'loading',

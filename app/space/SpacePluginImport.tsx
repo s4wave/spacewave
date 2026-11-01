@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { useWatchStateRpc } from '@aptre/bldr-react'
-import { LuLoaderCircle, LuPlus } from 'react-icons/lu'
+import { LuLoaderCircle, LuPlus } from '@s4wave/web/images/icons.js'
 
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import {

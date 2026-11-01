@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { LuArrowLeft, LuDownload, LuPlay } from 'react-icons/lu'
+import { LuArrowLeft, LuDownload, LuPlay } from '@s4wave/web/images/icons.js'
 
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
@@ -21,6 +21,336 @@ import type {
 } from '@s4wave/sdk/debugdb/debugdb.pb.js'
 import { BenchmarkResults as BenchmarkResultsType } from '@s4wave/sdk/debugdb/debugdb.pb.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  layout as themeLayout,
+  fonts as themeFonts,
+  radii as themeRadii,
+  motion as themeMotion,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-white']} 5%, transparent)`,
+  },
+  rule2: {
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingRight: `calc(${themeLayout['--spacing']} * 4)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule3: {
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingRight: `calc(${themeLayout['--spacing']} * 4)`,
+    textAlign: 'right',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-text-muted'],
+  },
+  rule4: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule5: {
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-text-primary'],
+  },
+  rule6: { overflowX: 'auto' },
+  rule7: { width: '100%' },
+  rule8: {
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-white']} 10%, transparent)`,
+    color: themeColors['--color-text-muted'],
+  },
+  rule9: {
+    paddingRight: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBottom: themeLayout['--spacing'],
+    textAlign: 'left',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-normal)',
+    fontWeight: 'var(--font-weight-normal)',
+    textTransform: 'uppercase',
+  },
+  rule10: {
+    paddingRight: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBottom: themeLayout['--spacing'],
+    textAlign: 'right',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-normal)',
+    fontWeight: 'var(--font-weight-normal)',
+    textTransform: 'uppercase',
+  },
+  rule11: {
+    paddingBottom: themeLayout['--spacing'],
+    textAlign: 'right',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-normal)',
+    fontWeight: 'var(--font-weight-normal)',
+    textTransform: 'uppercase',
+  },
+  rule12: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule13: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rule14: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-text-muted'],
+  },
+  rule15: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule16: {
+    borderRadius: themeRadii['--radius-lg'],
+    backgroundColor: themeColors['--color-background-card'],
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule17: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-text-muted'],
+  },
+  rule18: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    columnGap: `calc(${themeLayout['--spacing']} * 4)`,
+    rowGap: themeLayout['--spacing'],
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule19: { color: themeColors['--color-text-muted'] },
+  rule20: { color: themeColors['--color-text-primary'] },
+  rule21: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule22: {
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    color: themeColors['--color-text-primary'],
+  },
+  rule23: {
+    height: `calc(${themeLayout['--spacing']} * 2)`,
+    overflow: 'hidden',
+    borderRadius: '3.40282e38px',
+    backgroundColor: themeColors['--color-background-dark'],
+  },
+  rule24: {
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-text-muted'],
+  },
+  rule25: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    borderRadius: themeRadii['--radius-lg'],
+    backgroundColor: themeColors['--color-background-card'],
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule26: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule27: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule28: { width: `calc(${themeLayout['--spacing']} * 24)` },
+  rule29: {
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    color: themeColors['--color-text-primary'],
+  },
+  rule30: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: themeRadii['--radius-md'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule31: {
+    cursor: 'not-allowed',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-white']} 5%, transparent)`,
+    color: themeColors['--color-text-muted'],
+  },
+  rule32: {
+    cursor: 'pointer',
+    backgroundColor: {
+      default: themeColors['--color-primary'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-primary']} 90%, transparent)`,
+      },
+    },
+    color: themeColors['--color-primary-foreground'],
+  },
+  rule33: {
+    borderRadius: themeRadii['--radius-lg'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-red-500']} 10%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-red-400'],
+  },
+  rule34: {
+    containerType: 'inline-size',
+    display: 'flex',
+    width: '100%',
+    flex: 1,
+    flexDirection: 'column',
+    overflowY: 'auto',
+    backgroundColor: themeColors['--color-background'],
+  },
+  rule35: {
+    marginInline: 'auto',
+    width: '100%',
+    maxWidth: 'var(--container-5xl)',
+    paddingInline: {
+      default: `calc(${themeLayout['--spacing']} * 4)`,
+      '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 8)`,
+    },
+    paddingBlock: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule36: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 6)`,
+    display: 'flex',
+    cursor: 'pointer',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule37: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule38: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: 'var(--text-3xl)',
+    lineHeight: 'var(--tw-leading, var(--text-3xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule39: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 8)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule40: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-text-muted'],
+  },
+  rule41: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 8)`,
+  },
+})
+
 // latencyColor returns a Tailwind text color class based on latency value.
 function latencyColor(ms: number): string {
   if (ms < 1) return 'text-green-400'
@@ -40,43 +370,47 @@ function fmtMs(ms: number | undefined): string {
 // MetricRow renders one row of the metric table.
 function MetricRow({ metric }: { metric: BenchmarkMetric }) {
   return (
-    <tr className="border-b border-white/5">
-      <td className="py-1.5 pr-4 font-mono text-xs">{metric.name}</td>
-      <td className="text-text-muted py-1.5 pr-4 text-right font-mono text-xs">
-        {metric.count?.toString() ?? '-'}
-      </td>
-      <td className="text-text-muted py-1.5 pr-4 text-right font-mono text-xs">
-        {fmtMs(metric.totalMs)}
-      </td>
+    <tr sx={stylexStyles.rule1}>
+      <td sx={stylexStyles.rule2}>{metric.name}</td>
+      <td sx={stylexStyles.rule3}>{metric.count?.toString() ?? '-'}</td>
+      <td sx={stylexStyles.rule3}>{fmtMs(metric.totalMs)}</td>
       <td
-        className={cn(
-          'py-1.5 pr-4 text-right font-mono text-xs',
-          latencyColor(metric.minMs ?? 0),
-        )}
+        className={
+          /* TODO(stylex): computed class helper */ cn(
+            'py-1.5 pr-4 text-right font-mono text-xs',
+            latencyColor(metric.minMs ?? 0),
+          )
+        }
       >
         {fmtMs(metric.minMs)}
       </td>
       <td
-        className={cn(
-          'py-1.5 pr-4 text-right font-mono text-xs',
-          latencyColor(metric.p50Ms ?? 0),
-        )}
+        className={
+          /* TODO(stylex): computed class helper */ cn(
+            'py-1.5 pr-4 text-right font-mono text-xs',
+            latencyColor(metric.p50Ms ?? 0),
+          )
+        }
       >
         {fmtMs(metric.p50Ms)}
       </td>
       <td
-        className={cn(
-          'py-1.5 pr-4 text-right font-mono text-xs',
-          latencyColor(metric.p99Ms ?? 0),
-        )}
+        className={
+          /* TODO(stylex): computed class helper */ cn(
+            'py-1.5 pr-4 text-right font-mono text-xs',
+            latencyColor(metric.p99Ms ?? 0),
+          )
+        }
       >
         {fmtMs(metric.p99Ms)}
       </td>
       <td
-        className={cn(
-          'py-1.5 text-right font-mono text-xs',
-          latencyColor(metric.maxMs ?? 0),
-        )}
+        className={
+          /* TODO(stylex): computed class helper */ cn(
+            'py-1.5 text-right font-mono text-xs',
+            latencyColor(metric.maxMs ?? 0),
+          )
+        }
       >
         {fmtMs(metric.maxMs)}
       </td>
@@ -90,35 +424,19 @@ function SuiteTable({ suite }: { suite: BenchmarkSuite }) {
   if (metrics.length === 0) return null
 
   return (
-    <div className="flex flex-col gap-2">
-      <h3 className="text-text-primary font-mono text-sm font-semibold">
-        {suite.name}
-      </h3>
-      <div className="overflow-x-auto">
-        <table className="w-full">
+    <div sx={stylexStyles.rule4}>
+      <h3 sx={stylexStyles.rule5}>{suite.name}</h3>
+      <div sx={stylexStyles.rule6}>
+        <table sx={stylexStyles.rule7}>
           <thead>
-            <tr className="text-text-muted border-b border-white/10">
-              <th className="pr-4 pb-1 text-left font-mono text-xs font-normal uppercase">
-                Metric
-              </th>
-              <th className="pr-4 pb-1 text-right font-mono text-xs font-normal uppercase">
-                Count
-              </th>
-              <th className="pr-4 pb-1 text-right font-mono text-xs font-normal uppercase">
-                Total (ms)
-              </th>
-              <th className="pr-4 pb-1 text-right font-mono text-xs font-normal uppercase">
-                Min
-              </th>
-              <th className="pr-4 pb-1 text-right font-mono text-xs font-normal uppercase">
-                P50
-              </th>
-              <th className="pr-4 pb-1 text-right font-mono text-xs font-normal uppercase">
-                P99
-              </th>
-              <th className="pb-1 text-right font-mono text-xs font-normal uppercase">
-                Max
-              </th>
+            <tr sx={stylexStyles.rule8}>
+              <th sx={stylexStyles.rule9}>Metric</th>
+              <th sx={stylexStyles.rule10}>Count</th>
+              <th sx={stylexStyles.rule10}>Total (ms)</th>
+              <th sx={stylexStyles.rule10}>Min</th>
+              <th sx={stylexStyles.rule10}>P50</th>
+              <th sx={stylexStyles.rule10}>P99</th>
+              <th sx={stylexStyles.rule11}>Max</th>
             </tr>
           </thead>
           <tbody>
@@ -149,18 +467,20 @@ function ResultsDisplay({ results }: { results: BenchmarkResults }) {
   }, [results])
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div className="text-text-muted text-xs">
+    <div sx={stylexStyles.rule12}>
+      <div sx={stylexStyles.rule13}>
+        <div sx={stylexStyles.rule14}>
           {suites.length} suites,{' '}
           {results.totalDurationMillis?.toString() ?? '0'}ms total
         </div>
         <button
           type="button"
           onClick={downloadResults}
-          className="text-text-secondary hover:text-text-primary flex cursor-pointer items-center gap-1.5 text-xs transition-colors"
+          className={
+            /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary hover:text-text-primary flex cursor-pointer items-center gap-1.5 text-xs transition-colors'
+          }
         >
-          <LuDownload className="size-3.5" />
+          <LuDownload {...stylex.props(stylexStyles.rule15)} />
           Download JSON
         </button>
       </div>
@@ -174,19 +494,23 @@ function ResultsDisplay({ results }: { results: BenchmarkResults }) {
 // StorageInfoPanel displays current storage backend info.
 function StorageInfoPanel({ info }: { info: StorageInfo }) {
   return (
-    <div className="bg-background-card rounded-lg p-4">
-      <h3 className="text-text-secondary mb-2 text-xs font-semibold tracking-wider uppercase">
+    <div sx={stylexStyles.rule16}>
+      <h3
+        className={
+          /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary mb-2 text-xs font-semibold tracking-wider uppercase'
+        }
+      >
         Current Backend
       </h3>
-      <p className="text-text-muted mb-3 text-xs">
+      <p sx={stylexStyles.rule17}>
         These values describe the app&apos;s current storage backend, not the
         temporary benchmark run configuration below.
       </p>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1 font-mono text-xs">
-        <span className="text-text-muted">GOOS</span>
-        <span className="text-text-primary">{info.goos || '-'}</span>
-        <span className="text-text-muted">GOARCH</span>
-        <span className="text-text-primary">{info.goarch || '-'}</span>
+      <div sx={stylexStyles.rule18}>
+        <span sx={stylexStyles.rule19}>GOOS</span>
+        <span sx={stylexStyles.rule20}>{info.goos || '-'}</span>
+        <span sx={stylexStyles.rule19}>GOARCH</span>
+        <span sx={stylexStyles.rule20}>{info.goarch || '-'}</span>
       </div>
     </div>
   )
@@ -195,26 +519,26 @@ function StorageInfoPanel({ info }: { info: StorageInfo }) {
 // ProgressBar renders the benchmark progress.
 function ProgressBar({ progress }: { progress: WatchProgressResponse }) {
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between text-xs">
-        <span className="text-text-primary font-mono">
+    <div sx={stylexStyles.rule4}>
+      <div sx={stylexStyles.rule21}>
+        <span sx={stylexStyles.rule22}>
           {progress.suiteName || 'Starting…'}
         </span>
-        <span className="text-text-muted">
+        <span sx={stylexStyles.rule19}>
           {progress.suiteIndex?.toString() ?? '0'}/
           {progress.suiteCount?.toString() ?? '0'}
         </span>
       </div>
-      <div className="bg-background-dark h-2 overflow-hidden rounded-full">
+      <div sx={stylexStyles.rule23}>
         <div
-          className="bg-primary progress-width progress-width-transition-medium h-full rounded-full"
+          className={
+            /* TODO(stylex): global or unknown class: progress-width */ 'bg-primary progress-width progress-width-transition-medium h-full rounded-full'
+          }
           style={{ '--progress-width': `${progress.percentComplete ?? 0}%` }}
         />
       </div>
       {progress.metricName ? (
-        <span className="text-text-muted font-mono text-xs">
-          {progress.metricName}
-        </span>
+        <span sx={stylexStyles.rule24}>{progress.metricName}</span>
       ) : null}
     </div>
   )
@@ -255,19 +579,23 @@ function BenchmarkPanel({ debugDb }: { debugDb: Resource<DebugDb> }) {
   }, [debugDb.value, duration, includeWorld])
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="bg-background-card flex flex-col gap-4 rounded-lg p-4">
-        <h3 className="text-text-secondary text-xs font-semibold tracking-wider uppercase">
+    <div sx={stylexStyles.rule12}>
+      <div sx={stylexStyles.rule25}>
+        <h3
+          className={
+            /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary text-xs font-semibold tracking-wider uppercase'
+          }
+        >
           Benchmark Run
         </h3>
-        <p className="text-text-muted text-xs">
+        <p sx={stylexStyles.rule14}>
           These options apply only to the throwaway benchmark volume and engine
           created for this run. They do not change the app&apos;s current
           storage backend shown above.
         </p>
-        <div className="flex flex-wrap items-center gap-6">
-          <label className="flex items-center gap-2 text-xs">
-            <span className="text-text-muted">Duration</span>
+        <div sx={stylexStyles.rule26}>
+          <label sx={stylexStyles.rule27}>
+            <span sx={stylexStyles.rule19}>Duration</span>
             <input
               type="range"
               min={5}
@@ -276,31 +604,29 @@ function BenchmarkPanel({ debugDb }: { debugDb: Resource<DebugDb> }) {
               value={duration}
               onChange={(e) => setDuration(Number(e.target.value))}
               disabled={running}
-              className="w-24"
+              sx={stylexStyles.rule28}
             />
-            <span className="text-text-primary w-8 font-mono">{duration}s</span>
+            <span sx={stylexStyles.rule29}>{duration}s</span>
           </label>
-          <label className="flex items-center gap-2 text-xs">
+          <label sx={stylexStyles.rule27}>
             <input
               type="checkbox"
               checked={includeWorld}
               onChange={(e) => setIncludeWorld(e.target.checked)}
               disabled={running}
             />
-            <span className="text-text-muted">World Transaction Suite</span>
+            <span sx={stylexStyles.rule19}>World Transaction Suite</span>
           </label>
           <button
             type="button"
             onClick={runBenchmark}
             disabled={running || !debugDb.value}
-            className={cn(
-              'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
-              running
-                ? 'text-text-muted cursor-not-allowed bg-white/5'
-                : 'bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer',
-            )}
+            sx={[
+              stylexStyles.rule30,
+              running ? stylexStyles.rule31 : stylexStyles.rule32,
+            ]}
           >
-            <LuPlay className="size-3.5" />
+            <LuPlay {...stylex.props(stylexStyles.rule15)} />
             {running ? 'Running…' : 'Run Benchmark'}
           </button>
         </div>
@@ -310,11 +636,7 @@ function BenchmarkPanel({ debugDb }: { debugDb: Resource<DebugDb> }) {
         <ProgressBar progress={progress.value} />
       ) : null}
 
-      {error ? (
-        <div className="rounded-lg bg-red-500/10 p-3 font-mono text-xs text-red-400">
-          {error.message}
-        </div>
-      ) : null}
+      {error ? <div sx={stylexStyles.rule33}>{error.message}</div> : null}
 
       {!results.loading && results.value ? (
         <ResultsDisplay results={results.value} />
@@ -353,33 +675,25 @@ export function DebugDbBench() {
   const err = rootResource.error || debugDbResource.error
 
   return (
-    <div className="bg-background @container flex w-full flex-1 flex-col overflow-y-auto">
-      <div className="mx-auto w-full max-w-5xl px-4 py-6 @lg:px-8">
-        <button
-          type="button"
-          onClick={goBack}
-          className="text-foreground-alt hover:text-foreground mb-6 flex cursor-pointer items-center gap-2 transition-colors"
-        >
-          <LuArrowLeft className="size-4" />
+    <div sx={stylexStyles.rule34}>
+      <div sx={stylexStyles.rule35}>
+        <button type="button" onClick={goBack} sx={stylexStyles.rule36}>
+          <LuArrowLeft {...stylex.props(stylexStyles.rule37)} />
           Back to home
         </button>
 
-        <h1 className="text-foreground mb-2 text-3xl font-semibold">
-          Storage Benchmark
-        </h1>
-        <p className="text-foreground-alt mb-8 text-sm">
+        <h1 sx={stylexStyles.rule38}>Storage Benchmark</h1>
+        <p sx={stylexStyles.rule39}>
           Benchmark block storage, garbage collection, metadata, and world
           transaction performance.
         </p>
 
         {loading ? (
-          <div className="text-text-muted text-sm">Loading…</div>
+          <div sx={stylexStyles.rule40}>Loading…</div>
         ) : err ? (
-          <div className="rounded-lg bg-red-500/10 p-3 font-mono text-xs text-red-400">
-            {err.message}
-          </div>
+          <div sx={stylexStyles.rule33}>{err.message}</div>
         ) : (
-          <div className="flex flex-col gap-8">
+          <div sx={stylexStyles.rule41}>
             {storageInfo.data ? (
               <StorageInfoPanel info={storageInfo.data} />
             ) : null}

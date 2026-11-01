@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useReducer, type ReactNode } from 'react'
-import { LuChartLine, LuPlus } from 'react-icons/lu'
+import { LuChartLine, LuPlus } from '@s4wave/web/images/icons.js'
 
 import { isDesktop } from '@aptre/bldr'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'

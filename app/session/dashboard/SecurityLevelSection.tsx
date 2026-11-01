@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { LuShield } from 'react-icons/lu'
+import { LuShield } from '@s4wave/web/images/icons.js'
 
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import { AccountEscalationIntentKind } from '@s4wave/sdk/account/account.pb.js'

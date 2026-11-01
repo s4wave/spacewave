@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import { LuCheck, LuPlus, LuServer, LuTrash } from 'react-icons/lu'
+import { LuCheck, LuPlus, LuServer, LuTrash } from '@s4wave/web/images/icons.js'
 
 import type { ConfigEditorProps } from '@s4wave/web/configtype/configtype.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'

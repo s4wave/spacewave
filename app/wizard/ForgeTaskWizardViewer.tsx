@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react'
-import { LuListTodo } from 'react-icons/lu'
+import { LuListTodo } from '@s4wave/web/images/icons.js'
 
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { toast } from '@s4wave/web/ui/toaster.js'

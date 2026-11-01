@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { LuRadar } from 'react-icons/lu'
+import { LuRadar } from '@s4wave/web/images/icons.js'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { Root } from '@s4wave/sdk/root'
@@ -11,6 +11,79 @@ import {
   CacheSeedEntry,
   GetCacheSeedReasonsRequest,
 } from '@s4wave/core/provider/spacewave/cacheseed/cacheseed.pb.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  fonts as themeFonts,
+  colors as themeColors,
+  utilityState as themeUtilityState,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule4: { marginTop: themeLayout['--spacing'], opacity: 0.6 },
+  rule5: {
+    display: 'flex',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule6: {
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    overflow: 'auto',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule7: {
+    display: 'flex',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-border']} 40%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+  },
+  rule8: {
+    width: `calc(${themeLayout['--spacing']} * 28)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule9: {
+    width: `calc(${themeLayout['--spacing']} * 40)`,
+    color: themeColors['--color-accent'],
+  },
+  rule10: {
+    flex: 1,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+  },
+})
 
 // MAX_ENTRIES caps the UI scrollback so long-running sessions do not grow
 // unbounded. Matches the server-side default ring buffer capacity.
@@ -78,13 +151,13 @@ export function CacheSeedTab({ rootResource }: CacheSeedTabProps) {
 
   if (error) {
     return (
-      <div className="text-foreground-alt/60 p-3 text-xs">
-        <div className="flex items-center gap-2">
-          <LuRadar className="size-4" />
+      <div sx={stylexStyles.rule1}>
+        <div sx={stylexStyles.rule2}>
+          <LuRadar {...stylex.props(stylexStyles.rule3)} />
           <span>Cache-seed inspector unavailable.</span>
         </div>
-        <div className="mt-1 opacity-60">{error}</div>
-        <div className="mt-1 opacity-60">
+        <div sx={stylexStyles.rule4}>{error}</div>
+        <div sx={stylexStyles.rule4}>
           Rebuild the provider with the <code>alphadebug</code> build tag.
         </div>
       </div>
@@ -92,30 +165,21 @@ export function CacheSeedTab({ rootResource }: CacheSeedTabProps) {
   }
 
   if (entries.length === 0) {
-    return (
-      <div className="text-foreground-alt/50 flex flex-1 items-center justify-center p-4 text-xs">
-        Waiting for cache-seed entries…
-      </div>
-    )
+    return <div sx={stylexStyles.rule5}>Waiting for cache-seed entries…</div>
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-auto font-mono text-xs">
+    <div sx={stylexStyles.rule6}>
       {entries.map((entry) => (
         <div
           key={`${entry.timestampMs}-${entry.reason}-${entry.path}`}
-          className="border-border/40 flex gap-2 border-b px-2 py-1"
+          sx={stylexStyles.rule7}
         >
-          <span
-            suppressHydrationWarning
-            className="text-foreground-alt/60 w-28"
-          >
+          <span suppressHydrationWarning sx={stylexStyles.rule8}>
             {formatCacheSeedTime(entry.timestampMs)}
           </span>
-          <span className="text-accent w-40">
-            {entry.reason || '(untagged)'}
-          </span>
-          <span className="flex-1 truncate">{entry.path}</span>
+          <span sx={stylexStyles.rule9}>{entry.reason || '(untagged)'}</span>
+          <span sx={stylexStyles.rule10}>{entry.path}</span>
         </div>
       ))}
     </div>

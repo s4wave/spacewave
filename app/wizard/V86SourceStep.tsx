@@ -1,4 +1,9 @@
-import { LuCloud, LuHardDrive, LuMonitor, LuRefreshCcw } from 'react-icons/lu'
+import {
+  LuCloud,
+  LuHardDrive,
+  LuMonitor,
+  LuRefreshCcw,
+} from '@s4wave/web/images/icons.js'
 
 import { Button } from '@s4wave/web/ui/button.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
@@ -11,6 +16,13 @@ import {
 import type { ExistingVm } from '../vm/v86-creation.js'
 import { formatV86ImageLabel, type V86ImageEntry } from '../vm/v86-images.js'
 import { V86ImageRow } from './V86ImageRow.js'
+
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: { marginTop: `calc(${themeLayout['--spacing']} * 3)` },
+})
 
 // V86SourceStepProps describes the images a new VM can boot.
 export interface V86SourceStepProps {
@@ -102,7 +114,7 @@ export function V86SourceStep({
             variant="brandOutline"
             size="toolbarWide"
             onClick={onOpenCatalog}
-            className="mt-3"
+            sx={stylexStyles.rule1}
           >
             Browse image catalog
           </Button>

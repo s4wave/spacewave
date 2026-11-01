@@ -18,7 +18,7 @@ import {
   LuFile,
   LuFolder,
   LuFolderOpen,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import type { NotebookSource } from '../proto/notebook.pb.js'
 import { isNoteFileName, stripNoteFileExtension } from '../note-files.js'

@@ -15,7 +15,7 @@ import {
   LuNotebookPen,
   LuPenLine,
   LuUser,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 import { isExperimentalCreatorVisible } from '../creator-visibility.js'
 
 // QuickstartOption is a type that represents a quickstart option for an app with preset space contents

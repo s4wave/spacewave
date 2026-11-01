@@ -1,4 +1,4 @@
-import { LuMessageCircle } from 'react-icons/lu'
+import { LuMessageCircle } from '@s4wave/web/images/icons.js'
 import { useCallback, useEffect, useRef } from 'react'
 
 import type { ChatMessageInfo } from '@s4wave/sdk/chat/rpc/rpc.pb.js'

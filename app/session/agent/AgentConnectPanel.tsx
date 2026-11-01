@@ -6,7 +6,7 @@ import {
   LuCopy,
   LuRefreshCw,
   LuX,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { Session } from '@s4wave/sdk/session/session.js'

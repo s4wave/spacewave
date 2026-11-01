@@ -11,7 +11,7 @@ import {
   LuUsers,
   LuUserPlus,
   LuX,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 import { PiAppStoreLogoBold } from '@s4wave/web/ui/phosphor-icons.js'
 
 import { SpaceSoMeta } from '@s4wave/core/space/space.pb.js'

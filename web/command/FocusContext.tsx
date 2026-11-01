@@ -35,7 +35,12 @@ export function FocusContextProvider({
 
   return (
     <FocusContextStackContext.Provider value={stack}>
-      <div className={className} {...focusContextDomProps(focusContext)}>
+      <div
+        className={
+          /* TODO(stylex): dynamic class or forwarded className */ className
+        }
+        {...focusContextDomProps(focusContext)}
+      >
         {children ?? null}
       </div>
     </FocusContextStackContext.Provider>

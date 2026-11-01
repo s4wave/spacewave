@@ -1,4 +1,4 @@
-import { LuCloudDownload } from 'react-icons/lu'
+import { LuCloudDownload } from '@s4wave/web/images/icons.js'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'

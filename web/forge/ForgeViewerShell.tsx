@@ -1,6 +1,5 @@
 import { type ReactNode, useCallback, useMemo } from 'react'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import { useStateNamespace, useStateAtom } from '@s4wave/web/state/index.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import {
@@ -10,6 +9,201 @@ import {
 } from '@s4wave/web/ui/tooltip.js'
 
 import { StateBadge } from './StateBadge.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+  radii as themeRadii,
+  motion as themeMotion,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    flexShrink: 0,
+    flexDirection: { default: 'column', '@media (min-width: 40rem)': 'row' },
+    gap: {
+      default: `calc(${themeLayout['--spacing']} * 2)`,
+      '@media (min-width: 40rem)': 0,
+    },
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: {
+      default: `calc(${themeLayout['--spacing']} * 3)`,
+      '@media (min-width: 40rem)': `calc(${themeLayout['--spacing']} * 4)`,
+    },
+    paddingBlock: {
+      default: `calc(${themeLayout['--spacing']} * 2)`,
+      '@media (min-width: 40rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
+    alignItems: { default: null, '@media (min-width: 40rem)': 'center' },
+    justifyContent: {
+      default: null,
+      '@media (min-width: 40rem)': 'space-between',
+    },
+    height: {
+      default: null,
+      '@media (min-width: 40rem)': {
+        default: null,
+        '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 9)`,
+      },
+    },
+  },
+  rule2: {
+    display: 'flex',
+    minWidth: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule3: {
+    minWidth: 0,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+  },
+  rule4: {
+    display: 'flex',
+    width: { default: '100%', '@media (min-width: 40rem)': 'auto' },
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    marginLeft: {
+      default: null,
+      '@media (min-width: 40rem)': `calc(${themeLayout['--spacing']} * 3)`,
+    },
+    flexShrink: { default: null, '@media (min-width: 40rem)': 0 },
+  },
+  rule5: {
+    flex: { default: 1, '@media (min-width: 40rem)': 'none' },
+    justifyContent: 'center',
+  },
+  rule6: {
+    flexShrink: 0,
+    overflowX: 'auto',
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: {
+      default: `calc(${themeLayout['--spacing']} * 3)`,
+      '@media (min-width: 40rem)': `calc(${themeLayout['--spacing']} * 4)`,
+    },
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule7: {
+    marginInline: 'auto',
+    width: '100%',
+    maxWidth: 'var(--container-5xl)',
+  },
+  rule8: {
+    display: 'inline-flex',
+    minWidth: 'max-content',
+    gap: themeLayout['--spacing'],
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    padding: themeLayout['--spacing'],
+  },
+  rule9: {
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    paddingInline: {
+      default: `calc(${themeLayout['--spacing']} * 3)`,
+      '@media (min-width: 40rem)': `calc(${themeLayout['--spacing']} * 2.5)`,
+    },
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    paddingBlock: {
+      default: null,
+      '@media (min-width: 40rem)': themeLayout['--spacing'],
+    },
+  },
+  rule10: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    color: themeColors['--color-foreground'],
+  },
+  rule11: {
+    borderColor: '#0000',
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+  },
+  rule12: {
+    flex: 1,
+    overflow: 'auto',
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule13: {
+    display: 'flex',
+    minHeight: {
+      default: `calc(${themeLayout['--spacing']} * 14)`,
+      '@media (min-width: 40rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
+    flexShrink: 0,
+    flexWrap: { default: 'wrap', '@media (min-width: 40rem)': 'nowrap' },
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: {
+      default: `calc(${themeLayout['--spacing']} * 3)`,
+      '@media (min-width: 40rem)': `calc(${themeLayout['--spacing']} * 4)`,
+    },
+    paddingBlock: {
+      default: `calc(${themeLayout['--spacing']} * 2)`,
+      '@media (min-width: 40rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
+    height: {
+      default: null,
+      '@media (min-width: 40rem)': {
+        default: null,
+        '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 10)`,
+      },
+    },
+  },
+})
 
 /** ForgeViewerTab provides a named content panel within a Forge viewer. */
 export interface ForgeViewerTab {
@@ -77,13 +271,15 @@ export function ForgeViewerShell({
   return (
     <div
       data-testid="forge-viewer"
-      className="bg-background-primary flex h-full w-full flex-col overflow-hidden pointer-coarse:[&_button]:min-h-11 pointer-coarse:[&_button]:min-w-11"
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: pointer-coarse:[&_button]:min-h-11 */ 'bg-background-primary flex h-full w-full flex-col overflow-hidden pointer-coarse:[&_button]:min-h-11 pointer-coarse:[&_button]:min-w-11'
+      }
     >
       {/* Header */}
-      <div className="border-foreground/8 flex shrink-0 flex-col gap-2 border-b px-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-0 sm:px-4 sm:pointer-fine:h-9 sm:pointer-fine:py-0">
-        <div className="text-foreground flex min-w-0 items-center gap-2 text-sm font-semibold select-none">
+      <div sx={stylexStyles.rule1}>
+        <div sx={stylexStyles.rule2}>
           {icon}
-          <span className="min-w-0 truncate tracking-tight">{title}</span>
+          <span sx={stylexStyles.rule3}>{title}</span>
           {stateLabels && state !== undefined && (
             <StateBadge state={state} labels={stateLabels} />
           )}
@@ -91,14 +287,14 @@ export function ForgeViewerShell({
         {headerActions && headerActions.length > 0 && (
           <div
             data-testid="forge-viewer-header-actions"
-            className="flex w-full items-center gap-2 sm:ml-3 sm:w-auto sm:shrink-0"
+            sx={stylexStyles.rule4}
           >
             {headerActions.map((action) => (
               <Tooltip key={action.label}>
                 <TooltipTrigger asChild>
                   <DashboardButton
                     icon={action.icon}
-                    className="flex-1 justify-center sm:flex-none"
+                    sx={stylexStyles.rule5}
                     onClick={action.onClick}
                     disabled={action.disabled}
                     variant={
@@ -122,20 +318,20 @@ export function ForgeViewerShell({
 
       {/* Tab bar */}
       {tabs && tabs.length > 1 && (
-        <div className="border-foreground/8 shrink-0 overflow-x-auto border-b px-3 py-1.5 sm:px-4">
-          <div className="mx-auto w-full max-w-5xl">
-            <div className="bg-foreground/5 inline-flex min-w-max gap-1 rounded-md p-1">
+        <div sx={stylexStyles.rule6}>
+          <div sx={stylexStyles.rule7}>
+            <div sx={stylexStyles.rule8}>
               {tabs.map((tab) => (
                 <button
                   type="button"
                   key={tab.id}
                   onClick={() => onTabClick(tab.id)}
-                  className={cn(
-                    'rounded border px-3 text-xs font-medium transition-all duration-150 select-none sm:px-2.5 sm:py-1',
+                  sx={[
+                    stylexStyles.rule9,
                     resolvedTab?.id === tab.id
-                      ? 'border-brand/30 bg-brand/10 text-foreground'
-                      : 'text-foreground-alt/60 hover:text-foreground hover:bg-foreground/5 border-transparent',
-                  )}
+                      ? stylexStyles.rule10
+                      : stylexStyles.rule11,
+                  ]}
                 >
                   {tab.label}
                 </button>
@@ -146,18 +342,15 @@ export function ForgeViewerShell({
       )}
 
       {/* Content */}
-      <div className="flex-1 overflow-auto px-4 py-3">
-        <div className="mx-auto w-full max-w-5xl">
+      <div sx={stylexStyles.rule12}>
+        <div sx={stylexStyles.rule7}>
           {resolvedTab ? resolvedTab.content : children}
         </div>
       </div>
 
       {/* Action bar: reserved for actions on the current object/selection. */}
       {actions && actions.length > 0 && (
-        <div
-          data-testid="forge-viewer-action-bar"
-          className="border-foreground/8 flex min-h-14 shrink-0 flex-wrap items-center gap-2 border-t px-3 py-2 sm:flex-nowrap sm:px-4 sm:pointer-fine:h-10 sm:pointer-fine:min-h-0 sm:pointer-fine:py-0"
-        >
+        <div data-testid="forge-viewer-action-bar" sx={stylexStyles.rule13}>
           {actions.map((action) => (
             <Tooltip key={action.label}>
               <TooltipTrigger asChild>

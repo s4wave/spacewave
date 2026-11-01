@@ -1,5 +1,9 @@
 import { useCallback } from 'react'
-import { LuKeyRound, LuLockKeyhole, LuShieldCheck } from 'react-icons/lu'
+import {
+  LuKeyRound,
+  LuLockKeyhole,
+  LuShieldCheck,
+} from '@s4wave/web/images/icons.js'
 
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import { SecretHandle, SecretTypeID } from '@s4wave/sdk/secret/secret.js'

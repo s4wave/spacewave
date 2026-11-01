@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
 
 import { cn } from '@s4wave/web/style/utils.js'
-import { LuX } from 'react-icons/lu'
+import { LuX } from '@s4wave/web/images/icons.js'
 
 import { HeroCard } from './HeroCard.js'
 import { PostList } from './PostList.js'
@@ -50,12 +50,9 @@ export function BlogReadingView({
     return Array.from(tags).sort()
   }, [posts])
 
-  const handleSelectTag = useCallback(
-    (tag: string) => {
-      setTagFilter((prev) => (prev === tag ? null : tag))
-    },
-    [],
-  )
+  const handleSelectTag = useCallback((tag: string) => {
+    setTagFilter((prev) => (prev === tag ? null : tag))
+  }, [])
 
   const handleClearFilter = useCallback(() => {
     setTagFilter(null)
@@ -67,18 +64,17 @@ export function BlogReadingView({
 
   const selectedPublishedPost =
     selectedPost &&
-    publishedPosts.some((post) => post.name === selectedPost.name) ?
-      selectedPost
-    : null
+    publishedPosts.some((post) => post.name === selectedPost.name)
+      ? selectedPost
+      : null
 
   // Post view mode: show selected published post.
   if (selectedPublishedPost) {
     const idx = publishedPosts.findIndex(
       (p) => p.name === selectedPublishedPost.name,
     )
-    const prevPost = idx < publishedPosts.length - 1
-      ? publishedPosts[idx + 1]
-      : undefined
+    const prevPost =
+      idx < publishedPosts.length - 1 ? publishedPosts[idx + 1] : undefined
     const nextPost = idx > 0 ? publishedPosts[idx - 1] : undefined
 
     return (
@@ -107,7 +103,8 @@ export function BlogReadingView({
         {allTags.length > 0 && (
           <div className="mb-6 flex flex-wrap items-center gap-2">
             {allTags.map((tag) => (
-              <button type="button"
+              <button
+                type="button"
                 key={tag}
                 onClick={() => handleSelectTag(tag)}
                 className={cn(
@@ -121,7 +118,8 @@ export function BlogReadingView({
               </button>
             ))}
             {tagFilter && (
-              <button type="button"
+              <button
+                type="button"
                 onClick={handleClearFilter}
                 className="text-foreground-alt/50 hover:text-foreground flex items-center gap-1 text-xs transition-colors"
               >
@@ -132,11 +130,12 @@ export function BlogReadingView({
           </div>
         )}
 
-        {publishedPosts.length === 0 ?
+        {publishedPosts.length === 0 ? (
           <div className="text-foreground-alt/50 flex items-center justify-center py-20 text-sm">
             {tagFilter ? 'No posts match this tag' : 'No published posts yet'}
           </div>
-        : <>
+        ) : (
+          <>
             {/* Hero card for latest post */}
             {heroPost && (
               <div className="mb-8">
@@ -151,13 +150,10 @@ export function BlogReadingView({
 
             {/* Remaining posts */}
             {remainingPosts.length > 0 && (
-              <PostList
-                posts={remainingPosts}
-                onSelectPost={onSelectPost}
-              />
+              <PostList posts={remainingPosts} onSelectPost={onSelectPost} />
             )}
           </>
-        }
+        )}
       </div>
     </div>
   )

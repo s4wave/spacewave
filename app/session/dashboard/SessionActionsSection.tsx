@@ -7,7 +7,7 @@ import {
   LuMerge,
   LuTerminal,
   LuTrash2,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import type { Session } from '@s4wave/sdk/session/session.js'
 import { useInvokeCommand } from '@s4wave/web/command/index.js'

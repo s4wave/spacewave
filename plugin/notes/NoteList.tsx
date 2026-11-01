@@ -23,7 +23,7 @@ import {
   LuSearch,
   LuTrash2,
   LuX,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import {
   getFrontmatterTags,

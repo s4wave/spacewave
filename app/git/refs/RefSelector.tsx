@@ -1,4 +1,4 @@
-import { LuChevronDown, LuGitBranch, LuTag } from 'react-icons/lu'
+import { LuChevronDown, LuGitBranch, LuTag } from '@s4wave/web/images/icons.js'
 
 import type { ListRefsResponse } from '@s4wave/sdk/git/repo.pb.js'
 

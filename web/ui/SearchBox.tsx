@@ -1,6 +1,6 @@
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import { useState, useRef, useCallback, type KeyboardEvent } from 'react'
-import { LuSearch } from 'react-icons/lu'
+import { LuSearch } from '@s4wave/web/images/icons.js'
 
 import * as stylex from '@stylexjs/stylex'
 import {

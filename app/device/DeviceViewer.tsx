@@ -7,7 +7,7 @@ import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { useCallback } from 'react'
-import { LuTerminal } from 'react-icons/lu'
+import { LuTerminal } from '@s4wave/web/images/icons.js'
 
 import {
   DeviceCapabilityState,

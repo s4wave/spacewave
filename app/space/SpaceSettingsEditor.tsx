@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { LuKeyboard, LuPencil, LuSettings } from 'react-icons/lu'
+import { LuKeyboard, LuPencil, LuSettings } from '@s4wave/web/images/icons.js'
 
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'

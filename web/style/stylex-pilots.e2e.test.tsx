@@ -12,6 +12,10 @@ import { CopyableField } from '../ui/CopyableField.js'
 import { RadioOption } from '../ui/RadioOption.js'
 import { Window } from '../ui/Window.js'
 import { Input } from '../ui/input.js'
+import { Button } from '../ui/button.js'
+import { DashboardButton } from '../ui/DashboardButton.js'
+import { DropdownTriggerButton } from '../ui/DropdownTriggerButton.js'
+import { IconContext, LuPlus } from '../images/icons.js'
 import { PanelHeader, PanelHeaderButton } from '../ui/PanelHeader.js'
 import {
   Sheet,
@@ -33,6 +37,7 @@ const styles = stylex.create({
   headerOverride: { paddingBlock: 19, paddingInline: 19, borderRadius: 9 },
   firstRule: { color: 'rgb(17, 34, 51)' },
   secondRule: { color: 'rgb(68, 85, 102)' },
+  largeIcon: { width: 32, height: 32 },
 })
 
 // PilotJourney exercises shared composition together with real app and plugin consumers.
@@ -43,9 +48,32 @@ function PilotJourney() {
   const [sectionOpen, setSectionOpen] = useState(false)
   const [actions, setActions] = useState(0)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [buttonActions, setButtonActions] = useState(0)
 
   return (
     <main>
+      <IconContext.Provider value={{ color: 'rgb(17, 34, 51)' }}>
+        <Button
+          sx={styles.headerOverride}
+          onClick={() => setButtonActions((value) => value + 1)}
+        >
+          <LuPlus {...stylex.props(styles.largeIcon)} />
+          Native action
+        </Button>
+        <Button asChild>
+          <a href="#native-link">
+            <LuPlus />
+            Native link
+          </a>
+        </Button>
+        <DashboardButton icon={<LuPlus />}>
+          Native dashboard action
+        </DashboardButton>
+        <DropdownTriggerButton triggerStyle="ghost" icon={<LuPlus />}>
+          Native dropdown action
+        </DropdownTriggerButton>
+      </IconContext.Provider>
+      <output aria-label="Native button actions">{buttonActions}</output>
       <Input
         aria-label="Native input"
         variant="config"
@@ -119,14 +147,19 @@ function PilotJourney() {
 
 it('composes shared, app and plugin styles through the browser build', async () => {
   // Render production components through Vitest's normal React and native Vite CSS pipeline.
+  const previousAct = Reflect.get(globalThis, 'IS_REACT_ACT_ENVIRONMENT')
+  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
   const host = document.createElement('div')
   document.body.appendChild(host)
   const root = createRoot(host)
   onTestFinished(() => {
+    Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
     act(() => root.unmount())
     host.remove()
+    Reflect.set(globalThis, 'IS_REACT_ACT_ENVIRONMENT', previousAct)
   })
   await act(() => root.render(<PilotJourney />))
+  Reflect.set(globalThis, 'IS_REACT_ACT_ENVIRONMENT', previousAct)
 
   // Observe the app and plugin content after the production React mount.
   await expect
@@ -140,7 +173,11 @@ it('composes shared, app and plugin styles through the browser build', async () 
   // A plugin interaction retains the same shared card and its caller's final override.
   await page.getByRole('button', { name: 'native-css', exact: true }).click()
   await expect
-    .poll(() => document.querySelector('output')?.textContent)
+    .poll(
+      () =>
+        document.querySelector('output[aria-label="Selected tag"]')
+          ?.textContent,
+    )
     .toBe('native-css')
   expect(document.querySelector('main > div')).toBe(card)
   expect(getComputedStyle(card).padding).toBe('19px')
@@ -282,4 +319,36 @@ it('composes shared, app and plugin styles through the browser build', async () 
       page.getByRole('textbox', { name: 'Disabled native input', exact: true }),
     )
     .toBeDisabled()
+
+  // Shared icons retain inherited color and the button's descendant dimensions.
+  const action = page.getByRole('button', {
+    name: 'Native action',
+    exact: true,
+  })
+  await action.click()
+  await expect
+    .element(page.getByRole('status', { name: 'Native button actions' }))
+    .toHaveTextContent('1')
+  expect(getComputedStyle(action.element()).padding).toBe('19px')
+
+  // Every compact control applies its icon dimensions at the SVG owner.
+  for (const name of [
+    'Native action',
+    'Native dashboard action',
+    'Native dropdown action',
+  ]) {
+    const icon = page
+      .getByRole('button', { name, exact: true })
+      .element()
+      .querySelector('svg')!
+    expect(getComputedStyle(icon).width).toBe('16px')
+    expect(getComputedStyle(icon).height).toBe('16px')
+    expect(getComputedStyle(icon).pointerEvents).toBe('none')
+    expect(getComputedStyle(icon).color).toBe('rgb(17, 34, 51)')
+  }
+
+  // Slot composition preserves the native link target.
+  await expect
+    .element(page.getByRole('link', { name: 'Native link', exact: true }))
+    .toHaveAttribute('href', '#native-link')
 })

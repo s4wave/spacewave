@@ -28,7 +28,7 @@ import {
   LuRotateCcw,
   LuShieldAlert,
   LuTriangleAlert,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import { ORG_ROLE_OWNER } from '@s4wave/app/org/org-constants.js'
 import { SpaceMountingScreen } from '@s4wave/app/space/SpaceMountingScreen.js'
@@ -339,7 +339,7 @@ function RemediationActionButton({
   disabled = false,
   active,
   variant,
-  className = '',
+  sx,
 }: {
   icon: ReactNode
   label: string
@@ -348,7 +348,7 @@ function RemediationActionButton({
   disabled?: boolean
   active?: boolean
   variant?: 'active' | 'destructive'
-  className?: string
+  sx?: stylex.StyleXStyles
 }) {
   const button = (
     <DashboardButton
@@ -356,7 +356,7 @@ function RemediationActionButton({
       onClick={onClick}
       disabled={disabled || !!disabledReason}
       variant={variant ?? (active ? 'active' : undefined)}
-      className={className}
+      sx={sx}
     >
       {label}
     </DashboardButton>

@@ -1,4 +1,4 @@
-import { LuCreditCard } from 'react-icons/lu'
+import { LuCreditCard } from '@s4wave/web/images/icons.js'
 
 import { useSessionNavigate } from '@s4wave/web/contexts/contexts.js'
 import { SpacewaveOrgListContext } from '@s4wave/web/contexts/SpacewaveOrgListContext.js'

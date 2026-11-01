@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { LuTable } from 'react-icons/lu'
+import { LuTable } from '@s4wave/web/images/icons.js'
 
 import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'

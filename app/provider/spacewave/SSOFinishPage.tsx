@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { LuCheck, LuCircleAlert } from 'react-icons/lu'
+import { LuCheck, LuCircleAlert } from '@s4wave/web/images/icons.js'
 
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'

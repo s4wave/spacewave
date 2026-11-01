@@ -1,6 +1,6 @@
 import * as React from 'react'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
-import { LuX } from 'react-icons/lu'
+import { LuX } from '@s4wave/web/images/icons.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
 import { useAppEnvironment } from '@s4wave/web/sdk/app/environment.js'

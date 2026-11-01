@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
-import { LuCheck, LuCircleAlert } from 'react-icons/lu'
-import { FcGoogle } from 'react-icons/fc'
-import { LuGithub } from 'react-icons/lu'
+import { LuCheck, LuCircleAlert } from '@s4wave/web/images/icons.js'
+import { FcGoogle } from '@s4wave/web/images/icons.js'
+import { LuGithub } from '@s4wave/web/images/icons.js'
 
 import { AuthScreenLayout } from '@s4wave/app/auth/AuthScreenLayout.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LuPlus, LuShieldAlert } from 'react-icons/lu'
+import { LuPlus, LuShieldAlert } from '@s4wave/web/images/icons.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
 

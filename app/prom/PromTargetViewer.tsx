@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useReducer } from 'react'
-import { LuActivity } from 'react-icons/lu'
+import { LuActivity } from '@s4wave/web/images/icons.js'
 
 import { isDesktop } from '@aptre/bldr'
 import {

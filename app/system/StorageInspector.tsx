@@ -1,4 +1,4 @@
-import { LuSettings, LuShieldCheck } from 'react-icons/lu'
+import { LuSettings, LuShieldCheck } from '@s4wave/web/images/icons.js'
 
 import type { StorageHealthView } from '@s4wave/app/session/storage/useStorageHealth.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'

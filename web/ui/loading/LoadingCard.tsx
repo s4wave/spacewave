@@ -1,5 +1,9 @@
 import type { StyleXStyles } from '@stylexjs/stylex'
-import { LuCircleAlert, LuCircleCheck, LuCloud } from 'react-icons/lu'
+import {
+  LuCircleAlert,
+  LuCircleCheck,
+  LuCloud,
+} from '@s4wave/web/images/icons.js'
 
 import { ProgressBar } from './ProgressBar.js'
 import { Spinner } from './Spinner.js'

@@ -1,4 +1,4 @@
-import { LuExternalLink, LuTableProperties } from 'react-icons/lu'
+import { LuExternalLink, LuTableProperties } from '@s4wave/web/images/icons.js'
 
 import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'

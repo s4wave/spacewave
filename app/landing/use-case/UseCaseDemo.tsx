@@ -7,7 +7,7 @@ import {
   type ComponentType,
   type ReactNode,
 } from 'react'
-import { LuPlay, LuRotateCcw, LuX } from 'react-icons/lu'
+import { LuPlay, LuRotateCcw, LuX } from '@s4wave/web/images/icons.js'
 
 import { useAppHref } from '@s4wave/app/prerender/StaticContext.js'
 import { LoadingScreen } from '@s4wave/web/ui/loading/LoadingScreen.js'

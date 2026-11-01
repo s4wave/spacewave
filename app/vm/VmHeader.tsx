@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { LuSquare } from 'react-icons/lu'
+import { LuSquare } from '@s4wave/web/images/icons.js'
 
 import { Button } from '@s4wave/web/ui/button.js'
 import type { VmState } from '@s4wave/sdk/vm/v86.pb.js'

@@ -9,7 +9,7 @@ import {
   LuTriangleAlert,
   LuUser,
   LuUserPlus,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 import { isDesktop } from '@aptre/bldr'
 
 import { useAddSpaceRootAlias } from '@s4wave/app/hooks/useAddSpaceRootAlias.js'

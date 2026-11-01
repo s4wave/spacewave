@@ -16,7 +16,7 @@ import {
   type TabSetNode,
 } from '@aptre/flex-layout'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
-import { LuCircleX, LuCopy, LuPencil, LuX } from 'react-icons/lu'
+import { LuCircleX, LuCopy, LuPencil, LuX } from '@s4wave/web/images/icons.js'
 
 import { ILocalState, cloneLocalState } from '@s4wave/sdk/layout/layout.js'
 import { LayoutHostHandle } from '@s4wave/sdk/layout/layout-host.js'
@@ -41,6 +41,45 @@ import { TabContentContainer } from './TabContent.js'
 import { buildObjectLayoutExternalDrag } from './layout-object-app-drag.js'
 
 import * as stylex from '@stylexjs/stylex'
+
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: { textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 2.5)`,
+    height: `calc(${themeLayout['--spacing']} * 2.5)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule4: {
+    display: 'flex',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule5: {
+    display: 'flex',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: themeColors['--color-muted-foreground'],
+  },
+  rule6: {
+    position: 'relative',
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flex: 1,
+    flexDirection: 'column',
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: { width: '100%', maxWidth: 'var(--container-sm)' },
@@ -94,7 +133,7 @@ function ObjectLayoutTabLabel({
 
   return (
     <span
-      className="truncate"
+      sx={stylexStyles2.rule1}
       onDoubleClick={(event) => {
         event.preventDefault()
         event.stopPropagation()
@@ -218,7 +257,9 @@ function useObjectLayoutController({
         <button
           key="object-layout-close-tab"
           type="button"
-          className="flexlayout__tab_button_trailing"
+          className={
+            /* TODO(stylex): global or unknown class: flexlayout__tab_button_trailing */ 'flexlayout__tab_button_trailing'
+          }
           title="Close"
           aria-label={`Close ${node.getName()}`}
           disabled={!canCloseTabs}
@@ -233,7 +274,7 @@ function useObjectLayoutController({
             model.doAction(Actions.deleteTab(tabId))
           }}
         >
-          <LuX className="size-2.5" />
+          <LuX {...stylex.props(stylexStyles2.rule2)} />
         </button>,
       )
     },
@@ -341,27 +382,27 @@ function useObjectLayoutController({
       {
         id: 'rename-tab',
         label: 'Rename Tab',
-        icon: <LuPencil className="size-4" />,
+        icon: <LuPencil {...stylex.props(stylexStyles2.rule3)} />,
         onSelect: setRenamingTabId,
       },
       {
         id: 'duplicate-tab',
         label: 'Duplicate Tab',
-        icon: <LuCopy className="size-4" />,
+        icon: <LuCopy {...stylex.props(stylexStyles2.rule3)} />,
         onSelect: handleDuplicateTab,
       },
       { id: 'close-separator', type: 'separator' },
       {
         id: 'close-other-tabs',
         label: 'Close Other Tabs',
-        icon: <LuCircleX className="size-4" />,
+        icon: <LuCircleX {...stylex.props(stylexStyles2.rule3)} />,
         disabled: !canCloseContextTabs,
         onSelect: handleCloseOtherTabs,
       },
       {
         id: 'close-tab',
         label: 'Close Tab',
-        icon: <LuX className="size-4" />,
+        icon: <LuX {...stylex.props(stylexStyles2.rule3)} />,
         disabled: !canCloseContextTabs,
         variant: 'destructive',
         onSelect: handleCloseTab,
@@ -378,7 +419,7 @@ function useObjectLayoutController({
   // Keep the layout library's close icon stable between renders.
   const icons = useMemo(
     () => ({
-      close: <LuX className="size-2.5" />,
+      close: <LuX {...stylex.props(stylexStyles2.rule2)} />,
     }),
     [],
   )
@@ -433,7 +474,7 @@ export function LayoutObjectViewer({
 
   if (layoutHost === null) {
     return (
-      <div className="flex h-full items-center justify-center p-4">
+      <div sx={stylexStyles2.rule4}>
         <LoadingCard
           view={{ state: 'loading', title: 'Loading layout' }}
           sx={stylexStyles.rule1}
@@ -443,16 +484,16 @@ export function LayoutObjectViewer({
   }
 
   if (layoutHost === undefined) {
-    return (
-      <div className="text-muted-foreground flex h-full items-center justify-center">
-        Failed to load layout
-      </div>
-    )
+    return <div sx={stylexStyles2.rule5}>Failed to load layout</div>
   }
 
   return (
-    <div className="space-flexlayout bg-foreground/6 relative flex h-full w-full flex-col gap-1 overflow-hidden text-xs">
-      <div className="relative flex h-full w-full flex-1 flex-col">
+    <div
+      className={
+        /* TODO(stylex): global or unknown class: space-flexlayout */ 'space-flexlayout bg-foreground/6 relative flex h-full w-full flex-col gap-1 overflow-hidden text-xs'
+      }
+    >
+      <div sx={stylexStyles2.rule6}>
         <DocumentTitleFocusContext.Provider value={focusedTabId}>
           <BaseLayout
             layoutHost={layoutHost}

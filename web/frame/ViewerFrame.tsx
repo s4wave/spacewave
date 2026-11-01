@@ -33,6 +33,29 @@ import {
   type IBottomBarItemProps,
 } from './bottom-bar-item.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: { paddingInline: `calc(${themeLayout['--spacing']} * 1.5)` },
+  rule2: { backgroundColor: themeColors['--color-bar-item-selected'] },
+  rule3: { maxWidth: `calc(${themeLayout['--spacing']} * 72)` },
+  rule4: { textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' },
+  rule5: {
+    maxWidth: `calc(${themeLayout['--spacing']} * 72)`,
+    minWidth: `calc(${themeLayout['--spacing']} * 44)`,
+  },
+  rule6: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule7: { minWidth: 0, flexShrink: 1 },
+  rule8: { display: 'contents' },
+})
+
 // ViewerFrameProps are properties for ViewerFrame.
 export interface ViewerFrameProps {
   right?: React.ReactNode
@@ -110,13 +133,20 @@ function CollapsedBottomBarItems({
       <DropdownMenuTrigger asChild>
         <BottomBarButton
           selected={selected}
-          className={cn('px-1.5', selected && 'bg-bar-item-selected')}
+          {...stylex.props([
+            stylexStyles.rule1,
+            !!selected && stylexStyles.rule2,
+          ])}
           aria-label="Open hidden bottom bar items"
         >
           ...
         </BottomBarButton>
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="top" align="start" className="max-w-72">
+      <DropdownMenuContent
+        side="top"
+        align="start"
+        {...stylex.props(stylexStyles.rule3)}
+      >
         {items.map((item) => {
           const itemSelected = openMenu === item.id
           const hasContextMenu = (item.contextMenuItems?.length ?? 0) > 0
@@ -157,7 +187,7 @@ function CollapsedBottomBarItems({
               }}
               variant={itemSelected ? 'selected' : 'default'}
             >
-              <span className="truncate">{item.menuLabel ?? item.id}</span>
+              <span sx={stylexStyles.rule4}>{item.menuLabel ?? item.id}</span>
             </DropdownMenuItem>
           )
         })}
@@ -195,7 +225,7 @@ function BottomBarContextMenu({
       <DropdownMenuContent
         side="top"
         align="center"
-        className="max-w-72 min-w-44"
+        {...stylex.props(stylexStyles.rule5)}
         aria-label={item?.contextMenuLabel ?? `${item?.id ?? ''} actions`}
         onCloseAutoFocus={(event) => {
           const trigger = returnFocusRef.current
@@ -283,8 +313,8 @@ function BottomBarContextMenuActionItem({
         })
       }}
     >
-      {Icon ? <Icon className="size-3.5" /> : null}
-      <span className="truncate">{action.label}</span>
+      {Icon ? <Icon {...stylex.props(stylexStyles.rule6)} /> : null}
+      <span sx={stylexStyles.rule4}>{action.label}</span>
       {action.shortcut ? (
         <DropdownMenuShortcut>{action.shortcut}</DropdownMenuShortcut>
       ) : null}
@@ -334,7 +364,7 @@ export function ViewerFrame(props: ViewerFrameProps) {
   // collapsed menu. That breadcrumb gives up label width before a control
   // inside it, such as the viewer selector, is cut off.
   const headCount = phoneShell ? 0 : 1
-  const lastClassName = phoneShell ? 'min-w-0 shrink' : undefined
+
   const left =
     leftItems.length > (phoneShell ? 1 : 3) ? (
       (() => {
@@ -375,7 +405,7 @@ export function ViewerFrame(props: ViewerFrameProps) {
               setOpenMenu={setOpenMenu}
               openContextMenu={openContextMenu}
               contextMenuOpen={contextMenuState?.itemId === last.id}
-              className={lastClassName}
+              {...stylex.props(phoneShell ? stylexStyles.rule7 : undefined)}
             />
           </>
         )
@@ -396,9 +426,13 @@ export function ViewerFrame(props: ViewerFrameProps) {
                 setOpenMenu={setOpenMenu}
                 openContextMenu={openContextMenu}
                 contextMenuOpen={contextMenuState?.itemId === item.id}
-                className={
-                  index === leftItems.length - 1 ? lastClassName : undefined
-                }
+                {...stylex.props(
+                  index === leftItems.length - 1
+                    ? phoneShell
+                      ? stylexStyles.rule7
+                      : undefined
+                    : undefined,
+                )}
               />
             </React.Fragment>
           )
@@ -428,7 +462,7 @@ export function ViewerFrame(props: ViewerFrameProps) {
   const activeItem = items.find((item) => item.id === openMenu)
   // The open item's level portals its overlay into this host element.
   const activeOverlay = activeItem?.hasOverlay ? (
-    <div ref={overlayHostRef} className="contents" />
+    <div ref={overlayHostRef} sx={stylexStyles.rule8} />
   ) : undefined
   const contextMenuItem = contextMenuState
     ? items.find((item) => item.id === contextMenuState.itemId)
@@ -437,7 +471,9 @@ export function ViewerFrame(props: ViewerFrameProps) {
   return (
     <>
       <Frame
-        className={props.className}
+        className={
+          /* TODO(stylex): dynamic class or forwarded className */ props.className
+        }
         bottomBar={{
           className: 'viewer-bottom-bar px-1',
           left,

@@ -1,5 +1,5 @@
 import type { StyleXStyles } from '@stylexjs/stylex'
-import { LuCheck, LuKeyRound, LuShield } from 'react-icons/lu'
+import { LuCheck, LuKeyRound, LuShield } from '@s4wave/web/images/icons.js'
 
 import { ProgressBar } from '@s4wave/web/ui/loading/ProgressBar.js'
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'

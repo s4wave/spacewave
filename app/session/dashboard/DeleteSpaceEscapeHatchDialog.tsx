@@ -5,7 +5,7 @@ import {
   LuCircleCheck,
   LuShieldAlert,
   LuTriangleAlert,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 import { useWatchStateRpc } from '@aptre/bldr-react'
 
 import type { Session } from '@s4wave/sdk/session/session.js'

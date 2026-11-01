@@ -1,6 +1,6 @@
 import Markdown from 'markdown-to-jsx'
 import type { AnchorHTMLAttributes } from 'react'
-import { LuGithub } from 'react-icons/lu'
+import { LuGithub } from '@s4wave/web/images/icons.js'
 
 import { Badge } from '@s4wave/web/ui/badge.js'
 import { cn } from '@s4wave/web/style/utils.js'

@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { LuCircleAlert } from 'react-icons/lu'
+import { LuCircleAlert } from '@s4wave/web/images/icons.js'
 
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { BackButton } from '@s4wave/web/ui/BackButton.js'

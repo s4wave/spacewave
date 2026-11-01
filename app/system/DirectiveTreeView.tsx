@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react'
-import { LuChevronRight, LuCornerLeftUp } from 'react-icons/lu'
+import { LuChevronRight, LuCornerLeftUp } from '@s4wave/web/images/icons.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
 

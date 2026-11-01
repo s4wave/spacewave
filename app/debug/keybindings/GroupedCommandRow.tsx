@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { LuTriangleAlert } from 'react-icons/lu'
+import { LuTriangleAlert } from '@s4wave/web/images/icons.js'
 
 import { Badge } from '@s4wave/web/ui/badge.js'
 

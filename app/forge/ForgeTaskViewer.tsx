@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { LuActivity, LuListTodo, LuPlay } from 'react-icons/lu'
+import { LuActivity, LuListTodo, LuPlay } from '@s4wave/web/images/icons.js'
 
 import {
   Task,

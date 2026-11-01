@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { LuLink, LuWifi } from 'react-icons/lu'
+import { LuLink, LuWifi } from '@s4wave/web/images/icons.js'
 import QRCode from 'qrcode'
 
 import { cn } from '@s4wave/web/style/utils.js'

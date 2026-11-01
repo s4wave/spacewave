@@ -9,10 +9,681 @@ import {
   LuPlay,
   LuRotateCw,
   LuTriangleAlert,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { cn } from '@s4wave/web/style/utils.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  colors as themeColors,
+  layout as themeLayout,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+  fonts as themeFonts,
+  radii as themeRadii,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    overflow: 'auto',
+    backgroundColor: themeColors['--color-background'],
+  },
+  rule2: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule3: {
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule5: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule6: {
+    flex: 1,
+    overflow: 'auto',
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule7: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule8: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+  },
+  rule9: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule10: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule11: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule12: {
+    display: 'flex',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule13: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-wide)',
+    letterSpacing: 'var(--tracking-wide)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule14: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule15: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 40%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule16: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule17: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule18: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    borderRadius: '.25rem',
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-white'],
+  },
+  rule19: { backgroundColor: themeColors['--color-green-600'] },
+  rule20: { backgroundColor: themeColors['--color-blue-600'] },
+  rule21: { backgroundColor: themeColors['--color-red-600'] },
+  rule22: { backgroundColor: themeColors['--color-neutral-600'] },
+  rule23: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: '.6rem',
+    lineHeight: 1.5,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-widest)',
+    letterSpacing: 'var(--tracking-widest)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+    textTransform: 'uppercase',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule24: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 20%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule25: { minWidth: 0 },
+  rule26: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule27: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule28: {
+    display: 'flex',
+    minWidth: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2.5)`,
+  },
+  rule29: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule30: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule31: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2.5)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+  },
+  rule32: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule33: {
+    minWidth: 0,
+    flex: 1,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule34: {
+    display: { default: 'none', '@media (min-width: 40rem)': 'block' },
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule35: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule36: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule37: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    gap: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule38: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 3)`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule39: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule40: {
+    fontSize: 'var(--text-2xl)',
+    lineHeight: 'var(--tw-leading, var(--text-2xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule41: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule42: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-wider)',
+    letterSpacing: 'var(--tracking-wider)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+    textTransform: 'uppercase',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule43: {
+    fontSize: 'var(--text-2xl)',
+    lineHeight: 'var(--tw-leading, var(--text-2xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+  },
+  rule44: {
+    width: `calc(${themeLayout['--spacing']} * 4.5)`,
+    height: `calc(${themeLayout['--spacing']} * 4.5)`,
+    color: themeColors['--color-brand'],
+  },
+  rule45: { minWidth: 0, flex: 1 },
+  rule46: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule47: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule48: {
+    paddingBlock: `calc(${themeLayout['--spacing']} * 4)`,
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-muted-foreground'],
+  },
+  rule49: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    padding: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule50: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+  },
+  rule51: {
+    marginInline: `calc(${themeLayout['--spacing']} * -3)`,
+    marginTop: `calc(${themeLayout['--spacing']} * -3)`,
+    marginBottom: 0,
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    alignItems: 'flex-end',
+    gap: 0,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule52: {
+    position: 'relative',
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingTop: themeLayout['--spacing'],
+    paddingBottom: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule53: { color: themeColors['--color-foreground'] },
+  rule54: {
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 50%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 70%, transparent)`,
+      },
+    },
+  },
+  rule55: {
+    position: 'absolute',
+    right: themeLayout['--spacing'],
+    bottom: 0,
+    left: themeLayout['--spacing'],
+    height: `calc(${themeLayout['--spacing']} * .5)`,
+    borderTopLeftRadius: '.25rem',
+    borderTopRightRadius: '.25rem',
+    backgroundColor: themeColors['--color-foreground'],
+  },
+  rule56: {
+    marginInline: `calc(${themeLayout['--spacing']} * -3)`,
+    marginTop: `calc(${themeLayout['--spacing']} * -3)`,
+    marginBottom: 0,
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    alignItems: 'flex-end',
+    gap: themeLayout['--spacing'],
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule57: {
+    position: 'relative',
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingTop: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule58: {
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 80%, transparent)`,
+      },
+    },
+  },
+  rule59: {
+    position: 'absolute',
+    right: `calc(${themeLayout['--spacing']} * 2)`,
+    bottom: 0,
+    left: `calc(${themeLayout['--spacing']} * 2)`,
+    height: `calc(${themeLayout['--spacing']} * .5)`,
+    borderTopLeftRadius: '.25rem',
+    borderTopRightRadius: '.25rem',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 80%, transparent)`,
+  },
+  rule60: {
+    display: 'inline-flex',
+    gap: themeLayout['--spacing'],
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    padding: themeLayout['--spacing'],
+  },
+  rule61: {
+    borderRadius: '.25rem',
+    paddingInline: `calc(${themeLayout['--spacing']} * 2.5)`,
+    paddingBlock: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule62: {
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    color: themeColors['--color-foreground'],
+  },
+  rule63: {
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: '#0000',
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 90%, transparent)`,
+      },
+    },
+  },
+  rule64: {
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+  },
+  rule65: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule66: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule67: {
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+  },
+  rule68: {
+    fontSize: '.6rem',
+    lineHeight: 1.5,
+    '--tw-tracking': 'var(--tracking-widest)',
+    letterSpacing: 'var(--tracking-widest)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    textTransform: 'uppercase',
+  },
+  rule69: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    alignItems: 'flex-end',
+    gap: themeLayout['--spacing'],
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule70: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule71: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule72: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 40%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule73: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 6)`,
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '.25rem',
+  },
+  rule74: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-emerald-400']} 10%, transparent)`,
+  },
+  rule75: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+  },
+  rule76: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-blue-400']} 10%, transparent)`,
+  },
+  rule77: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule78: { color: themeColors['--color-emerald-300'] },
+  rule79: { color: themeColors['--color-destructive'] },
+  rule80: { color: themeColors['--color-blue-300'] },
+  rule81: {
+    fontSize: '.55rem',
+    lineHeight: 1.5,
+    '--tw-tracking': 'var(--tracking-widest)',
+    letterSpacing: 'var(--tracking-widest)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    textTransform: 'uppercase',
+  },
+  rule82: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule83: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: '.25rem',
+    paddingInline: `calc(${themeLayout['--spacing']} * 2.5)`,
+    paddingBlock: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule84: {
+    color: themeColors['--color-destructive'],
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+      },
+    },
+  },
+  rule85: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground']} 80%, transparent)`,
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+  },
+})
 
 // ForgeViewerDebug renders prototype variants for the Forge ObjectViewer
 // surfaces (Task, Job, Pass, Worker, Cluster, Execution, Dashboard). Each
@@ -25,23 +696,25 @@ export function ForgeViewerDebug() {
   }, [navigate])
 
   return (
-    <div className="bg-background flex h-full w-full flex-col overflow-auto">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-4">
+    <div sx={stylexStyles.rule1}>
+      <div sx={stylexStyles.rule2}>
         <button
           type="button"
           onClick={goBack}
-          className="text-foreground-alt hover:text-foreground transition-colors"
+          sx={stylexStyles.rule3}
           aria-label="Back"
         >
-          <LuArrowLeft className="size-4" />
+          <LuArrowLeft {...stylex.props(stylexStyles.rule4)} />
         </button>
-        <span className="text-foreground text-sm font-semibold tracking-tight select-none">
-          Forge Viewer UI Prototype
-        </span>
+        <span sx={stylexStyles.rule5}>Forge Viewer UI Prototype</span>
       </div>
 
-      <div className="flex-1 overflow-auto px-4 py-3">
-        <div className="mx-auto max-w-3xl space-y-6">
+      <div sx={stylexStyles.rule6}>
+        <div
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-6 */ 'mx-auto max-w-3xl space-y-6'
+          }
+        >
           <Intro />
           <StateBadgeSection />
           <EntityRowSection />
@@ -61,20 +734,20 @@ export function ForgeViewerDebug() {
 
 function Intro() {
   return (
-    <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-      <p className="text-foreground text-sm font-semibold tracking-tight">
-        Forge ObjectViewer variant gallery
-      </p>
-      <p className="text-foreground-alt/70 mt-1 text-xs leading-relaxed">
+    <div sx={stylexStyles.rule7}>
+      <p sx={stylexStyles.rule8}>Forge ObjectViewer variant gallery</p>
+      <p sx={stylexStyles.rule9}>
         Side-by-side variants for the primitives that compose every Forge viewer
         (Task, Job, Pass, Worker, Cluster, Execution, Dashboard). Each section
         shows the historical production rendering, then candidate variants drawn
         from the modern token set in guides/alpha-ui-design-system.org.
       </p>
-      <p className="text-foreground-alt/70 mt-2 text-xs leading-relaxed">
-        Decisions live in production code:
-      </p>
-      <ul className="text-foreground-alt/70 mt-1 list-disc space-y-0.5 pl-5 text-xs leading-relaxed">
+      <p sx={stylexStyles.rule10}>Decisions live in production code:</p>
+      <ul
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-0.5 */ 'text-foreground-alt/70 mt-1 list-disc space-y-0.5 pl-5 text-xs leading-relaxed'
+        }
+      >
         <li>
           State badge: B (tinted pill) is default, C (dot + label) is the list
           variant via prop.
@@ -102,12 +775,14 @@ interface SectionProps {
 
 function Section({ title, description, children }: SectionProps) {
   return (
-    <section className="space-y-3">
+    <section
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
+      }
+    >
       <div>
-        <h2 className="text-foreground text-sm font-semibold tracking-tight select-none">
-          {title}
-        </h2>
-        <p className="text-foreground-alt/60 mt-0.5 text-xs">{description}</p>
+        <h2 sx={stylexStyles.rule5}>{title}</h2>
+        <p sx={stylexStyles.rule11}>{description}</p>
       </div>
       {children}
     </section>
@@ -122,16 +797,16 @@ interface VariantProps {
 
 function Variant({ label, note, children }: VariantProps) {
   return (
-    <div className="border-foreground/6 bg-background-card/30 space-y-2 rounded-lg border p-3.5">
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="text-foreground text-xs font-medium tracking-wide select-none">
-          {label}
-        </span>
-        {note && <span className="text-foreground-alt/50 text-xs">{note}</span>}
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'border-foreground/6 bg-background-card/30 space-y-2 rounded-lg border p-3.5'
+      }
+    >
+      <div sx={stylexStyles.rule12}>
+        <span sx={stylexStyles.rule13}>{label}</span>
+        {note && <span sx={stylexStyles.rule14}>{note}</span>}
       </div>
-      <div className="border-foreground/6 bg-background/40 rounded-md border p-3">
-        {children}
-      </div>
+      <div sx={stylexStyles.rule15}>{children}</div>
     </div>
   )
 }
@@ -165,7 +840,7 @@ function StateBadgeSection() {
         label="A. Current (web/forge/StateBadge.tsx)"
         note="bg-blue-600 / bg-green-600 / bg-red-600 + white text"
       >
-        <div className="flex flex-wrap gap-2">
+        <div sx={stylexStyles.rule16}>
           {STATES.map((s) => (
             <CurrentBadge key={s.label} {...s} />
           ))}
@@ -176,7 +851,7 @@ function StateBadgeSection() {
         label="B. Tinted opacity pill"
         note="border-{tone}/15 bg-{tone}/5 text-{tone}-tone, matches billing status pills"
       >
-        <div className="flex flex-wrap gap-2">
+        <div sx={stylexStyles.rule16}>
           {STATES.map((s) => (
             <TintedBadge key={s.label} {...s} />
           ))}
@@ -187,7 +862,7 @@ function StateBadgeSection() {
         label="C. Dot + label minimal"
         note="text-foreground-alt/70 with semantic dot, lowest visual weight"
       >
-        <div className="flex flex-wrap gap-3">
+        <div sx={stylexStyles.rule17}>
           {STATES.map((s) => (
             <DotBadge key={s.label} {...s} />
           ))}
@@ -198,20 +873,18 @@ function StateBadgeSection() {
 }
 
 function CurrentBadge({ label }: StateSpec) {
-  const color =
-    label === 'COMPLETE'
-      ? 'bg-green-600'
-      : label === 'RUNNING' || label === 'CHECKING'
-        ? 'bg-blue-600'
-        : label === 'RETRY'
-          ? 'bg-red-600'
-          : 'bg-neutral-600'
   return (
     <span
-      className={cn(
-        'inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium text-white',
-        color,
-      )}
+      sx={[
+        stylexStyles.rule18,
+        label === 'COMPLETE'
+          ? stylexStyles.rule19
+          : label === 'RUNNING' || label === 'CHECKING'
+            ? stylexStyles.rule20
+            : label === 'RETRY'
+              ? stylexStyles.rule21
+              : stylexStyles.rule22,
+      ]}
     >
       {label}
     </span>
@@ -229,10 +902,12 @@ const TONE_TINT: Record<StateTone, string> = {
 function TintedBadge({ label, tone }: StateSpec) {
   return (
     <span
-      className={cn(
-        'inline-flex items-center rounded-full border px-2 py-0.5 micro-text font-medium tracking-widest uppercase select-none',
-        TONE_TINT[tone],
-      )}
+      className={
+        /* TODO(stylex): dynamic class or forwarded className */ cn(
+          'inline-flex items-center rounded-full border px-2 py-0.5 micro-text font-medium tracking-widest uppercase select-none',
+          TONE_TINT[tone],
+        )
+      }
     >
       {label}
     </span>
@@ -249,8 +924,15 @@ const TONE_DOT: Record<StateTone, string> = {
 
 function DotBadge({ label, tone }: StateSpec) {
   return (
-    <span className="text-foreground-alt/70 micro-text inline-flex items-center gap-1.5 font-medium tracking-widest uppercase select-none">
-      <span className={cn('size-1.5 rounded-full', TONE_DOT[tone])} />
+    <span sx={stylexStyles.rule23}>
+      <span
+        className={
+          /* TODO(stylex): dynamic class or forwarded className */ cn(
+            'size-1.5 rounded-full',
+            TONE_DOT[tone],
+          )
+        }
+      />
       {label}
     </span>
   )
@@ -299,7 +981,11 @@ function EntityRowSection() {
         label="A. Current (border-foreground/6 bg-background-card/20 rounded px-3 py-2)"
         note="No hover state, tight radius"
       >
-        <div className="space-y-2">
+        <div
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
+          }
+        >
           {ROW_SAMPLES.map((s) => (
             <CurrentRow key={s.name} sample={s} />
           ))}
@@ -310,7 +996,11 @@ function EntityRowSection() {
         label="B. Glass card with hover (rounded-lg, /30 -> /50)"
         note="Matches InfoCard radius, design-system hover transitions"
       >
-        <div className="space-y-2">
+        <div
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
+          }
+        >
           {ROW_SAMPLES.map((s) => (
             <GlassRow key={s.name} sample={s} />
           ))}
@@ -321,7 +1011,11 @@ function EntityRowSection() {
         label="C. Compact dense single-line"
         note="One line, leading icon, brand divider, badge tail"
       >
-        <div className="border-foreground/6 bg-background-card/30 divide-foreground/6 divide-y rounded-lg border">
+        <div
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: divide-y */ 'border-foreground/6 bg-background-card/30 divide-foreground/6 divide-y rounded-lg border'
+          }
+        >
           {ROW_SAMPLES.map((s) => (
             <DenseRow key={s.name} sample={s} />
           ))}
@@ -333,14 +1027,10 @@ function EntityRowSection() {
 
 function CurrentRow({ sample }: { sample: RowSample }) {
   return (
-    <div className="border-foreground/6 bg-background-card/20 flex items-center justify-between rounded border px-3 py-2">
-      <div className="min-w-0">
-        <div className="text-foreground truncate text-sm font-medium">
-          {sample.name}
-        </div>
-        <div className="text-foreground-alt/50 truncate text-xs">
-          {sample.meta}
-        </div>
+    <div sx={stylexStyles.rule24}>
+      <div sx={stylexStyles.rule25}>
+        <div sx={stylexStyles.rule26}>{sample.name}</div>
+        <div sx={stylexStyles.rule27}>{sample.meta}</div>
       </div>
       <CurrentBadge {...sample.state} />
     </div>
@@ -349,18 +1039,22 @@ function CurrentRow({ sample }: { sample: RowSample }) {
 
 function GlassRow({ sample }: { sample: RowSample }) {
   return (
-    <div className="group border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 flex items-center justify-between gap-3 rounded-lg border px-3.5 py-2.5 transition duration-150">
-      <div className="flex min-w-0 items-center gap-2.5">
-        <span className="bg-foreground/5 group-hover:bg-foreground/8 flex size-7 shrink-0 items-center justify-center rounded-md transition-colors">
-          <LuListTodo className="text-foreground-alt/70 size-3.5" />
+    <div
+      className={
+        /* TODO(stylex): global or unknown class: group */ 'group border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 flex items-center justify-between gap-3 rounded-lg border px-3.5 py-2.5 transition duration-150'
+      }
+    >
+      <div sx={stylexStyles.rule28}>
+        <span
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: group-hover:bg-foreground/8 */ 'bg-foreground/5 group-hover:bg-foreground/8 flex size-7 shrink-0 items-center justify-center rounded-md transition-colors'
+          }
+        >
+          <LuListTodo {...stylex.props(stylexStyles.rule29)} />
         </span>
-        <div className="min-w-0">
-          <div className="text-foreground truncate text-xs font-medium">
-            {sample.name}
-          </div>
-          <div className="text-foreground-alt/50 truncate text-xs">
-            {sample.meta}
-          </div>
+        <div sx={stylexStyles.rule25}>
+          <div sx={stylexStyles.rule30}>{sample.name}</div>
+          <div sx={stylexStyles.rule27}>{sample.meta}</div>
         </div>
       </div>
       <TintedBadge {...sample.state} />
@@ -370,14 +1064,10 @@ function GlassRow({ sample }: { sample: RowSample }) {
 
 function DenseRow({ sample }: { sample: RowSample }) {
   return (
-    <div className="hover:bg-foreground/5 flex items-center gap-2.5 px-3 py-2 transition-colors">
-      <LuListTodo className="text-foreground-alt/50 size-3.5 shrink-0" />
-      <span className="text-foreground min-w-0 flex-1 truncate text-xs font-medium">
-        {sample.name}
-      </span>
-      <span className="text-foreground-alt/50 hidden truncate text-xs sm:block">
-        {sample.meta}
-      </span>
+    <div sx={stylexStyles.rule31}>
+      <LuListTodo {...stylex.props(stylexStyles.rule32)} />
+      <span sx={stylexStyles.rule33}>{sample.name}</span>
+      <span sx={stylexStyles.rule34}>{sample.meta}</span>
       <DotBadge {...sample.state} />
     </div>
   )
@@ -397,15 +1087,15 @@ function StatTileSection() {
         label="A. Current (InfoCard text-2xl)"
         note="As used in ForgeJobViewer / ForgeTaskViewer overview"
       >
-        <div className="grid grid-cols-2 gap-3">
+        <div sx={stylexStyles.rule35}>
           <CurrentStatCard
-            icon={<LuListTodo className="size-3.5" />}
+            icon={<LuListTodo {...stylex.props(stylexStyles.rule36)} />}
             title="Tasks"
             value="6/12"
             detail="50% complete"
           />
           <CurrentStatCard
-            icon={<LuPlay className="size-3.5" />}
+            icon={<LuPlay {...stylex.props(stylexStyles.rule36)} />}
             title="Passes"
             value="4"
             detail="Current nonce 4"
@@ -417,7 +1107,7 @@ function StatTileSection() {
         label="B. Compact stat group (billing-style)"
         note="Uppercase label, no card per metric"
       >
-        <div className="grid grid-cols-2 gap-6">
+        <div sx={stylexStyles.rule37}>
           <CompactStat label="Tasks" value="6/12" detail="50% complete" />
           <CompactStat label="Passes" value="4" detail="Current nonce 4" />
         </div>
@@ -427,7 +1117,7 @@ function StatTileSection() {
         label="C. Inline StatCard (session dashboard)"
         note="Brand icon box, tiny label, single-line value"
       >
-        <div className="grid grid-cols-2 gap-3">
+        <div sx={stylexStyles.rule35}>
           <InlineStat
             icon={LuListTodo}
             label="Tasks complete"
@@ -452,13 +1142,13 @@ function CurrentStatCard({
   detail: string
 }) {
   return (
-    <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-      <h3 className="text-foreground mb-3 flex items-center gap-2 text-sm select-none">
-        <span className="text-foreground-alt/70">{icon}</span>
+    <div sx={stylexStyles.rule7}>
+      <h3 sx={stylexStyles.rule38}>
+        <span sx={stylexStyles.rule39}>{icon}</span>
         {title}
       </h3>
-      <div className="text-foreground text-2xl font-semibold">{value}</div>
-      <div className="text-foreground-alt/50 mt-1 text-xs">{detail}</div>
+      <div sx={stylexStyles.rule40}>{value}</div>
+      <div sx={stylexStyles.rule41}>{detail}</div>
     </div>
   )
 }
@@ -473,14 +1163,14 @@ function CompactStat({
   detail: string
 }) {
   return (
-    <div className="space-y-1">
-      <div className="text-foreground-alt/60 text-xs font-medium tracking-wider uppercase select-none">
-        {label}
-      </div>
-      <div className="text-foreground text-2xl font-semibold tracking-tight">
-        {value}
-      </div>
-      <div className="text-foreground-alt/50 text-xs">{detail}</div>
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1 */ 'space-y-1'
+      }
+    >
+      <div sx={stylexStyles.rule42}>{label}</div>
+      <div sx={stylexStyles.rule43}>{value}</div>
+      <div sx={stylexStyles.rule14}>{detail}</div>
     </div>
   )
 }
@@ -495,15 +1185,21 @@ function InlineStat({
   value: string
 }) {
   return (
-    <div className="group border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/60 flex items-center gap-3 rounded-lg border p-3 transition duration-150">
-      <div className="bg-brand/10 group-hover:bg-brand/15 flex size-9 shrink-0 items-center justify-center rounded transition duration-150">
-        <Icon className="text-brand size-4.5" />
+    <div
+      className={
+        /* TODO(stylex): global or unknown class: group */ 'group border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/60 flex items-center gap-3 rounded-lg border p-3 transition duration-150'
+      }
+    >
+      <div
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: group-hover:bg-brand/15 */ 'bg-brand/10 group-hover:bg-brand/15 flex size-9 shrink-0 items-center justify-center rounded transition duration-150'
+        }
+      >
+        <Icon {...stylex.props(stylexStyles.rule44)} />
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-foreground-alt text-xs select-none">{label}</p>
-        <p className="text-foreground text-sm font-medium select-none">
-          {value}
-        </p>
+      <div sx={stylexStyles.rule45}>
+        <p sx={stylexStyles.rule46}>{label}</p>
+        <p sx={stylexStyles.rule47}>{value}</p>
       </div>
     </div>
   )
@@ -523,18 +1219,16 @@ function EmptyStateSection() {
         label="A. Current (text-muted-foreground py-4 text-center)"
         note="Centered, no icon, deprecated text-muted-foreground token"
       >
-        <div className="text-muted-foreground py-4 text-center text-xs">
-          No tasks in job
-        </div>
+        <div sx={stylexStyles.rule48}>No tasks in job</div>
       </Variant>
 
       <Variant
         label="B. Compact single-line (design-system)"
         note="Muted icon + text, text-foreground-alt/40"
       >
-        <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-          <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
-            <LuListTodo className="size-3.5 shrink-0" />
+        <div sx={stylexStyles.rule7}>
+          <div sx={stylexStyles.rule49}>
+            <LuListTodo {...stylex.props(stylexStyles.rule50)} />
             <span>No tasks linked to this job yet</span>
           </div>
         </div>
@@ -591,23 +1285,19 @@ function CurrentTabs({
   onSelect: (i: number) => void
 }) {
   return (
-    <div className="border-foreground/8 -mx-3 -mt-3 mb-0 flex h-8 items-end gap-0 border-b px-3">
+    <div sx={stylexStyles.rule51}>
       {TABS.map((label, i) => (
         <button
           key={label}
           type="button"
           onClick={() => onSelect(i)}
-          className={cn(
-            'relative px-3 pt-1 pb-1.5 text-xs font-medium transition-colors',
-            i === active
-              ? 'text-foreground'
-              : 'text-foreground/50 hover:text-foreground/70',
-          )}
+          sx={[
+            stylexStyles.rule52,
+            i === active ? stylexStyles.rule53 : stylexStyles.rule54,
+          ]}
         >
           {label}
-          {i === active && (
-            <span className="bg-foreground absolute right-1 bottom-0 left-1 h-0.5 rounded-t" />
-          )}
+          {i === active && <span sx={stylexStyles.rule55} />}
         </button>
       ))}
     </div>
@@ -622,23 +1312,19 @@ function BrandTabs({
   onSelect: (i: number) => void
 }) {
   return (
-    <div className="border-foreground/8 -mx-3 -mt-3 mb-0 flex h-9 items-end gap-1 border-b px-3">
+    <div sx={stylexStyles.rule56}>
       {TABS.map((label, i) => (
         <button
           key={label}
           type="button"
           onClick={() => onSelect(i)}
-          className={cn(
-            'relative px-3 pt-1.5 pb-2 text-xs font-medium tracking-tight transition-colors',
-            i === active
-              ? 'text-foreground'
-              : 'text-foreground-alt/50 hover:text-foreground-alt/80',
-          )}
+          sx={[
+            stylexStyles.rule57,
+            i === active ? stylexStyles.rule53 : stylexStyles.rule58,
+          ]}
         >
           {label}
-          {i === active && (
-            <span className="bg-brand/80 absolute right-2 bottom-0 left-2 h-0.5 rounded-t" />
-          )}
+          {i === active && <span sx={stylexStyles.rule59} />}
         </button>
       ))}
     </div>
@@ -653,18 +1339,16 @@ function PillTabs({
   onSelect: (i: number) => void
 }) {
   return (
-    <div className="bg-foreground/5 inline-flex gap-1 rounded-md p-1">
+    <div sx={stylexStyles.rule60}>
       {TABS.map((label, i) => (
         <button
           key={label}
           type="button"
           onClick={() => onSelect(i)}
-          className={cn(
-            'rounded px-2.5 py-1 text-xs font-medium transition-colors',
-            i === active
-              ? 'bg-brand/10 text-foreground border-brand/20 border'
-              : 'text-foreground-alt/60 hover:text-foreground-alt/90 border border-transparent',
-          )}
+          sx={[
+            stylexStyles.rule61,
+            i === active ? stylexStyles.rule62 : stylexStyles.rule63,
+          ]}
         >
           {label}
         </button>
@@ -684,43 +1368,41 @@ function ViewerShellSection() {
       title="Combined viewer mock"
       description="Full ForgeViewerShell layout using the candidate variants: brand underline tabs, tinted state badge, glass entity rows, compact empty state. Compare against ForgeJobViewer in repos/spacewave/app/forge/."
     >
-      <div className="border-foreground/6 bg-background-card/30 overflow-hidden rounded-lg border">
-        <div className="border-foreground/8 flex h-9 items-center justify-between border-b px-4">
-          <div className="text-foreground flex items-center gap-2 text-sm font-semibold select-none">
-            <LuBriefcase className="size-4" />
-            <span className="tracking-tight">Build pipeline</span>
+      <div sx={stylexStyles.rule64}>
+        <div sx={stylexStyles.rule65}>
+          <div sx={stylexStyles.rule66}>
+            <LuBriefcase {...stylex.props(stylexStyles.rule4)} />
+            <span sx={stylexStyles.rule67}>Build pipeline</span>
             <TintedBadge label="RUNNING" tone="active" />
           </div>
-          <div className="text-foreground-alt/50 micro-text tracking-widest uppercase">
-            Job
-          </div>
+          <div sx={stylexStyles.rule68}>Job</div>
         </div>
 
-        <div className="border-foreground/8 flex h-9 items-end gap-1 border-b px-3">
+        <div sx={stylexStyles.rule69}>
           {TABS.slice(0, 3).map((label, i) => (
             <button
               key={label}
               type="button"
               onClick={() => setTab(i)}
-              className={cn(
-                'relative px-3 pt-1.5 pb-2 text-xs font-medium tracking-tight transition-colors',
-                i === tab
-                  ? 'text-foreground'
-                  : 'text-foreground-alt/50 hover:text-foreground-alt/80',
-              )}
+              sx={[
+                stylexStyles.rule57,
+                i === tab ? stylexStyles.rule53 : stylexStyles.rule58,
+              ]}
             >
               {label}
-              {i === tab && (
-                <span className="bg-brand/80 absolute right-2 bottom-0 left-2 h-0.5 rounded-t" />
-              )}
+              {i === tab && <span sx={stylexStyles.rule59} />}
             </button>
           ))}
         </div>
 
-        <div className="space-y-3 px-4 py-3">
+        <div
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3 px-4 py-3'
+          }
+        >
           {tab === 0 && (
             <>
-              <div className="grid grid-cols-2 gap-3">
+              <div sx={stylexStyles.rule35}>
                 <InlineStat
                   icon={LuListTodo}
                   label="Tasks complete"
@@ -728,7 +1410,7 @@ function ViewerShellSection() {
                 />
                 <InlineStat icon={LuPlay} label="Passes" value="4" />
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div sx={stylexStyles.rule70}>
                 <MiniStat
                   icon={LuActivity}
                   label="Active"
@@ -751,26 +1433,33 @@ function ViewerShellSection() {
             </>
           )}
           {tab === 1 && (
-            <div className="space-y-2">
+            <div
+              className={
+                /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
+              }
+            >
               {ROW_SAMPLES.map((s) => (
                 <GlassRow key={s.name} sample={s} />
               ))}
             </div>
           )}
           {tab === 2 && (
-            <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-              <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
-                <LuPlay className="size-3.5 shrink-0" />
+            <div sx={stylexStyles.rule7}>
+              <div sx={stylexStyles.rule49}>
+                <LuPlay {...stylex.props(stylexStyles.rule50)} />
                 <span>No passes recorded yet</span>
               </div>
             </div>
           )}
         </div>
 
-        <div className="border-foreground/8 flex h-10 items-center gap-2 border-t px-4">
-          <ShellAction icon={<LuCpu className="size-3.5" />} label="Run" />
+        <div sx={stylexStyles.rule71}>
           <ShellAction
-            icon={<LuTriangleAlert className="size-3.5" />}
+            icon={<LuCpu {...stylex.props(stylexStyles.rule36)} />}
+            label="Run"
+          />
+          <ShellAction
+            icon={<LuTriangleAlert {...stylex.props(stylexStyles.rule36)} />}
             label="Cancel"
             variant="destructive"
           />
@@ -792,33 +1481,31 @@ function MiniStat({
   tone: StateTone
 }) {
   return (
-    <div className="border-foreground/6 bg-background/40 flex items-center gap-2 rounded-md border px-2.5 py-2">
+    <div sx={stylexStyles.rule72}>
       <span
-        className={cn(
-          'flex size-6 shrink-0 items-center justify-center rounded',
+        sx={[
+          stylexStyles.rule73,
           tone === 'success'
-            ? 'bg-emerald-400/10'
+            ? stylexStyles.rule74
             : tone === 'error'
-              ? 'bg-destructive/10'
-              : 'bg-blue-400/10',
-        )}
+              ? stylexStyles.rule75
+              : stylexStyles.rule76,
+        ]}
       >
         <Icon
-          className={cn(
-            'size-3',
+          {...stylex.props([
+            stylexStyles.rule77,
             tone === 'success'
-              ? 'text-emerald-300'
+              ? stylexStyles.rule78
               : tone === 'error'
-                ? 'text-destructive'
-                : 'text-blue-300',
-          )}
+                ? stylexStyles.rule79
+                : stylexStyles.rule80,
+          ])}
         />
       </span>
-      <div className="min-w-0">
-        <div className="text-foreground-alt/50 micro-fine tracking-widest uppercase">
-          {label}
-        </div>
-        <div className="text-foreground text-sm font-semibold">{value}</div>
+      <div sx={stylexStyles.rule25}>
+        <div sx={stylexStyles.rule81}>{label}</div>
+        <div sx={stylexStyles.rule82}>{value}</div>
       </div>
     </div>
   )
@@ -836,12 +1523,10 @@ function ShellAction({
   return (
     <button
       type="button"
-      className={cn(
-        'flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-colors',
-        variant === 'destructive'
-          ? 'text-destructive hover:bg-destructive/10'
-          : 'text-foreground/80 hover:bg-foreground/5',
-      )}
+      sx={[
+        stylexStyles.rule83,
+        variant === 'destructive' ? stylexStyles.rule84 : stylexStyles.rule85,
+      ]}
     >
       {icon}
       {label}

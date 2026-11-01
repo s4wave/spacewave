@@ -7,7 +7,9 @@ function Toaster({ ...props }: ToasterProps) {
   return (
     <Sonner
       theme="dark"
-      className={skin.toaster}
+      className={
+        /* TODO(stylex): dynamic class or forwarded className */ skin.toaster
+      }
       position="bottom-right"
       offset={{ bottom: 50, right: 12 }}
       mobileOffset={{ bottom: 50, right: 12 }}

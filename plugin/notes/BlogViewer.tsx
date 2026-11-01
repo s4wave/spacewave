@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 
-import { LuBookOpen, LuPenLine } from 'react-icons/lu'
+import { LuBookOpen, LuPenLine } from '@s4wave/web/images/icons.js'
 
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'

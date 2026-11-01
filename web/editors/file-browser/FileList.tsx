@@ -7,12 +7,12 @@ import {
   useCallback,
   useMemo,
 } from 'react'
-import { LuChevronDown, LuChevronUp } from 'react-icons/lu'
+import { LuChevronDown, LuChevronUp } from '@s4wave/web/images/icons.js'
 import {
   coarsePointerQuery,
   useMediaQuery,
 } from '@s4wave/web/hooks/useMediaQuery.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { useStateNamespace } from '@s4wave/web/state/persist.js'
 import {
   List,
@@ -29,6 +29,93 @@ import { FileEntry, GetFileEntryDetailsCallback } from './types.js'
 import { SortColumn, sortFileEntries } from './FileListState.js'
 import { FileListEntry } from './FileListEntry.js'
 import type { RenderEntryCallback } from './FileListEntry.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  layout as themeLayout,
+  fonts as themeFonts,
+} from '../../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    alignItems: 'center',
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: themeColors['--color-panel-header'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: {
+      default: `calc(${themeLayout['--spacing']} * 1.5)`,
+      '@media (pointer: coarse)': 0,
+    },
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule2: {
+    display: 'flex',
+    minWidth: `calc(${themeLayout['--spacing']} * 30)`,
+    flex: 1,
+    cursor: 'pointer',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    backgroundColor: '#0000',
+    padding: 0,
+    textAlign: 'left',
+    minHeight: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+  },
+  rule3: { color: themeColors['--color-foreground'] },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule5: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 35)`,
+    minWidth: `calc(${themeLayout['--spacing']} * 25)`,
+    flexShrink: 1,
+    cursor: 'pointer',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    backgroundColor: '#0000',
+    padding: 0,
+    textAlign: 'left',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    minHeight: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+  },
+  rule6: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 17.5)`,
+    minWidth: `calc(${themeLayout['--spacing']} * 12.5)`,
+    flexShrink: 1,
+    cursor: 'pointer',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: themeLayout['--spacing'],
+    backgroundColor: '#0000',
+    padding: 0,
+    textAlign: 'left',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    minHeight: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+  },
+  rule7: { width: `calc(${themeLayout['--spacing']} * 8)` },
+})
 
 export interface FileListDragEnvelopeContext {
   selectedIds: string[]
@@ -197,41 +284,38 @@ export function FileList({
     }
 
     return (
-      <div className="bg-panel-header text-foreground-alt border-foreground/8 flex items-center border-b px-3 py-1.5 text-xs select-none [@media(pointer:coarse)]:py-0">
+      <div sx={stylexStyles.rule1}>
         <button
           type="button"
-          className={cn(
-            'flex min-w-30 flex-1 cursor-pointer items-center gap-1 bg-transparent p-0 text-left [@media(pointer:coarse)]:min-h-11',
-            sortKey === 'name' && 'text-foreground',
-          )}
+          sx={[stylexStyles.rule2, sortKey === 'name' && stylexStyles.rule3]}
           onClick={() => handleSort('name')}
         >
           <span>Name</span>
-          {sortKey === 'name' && <SortChevron className="size-3" />}
+          {sortKey === 'name' && (
+            <SortChevron {...stylex.props(stylexStyles.rule4)} />
+          )}
         </button>
         <button
           type="button"
-          className={cn(
-            'flex w-35 min-w-25 shrink cursor-pointer items-center gap-1 bg-transparent p-0 text-left text-xs [@media(pointer:coarse)]:min-h-11',
-            sortKey === 'date' && 'text-foreground',
-          )}
+          sx={[stylexStyles.rule5, sortKey === 'date' && stylexStyles.rule3]}
           onClick={() => handleSort('date')}
         >
           <span>Date Modified</span>
-          {sortKey === 'date' && <SortChevron className="size-3" />}
+          {sortKey === 'date' && (
+            <SortChevron {...stylex.props(stylexStyles.rule4)} />
+          )}
         </button>
         <button
           type="button"
-          className={cn(
-            'flex w-17.5 min-w-12.5 shrink cursor-pointer items-center justify-end gap-1 bg-transparent p-0 text-left text-xs [@media(pointer:coarse)]:min-h-11',
-            sortKey === 'size' && 'text-foreground',
-          )}
+          sx={[stylexStyles.rule6, sortKey === 'size' && stylexStyles.rule3]}
           onClick={() => handleSort('size')}
         >
-          {sortKey === 'size' && <SortChevron className="size-3" />}
+          {sortKey === 'size' && (
+            <SortChevron {...stylex.props(stylexStyles.rule4)} />
+          )}
           <span>Size</span>
         </button>
-        <div className="w-8"></div>
+        <div sx={stylexStyles.rule7}></div>
       </div>
     )
   }, [])

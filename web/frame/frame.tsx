@@ -67,11 +67,13 @@ export function Frame(props: IFrameProps) {
     <div
       ref={groupRef}
       role="group"
-      className={cn(
-        'relative flex-1 overflow-hidden',
-        'flex flex-col flex-nowrap gap-0',
-        props.className,
-      )}
+      className={
+        /* TODO(stylex): dynamic class or forwarded className */ cn(
+          'relative flex-1 overflow-hidden',
+          'flex flex-col flex-nowrap gap-0',
+          props.className,
+        )
+      }
       style={props.style}
     >
       {topBar}
@@ -81,10 +83,12 @@ export function Frame(props: IFrameProps) {
           ref={overlayRef}
           open
           aria-label={props.overlayLabel ?? 'Overlay'}
-          className={cn(
-            'border-frame-overlay-border bg-frame-overlay relative m-0 flex max-h-none w-full max-w-none flex-1 overflow-hidden border-frame-overlay border-solid text-inherit break-words',
-            props.overlayClassName,
-          )}
+          className={
+            /* TODO(stylex): dynamic class or forwarded className */ cn(
+              'border-frame-overlay-border bg-frame-overlay relative m-0 flex max-h-none w-full max-w-none flex-1 overflow-hidden border-frame-overlay border-solid text-inherit break-words',
+              props.overlayClassName,
+            )
+          }
           tabIndex={-1}
         >
           {props.overlay}
@@ -92,11 +96,13 @@ export function Frame(props: IFrameProps) {
       ) : null}
 
       <div
-        className={cn(
-          'relative flex flex-1 overflow-hidden border-r-0 border-b-0 border-l-0',
-          hasOverlay && 'hidden',
-          props.innerClassName,
-        )}
+        className={
+          /* TODO(stylex): dynamic class or forwarded className */ cn(
+            'relative flex flex-1 overflow-hidden border-r-0 border-b-0 border-l-0',
+            hasOverlay && 'hidden',
+            props.innerClassName,
+          )
+        }
         aria-hidden={hasOverlay}
         hidden={hasOverlay}
       >

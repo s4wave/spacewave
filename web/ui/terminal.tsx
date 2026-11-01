@@ -1,6 +1,6 @@
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
-import { LuTerminal } from 'react-icons/lu'
+import { LuTerminal } from '@s4wave/web/images/icons.js'
 
 import { CodeBlock, CodeBlockContent } from '@s4wave/web/ui/code-block.js'
 import {

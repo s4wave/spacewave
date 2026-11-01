@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 
-import { LuDatabase } from 'react-icons/lu'
+import { LuDatabase } from '@s4wave/web/images/icons.js'
 
 import { CollapsibleSection } from '@s4wave/web/ui/CollapsibleSection.js'
 

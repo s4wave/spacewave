@@ -1,5 +1,10 @@
 import { useState } from 'react'
-import { LuKey, LuPlus, LuTrash2, LuDownload } from 'react-icons/lu'
+import {
+  LuKey,
+  LuPlus,
+  LuTrash2,
+  LuDownload,
+} from '@s4wave/web/images/icons.js'
 
 import { downloadPemFile } from '@s4wave/web/download.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'

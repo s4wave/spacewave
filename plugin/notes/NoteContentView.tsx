@@ -1,5 +1,5 @@
 import { Component, useMemo, type ErrorInfo, type ReactNode } from 'react'
-import { LuCode, LuPenLine } from 'react-icons/lu'
+import { LuCode, LuPenLine } from '@s4wave/web/images/icons.js'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'

@@ -2,6 +2,39 @@ import React, { CSSProperties } from 'react'
 
 import { cn } from '@s4wave/web/style/utils.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    minWidth: 0,
+    flexGrow: 1,
+    overflow: 'hidden',
+    textAlign: 'left',
+  },
+  rule2: { display: 'flex', flexShrink: 0, overflow: 'hidden' },
+  rule3: {
+    content: { default: null, ':after': '""' },
+    pointerEvents: { default: null, ':after': 'none' },
+    position: { default: null, ':after': 'absolute' },
+    top: { default: null, ':after': 0 },
+    left: { default: null, ':after': 0 },
+    height: {
+      default: null,
+      ':after': `calc(${themeLayout['--spacing']} * .25)`,
+    },
+    width: { default: null, ':after': '100%' },
+    backgroundColor: {
+      default: null,
+      ':after': themeColors['--color-bar-border-top'],
+    },
+  },
+})
+
 // IBarProps are properties for a horizontal frame bar.
 export interface IBarProps {
   // hidden hides the bar.
@@ -29,24 +62,22 @@ export function Bar({
   if (hidden) return null
   return (
     <div
-      className={cn(
-        'relative flex w-full flex-shrink-0 flex-row flex-nowrap gap-0',
-        'bg-bar overflow-hidden',
-        'text-center text-xs tabular-nums',
-        'no-underline outline-0',
-        'transition-colors duration-120',
-        'min-h-bar h-bar text-bar-font',
-        className,
-      )}
+      className={
+        /* TODO(stylex): dynamic class or forwarded className */ cn(
+          'relative flex w-full flex-shrink-0 flex-row flex-nowrap gap-0',
+          'bg-bar overflow-hidden',
+          'text-center text-xs tabular-nums',
+          'no-underline outline-0',
+          'transition-colors duration-120',
+          'min-h-bar h-bar text-bar-font',
+          className,
+        )
+      }
       style={style}
     >
-      <div className="flex min-w-0 flex-grow overflow-hidden text-left">
-        {left}
-      </div>
-      <div className="flex shrink-0 overflow-hidden">{right}</div>
-      {!hideTopBorder ? (
-        <span className="after:bg-bar-border-top after:content-blank after:pointer-events-none after:absolute after:top-0 after:left-0 after:h-0.25 after:w-full" />
-      ) : null}
+      <div sx={stylexStyles.rule1}>{left}</div>
+      <div sx={stylexStyles.rule2}>{right}</div>
+      {!hideTopBorder ? <span sx={stylexStyles.rule3} /> : null}
     </div>
   )
 }

@@ -775,20 +775,72 @@ export function transform(
         text: '',
       })
     },
-    ImportDeclaration(path) {
-      const specifier = path.node.specifiers[0]
-      if (
-        path.node.specifiers.length !== 1 ||
-        !specifier ||
-        (!classHelpers.has(specifier.local.name) &&
-          !variantHelpers.has(specifier.local.name)) ||
-        path.scope.getBinding(specifier.local.name)?.referenced
-      )
-        return
-      removals.push({ start: path.node.start!, end: path.node.end!, text: '' })
-    },
   })
   for (const edit of removals.sort((left, right) => right.start - left.start))
     source = source.slice(0, edit.start) + source.slice(edit.end)
+  source = pruneHelperImports(
+    source,
+    filename,
+    new Set([...classHelpers, ...variantHelpers]),
+  )
   return { source, converted, remaining }
+}
+
+// pruneHelperImports reads bindings after consumed constants and recipe constructors have disappeared.
+function pruneHelperImports(
+  source: string,
+  filename: string,
+  helpers: ReadonlySet<string>,
+): string {
+  // Rebuild lexical references after dropping dead class constants.
+  const ast = parseSync(source, {
+    filename,
+    configFile: false,
+    babelrc: false,
+    parserOpts: {
+      plugins: /\.[cm]?ts$/.test(filename)
+        ? ['typescript']
+        : ['typescript', 'jsx'],
+    },
+  })!
+  const edits: Edit[] = []
+  traverse(ast, {
+    ImportDeclaration(path) {
+      // Remove only recognized pure helpers; unrelated imports retain their contract.
+      const original = path.node.specifiers
+      const kept = original.filter(
+        (specifier) =>
+          !helpers.has(specifier.local.name) ||
+          path.scope.getBinding(specifier.local.name)?.referenced,
+      )
+      if (kept.length === original.length) return
+      if (!kept.length) {
+        edits.push({ start: path.node.start!, end: path.node.end!, text: '' })
+        return
+      }
+
+      // Keep type-only and aliased specifiers when a recipe shares its import declaration.
+      const named = kept.filter(
+        (specifier) => specifier.type === 'ImportSpecifier',
+      )
+      const other = kept
+        .filter((specifier) => specifier.type !== 'ImportSpecifier')
+        .map((specifier) => source.slice(specifier.start!, specifier.end!))
+      if (named.length)
+        other.push(
+          `{${named.map((specifier) => source.slice(specifier.start!, specifier.end!)).join(',')}}`,
+        )
+      const suffix = source.slice(path.node.source.start!, path.node.end!)
+      edits.push({
+        start: path.node.start!,
+        end: path.node.end!,
+        text: `import ${path.node.importKind === 'type' ? 'type ' : ''}${other.join(', ')} from ${suffix}`,
+      })
+    },
+  })
+
+  // Preserve every source offset until all import decisions are complete.
+  for (const edit of edits.sort((a, b) => b.start - a.start))
+    source = source.slice(0, edit.start) + edit.text + source.slice(edit.end)
+  return source
 }

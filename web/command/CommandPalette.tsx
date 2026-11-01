@@ -28,7 +28,7 @@ import {
   LuPanelTop,
   LuPenLine,
   LuServer,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import {
   CommandDialog,
@@ -61,6 +61,111 @@ import {
 } from './KeybindingResolver.js'
 import { useKeybindingGraph } from './useKeybindingGraph.js'
 import { getSubItemQuery } from './sub-item-navigation.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  colors as themeColors,
+  layout as themeLayout,
+  fonts as themeFonts,
+  utilityState as themeUtilityState,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-brand'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule3: { cursor: 'default' },
+  rule4: { display: 'flex', minWidth: 0, flex: 1, flexDirection: 'column' },
+  rule5: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  rule6: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule7: {
+    minWidth: `calc(${themeLayout['--spacing']} * 10)`,
+    borderRadius: '.25rem',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    textAlign: 'center',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-brand'],
+  },
+  rule8: { textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' },
+  rule9: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule10: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule11: {
+    maxHeight: themeLayout['--max-height-command-results'],
+    scrollPaddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule12: { display: 'flex', flexDirection: 'column' },
+  rule13: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule14: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
 
 // isMacPlatform detects whether the current platform is macOS.
 const isMacPlatform =
@@ -183,7 +288,7 @@ function highlightSemanticTerms(text: string, terms: readonly string[]) {
       content.push(text.slice(lastIndex, match.index))
     }
     content.push(
-      <span key={match.index} className="text-brand font-semibold">
+      <span key={match.index} sx={stylexStyles.rule1}>
         {token}
       </span>,
     )
@@ -233,7 +338,7 @@ function highlightQueryText(
     const end = start + trimmedQuery.length
     return [
       text.slice(0, start),
-      <span key="match" className="text-brand font-semibold">
+      <span key="match" sx={stylexStyles.rule1}>
         {text.slice(start, end)}
       </span>,
       text.slice(end),
@@ -255,7 +360,7 @@ function highlightQueryText(
 
   return [...text].map((char, index) =>
     matched.has(index) ? (
-      <span key={index} className="text-brand font-semibold">
+      <span key={index} sx={stylexStyles.rule1}>
         {char}
       </span>
     ) : (
@@ -307,7 +412,7 @@ const subItemIcons: Record<string, ComponentType<{ className?: string }>> = {
 function SubItemIcon({ iconName }: { iconName?: string }) {
   if (!iconName) return null
   const Icon = subItemIcons[iconName] ?? LuBox
-  return <Icon className="text-foreground-alt size-4 shrink-0" />
+  return <Icon {...stylex.props(stylexStyles.rule2)} />
 }
 
 function dedupeSubItems(items: SubItem[]): SubItem[] {
@@ -399,14 +504,14 @@ function CommandPaletteItem({
       onSelect={() => enabled && onSelect(commandId)}
       disabled={!enabled}
       variant={enabled ? 'palette' : 'paletteDisabled'}
-      className={!enabled ? 'cursor-default' : undefined}
+      {...stylex.props(!enabled ? stylexStyles.rule3 : undefined)}
     >
-      <span className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate text-sm font-medium">
+      <span sx={stylexStyles.rule4}>
+        <span sx={stylexStyles.rule5}>
           {highlightQueryText(label, query, aliasHighlightTerms)}
         </span>
         {cmd.command?.description && (
-          <span className="text-foreground-alt/60 truncate text-xs">
+          <span sx={stylexStyles.rule6}>
             {highlightQueryText(
               cmd.command.description,
               query,
@@ -439,15 +544,11 @@ function CommandChordItem({
       onSelect={() => onSelect(continuation)}
       variant={continuation.conflict ? 'conflict' : undefined}
     >
-      <kbd className="bg-brand/10 text-brand min-w-10 rounded px-2 py-0.5 text-center font-mono text-xs">
-        {formatResolvedKey(continuation.key)}
-      </kbd>
-      <span className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate">{continuation.label}</span>
+      <kbd sx={stylexStyles.rule7}>{formatResolvedKey(continuation.key)}</kbd>
+      <span sx={stylexStyles.rule4}>
+        <span sx={stylexStyles.rule8}>{continuation.label}</span>
         {continuation.commandId && (
-          <span className="text-foreground-alt/60 truncate font-mono text-xs">
-            {continuation.commandId}
-          </span>
+          <span sx={stylexStyles.rule9}>{continuation.commandId}</span>
         )}
       </span>
       {continuation.conflict && (
@@ -879,9 +980,9 @@ export function CommandPalette() {
           onClick={() => !subItemCommandId && enterFilterMode(query)}
           onValueChange={inputChange}
         />
-        <div className="border-foreground/8 text-foreground-alt/60 flex h-7 items-center justify-between gap-3 border-b px-3 font-mono text-xs">
+        <div sx={stylexStyles.rule10}>
           <span>{resultSummary}</span>
-          <span className="truncate">
+          <span sx={stylexStyles.rule8}>
             {subItemCommandId
               ? activeSubItemCommand?.command?.label
               : paletteMode === 'chord'
@@ -889,10 +990,7 @@ export function CommandPalette() {
                 : 'Filtering'}
           </span>
         </div>
-        <CommandList
-          variant="palette"
-          className="max-h-(--max-height-command-results) scroll-py-2"
-        >
+        <CommandList variant="palette" {...stylex.props(stylexStyles.rule11)}>
           {subItemCommandId ? (
             <>
               <CommandEmpty>No items found.</CommandEmpty>
@@ -914,15 +1012,13 @@ export function CommandPalette() {
                     onSelect={() => handleSubItemSelect(item.id)}
                   >
                     <SubItemIcon iconName={item.iconName} />
-                    <span className="flex flex-col">
-                      <span className="flex items-center gap-1.5">
+                    <span sx={stylexStyles.rule12}>
+                      <span sx={stylexStyles.rule13}>
                         <span>{item.label}</span>
                         {item.experimental && <ExperimentalBadge />}
                       </span>
                       {item.description && (
-                        <span className="text-foreground-alt text-xs">
-                          {item.description}
-                        </span>
+                        <span sx={stylexStyles.rule14}>{item.description}</span>
                       )}
                     </span>
                   </CommandItem>

@@ -2,7 +2,7 @@ import { useCallback } from 'react'
 
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { LoginForm } from '@s4wave/web/ui/login-form.js'
-import { LuArrowLeft } from 'react-icons/lu'
+import { LuArrowLeft } from '@s4wave/web/images/icons.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { AuthScreenLayout } from '@s4wave/app/auth/AuthScreenLayout.js'
 import { PageFooter } from './CloudConfirmationPage.js'

@@ -12,7 +12,7 @@ import {
   LuShieldCheck,
   LuUsers,
   LuZap,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
 import {

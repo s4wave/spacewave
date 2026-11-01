@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react'
 
 import Markdown from 'markdown-to-jsx'
-import { LuArrowLeft, LuArrowRight } from 'react-icons/lu'
+import { LuArrowLeft, LuArrowRight } from '@s4wave/web/images/icons.js'
 
 import { markdownCodeOptions } from '@s4wave/code/markdown.js'
 

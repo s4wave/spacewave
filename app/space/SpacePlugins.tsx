@@ -5,7 +5,13 @@ import {
   useState,
 } from 'react'
 import { useWatchStateRpc } from '@aptre/bldr-react'
-import { LuLoaderCircle, LuPlus, LuPuzzle, LuTrash2, LuX } from 'react-icons/lu'
+import {
+  LuLoaderCircle,
+  LuPlus,
+  LuPuzzle,
+  LuTrash2,
+  LuX,
+} from '@s4wave/web/images/icons.js'
 
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { BackgroundPlugin } from '@s4wave/core/session/session.pb.js'

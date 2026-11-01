@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react'
-import { LuActivity } from 'react-icons/lu'
+import { LuActivity } from '@s4wave/web/images/icons.js'
 
 import { BottomBarItem } from '@s4wave/web/frame/bottom-bar-item.js'
 import { BottomBarLevel } from '@s4wave/web/frame/bottom-bar-level.js'

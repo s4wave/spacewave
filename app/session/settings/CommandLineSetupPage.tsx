@@ -16,7 +16,7 @@ import {
   LuSettings,
   LuTerminal,
   LuUsers,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { Client as ResourceClient } from '@aptre/bldr-sdk/resource/index.js'
@@ -54,6 +54,10 @@ import {
   buildSpacewaveCommand,
   type CommandOptions,
 } from './command-line-commands.js'
+
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({ rule1: { flexShrink: 0 } })
 
 // CommandLineSetupPage launches the session CLI and offers desktop installation.
 export function CommandLineSetupPage() {
@@ -163,7 +167,7 @@ function InAppTerminalLauncher({ onOpen }: { onOpen: () => void }) {
           type="button"
           variant="brandOutline"
           onClick={onOpen}
-          className="shrink-0"
+          sx={stylexStyles.rule1}
         >
           <LuTerminal aria-hidden="true" />
           Open terminal

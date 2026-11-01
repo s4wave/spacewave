@@ -7,12 +7,400 @@ import {
   LuLocateFixed,
   LuPlus,
   LuTrash2,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import { useNavigate } from '@s4wave/web/router/router.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { GraphLinkPill as ProductionGraphLinkPill } from '@s4wave/app/canvas/GraphLinkPill.js'
 import type { EphemeralEdge } from '@s4wave/app/canvas/types.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+  motion as themeMotion,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 24)`,
+    width: `calc(${themeLayout['--spacing']} * 44)`,
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3.5)`,
+    '--tw-shadow':
+      '0 1px 3px 0 var(--tw-shadow-color, #0000001a), 0 1px 2px -1px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+  },
+  rule2: {
+    '--tw-border-style': 'dashed',
+    borderStyle: 'dashed',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 20%, transparent)`,
+  },
+  rule3: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 40%, transparent)`,
+  },
+  rule4: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule5: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 7)`,
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+  },
+  rule6: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: themeColors['--color-brand'],
+  },
+  rule7: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule8: {
+    fontSize: '.6rem',
+    lineHeight: 1.5,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule9: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule10: {
+    borderRadius: '.25rem',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    paddingInline: themeLayout['--spacing'],
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+  },
+  rule11: {
+    borderRadius: '.25rem',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-warning']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-warning']} 10%, transparent)`,
+    paddingInline: themeLayout['--spacing'],
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    color: themeColors['--color-warning'],
+  },
+  rule12: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderRadius: '.25rem',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    paddingInline: themeLayout['--spacing'],
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule13: {
+    width: `calc(${themeLayout['--spacing']} * 2.5)`,
+    height: `calc(${themeLayout['--spacing']} * 2.5)`,
+  },
+  rule14: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderRadius: themeRadii['--radius-md'],
+    paddingInline: themeLayout['--spacing'],
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+      },
+    },
+  },
+  rule15: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule16: {
+    borderRadius: themeRadii['--radius-md'],
+    padding: `calc(${themeLayout['--spacing']} * .5)`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+      },
+    },
+  },
+  rule17: {
+    borderRadius: themeRadii['--radius-md'],
+    padding: `calc(${themeLayout['--spacing']} * .5)`,
+    color: themeColors['--color-destructive'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+      },
+    },
+  },
+  rule18: {
+    display: 'flex',
+    alignItems: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+    color: themeColors['--color-foreground'],
+    '--tw-shadow':
+      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+  },
+  rule19: {
+    gap: themeLayout['--spacing'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: '.55rem',
+    lineHeight: 1.5,
+  },
+  rule20: {
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+    fontSize: '.6rem',
+    lineHeight: 1.5,
+  },
+  rule21: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 2.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule22: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+  },
+  rule23: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+  },
+  rule24: { opacity: 0.55 },
+  rule25: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: `color-mix(in oklab, ${themeColors['--color-brand']} 60%, transparent)`,
+  },
+  rule26: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 30%, transparent)`,
+  },
+  rule27: {
+    maxWidth: `calc(${themeLayout['--spacing']} * 28)`,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  rule28: {
+    position: 'relative',
+    height: `calc(${themeLayout['--spacing']} * 52)`,
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 20%, transparent)`,
+  },
+  rule29: {
+    position: 'absolute',
+    top: `calc(${themeLayout['--spacing']} * 14)`,
+    left: `calc(${themeLayout['--spacing']} * 8)`,
+    zIndex: 10,
+  },
+  rule30: {
+    position: 'absolute',
+    top: `calc(${themeLayout['--spacing']} * 14)`,
+    right: `calc(${themeLayout['--spacing']} * 8)`,
+    zIndex: 10,
+  },
+  rule31: {
+    position: 'absolute',
+    top: `calc(${themeLayout['--spacing']} * 26)`,
+    right: `calc(${themeLayout['--spacing']} * 52)`,
+    left: `calc(${themeLayout['--spacing']} * 52)`,
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 30%, transparent)`,
+  },
+  rule32: { '--tw-border-style': 'dashed', borderStyle: 'dashed' },
+  rule33: {
+    position: 'absolute',
+    top: `calc(${themeLayout['--spacing']} * 23)`,
+    left: '50%',
+    zIndex: 20,
+    '--tw-translate-x': 'calc(calc(1 / 2 * 100%) * -1)',
+    translate: 'var(--tw-translate-x) var(--tw-translate-y)',
+  },
+  rule34: {
+    position: 'absolute',
+    bottom: `calc(${themeLayout['--spacing']} * 3)`,
+    left: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: '.55rem',
+    lineHeight: 1.5,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-widest)',
+    letterSpacing: 'var(--tracking-widest)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+    textTransform: 'uppercase',
+  },
+  rule35: {
+    position: 'absolute',
+    right: `calc(${themeLayout['--spacing']} * 3)`,
+    bottom: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule36: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule37: {
+    display: 'flex',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule38: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule39: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule40: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule41: { display: 'grid', gap: `calc(${themeLayout['--spacing']} * 3)` },
+  rule42: {
+    containerType: 'inline-size',
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    overflow: 'auto',
+    backgroundColor: themeColors['--color-background'],
+  },
+  rule43: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule44: {
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule45: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule46: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule47: {
+    flex: 1,
+    overflow: 'auto',
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule48: {
+    marginInline: 'auto',
+    display: 'flex',
+    width: '100%',
+    maxWidth: 'var(--container-5xl)',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+})
 
 type GraphLinkState = 'unloaded' | 'loaded'
 type PillVariant = 'compact' | 'balanced' | 'metadata'
@@ -127,18 +515,15 @@ function GraphNode({
 }) {
   return (
     <div
-      className={cn(
-        'border-foreground/10 flex h-24 w-44 flex-col justify-between rounded-lg border p-3.5 shadow-sm',
-        muted ? 'bg-background-card/20 border-dashed' : 'bg-background-card/40',
-      )}
+      sx={[stylexStyles.rule1, muted ? stylexStyles.rule2 : stylexStyles.rule3]}
     >
-      <div className="flex items-center gap-2">
-        <div className="bg-brand/10 flex size-7 items-center justify-center rounded-md">
-          <LuGitBranch className="text-brand size-3.5" />
+      <div sx={stylexStyles.rule4}>
+        <div sx={stylexStyles.rule5}>
+          <LuGitBranch {...stylex.props(stylexStyles.rule6)} />
         </div>
-        <span className="text-foreground text-xs font-semibold">{label}</span>
+        <span sx={stylexStyles.rule7}>{label}</span>
       </div>
-      <span className="text-foreground-alt/50 micro-text">{detail}</span>
+      <span sx={stylexStyles.rule8}>{detail}</span>
     </div>
   )
 }
@@ -156,22 +541,14 @@ function GraphLinkPillBadges({
   return (
     <>
       <span
-        className={cn(
-          'text-foreground-alt/50',
-          variant === 'metadata' &&
-            'border-foreground/8 bg-foreground/5 rounded px-1 py-0.5',
-        )}
+        sx={[stylexStyles.rule9, variant === 'metadata' && stylexStyles.rule10]}
       >
         {fixture.targetType}
       </span>
-      {fixture.truncated && (
-        <span className="border-warning/20 bg-warning/10 text-warning rounded px-1 py-0.5">
-          capped
-        </span>
-      )}
+      {fixture.truncated && <span sx={stylexStyles.rule11}>capped</span>}
       {fixture.policy === 'protected' && (
-        <span className="border-foreground/8 bg-foreground/5 text-foreground-alt/50 flex items-center gap-1 rounded px-1 py-0.5">
-          <LuLock className="size-2.5" />
+        <span sx={stylexStyles.rule12}>
+          <LuLock {...stylex.props(stylexStyles.rule13)} />
           protected
         </span>
       )}
@@ -194,32 +571,32 @@ function GraphLinkPillActions({
     <>
       <button
         type="button"
-        className="hover:bg-foreground/8 flex items-center gap-1 rounded-md px-1 py-0.5 transition-colors"
+        sx={stylexStyles.rule14}
         aria-label={`${loaded ? 'Focus' : 'Load'} ${fixture.targetLabel}`}
         disabled={hidden}
       >
         {loaded ? (
-          <LuLocateFixed className="size-3" />
+          <LuLocateFixed {...stylex.props(stylexStyles.rule15)} />
         ) : (
-          <LuPlus className="size-3" />
+          <LuPlus {...stylex.props(stylexStyles.rule15)} />
         )}
         {!compact && (loaded ? 'Focus' : 'Load')}
       </button>
       <button
         type="button"
-        className="hover:bg-foreground/8 rounded-md p-0.5 transition-colors"
+        sx={stylexStyles.rule16}
         aria-label={`Hide ${fixture.predicate} link`}
         disabled={hidden}
       >
-        <LuEyeOff className="size-3" />
+        <LuEyeOff {...stylex.props(stylexStyles.rule15)} />
       </button>
       {fixture.policy === 'deletable' && (
         <button
           type="button"
-          className="text-destructive hover:bg-destructive/10 rounded-md p-0.5 transition-colors"
+          sx={stylexStyles.rule17}
           aria-label={`Delete ${fixture.predicate} link`}
         >
-          <LuTrash2 className="size-3" />
+          <LuTrash2 {...stylex.props(stylexStyles.rule15)} />
         </button>
       )}
     </>
@@ -239,21 +616,17 @@ function FixtureGraphLinkPill({
   return (
     <div
       data-testid={`graph-link-pill-${variant}-${fixture.state}`}
-      className={cn(
-        'bg-background-card/50 text-foreground flex items-center rounded-md border shadow-lg backdrop-blur-sm',
-        compact
-          ? 'gap-1 px-1.5 py-0.5 micro-fine'
-          : 'gap-1.5 px-2 py-1 micro-text',
-        variant === 'metadata' && 'px-2.5 py-1.5',
-        fixture.state === 'loaded' ? 'border-brand/20' : 'border-foreground/10',
-        fixture.hidden && 'opacity-55',
-      )}
+      sx={[
+        stylexStyles.rule18,
+        compact ? stylexStyles.rule19 : stylexStyles.rule20,
+        variant === 'metadata' && stylexStyles.rule21,
+        fixture.state === 'loaded' ? stylexStyles.rule22 : stylexStyles.rule23,
+        !!fixture.hidden && stylexStyles.rule24,
+      ]}
     >
-      <span className="text-brand/60 font-medium">{fixture.predicate}</span>
-      <span className="text-foreground-alt/30">/</span>
-      <span className="max-w-28 truncate font-medium">
-        {fixture.targetLabel}
-      </span>
+      <span sx={stylexStyles.rule25}>{fixture.predicate}</span>
+      <span sx={stylexStyles.rule26}>/</span>
+      <span sx={stylexStyles.rule27}>{fixture.targetLabel}</span>
       <GraphLinkPillBadges fixture={fixture} variant={variant} />
       <GraphLinkPillActions fixture={fixture} compact={compact} />
     </div>
@@ -327,13 +700,13 @@ function GraphLinkPreview({
   return (
     <div
       data-testid={`graph-link-preview-${variant}-${fixture.state}`}
-      className="border-foreground/6 bg-background-card/20 relative h-52 overflow-hidden rounded-lg border"
+      sx={stylexStyles.rule28}
     >
-      <div className="absolute top-14 left-8 z-10">
+      <div sx={stylexStyles.rule29}>
         <GraphNode label="Canvas source" detail="world object node" />
       </div>
 
-      <div className="absolute top-14 right-8 z-10">
+      <div sx={stylexStyles.rule30}>
         <GraphNode
           label={fixture.targetLabel}
           detail={
@@ -343,26 +716,17 @@ function GraphLinkPreview({
         />
       </div>
 
-      <div
-        className={cn(
-          'border-foreground-alt/30 absolute top-26 right-52 left-52 border-t',
-          !loaded && 'border-dashed',
-        )}
-      />
+      <div sx={[stylexStyles.rule31, !loaded && stylexStyles.rule32]} />
 
-      <div className="absolute top-23 left-1/2 z-20 -translate-x-1/2">
+      <div sx={stylexStyles.rule33}>
         <GraphLinkPill fixture={fixture} variant={variant} />
       </div>
 
-      <span className="text-foreground-alt/40 micro-fine absolute bottom-3 left-3 font-medium tracking-widest uppercase">
+      <span sx={stylexStyles.rule34}>
         {fixture.direction === 'out' ? 'Outgoing' : 'Incoming'} /{' '}
         {hidden ? 'hidden' : fixture.state}
       </span>
-      {hidden && (
-        <span className="border-foreground/8 bg-background-card/50 text-foreground-alt/50 absolute right-3 bottom-3 rounded-md border px-1.5 py-0.5 text-xs font-medium">
-          hidden on canvas
-        </span>
-      )}
+      {hidden && <span sx={stylexStyles.rule35}>hidden on canvas</span>}
     </div>
   )
 }
@@ -371,20 +735,16 @@ function VariantPreview({ variant }: { variant: PillVariantFixture }) {
   return (
     <section
       data-testid={`graph-link-variant-${variant.id}`}
-      className="flex flex-col gap-3"
+      sx={stylexStyles.rule36}
     >
-      <div className="flex items-end justify-between gap-4">
+      <div sx={stylexStyles.rule37}>
         <div>
-          <h2 className="text-foreground text-xs font-medium">
-            {variant.name}
-          </h2>
-          <p className="text-foreground-alt/50 text-xs">{variant.detail}</p>
+          <h2 sx={stylexStyles.rule38}>{variant.name}</h2>
+          <p sx={stylexStyles.rule39}>{variant.detail}</p>
         </div>
-        <span className="border-foreground/8 bg-foreground/5 text-foreground-alt/50 rounded-md border px-1.5 py-0.5 text-xs font-medium">
-          {variant.id}
-        </span>
+        <span sx={stylexStyles.rule40}>{variant.id}</span>
       </div>
-      <div className="grid gap-3">
+      <div sx={stylexStyles.rule41}>
         {primaryFixtures.map((fixture) => (
           <GraphLinkPreview
             key={fixture.id}
@@ -399,14 +759,14 @@ function VariantPreview({ variant }: { variant: PillVariantFixture }) {
 
 function StateCoverage() {
   return (
-    <section className="flex flex-col gap-3">
+    <section sx={stylexStyles.rule36}>
       <div>
-        <h2 className="text-foreground text-xs font-medium">State Coverage</h2>
-        <p className="text-foreground-alt/50 text-xs">
+        <h2 sx={stylexStyles.rule38}>State Coverage</h2>
+        <p sx={stylexStyles.rule39}>
           Balanced pills with edge cases the production graph model must carry.
         </p>
       </div>
-      <div className="grid gap-3">
+      <div sx={stylexStyles.rule41}>
         {stateFixtures.map((fixture) => (
           <GraphLinkPreview
             key={fixture.id}
@@ -428,23 +788,21 @@ export function CanvasGraphLinksDebug() {
   }, [navigate])
 
   return (
-    <div className="bg-background @container flex h-full w-full flex-col overflow-auto">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-4">
+    <div sx={stylexStyles.rule42}>
+      <div sx={stylexStyles.rule43}>
         <button
           type="button"
           onClick={goBack}
           aria-label="Go back"
-          className="text-foreground-alt hover:text-foreground transition-colors"
+          sx={stylexStyles.rule44}
         >
-          <LuArrowLeft className="size-4" />
+          <LuArrowLeft {...stylex.props(stylexStyles.rule45)} />
         </button>
-        <span className="text-foreground text-sm font-semibold tracking-tight select-none">
-          Canvas Graph Links
-        </span>
+        <span sx={stylexStyles.rule46}>Canvas Graph Links</span>
       </div>
 
-      <div className="flex-1 overflow-auto px-4 py-3">
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
+      <div sx={stylexStyles.rule47}>
+        <div sx={stylexStyles.rule48}>
           {variants.map((variant) => (
             <VariantPreview key={variant.id} variant={variant} />
           ))}

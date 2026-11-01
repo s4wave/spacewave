@@ -1,7 +1,11 @@
 /* eslint-disable react-doctor/rerender-state-only-in-handlers */
 import { useCallback, useEffect, useState } from 'react'
 import { isDesktop } from '@aptre/bldr'
-import { LuArrowLeft, LuCircleAlert, LuFingerprint } from 'react-icons/lu'
+import {
+  LuArrowLeft,
+  LuCircleAlert,
+  LuFingerprint,
+} from '@s4wave/web/images/icons.js'
 
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'

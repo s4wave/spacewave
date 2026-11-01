@@ -1,6 +1,6 @@
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
-import { LuCircleCheck, LuLoaderCircle } from 'react-icons/lu'
+import { LuCircleCheck, LuLoaderCircle } from '@s4wave/web/images/icons.js'
 
 import {
   Trace,

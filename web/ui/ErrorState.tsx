@@ -1,6 +1,6 @@
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import { type ReactNode } from 'react'
-import { LuCircleAlert, LuRefreshCw } from 'react-icons/lu'
+import { LuCircleAlert, LuRefreshCw } from '@s4wave/web/images/icons.js'
 
 import { Button } from './button.js'
 
@@ -195,10 +195,10 @@ export function ErrorState({
           variant="outline"
           size={variant === 'fullscreen' ? 'default' : 'sm'}
           onClick={onRetry}
-          {...stylex.props([
+          sx={[
             stylexStyles.rule15,
             variant === 'fullscreen' ? stylexStyles.rule16 : stylexStyles.rule8,
-          ])}
+          ]}
         >
           <LuRefreshCw {...stylex.props(stylexStyles.rule17)} />
           Retry
@@ -218,7 +218,7 @@ export function ErrorState({
             variant="ghost"
             size="sm"
             onClick={onRetry}
-            {...stylex.props(stylexStyles.rule21)}
+            sx={stylexStyles.rule21}
           >
             <LuRefreshCw {...stylex.props(stylexStyles.rule22)} />
           </Button>

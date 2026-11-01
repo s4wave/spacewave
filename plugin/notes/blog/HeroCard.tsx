@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react'
 
-import { LuArrowRight } from 'react-icons/lu'
+import { LuArrowRight } from '@s4wave/web/images/icons.js'
 
 import { TagChip } from './TagChip.js'
 import type { BlogPostData } from './types.js'
@@ -15,7 +15,12 @@ interface HeroCardProps {
 }
 
 // HeroCard renders the featured hero card for the latest blog post.
-export function HeroCard({ post, onSelectPost, onSelectTag, authorRegistry }: HeroCardProps) {
+export function HeroCard({
+  post,
+  onSelectPost,
+  onSelectTag,
+  authorRegistry,
+}: HeroCardProps) {
   const handleHeroCardSelect = useCallback(() => {
     onSelectPost(post)
   }, [onSelectPost, post])
@@ -26,9 +31,7 @@ export function HeroCard({ post, onSelectPost, onSelectTag, authorRegistry }: He
   )
 
   return (
-    <article
-      className="border-foreground/8 bg-background-card/20 group relative cursor-pointer overflow-hidden rounded-2xl border backdrop-blur-sm transition duration-300 hover:-translate-y-0.5 hover:border-white/12"
-    >
+    <article className="border-foreground/8 bg-background-card/20 group relative cursor-pointer overflow-hidden rounded-2xl border backdrop-blur-sm transition duration-300 hover:-translate-y-0.5 hover:border-white/12">
       <div className="relative flex flex-col gap-6 p-6 @lg:flex-row @lg:items-start @lg:gap-10 @lg:p-10">
         <div className="flex-1">
           <div className="mb-4 flex flex-wrap gap-2">

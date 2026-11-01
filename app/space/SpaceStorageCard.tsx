@@ -1,4 +1,4 @@
-import { LuDatabase } from 'react-icons/lu'
+import { LuDatabase } from '@s4wave/web/images/icons.js'
 
 import { SpaceStorageMove } from '@s4wave/app/session/storage/SpaceStorageMove.js'
 import { SpaceUploadStatus } from '@s4wave/app/session/storage/SpaceUploadStatus.js'

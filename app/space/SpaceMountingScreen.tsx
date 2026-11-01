@@ -1,4 +1,4 @@
-import { LuRefreshCw } from 'react-icons/lu'
+import { LuRefreshCw } from '@s4wave/web/images/icons.js'
 
 import { useRenderDelay } from '@s4wave/app/loading/useRenderDelay.js'
 import { cn } from '@s4wave/web/style/utils.js'

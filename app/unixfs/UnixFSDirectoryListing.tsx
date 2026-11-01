@@ -1,5 +1,5 @@
 import type { ComponentType, DragEvent, MouseEvent, ReactNode } from 'react'
-import { LuFolderPlus, LuUpload } from 'react-icons/lu'
+import { LuFolderPlus, LuUpload } from '@s4wave/web/images/icons.js'
 
 import { FileList } from '@s4wave/web/editors/file-browser/FileList.js'
 import type { RenderEntryCallback } from '@s4wave/web/editors/file-browser/FileListEntry.js'

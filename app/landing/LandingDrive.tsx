@@ -1,5 +1,10 @@
 import type { ComponentType } from 'react'
-import { LuFileText, LuFolder, LuHardDrive, LuLayoutGrid } from 'react-icons/lu'
+import {
+  LuFileText,
+  LuFolder,
+  LuHardDrive,
+  LuLayoutGrid,
+} from '@s4wave/web/images/icons.js'
 
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
 import { DRIVE_STARTER_GUIDE_NAME } from '@s4wave/app/quickstart/drive-starter-guide.js'

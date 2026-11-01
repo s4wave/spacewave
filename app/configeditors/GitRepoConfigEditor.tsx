@@ -1,5 +1,10 @@
 import { useId } from 'react'
-import { LuCopy, LuGitBranch, LuLayers, LuPlus } from 'react-icons/lu'
+import {
+  LuCopy,
+  LuGitBranch,
+  LuLayers,
+  LuPlus,
+} from '@s4wave/web/images/icons.js'
 
 import type { ConfigEditorProps } from '@s4wave/web/configtype/configtype.js'
 import { Input } from '@s4wave/web/ui/input.js'

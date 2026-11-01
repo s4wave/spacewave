@@ -1,4 +1,4 @@
-import { LuBuilding2, LuPlus } from 'react-icons/lu'
+import { LuBuilding2, LuPlus } from '@s4wave/web/images/icons.js'
 
 import { SharedObjectDetails } from '@s4wave/app/sobject/SharedObjectDetails.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'

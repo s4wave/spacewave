@@ -1,4 +1,8 @@
-import { LuDownload, LuLayoutGrid, LuTerminal } from 'react-icons/lu'
+import {
+  LuDownload,
+  LuLayoutGrid,
+  LuTerminal,
+} from '@s4wave/web/images/icons.js'
 
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
 import { cn } from '@s4wave/web/style/utils.js'

@@ -1,4 +1,4 @@
-import type { IconType } from 'react-icons'
+import type { IconType } from '@s4wave/web/images/icons.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
 

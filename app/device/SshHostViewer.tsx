@@ -7,7 +7,7 @@ import {
   LuShield,
   LuTerminal,
   LuCircleX,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import { SshHostHandle, SshHostTypeID } from '@s4wave/sdk/sshhost/sshhost.js'

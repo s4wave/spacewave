@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { isDesktop } from '@aptre/bldr'
-import { LuGitBranch, LuTriangleAlert } from 'react-icons/lu'
+import { LuGitBranch, LuTriangleAlert } from '@s4wave/web/images/icons.js'
 
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'

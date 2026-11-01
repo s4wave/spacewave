@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { LuBug, LuCircleAlert } from 'react-icons/lu'
+import { LuBug, LuCircleAlert } from '@s4wave/web/images/icons.js'
 
 import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
@@ -8,6 +8,155 @@ import { getObjectType } from '@s4wave/sdk/world/types/types.js'
 
 import type { ObjectViewerComponentProps } from './object.js'
 import { getObjectKey, getTypeID } from './object.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  colors as themeColors,
+  layout as themeLayout,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+  radii as themeRadii,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    overflow: 'auto',
+    backgroundColor: themeColors['--color-background-primary'],
+  },
+  rule2: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule3: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule5: {
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+  },
+  rule6: {
+    flex: 1,
+    overflow: 'auto',
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule7: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule8: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule9: { minWidth: 0, flex: 1 },
+  rule10: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule11: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule12: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule13: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule14: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule15: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule16: {
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+  },
+  rule17: {
+    overflow: 'auto',
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 80%, transparent)`,
+  },
+})
 
 type WorldStateValue = ObjectViewerComponentProps['worldState']['value']
 
@@ -40,26 +189,28 @@ export function DebugObjectViewer({
   const untyped = !resolving && !effectiveTypeID
 
   return (
-    <div className="bg-background-primary flex h-full w-full flex-col overflow-auto">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center border-b px-4">
-        <div className="text-foreground flex items-center gap-2 text-sm font-semibold select-none">
-          <LuBug className="size-4" />
-          <span className="tracking-tight">Debug Viewer</span>
+    <div sx={stylexStyles.rule1}>
+      <div sx={stylexStyles.rule2}>
+        <div sx={stylexStyles.rule3}>
+          <LuBug {...stylex.props(stylexStyles.rule4)} />
+          <span sx={stylexStyles.rule5}>Debug Viewer</span>
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto px-4 py-3">
-        <div className="mx-auto max-w-3xl space-y-3">
+      <div sx={stylexStyles.rule6}>
+        <div
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'mx-auto max-w-3xl space-y-3'
+          }
+        >
           {untyped && (
-            <div className="border-foreground/6 bg-background-card/30 flex items-start gap-3 rounded-lg border p-3.5">
-              <div className="bg-foreground/5 text-foreground-alt flex size-8 shrink-0 items-center justify-center rounded-md">
-                <LuCircleAlert className="size-4" />
+            <div sx={stylexStyles.rule7}>
+              <div sx={stylexStyles.rule8}>
+                <LuCircleAlert {...stylex.props(stylexStyles.rule4)} />
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-foreground text-sm font-semibold tracking-tight select-none">
-                  Object has no type
-                </p>
-                <p className="text-foreground-alt/60 mt-0.5 text-xs leading-relaxed">
+              <div sx={stylexStyles.rule9}>
+                <p sx={stylexStyles.rule10}>Object has no type</p>
+                <p sx={stylexStyles.rule11}>
                   This object exists in the world graph without a type
                   predicate, so no specialized viewer is available. The debug
                   viewer is showing raw metadata below.
@@ -69,15 +220,19 @@ export function DebugObjectViewer({
           )}
 
           <section>
-            <div className="mb-2 flex items-center gap-1.5">
-              <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-                <LuBug className="size-3.5" />
+            <div sx={stylexStyles.rule12}>
+              <h2 sx={stylexStyles.rule13}>
+                <LuBug {...stylex.props(stylexStyles.rule14)} />
                 Object Info
               </h2>
             </div>
 
             <InfoCard>
-              <div className="space-y-2">
+              <div
+                className={
+                  /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
+                }
+              >
                 <CopyableField
                   label="Object Key"
                   value={objectKey || '(none)'}
@@ -103,14 +258,12 @@ export function DebugObjectViewer({
           </section>
 
           <section>
-            <div className="mb-2 flex items-center gap-1.5">
-              <h2 className="text-foreground text-xs font-medium select-none">
-                Object State
-              </h2>
+            <div sx={stylexStyles.rule12}>
+              <h2 sx={stylexStyles.rule15}>Object State</h2>
             </div>
 
-            <div className="border-foreground/6 bg-background-card/30 overflow-hidden rounded-lg border">
-              <pre className="text-foreground-alt/80 overflow-auto p-3 font-mono text-xs leading-relaxed">
+            <div sx={stylexStyles.rule16}>
+              <pre sx={stylexStyles.rule17}>
                 {JSON.stringify(
                   {
                     key: objectState?.getKey() ?? null,

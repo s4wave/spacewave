@@ -1,5 +1,5 @@
 import React from 'react'
-import { LuMonitor, LuNotebookPen, LuPuzzle } from 'react-icons/lu'
+import { LuMonitor, LuNotebookPen, LuPuzzle } from '@s4wave/web/images/icons.js'
 
 // KnownSpacePlugin describes a plugin the app can suggest installing into a
 // Space by manifest ID.
