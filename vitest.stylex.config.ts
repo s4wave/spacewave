@@ -9,7 +9,6 @@ export default defineConfig({
     include: [
       'react',
       'react-dom/client',
-      'vitest-browser-react',
       '@radix-ui/react-collapsible',
       '@radix-ui/react-dropdown-menu',
       '@radix-ui/react-dialog',

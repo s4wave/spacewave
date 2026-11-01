@@ -5,16 +5,22 @@ const stylexStyles = 'existing-binding'
 const stylexStyles2 = 'another-binding'
 const themeColors = 'existing-theme-binding'
 const rowClasses = 'inline-flex items-center gap-2'
-const recipe = cva('rounded-md px-2 py-1', {
-  variants: {
-    tone: { primary: 'text-brand', muted: 'text-foreground-alt' },
-    compact: { true: 'text-xs', false: 'text-sm' },
+const recipe = cva(
+  'rounded-md px-2 py-1 text-sm hover:text-foreground md:text-base',
+  {
+    variants: {
+      tone: {
+        primary: 'text-brand hover:text-brand',
+        muted: 'text-foreground-alt',
+      },
+      compact: { true: 'text-xs', false: 'text-sm' },
+    },
+    defaultVariants: { tone: 'primary', compact: false },
+    compoundVariants: [
+      { tone: ['primary', 'muted'], compact: true, className: 'font-medium' },
+    ],
   },
-  defaultVariants: { tone: 'primary', compact: false },
-  compoundVariants: [
-    { tone: ['primary', 'muted'], compact: true, className: 'font-medium' },
-  ],
-})
+)
 
 // ExpressionCases keeps lexical constants, aliases and recipe defaults in one browser contract.
 export function ExpressionCases() {

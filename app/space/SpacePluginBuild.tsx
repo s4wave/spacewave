@@ -24,6 +24,18 @@ import { isValidSpacePluginId } from '@s4wave/core/space/world/world.js'
 import { SpacePluginWorkbench } from './SpacePluginWorkbench.js'
 import { SpacePluginObjects } from './SpacePluginObjects.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    minHeight: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+  },
+})
+
 interface SubmittedBuild {
   jobKey: string
   taskKey: string
@@ -328,7 +340,7 @@ function BuildPanel({
             onChange={(event) => setManifestId(event.target.value)}
             placeholder="my-colors"
             variant="plugin"
-            className={touchTargetClass}
+            sx={stylexStyles.rule1}
             disabled={locked}
           />
         </div>

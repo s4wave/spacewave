@@ -289,7 +289,11 @@ export function transform(
   const checkComposition = (styles: string) => {
     // Ternary branches never compose with each other; retain their structural choices.
     const references = new Map<string, Map<number, boolean>[]>()
-    const expressionAst = parseSync(`(${styles})`, {
+    const recipeSources = [...variantDefinitions]
+      .filter(([name]) => styles.includes(name + '('))
+      .map(([name, recipe]) => `const ${name}=${recipe.source};`)
+      .join('\n')
+    const expressionAst = parseSync(`${recipeSources}\n(${styles})`, {
       configFile: false,
       babelrc: false,
       parserOpts: { plugins: ['typescript'] },
@@ -321,15 +325,6 @@ export function transform(
         references.set(name, paths)
       },
     })
-
-    // Recipes retain the conservative check until their variant selections are modeled.
-    for (const [name, recipe] of variantDefinitions) {
-      if (!styles.includes(name + '(')) continue
-      for (const match of recipe.source.matchAll(
-        new RegExp(`\\b${prefix}\\.([\\w$]+)`, 'g'),
-      ))
-        references.set(match[1]!, [new Map()])
-    }
 
     // Two namespaces can coexist when at least one occurrence pair shares every structural choice.
     const canCompose = (left: string, right: string) =>

@@ -6,6 +6,10 @@ import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 
 import type { KvSortDirection } from './kv-viewer.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({ rule1: { flex: 1 } })
+
 interface KvKeyListToolbarProps {
   prefix: string
   onPrefixChange: (prefix: string) => void
@@ -36,7 +40,7 @@ export function KvKeyListToolbar({
         placeholder="Filter by key prefix"
         aria-label="Filter by key prefix"
         variant="toolbar"
-        className="flex-1"
+        sx={stylexStyles.rule1}
       />
       <DashboardButton
         icon={
