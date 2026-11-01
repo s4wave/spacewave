@@ -11,16 +11,21 @@ import (
 // 124 ms.
 const truncateMax = 32
 
+// releaseScan bounds metadata examined during one writer callback, including
+// passes where every pending chunk is still pinned.
+const releaseScan = 4 * freeBatch
+
 // releaseStep frees what may be reused: pending chunks that no slot pins and
 // recovery can no longer read, and reserved chunks whose owner is gone. It
 // appends one free record for them and truncates up to truncateMax of the
 // file's trailing free chunks, all under the writer lock; replayers apply the
 // records without repeating the slot reads and marks that justified them.
 func (s *scheduler) releaseStep(ctx context.Context) error {
+	// Advance a serialized pass under writer admission; IO failure clears its queue.
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	db := s.db
-	return db.w.locked(ctx, func() error {
+	err := db.w.locked(ctx, func() error {
 		// Read the slots: the lowest pin and the live owners.
 		st := db.cur.Load()
 		pins, readable, err := db.liveSlots()
@@ -41,8 +46,12 @@ func (s *scheduler) releaseStep(ctx context.Context) error {
 		db.superMtx.Unlock()
 
 		// Collect the chunks both conditions allow.
+		if s.releaseRemaining == 0 || s.releaseRemaining > len(st.m.table.entries) {
+			s.releaseRemaining = len(st.m.table.entries)
+		}
 		var free []uint64
-		for scanned := 0; scanned < len(st.m.table.entries) && len(free) < freeBatch; scanned++ {
+		for scanned := 0; s.releaseRemaining > 0 && len(free) < freeBatch && scanned < releaseScan; scanned++ {
+			s.releaseRemaining--
 			c := s.releaseCursor % len(st.m.table.entries)
 			s.releaseCursor = (c + 1) % len(st.m.table.entries)
 			e := st.m.table.entries[c]
@@ -78,8 +87,30 @@ func (s *scheduler) releaseStep(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		return db.s.truncate(fileOff(chunkStart(st.m.table.end())))
+
+		// Unwritten reservations may put the table beyond the physical file.
+		// Releasing them must never grow the file toward that logical end.
+		size, err := db.s.size()
+		if err != nil {
+			return err
+		}
+		endBytes := fileOff(chunkStart(st.m.table.end()))
+		if endBytes >= size {
+			return nil
+		}
+		return db.s.truncate(endBytes)
 	})
+	if err != nil {
+		s.releaseRemaining = 0
+	}
+	return err
+}
+
+// releaseQueued reports an unfinished bounded pass, without holding writer.
+func (s *scheduler) releaseQueued() bool {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	return s.releaseRemaining != 0
 }
 
 // liveSlots returns the pins of the other live slots and whether every one
