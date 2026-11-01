@@ -505,8 +505,12 @@ func (h *testWorldOpHandler) ValidateOp(
 }
 
 type testWorldOpPluginLoadController struct {
-	client    srpc.Client
+	// client serves the current unpinned executable.
+	client srpc.Client
+	// manifests serves globally retained executable revisions.
 	manifests map[string]srpc.Client
+	// instancedManifests keeps retained executables separate between installations.
+	instancedManifests map[string]map[string]srpc.Client
 }
 
 func (c *testWorldOpPluginLoadController) GetControllerInfo() *controller.Info {
@@ -529,6 +533,9 @@ func (c *testWorldOpPluginLoadController) HandleDirective(_ context.Context, ins
 	client := c.client
 	if root := dir.LoadPluginManifestRoot(); root != "" {
 		client = c.manifests[root]
+		if instance := dir.LoadPluginInstanceKey(); instance != "" && c.instancedManifests != nil {
+			client = c.instancedManifests[instance][root]
+		}
 	}
 	if client == nil {
 		return directive.R(directive.NewValueResolver([]bldr_plugin.LoadPluginValue{}), nil)
