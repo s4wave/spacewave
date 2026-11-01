@@ -22,6 +22,7 @@ import { buildBlog, collectBlogPaths } from '../blog/blog-build.js'
 import { loadDocs } from '../docs/load-docs.js'
 import { buildBrowserReleaseDescriptor } from './browser-release.js'
 import { buildBootstrapScript } from './bootstrap.js'
+import { readStylexOrder } from './stylex-order.js'
 import { buildPageHtml } from './html-template.js'
 import { buildLlmsFiles } from './llms.js'
 import {
@@ -75,6 +76,7 @@ export interface PrerenderContext {
   bldrManifest: BldrManifest
   browserGenerationId: string
   mainCssUrl: string
+  stylexOrder: string
   hydrateCssUrls: string[]
   iconUrl: string
   // ogImageUrl is the absolute URL of the default link preview image.
@@ -183,8 +185,7 @@ export function buildPrerenderContext(
     process.exit(1)
   }
 
-  // Resolve the hydration entry and all static page styles from the manifest
-  // emitted by vite.hydrate.config.ts.
+  // Read the hydration graph emitted by Vite.
   const hydrateManifestPath = join(OUTPUT_DIR, '.vite/manifest.json')
   if (!existsSync(hydrateManifestPath)) {
     console.error(
@@ -206,6 +207,8 @@ export function buildPrerenderContext(
     )
     process.exit(1)
   }
+
+  // Copy the hydration assets without changing their content hashes.
   const staticAssets = preparePrerenderStaticAssets(
     OUTPUT_DIR,
     join(projectRoot, 'web/images'),
@@ -215,6 +218,7 @@ export function buildPrerenderContext(
   log(`Hydration script: ${hydrateAssets.file}`)
   log(`Hydration styles: ${hydrateAssets.css.join(', ')}`)
 
+  // Describe the browser assets and all prerendered routes.
   const browserRelease = buildBrowserReleaseDescriptor(
     {
       entrypoint: manifest.entrypoint,
@@ -245,6 +249,9 @@ export function buildPrerenderContext(
     bldrManifest: manifest,
     browserGenerationId: browserRelease.generationId,
     mainCssUrl: staticAssets.mainCssUrl,
+    stylexOrder: readStylexOrder(
+      hydrateAssets.css.map((file) => join(OUTPUT_DIR, file)),
+    ),
     hydrateCssUrls: staticAssets.additionalCssUrls,
     iconUrl: staticAssets.iconUrl,
     ogImageUrl: SITE_ORIGIN + staticAssets.ogImageUrl,
@@ -258,16 +265,19 @@ export function buildPrerenderContext(
 }
 
 async function main() {
+  // Drafts enter the route inventory only when explicitly requested.
   const args = process.argv.slice(2)
   const verbose = !args.includes('--quiet')
   const includeDrafts = args.includes('--include-drafts')
 
+  // Every page shares one browser manifest and initial layer order.
   console.log('[prerender] === Prerender Build ===')
-
   const blogPaths = collectBlogPaths(includeDrafts)
   const ctx = buildPrerenderContext(verbose, blogPaths)
 
+  // Render each static route with its own metadata.
   async function buildStaticPage(page: StaticRoute): Promise<void> {
+    // Resolve the route component and its canonical metadata.
     const Component = page.component
     const meta = { ...page.metadata }
 
@@ -276,11 +286,14 @@ async function main() {
       meta.canonicalPath = '/'
     }
 
+    // Check the metadata before rendering this route.
     validateMetadata(page.path, meta)
 
+    // Render the route through the same providers used for hydration.
     ctx.log(`Prerendering ${page.path}...`)
     const body = await prerenderElement(createElement(Component), page.path)
 
+    // Put the shared CSS order before this page’s stylesheet links.
     const pageHtml = buildPageHtml({
       body,
       title: meta.title,
@@ -294,11 +307,13 @@ async function main() {
       hydrateScript: ctx.hydrateScriptTag,
       criticalCss: '',
       mainCssUrl: ctx.mainCssUrl,
+      stylexOrder: ctx.stylexOrder,
       additionalCssUrls: ctx.hydrateCssUrls,
       iconUrl: ctx.iconUrl,
       importMap: ctx.importMap,
     })
 
+    // Write the page under its route path.
     const filename = page.path.slice(1) + '.html'
     const outputPath = join(ctx.outputDir, filename)
     mkdirSync(dirname(outputPath), { recursive: true })
@@ -356,16 +371,20 @@ async function main() {
   writeFileSync(join(ctx.outputDir, 'llms-full.txt'), llmsFiles.full)
   ctx.log('Generated llms.txt and llms-full.txt')
 
+  // Report the completed prerender build.
   console.log('[prerender] === Prerender Build Complete ===')
 }
 
 // buildRootTemplate builds the root document with the landing and loading
 // shells needed before the application starts.
 async function buildRootTemplate(ctx: PrerenderContext) {
+  // Render the root landing page through the shared providers.
   const landingHtml = await prerenderElement(createElement(Landing), '/')
 
+  // Keep both landing and startup shells in the initial document.
   const body = `<div id="sw-landing" class="${ROOT_LANDING_SHELL_CLASS}">${landingHtml}</div>${buildStartupShell(ctx.iconUrl)}`
 
+  // Build the root page with the same CSS order as every static page.
   const rootHtml = buildPageHtml({
     body,
     title: landingMetadata.title,
@@ -378,11 +397,13 @@ async function buildRootTemplate(ctx: PrerenderContext) {
     hydrateScript: ctx.hydrateScriptTag,
     criticalCss: ROOT_BOOT_VISIBILITY_CSS,
     mainCssUrl: ctx.mainCssUrl,
+    stylexOrder: ctx.stylexOrder,
     additionalCssUrls: ctx.hydrateCssUrls,
     iconUrl: ctx.iconUrl,
     importMap: ctx.importMap,
   })
 
+  // Write the completed root document.
   const outputPath = join(ctx.outputDir, 'index.html')
   writeFileSync(outputPath, rootHtml)
   console.log(`[prerender] Wrote ${outputPath} (${rootHtml.length} bytes)`)

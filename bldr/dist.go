@@ -34,6 +34,7 @@ import (
 //go:embed web/bldr/shared-worker.ts web/bldr/shutdown.ts
 //go:embed web/bldr/simple-event-emitter.ts web/bldr/startup-marks.ts
 //go:embed web/bldr/storage-durability-owner.ts web/bldr/timeout.ts
+//go:embed web/bldr/stylex-client.ts
 //go:embed web/bldr/stylex-order.ts web/bldr/stylex-priorities.ts
 //go:embed web/bldr/ulid.ts web/bldr/wasm-detect.ts
 //go:embed web/bldr/web-document-lock.ts web/bldr/web-document-tracker.ts
@@ -131,6 +132,7 @@ import (
 //go:embed devtool/deps.go
 //go:embed devtool/web/entrypoint/web.go
 //go:embed devtool/web/entrypoint/startup-trace_js.go
+//go:embed dist/deps/patches/*.patch
 //go:embed dist/deps/deps.go dist/deps/package.json dist/deps/bun.lock
 //go:embed web/bundler/bundler.pb.ts
 //go:embed web/bundler/esbuild/esbuild.pb.ts
@@ -139,6 +141,7 @@ import (
 //go:embed web/bundler/rolldown/run-build.mjs web/bundler/rolldown/run-build.ts
 //go:embed web/bundler/rolldown/rolldown.pb.ts
 //go:embed web/bundler/vite/build.ts web/bundler/vite/run-build.ts
+//go:embed web/bundler/vite/stylex.ts
 //go:embed web/bundler/vite/vite.ts web/bundler/vite/plugin.ts
 //go:embed web/bundler/vite/module-preload.ts web/bundler/vite/output-naming.ts
 //go:embed web/bundler/vite/web-pkg-naming.ts
@@ -169,6 +172,7 @@ import (
 //go:embed sdk/hooks/index.ts sdk/hooks/useMappedResource.ts
 //go:embed sdk/hooks/useStreamingResource.ts
 //go:embed sdk/hooks/resourceTransitionState.ts sdk/hooks/SharedResources.ts
+//go:embed web/bldr-react/stylex-types.ts
 //go:embed README.md global.d.ts
 var DistSources embed.FS
 

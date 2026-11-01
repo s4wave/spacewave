@@ -156,13 +156,13 @@ var DIST_SOURCE_PREFIXES = [
 ];
 var LOCAL_MODULE_PREFIX = "github.com/s4wave/spacewave/";
 var NODE_EVENTS_ID = "\x00goscript-node-events";
-var CSS_EXTENSION_PATTERN = /\.(?:css|less|sass|scss|styl|stylus|pcss|postcss)\b/i;
+var CSS_EXTENSION_PATTERN = /(?:\.(?:css|less|sass|scss|styl|stylus|pcss|postcss)\b|@stylexjs\/stylex)/i;
 var CSS_IMPORT_PATTERN = /\.(?:css|less|sass|scss|styl|stylus|pcss|postcss)(?:[?#].*)?$/i;
 var IMPORT_SPECIFIER_PATTERN = /(?:\b(?:import|export)\s+(?:[^'"]*?\sfrom\s*)?|\bimport\s*\(\s*|\brequire\s*\(\s*)['"]([^'"]+)['"]/g;
 function sourceHasCssImport(code) {
   IMPORT_SPECIFIER_PATTERN.lastIndex = 0;
   for (const match of code.matchAll(IMPORT_SPECIFIER_PATTERN)) {
-    if (CSS_IMPORT_PATTERN.test(match[1] ?? ""))
+    if (match[1] === "@stylexjs/stylex" || CSS_IMPORT_PATTERN.test(match[1] ?? ""))
       return true;
   }
   return false;
@@ -513,6 +513,7 @@ ${original}`;
           if (sourceHasCssImport(code)) {
             hasCssImports = true;
             trackInput(id);
+            throw new BuildRequestError("CSS-bearing source requires Vite extraction");
           }
           return null;
         }

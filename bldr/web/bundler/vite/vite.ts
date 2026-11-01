@@ -26,6 +26,7 @@ import {
   SendRequest,
   SendResponse,
 } from '../../../frontend/frontend.pb.js'
+import { stylexCss } from './stylex.js'
 import { DevelopmentEnvironment } from './development.js'
 import {
   buildAndAnalyze,
@@ -357,6 +358,7 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
         alias: buildGoAliases(projectRoot, distDir),
       }
     }
+    mergedConfig.plugins.unshift(stylexCss())
     mergedConfig.plugins.push(
       createWorkerSafeModulePreloadPlugin(),
       ...(allExternal.length > 0
@@ -513,6 +515,7 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
 async function buildWebPkg(
   request: BuildWebPkgRequest,
 ): Promise<BuildWebPkgResponse> {
+  // Package identity and output location come from the caller, never the process directory.
   const pkgId = request.pkgId || ''
   const pkgRoot = request.pkgRoot || ''
   const imports = request.imports || []
@@ -520,6 +523,8 @@ async function buildWebPkg(
   const externalPkgs = request.externalPkgs || []
   const outDir = request.outDir || ''
   const isRelease = request.isRelease || false
+
+  // Mirrored package sources retain their project root for resolving shared imports.
   const jsMinification = request.jsMinification || false
   const jsSourcemaps = request.jsSourcemaps || false
   const cacheDir = request.cacheDir || ''
@@ -527,6 +532,7 @@ async function buildWebPkg(
     process.env['BLDR_PROJECT_ROOT'] || findNearestGoModRoot(pkgRoot) || pkgRoot
   const distRoot = process.env['BLDR_DIST_ROOT'] || projectRoot
 
+  // A partial request has no stable package or output identity.
   if (!pkgId || !pkgRoot || imports.length === 0 || !outDir) {
     return {
       success: false,
@@ -534,10 +540,12 @@ async function buildWebPkg(
     }
   }
 
+  // Include package identity before any compiler diagnostic about its imports.
   if (verboseDebug) {
     console.log(`[vite] buildWebPkg: ${pkgId} imports=${imports}`)
   }
 
+  // Build the package and report compiler failures through the service result.
   try {
     // Build the Rolldown input map from imports. Each import becomes a named
     // input keyed by its served entry name (see servedEntryName).
@@ -622,6 +630,7 @@ async function buildWebPkg(
       // packages and converts their require() calls to ESM imports. Also
       // remap non-BldrExternal sibling web packages to /b/pkg/ URLs.
       plugins: [
+        stylexCss(),
         goTsResolver(projectRoot, distRoot),
         createWorkerSafeModulePreloadPlugin(),
         ...(allExternal.length > 0

@@ -1,4 +1,4 @@
-import { SPACEWAVE_PUBLIC_BASE_URL } from '@s4wave/app/urls.js'
+import { SPACEWAVE_PUBLIC_BASE_URL } from '../urls.js'
 
 // FUNNEL_BEACON_SOURCE reports a visit to the landing, pricing or a
 // quickstart page of the production website to the product funnel. Other

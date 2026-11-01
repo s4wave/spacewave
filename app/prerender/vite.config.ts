@@ -1,3 +1,4 @@
+import { stylexCss } from '../../bldr/web/bundler/vite/stylex.js'
 import { defineConfig } from 'vite'
 import { resolve } from 'path'
 import { dirname } from 'node:path'
@@ -53,5 +54,5 @@ export default defineConfig({
     ],
   },
 
-  plugins: [react(), tailwindcss(), goTsResolver(projectRoot)],
+  plugins: [stylexCss(), react(), tailwindcss(), goTsResolver(projectRoot)],
 })
