@@ -11,8 +11,7 @@ export interface ElementStyle {
   name: string
   box: number[]
   styles: Record<string, string>
-  before: Record<string, string> | null
-  after: Record<string, string> | null
+  pseudos: Record<string, Record<string, string>>
 }
 
 /** Snapshot is one settled render of one manifest state. */
@@ -29,6 +28,7 @@ export interface Snapshot {
 /** CaptureIndex is published only after every requested state was captured. */
 export interface CaptureIndex {
   revision: string
+  sourceStatus: string
   manifestHash: string
   startedAt: string
   elapsedMs: number
@@ -91,9 +91,20 @@ export function* compareSnapshot(
         }
       }
     }
-    for (const group of ['styles', 'before', 'after'] as const) {
-      const oldStyles = oldElement[group] ?? {}
-      const newStyles = newElement[group] ?? {}
+    const groups = new Set([
+      'styles',
+      ...Object.keys(oldElement.pseudos),
+      ...Object.keys(newElement.pseudos),
+    ])
+    for (const group of groups) {
+      const oldStyles =
+        group === 'styles'
+          ? oldElement.styles
+          : (oldElement.pseudos[group] ?? {})
+      const newStyles =
+        group === 'styles'
+          ? newElement.styles
+          : (newElement.pseudos[group] ?? {})
       for (const property of new Set([
         ...Object.keys(oldStyles),
         ...Object.keys(newStyles),

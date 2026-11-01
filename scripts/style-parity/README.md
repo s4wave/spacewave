@@ -1,5 +1,14 @@
 # Style parity
 
+Install Playwright's Chromium and WebKit once on the capture host:
+
+```sh
+bun run style-parity:install-browsers
+```
+
+These browser versions belong to the Node Playwright package, independently of
+playwright-go's browser installation. Node 24 or later runs the collector.
+
 Use the signed local CDN fixture to capture the branch's own app and plugins:
 
 ```sh
@@ -17,16 +26,21 @@ against another revision. Node 24 or later runs Playwright; Bun compiles the
 tool. Browser contexts use disposable storage.
 
 ```sh
-bun run style-parity capture --base http://127.0.0.1:5595 \
+bun run style-parity capture --base http://127.0.0.1:5595 --revision SERVED_COMMIT \
   --manifest scripts/style-parity/public.manifest.ts --out .bldr/parity-before
-bun run style-parity capture --base http://127.0.0.1:5595 \
+bun run style-parity capture --base http://127.0.0.1:5595 --revision SERVED_COMMIT \
   --manifest scripts/style-parity/public.manifest.ts --out .bldr/parity-after
 bun run style-parity compare --before .bldr/parity-before \
   --after .bldr/parity-after --out .bldr/parity-differences.jsonl
 ```
 
+Pass the revision that built the served application, even when the collector
+runs in another checkout. `--source-status` records the build checkout's Git
+status; its default is `unspecified`. The signed fixture supplies both values.
+A dirty checkout requires recording its changes alongside the capture.
+
 Use a new output directory for each capture. The tool saves screenshots,
-resolved CSS properties, generated pseudo-elements, geometry and accessible
+resolved CSS properties, pseudo-element styles, geometry and accessible
 content for every state in Chromium and WebKit at three sizes. It excludes
 custom property declarations because different compilers use different internal
 variables; their effects remain visible in the resolved CSS properties.
@@ -38,8 +52,6 @@ application's own readiness. A heading appearing during loading is insufficient.
 Each state starts in a fresh context, so setup must establish its own disposable
 fixture. The starter manifest covers three public pages; add session viewers
 and overlays before treating it as full application coverage.
-`routes.manifest.ts` is a draft route inventory awaiting validation through the
-local CDN build.
 
 The capture fixes wall-clock dates, waits for fonts and image decoding, and
 freezes animation progress. Finite animations reach their end; repeating
