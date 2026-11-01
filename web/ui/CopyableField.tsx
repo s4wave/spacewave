@@ -6,22 +6,46 @@ import {
   layout as themeLayout,
   fonts as themeFonts,
   colors as themeColors,
+  radii as themeRadii,
+  motion as themeMotion,
 } from '../style/tokens.stylex.js'
 
-const stylexStyles = stylex.create({
-  rule1: {
+const styles = stylex.create({
+  button: {
+    marginLeft: `calc(${themeLayout['--spacing']} * -2)`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+    textAlign: 'left',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+  },
+  root: {
     display: 'flex',
     flexDirection: 'column',
     gap: themeLayout['--spacing'],
   },
-  rule2: {
+  label: {
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     color: themeColors['--color-foreground-alt'],
     WebkitUserSelect: 'none',
     userSelect: 'none',
   },
-  rule3: {
+  value: {
     fontFamily: themeFonts['--font-mono'],
     WebkitFontSmoothing: 'subpixel-antialiased',
     MozOsxFontSmoothing: 'auto',
@@ -32,11 +56,28 @@ const stylexStyles = stylex.create({
     wordBreak: 'break-all',
     color: themeColors['--color-foreground'],
   },
-  rule4: {
+  copiedIcon: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
     height: `calc(${themeLayout['--spacing']} * 3.5)`,
     flexShrink: 0,
     color: themeColors['--color-green-500'],
+  },
+  copyIcon: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    opacity: {
+      default: 0,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':hover')]: 1,
+      },
+    },
+    transitionProperty: 'opacity',
+    transitionTimingFunction:
+      'var(--tw-ease, var(--default-transition-timing-function))',
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
   },
 })
 
@@ -56,25 +97,19 @@ export function CopyableField({ label, value }: CopyableFieldProps) {
   }, [value])
 
   return (
-    <div sx={stylexStyles.rule1}>
-      <span sx={stylexStyles.rule2}>{label}</span>
+    <div sx={styles.root}>
+      <span sx={styles.label}>{label}</span>
       <button
         type="button"
         onClick={handleCopy}
-        className={
-          /* TODO(stylex): global or unknown class: group */ 'group hover:bg-foreground/5 -ml-2 flex items-center gap-2 rounded-md px-2 py-1 text-left transition-colors'
-        }
+        {...stylex.props(styles.button, stylex.defaultMarker())}
         aria-label={copied ? 'Copied!' : 'Click to copy'}
       >
-        <span sx={stylexStyles.rule3}>{value}</span>
+        <span sx={styles.value}>{value}</span>
         {copied ? (
-          <LuCheck {...stylex.props(stylexStyles.rule4)} />
+          <LuCheck {...stylex.props(styles.copiedIcon)} />
         ) : (
-          <LuCopy
-            className={
-              /* TODO(stylex): a descendant, group, peer or compound selector: group-hover:opacity-100 */ 'size-3.5 flex-shrink-0 opacity-0 transition-opacity group-hover:opacity-100'
-            }
-          />
+          <LuCopy {...stylex.props(styles.copyIcon)} />
         )}
       </button>
     </div>

@@ -282,7 +282,7 @@ test(
             : "[{match:'INFO',sx:valueStyles.brand},{match:(line:string)=>line.includes('WARN'),sx:valueStyles.warning}]"
         main = main.replace(
           '</main>',
-          `<OutputPanel lines={['PASS first','FAIL second','[stderr] Warning','Running: Build','Error: Unavailable','Plain output']}/><OutputPanel lines={[]}/><OutputPanel lines={['Last output']} error="Build failed"/><OutputPanel lines={['INFO Starting','Some WARN here','Fallback']} rules={${outputRules}}/></main>`,
+          `<OutputPanel lines={['PASS first','FAIL second','[stderr] Warning','Running: Build','Error: Unavailable','Plain output']}/><OutputPanel lines={[]}/><OutputPanel lines={['Last output']} error="Build failed"/><OutputPanel lines={['INFO Starting','INFO WARN overlap','Some WARN here','Fallback']} rules={${outputRules}}/></main>`,
         )
         const output = await readFile(
           version === 'before'
@@ -331,6 +331,89 @@ test(
             JSON.stringify(resolve('web/style/tokens.stylex.ts')),
           ),
         )
+        // Compare figure separators on empty, single and multiple-item strips.
+        main = main.replace(
+          "import React from 'react';",
+          "import React from 'react';import{FigureStrip}from'./FigureStrip';",
+        )
+        main = main.replace(
+          '</main>',
+          `<FigureStrip figures={[]}/><FigureStrip figures={[{label:'Workers',value:2}]}/><FigureStrip figures={[{label:'Files',value:12,unit:'of 20',detail:'Ready'},{label:'Jobs',value:3},{label:'Devices',value:4,detail:'Connected'}]}/></main>`,
+        )
+        const figures = await readFile(
+          version === 'before'
+            ? 'scripts/tailwind-to-stylex/testdata/components/FigureStrip.tsx'
+            : 'web/ui/FigureStrip.tsx',
+          'utf8',
+        )
+        await writeFile(
+          join(root, 'FigureStrip.tsx'),
+          figures.replace(
+            /(['"])(?:\.\.\/)+(?:web\/)?style\/tokens\.stylex\.js\1/g,
+            JSON.stringify(resolve('web/style/tokens.stylex.ts')),
+          ),
+        )
+        // Retain typography on default and compact popovers, but not their status variant.
+        main = main.replace(
+          "import React from 'react';",
+          "import React from 'react';import{Popover,PopoverTrigger,PopoverContent}from'./Popover';",
+        )
+        main = main.replace(
+          '</main>',
+          ['default', 'status', 'compact']
+            .map(
+              (variant) =>
+                `<div style={{height:250}}><Popover open><PopoverTrigger asChild><button>${variant} popover</button></PopoverTrigger><PopoverContent variant="${variant}" align="start" aria-label="${variant} information" onOpenAutoFocus={event=>event.preventDefault()}><span>Popover information</span></PopoverContent></Popover></div>`,
+            )
+            .join('') + '</main>',
+        )
+        const popover = await readFile(
+          version === 'before'
+            ? 'scripts/tailwind-to-stylex/testdata/components/Popover.tsx'
+            : 'web/ui/Popover.tsx',
+          'utf8',
+        )
+        await writeFile(
+          join(root, 'Popover.tsx'),
+          popover
+            .replace('../style/utils.js', '@s4wave/web/style/utils.js')
+            .replace(
+              /(['"])(?:\.\.\/)+(?:web\/)?style\/tokens\.stylex\.js\1/g,
+              JSON.stringify(resolve('web/style/tokens.stylex.ts')),
+            ),
+        )
+        // Compare every radio selection/disabled state and the copy affordance.
+        main = main.replace(
+          "import React from 'react';",
+          "import React from 'react';import{RadioOption}from'./RadioOption';import{CopyableField}from'./CopyableField';",
+        )
+        main = main.replace(
+          '</main>',
+          [false, true]
+            .flatMap((selected) =>
+              [false, true].map(
+                (disabled) =>
+                  `<RadioOption selected={${selected}} disabled={${disabled}} onSelect={()=>{}} label="Radio ${selected} ${disabled}" tag="Option" description="Details"/>`,
+              ),
+            )
+            .join('') +
+            '<CopyableField label="Identifier" value="shared-value"/></main>',
+        )
+        for (const name of ['RadioOption', 'CopyableField']) {
+          const input = await readFile(
+            version === 'before'
+              ? `scripts/tailwind-to-stylex/testdata/components/${name}.tsx`
+              : `web/ui/${name}.tsx`,
+            'utf8',
+          )
+          await writeFile(
+            join(root, `${name}.tsx`),
+            input.replace(
+              /(['"])(?:\.\.\/)+(?:web\/)?style\/tokens\.stylex\.js\1/g,
+              JSON.stringify(resolve('web/style/tokens.stylex.ts')),
+            ),
+          )
+        }
         await writeFile(
           join(root, 'main.tsx'),
           version === 'before'

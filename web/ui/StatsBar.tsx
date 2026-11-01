@@ -1,37 +1,31 @@
-import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import type { StyleXStyles } from '@stylexjs/stylex'
 import type { ReactNode } from 'react'
 
 import * as stylex from '@stylexjs/stylex'
-import { colors as themeColors } from '../style/tokens.stylex.js'
-
 import {
+  colors as themeColors,
   layout as themeLayout,
   utilityState as themeUtilityState,
-  colors as themeColors2,
   fonts as themeFonts,
 } from '../style/tokens.stylex.js'
 
-const stylexStyles2 = stylex.create({
-  rule1: {
+const styles = stylex.create({
+  root: {
     display: 'flex',
     alignItems: 'center',
     gap: `calc(${themeLayout['--spacing']} * 4)`,
     borderRadius: '.25rem',
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: themeColors2['--color-ui-outline'],
-    backgroundColor: themeColors2['--color-background-secondary'],
+    borderColor: themeColors['--color-ui-outline'],
+    backgroundColor: themeColors['--color-background-secondary'],
     paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
     paddingBlock: themeLayout['--spacing'],
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
   },
-})
-
-const stylexStyles = stylex.create({
-  rule1: { color: themeColors['--color-foreground-alt'] },
-  rule2: { color: themeColors['--color-foreground'] },
+  label: { color: themeColors['--color-foreground-alt'] },
+  value: { color: themeColors['--color-foreground'] },
 })
 
 // StatItem represents a single statistic to display.
@@ -50,26 +44,20 @@ export interface StatsBarProps {
   className?: never
   // stats is the array of statistics to display.
   stats: StatItem[]
-  // className is an optional CSS class for the container.
-  sx?: ComponentStyles
+  // sx overrides the container styles.
+  sx?: StyleXStyles
 }
 
 // StatsBar displays a horizontal bar of key-value statistics.
-export function StatsBar({
-  stats,
-  sx,
-}: Omit<StatsBarProps, 'className'> & {
-  sx?: ComponentStyles
-  className?: never
-}) {
+export function StatsBar({ stats, sx }: StatsBarProps) {
   if (stats.length === 0) return null
 
   return (
-    <div sx={[stylexStyles2.rule1, sx]}>
+    <div sx={[styles.root, sx]}>
       {stats.map((stat) => (
-        <span key={stat.label} sx={stylexStyles.rule1}>
+        <span key={stat.label} sx={styles.label}>
           {stat.label}:{' '}
-          <span sx={stat.valueSx ?? stylexStyles.rule2}>{stat.value}</span>
+          <span sx={stat.valueSx ?? styles.value}>{stat.value}</span>
         </span>
       ))}
     </div>
