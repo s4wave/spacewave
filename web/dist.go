@@ -58,7 +58,7 @@ import "embed"
 //go:embed state/StateAtomRegistry.tsx
 //go:embed state/global.ts state/index.tsx state/interaction.ts state/persist.tsx state/useBackendStateAtom.tsx
 //go:embed style/tokens.stylex.ts style/media.stylex.ts
-//go:embed state/useStateAtomResource.tsx style/app.css style/flexlayout/base.css
+//go:embed state/useStateAtomResource.tsx style/app.css style/sonner.css style/sonner.ts style/flexlayout/base.css
 //go:embed style/flexlayout/flexlayout.css style/shadcn.css style/utils.ts title/DocumentTitleContext.tsx
 //go:embed title/DocumentTitleFocusContext.ts transform/TransformConfigDisplay.tsx ui/BackButton.tsx
 //go:embed ui/CollapsibleSection.tsx ui/CopyButton.tsx ui/CopyableField.tsx ui/DashboardButton.tsx

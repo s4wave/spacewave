@@ -414,6 +414,48 @@ test(
             ),
           )
         }
+        // Compare native Radix tooltip placement and enabled/disabled slider rendering.
+        main = main.replace(
+          "import React from 'react';",
+          "import React from 'react';import{Tooltip,TooltipTrigger,TooltipContent}from'./tooltip';import{Slider}from'./range-slider';",
+        )
+        main = main.replace(
+          '</main>',
+          `<div style={{height:100}}><Tooltip open><TooltipTrigger asChild><button>Tooltip anchor</button></TooltipTrigger><TooltipContent side="bottom" align="start">Tooltip information</TooltipContent></Tooltip></div><Slider aria-label="Enabled range" defaultValue={[40]} max={100}/><Slider aria-label="Disabled range" defaultValue={[60]} max={100} disabled/></main>`,
+        )
+        for (const name of ['tooltip', 'range-slider']) {
+          const input = await readFile(
+            version === 'before'
+              ? `scripts/tailwind-to-stylex/testdata/components/${name}.tsx`
+              : `web/ui/${name}.tsx`,
+            'utf8',
+          )
+          await writeFile(
+            join(root, `${name}.tsx`),
+            input
+              .replace('../style/utils.js', '@s4wave/web/style/utils.js')
+              .replace(
+                /(['"])(?:\.\.\/)+(?:web\/)?style\/tokens\.stylex\.js\1/g,
+                JSON.stringify(resolve('web/style/tokens.stylex.ts')),
+              ),
+          )
+        }
+        // Exercise Sonner's real DOM for every toast tone, description and action slot.
+        main = main.replace(
+          "import React from 'react';",
+          `import React,{useEffect} from 'react';import{Toaster,toast}from'./toaster';function ToastSamples(){useEffect(()=>{for(const tone of ['success','info','warning','error'] as const)toast[tone](tone,{id:tone,description:'Toast details',duration:Infinity,action:{label:'Retry',onClick:()=>{}},cancel:{label:'Dismiss',onClick:()=>{}}});toast('Message',{id:'message',description:'Message details',duration:Infinity})},[]);return <Toaster visibleToasts={5} expand closeButton/>}`,
+        )
+        main = main.replace('</main>', '<ToastSamples/></main>')
+        const toaster = await readFile(
+          version === 'before'
+            ? 'scripts/tailwind-to-stylex/testdata/components/toaster.tsx'
+            : 'web/ui/toaster.tsx',
+          'utf8',
+        )
+        await writeFile(
+          join(root, 'toaster.tsx'),
+          toaster.replace('../style/sonner.js', resolve('web/style/sonner.ts')),
+        )
         await writeFile(
           join(root, 'main.tsx'),
           version === 'before'
@@ -520,14 +562,23 @@ test(
         throw error
       }
 
+      // Require the actual toast DOM and its measured layout before observing either build.
+      const ready = async (page: import('playwright').Page) => {
+        await page.locator('main button').first().waitFor()
+        await page
+          .locator('[data-sonner-toast][data-mounted="true"]')
+          .nth(4)
+          .waitFor()
+      }
+
       // Compare default and hovered controls in both engines at every accepted size.
       const manifest = {
         states: [
-          { id: 'components', path: '/', ready: 'main button' },
+          { id: 'components', path: '/', ready },
           {
             id: 'reduced-motion',
             path: '/',
-            ready: 'main button',
+            ready,
             setup: async (page: import('playwright').Page) => {
               await page.emulateMedia({ reducedMotion: 'reduce' })
             },
@@ -535,7 +586,7 @@ test(
           {
             id: 'hovered',
             path: '/',
-            ready: 'main button',
+            ready,
             setup: async (page: import('playwright').Page) => {
               await page
                 .getByRole('button', { name: 'example', exact: true })
