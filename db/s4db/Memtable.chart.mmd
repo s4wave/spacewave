@@ -1,0 +1,16 @@
+---
+title: "Published memtable copies serialize their COW metadata"
+---
+stateDiagram-v2
+  s0: owner 0, epoch 0
+  s1: owner 1, epoch 1
+  s2: owner 2, epoch 2
+  s3: owner 0, epoch 1
+  s4: owner 0, epoch 2
+  [*] --> s0
+  s0 --> s1: Begin
+  s0 --> s2: Begin
+  s1 --> s3: Finish
+  s2 --> s4: Finish
+  s3 --> s2: Begin
+  s4 --> s1: Begin
