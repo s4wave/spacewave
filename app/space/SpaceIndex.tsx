@@ -19,6 +19,13 @@ import { toast } from '@s4wave/web/ui/toaster.js'
 import { SpaceObjectBrowser } from './SpaceObjectBrowser.js'
 import { applySpaceIndexPath } from './space-settings.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: { flexShrink: '0' },
+  rule2: { flex: '1' },
+})
+
 // spaceIndexPageSize is how many keys one index lookup reads at a time.
 const spaceIndexPageSize = 100
 
@@ -40,6 +47,7 @@ export async function resolveSpaceIndex(
   indexPath: string | undefined,
   signal?: AbortSignal,
 ): Promise<SpaceIndexResolution> {
+  // Find the first visible object and preserve an explicitly empty index route.
   const first = await firstVisibleObjectKey(world, signal)
   const hasVisibleObjects = !!first
   const path = indexPath ?? ''
@@ -47,6 +55,7 @@ export async function resolveSpaceIndex(
     return { path: '', stale: false, hasVisibleObjects }
   }
 
+  // Retain the configured object only while it remains visible.
   const parsed = parseObjectUri(path)
   const indexObjectKey = parsed.objectKey
   if (!indexObjectKey) {
@@ -56,6 +65,7 @@ export async function resolveSpaceIndex(
     return { path, stale: false, hasVisibleObjects }
   }
 
+  // Repair a stale index with its nearest sibling or the first visible object.
   const replacement =
     (await lowestNumberedObjectKey(world, indexObjectKey, signal)) || first
   if (!replacement) {
@@ -129,12 +139,14 @@ async function lowestNumberedObjectKey(
 
 // SpaceIndex handles the root route of a space.
 export function SpaceIndex() {
+  // Read the Space and retain the navigation and repair identities across renders.
   const { spaceState, spaceWorld, spaceWorldResource, navigateToSubPath } =
     SpaceContainerContext.useContext()
   const openCommand = useOpenCommand()
   const redirectedIndexPathRef = useRef<string | null>(null)
   const repairedIndexPathRef = useRef<string | null>(null)
 
+  // Resolve the current index through the World's change-aware query.
   const indexPath = spaceState.settings?.indexPath
   const indexResolution = useWorldQuery(
     spaceWorldResource,
@@ -147,10 +159,12 @@ export function SpaceIndex() {
       : null
   const stale = !!indexResolution?.stale
 
+  // Open the existing object creation command from the empty-state action.
   const handleCreateClick = useCallback(() => {
     openCommand('spacewave.create-object')
   }, [openCommand])
 
+  // Navigate once for each resolved index route.
   useEffect(() => {
     if (!redirectPath) {
       redirectedIndexPathRef.current = null
@@ -163,10 +177,14 @@ export function SpaceIndex() {
     navigateToSubPath(redirectPath)
   }, [navigateToSubPath, redirectPath])
 
+  // Repair a stale saved index once for each old-to-new path pair.
   useEffect(() => {
+    // Wait until both the stale route and its writable World are available.
     if (!stale || !redirectPath || !spaceWorld) {
       return
     }
+
+    // Remember this repair before issuing the write so rerenders cannot repeat it.
     const repairKey = `${indexPath ?? ''}->${redirectPath}`
     if (repairedIndexPathRef.current === repairKey) {
       return
@@ -183,15 +201,17 @@ export function SpaceIndex() {
     )
   }, [stale, redirectPath, spaceWorld, indexPath])
 
+  // Wait for resolution or navigation before showing an empty-state choice.
   if (!indexResolution || redirectPath) {
     return null
   }
 
+  // Keep the object list beside the prompt when the Space already contains objects.
   if (indexResolution.hasVisibleObjects) {
     return (
       <div className="flex min-h-0 flex-1 flex-col">
         <EmptyState
-          className="shrink-0"
+          sx={stylexStyles.rule1}
           icon={<LuBox className="text-foreground-alt size-7" />}
           title="Choose an object"
           description="Select an object to view, or add a new one."
@@ -209,7 +229,7 @@ export function SpaceIndex() {
 
   return (
     <EmptyState
-      className="flex-1"
+      sx={stylexStyles.rule2}
       icon={<LuBox className="text-foreground-alt size-7" />}
       title="Empty Space"
       description="This space has no objects yet."

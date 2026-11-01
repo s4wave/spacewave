@@ -24,6 +24,10 @@ import { NavigatePath } from '@s4wave/web/router/NavigatePath.js'
 import { createQuickstartHandoff } from './session-handoff.js'
 import { markQuickstartStartupBoundary } from './startup-boundary.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({ rule1: { position: 'relative' } })
+
 interface QuickstartProps {
   quickstartId: QuickstartId
 }
@@ -39,7 +43,7 @@ function QuickstartErrorState({ message, onRetry }: QuickstartErrorStateProps) {
   return (
     <ErrorState
       variant="fullscreen"
-      className="relative"
+      sx={stylexStyles.rule1}
       title="Setup Failed"
       message={message}
       onRetry={onRetry}
@@ -53,7 +57,9 @@ function QuickstartErrorState({ message, onRetry }: QuickstartErrorStateProps) {
 
 // Quickstart retains setup resources across the final route transition.
 export const Quickstart: React.FC<QuickstartProps> = ({ quickstartId }) => {
+  // Read the host environment used by setup and route handoff.
   const environment = useAppEnvironment()
+
   // isCreate indicates this is an option that should call createQuickstartSetup.
   // otherwise we redirect below.
   const isCreate = isQuickstartCreateId(quickstartId)
@@ -156,6 +162,7 @@ export const Quickstart: React.FC<QuickstartProps> = ({ quickstartId }) => {
     return <NavigatePath to="/login" />
   }
 
+  // Reject an unknown option before starting the creation journey.
   if (!isCreate) {
     // We shouldn't have gotten here
     console.error(`unknown quickstart option: ${String(quickstartId)}`)
@@ -192,6 +199,7 @@ export const Quickstart: React.FC<QuickstartProps> = ({ quickstartId }) => {
     )
   }
 
+  // Keep the startup screen mounted until setup supplies a usable Space.
   if (setupResource.loading || !setup || !spaceID) {
     return <LoadingScreen quickstartId={quickstartId} progress={progress} />
   }
