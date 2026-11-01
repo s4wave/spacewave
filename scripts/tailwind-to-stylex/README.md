@@ -37,3 +37,15 @@ sizes. The historical component inputs stay fixed when their production files
 convert. `STYLEX_PILOT_SOURCE=1` compares those inputs against the handwritten
 production pilots. `STYLEX_MIGRATION_ARTIFACTS=1` retains passing captures;
 failed runs always retain theirs.
+
+Use `--component-api` for the coordinated shared-component pass. It changes
+owned `className` inputs to typed `sx` inputs and composes the caller's styles
+last. A file with remaining unsupported attributes keeps its old input contract
+for the hand pass. `--shared-sx` rewrites styling inputs on components imported
+from `web/ui`; use it on callers after those shared APIs have been converted.
+Other components retain their own input contract until their area converts.
+
+Class strings passed through `cn` use the actual `cnfast` normalizer before
+utility extraction. Plain JSX class strings retain Tailwind's canonical CSS
+order. This distinction preserves cases such as `cn('p-2 p-1')`, where the
+helper removes `p-2` before the browser sees it.

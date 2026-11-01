@@ -4,6 +4,7 @@ import { __unstable__loadDesignSystem } from '@tailwindcss/node'
 import postcss, { type Container, type Declaration } from 'postcss'
 import { parseSync } from '@babel/core'
 import { join } from 'node:path'
+import { cn } from 'cnfast'
 
 /** StyleRule is a StyleX declaration object with nested conditions. */
 export interface StyleRule {
@@ -149,5 +150,11 @@ export async function createOracle(theme: string) {
                 : 1,
       )
       .map(([candidate]) => candidate)
-  return { translate, order, globalRules, tokens }
+  return {
+    translate,
+    order,
+    globalRules,
+    tokens,
+    normalize: (classes: string) => cn(classes),
+  }
 }

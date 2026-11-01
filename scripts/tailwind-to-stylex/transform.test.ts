@@ -8,6 +8,7 @@ import tailwind from '@tailwindcss/vite'
 
 import { createOracle } from './oracle.js'
 import { transform } from './transform.js'
+import { prepareComponentStyles } from './component-api.js'
 import { stylexCss } from '../../bldr/web/bundler/vite/stylex.js'
 import { capture } from '../style-parity/capture.js'
 import { compareCaptures } from '../style-parity/compare.js'
@@ -18,6 +19,7 @@ const projectSources = [
   'plugin/notes/blog/TagChip.tsx',
   'web/ui/InfoCard.tsx',
   'scripts/tailwind-to-stylex/testdata/components/ExpressionCases.tsx',
+  'scripts/tailwind-to-stylex/testdata/components/OwnedStyles.tsx',
 ]
 
 test(
@@ -49,7 +51,7 @@ test(
         )
         await writeFile(
           join(root, 'main.tsx'),
-          `import React from 'react';import{createRoot}from'react-dom/client';import{VmErrorBanner}from'./VmErrorBanner';import{TagChip}from'./TagChip';import{InfoCard}from'./InfoCard';import{ExpressionCases}from'./ExpressionCases';import${JSON.stringify(resolve('web/style/app.css'))};createRoot(document.getElementById('root')!).render(<main><VmErrorBanner title="VM unavailable" message="Choose an available image to continue."/><TagChip tag="example"/><InfoCard title="Status" icon={<span>!</span>}>Ready</InfoCard><InfoCard compact title="Compact">Ready</InfoCard><InfoCard icon={<span>!</span>}>Untitled</InfoCard><ExpressionCases/></main>);`,
+          `import React from 'react';import{createRoot}from'react-dom/client';import{VmErrorBanner}from'./VmErrorBanner';import{TagChip}from'./TagChip';import{InfoCard}from'./InfoCard';import{ExpressionCases}from'./ExpressionCases';import{OwnedStyles}from'./OwnedStyles';import${JSON.stringify(resolve('web/style/app.css'))};createRoot(document.getElementById('root')!).render(<main><VmErrorBanner title="VM unavailable" message="Choose an available image to continue."/><TagChip tag="example"/><InfoCard title="Status" icon={<span>!</span>}>Ready</InfoCard><InfoCard compact title="Compact">Ready</InfoCard><InfoCard icon={<span>!</span>}>Untitled</InfoCard><ExpressionCases/><OwnedStyles/></main>);`,
         )
         for (const file of projectSources) {
           const source = await readFile(
@@ -59,11 +61,24 @@ test(
             ),
             'utf8',
           )
-          const migration = transform(source, file, oracle)
+          const prepare = file.endsWith('/OwnedStyles.tsx')
+            ? prepareComponentStyles
+            : (source: string) => ({ source, components: new Set<string>() })
+          const prepared = prepare(source, file)
+          const options = {
+            components: prepared.components,
+            componentProps: file.endsWith('/OwnedStyles.tsx'),
+          }
+          const migration = transform(prepared.source, file, oracle, options)
           assert.equal(migration.remaining.length, 0, file)
           assert(migration.converted > 0, file)
           assert.equal(
-            transform(migration.source, file, oracle).source,
+            transform(
+              prepare(migration.source, file).source,
+              file,
+              oracle,
+              options,
+            ).source,
             migration.source,
           )
           await writeFile(
@@ -71,7 +86,8 @@ test(
             (version === 'before'
               ? source
               : process.env.STYLEX_PILOT_SOURCE &&
-                  !file.endsWith('/ExpressionCases.tsx')
+                  !file.endsWith('/ExpressionCases.tsx') &&
+                  !file.endsWith('/OwnedStyles.tsx')
                 ? await readFile(file, 'utf8')
                 : migration.source
             ).replace(
