@@ -1,0 +1,241 @@
+@layer skin {
+  /* Sonner owns the toast DOM; this skin preserves its application overrides. */
+  .sw-toast .sw-toast-icon {
+    height: calc(var(--spacing) * 3.5) !important;
+  }
+  .sw-toast .sw-toast-close-button {
+    height: calc(var(--spacing) * 5) !important;
+  }
+  .sw-toast .sw-toast-action-button {
+    height: calc(var(--spacing) * 6) !important;
+  }
+  .sw-toast .sw-toast-cancel-button {
+    height: calc(var(--spacing) * 6) !important;
+  }
+  .sw-toast .sw-toast-icon {
+    width: calc(var(--spacing) * 3.5) !important;
+  }
+  .sw-toast .sw-toast-close-button {
+    width: calc(var(--spacing) * 5) !important;
+  }
+  .sw-toast .sw-toast-content {
+    gap: calc(var(--spacing) * 0.5) !important;
+  }
+  .sw-toast .sw-toast-action-button {
+    border-radius: var(--radius-md) !important;
+  }
+  .sw-toast .sw-toast-cancel-button {
+    border-radius: var(--radius-md) !important;
+  }
+  .sw-toast .sw-toast-close-button {
+    border-color: color-mix(
+      in oklab,
+      var(--color-foreground) 12%,
+      transparent
+    ) !important;
+  }
+  .sw-toast .sw-toast-close-button {
+    background-color: var(--color-background-card) !important;
+  }
+  .sw-toast .sw-toast-action-button {
+    background-color: color-mix(
+      in oklab,
+      var(--color-brand) 10%,
+      transparent
+    ) !important;
+  }
+  .sw-toast .sw-toast-cancel-button {
+    background-color: color-mix(
+      in oklab,
+      var(--color-foreground) 5%,
+      transparent
+    ) !important;
+  }
+  .sw-toast .sw-toast-action-button {
+    padding-inline: calc(var(--spacing) * 2) !important;
+  }
+  .sw-toast .sw-toast-cancel-button {
+    padding-inline: calc(var(--spacing) * 2) !important;
+  }
+  .sw-toast .sw-toast-description {
+    font-size: 0.6rem !important;
+    line-height: 1.5 !important;
+  }
+  .sw-toast .sw-toast-action-button {
+    font-size: 0.6rem !important;
+    line-height: 1.5 !important;
+  }
+  .sw-toast .sw-toast-cancel-button {
+    font-size: 0.6rem !important;
+    line-height: 1.5 !important;
+  }
+  .sw-toast .sw-toast-title {
+    font-size: var(--text-xs) !important;
+    line-height: var(--tw-leading, var(--text-xs--line-height)) !important;
+  }
+  .sw-toast .sw-toast-title {
+    --tw-leading: var(--leading-snug) !important;
+    line-height: var(--leading-snug) !important;
+  }
+  .sw-toast .sw-toast-description {
+    --tw-leading: var(--leading-snug) !important;
+    line-height: var(--leading-snug) !important;
+  }
+  .sw-toast .sw-toast-title {
+    --tw-font-weight: var(--font-weight-medium) !important;
+    font-weight: var(--font-weight-medium) !important;
+  }
+  .sw-toast .sw-toast-action-button {
+    --tw-font-weight: var(--font-weight-medium) !important;
+    font-weight: var(--font-weight-medium) !important;
+  }
+  .sw-toast .sw-toast-cancel-button {
+    --tw-font-weight: var(--font-weight-medium) !important;
+    font-weight: var(--font-weight-medium) !important;
+  }
+  .sw-toast .sw-toast-action-button {
+    color: var(--color-foreground) !important;
+  }
+  .sw-toast .sw-toast-close-button {
+    color: var(--color-foreground-alt) !important;
+  }
+  .sw-toast .sw-toast-cancel-button {
+    color: var(--color-foreground-alt) !important;
+  }
+  .sw-toast .sw-toast-description {
+    color: color-mix(
+      in oklab,
+      var(--color-foreground-alt) 50%,
+      transparent
+    ) !important;
+  }
+  .sw-toast .sw-toast-icon {
+    color: var(--color-brand);
+  }
+  .sw-toast-host .sw-toast {
+    min-height: 0 !important;
+  }
+  .sw-toast-host .sw-toast {
+    gap: calc(var(--spacing) * 2) !important;
+  }
+  .sw-toast-host .sw-toast {
+    border-radius: var(--radius-lg) !important;
+  }
+  .sw-toast-host .sw-toast-success {
+    border-color: color-mix(
+      in oklab,
+      var(--color-brand) 15%,
+      transparent
+    ) !important;
+  }
+  .sw-toast-host .sw-toast-error {
+    border-color: color-mix(
+      in oklab,
+      var(--color-destructive) 20%,
+      transparent
+    ) !important;
+  }
+  .sw-toast-host .sw-toast {
+    border-color: color-mix(
+      in oklab,
+      var(--color-foreground) 8%,
+      transparent
+    ) !important;
+  }
+  .sw-toast-host .sw-toast-info {
+    border-color: color-mix(
+      in oklab,
+      var(--color-foreground) 12%,
+      transparent
+    ) !important;
+  }
+  .sw-toast-host .sw-toast-warning {
+    border-color: color-mix(
+      in oklab,
+      var(--color-warning) 20%,
+      transparent
+    ) !important;
+  }
+  .sw-toast-host .sw-toast {
+    background-color: color-mix(
+      in oklab,
+      var(--color-background-card) 90%,
+      transparent
+    ) !important;
+  }
+  .sw-toast-host .sw-toast {
+    padding-inline: calc(var(--spacing) * 3) !important;
+  }
+  .sw-toast-host .sw-toast {
+    padding-block: calc(var(--spacing) * 2) !important;
+  }
+  .sw-toast-host .sw-toast {
+    font-size: var(--text-xs) !important;
+    line-height: var(--tw-leading, var(--text-xs--line-height)) !important;
+  }
+  .sw-toast-host .sw-toast {
+    color: var(--color-foreground) !important;
+  }
+  .sw-toast-host .sw-toast {
+    --tw-shadow: 0 4px 12px var(--tw-shadow-color, oklch(0% 0 0 / 0.4)) !important;
+    box-shadow:
+      var(--tw-inset-shadow), var(--tw-inset-ring-shadow),
+      var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow) !important;
+  }
+  .sw-toast-host .sw-toast {
+    --tw-backdrop-blur: blur(var(--blur-md));
+    -webkit-backdrop-filter: var(--tw-backdrop-blur,)
+      var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,)
+      var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,)
+      var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,)
+      var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,);
+    backdrop-filter: var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,)
+      var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,)
+      var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,)
+      var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,)
+      var(--tw-backdrop-sepia,);
+  }
+  @media (hover: hover) {
+    .sw-toast .sw-toast-action-button:hover {
+      background-color: color-mix(
+        in oklab,
+        var(--color-brand) 15%,
+        transparent
+      ) !important;
+    }
+  }
+  @media (hover: hover) {
+    .sw-toast .sw-toast-close-button:hover {
+      background-color: color-mix(
+        in oklab,
+        var(--color-foreground) 8%,
+        transparent
+      ) !important;
+    }
+  }
+  @media (hover: hover) {
+    .sw-toast .sw-toast-cancel-button:hover {
+      background-color: color-mix(
+        in oklab,
+        var(--color-foreground) 8%,
+        transparent
+      ) !important;
+    }
+  }
+  @media (hover: hover) {
+    .sw-toast .sw-toast-close-button:hover {
+      color: var(--color-foreground) !important;
+    }
+  }
+  @media (hover: hover) {
+    .sw-toast .sw-toast-cancel-button:hover {
+      color: var(--color-foreground) !important;
+    }
+  }
+  .sw-toast .sw-toast-icon > svg {
+    height: calc(var(--spacing) * 3.5) !important;
+  }
+  .sw-toast .sw-toast-icon > svg {
+    width: calc(var(--spacing) * 3.5) !important;
+  }
+}
