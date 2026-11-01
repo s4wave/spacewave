@@ -22,7 +22,10 @@ import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
 import { cn } from '@s4wave/web/style/utils.js'
-import { CollapsibleSection } from '@s4wave/web/ui/CollapsibleSection.js'
+import {
+  CollapsibleSection,
+  collapsibleSectionActionStyles,
+} from '@s4wave/web/ui/CollapsibleSection.js'
 import { useStateAtom, useStateNamespace } from '@s4wave/web/state/persist.js'
 import {
   Tooltip,
@@ -195,7 +198,8 @@ function SharedObjectSharingSection({
               <button
                 type="button"
                 onClick={onSharingClick}
-                className="text-foreground-alt hover:text-foreground flex size-4 items-center justify-center transition-colors"
+
+                sx={collapsibleSectionActionStyles.button}
                 aria-label="Add user"
                 title="Add user"
               >
@@ -332,10 +336,13 @@ export function SharedObjectDetails({
   dataSection,
   pluginsSection,
 }: SharedObjectDetailsProps) {
+  // Read the panel density and the live object's metadata.
   const { ref: containerRef, density } = useContainerDensity()
   const compact = density === 'compact'
   const sharedObject = useResourceValue(SharedObjectContext.useContext())
   const meta = sharedObject?.meta
+
+  // Keep the current details section in its saved state namespace.
   const ns = useStateNamespace(['details'])
   const [openSection, setOpenSection] = useStateAtom<SharedObjectOpenSection>(
     ns,
@@ -343,6 +350,7 @@ export function SharedObjectDetails({
     defaultSectionFor(!!objectsSection, canShare, !!settingsSection),
   )
 
+  // Give every section one controlled expansion state and the current density.
   const sectionProps = useCallback(
     (section: Exclude<SharedObjectOpenSection, null>): SectionProps => ({
       open: openSection === section,
@@ -352,6 +360,7 @@ export function SharedObjectDetails({
     [openSection, setOpenSection, compact],
   )
 
+  // Resolve the visible object name from its current metadata.
   const bodyMeta = meta?.sharedObjectMeta?.bodyMeta
   const objectName = useMemo(
     () => resolveObjectName(displayName, bodyMeta),
