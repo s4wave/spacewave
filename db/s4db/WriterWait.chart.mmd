@@ -1,0 +1,28 @@
+---
+title: "A remote background process can reacquire before a waiting writer"
+---
+stateDiagram-v2
+  s0: none
+  s1: background
+  s2: none, writer waiting after 0 background spans
+  s3: background, writer waiting after 0 background spans
+  s4: writer
+  s5: none, writer waiting after 1 background spans
+  s6: background, writer waiting after 1 background spans
+  s7: none, writer waiting after 2 background spans
+  s8: background, writer waiting after 2 background spans
+  [*] --> s0
+  s0 --> s1: BackgroundStart
+  s0 --> s2: Want
+  s1 --> s0: BackgroundEnd
+  s1 --> s3: Want
+  s2 --> s3: BackgroundStart
+  s2 --> s4: Take
+  s3 --> s5: BackgroundEnd
+  s4 --> s0: CommitOrDiscard
+  s5 --> s6: BackgroundStart
+  s5 --> s4: Take
+  s6 --> s7: BackgroundEnd
+  s7 --> s8: BackgroundStart
+  s7 --> s4: Take
+  s8 --> s7: BackgroundEnd

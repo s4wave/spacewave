@@ -1,4 +1,8 @@
 ---- MODULE Wait ----
+\* DESIGN REQUIREMENT ONLY: writer.locked does not implement StepStart's
+\* waiting = {} guard. WriterWait.tla models the actual cross-process lock
+\* and refutes this bound. Passing this module does not establish that the
+\* implementation yields to waiting foreground writers.
 \* A writer waits behind at most one background step, as the scheduler runs
 \* it: a background job (the flusher, the merger or the cleaner) takes the
 \* writer lock for one step, a record append, and before taking it again
@@ -8,8 +12,8 @@
 \* Callers found from source (master db/s4db at aa2254798 and the design):
 \* Tx.Commit and Tx.Discard release the lock a write transaction holds, and
 \* the three jobs' steps; a job's step is modeled as one lock span. Not
-\* modeled: the quiet gate, which only delays steps further, and the lock's
-\* fcntl across processes, which orders holders the same way.
+\* modeled: the quiet gate and cross-process lock handoff. The latter is
+\* modeled as implemented in WriterWait.tla, where the bound fails.
 
 EXTENDS Naturals
 

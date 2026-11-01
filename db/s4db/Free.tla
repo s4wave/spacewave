@@ -19,7 +19,7 @@
 \* references, read through them, and release.
 \*
 \* Callers found from source (the design, and the chunk layout branch at
-\* 92804dfd4 whose cleaner this follows): Tx.Commit (Write), the cleaner's
+\* 92804dfd4 whose cleaner this follows): Tx.Commit (Write, Delete), the cleaner's
 \* choose, scan, commit of moves and seal (Scan, Close, Move, Seal), the
 \* flusher's and merger's reserve and completion (Reserve, Finish, Die),
 \* release (Release), NewTransaction(read) and Discard (Snap, Read, End). Not
@@ -222,8 +222,18 @@ End(r) ==
   /\ pin' = [pin EXCEPT ![r] = 0] /\ snap' = [snap EXCEPT ![r] = [k \in Keys |-> None]]
   /\ UNCHANGED <<kind, entries, refs, latest, live, hot, cold, tag, version, pendAt, owner, cpc, victim, moves>>
 
+\* Delete removes the reference and its live bytes in the same writer lock
+\* section as a put; old snapshots keep their reference until End.
+Delete(k) ==
+  /\ More /\ refs[k] # None
+  /\ live' = [live EXCEPT ![refs[k].chunk] = @ - 1]
+  /\ refs' = [refs EXCEPT ![k] = None]
+  /\ latest' = [latest EXCEPT ![k] = 0]
+  /\ version' = version + 1
+  /\ UNCHANGED <<kind, entries, hot, cold, tag, pendAt, owner, cpc, victim, moves, snap, pin>>
+
 Next ==
-  \/ \E k \in Keys : Write(k)
+  \/ \E k \in Keys : Write(k) \/ Delete(k)
   \/ OpenHot \/ OpenCold \/ Scan \/ Close \/ Move \/ Seal \/ Abandon \/ Release
   \/ Reserve \/ Finish \/ Die \/ Reclaim
   \/ \E r \in Readers : Snap(r) \/ End(r)
