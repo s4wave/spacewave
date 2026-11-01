@@ -30,12 +30,12 @@ export function compileVariants(
   literal: (classes: string) => string,
   binding: string,
 ): string {
-  // Preserve base class arrays through the same utility compiler as ordinary attributes.
+  // Read static class fragments without evaluating the recipe or its callers.
   const classes = (node: Node | undefined | null): string => {
-    if (!node || node.type === 'NullLiteral') return 'false'
-    if (node.type === 'StringLiteral') return literal(node.value)
+    if (!node || node.type === 'NullLiteral') return ''
+    if (node.type === 'StringLiteral') return node.value
     if (node.type === 'ArrayExpression')
-      return `([${node.elements.map(classes).join(',')}] as const)`
+      return node.elements.map(classes).join(' ')
     throw new Error('dynamic cva classes')
   }
   const base = classes(node.arguments[0])
@@ -46,7 +46,7 @@ export function compileVariants(
     if (!['variants', 'defaultVariants', 'compoundVariants'].includes(key))
       throw new Error(`unknown cva option ${key}`)
 
-  // Read each option once, applying its default only to undefined and preserving explicit null.
+  // Resolve each typed selection once, preserving the difference between null and the default.
   const variants = config.has('variants')
     ? entries(config.get('variants'))
     : new Map<string, Node>()
@@ -55,55 +55,77 @@ export function compileVariants(
     : new Map<string, Node>()
   const types: string[] = []
   const declarations: string[] = []
-  const selected: string[] = [base]
-  const values = new Map<string, string>()
-  for (const [name, options] of variants) {
+
+  // Declare one runtime selection per axis and derive its public input type.
+  const axes = [...variants].map(([name, options], index) => {
+    // Resolve the axis before applying its optional default.
     const choices = entries(options)
-    const variable = `variant${values.size}`
-    const raw = `${variable}Input`
-    values.set(name, variable)
+    const variable = `variant${index}`
     const fallback = defaults.has(name)
       ? scalar(defaults.get(name)!)
       : 'undefined'
     declarations.push(
-      `// Resolve ${JSON.stringify(name)} once, retaining explicit null instead of its default.\nconst ${raw}=props?.[${JSON.stringify(name)}];const ${variable}=${raw}===undefined?${fallback}:${raw};\n`,
+      `// Resolve ${JSON.stringify(name)} once, retaining explicit null instead of its default.\nconst ${variable}Input=props?.[${JSON.stringify(name)}];const ${variable}=${variable}Input===undefined?${fallback}:${variable}Input;\n`,
     )
+
+    // Keep the caller contract limited to the recipe's declared option values.
     const choiceTypes = [...choices.keys()].map((key) =>
       ['true', 'false'].includes(key) ? key : JSON.stringify(key),
     )
     types.push(`${JSON.stringify(name)}?:${choiceTypes.join('|')}|null`)
-    for (const [key, value] of choices) {
-      const choice = ['true', 'false'].includes(key) ? key : JSON.stringify(key)
-      selected.push(`(${variable}===${choice}&&${classes(value)})`)
-    }
-  }
+    return { name, choices, variable }
+  })
 
-  // Compound choices use the resolved defaults, as cva does before appending caller styles.
+  // Merge whole recipe outcomes through Tailwind before StyleX owns their conditional properties.
   const compounds = config.get('compoundVariants')
   if (compounds && compounds.type !== 'ArrayExpression')
     throw new Error('dynamic cva compounds')
-  for (const compound of compounds?.elements ?? []) {
-    const fields = entries(compound)
-    const conditions: string[] = []
-    for (const [name, value] of fields) {
-      if (name === 'class' || name === 'className') continue
-      const variable = values.get(name)
-      if (!variable) throw new Error(`unknown cva compound variant ${name}`)
-      conditions.push(
-        value.type === 'ArrayExpression'
-          ? `(${value.elements.map((item) => `${variable}===${scalar(item!)}`).join('||') || 'false'})`
-          : `${variable}===${scalar(value)}`,
-      )
+  const rules = (compounds?.elements ?? []).map((compound) => entries(compound))
+  const selected = new Map<string, string>()
+  const outcome = (index: number, fragments: string[]): string => {
+    // Each leaf is one class set, so a variant cannot erase a base hover or breakpoint rule.
+    if (index === axes.length) {
+      const matches: string[] = []
+      for (const fields of rules) {
+        let applies = true
+        for (const [name, value] of fields) {
+          if (name === 'class' || name === 'className') continue
+          if (!selected.has(name))
+            throw new Error(`unknown cva compound variant ${name}`)
+          const expected =
+            value.type === 'ArrayExpression'
+              ? value.elements.map((item) => scalar(item!))
+              : [scalar(value)]
+          applies &&= expected.includes(selected.get(name)!)
+        }
+        if (applies)
+          matches.push(
+            classes(fields.get('class')),
+            classes(fields.get('className')),
+          )
+      }
+      return literal([base, ...fragments, ...matches].join(' '))
     }
-    const styles = `([${classes(fields.get('class'))},${classes(fields.get('className'))}] as const)`
-    selected.push(
-      `(${conditions.length ? conditions.join('&&') : 'true'}&&${styles})`,
-    )
+
+    // Null disables an axis; an omitted axis without a default also contributes no classes.
+    const axis = axes[index]!
+    selected.set(axis.name, 'undefined')
+    let result = outcome(index + 1, fragments)
+    selected.set(axis.name, 'null')
+    const absent = outcome(index + 1, fragments)
+    if (absent !== result)
+      result = `(${axis.variable}===null?${absent}:${result})`
+    for (const [key, value] of [...axis.choices].reverse()) {
+      const choice = ['true', 'false'].includes(key) ? key : JSON.stringify(key)
+      selected.set(axis.name, choice)
+      result = `(${axis.variable}===${choice}?${outcome(index + 1, [...fragments, classes(value)])}:${result})`
+    }
+    return result
   }
+  const compiled = outcome(0, [])
   types.push(
     `class?:${binding}.StyleXStyles`,
     `className?:${binding}.StyleXStyles`,
   )
-  selected.push('props?.class', 'props?.className')
-  return `(props?:{${types.join(';')}})=>{\n${declarations.join('\n')}\n// Compose the base, matching variants and caller styles in order.\nreturn [${selected.join(',')}] as const\n}`
+  return `(props?:{${types.join(';')}})=>{\n${declarations.join('\n')}\n// Select one fully compiled recipe outcome, then compose caller styles.\nreturn [${compiled},props?.class,props?.className] as const\n}`
 }

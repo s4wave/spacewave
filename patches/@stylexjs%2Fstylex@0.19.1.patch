@@ -100,3 +100,59 @@ diff --git a/lib/es/types/StyleXCSSTypes.js.flow b/lib/es/types/StyleXCSSTypes.j
    WebkitTapHighlightColor?: all | color,
  
    WebkitMaskImage?: all | maskImage,
+diff --git a/lib/cjs/types/StyleXTypes.d.ts b/lib/cjs/types/StyleXTypes.d.ts
+--- a/lib/cjs/types/StyleXTypes.d.ts
++++ b/lib/cjs/types/StyleXTypes.d.ts
+@@ -164,7 +164,9 @@
+         ? ComplexStyleValueType<U>
+         : T extends Readonly<{ default: infer A; [cond: CondStr]: infer B }>
+           ? ComplexStyleValueType<A> | ComplexStyleValueType<B>
+-          : T;
++          : T extends Readonly<{ [key: string]: unknown }>
++            ? { readonly [Key in keyof T]: ComplexStyleValueType<T[Key]> }
++            : T;
+ 
+ export type MapNamespace<CSS> = Readonly<{
+   [Key in keyof CSS]: StyleXClassNameFor<Key, ComplexStyleValueType<CSS[Key]>>;
+diff --git a/lib/es/types/StyleXTypes.d.ts b/lib/es/types/StyleXTypes.d.ts
+--- a/lib/es/types/StyleXTypes.d.ts
++++ b/lib/es/types/StyleXTypes.d.ts
+@@ -164,7 +164,9 @@
+         ? ComplexStyleValueType<U>
+         : T extends Readonly<{ default: infer A; [cond: CondStr]: infer B }>
+           ? ComplexStyleValueType<A> | ComplexStyleValueType<B>
+-          : T;
++          : T extends Readonly<{ [key: string]: unknown }>
++            ? { readonly [Key in keyof T]: ComplexStyleValueType<T[Key]> }
++            : T;
+ 
+ export type MapNamespace<CSS> = Readonly<{
+   [Key in keyof CSS]: StyleXClassNameFor<Key, ComplexStyleValueType<CSS[Key]>>;
+diff --git a/lib/cjs/types/StyleXTypes.js.flow b/lib/cjs/types/StyleXTypes.js.flow
+--- a/lib/cjs/types/StyleXTypes.js.flow
++++ b/lib/cjs/types/StyleXTypes.js.flow
+@@ -131,7 +131,9 @@
+         ? ComplexStyleValueType<U>
+         : T extends { readonly default: infer A, readonly [string]: infer B }
+           ? ComplexStyleValueType<A> | ComplexStyleValueType<B>
+-          : Readonly<T>;
++          : T extends { readonly [string]: unknown }
++            ? Readonly<{ [Key in keyof T]: ComplexStyleValueType<T[Key]> }>
++            : Readonly<T>;
+ 
+ type _MapNamespace<out CSS extends { readonly [string]: unknown }> = Readonly<{
+   [Key in keyof CSS]: StyleXClassNameFor<Key, ComplexStyleValueType<CSS[Key]>>,
+diff --git a/lib/es/types/StyleXTypes.js.flow b/lib/es/types/StyleXTypes.js.flow
+--- a/lib/es/types/StyleXTypes.js.flow
++++ b/lib/es/types/StyleXTypes.js.flow
+@@ -131,7 +131,9 @@
+         ? ComplexStyleValueType<U>
+         : T extends { readonly default: infer A, readonly [string]: infer B }
+           ? ComplexStyleValueType<A> | ComplexStyleValueType<B>
+-          : Readonly<T>;
++          : T extends { readonly [string]: unknown }
++            ? Readonly<{ [Key in keyof T]: ComplexStyleValueType<T[Key]> }>
++            : Readonly<T>;
+ 
+ type _MapNamespace<out CSS extends { readonly [string]: unknown }> = Readonly<{
+   [Key in keyof CSS]: StyleXClassNameFor<Key, ComplexStyleValueType<CSS[Key]>>,

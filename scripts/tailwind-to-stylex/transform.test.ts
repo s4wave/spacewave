@@ -14,6 +14,7 @@ import { createOracle } from './oracle.js'
 import { transform } from './transform.js'
 import { prepareComponentStyles } from './component-api.js'
 import { writeSheetFixture } from './sheet-fixture.js'
+import { writeInputFixture } from './input-fixture.js'
 import { stylexCss } from '../../bldr/web/bundler/vite/stylex.js'
 import { capture } from '../style-parity/capture.js'
 import { compareCaptures } from '../style-parity/compare.js'
@@ -564,10 +565,12 @@ test(
         )
         // Isolate modal overlays from the ordinary page's hover and layout states.
         await writeSheetFixture(root, version)
+        await writeInputFixture(root, version)
+        main = "import{InputSamples}from'./InputSamples';" + main
         main = "import{SheetSamples}from'./SheetSamples';" + main
         main = main.replace(
           "createRoot(document.getElementById('root')!).render",
-          "if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
+          "if(new URLSearchParams(location.search).has('input'))createRoot(document.getElementById('root')!).render(<InputSamples/>);else if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
         )
         await writeFile(
           join(root, 'main.tsx'),
@@ -706,6 +709,24 @@ test(
                 .hover()
             },
           },
+          ...['default', 'focused'].map((mode) => ({
+            id: `input-${mode}`,
+            path: `/?input=${mode}`,
+            ready: async (page: import('playwright').Page) => {
+              await page
+                .getByRole('textbox', { name: 'Focus reference', exact: true })
+                .waitFor()
+            },
+            setup: async (page: import('playwright').Page) => {
+              if (mode === 'focused')
+                await page
+                  .getByRole('textbox', {
+                    name: 'Focus reference',
+                    exact: true,
+                  })
+                  .focus()
+            },
+          })),
           {
             id: 'sheet-inline',
             path: '/?sheet=inline',

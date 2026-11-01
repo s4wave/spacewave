@@ -33,6 +33,10 @@ import { SpacePluginImport } from './SpacePluginImport.js'
 
 import { KNOWN_SPACE_PLUGINS, knownSpacePlugin } from './known-plugins.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({ rule1: { flex: 1 } })
+
 // CatalogEntry is one browsable plugin row merging the backend catalog with
 // known-plugin presentation metadata (name, icon, fallback description).
 interface CatalogEntry {
@@ -151,7 +155,7 @@ function SpacePluginAddPanel({
             placeholder="spacewave-notes"
             disabled={!!pending}
             variant="plugin"
-            className="flex-1"
+            sx={stylexStyles.rule1}
           />
           <Button
             type="button"

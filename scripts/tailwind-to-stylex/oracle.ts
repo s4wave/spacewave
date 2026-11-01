@@ -47,7 +47,7 @@ function readRule(container: Container, selector: string): StyleRule {
         )
       )
         style[condition] = readRule(node, selector)
-      else if (/^\[[^\]]+\]$/.test(condition))
+      else if (/^(?::[\w-]+(?:\([^)]*\))?|\[[^\]]+\])+$/.test(condition))
         style[`:is(${condition})`] = readRule(node, selector)
       else throw new Error('a descendant, group, peer or compound selector')
     }
