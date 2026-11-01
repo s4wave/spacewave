@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react'
-import { LuChevronDown } from 'react-icons/lu'
+import { LuChevronDown } from '@s4wave/web/images/icons.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
 import { Badge } from '@s4wave/web/ui/badge.js'
@@ -11,6 +11,17 @@ import type {
   KeybindingCommand,
 } from './keybindings-model.js'
 import type { KeybindingVariantProps } from './variant-types.js'
+
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    height: 'auto',
+    width: '100%',
+    justifyContent: 'space-between',
+    textAlign: 'left',
+  },
+})
 
 interface CategoryPanelProps extends KeybindingVariantProps {
   category: KeybindingCategory
@@ -47,7 +58,7 @@ export function CategoryPanel({
         type="button"
         variant="category"
         size="category"
-        className="h-auto w-full justify-between text-left"
+        sx={stylexStyles.rule1}
         aria-expanded={!collapsed}
         onClick={toggle}
       >

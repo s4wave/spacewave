@@ -6,7 +6,7 @@ import {
   LuSave,
   LuTrash2,
   LuUndo2,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import {
   useResource,
@@ -34,6 +34,10 @@ import {
   type SqlParamKind,
 } from './sql-cell.js'
 import { SqlWorkbenchTargetDbContext } from './sql-workbench-context.js'
+
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({ rule1: { flexShrink: 0 } })
 
 export { SqlQueryTypeID }
 
@@ -537,7 +541,7 @@ function QueryTargetFields({
             <Button
               variant="ghost"
               onClick={() => onOpenTargetDb(targetDb)}
-              className="shrink-0"
+              sx={stylexStyles.rule1}
               size="toolbarText"
             >
               Open
@@ -717,7 +721,7 @@ function ParamEditorRow({
         disabled={disabled}
         variant="dangerGhost"
         size="iconXs"
-        className="shrink-0"
+        sx={stylexStyles.rule1}
       >
         <LuTrash2 className="size-3.5" />
       </Button>

@@ -16,8 +16,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
 	bldr_vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
+	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 	"github.com/sirupsen/logrus"
 )
 
@@ -200,6 +202,10 @@ func TestWebPkgChunksKeepStableNames(t *testing.T) {
 				return errors.Errorf("%s emitted %d CSS assets, want one native package sheet", source, len(cssFiles))
 			}
 		}
+		if os.Getenv("STYLEX_WEBPKG_BROWSER") == "1" {
+			return checkSharedButtonBrowser(ctx, root, client)
+		}
+
 		return nil
 	})
 	if err != nil {
@@ -226,6 +232,80 @@ func checkWebPkgBrowser(ctx context.Context, root, outDir, runtimeDir, runtimePa
 	output, err := command.CombinedOutput()
 	if err != nil {
 		return errors.Wrapf(err, "native web package browser load: %s", output)
+	}
+	return nil
+}
+
+// checkSharedButtonBrowser loads controls and caller icons from one native shared package.
+func checkSharedButtonBrowser(ctx context.Context, root string, client bldr_vite.SRPCViteBundlerClient) error {
+	// Keep every generated package in one disposable build root.
+	directory, err := os.MkdirTemp(root, ".stylex-button-rpc-")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(directory)
+
+	// Use the production owner for CJS wrappers, sibling links and import-map names.
+	packageOut := filepath.Join(directory, "packages")
+	refs := []*web_pkg.WebPkgRef{
+		{WebPkgId: "react", WebPkgRoot: filepath.Join(root, "node_modules/react"), Imports: []string{"index.js", "jsx-runtime.js"}},
+		{WebPkgId: "react-dom", WebPkgRoot: filepath.Join(root, "node_modules/react-dom"), Imports: []string{"index.js", "client.js"}},
+		{WebPkgId: "@stylexjs/stylex", WebPkgRoot: filepath.Join(root, "node_modules/@stylexjs/stylex"), Imports: []string{"lib/es/stylex.mjs"}},
+		{WebPkgId: "@s4wave/web", WebPkgRoot: filepath.Join(root, "web"), Imports: []string{"ui/button.tsx", "images/icons.ts"}},
+	}
+	_, _, entries, err := BuildWebPkgsVite(ctx, logrus.NewEntry(logrus.New()), root, refs, packageOut, "/b/pkg/", true, true, false, client, filepath.Join(directory, "cache"))
+	if err != nil {
+		return err
+	}
+
+	// Serve the exact paths returned by the real package build.
+	mux := http.NewServeMux()
+	mux.Handle("/b/pkg/", http.StripPrefix("/b/pkg/", http.FileServer(http.Dir(packageOut))))
+
+	// The consumer owns its icon element while the shared button owns its inherited rule.
+	appRoot := filepath.Join(directory, "app")
+	if err := os.MkdirAll(appRoot, 0o755); err != nil {
+		return err
+	}
+	source := `import React from 'react';import{createRoot}from'react-dom/client';import{Button}from'@s4wave/web/ui/button.js';import{LuPlus,IconContext}from'@s4wave/web/images/icons.js';createRoot(document.getElementById('target')).render(<IconContext.Provider value={{color:'rgb(17, 34, 51)'}}><Button id="native-button"><LuPlus/>Native bundle action</Button></IconContext.Provider>);`
+	if err := os.WriteFile(filepath.Join(appRoot, "App.tsx"), []byte(source), 0o644); err != nil {
+		return err
+	}
+
+	// Compile the consumer with the shared package kept external.
+	appOut := filepath.Join(directory, "consumer")
+	response, err := client.BuildWebPkg(ctx, &bldr_vite.BuildWebPkgRequest{PkgId: "native-button-consumer", PkgRoot: appRoot, Imports: []string{"App.tsx"}, ExternalPkgs: []string{"react", "react-dom", "@stylexjs/stylex", "@s4wave/web"}, OutDir: appOut, WebPkgBasePath: "/b/pkg/", IsRelease: true})
+	if err != nil {
+		return err
+	}
+	if !response.GetSuccess() {
+		return errors.New(response.GetError())
+	}
+
+	// Install the actual returned import map before the consumer starts.
+	var arena fastjson.Arena
+	imports := arena.NewObject()
+	for _, entry := range entries {
+		imports.Set(entry.Specifier, arena.NewString(entry.OutputPath))
+	}
+	mapping := arena.NewObject()
+	mapping.Set("imports", imports)
+	html := `<!doctype html><html><body><div id="target" data-state="loading">Loading</div><script type="importmap">` + string(mapping.MarshalTo(nil)) + `</script><script type="module">await import('./App.mjs');document.getElementById('target').dataset.state='ready';</script></body></html>`
+	if err := os.WriteFile(filepath.Join(appOut, "index.html"), []byte(html), 0o644); err != nil {
+		return err
+	}
+
+	// Keep the HTTP origin alive until both browser engines finish.
+	mux.Handle("/", http.FileServer(http.Dir(appOut)))
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	// Hold the real shared stylesheet before accepting a rendered cross-package icon.
+	command := exec.CommandContext(ctx, "node", filepath.Join(root, "scripts", "stylex-web-pkg.browser.ts"), server.URL, "buttons")
+	command.Dir = root
+	output, err := command.CombinedOutput()
+	if err != nil {
+		return errors.Wrapf(err, "native shared button browser: %s", output)
 	}
 	return nil
 }

@@ -1,4 +1,8 @@
-import { LuFolderOpen, LuPanelTopOpen, LuReplace } from 'react-icons/lu'
+import {
+  LuFolderOpen,
+  LuPanelTopOpen,
+  LuReplace,
+} from '@s4wave/web/images/icons.js'
 
 import type { BottomBarContextMenuItem } from '@s4wave/web/frame/bottom-bar-context.js'
 import type { SpaceObjectActionTarget } from './object-tree.js'

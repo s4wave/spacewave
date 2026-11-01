@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import { LuChevronDown, LuChevronRight } from 'react-icons/lu'
+import { LuChevronDown, LuChevronRight } from '@s4wave/web/images/icons.js'
 
 import { PatchDiff, type PatchDiffProps } from '@pierre/diffs/react'
 

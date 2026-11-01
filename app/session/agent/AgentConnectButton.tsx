@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { LuBot } from 'react-icons/lu'
+import { LuBot } from '@s4wave/web/images/icons.js'
 
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { PairingStatus } from '@s4wave/sdk/session/session.pb.js'

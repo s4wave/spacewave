@@ -1,6 +1,6 @@
 import { pushable, type Pushable } from 'it-pushable'
 import { useCallback, useMemo, useRef, useState } from 'react'
-import { LuAppWindow, LuMonitor } from 'react-icons/lu'
+import { LuAppWindow, LuMonitor } from '@s4wave/web/images/icons.js'
 
 import { WasiVmTypeID, type WasiVmHandle } from '@s4wave/sdk/vm/wasivm.js'
 import {

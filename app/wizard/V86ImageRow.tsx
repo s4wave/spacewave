@@ -2,6 +2,17 @@ import type { ReactNode } from 'react'
 
 import { Button } from '@s4wave/web/ui/button.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: '100%',
+    justifyContent: 'flex-start',
+    textAlign: 'left',
+    whiteSpace: 'normal',
+  },
+})
+
 // V86ImageRowProps describes one image a new VM can boot.
 export interface V86ImageRowProps {
   icon: ReactNode
@@ -25,7 +36,7 @@ export function V86ImageRow({
       aria-pressed={selected}
       variant={selected ? 'selectedRow' : 'unselectedRow'}
       size="row"
-      className="w-full justify-start text-left whitespace-normal"
+      sx={stylexStyles.rule1}
       onClick={onSelect}
     >
       <span className="bg-foreground/5 text-foreground-alt flex size-8 shrink-0 items-center justify-center rounded-md">

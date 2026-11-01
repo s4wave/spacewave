@@ -14,6 +14,18 @@ import {
 import { Button } from '@s4wave/web/ui/button.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    minHeight: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+  },
+})
+
 interface TextFileToolbarProps {
   draft: string | null
   text: string
@@ -44,7 +56,7 @@ function TextFileToolbar({
         <Button
           size="default"
           variant="ghost"
-          className="pointer-coarse:min-h-11"
+          sx={stylexStyles.rule1}
           disabled={!complete}
           onClick={onEdit}
         >
@@ -54,7 +66,7 @@ function TextFileToolbar({
         <>
           <Button
             size="default"
-            className="pointer-coarse:min-h-11"
+            sx={stylexStyles.rule1}
             disabled={saving || !canSave || draft === text}
             onClick={onSave}
           >
@@ -63,7 +75,7 @@ function TextFileToolbar({
           <Button
             size="default"
             variant="ghost"
-            className="pointer-coarse:min-h-11"
+            sx={stylexStyles.rule1}
             disabled={saving}
             onClick={onCancel}
           >
@@ -191,7 +203,7 @@ export function UnixFSTextFileViewer({
           <Button
             size="default"
             variant="ghost"
-            className="pointer-coarse:min-h-11"
+            sx={stylexStyles.rule1}
             disabled={saving}
             onClick={() => void save()}
           >

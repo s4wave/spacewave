@@ -1,6 +1,31 @@
 import { useMemo } from 'react'
 import { cn } from '@s4wave/web/style/utils.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  fonts as themeFonts,
+  colors as themeColors,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: '.6rem',
+    lineHeight: 1.5,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-widest)',
+    letterSpacing: 'var(--tracking-widest)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+    textTransform: 'uppercase',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+})
+
 export type StateBadgeVariant = 'pill' | 'dot'
 
 export type StateBadgeTone = 'idle' | 'active' | 'success' | 'warning' | 'error'
@@ -48,18 +73,27 @@ export function StateBadge({
   const tone = useMemo(() => stateTone(label), [label])
   if (variant === 'dot') {
     return (
-      <span className="text-foreground-alt/70 micro-text inline-flex items-center gap-1.5 font-medium tracking-widest uppercase select-none">
-        <span className={cn('h-1.5 w-1.5 rounded-full', DOT_TONE[tone])} />
+      <span sx={stylexStyles.rule1}>
+        <span
+          className={
+            /* TODO(stylex): dynamic class or forwarded className */ cn(
+              'h-1.5 w-1.5 rounded-full',
+              DOT_TONE[tone],
+            )
+          }
+        />
         {label}
       </span>
     )
   }
   return (
     <span
-      className={cn(
-        'inline-flex items-center rounded-full border px-2 py-0.5 micro-text font-medium tracking-widest uppercase select-none',
-        PILL_TONE[tone],
-      )}
+      className={
+        /* TODO(stylex): dynamic class or forwarded className */ cn(
+          'inline-flex items-center rounded-full border px-2 py-0.5 micro-text font-medium tracking-widest uppercase select-none',
+          PILL_TONE[tone],
+        )
+      }
     >
       {label}
     </span>

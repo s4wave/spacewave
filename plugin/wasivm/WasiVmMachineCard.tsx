@@ -1,4 +1,4 @@
-import { LuPlay, LuRotateCcw, LuTerminal } from 'react-icons/lu'
+import { LuPlay, LuRotateCcw, LuTerminal } from '@s4wave/web/images/icons.js'
 
 import { Button } from '@s4wave/web/ui/button.js'
 import { VmState } from '@s4wave/sdk/vm/v86.pb.js'

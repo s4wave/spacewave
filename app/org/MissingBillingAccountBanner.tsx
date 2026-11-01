@@ -1,4 +1,4 @@
-import { LuArrowRight, LuTriangleAlert } from 'react-icons/lu'
+import { LuArrowRight, LuTriangleAlert } from '@s4wave/web/images/icons.js'
 
 // MissingBillingAccountBanner prompts when an org has no billing account.
 // Owners get a "Configure billing" CTA that opens the org details billing

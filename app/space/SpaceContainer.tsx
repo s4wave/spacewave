@@ -7,7 +7,7 @@ import {
 } from 'react'
 import { joinPath } from '@aptre/bldr'
 import { DebugInfo, useWatchStateRpc } from '@aptre/bldr-react'
-import { LuArrowUp } from 'react-icons/lu'
+import { LuArrowUp } from '@s4wave/web/images/icons.js'
 import { PiAppStoreLogoLight } from '@s4wave/web/ui/phosphor-icons.js'
 
 import { useNavigate, useParams, useRouter } from '@s4wave/web/router/router.js'

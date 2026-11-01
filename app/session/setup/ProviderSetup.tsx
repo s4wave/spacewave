@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { LuArrowRight, LuCloud, LuHardDrive } from 'react-icons/lu'
+import { LuArrowRight, LuCloud, LuHardDrive } from '@s4wave/web/images/icons.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
 import { useNavigate } from '@s4wave/web/router/router.js'

@@ -1,7 +1,35 @@
 import { useEffect, useRef, type KeyboardEvent } from 'react'
 import { CLASSES } from '@aptre/flex-layout'
 
-import { cn } from '@s4wave/web/style/utils.js'
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  radii as themeRadii,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: '100%',
+    maxWidth: `calc(${themeLayout['--spacing']} * 64)`,
+    minWidth: `calc(${themeLayout['--spacing']} * 12)`,
+    borderRadius: themeRadii['--radius-menu-button'],
+    '--tw-border-style': 'none',
+    borderStyle: 'none',
+    backgroundColor: themeColors['--color-background-secondary'],
+    paddingInline: themeLayout['--spacing'],
+    paddingBlock: 0,
+    fontSize: themeLayout['--text-metadata'],
+    lineHeight: `calc(${themeLayout['--spacing']} * 5)`,
+    '--tw-leading': `calc(${themeLayout['--spacing']} * 5)`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    letterSpacing: '-.01em',
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+  },
+})
 
 // FlexTabNameInputProps are the props for FlexTabNameInput.
 export interface FlexTabNameInputProps {
@@ -56,12 +84,7 @@ export function FlexTabNameInput({
     <input
       ref={inputRef}
       aria-label={label}
-      className={cn(
-        'bg-background-secondary text-foreground rounded-menu-button',
-        'border-none outline-none',
-        'text-metadata leading-5 font-medium tracking-tight-brand',
-        'w-full max-w-64 min-w-12 px-1 py-0',
-      )}
+      sx={[stylexStyles.rule1]}
       defaultValue={name}
       onBlur={(event) => onSave(event.currentTarget.value.trim())}
       onKeyDown={handleKeyDown}

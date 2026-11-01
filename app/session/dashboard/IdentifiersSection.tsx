@@ -1,4 +1,4 @@
-import { LuFingerprint } from 'react-icons/lu'
+import { LuFingerprint } from '@s4wave/web/images/icons.js'
 
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'

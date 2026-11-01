@@ -2,7 +2,6 @@ import { Suspense, useCallback } from 'react'
 import { WebViewErrorBoundary } from '@aptre/bldr-react'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import { Button } from '@s4wave/web/ui/button.js'
 import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
@@ -23,6 +22,98 @@ import { getObjectKey } from './object.js'
 import type { ObjectInfo } from './object.pb.js'
 import { ObjectViewerLoadingState } from './ObjectViewerLoadingState.js'
 import { debugViewerComponentID } from './useObjectViewer.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  fonts as themeFonts,
+  colors as themeColors,
+  utilityState as themeUtilityState,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    width: '100%',
+    maxWidth: 'var(--container-lg)',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    textAlign: 'left',
+  },
+  rule2: { textAlign: 'center' },
+  rule3: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule4: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+  },
+  rule5: {
+    display: 'grid',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    gridTemplateColumns: {
+      default: null,
+      '@media (min-width: 40rem)': 'repeat(2, minmax(0, 1fr))',
+    },
+  },
+  rule6: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule7: {
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+  },
+  rule8: { display: 'flex', justifyContent: 'center' },
+  rule9: {
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+  },
+  rule10: {
+    display: 'flex',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    color: themeColors['--color-muted-foreground'],
+  },
+  rule11: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 'var(--radius-xl)',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: themeColors['--color-border'],
+    backgroundColor: themeColors['--color-background-dark'],
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+    textAlign: 'center',
+  },
+  rule12: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    overflow: 'hidden',
+  },
+  rule13: { padding: `calc(${themeLayout['--spacing']} * 1.25)` },
+})
 
 interface ObjectViewerContentProps {
   objectInfo: ObjectInfo
@@ -111,30 +202,28 @@ function MissingViewerCard({
     body = <span>Object has no type</span>
   } else {
     body = (
-      <div className="flex w-full max-w-lg flex-col gap-4 text-left">
-        <div className="text-center">
-          <h2 className="text-foreground text-sm font-semibold">
-            Can't open this object yet
-          </h2>
-          <p className="mt-1 text-xs leading-relaxed">
+      <div sx={stylexStyles.rule1}>
+        <div sx={stylexStyles.rule2}>
+          <h2 sx={stylexStyles.rule3}>Can't open this object yet</h2>
+          <p sx={stylexStyles.rule4}>
             No installed viewer handles this object type. You can inspect its
             object record when the raw viewer is available.
           </p>
         </div>
         <InfoCard title="About this object">
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div sx={stylexStyles.rule5}>
             <CopyableField label="Object key" value={objectKey} />
             <CopyableField label="Object type" value={typeID} />
           </div>
           {missingComponentID && missingComponentID !== typeID ? (
-            <p className="text-foreground-alt/60 mt-3 text-xs leading-relaxed">
+            <p sx={stylexStyles.rule6}>
               Requested viewer unavailable:{' '}
-              <span className="font-mono">{missingComponentID}</span>
+              <span sx={stylexStyles.rule7}>{missingComponentID}</span>
             </p>
           ) : null}
         </InfoCard>
         {debugComponent ? (
-          <div className="flex justify-center">
+          <div sx={stylexStyles.rule8}>
             <Button
               type="button"
               variant="outline"
@@ -145,19 +234,15 @@ function MissingViewerCard({
             </Button>
           </div>
         ) : (
-          <p className="text-center text-xs leading-relaxed">
-            No raw object viewer is installed.
-          </p>
+          <p sx={stylexStyles.rule9}>No raw object viewer is installed.</p>
         )}
       </div>
     )
   }
 
   return (
-    <div className="text-muted-foreground flex h-full items-center justify-center p-3">
-      <div className="bg-background-dark border-border flex h-full w-full items-center justify-center rounded-xl border p-6 text-center">
-        {body}
-      </div>
+    <div sx={stylexStyles.rule10}>
+      <div sx={stylexStyles.rule11}>{body}</div>
     </div>
   )
 }
@@ -175,12 +260,7 @@ function MountedViewer({
   const disablePadding = standalone || component.disablePadding === true
 
   return (
-    <div
-      className={cn(
-        'flex h-full w-full flex-col overflow-hidden',
-        !disablePadding && 'p-1.25',
-      )}
-    >
+    <div sx={[stylexStyles.rule12, !disablePadding && stylexStyles.rule13]}>
       <WebViewErrorBoundary>
         <Suspense fallback={<ObjectViewerLoadingState />}>
           <Component {...props} />

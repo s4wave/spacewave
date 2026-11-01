@@ -15,7 +15,9 @@ needed by the converted utilities.
 Supported expressions include literal strings, immutable local class constants,
 imported `cn` aliases, arrays, conditional branches and conditional class objects.
 Static local `cva` recipes retain defaults, null choices, boolean variants and
-compound variants through typed StyleX composition. Exported recipes, recipes
+compound variants through complete finite StyleX outcomes. Each outcome merges
+its whole class set before compilation, preserving base hover and responsive
+values beneath variant overrides. Exported recipes, recipes
 with other runtime consumers, and modules with an unsupported attribute keep
 their existing recipe for a coordinated hand pass.
 
@@ -56,3 +58,12 @@ Animation utilities become explicit longhands through the native CSS parser;
 StyleX drops the CSS `animation` shorthand. Font-mono styles also carry the
 repository's console rendering properties, which formerly depended on its
 utility class. Default font rendering belongs to the reset layer.
+
+Shared icons are exported from `web/images/icons.ts` so controls and caller
+icons share one React context across native package boundaries. Button's icon
+rules use a named marker in `button-icons.stylex.ts`; port other descendant
+rules to their SVG owner or an explicit marker too.
+
+Use `STYLEX_MIGRATION_STATES=buttons-default,buttons-focused,buttons-hovered`
+for a focused comparison with the same capture protocol. The default runs every
+state; record the selected states with partial-run evidence.

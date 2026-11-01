@@ -21,6 +21,17 @@ import {
   type UseObjectViewerResult,
 } from './useObjectViewer.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+  },
+})
+
 const noopNavigate = () => {}
 
 export interface ObjectViewerProps {
@@ -148,7 +159,7 @@ function StandaloneViewerRoot({ children }: { children: ReactNode }) {
   const handleSetOpenMenu = useCallback((id: string) => setOpenMenu(id), [])
 
   return (
-    <div className="flex h-full w-full flex-col">
+    <div sx={stylexStyles.rule1}>
       <BottomBarRoot openMenu={openMenu} setOpenMenu={handleSetOpenMenu}>
         {children}
       </BottomBarRoot>

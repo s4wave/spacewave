@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
-import { LuArrowLeft, LuChevronDown } from 'react-icons/lu'
+import { LuArrowLeft, LuChevronDown } from '@s4wave/web/images/icons.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { LegalFooter } from './LegalFooter.js'
 import { cn } from '@s4wave/web/style/utils.js'

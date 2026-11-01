@@ -5,7 +5,7 @@ import {
   LuLogOut,
   LuSmartphone,
   LuUnlink,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import {

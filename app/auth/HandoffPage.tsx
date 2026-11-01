@@ -1,6 +1,6 @@
 /* eslint-disable react-doctor/rerender-state-only-in-handlers */
 import { useCallback, useMemo, useState } from 'react'
-import { LuMonitor, LuTerminal } from 'react-icons/lu'
+import { LuMonitor, LuTerminal } from '@s4wave/web/images/icons.js'
 
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'

@@ -1,4 +1,4 @@
-import { LuFolder, LuHistory } from 'react-icons/lu'
+import { LuFolder, LuHistory } from '@s4wave/web/images/icons.js'
 
 import type { CommitInfo } from '@s4wave/sdk/git/repo.pb.js'
 

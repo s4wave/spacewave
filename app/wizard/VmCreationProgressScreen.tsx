@@ -1,4 +1,8 @@
-import { LuCircleAlert, LuMonitor, LuRotateCw } from 'react-icons/lu'
+import {
+  LuCircleAlert,
+  LuMonitor,
+  LuRotateCw,
+} from '@s4wave/web/images/icons.js'
 
 import { PhaseChecklist } from '@s4wave/app/session/setup/PhaseChecklist.js'
 import { ProgressBar } from '@s4wave/web/ui/loading/ProgressBar.js'

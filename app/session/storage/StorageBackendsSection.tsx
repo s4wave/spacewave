@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LuPlus } from 'react-icons/lu'
+import { LuPlus } from '@s4wave/web/images/icons.js'
 
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'

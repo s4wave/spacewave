@@ -1,4 +1,4 @@
-import { LuKeyboard } from 'react-icons/lu'
+import { LuKeyboard } from '@s4wave/web/images/icons.js'
 
 import {
   Dialog,
@@ -13,6 +13,30 @@ import { KeybindingCommandList } from './KeybindingCommandList.js'
 import { KeybindingEditorContext } from './KeybindingEditorContext.js'
 import { useKeybindingEditorModel } from './useKeybindingEditorModel.js'
 import type { KeybindingEditorProps } from './component.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-brand'],
+  },
+  rule2: {
+    display: 'grid',
+    minHeight: 0,
+    flex: 1,
+    gridTemplateColumns: {
+      default: 'repeat(1, minmax(0, 1fr))',
+      '@media (min-width: 40rem)': 'minmax(18rem, .9fr) minmax(22rem, 1.1fr)',
+    },
+    overflow: 'hidden',
+  },
+})
 
 export {
   type KeybindingEditorProps,
@@ -37,7 +61,7 @@ export function KeybindingEditor({
         <DialogContent variant="editor">
           <DialogHeader variant="editor">
             <DialogTitle variant="editor">
-              <LuKeyboard className="text-brand size-4" />
+              <LuKeyboard {...stylex.props(stylexStyles.rule1)} />
               Keyboard shortcuts
             </DialogTitle>
             <DialogDescription variant="editor">
@@ -45,7 +69,7 @@ export function KeybindingEditor({
               own.
             </DialogDescription>
           </DialogHeader>
-          <div className="sm:grid-cols-keybinding-editor grid min-h-0 flex-1 grid-cols-1 overflow-hidden">
+          <div sx={stylexStyles.rule2}>
             <KeybindingCommandList />
             <KeybindingCommandDetails />
           </div>

@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState, type ChangeEvent } from 'react'
-import { LuBoxes, LuSearch } from 'react-icons/lu'
+import { LuBoxes, LuSearch } from '@s4wave/web/images/icons.js'
 import { Input } from '@s4wave/web/ui/input.js'
 
 import { CategoryPanel } from './CategoryPanel.js'

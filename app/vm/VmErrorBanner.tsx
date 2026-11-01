@@ -1,4 +1,4 @@
-import { LuTriangleAlert } from 'react-icons/lu'
+import { LuTriangleAlert } from '@s4wave/web/images/icons.js'
 import * as stylex from '@stylexjs/stylex'
 
 import { colors, fonts, layout, radii } from '../../web/style/tokens.stylex.js'

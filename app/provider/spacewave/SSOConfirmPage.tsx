@@ -1,7 +1,7 @@
 /* eslint-disable react-doctor/no-giant-component */
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { isDesktop } from '@aptre/bldr'
-import { LuArrowLeft, LuCheck, LuUserPlus } from 'react-icons/lu'
+import { LuArrowLeft, LuCheck, LuUserPlus } from '@s4wave/web/images/icons.js'
 
 import { useNavigate, useParams } from '@s4wave/web/router/router.js'
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'

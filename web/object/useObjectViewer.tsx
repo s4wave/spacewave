@@ -36,6 +36,38 @@ import {
   switchObjectAtViewerPosition,
 } from './object-viewer-space-actions.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    marginInline: `calc(${themeLayout['--spacing']} * 2)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    width: '1px',
+    backgroundColor: themeColors['--color-border'],
+  },
+  rule2: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-muted-foreground'],
+  },
+  rule3: { display: 'flex', minWidth: 0, alignItems: 'center' },
+  rule4: {
+    flexShrink: 1,
+    flexGrow: 1,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+  },
+})
+
 // UseObjectViewerProps are the props for the useObjectViewer hook.
 export interface UseObjectViewerProps {
   objectInfo: ObjectInfo
@@ -368,7 +400,7 @@ function barComponentLabel(
   return null
 }
 
-const barLabelDivider = <div className="bg-border mx-2 h-3 w-px" />
+const barLabelDivider = <div sx={stylexStyles.rule1} />
 
 interface ViewerButtonOptions {
   barId: string
@@ -396,13 +428,11 @@ function useViewerButton({
         selected || isLastItem
           ? barComponentLabel(selectedComponent, typeID)
           : null
-      const text = (
-        <div className="text-muted-foreground truncate text-xs">{label}</div>
-      )
+      const text = <div sx={stylexStyles.rule2}>{label}</div>
       // The selector is a button, so it sits beside the item's button.
       const selector =
         label !== null && selectedComponent && visibleComponents.length > 1 ? (
-          <div className="flex min-w-0 items-center">
+          <div sx={stylexStyles.rule3}>
             {barLabelDivider}
             <ComponentSelector
               open={selectorOpen}
@@ -420,10 +450,12 @@ function useViewerButton({
         <BottomBarItem
           selected={selected}
           onClick={onClick}
-          className={className}
+          className={
+            /* TODO(stylex): dynamic class or forwarded className */ className
+          }
           trailing={selector}
         >
-          <div className="flex-shrink flex-grow truncate">{displayKey}</div>
+          <div sx={stylexStyles.rule4}>{displayKey}</div>
           {label !== null && !selector && (
             <>
               {barLabelDivider}

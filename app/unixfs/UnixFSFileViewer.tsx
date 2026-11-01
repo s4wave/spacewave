@@ -7,7 +7,7 @@ import {
   LuLink,
   LuMusic,
   LuVideo,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { StatResult } from '@s4wave/web/hooks/useUnixFSHandle.js'

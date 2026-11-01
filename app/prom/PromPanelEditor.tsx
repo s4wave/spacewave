@@ -18,6 +18,10 @@ import { PromPanel } from './PromPanel.js'
 import { filterSuggestions, suggestContext } from './expr-suggest.js'
 import type { TimeRange } from './prom-view.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({ rule1: { marginLeft: 'auto' } })
+
 // unitOptions are the units offered for a panel, in menu order.
 const unitOptions: readonly [PanelUnit, string][] = [
   [PanelUnit.UNKNOWN, 'Number'],
@@ -280,7 +284,7 @@ export function PromPanelEditor({
           <Button
             variant="ghost"
             size="sm"
-            className="ml-auto"
+            sx={stylexStyles.rule1}
             onClick={() => dispatch({ kind: 'run' })}
           >
             Run

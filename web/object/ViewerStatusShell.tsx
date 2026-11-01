@@ -2,6 +2,38 @@ import type { ReactNode } from 'react'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: themeColors['--color-muted-foreground'],
+  },
+  rule2: {
+    display: 'flex',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: themeColors['--color-destructive'],
+  },
+  rule3: {
+    display: 'flex',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-muted-foreground'],
+  },
+})
+
 // ViewerStatusShellProps configures the loading, error, and empty state messages.
 interface ViewerStatusShellProps {
   resource: Resource<unknown>
@@ -23,27 +55,15 @@ export function ViewerStatusShell({
   children,
 }: ViewerStatusShellProps) {
   if (resource.loading || state.loading) {
-    return (
-      <div className="text-muted-foreground flex h-full items-center justify-center">
-        {loadingText}
-      </div>
-    )
+    return <div sx={stylexStyles.rule1}>{loadingText}</div>
   }
 
   if (resource.error) {
-    return (
-      <div className="text-destructive flex h-full items-center justify-center">
-        {resource.error.message}
-      </div>
-    )
+    return <div sx={stylexStyles.rule2}>{resource.error.message}</div>
   }
 
   if (emptyText && sources !== undefined && sources.length === 0) {
-    return (
-      <div className="text-muted-foreground flex h-full items-center justify-center text-xs">
-        {emptyText}
-      </div>
-    )
+    return <div sx={stylexStyles.rule3}>{emptyText}</div>
   }
 
   return <>{children}</>

@@ -1,4 +1,4 @@
-import { LuArrowLeft } from 'react-icons/lu'
+import { LuArrowLeft } from '@s4wave/web/images/icons.js'
 import { LegalFooter } from './LegalFooter.js'
 import { useLandingBackNavigation } from './useLandingBackNavigation.js'
 

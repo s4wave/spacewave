@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { LuGauge } from 'react-icons/lu'
+import { LuGauge } from '@s4wave/web/images/icons.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
 import { formatBytes } from '@s4wave/web/transform/TransformConfigDisplay.js'

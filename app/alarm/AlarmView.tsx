@@ -1,4 +1,4 @@
-import { LuSiren } from 'react-icons/lu'
+import { LuSiren } from '@s4wave/web/images/icons.js'
 
 import type { Alarm, AlarmOption } from '@s4wave/sdk/alarm/alarm.pb.js'
 import { cn } from '@s4wave/web/style/utils.js'

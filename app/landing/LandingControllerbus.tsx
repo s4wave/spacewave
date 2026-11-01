@@ -7,7 +7,7 @@ import {
   LuSettings,
   LuShield,
   LuZap,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
 import { ExternalLink } from './ExternalLink.js'

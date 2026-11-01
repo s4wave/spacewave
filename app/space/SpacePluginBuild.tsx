@@ -27,6 +27,17 @@ import { SpacePluginObjects } from './SpacePluginObjects.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+import { layout as themeLayout2 } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    minHeight: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout2['--spacing']} * 11)`,
+    },
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     minHeight: {
@@ -178,7 +189,6 @@ function buildMessage(
 
 const selectClass =
   'border-foreground/10 bg-background w-full rounded-md border p-2 text-xs [@media(pointer:coarse)]:h-11'
-const touchTargetClass = '[@media(pointer:coarse)]:min-h-11'
 
 interface BuildSelectProps {
   label: string
@@ -311,7 +321,7 @@ function BuildPanel({
             <Button
               size="sm"
               variant="ghost"
-              className={touchTargetClass}
+              sx={stylexStyles2.rule1}
               onClick={() => navigateToObjects([sourceKey])}
             >
               Edit source
@@ -348,7 +358,7 @@ function BuildPanel({
           <Button
             size="sm"
             variant="brandOutline"
-            className={touchTargetClass}
+            sx={stylexStyles2.rule1}
             disabled={!canBuild}
             onClick={() => void build()}
           >
@@ -357,7 +367,7 @@ function BuildPanel({
           <Button
             size="sm"
             variant="ghost"
-            className={touchTargetClass}
+            sx={stylexStyles2.rule1}
             disabled={!canBuild}
             onClick={() => setAuthoring(true)}
           >
@@ -367,7 +377,7 @@ function BuildPanel({
             <Button
               size="sm"
               variant="ghost"
-              className={touchTargetClass}
+              sx={stylexStyles2.rule1}
               onClick={() => navigateToObjects([submitted.jobKey])}
             >
               Build logs
@@ -393,7 +403,7 @@ function BuildPanel({
             <Button
               size="sm"
               variant="ghost"
-              className={touchTargetClass}
+              sx={stylexStyles2.rule1}
               onClick={status.retry}
             >
               Reconnect to build

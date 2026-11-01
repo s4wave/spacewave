@@ -8,7 +8,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from 'react'
-import { LuMinus, LuX } from 'react-icons/lu'
+import { LuMinus, LuX } from '@s4wave/web/images/icons.js'
 import { isDesktop } from '@aptre/bldr'
 
 import { cn } from '@s4wave/web/style/utils.js'

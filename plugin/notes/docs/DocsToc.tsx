@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef } from 'react'
 
 import { cn } from '@s4wave/web/style/utils.js'
-import { LuList } from 'react-icons/lu'
+import { LuList } from '@s4wave/web/images/icons.js'
 
 import type { NoteFileFormat } from '../note-files.js'
 

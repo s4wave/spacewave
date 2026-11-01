@@ -9,7 +9,7 @@ import {
   type MouseEvent,
 } from 'react'
 import { format } from 'date-fns'
-import { LuFolder, LuFile, LuEllipsis } from 'react-icons/lu'
+import { LuFolder, LuFile, LuEllipsis } from '@s4wave/web/images/icons.js'
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { RowComponentProps, ListStateContext } from '@s4wave/web/ui/list'
@@ -31,6 +31,65 @@ import {
 import type { FileListDragEnvelopeContext } from './FileList.js'
 
 import * as stylex from '@stylexjs/stylex'
+
+import {
+  layout as themeLayout,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../../style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    minWidth: `calc(${themeLayout['--spacing']} * 30)`,
+    flex: 1,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    overflow: 'hidden',
+  },
+  rule2: { textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' },
+  rule3: {
+    position: 'absolute',
+    top: themeLayout['--spacing'],
+    bottom: themeLayout['--spacing'],
+    left: 0,
+    width: `calc(${themeLayout['--spacing']} * .5)`,
+    borderTopRightRadius: '.25rem',
+    borderBottomRightRadius: '.25rem',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 80%, transparent)`,
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 35)`,
+    minWidth: `calc(${themeLayout['--spacing']} * 25)`,
+    flexShrink: 1,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule5: {
+    width: `calc(${themeLayout['--spacing']} * 17.5)`,
+    minWidth: `calc(${themeLayout['--spacing']} * 12.5)`,
+    flexShrink: 1,
+    textAlign: 'right',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule6: {
+    display: 'flex',
+    height: {
+      default: '100%',
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+    width: {
+      default: `calc(${themeLayout['--spacing']} * 8)`,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+})
 
 const stylexStyles = stylex.create({ rule1: { flexShrink: 0 } })
 
@@ -281,20 +340,24 @@ function FileEntryName({
 }) {
   let icon = (
     <LuFile
-      className={cn(
-        'file-entry-color size-4 shrink-0',
-        selected ? 'text-foreground' : 'text-foreground-alt/60',
-      )}
+      className={
+        /* TODO(stylex): global or unknown class: file-entry-color */ cn(
+          'file-entry-color size-4 shrink-0',
+          selected ? 'text-foreground' : 'text-foreground-alt/60',
+        )
+      }
       style={{ '--file-entry-color': entry.color }}
     />
   )
   if (entry.isDir) {
     icon = (
       <LuFolder
-        className={cn(
-          'file-entry-color size-4 shrink-0',
-          selected ? 'text-brand' : 'text-foreground-alt/80',
-        )}
+        className={
+          /* TODO(stylex): global or unknown class: file-entry-color */ cn(
+            'file-entry-color size-4 shrink-0',
+            selected ? 'text-brand' : 'text-foreground-alt/80',
+          )
+        }
         style={{ '--file-entry-color': entry.color }}
       />
     )
@@ -302,9 +365,9 @@ function FileEntryName({
   if (loading) icon = <Spinner variant="brand" sx={stylexStyles.rule1} />
 
   return (
-    <div className="flex min-w-30 flex-1 items-center gap-2 overflow-hidden">
+    <div sx={stylexStyles2.rule1}>
       {icon}
-      <span className="truncate">{entry.name || entry.id}</span>
+      <span sx={stylexStyles2.rule2}>{entry.name || entry.id}</span>
     </div>
   )
 }
@@ -384,16 +447,18 @@ function FileEntryRow({
       aria-posinset={ariaAttributes['aria-posinset']}
       aria-setsize={ariaAttributes['aria-setsize']}
       style={style}
-      className={cn(
-        'group relative flex items-center px-3 py-1.5 text-xs [@media(pointer:coarse)]:py-0',
-        'cursor-pointer transition-colors select-none',
-        selected
-          ? 'bg-brand/10 text-foreground'
-          : 'text-foreground/90 hover:bg-foreground/5',
-        focused && !selected && 'ring-brand/25 ring-1 ring-inset',
-        entry.id === dropTargetEntryId &&
-          'bg-brand/10 ring-brand/40 ring-1 ring-inset',
-      )}
+      className={
+        /* TODO(stylex): global or unknown class: group */ cn(
+          'group relative flex items-center px-3 py-1.5 text-xs [@media(pointer:coarse)]:py-0',
+          'cursor-pointer transition-colors select-none',
+          selected
+            ? 'bg-brand/10 text-foreground'
+            : 'text-foreground/90 hover:bg-foreground/5',
+          focused && !selected && 'ring-brand/25 ring-1 ring-inset',
+          entry.id === dropTargetEntryId &&
+            'bg-brand/10 ring-brand/40 ring-1 ring-inset',
+        )
+      }
       draggable={drag.draggable}
       onClick={row.select}
       onKeyDown={row.keyDown}
@@ -405,9 +470,7 @@ function FileEntryRow({
       onDragLeave={drag.onDragLeave}
       onDrop={drag.onDrop}
     >
-      {selected && (
-        <span className="bg-brand/80 absolute top-1 bottom-1 left-0 w-0.5 rounded-r" />
-      )}
+      {selected && <span sx={stylexStyles2.rule3} />}
       {renderEntry
         ? renderEntry({
             entry,
@@ -415,18 +478,16 @@ function FileEntryRow({
             path: currentPath ?? '/',
           })
         : defaultNode}
-      <div className="text-foreground-alt/50 w-35 min-w-25 shrink text-xs">
+      <div sx={stylexStyles2.rule4}>
         {entryDetails?.modTime
           ? format(entryDetails.modTime, 'MMM dd, yyyy')
           : '—'}
       </div>
-      <div className="text-foreground-alt/50 w-17.5 min-w-12.5 shrink text-right text-xs">
-        {entrySizeLabel(entry, entryDetails)}
-      </div>
+      <div sx={stylexStyles2.rule5}>{entrySizeLabel(entry, entryDetails)}</div>
       <button
         type="button"
         aria-label={`More actions for ${entry.name || entry.id}`}
-        className="flex h-full w-8 shrink-0 items-center justify-center [@media(pointer:coarse)]:size-11"
+        sx={stylexStyles2.rule6}
         onClick={row.dotsClick}
         onDoubleClick={(e) => {
           e.stopPropagation()
@@ -434,7 +495,11 @@ function FileEntryRow({
         }}
         onContextMenu={row.dotsClick}
       >
-        <LuEllipsis className="text-foreground-alt size-4 opacity-0 transition-opacity group-hover:opacity-100 [@media(pointer:coarse)]:opacity-100" />
+        <LuEllipsis
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: group-hover:opacity-100 */ 'text-foreground-alt size-4 opacity-0 transition-opacity group-hover:opacity-100 [@media(pointer:coarse)]:opacity-100'
+          }
+        />
       </button>
     </div>
   )

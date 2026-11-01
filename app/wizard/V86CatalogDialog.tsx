@@ -1,4 +1,4 @@
-import { LuCloud } from 'react-icons/lu'
+import { LuCloud } from '@s4wave/web/images/icons.js'
 
 import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
@@ -26,6 +26,13 @@ import {
   type V86ImageEntry,
 } from '../vm/v86-images.js'
 import { V86ImageRow } from './V86ImageRow.js'
+
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: { marginTop: `calc(${themeLayout['--spacing']} * 3)` },
+})
 
 // V86CatalogDialogProps describes the catalog a new VM picks an image from.
 export interface V86CatalogDialogProps {
@@ -110,7 +117,7 @@ function CatalogEntries({
               if (catalogResource.error) catalogResource.retry()
               if (entriesResource.error) entriesResource.retry()
             }}
-            className="mt-3"
+            sx={stylexStyles.rule1}
           >
             Retry
           </Button>

@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { LuDatabase, LuShieldCheck } from 'react-icons/lu'
+import { LuDatabase, LuShieldCheck } from '@s4wave/web/images/icons.js'
 
 import { useSessionNavigate } from '@s4wave/web/contexts/contexts.js'
 import { BackButton } from '@s4wave/web/ui/BackButton.js'

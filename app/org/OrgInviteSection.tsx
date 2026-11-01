@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { LuClipboard, LuLink, LuTrash2 } from 'react-icons/lu'
+import { LuClipboard, LuLink, LuTrash2 } from '@s4wave/web/images/icons.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import type { OrgInviteInfo } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'

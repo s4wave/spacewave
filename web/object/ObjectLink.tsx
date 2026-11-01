@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import { LuCheck, LuCopy, LuExternalLink } from 'react-icons/lu'
+import { LuCheck, LuCopy, LuExternalLink } from '@s4wave/web/images/icons.js'
 
 import type { AddTabRequest } from '@s4wave/sdk/layout/layout.pb.js'
 import {
@@ -20,6 +20,149 @@ import {
 
 import type { ObjectInfo } from './object.pb.js'
 import { useTabContext } from './TabContext.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  radii as themeRadii,
+  motion as themeMotion,
+  colors as themeColors,
+  fonts as themeFonts,
+  utilityState as themeUtilityState,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'inline-flex',
+    minWidth: 0,
+    flex: 1,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderTopLeftRadius: themeRadii['--radius-md'],
+    borderBottomLeftRadius: themeRadii['--radius-md'],
+    textAlign: 'left',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule2: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+  },
+  rule3: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+  },
+  rule4: { cursor: 'not-allowed' },
+  rule5: {
+    color: themeColors['--color-foreground'],
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+  },
+  rule6: {
+    flexShrink: 0,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule7: { minWidth: 0 },
+  rule8: {
+    display: 'block',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: '.6rem',
+    lineHeight: `calc(${themeLayout['--spacing']} * 4)`,
+    '--tw-leading': `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule9: {
+    display: 'block',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: '.55rem',
+    lineHeight: `calc(${themeLayout['--spacing']} * 3)`,
+    '--tw-leading': `calc(${themeLayout['--spacing']} * 3)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule10: {
+    display: 'inline-flex',
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderLeftStyle: themeUtilityState['--tw-border-style'],
+    borderLeftWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+  },
+  rule11: {
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+    width: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule12: {
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    width: `calc(${themeLayout['--spacing']} * 7)`,
+  },
+  rule13: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: themeColors['--color-success'],
+  },
+  rule14: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule15: {
+    display: 'inline-flex',
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderTopRightRadius: themeRadii['--radius-md'],
+    borderBottomRightRadius: themeRadii['--radius-md'],
+    borderLeftStyle: themeUtilityState['--tw-border-style'],
+    borderLeftWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+        ':disabled:hover': '#0000',
+      },
+    },
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    color: {
+      default: null,
+      ':disabled': `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 30%, transparent)`,
+    },
+  },
+})
 
 export interface ObjectLinkProps {
   objectKey?: string
@@ -51,10 +194,12 @@ function useObjectLinkActions({
   componentID,
   path,
 }: ObjectLinkTarget & { targetKey: string }) {
+  // Bind navigation and copy feedback to the current reference.
   const spaceContainer = SpaceContainerContext.useContextSafe()
   const tabContext = useTabContext()
   const [copied, setCopied] = useState(false)
 
+  // Open the reference in its existing layout or the current Space route.
   const open = useCallback(() => {
     if (!targetKey) return
     if (tabContext?.isObjectLayout) {
@@ -83,6 +228,7 @@ function useObjectLinkActions({
     targetKey,
   ])
 
+  // Report copy success only after the clipboard accepts the key.
   const copy = useCallback(() => {
     if (!targetKey) return
     void navigator.clipboard
@@ -96,6 +242,7 @@ function useObjectLinkActions({
       )
   }, [targetKey])
 
+  // Prefer an external object URL when the Space can provide one.
   const openInNewTab = useCallback(() => {
     if (!targetKey) return
     const url = spaceContainer?.buildObjectUrls([targetKey])[0]
@@ -143,28 +290,77 @@ function ObjectLinkPrimary({
       disabled={missing}
       aria-label={'Open ' + accessibleLabel}
       onClick={onOpen}
-      className={cn(
-        'inline-flex min-w-0 flex-1 items-center gap-1.5 rounded-l-md text-left transition-colors',
-        compact ? 'px-1.5 py-0.5' : 'px-2 py-1',
-        missing
-          ? 'cursor-not-allowed'
-          : 'hover:bg-foreground/5 text-foreground',
-      )}
+      sx={[
+        stylexStyles.rule1,
+        compact ? stylexStyles.rule2 : stylexStyles.rule3,
+        missing ? stylexStyles.rule4 : stylexStyles.rule5,
+      ]}
     >
-      <span className="text-foreground-alt/60 shrink-0">
-        {getObjectTypeIcon(objectType ?? '')}
-      </span>
-      <span className="min-w-0">
-        <span className="micro-text block truncate font-mono leading-4">
+      <span sx={stylexStyles.rule6}>{getObjectTypeIcon(objectType ?? '')}</span>
+      <span sx={stylexStyles.rule7}>
+        <span sx={stylexStyles.rule8}>
           {missing ? displayLabel || 'Missing ref' : displayLabel}
         </span>
         {detail && !compact ? (
-          <span className="text-foreground-alt/50 micro-fine block truncate leading-3">
-            {detail}
-          </span>
+          <span sx={stylexStyles.rule9}>{detail}</span>
         ) : null}
       </span>
     </button>
+  )
+}
+
+// ObjectLinkSecondaryActions renders the copy and new-tab actions of a resolved reference.
+function ObjectLinkSecondaryActions({
+  actions,
+  accessibleLabel,
+  compact,
+}: {
+  actions: ReturnType<typeof useObjectLinkActions>
+  accessibleLabel: string
+  compact: boolean
+}) {
+  return (
+    <>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            aria-label={'Copy ' + accessibleLabel}
+            onClick={actions.copy}
+            sx={[
+              stylexStyles.rule10,
+              compact ? stylexStyles.rule11 : stylexStyles.rule12,
+            ]}
+          >
+            {actions.copied ? (
+              <LuCheck {...stylex.props(stylexStyles.rule13)} />
+            ) : (
+              <LuCopy {...stylex.props(stylexStyles.rule14)} />
+            )}
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          {actions.copied ? 'Copied' : 'Copy object key'}
+        </TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            aria-label={'Open ' + accessibleLabel + ' in new tab'}
+            disabled={!actions.canOpenInNewTab && !actions.hasSpaceContainer}
+            onClick={actions.openInNewTab}
+            sx={[
+              stylexStyles.rule15,
+              compact ? stylexStyles.rule11 : stylexStyles.rule12,
+            ]}
+          >
+            <LuExternalLink {...stylex.props(stylexStyles.rule14)} />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">Open in new tab</TooltipContent>
+      </Tooltip>
+    </>
   )
 }
 
@@ -181,6 +377,7 @@ export function ObjectLink({
   className,
   compact = false,
 }: ObjectLinkProps) {
+  // Bind actions to the normalized target before deriving its label.
   const targetKey = objectKey?.trim() ?? ''
   const missing = targetKey === ''
   const actions = useObjectLinkActions({
@@ -191,22 +388,25 @@ export function ObjectLink({
     componentID,
     path,
   })
+
+  // Describe the resolved or missing reference for both visible and accessible labels.
   const displayLabel = useMemo(
     () => objectLinkDisplayLabel({ objectKey: targetKey, label }),
     [targetKey, label],
   )
   const kindLabel = kind || (objectType ? getObjectTypeLabel(objectType) : '')
   const accessibleLabel = displayLabel || targetKey || 'missing object ref'
-  const buttonSize = compact ? 'h-6 w-6' : 'h-7 w-7'
 
   return (
     <span
-      className={cn(
-        'border-foreground/8 bg-foreground/5 text-foreground-alt/80 inline-flex max-w-full items-center rounded-md border align-middle',
-        missing && 'border-warning/20 bg-warning/5 text-warning',
-        compact ? 'min-h-6' : 'min-h-7',
-        className,
-      )}
+      className={
+        /* TODO(stylex): dynamic class or forwarded className */ cn(
+          'border-foreground/8 bg-foreground/5 text-foreground-alt/80 inline-flex max-w-full items-center rounded-md border align-middle',
+          missing && 'border-warning/20 bg-warning/5 text-warning',
+          compact ? 'min-h-6' : 'min-h-7',
+          className,
+        )
+      }
       data-object-link={targetKey || undefined}
       data-missing-object-link={missing ? 'true' : undefined}
     >
@@ -220,49 +420,11 @@ export function ObjectLink({
         onOpen={actions.open}
       />
       {missing ? null : (
-        <>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                aria-label={'Copy ' + accessibleLabel}
-                onClick={actions.copy}
-                className={cn(
-                  'border-foreground/8 hover:bg-foreground/5 inline-flex shrink-0 items-center justify-center border-l transition-colors',
-                  buttonSize,
-                )}
-              >
-                {actions.copied ? (
-                  <LuCheck className="text-success size-3.5" />
-                ) : (
-                  <LuCopy className="size-3.5" />
-                )}
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              {actions.copied ? 'Copied' : 'Copy object key'}
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                aria-label={'Open ' + accessibleLabel + ' in new tab'}
-                disabled={
-                  !actions.canOpenInNewTab && !actions.hasSpaceContainer
-                }
-                onClick={actions.openInNewTab}
-                className={cn(
-                  'border-foreground/8 hover:bg-foreground/5 disabled:text-foreground-alt/30 inline-flex shrink-0 items-center justify-center rounded-r-md border-l transition-colors disabled:cursor-not-allowed disabled:hover:bg-transparent',
-                  buttonSize,
-                )}
-              >
-                <LuExternalLink className="size-3.5" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">Open in new tab</TooltipContent>
-          </Tooltip>
-        </>
+        <ObjectLinkSecondaryActions
+          actions={actions}
+          accessibleLabel={accessibleLabel}
+          compact={compact}
+        />
       )}
     </span>
   )
@@ -309,6 +471,7 @@ export function objectLinkTabId(target: ObjectLinkTarget): string {
   return 'object-link-' + slug + '-' + stableHash(raw)
 }
 
+// objectLinkDisplayLabel prefers an explicit label, then the key's final path segment.
 export function objectLinkDisplayLabel(target: {
   objectKey?: string
   label?: string
@@ -316,9 +479,7 @@ export function objectLinkDisplayLabel(target: {
   const label = target.label?.trim()
   if (label) return label
   const key = target.objectKey?.trim()
-  if (!key) return 'Missing ref'
-  const parts = key.split('/').filter(Boolean)
-  return parts.at(-1) ?? key
+  return key ? (key.split('/').filter(Boolean).at(-1) ?? key) : 'Missing ref'
 }
 
 function stableHash(value: string): string {

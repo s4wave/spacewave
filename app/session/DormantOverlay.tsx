@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { LuMoon, LuSparkles, LuUser } from 'react-icons/lu'
+import { LuMoon, LuSparkles, LuUser } from '@s4wave/web/images/icons.js'
 
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'

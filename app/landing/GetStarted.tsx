@@ -1,6 +1,6 @@
 import React from 'react'
 import { useMemo, useRef, useCallback, useEffect } from 'react'
-import { LuFolderOpen, LuUser } from 'react-icons/lu'
+import { LuFolderOpen, LuUser } from '@s4wave/web/images/icons.js'
 
 import type { SessionListEntry } from '@s4wave/core/session/session.pb.js'
 import { useAddSpaceRootAlias } from '@s4wave/app/hooks/useAddSpaceRootAlias.js'

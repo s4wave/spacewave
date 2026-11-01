@@ -12,7 +12,7 @@ import {
   LuLogIn,
   LuShieldCheck,
   LuTriangleAlert,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 import { toast } from '@s4wave/web/ui/toaster.js'

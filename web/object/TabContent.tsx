@@ -19,6 +19,30 @@ import {
 } from './TabContext.js'
 import { ObjectViewer } from './ObjectViewer.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  colors as themeColors,
+  fonts as themeFonts,
+  layout as themeLayout,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: themeColors['--color-muted-foreground'],
+  },
+  rule2: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule3: { marginLeft: `calc(${themeLayout['--spacing']} * 2)` },
+})
+
 // NavigateFunc is the function signature for navigating to a new path.
 export type NavigateFunc = (path: string) => void | Promise<unknown>
 
@@ -121,19 +145,21 @@ export function TabContent({
   let content: ReactNode
   if (!layoutTab) {
     content = (
-      <div className="text-muted-foreground flex h-full w-full items-center justify-center">
-        <div className="text-foreground-alt/60 text-xs">Empty tab: {tabID}</div>
+      <div sx={stylexStyles.rule1}>
+        <div sx={stylexStyles.rule2}>Empty tab: {tabID}</div>
       </div>
     )
   } else {
     const objectInfo = layoutTab.objectInfo
     if (!objectInfo?.info?.case || !worldState) {
       content = (
-        <div className="text-muted-foreground flex h-full w-full items-center justify-center">
-          <div className="text-foreground-alt/60 text-xs">
+        <div sx={stylexStyles.rule1}>
+          <div sx={stylexStyles.rule2}>
             {!worldState ? 'No world state available' : `Tab: ${tabID}`}
             {layoutTab.componentId && (
-              <span className="ml-2">Component: {layoutTab.componentId}</span>
+              <span sx={stylexStyles.rule3}>
+                Component: {layoutTab.componentId}
+              </span>
             )}
           </div>
         </div>

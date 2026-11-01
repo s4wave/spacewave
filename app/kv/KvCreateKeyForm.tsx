@@ -1,11 +1,21 @@
 import { useCallback, useMemo, useState } from 'react'
-import { LuPlus, LuX } from 'react-icons/lu'
+import { LuPlus, LuX } from '@s4wave/web/images/icons.js'
 
 import { Button } from '@s4wave/web/ui/button.js'
 import { ErrorState } from '@s4wave/web/ui/ErrorState.js'
 
 import { KvValueEditor } from './KvValueEditor.js'
 import { parseValue, type KvDisplayMode } from './kv-encoding.js'
+
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 6)`,
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+})
 
 interface KvCreateKeyFormProps {
   onCreate: (key: Uint8Array, value: Uint8Array) => Promise<void>
@@ -69,7 +79,7 @@ export function KvCreateKeyForm({
           onClick={onCancel}
           disabled={busy}
           aria-label="Cancel new key"
-          className="size-6"
+          sx={stylexStyles.rule1}
         >
           <LuX className="size-3.5" />
         </Button>

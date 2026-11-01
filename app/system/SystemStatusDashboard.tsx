@@ -21,7 +21,7 @@ import {
   LuRocket,
   LuTriangleAlert,
   LuX,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import { useSessionMetadata } from '@s4wave/app/hooks/useSessionMetadata.js'
 import {

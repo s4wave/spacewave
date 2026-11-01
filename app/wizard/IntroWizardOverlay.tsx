@@ -4,7 +4,7 @@ import {
   LuArrowLeft,
   LuArrowUp,
   LuSparkles,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import { Button } from '@s4wave/web/ui/button.js'
 import {

@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from 'react'
-import { LuTriangleAlert } from 'react-icons/lu'
+import { LuTriangleAlert } from '@s4wave/web/images/icons.js'
 import { createPlayer } from '@videojs/react'
 import { Video, videoFeatures, VideoSkin } from '@videojs/react/video'
 import '@videojs/react/video/skin.css'

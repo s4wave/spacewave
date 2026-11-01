@@ -6,7 +6,7 @@ import {
   LuCircleCheck,
   LuCircleX,
   LuLoaderCircle,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import { Badge } from '@s4wave/web/ui/badge.js'
 import {

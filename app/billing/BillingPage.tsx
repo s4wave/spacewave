@@ -5,7 +5,7 @@ import {
   LuRefreshCw,
   LuSave,
   LuX,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'

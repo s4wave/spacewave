@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { LuChevronDown } from 'react-icons/lu'
+import { LuChevronDown } from '@s4wave/web/images/icons.js'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'

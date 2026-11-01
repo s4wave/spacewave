@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState, type ChangeEvent } from 'react'
-import { LuSearch, LuSlidersHorizontal } from 'react-icons/lu'
+import { LuSearch, LuSlidersHorizontal } from '@s4wave/web/images/icons.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
 import { Input } from '@s4wave/web/ui/input.js'

@@ -1,6 +1,6 @@
 import * as React from 'react'
 import * as MenubarPrimitive from '@radix-ui/react-menubar'
-import { LuCheck, LuChevronRight, LuCircle } from 'react-icons/lu'
+import { LuCheck, LuChevronRight, LuCircle } from '@s4wave/web/images/icons.js'
 
 import { cn } from '../style/utils.js'
 import { useAppEnvironment } from '@s4wave/web/sdk/app/environment.js'

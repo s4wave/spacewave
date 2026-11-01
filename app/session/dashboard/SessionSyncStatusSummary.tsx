@@ -3,7 +3,7 @@ import {
   LuCircleCheck,
   LuCloud,
   LuHardDrive,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'

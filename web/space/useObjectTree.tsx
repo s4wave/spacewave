@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import { LuEllipsis } from 'react-icons/lu'
+import { LuEllipsis } from '@s4wave/web/images/icons.js'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
@@ -13,6 +13,16 @@ import {
   type ObjectTreeNode,
   type ObjectTypeMetadataById,
 } from './object-tree.js'
+
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
 
 // objectLevelPageSize is how many entries a tree level reads at a time.
 export const objectLevelPageSize = 200
@@ -111,7 +121,7 @@ function moreNode(
   return {
     id: `${prefix}…`,
     name: 'Show more',
-    icon: <LuEllipsis className="h-3.5 w-3.5" />,
+    icon: <LuEllipsis {...stylex.props(stylexStyles.rule1)} />,
     icons: [
       {
         icon: <LuEllipsis />,

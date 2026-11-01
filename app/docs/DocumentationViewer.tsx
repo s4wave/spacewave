@@ -9,7 +9,7 @@ import {
   LuPlus,
   LuSearch,
   LuX,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import '@s4wave/app/docs/docs-prose.css'

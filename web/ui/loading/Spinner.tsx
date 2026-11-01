@@ -1,5 +1,5 @@
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
-import { LuLoader } from 'react-icons/lu'
+import { LuLoader } from '@s4wave/web/images/icons.js'
 
 import * as stylex from '@stylexjs/stylex'
 import {

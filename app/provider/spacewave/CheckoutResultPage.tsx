@@ -1,4 +1,4 @@
-import { LuCheck, LuX } from 'react-icons/lu'
+import { LuCheck, LuX } from '@s4wave/web/images/icons.js'
 
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 

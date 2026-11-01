@@ -6,7 +6,7 @@ import {
   useState,
   type MouseEvent,
 } from 'react'
-import { LuCheck, LuCopy, LuTriangleAlert } from 'react-icons/lu'
+import { LuCheck, LuCopy, LuTriangleAlert } from '@s4wave/web/images/icons.js'
 
 import * as stylex from '@stylexjs/stylex'
 import {

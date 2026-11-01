@@ -231,7 +231,7 @@ export function BottomBarItem({
       aria-expanded={onSecondaryActivate ? !!contextMenuOpen : undefined}
       {...rest}
       className={
-        trailing
+        /* TODO(stylex): global or unknown class: glow-on-hover */ trailing
           ? cn(
               'flex h-full min-w-0 flex-row items-center pl-1.25 whitespace-pre',
               disabled ? 'cursor-not-allowed' : 'cursor-pointer',
@@ -246,7 +246,12 @@ export function BottomBarItem({
   if (!trailing) return button
 
   return (
-    <div className={itemClassName} style={style}>
+    <div
+      className={
+        /* TODO(stylex): global or unknown class: glow-on-hover */ itemClassName
+      }
+      style={style}
+    >
       {button}
       {trailing}
     </div>

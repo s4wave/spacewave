@@ -1,4 +1,4 @@
-import { LuCpu, LuHardDrive } from 'react-icons/lu'
+import { LuCpu, LuHardDrive } from '@s4wave/web/images/icons.js'
 
 import { Button } from '@s4wave/web/ui/button.js'
 import type { V86Image } from '@s4wave/sdk/vm/v86.pb.js'
@@ -9,6 +9,10 @@ import {
 
 import type { ExistingVm } from '../vm/v86-creation.js'
 import { formatV86ImageLabel, type V86ImageEntry } from '../vm/v86-images.js'
+
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({ rule1: { justifyContent: 'flex-start' } })
 
 // memoryOptions lists the memory sizes, in MB, a new VM can choose.
 const memoryOptions: readonly number[] = [64, 128, 256, 512, 1024]
@@ -55,7 +59,7 @@ export function V86ConfigStep({
               aria-pressed={memoryMb === mb}
               variant={memoryMb === mb ? 'selectedRow' : 'unselectedRow'}
               size="sm"
-              className="justify-start"
+              sx={stylexStyles.rule1}
               onClick={() => onMemoryChange(mb)}
             >
               {mb} MB

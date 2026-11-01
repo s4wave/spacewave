@@ -1,4 +1,4 @@
-import { LuDownload } from 'react-icons/lu'
+import { LuDownload } from '@s4wave/web/images/icons.js'
 
 import { ExternalLink } from '@s4wave/app/landing/ExternalLink.js'
 import { cn } from '@s4wave/web/style/utils.js'

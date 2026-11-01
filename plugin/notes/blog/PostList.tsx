@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 
-import { LuArrowRight } from 'react-icons/lu'
+import { LuArrowRight } from '@s4wave/web/images/icons.js'
 
 import { TagChip } from './TagChip.js'
 import type { BlogPostData } from './types.js'
@@ -18,9 +18,7 @@ function PostListItem({ post, onSelectPost }: PostListItemProps) {
   }, [onSelectPost, post])
 
   return (
-    <article
-      className="border-foreground/6 hover:bg-background-card/30 group relative flex cursor-pointer items-start gap-5 border-b p-5 transition duration-200 last:border-b-0 @lg:items-center"
-    >
+    <article className="border-foreground/6 hover:bg-background-card/30 group relative flex cursor-pointer items-start gap-5 border-b p-5 transition duration-200 last:border-b-0 @lg:items-center">
       <div className="min-w-0 flex-1">
         <h3 className="text-foreground group-hover:text-brand mb-1.5 text-sm font-semibold transition-colors duration-200 @lg:text-base">
           <button
@@ -63,11 +61,7 @@ export function PostList({ posts, onSelectPost }: PostListProps) {
   return (
     <div className="border-foreground/6 bg-background-card/10 overflow-hidden rounded-xl border backdrop-blur-sm">
       {posts.map((post) => (
-        <PostListItem
-          key={post.name}
-          post={post}
-          onSelectPost={onSelectPost}
-        />
+        <PostListItem key={post.name} post={post} onSelectPost={onSelectPost} />
       ))}
     </div>
   )

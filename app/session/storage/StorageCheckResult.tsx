@@ -1,4 +1,4 @@
-import { LuCircleCheck, LuTriangleAlert } from 'react-icons/lu'
+import { LuCircleCheck, LuTriangleAlert } from '@s4wave/web/images/icons.js'
 
 import { CopyButton } from '@s4wave/web/ui/CopyButton.js'
 

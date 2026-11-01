@@ -1,5 +1,9 @@
 import { useState, useCallback } from 'react'
-import { LuChevronLeft, LuChevronRight, LuCheck } from 'react-icons/lu'
+import {
+  LuChevronLeft,
+  LuChevronRight,
+  LuCheck,
+} from '@s4wave/web/images/icons.js'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'

@@ -1,4 +1,4 @@
-import { LuListFilter, LuRefreshCw } from 'react-icons/lu'
+import { LuListFilter, LuRefreshCw } from '@s4wave/web/images/icons.js'
 
 import {
   useResource,

@@ -1,6 +1,10 @@
 import { useAppEnvironment } from '@s4wave/web/sdk/app/environment.js'
 import { useCallback, useMemo } from 'react'
-import { LuChevronDown, LuChevronRight, LuDatabase } from 'react-icons/lu'
+import {
+  LuChevronDown,
+  LuChevronRight,
+  LuDatabase,
+} from '@s4wave/web/images/icons.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
 import { useStateAtom } from '@s4wave/web/state/persist.js'
@@ -15,6 +19,139 @@ import {
   type StateInspectorEntry,
   type StateInspectorScope,
 } from './useStateInspectorEntries.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+  motion as themeMotion,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    overflow: 'auto',
+  },
+  rule2: { display: 'flex', flexDirection: 'column' },
+  rule3: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.1s',
+    '--tw-duration': '.1s',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-pulldown-hover']} 40%, transparent)`,
+      },
+    },
+  },
+  rule4: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rule5: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule6: {
+    marginLeft: 'auto',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule7: {
+    width: `calc(${themeLayout['--spacing']} * 2.5)`,
+    height: `calc(${themeLayout['--spacing']} * 2.5)`,
+  },
+  rule8: { textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' },
+  rule9: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    cursor: 'pointer',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rule10: { visibility: 'hidden' },
+  rule11: {
+    display: 'flex',
+    height: '100%',
+    minWidth: 0,
+    flex: 1,
+    cursor: 'pointer',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    textAlign: 'left',
+  },
+  rule12: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    flexShrink: 0,
+    color: themeColors['--color-brand'],
+  },
+  rule13: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  rule14: {
+    marginLeft: 'auto',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule15: {
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+})
 
 type ScopeNode = {
   count: number
@@ -56,7 +193,7 @@ export function StateTreeTab() {
   const tree = useMemo(() => buildTree(entries), [entries])
 
   return (
-    <div className="flex flex-1 flex-col overflow-auto">
+    <div sx={stylexStyles.rule1}>
       {tree.map((node) => (
         <StateScopeNode key={node.id} node={node} />
       ))}
@@ -76,29 +213,20 @@ function StateScopeNode({ node }: { node: ScopeNode }) {
   }, [node.id, setExpandedState])
 
   return (
-    <div className="flex flex-col">
-      <button
-        type="button"
-        onClick={handleToggle}
-        className={cn(
-          'border-foreground/6 text-foreground flex h-7 items-center gap-1 border-b px-2 text-xs font-medium',
-          'hover:bg-pulldown-hover/40 transition-colors duration-100',
-        )}
-      >
-        <span className="flex size-4 shrink-0 items-center justify-center">
+    <div sx={stylexStyles.rule2}>
+      <button type="button" onClick={handleToggle} sx={[stylexStyles.rule3]}>
+        <span sx={stylexStyles.rule4}>
           {isExpanded ? (
-            <LuChevronDown className="size-3" />
+            <LuChevronDown {...stylex.props(stylexStyles.rule5)} />
           ) : (
-            <LuChevronRight className="size-3" />
+            <LuChevronRight {...stylex.props(stylexStyles.rule5)} />
           )}
         </span>
         <span>{node.label}</span>
-        <span className="text-foreground-alt ml-auto font-mono text-xs">
-          {node.count}
-        </span>
+        <span sx={stylexStyles.rule6}>{node.count}</span>
       </button>
       {isExpanded && (
-        <div className="flex flex-col">
+        <div sx={stylexStyles.rule2}>
           {node.children.map((child) => (
             <StateTreeNode key={child.id} node={child} level={1} />
           ))}
@@ -129,29 +257,29 @@ function StateGroupNode({ node, level }: { node: GroupNode; level: number }) {
   }, [node.id, setExpandedState])
 
   return (
-    <div className="flex flex-col">
+    <div sx={stylexStyles.rule2}>
       <button
         type="button"
         onClick={handleToggle}
-        className={cn(
-          'debug-tree-indent text-foreground-alt hover:bg-pulldown-hover/40 flex h-6 items-center gap-1 text-xs transition-colors duration-100',
-        )}
+        className={
+          /* TODO(stylex): global or unknown class: debug-tree-indent */ cn(
+            'debug-tree-indent text-foreground-alt hover:bg-pulldown-hover/40 flex h-6 items-center gap-1 text-xs transition-colors duration-100',
+          )
+        }
         style={{ '--debug-tree-padding-left': `${level * 12 + 8}px` }}
       >
-        <span className="flex size-4 shrink-0 items-center justify-center">
+        <span sx={stylexStyles.rule4}>
           {isExpanded ? (
-            <LuChevronDown className="size-2.5" />
+            <LuChevronDown {...stylex.props(stylexStyles.rule7)} />
           ) : (
-            <LuChevronRight className="size-2.5" />
+            <LuChevronRight {...stylex.props(stylexStyles.rule7)} />
           )}
         </span>
-        <span className="truncate">{node.label}</span>
-        <span className="text-foreground-alt ml-auto font-mono text-xs">
-          {node.count}
-        </span>
+        <span sx={stylexStyles.rule8}>{node.label}</span>
+        <span sx={stylexStyles.rule6}>{node.count}</span>
       </button>
       {isExpanded && (
-        <div className="flex flex-col">
+        <div sx={stylexStyles.rule2}>
           {node.children.map((child) => (
             <StateTreeNode key={child.id} node={child} level={level + 1} />
           ))}
@@ -193,14 +321,16 @@ function StateEntryNode({
   }, [devtools, entry.id])
 
   return (
-    <div className="flex flex-col">
+    <div sx={stylexStyles.rule2}>
       <div
-        className={cn(
-          'debug-tree-indent flex h-6 items-center gap-1 text-xs transition-colors duration-100',
-          isSelected
-            ? 'bg-ui-selected text-foreground'
-            : 'text-text-secondary hover:bg-pulldown-hover/50',
-        )}
+        className={
+          /* TODO(stylex): global or unknown class: debug-tree-indent */ cn(
+            'debug-tree-indent flex h-6 items-center gap-1 text-xs transition-colors duration-100',
+            isSelected
+              ? 'bg-ui-selected text-foreground'
+              : 'text-text-secondary hover:bg-pulldown-hover/50',
+          )
+        }
         style={{ '--debug-tree-padding-left': `${level * 12 + 8}px` }}
       >
         <button
@@ -208,33 +338,24 @@ function StateEntryNode({
           aria-label={isExpanded ? 'Collapse' : 'Expand'}
           disabled={!hasChildren}
           onClick={handleToggle}
-          className={cn(
-            'flex size-4 shrink-0 cursor-pointer items-center justify-center',
-            !hasChildren && 'invisible',
-          )}
+          sx={[stylexStyles.rule9, !hasChildren && stylexStyles.rule10]}
         >
           {isExpanded ? (
-            <LuChevronDown className="size-3" />
+            <LuChevronDown {...stylex.props(stylexStyles.rule5)} />
           ) : (
-            <LuChevronRight className="size-3" />
+            <LuChevronRight {...stylex.props(stylexStyles.rule5)} />
           )}
         </button>
 
-        <button
-          type="button"
-          onClick={handleSelect}
-          className="flex h-full min-w-0 flex-1 cursor-pointer items-center gap-1 text-left"
-        >
-          <LuDatabase className="text-brand size-3 shrink-0" />
-          <span className="truncate text-xs font-medium">{label}</span>
-          <span className="text-foreground-alt ml-auto truncate font-mono text-xs">
-            {preview}
-          </span>
+        <button type="button" onClick={handleSelect} sx={stylexStyles.rule11}>
+          <LuDatabase {...stylex.props(stylexStyles.rule12)} />
+          <span sx={stylexStyles.rule13}>{label}</span>
+          <span sx={stylexStyles.rule14}>{preview}</span>
         </button>
       </div>
 
       {isExpanded && hasChildren && (
-        <div className="flex flex-col">
+        <div sx={stylexStyles.rule2}>
           {childEntries.map(([key, childValue]) => (
             <StateTreeNodeInner
               key={key}
@@ -290,12 +411,14 @@ function StateTreeNodeInner({
   const valueColor = getValueColor(value)
 
   return (
-    <div className="flex flex-col">
+    <div sx={stylexStyles.rule2}>
       <div
-        className={cn(
-          'debug-tree-indent flex h-5 items-center gap-1 text-xs',
-          'text-text-secondary hover:bg-pulldown-hover/50 transition-colors duration-100',
-        )}
+        className={
+          /* TODO(stylex): global or unknown class: debug-tree-indent */ cn(
+            'debug-tree-indent flex h-5 items-center gap-1 text-xs',
+            'text-text-secondary hover:bg-pulldown-hover/50 transition-colors duration-100',
+          )
+        }
         style={{ '--debug-tree-padding-left': `${level * 12 + 8}px` }}
       >
         <button
@@ -303,32 +426,32 @@ function StateTreeNodeInner({
           aria-label={isExpanded ? 'Collapse' : 'Expand'}
           disabled={!isExpandable}
           onClick={handleToggle}
-          className={cn(
-            'flex size-4 shrink-0 cursor-pointer items-center justify-center',
-            !isExpandable && 'invisible',
-          )}
+          sx={[stylexStyles.rule9, !isExpandable && stylexStyles.rule10]}
         >
           {isExpanded ? (
-            <LuChevronDown className="size-2.5" />
+            <LuChevronDown {...stylex.props(stylexStyles.rule7)} />
           ) : (
-            <LuChevronRight className="size-2.5" />
+            <LuChevronRight {...stylex.props(stylexStyles.rule7)} />
           )}
         </button>
 
-        <button
-          type="button"
-          onClick={handleSelect}
-          className="flex h-full min-w-0 flex-1 cursor-pointer items-center gap-1 text-left"
-        >
-          <span className="text-foreground font-mono text-xs">{nodeKey}:</span>
-          <span className={cn('truncate font-mono text-xs', valueColor)}>
+        <button type="button" onClick={handleSelect} sx={stylexStyles.rule11}>
+          <span sx={stylexStyles.rule15}>{nodeKey}:</span>
+          <span
+            className={
+              /* TODO(stylex): computed class helper */ cn(
+                'truncate font-mono text-xs',
+                valueColor,
+              )
+            }
+          >
             {displayValue}
           </span>
         </button>
       </div>
 
       {isExpanded && isExpandable && (
-        <div className="flex flex-col">
+        <div sx={stylexStyles.rule2}>
           {childEntries.map(([childKey, childValue]) => (
             <StateTreeNodeInner
               key={childKey}

@@ -1,5 +1,5 @@
 import { createContext, useCallback, use, useMemo } from 'react'
-import { LuArrowUp, LuBuilding2 } from 'react-icons/lu'
+import { LuArrowUp, LuBuilding2 } from '@s4wave/web/images/icons.js'
 import { useWatchStateRpc } from '@aptre/bldr-react'
 
 import { SpacewaveOrgListContext } from '@s4wave/web/contexts/SpacewaveOrgListContext.js'

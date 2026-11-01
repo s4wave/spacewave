@@ -4,7 +4,7 @@ import {
   LuCircleCheck,
   LuLink,
   LuRefreshCw,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import type { SessionListEntry } from '@s4wave/core/session/session.pb.js'
 import type { Session } from '@s4wave/sdk/session/session.js'

@@ -1,4 +1,4 @@
-import { LuMessageCircle } from 'react-icons/lu'
+import { LuMessageCircle } from '@s4wave/web/images/icons.js'
 
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { CopyableField } from '@s4wave/web/ui/CopyableField.js'

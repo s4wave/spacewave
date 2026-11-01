@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { LuMonitor } from 'react-icons/lu'
+import { LuMonitor } from '@s4wave/web/images/icons.js'
 
 import {
   useResource,

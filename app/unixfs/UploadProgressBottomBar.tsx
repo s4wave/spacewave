@@ -1,6 +1,12 @@
-import type { IconType } from 'react-icons'
+import type { IconType } from '@s4wave/web/images/icons.js'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { LuCheck, LuCircleAlert, LuFolder, LuUpload, LuX } from 'react-icons/lu'
+import {
+  LuCheck,
+  LuCircleAlert,
+  LuFolder,
+  LuUpload,
+  LuX,
+} from '@s4wave/web/images/icons.js'
 
 import { isStorageQuotaError } from '@s4wave/app/session/storage/storage-error.js'
 import { BottomBarLevel } from '@s4wave/web/frame/bottom-bar-level.js'

@@ -1,4 +1,9 @@
-import { LuKeyboard, LuMaximize, LuMonitor, LuTerminal } from 'react-icons/lu'
+import {
+  LuKeyboard,
+  LuMaximize,
+  LuMonitor,
+  LuTerminal,
+} from '@s4wave/web/images/icons.js'
 
 import { VmStopButton } from '@s4wave/app/vm/VmHeader.js'
 import { VmViewSwitch } from '@s4wave/app/vm/VmViewSwitch.js'

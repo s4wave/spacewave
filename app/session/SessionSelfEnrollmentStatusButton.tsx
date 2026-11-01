@@ -5,7 +5,7 @@ import {
   LuKeyRound,
   LuRotateCw,
   LuSkipForward,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import { BottomBarItem } from '@s4wave/web/frame/bottom-bar-item.js'
 import { BottomBarLevel } from '@s4wave/web/frame/bottom-bar-level.js'

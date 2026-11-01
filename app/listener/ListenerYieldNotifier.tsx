@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react'
 import { isDesktop } from '@aptre/bldr'
 import { useWatchStateRpc } from '@aptre/bldr-react'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
-import { LuTerminal, LuTriangleAlert } from 'react-icons/lu'
+import { LuTerminal, LuTriangleAlert } from '@s4wave/web/images/icons.js'
 
 import type { Root } from '@s4wave/sdk/root'
 import {

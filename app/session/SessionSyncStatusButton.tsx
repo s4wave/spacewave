@@ -4,7 +4,7 @@ import {
   LuCircleCheck,
   LuCloud,
   LuHardDrive,
-} from 'react-icons/lu'
+} from '@s4wave/web/images/icons.js'
 
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 import { BottomBarItem } from '@s4wave/web/frame/bottom-bar-item.js'

@@ -3,7 +3,11 @@ import 'react-photo-view/dist/react-photo-view.css'
 
 import { useCallback, useMemo, useState, type MouseEventHandler } from 'react'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
-import { LuDownload, LuExternalLink, LuImage } from 'react-icons/lu'
+import {
+  LuDownload,
+  LuExternalLink,
+  LuImage,
+} from '@s4wave/web/images/icons.js'
 import { PhotoSlider } from 'react-photo-view'
 import { List, type RowComponentProps } from 'react-window'
 

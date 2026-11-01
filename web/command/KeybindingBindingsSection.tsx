@@ -1,4 +1,4 @@
-import { LuPlus, LuRotateCcw, LuTrash2 } from 'react-icons/lu'
+import { LuPlus, LuRotateCcw, LuTrash2 } from '@s4wave/web/images/icons.js'
 
 import { Button } from '@s4wave/web/ui/button.js'
 
@@ -9,6 +9,165 @@ import {
   bindingDisplay,
   canLayerOverrideBinding,
 } from './keybinding-editor-helpers.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  fonts as themeFonts,
+  colors as themeColors,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule2: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule3: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: 'dashed',
+    borderWidth: '1px',
+    '--tw-border-style': 'dashed',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 5)`,
+    textAlign: 'center',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule4: {
+    display: 'flex',
+    minHeight: `calc(${themeLayout['--spacing']} * 12)`,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card-alt']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule5: { minWidth: 0 },
+  rule6: {
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-brand'],
+  },
+  rule7: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule8: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    textAlign: 'center',
+    '--tw-ring-shadow':
+      'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    '--tw-ring-color': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+  },
+  rule9: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-wide)',
+    letterSpacing: 'var(--tracking-wide)',
+    color: themeColors['--color-brand'],
+    textTransform: 'uppercase',
+  },
+  rule10: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    minHeight: `calc(${themeLayout['--spacing']} * 12)`,
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule11: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule12: { marginTop: `calc(${themeLayout['--spacing']} * 3)` },
+  rule13: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule14: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule15: {
+    marginTop: themeLayout['--spacing'],
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: 'var(--text-base)',
+    lineHeight: 'var(--tw-leading, var(--text-base--line-height))',
+    color: themeColors['--color-brand'],
+  },
+  rule16: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-warning'],
+  },
+  rule17: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule18: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-warning'],
+  },
+  rule19: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingTop: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
 
 export function KeybindingBindingsSection() {
   const {
@@ -32,10 +191,14 @@ export function KeybindingBindingsSection() {
   } = useKeybindingEditorContext()
 
   return (
-    <div className="space-y-4">
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4'
+      }
+    >
       <div>
-        <div className="mb-2 flex items-center justify-between gap-3">
-          <h3 className="text-foreground text-xs font-medium">Shortcuts</h3>
+        <div sx={stylexStyles.rule1}>
+          <h3 sx={stylexStyles.rule2}>Shortcuts</h3>
           <Button
             type="button"
             variant="outline"
@@ -48,22 +211,26 @@ export function KeybindingBindingsSection() {
           </Button>
         </div>
         {selectedBindings.length === 0 ? (
-          <div className="text-foreground-alt border-foreground/8 rounded-md border border-dashed px-3 py-5 text-center text-sm">
+          <div sx={stylexStyles.rule3}>
             No keyboard shortcut. You can still run this command from the
             command palette or menu.
           </div>
         ) : (
-          <div className="space-y-2">
+          <div
+            className={
+              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
+            }
+          >
             {selectedBindings.map((binding) => (
               <div
                 key={`${binding.sourceLayer}:${binding.bindingId}:${binding.display}`}
-                className="border-foreground/8 bg-background-card-alt/30 flex min-h-12 items-center justify-between gap-3 rounded-md border px-3 py-2"
+                sx={stylexStyles.rule4}
               >
-                <div className="min-w-0">
-                  <div className="text-brand font-mono text-sm">
+                <div sx={stylexStyles.rule5}>
+                  <div sx={stylexStyles.rule6}>
                     {binding.display.split(' ').map(formatKeybinding).join(' ')}
                   </div>
-                  <div className="text-foreground-alt/70 text-xs">
+                  <div sx={stylexStyles.rule7}>
                     {binding.sourceLayerLabel} ·{' '}
                     {focusContextLabel(binding.context)}
                   </div>
@@ -92,26 +259,24 @@ export function KeybindingBindingsSection() {
           role="status"
           tabIndex={-1}
           aria-live="polite"
-          className="border-brand/30 bg-brand/10 ring-brand/20 rounded-md border p-4 text-center ring-1"
+          sx={stylexStyles.rule8}
         >
-          <div className="text-brand text-xs font-semibold tracking-wide uppercase">
-            Recording shortcut
-          </div>
-          <div className="text-foreground mt-3 min-h-12 text-lg font-medium">
+          <div sx={stylexStyles.rule9}>Recording shortcut</div>
+          <div sx={stylexStyles.rule10}>
             {capture.steps.length > 0 &&
               `${capture.steps.map(formatKeybinding).join(' ')} `}
             {capture.heldModifiers.length > 0
               ? formatKeybinding(`${capture.heldModifiers.join('+')}+…`)
               : 'Press the keys you want to use'}
           </div>
-          <div className="text-foreground-alt mt-1 text-xs">
+          <div sx={stylexStyles.rule11}>
             Escape cancels. The first non-modifier key completes the shortcut.
           </div>
           <Button
             type="button"
             variant="ghost"
             size="sm"
-            className="mt-3"
+            sx={stylexStyles.rule12}
             onClick={cancelCapture}
           >
             Cancel
@@ -120,18 +285,18 @@ export function KeybindingBindingsSection() {
       )}
 
       {pendingBinding && (
-        <div className="border-brand/20 bg-brand/5 rounded-md border p-3">
-          <div className="text-foreground-alt text-xs">
+        <div sx={stylexStyles.rule13}>
+          <div sx={stylexStyles.rule14}>
             {pendingReplace ? 'Replace with' : 'Add'}
           </div>
-          <div className="text-brand mt-1 font-mono text-base">
+          <div sx={stylexStyles.rule15}>
             {bindingDisplay(pendingBinding)
               .split(' ')
               .map(formatKeybinding)
               .join(' ')}
           </div>
           {pendingConflict && (
-            <div className="text-warning mt-2 text-xs">
+            <div sx={stylexStyles.rule16}>
               This shortcut is already used by{' '}
               {pendingConflict.bindings
                 .flatMap((binding) =>
@@ -143,7 +308,7 @@ export function KeybindingBindingsSection() {
               .
             </div>
           )}
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div sx={stylexStyles.rule17}>
             {!pendingConflict && (
               <Button type="button" size="sm" onClick={savePendingBinding}>
                 Save shortcut
@@ -173,11 +338,9 @@ export function KeybindingBindingsSection() {
         </div>
       )}
 
-      {captureError && (
-        <div className="text-warning text-xs">{captureError}</div>
-      )}
+      {captureError && <div sx={stylexStyles.rule18}>{captureError}</div>}
 
-      <div className="border-foreground/8 flex flex-wrap gap-2 border-t pt-4">
+      <div sx={stylexStyles.rule19}>
         <Button
           type="button"
           variant="outline"

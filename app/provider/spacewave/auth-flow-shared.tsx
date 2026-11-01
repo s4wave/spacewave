@@ -1,6 +1,6 @@
 import type { MouseEventHandler, ReactNode } from 'react'
-import { FcGoogle } from 'react-icons/fc'
-import { LuGithub } from 'react-icons/lu'
+import { FcGoogle } from '@s4wave/web/images/icons.js'
+import { LuGithub } from '@s4wave/web/images/icons.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
 import { SpacewaveProvider } from '@s4wave/sdk/provider/spacewave/spacewave.js'

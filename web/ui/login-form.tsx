@@ -7,9 +7,13 @@ import React, {
   useRef,
   useState,
 } from 'react'
-import { LuFingerprint, LuGithub, LuKeyRound } from 'react-icons/lu'
-import { FcGoogle } from 'react-icons/fc'
-import { RxArrowRight } from 'react-icons/rx'
+import {
+  LuFingerprint,
+  LuGithub,
+  LuKeyRound,
+} from '@s4wave/web/images/icons.js'
+import { FcGoogle } from '@s4wave/web/images/icons.js'
+import { RxArrowRight } from '@s4wave/web/images/icons.js'
 import { PiUserCircleDuotone } from '@s4wave/web/ui/phosphor-icons.js'
 import { isDesktop } from '@aptre/bldr'
 import { useLatestRef } from '@aptre/bldr-react'
