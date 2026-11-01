@@ -130,15 +130,16 @@ func removeBoltLocks(path string) error {
 
 // isBoltFile reports whether the file at path starts with a bbolt meta page.
 func isBoltFile(path string) (bool, error) {
-	// Open the file if it exists.
-	f, err := os.Open(path)
+	// Share the engine's descriptor claim: even a format probe must not close
+	// a second descriptor of an inode whose process-scoped locks are active.
+	f, closeFile, err := s4db.OpenFile(path, os.Open)
 	if errors.Is(err, os.ErrNotExist) {
 		return false, nil
 	}
 	if err != nil {
 		return false, err
 	}
-	defer f.Close()
+	defer closeFile()
 
 	// Compare the magic number, treating a short file as another format.
 	var magic [4]byte

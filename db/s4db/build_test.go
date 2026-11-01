@@ -40,17 +40,15 @@ func TestBuild(t *testing.T) {
 	const keys = 40_000
 	path := filepath.Join(t.TempDir(), "built.s4db")
 	key := func(i int) []byte { return binary.BigEndian.AppendUint64([]byte("k"), uint64(i)) }
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0o600)
-	if err != nil {
-		t.Fatal(err)
-	}
-	id, err := openFiles.claim(f)
+	f, closeFile, err := OpenFile(path, func(name string) (*os.File, error) {
+		return os.OpenFile(name, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0o600)
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Build with small runs.
-	s := &osFile{File: f, path: path, id: id}
+	s := &osFile{File: f, path: path, closeFile: closeFile}
 	err = build(ctx, s, Options{memtable: minMemtable}, 64<<10, func(yield func(key, value []byte) error) error {
 		for i := range keys {
 			if err := yield(key(i), buildValue(i)); err != nil {
