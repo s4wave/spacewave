@@ -211,6 +211,90 @@ func TestConvertPrevious(t *testing.T) {
 		checkConverted(t, path, want)
 	})
 
+	// A marker cannot authorize installation after the source changes.
+	t.Run("source changed after marker", func(t *testing.T) {
+		// Leave a verified copy, then replace the source with another valid
+		// old-format database, as an old writer can change it between attempts.
+		path := previousVolume(t, "mixed.s4db")
+		verifiedButNotInstalled(t, path)
+		empty, err := os.ReadFile(filepath.Join(previousFixtures, "empty.s4db"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, empty, 0o600); err != nil {
+			t.Fatal(err)
+		}
+
+		// Resume must rebuild from the current source, preserving it as backup.
+		if err := convertPrevious(ctx, le, path); err != nil {
+			t.Fatal(err)
+		}
+		checkConverted(t, path, nil)
+	})
+
+	// Equal key counts do not establish the converted copy's contents.
+	t.Run("copy changed with same count", func(t *testing.T) {
+		// Change one existing value in an otherwise valid converted copy.
+		path := previousVolume(t, "mixed.s4db")
+		verifiedButNotInstalled(t, path)
+		db, err := s4db.Open(path+convertingSuffix, s4db.Options{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		tx, err := db.NewTransaction(ctx, true)
+		if err != nil {
+			db.Close()
+			t.Fatal(err)
+		}
+		if err := tx.Set(ctx, []byte(want[0].key), []byte("changed after verification")); err != nil {
+			tx.Discard()
+			db.Close()
+			t.Fatal(err)
+		}
+		if err := errors.Join(tx.Commit(ctx), db.Close()); err != nil {
+			t.Fatal(err)
+		}
+
+		// Reverify every pair rather than trusting the marker's count.
+		if err := convertPrevious(ctx, le, path); err != nil {
+			t.Fatal(err)
+		}
+		checkConverted(t, path, want)
+	})
+
+	// Windows must permit the rename while the source lock is still held.
+	t.Run("install with source locked", func(t *testing.T) {
+		// Build and install without closing the old-format reader.
+		path := previousVolume(t, "mixed.s4db")
+		src, err := s4dbv1.Open(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer src.Close()
+		if _, err := isBoltFile(path); !errors.Is(err, s4db.ErrOpenInProcess) {
+			t.Fatalf("format probe passed source ownership: %v", err)
+		}
+		if _, err := buildConverted(ctx, src, path+convertingSuffix, path+convertedMarkerSuffix, nil); err != nil {
+			t.Fatal(err)
+		}
+		if err := installConverted(path); err != nil {
+			t.Fatal(err)
+		}
+
+		// The retained handle still reads the complete original inode.
+		n := 0
+		if err := src.Stream(ctx, func(_, _ []byte) error {
+			n++
+			return nil
+		}); err != nil || n != len(want) {
+			t.Fatalf("original after install: %d keys: %v", n, err)
+		}
+		if err := src.Close(); err != nil {
+			t.Fatal(err)
+		}
+		checkConverted(t, path, want)
+	})
+
 	// The link made and the rename not: the link is kept.
 	t.Run("linked not renamed", func(t *testing.T) {
 		// Make the link by hand, then convert.

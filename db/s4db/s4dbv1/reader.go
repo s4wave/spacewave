@@ -15,6 +15,8 @@ import (
 type Reader struct {
 	// f is the file.
 	f *os.File
+	// closeFile closes the descriptor and releases the shared process claim.
+	closeFile func() error
 	// slot is the reader slot held, or -1.
 	slot int
 	// writer reports that the writer lock is held.
@@ -30,12 +32,15 @@ type Reader struct {
 // ErrUnsupported when the file is not in the previous engine's format, and
 // with ErrCorrupt when no superblock reads.
 func Open(path string) (*Reader, error) {
-	// Open the file for writing, which the byte locks need, and load it.
-	f, err := os.OpenFile(path, os.O_RDWR, 0) // #nosec G703 -- the caller chooses the path.
+	// Share descriptor ownership with the new engine: a rejected probe must
+	// never close another descriptor of the locked source on Darwin.
+	f, closeFile, err := openRegisteredSource(path)
 	if err != nil {
 		return nil, err
 	}
-	r := &Reader{f: f, slot: -1}
+	r := &Reader{f: f, closeFile: closeFile, slot: -1}
+
+	// Load under the old engine's locks, releasing the claim on failure.
 	if err := r.load(); err != nil {
 		_ = r.Close()
 		return nil, err
@@ -158,6 +163,11 @@ func (r *Reader) emit(key []byte, v value, fn func(key, value []byte) error) err
 
 // Close releases the locks and the file.
 func (r *Reader) Close() error {
+	// An explicitly closed reader leaves no descriptor or claim to release.
+	if r.f == nil {
+		return nil
+	}
+
 	// Release the slot, then the writer lock, then the file.
 	var err error
 	if r.slot >= 0 {
@@ -170,8 +180,9 @@ func (r *Reader) Close() error {
 		}
 		r.writer = false
 	}
-	if cerr := r.f.Close(); err == nil {
+	if cerr := r.closeFile(); err == nil {
 		err = cerr
 	}
+	r.f = nil
 	return err
 }
