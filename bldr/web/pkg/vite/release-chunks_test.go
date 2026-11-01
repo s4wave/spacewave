@@ -267,7 +267,7 @@ func checkSharedButtonBrowser(ctx context.Context, root string, client bldr_vite
 	if err := os.MkdirAll(appRoot, 0o755); err != nil {
 		return err
 	}
-	source := `import React from 'react';import{createRoot}from'react-dom/client';import{Button}from'@s4wave/web/ui/button.js';import{LuPlus,IconContext}from'@s4wave/web/images/icons.js';createRoot(document.getElementById('target')).render(<IconContext.Provider value={{color:'rgb(17, 34, 51)'}}><Button id="native-button"><LuPlus/>Native bundle action</Button></IconContext.Provider>);`
+	source := `import React from 'react';import{createRoot}from'react-dom/client';import * as stylex from '@stylexjs/stylex';import{Button}from'@s4wave/web/ui/button.js';import{LuPlus,IconContext}from'@s4wave/web/images/icons.js';const styles=stylex.create({width:(minWidth:number)=>({minWidth})});createRoot(document.getElementById('target')).render(<IconContext.Provider value={{color:'rgb(17, 34, 51)'}}><Button id="native-button" sx={styles.width(123)} style={{'--native-button-test':'retained'}}><LuPlus/>Native bundle action</Button></IconContext.Provider>);`
 	if err := os.WriteFile(filepath.Join(appRoot, "App.tsx"), []byte(source), 0o644); err != nil {
 		return err
 	}
