@@ -129,3 +129,43 @@ func bldrExternalMatches(id string) bool {
 	}
 	return false
 }
+
+// TestStylexRuntimeExport checks the served runtime against its installed ESM export.
+func TestStylexRuntimeExport(t *testing.T) {
+	// Read the package contract used by the native compiler and consumers.
+	const buildPkgsDir = "../../../.."
+	data, err := os.ReadFile(filepath.Join(buildPkgsDir, "node_modules/@stylexjs/stylex/package.json"))
+	if errors.Is(err, fs.ErrNotExist) {
+		t.Skip("@stylexjs/stylex not installed; run bun install")
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	pkg, err := fastjson.ParseBytes(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	target := strings.TrimPrefix(string(pkg.GetStringBytes("exports", ".", "import")), "./")
+	if target == "" {
+		t.Fatal("StyleX has no ESM root export")
+	}
+
+	// Build the production references and locate their real runtime module.
+	for _, ref := range GetBldrDistWebPkgRefs(buildPkgsDir, "/bldr") {
+		if ref.GetWebPkgId() != "@stylexjs/stylex" {
+			continue
+		}
+		if !slices.Equal(ref.GetImports(), []string{target}) {
+			t.Fatalf("StyleX imports %v, want its ESM root %q", ref.GetImports(), target)
+		}
+		if _, err := os.Stat(filepath.Join(ref.GetWebPkgRoot(), target)); err != nil {
+			t.Fatal(err)
+		}
+		name, _ := servedEntryName(target)
+		if got, want := BldrDistImportMap("/b/pkg/")["@stylexjs/stylex"], "/b/pkg/@stylexjs/stylex/"+name+".mjs"; got != want {
+			t.Fatalf("StyleX import map %q, want %q", got, want)
+		}
+		return
+	}
+	t.Fatal("StyleX runtime reference is missing")
+}

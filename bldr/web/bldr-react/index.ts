@@ -1,3 +1,5 @@
+import type {} from './stylex-types.js'
+
 export { BldrRoot } from './bldr-root.js'
 export type { IBldrRootProps } from './bldr-root.js'
 export { WebDocument } from './web-document.js'

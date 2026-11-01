@@ -3,7 +3,9 @@
 package bldr
 
 import (
+	"bytes"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/aperturerobotics/fastjson"
@@ -41,4 +43,23 @@ func TestDistDepsMatchRoot(t *testing.T) {
 	}
 	check("dependencies")
 	check("overrides")
+	check("patchedDependencies")
+
+	// Both compiler installations must apply the same patch bytes to their pinned version.
+	dist.GetObject("patchedDependencies").Visit(func(name []byte, patch *fastjson.Value) {
+		// Resolve each package's patch relative to its own manifest.
+		rootPath := string(root.GetStringBytes("patchedDependencies", string(name)))
+		distPath := string(patch.GetStringBytes())
+		rootBytes, err := os.ReadFile(filepath.Join("..", rootPath))
+		if err != nil {
+			t.Fatal(err)
+		}
+		distBytes, err := os.ReadFile(filepath.Join("dist/deps", distPath))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(rootBytes, distBytes) {
+			t.Errorf("dist patch for %s differs from the root patch", name)
+		}
+	})
 }

@@ -167,10 +167,9 @@ const DIST_SOURCE_PREFIXES = [
 const LOCAL_MODULE_PREFIX = 'github.com/s4wave/spacewave/'
 const NODE_EVENTS_ID = '\0goscript-node-events'
 
-// CSS_EXTENSION_PATTERN matches every source that CSS_IMPORT_PATTERN can match,
-// so Rolldown skips the JavaScript hook for the rest.
+// CSS_EXTENSION_PATTERN selects CSS imports and StyleX sources that require Vite extraction.
 const CSS_EXTENSION_PATTERN =
-  /\.(?:css|less|sass|scss|styl|stylus|pcss|postcss)\b/i
+  /(?:\.(?:css|less|sass|scss|styl|stylus|pcss|postcss)\b|@stylexjs\/stylex)/i
 const CSS_IMPORT_PATTERN =
   /\.(?:css|less|sass|scss|styl|stylus|pcss|postcss)(?:[?#].*)?$/i
 const IMPORT_SPECIFIER_PATTERN =
@@ -179,7 +178,11 @@ const IMPORT_SPECIFIER_PATTERN =
 function sourceHasCssImport(code: string): boolean {
   IMPORT_SPECIFIER_PATTERN.lastIndex = 0
   for (const match of code.matchAll(IMPORT_SPECIFIER_PATTERN)) {
-    if (CSS_IMPORT_PATTERN.test(match[1] ?? '')) return true
+    if (
+      match[1] === '@stylexjs/stylex' ||
+      CSS_IMPORT_PATTERN.test(match[1] ?? '')
+    )
+      return true
   }
   return false
 }
@@ -622,6 +625,9 @@ export async function runBuild(
           if (sourceHasCssImport(code)) {
             hasCssImports = true
             trackInput(id)
+            throw new BuildRequestError(
+              'CSS-bearing source requires Vite extraction',
+            )
           }
           return null
         },
