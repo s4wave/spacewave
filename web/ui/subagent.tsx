@@ -1,3 +1,4 @@
+import { stylexProps } from '@s4wave/web/style/props.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
 import {
@@ -269,7 +270,7 @@ function Subagent({
   const hasBody = subagentHasBody({ task, model, tools, steps, result })
   if (!hasBody) {
     return (
-      <div data-slot="subagent" sx={sx} {...props}>
+      <div data-slot="subagent" {...stylexProps(sx, props)}>
         <Trace>
           <div sx={stylexStyles.rule6}>
             {line}
@@ -281,7 +282,7 @@ function Subagent({
   }
 
   return (
-    <div data-slot="subagent" sx={sx} {...props}>
+    <div data-slot="subagent" {...stylexProps(sx, props)}>
       <Trace>
         {/* Keyed by status so a finished run remounts closed. */}
         <TraceCollapsible key={status} defaultOpen={status === 'running'}>

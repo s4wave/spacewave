@@ -31,7 +31,9 @@ group and peer selectors need styles on the affected child or explicit markers.
 Global classes and computed class helpers also need a hand pass. Mixed logical axes and physical sides with responsive or pseudo conditions stay
 manual, because StyleX atomic priorities can change their cascade. Shared-component
 API conversion and replacing forwarded `className` with `sx` are coordinated
-with their callers in that pass.
+with their callers in that pass. Native roots use `stylexProps` to retain the
+variables emitted for dynamic styles beside forwarded native inline styles.
+Wrappers delegate `sx` to the component that renders their DOM.
 
 Run `test:stylex-migrate` for the real compiler and browser comparison. It builds
 original and converted components with Vite and compares resolved properties,

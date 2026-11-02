@@ -1,3 +1,4 @@
+import { stylexProps } from '@s4wave/web/style/props.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
 import { LuCircleX } from '@s4wave/web/images/icons.js'
@@ -80,7 +81,7 @@ function StackTrace({
   const seen = new Map<string, number>()
 
   return (
-    <div data-slot="stack-trace" sx={sx} {...props}>
+    <div data-slot="stack-trace" {...stylexProps(sx, props)}>
       <Trace>
         <TraceCollapsible defaultOpen>
           <TraceCollapsibleTrigger>

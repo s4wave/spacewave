@@ -1,3 +1,4 @@
+import { stylexProps } from '@s4wave/web/style/props.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
 import { LuRoute } from '@s4wave/web/images/icons.js'
@@ -76,7 +77,7 @@ function Plan({
   const done = steps.filter((step) => step.status === 'done').length
 
   return (
-    <div data-slot="plan" sx={sx} {...props}>
+    <div data-slot="plan" {...stylexProps(sx, props)}>
       <Trace>
         <TraceCollapsible defaultOpen>
           <TraceCollapsibleTrigger>

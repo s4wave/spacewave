@@ -3,7 +3,10 @@ import { cn } from 'cnfast'
 import * as compiled from '@stylexjs/stylex'
 
 const ComponentStyles = 'existing-binding'
-const compiledStyles = compiled.create({ override: { padding: 12 } })
+const compiledStyles = compiled.create({
+  override: { padding: 12 },
+  dynamic: (minWidth: number) => ({ minWidth }),
+})
 
 interface BoxProps extends React.ComponentProps<'div'> {
   label: string
@@ -34,6 +37,13 @@ export function OwnedStyles({ optional = false }: { optional?: boolean } = {}) {
   return (
     <section data-existing={ComponentStyles}>
       <Box label="Default box">Default</Box>
+      <Box
+        label="Dynamic native caller"
+        className="min-w-[123px]"
+        style={{ '--owned-native-test': 'retained' }}
+      >
+        Dynamic caller
+      </Box>
       <Box label="Compiled caller" {...compiled.props(compiledStyles.override)}>
         Compiled
       </Box>
