@@ -31,6 +31,16 @@ import {
   motion as themeMotion,
 } from '../style/tokens.stylex.js'
 
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: 'var(--progress-width)',
+    transition: 'width 300ms',
+    height: '100%',
+    borderRadius: '3.40282e38px',
+    backgroundColor: themeColors['--color-primary'],
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     borderBottomStyle: themeUtilityState['--tw-border-style'],
@@ -360,6 +370,7 @@ function latencyColor(ms: number): string {
 
 // fmtMs formats a millisecond value with appropriate precision.
 function fmtMs(ms: number | undefined): string {
+  // Preserve useful sub-millisecond precision while treating absent measurements as unavailable.
   if (ms === undefined || ms === 0) return '-'
   if (ms < 0.01) return '<0.01'
   if (ms < 1) return ms.toFixed(3)
@@ -454,11 +465,14 @@ function SuiteTable({ suite }: { suite: BenchmarkSuite }) {
 function ResultsDisplay({ results }: { results: BenchmarkResults }) {
   const suites = results.suites ?? []
   const downloadResults = useCallback(() => {
+    // Encode the reported metrics into a downloadable JSON resource.
     const json = BenchmarkResultsType.toJsonString(results, {
       prettySpaces: 2,
     })
     const blob = new Blob([json], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
+
+    // Trigger the local download and release its temporary object URL.
     const a = document.createElement('a')
     a.href = url
     a.download = `debugdb-bench-${new Date().toISOString().slice(0, 19).replace(/:/g, '')}.json`
@@ -531,9 +545,7 @@ function ProgressBar({ progress }: { progress: WatchProgressResponse }) {
       </div>
       <div sx={stylexStyles.rule23}>
         <div
-          className={
-            /* TODO(stylex): global or unknown class: progress-width */ 'bg-primary progress-width progress-width-transition-medium h-full rounded-full'
-          }
+          sx={stylexStyles2.rule1}
           style={{ '--progress-width': `${progress.percentComplete ?? 0}%` }}
         />
       </div>
@@ -546,9 +558,12 @@ function ProgressBar({ progress }: { progress: WatchProgressResponse }) {
 
 // BenchmarkPanel manages the benchmark lifecycle.
 function BenchmarkPanel({ debugDb }: { debugDb: Resource<DebugDb> }) {
+  // Keep the form draft separate from the configuration of the active benchmark.
   const [duration, setDuration] = useState(10)
   const [includeWorld, setIncludeWorld] = useState(false)
   const [run, setRun] = useState<BenchmarkConfig | null>(null)
+
+  // Own the benchmark and watch progress and completion through its resource.
   const benchmark = useResource(
     debugDb,
     async (db, signal, cleanup) => {
@@ -567,9 +582,12 @@ function BenchmarkPanel({ debugDb }: { debugDb: Resource<DebugDb> }) {
     (activeBenchmark, signal) => activeBenchmark.getResults(signal),
     [],
   )
+
+  // Resolve the controls from the active resource state and its first failure.
   const running = run !== null && (benchmark.loading || results.loading)
   const error = benchmark.error ?? progress.error ?? results.error
 
+  // Snapshot the selected settings for one benchmark resource lifetime.
   const runBenchmark = useCallback(() => {
     if (!debugDb.value) return
     setRun({
@@ -646,11 +664,13 @@ function BenchmarkPanel({ debugDb }: { debugDb: Resource<DebugDb> }) {
 }
 
 export function DebugDbBench() {
+  // Keep navigation within the active application router.
   const navigate = useNavigate()
   const goBack = useCallback(() => {
     navigate({ path: '/' })
   }, [navigate])
 
+  // Resolve the debug database from the current root resource.
   const rootResource = useRootResource()
   const debugDbResource = useResource(
     rootResource,
@@ -660,6 +680,7 @@ export function DebugDbBench() {
     [],
   )
 
+  // Refresh storage information when the debug database resource changes.
   const storageInfo = usePromise(
     useCallback(
       (signal: AbortSignal) => {
@@ -671,9 +692,11 @@ export function DebugDbBench() {
     ),
   )
 
+  // Show loading or the first resource failure before offering benchmark controls.
   const loading = rootResource.loading || debugDbResource.loading
   const err = rootResource.error || debugDbResource.error
 
+  // Render the resource status and its available benchmark panel.
   return (
     <div sx={stylexStyles.rule34}>
       <div sx={stylexStyles.rule35}>

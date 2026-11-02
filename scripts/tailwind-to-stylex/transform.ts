@@ -204,6 +204,34 @@ export function transform(
   const binding = existingStylex[0] ?? unique('stylex')
   const tokenBindings = new Map<string, string>()
 
+  // Repeated passes reuse the actual theme imports rather than allocating parallel aliases.
+  const importedStyles = (module: string): Map<string, string> => {
+    const imported = new Map<string, string>()
+    const target = resolve('web/style', module + '.stylex')
+    for (const node of ast.program.body) {
+      // Resolve owned theme modules before reusing their value bindings.
+      if (node.type !== 'ImportDeclaration' || node.importKind === 'type')
+        continue
+      const specifier = node.source.value
+      const path = specifier.startsWith('@s4wave/web/')
+        ? resolve('web', specifier.slice(12))
+        : specifier.startsWith('.')
+          ? resolve(dirname(resolve(filename)), specifier)
+          : resolve(specifier)
+      if (path.replace(/\.[cm]?[jt]s$/, '') !== target) continue
+      for (const name of node.specifiers) {
+        if (
+          name.type === 'ImportSpecifier' &&
+          name.importKind !== 'type' &&
+          name.imported.type === 'Identifier'
+        )
+          imported.set(name.imported.name, name.local.name)
+      }
+    }
+    return imported
+  }
+  const existingTokens = importedStyles('tokens')
+
   // Resolve owned relationship markers once for literals and computed conditions.
   const markerBindings = new Map<string, string>()
   const literalMarkers = new Map<string, string[]>()
@@ -242,7 +270,10 @@ export function transform(
 
     // Allocate each variable-group import only when a declaration references it.
     const reference = (key: string) => {
+      // Reuse an imported theme value or reserve one new module binding.
       const group = oracle.tokens.get(key)!
+      const existing = existingTokens.get(group)
+      if (existing) return `${existing}[${JSON.stringify(key)}]`
       let name = tokenBindings.get(group)
       if (!name) {
         name = unique(`theme${group[0]!.toUpperCase()}${group.slice(1)}`)

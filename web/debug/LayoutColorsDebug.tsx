@@ -15,6 +15,36 @@ import {
   motion as themeMotion,
 } from '../style/tokens.stylex.js'
 
+const stylexStyles2 = stylex.create({
+  rule1: {
+    backgroundColor: 'oklch(22% 0 0)',
+    backgroundImage: 'none',
+    backgroundPositionX: '0%',
+    backgroundPositionY: '0%',
+    backgroundSize: 'auto',
+    backgroundRepeat: 'repeat',
+    backgroundAttachment: 'scroll',
+    backgroundOrigin: 'padding-box',
+    backgroundClip: 'border-box',
+    borderRadius: themeRadii['--radius-lg'],
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    position: 'relative',
+    height: 'var(--layout-colors-height)',
+    overflow: 'hidden',
+  },
+  rule3: {
+    backgroundColor: 'var(--layout-color-swatch)',
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-white']} 10%, transparent)`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     display: 'flex',
@@ -485,16 +515,9 @@ function DemoLayout({
   )
 
   return (
-    <div
-      ref={applyVars}
-      className={
-        /* TODO(stylex): global or unknown class: layout-colors-surface */ 'layout-colors-surface rounded-lg p-4'
-      }
-    >
+    <div ref={applyVars} sx={stylexStyles2.rule1}>
       <div
-        className={
-          /* TODO(stylex): global or unknown class: layout-colors-frame */ 'layout-colors-frame overflow-hidden'
-        }
+        sx={stylexStyles2.rule2}
         style={{ '--layout-colors-height': `${height}px` }}
       >
         <OptimizedLayout model={model} renderTab={renderTab} />
@@ -610,9 +633,7 @@ function SwatchRow({ scheme }: { scheme: ColorScheme }) {
         return (
           <div key={s.key} sx={stylexStyles.rule2}>
             <div
-              className={
-                /* TODO(stylex): global or unknown class: layout-colors-swatch */ 'layout-colors-swatch size-8 rounded border border-white/10'
-              }
+              sx={stylexStyles2.rule3}
               style={{ '--layout-color-swatch': value || `var(${s.key})` }}
             />
             <span sx={stylexStyles.rule10}>{s.label}</span>
@@ -625,18 +646,22 @@ function SwatchRow({ scheme }: { scheme: ColorScheme }) {
 
 // LayoutColorsDebug renders the Monokai Spectrum comparison page.
 export function LayoutColorsDebug() {
+  // Return to the application through the active router.
   const navigate = useNavigate()
   const goBack = useCallback(() => {
     navigate({ path: '/' })
   }, [navigate])
 
+  // Retain the chosen scheme while showing its layout preview.
   const [selectedId, setSelectedId] = useState(SCHEMES[0].id)
 
+  // Resolve a stored choice against the schemes currently available.
   const selected = useMemo(
     () => SCHEMES.find((s) => s.id === selectedId) ?? SCHEMES[0],
     [selectedId],
   )
 
+  // Render the current scheme and its live layout preview.
   return (
     <div sx={stylexStyles.rule14}>
       <div sx={stylexStyles.rule15}>

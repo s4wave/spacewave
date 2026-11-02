@@ -26,6 +26,21 @@ const recipe = cva(
 export function ExpressionCases() {
   return (
     <div data-existing={`${stylexStyles}-${stylexStyles2}-${themeColors}`}>
+      <div
+        className="progress-width bg-brand h-2"
+        style={{ '--progress-width': '35%' } as React.CSSProperties}
+      />
+      <div
+        className="progress-width bg-brand h-2 w-20"
+        style={{ '--progress-width': '35%' } as React.CSSProperties}
+      />
+      <div
+        className="layout-debug-frame h-8"
+        style={{ '--layout-debug-height': '80px' } as React.CSSProperties}
+      >
+        Utility height wins
+      </div>
+      <div className="layout-colors-surface bg-brand">Utility color wins</div>
       <span
         className={combine(
           true,

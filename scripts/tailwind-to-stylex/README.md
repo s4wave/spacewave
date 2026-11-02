@@ -34,12 +34,20 @@ Convert both sides of each relationship together before accepting its area.
 
 An unsupported attribute remains whole, with a `TODO(stylex)` reason. Descendant
 selectors need styles on the affected child or an explicit marker.
-Global classes and computed class helpers also need a hand pass. Mixed logical axes and physical sides with responsive or pseudo conditions stay
+Other global classes and computed class helpers need a hand pass. Mixed
+logical axes and physical sides with responsive or pseudo conditions stay
 manual, because StyleX atomic priorities can change their cascade. Shared-component
 API conversion and replacing forwarded `className` with `sx` are coordinated
 with their callers in that pass. Native roots use `stylexProps` to retain the
 variables emitted for dynamic styles beside forwarded native inline styles.
 Wrappers delegate `sx` to the component that renders their DOM.
+
+Plain helper classes in the components layer convert with their declarations
+before utility overrides. A helper stays manual when it appears in a descendant,
+pseudo or responsive rule, occurs more than once, uses important declarations,
+or retains an unresolved shorthand. Backgrounds expand through the native CSS
+parser into every longhand and reset; known color variables retain their runtime
+references. Repeated passes reuse existing owned theme imports.
 
 Production's remaining Tailwind CSS scans only `app`, `web` and `plugin` while
 they convert. Each paired fixture adds its own source directory explicitly, so

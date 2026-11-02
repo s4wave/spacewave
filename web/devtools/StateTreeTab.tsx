@@ -29,6 +29,31 @@ import {
   motion as themeMotion,
 } from '../style/tokens.stylex.js'
 
+const stylexStyles2 = stylex.create({
+  rule1: {
+    paddingLeft: 'var(--debug-tree-padding-left)',
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.1s',
+    '--tw-duration': '.1s',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-pulldown-hover']} 40%, transparent)`,
+      },
+    },
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     display: 'flex',
@@ -261,11 +286,7 @@ function StateGroupNode({ node, level }: { node: GroupNode; level: number }) {
       <button
         type="button"
         onClick={handleToggle}
-        className={
-          /* TODO(stylex): global or unknown class: debug-tree-indent */ cn(
-            'debug-tree-indent text-foreground-alt hover:bg-pulldown-hover/40 flex h-6 items-center gap-1 text-xs transition-colors duration-100',
-          )
-        }
+        sx={[stylexStyles2.rule1]}
         style={{ '--debug-tree-padding-left': `${level * 12 + 8}px` }}
       >
         <span sx={stylexStyles.rule4}>
@@ -298,17 +319,20 @@ function StateEntryNode({
   label: string
   level: number
 }) {
+  // Watch the entry value, selection and retained expansion state together.
   const devtools = useStateDevToolsContext()
   const selectedAtomId = useSelectedStateAtomId()
   const value = useStateInspectorValue(entry)
   const [expandedState, setExpandedState] = useTreeExpandedState()
 
+  // Derive the row preview and expansion affordance from the current value.
   const isSelected = selectedAtomId === entry.id
   const isExpanded = expandedState[entry.id] ?? false
   const childEntries = getChildEntries(value)
   const hasChildren = childEntries.length > 0
   const preview = formatValuePreview(value)
 
+  // Toggle this entry without changing other expanded rows.
   const handleToggle = useCallback(() => {
     setExpandedState((prev) => ({
       ...prev,
@@ -316,10 +340,12 @@ function StateEntryNode({
     }))
   }, [entry.id, setExpandedState])
 
+  // Select the owning atom for the details panel.
   const handleSelect = useCallback(() => {
     devtools?.setSelectedAtomId(entry.id)
   }, [devtools, entry.id])
 
+  // Render the row and only the descendants requested by its expansion state.
   return (
     <div sx={stylexStyles.rule2}>
       <div
@@ -387,14 +413,17 @@ function StateTreeNodeInner({
   path,
   value,
 }: StateTreeNodeInnerProps) {
+  // Share selection and expansion with the containing inspector.
   const devtools = useStateDevToolsContext()
   const [expandedState, setExpandedState] = useTreeExpandedState()
 
+  // Give each nested value its own expansion key within the atom.
   const pathKey = `${atomId}:${path.join('.')}`
   const isExpanded = expandedState[pathKey] ?? false
   const childEntries = getChildEntries(value)
   const isExpandable = childEntries.length > 0
 
+  // Toggle this value path while preserving sibling expansion.
   const handleToggle = useCallback(() => {
     setExpandedState((prev) => ({
       ...prev,
@@ -402,14 +431,17 @@ function StateTreeNodeInner({
     }))
   }, [pathKey, setExpandedState])
 
+  // Select both the owning atom and this nested path.
   const handleSelect = useCallback(() => {
     devtools?.setSelectedAtomId(atomId)
     devtools?.setSelectedPath(path)
   }, [atomId, devtools, path])
 
+  // Summarize the current value without rendering its descendants.
   const displayValue = formatValuePreview(value)
   const valueColor = getValueColor(value)
 
+  // Render the row and only the descendants requested by its expansion state.
   return (
     <div sx={stylexStyles.rule2}>
       <div
@@ -489,10 +521,13 @@ function buildScopeChildren(
   entries: StateInspectorEntry[],
   scope: StateInspectorScope,
 ): ChildNode[] {
+  // Index group prefixes while keeping each scope's root children in display order.
   const groupMap = new Map<string, GroupNode>()
   const rootNodes: ChildNode[] = []
 
+  // Attach each entry beneath the groups named by its label.
   for (const entry of entries) {
+    // Build the entry's group path before appending its leaf label.
     const segments = entry.label.split('/').filter(Boolean)
     const leafLabel = segments[segments.length - 1] ?? entry.label
     const groupSegments = segments.slice(0, -1)
@@ -526,6 +561,7 @@ function buildScopeChildren(
     })
   }
 
+  // Count descendant entries before sorting the scope for display.
   finalizeCounts(rootNodes)
   return sortNodes(rootNodes)
 }
@@ -590,6 +626,7 @@ function getChildEntries(value: unknown): Array<[string, unknown]> {
 }
 
 function formatValuePreview(value: unknown): string {
+  // Keep absent values and scalar text distinguishable in the inspector.
   if (value === null) return 'null'
   if (value === undefined) return 'undefined'
   if (typeof value === 'string') return `"${value}"`
@@ -602,6 +639,7 @@ function formatValuePreview(value: unknown): string {
 }
 
 function getValueColor(value: unknown): string {
+  // Use muted tones for absence and semantic tones for scalar values.
   if (value === null || value === undefined) return 'text-foreground-alt'
   if (typeof value === 'string') return 'text-console-output'
   if (typeof value === 'number') return 'text-console-info'

@@ -20,6 +20,16 @@ import {
   radii as themeRadii,
 } from '../style/tokens.stylex.js'
 
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: 'var(--progress-width)',
+    transition: 'width 200ms',
+    height: '100%',
+    borderRadius: '3.40282e38px',
+    backgroundColor: themeColors['--color-brand'],
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     display: 'flex',
@@ -665,9 +675,7 @@ function ProgressBar({
           />
         ) : (
           <div
-            className={
-              /* TODO(stylex): global or unknown class: progress-width */ 'bg-brand progress-width progress-width-transition h-full rounded-full'
-            }
+            sx={stylexStyles2.rule1}
             style={{ '--progress-width': `${pct}%` }}
           />
         )}

@@ -38,6 +38,23 @@ import {
   fonts as themeFonts,
 } from '../../style/tokens.stylex.js'
 
+const stylexStyles3 = stylex.create({
+  rule1: {
+    color: 'var(--file-entry-color)',
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+  },
+  rule2: { color: themeColors['--color-foreground'] },
+  rule3: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule4: { color: themeColors['--color-brand'] },
+  rule5: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 80%, transparent)`,
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     display: 'flex',
@@ -340,24 +357,20 @@ function FileEntryName({
 }) {
   let icon = (
     <LuFile
-      className={
-        /* TODO(stylex): global or unknown class: file-entry-color */ cn(
-          'file-entry-color size-4 shrink-0',
-          selected ? 'text-foreground' : 'text-foreground-alt/60',
-        )
-      }
+      {...stylex.props([
+        stylexStyles3.rule1,
+        selected ? stylexStyles3.rule2 : stylexStyles3.rule3,
+      ])}
       style={{ '--file-entry-color': entry.color }}
     />
   )
   if (entry.isDir) {
     icon = (
       <LuFolder
-        className={
-          /* TODO(stylex): global or unknown class: file-entry-color */ cn(
-            'file-entry-color size-4 shrink-0',
-            selected ? 'text-brand' : 'text-foreground-alt/80',
-          )
-        }
+        {...stylex.props([
+          stylexStyles3.rule1,
+          selected ? stylexStyles3.rule4 : stylexStyles3.rule5,
+        ])}
         style={{ '--file-entry-color': entry.color }}
       />
     )
