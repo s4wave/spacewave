@@ -28,6 +28,7 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 
@@ -48,13 +49,13 @@ const (
 // Invariants: Sync fences referenced blocks before the head CAS; head and durable
 // retention commit together. Opening never seeds or migrates an unknown store.
 // The backing store and serving runtime stay bootstrap-side. Workloads exit and
-// the FUSE server joins before readers, controller and Volume close.
+// the FUSE server joins before readers and physical storage close.
 func SeedRoot(ctx context.Context, le *logrus.Entry, dir string, executable io.Reader) (retErr error) {
 	// Exclusive directory creation prevents replacing anyone's existing store.
 	if err := os.Mkdir(dir, 0o700); err != nil {
 		return err
 	}
-	r, err := openImageStorage(ctx, le, dir, nil)
+	r, err := openSeedStorage(ctx, le, dir)
 	if err != nil {
 		return errors.Join(errors.New("seed storage"), err)
 	}
@@ -83,39 +84,61 @@ func SeedRoot(ctx context.Context, le *logrus.Entry, dir string, executable io.R
 
 // OpenRoot opens only a committed selected image. It never creates a fixture.
 func OpenRoot(ctx context.Context, le *logrus.Entry, dir string) (_ *Root, retErr error) {
-	// Inspect without recovery writes before NewVolume can create or migrate.
-	head, err := inspectImage(ctx, filepath.Join(dir, "image.s4wave"))
+	// Own one read-only handle through inspection, serving and ordered cleanup.
+	// This isolated image has no writer or collector. Its durable selected root
+	// protects descendants without active reader-pin writes or a controller.
+	db, err := s4db.Open(filepath.Join(dir, "image.s4wave"), s4db.Options{ReadOnly: true})
 	if err != nil {
 		return nil, err
 	}
-	r, err := openImageStorage(ctx, le, dir, head)
-	if err != nil {
-		return nil, err
-	}
+	r := &Root{releaseStorage: db.Close}
 	defer func() {
 		if retErr != nil {
 			retErr = errors.Join(retErr, r.Close())
 		}
 	}()
 
-	// Keep this exact revision immutable for the entire kernel mount lifetime.
-	if err := r.pin(ctx, le); err != nil {
+	// Inspect the selected head and retention without recovery or migration.
+	head, err := inspectImage(ctx, db)
+	if err != nil {
 		return nil, err
 	}
-	println("SPACEWAVE_OS_REOPEN volume=" + r.volume.GetID() + " root=" + head.MarshalB58())
+
+	// Derive the real Volume ID with the existing stored identity encoding.
+	store := store_kvtx.NewKVTx(store_kvkey.NewDefaultKVKey(), db, nil)
+	key, err := store.LoadPeerPriv(ctx)
+	if err != nil || key == nil {
+		return nil, errors.Join(errors.New("selected Volume identity missing; store preserved"), err)
+	}
+	id, err := peer.IDFromPublicKey(key.GetPublic())
+	if err != nil {
+		return nil, err
+	}
+	r.volumeID = volume.NewVolumeID(volume_s4db.ControllerID, id)
+	r.head = head
+
+	// A bare read-only store has no RootRetainer. Build the ordinary immutable
+	// World transaction directly, without a writable engine or background actor.
+	cursor := bucket_lookup.NewCursor(ctx, nil, le, nil, store, nil, head,
+		&bucket.BucketOpArgs{BucketId: imageBucket, VolumeId: r.volumeID}, nil)
+	state, err := world_block.BuildWorldStateFromCursor(ctx, le, false, cursor,
+		world.NewWorldStorageFromCursor(cursor), world.NewSchema(unixfs_world.UnixfsTypes).LookupOp, false)
+	if err != nil {
+		cursor.Release()
+		return nil, err
+	}
+	r.snapshot = world_block.NewTx(state)
+	r.releaseStorage = func() error { cursor.Release(); return db.Close() }
+	if err := r.openHandle(ctx, le); err != nil {
+		return nil, err
+	}
+	println("SPACEWAVE_OS_REOPEN volume=" + r.volumeID + " root=" + head.MarshalB58())
 	return r, nil
 }
 
 // inspectImage rejects unsupported, unselected and missing-root stores without
 // modifying a byte. Only this experiment's current format is eligible for open.
-func inspectImage(ctx context.Context, path string) (_ *bucket.ObjectRef, retErr error) {
-	// A read-only database handle neither creates nor recovers the file.
-	db, err := s4db.Open(path, s4db.Options{ReadOnly: true})
-	if err != nil {
-		return nil, err
-	}
-	defer func() { retErr = errors.Join(retErr, db.Close()) }()
-
+func inspectImage(ctx context.Context, db *s4db.DB) (*bucket.ObjectRef, error) {
 	// Reject key layouts that NewVolume would otherwise migrate.
 	keys := store_kvkey.NewDefaultKVKey()
 	tx, err := db.NewTransaction(ctx, false)
@@ -185,9 +208,9 @@ func readImageHead(ctx context.Context, store object.ObjectStore) (*bucket.Objec
 	return head.GetHeadRef(), nil
 }
 
-// openImageStorage composes the existing Volume, tracked bucket and World.
-// A nil head is allowed only after SeedRoot acquired an absent directory.
-func openImageStorage(ctx context.Context, le *logrus.Entry, dir string, head *bucket.ObjectRef) (_ *Root, retErr error) {
+// openSeedStorage composes the writable Volume, tracked bucket and construction
+// World only after SeedRoot acquired an absent disposable directory.
+func openSeedStorage(ctx context.Context, le *logrus.Entry, dir string) (_ *Root, retErr error) {
 	// Close partial acquisitions without deleting the retained database.
 	r := &Root{}
 	defer func() {
@@ -197,7 +220,6 @@ func openImageStorage(ctx context.Context, le *logrus.Entry, dir string, head *b
 	}()
 	vol, err := volume_s4db.NewVolume(ctx, le, &volume_s4db.Config{
 		Path: filepath.Join(dir, "image.s4wave"), SingleProcess: true,
-		NoGenerateKey: head != nil, NoWriteKey: head != nil,
 	})
 	if err != nil {
 		return nil, err
@@ -210,7 +232,7 @@ func openImageStorage(ctx context.Context, le *logrus.Entry, dir string, head *b
 		&volume_controller.Config{DisablePeer: true, GcIntervalDur: "1h"}, nil,
 		controller.NewInfo(volume_s4db.ControllerID, volume_s4db.Version, "OS image"),
 		func(context.Context, *logrus.Entry) (volume.Volume, error) { return vol, nil })
-	runCtx, cancel := context.WithCancel(ctx)
+	runCtx, cancel := context.WithCancel(context.WithoutCancel(ctx))
 	done := make(chan error, 1)
 	go func() { done <- ctrl.Execute(runCtx) }()
 	r.releaseStorage = func() error {
@@ -225,11 +247,9 @@ func openImageStorage(ctx context.Context, le *logrus.Entry, dir string, head *b
 		return nil, err
 	}
 
-	// Only the seed creates bucket metadata; reopening must find it unchanged.
-	if head == nil {
-		if _, _, _, err := vol.ApplyBucketConfig(ctx, &bucket.Config{Id: imageBucket, Rev: 1}); err != nil {
-			return nil, err
-		}
+	// Only the exclusive seed creates bucket metadata.
+	if _, _, _, err := vol.ApplyBucketConfig(ctx, &bucket.Config{Id: imageBucket, Rev: 1}); err != nil {
+		return nil, err
 	}
 	handle, release, err := ctrl.BuildBucketAPI(ctx, imageBucket)
 	if err != nil {
@@ -246,9 +266,7 @@ func openImageStorage(ctx context.Context, le *logrus.Entry, dir string, head *b
 
 	// Keep construction heads process-local; only SeedRoot selects the final one.
 	r.publisher = publisher
-	if head == nil {
-		head = &bucket.ObjectRef{BucketId: imageBucket}
-	}
+	head := &bucket.ObjectRef{BucketId: imageBucket}
 	cursor := bucket_lookup.NewCursor(ctx, nil, le, nil, bkt, nil, head,
 		&bucket.BucketOpArgs{BucketId: imageBucket, VolumeId: vol.GetID()}, nil)
 	r.engine, err = world_block.NewEngine(ctx, le, cursor, world.NewSchema(unixfs_world.UnixfsTypes).LookupOp, nil, false)

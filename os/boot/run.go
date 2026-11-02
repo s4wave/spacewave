@@ -21,7 +21,12 @@ import (
 // It requires root in a private mount namespace, or an isolated guest.
 // The filesystem server must never enter a blocking exec or mmap through its
 // own served tree: its runtime and every bootstrap exec use independent pages.
-func Run(ctx context.Context, fail bool, store string) (retErr error) {
+func Run(ctx context.Context, workload, store string) (retErr error) {
+	// Only the experiment's independent workload modes may enter the root.
+	if workload != "workload" && workload != "workload-fail" && workload != "workload-wait" {
+		return errors.New("unknown workload mode")
+	}
+
 	// Keep every bootstrap path outside the mounted tree.
 	base, err := os.MkdirTemp("", "spacewave-os-")
 	if err != nil {
@@ -75,17 +80,23 @@ func Run(ctx context.Context, fail bool, store string) (retErr error) {
 	if err := os.Mkdir(mountPath, 0o755); err != nil {
 		return err
 	}
-	rfs, err := unixfs_fuse.Mount(ctx, le, mountPath, root.Handle(), false, true, nil)
+	rfs, err := unixfs_fuse.Mount(context.WithoutCancel(ctx), le, mountPath, root.Handle(), false, true, nil)
 	if err != nil {
 		return err
 	}
+
+	// Contain workload on cancellation or server exit while keeping storage open.
+	workCtx, cancel := context.WithTimeout(ctx, 45*time.Second)
+	defer cancel()
 	served := make(chan error, 1)
 	println("SPACEWAVE_OS_MOUNTED")
 	go func() {
 		// Disconnect on an unexpected server exit so kernel users cannot wait
-		// indefinitely on a dead server's still-open FUSE channel.
+		// indefinitely on a dead server's still-open FUSE channel. Cancel the
+		// workload too; storage remains alive until ordered Root cleanup.
 		err := rfs.Serve()
 		rfs.Close()
+		cancel()
 		served <- err
 	}()
 
@@ -102,30 +113,28 @@ func Run(ctx context.Context, fail bool, store string) (retErr error) {
 		if unmountErr != nil {
 			rfs.Close()
 		}
-		retErr = errors.Join(retErr, <-served)
 		if unmountErr == nil {
 			println("SPACEWAVE_OS_UNMOUNT_OK")
 		}
+		retErr = errors.Join(retErr, <-served)
+		println("SPACEWAVE_OS_SERVER_JOINED")
 	}()
 
 	// First exec bootstrap pages in a separate address space. Direct vfork exec
 	// from our own FUSE mount can retain the sole Go processor while the kernel
 	// waits for that processor's server. The bootstrap child enters UnixFS only
 	// after the parent's vfork has finished. Chroot is rooting, not a sandbox.
-	workCtx, cancel := context.WithTimeout(ctx, 45*time.Second)
-	defer cancel()
-	arg := "workload"
-	if fail {
-		arg = "workload-fail"
-	}
-
 	// Launch with inherited serial descriptors but without bootstrap paths.
-	cmd := exec.CommandContext(workCtx, executable, "enter", mountPath, arg)
+	cmd := exec.CommandContext(workCtx, executable, "enter", mountPath, workload)
 	cmd.Dir = "/"
 	cmd.Env = []string{"GOMAXPROCS=1"}
 	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
-	if err := cmd.Run(); err != nil {
-		return err
+
+	// Join the child before deferred unmount and server drain.
+	err = cmd.Run()
+	println("SPACEWAVE_OS_CHILD_JOINED")
+	if err != nil || workCtx.Err() != nil {
+		return errors.Join(err, workCtx.Err())
 	}
 	println("SPACEWAVE_OS_EXEC_OK")
 	return nil

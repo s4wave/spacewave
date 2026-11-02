@@ -17,5 +17,5 @@ func EnterRoot(root, arg string) error {
 	}
 
 	// Replace this child with the executable whose pages come from UnixFS.
-	return unix.Exec("/workload", []string{"/workload", arg}, []string{"GOMAXPROCS=4"})
+	return unix.Exec("/workload", []string{"/workload", arg}, []string{"GOMAXPROCS=1"})
 }

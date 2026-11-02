@@ -32,7 +32,7 @@ model:
 	rm $(OUT)/.tmp/direct-model/Boot.tla $(OUT)/.tmp/direct-model/Boot.cfg
 	mkdir -p $(OUT)/.tmp/persistent-model
 	cp os/boot/PersistentBoot.tla $(OUT)/.tmp/persistent-model/PersistentBoot.tla
-	@for mutant in head-first unretained; do \
+	@for mutant in head-first unretained early-close writable; do \
 		cp os/boot/PersistentBoot-$$mutant.cfg.refuted $(OUT)/.tmp/persistent-model/PersistentBoot.cfg; \
 		if bun node_modules/.bin/aptre-tla $(OUT)/.tmp/persistent-model/PersistentBoot.cfg >$(OUT)/.tmp/persistent-model/$$mutant.log 2>&1; then \
 			cat $(OUT)/.tmp/persistent-model/$$mutant.log; exit 1; \
@@ -40,4 +40,6 @@ model:
 	done
 	grep -F 'SavedRootHasBlocks' $(OUT)/.tmp/persistent-model/head-first.log
 	grep -F 'SelectedRootRetained' $(OUT)/.tmp/persistent-model/unretained.log
+	grep -F 'ClosedMeansUnused' $(OUT)/.tmp/persistent-model/early-close.log
+	grep -F 'ServingPreservesStore' $(OUT)/.tmp/persistent-model/writable.log
 	rm $(OUT)/.tmp/persistent-model/PersistentBoot.tla $(OUT)/.tmp/persistent-model/PersistentBoot.cfg

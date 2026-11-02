@@ -1,12 +1,12 @@
 # Retained UnixFS boot experiment
 
 Linux boots one static executable as PID1 from an independent initramfs. The
-executable opens a real s4db Volume on a Btrfs virtual disk, pins its selected
-World revision, and serves that immutable UnixFS image through `db/unixfs/fuse`.
+executable opens a retained s4db image read-only on a Btrfs virtual disk and serves
+its selected immutable World transaction through `db/unixfs/fuse`.
 It first starts an independent bootstrap copy of itself, which chroots and execs
 `/workload`. The child hashes a lazy shared 3 MiB mmap and requires five mutations
 to return `EROFS`. It exits before FUSE unmount, server join, snapshot release,
-Volume close, backing-filesystem unmount and poweroff.
+storage close, backing-filesystem unmount and poweroff.
 
 The same executable implements bazil's privileged mount-helper FD handshake. A
 private bootstrap symlink satisfies its `fusermount3` lookup. The initramfs holds
@@ -24,16 +24,20 @@ make -f os/Makefile OUT=/path/to/artifacts GOSTYLE=/path/to/gostyle build check 
 
 `test` runs only `TestRootPinsRevision` and `TestPersistentRootReopen`. The latter
 seeds real storage, verifies two closes/reopens with identical Volume ID, root and
-bytes, attempts an atomic publication with an absent root, and checks its rejected
-publication leaves the earlier head intact. It then deliberately bypasses
-publication to poison that disposable head: opening refuses it without changing
-the file's bytes. This is an incomplete-root falsification check, not a power-loss
-proof. Run that same compiled case with a fresh `TMPDIR` on the test Btrfs image
-when checking the complete physical stack.
+bytes, cancels the opening context while real readers remain live, and checks
+storage stays usable until explicit close. It attempts an atomic publication with
+an absent root and checks the earlier head survives. It then poisons the disposable
+head and separately removes an actually read payload descendant while leaving the
+root and retention intact. Both refusals preserve the database bytes, as do successful
+reopens and cancellation. These are falsification checks, not a power-loss proof.
+Run that same compiled case with a fresh `TMPDIR` on the test Btrfs image when
+checking the complete physical stack.
 
 `model` keeps the one-processor direct-exec regression and adds the persistent
-seed/fence/publication/reopen lifecycle. Head-before-block and missing-retention
-mutants must fail. Backend flush behavior remains the existing
+seed/fence/publication/reopen lifecycle, including cancellation, server failure,
+child containment, server join and snapshot release before storage close.
+Head-before-block, missing-retention, independent-closer and writable-serving mutants
+must fail. Backend flush behavior remains the existing
 `db/s4db/Durability.tla` contract; `db/volume/block/RootPublication.tla` covers the
 blocks-before-head boundary separately.
 
@@ -65,10 +69,15 @@ also retains `selected-image`, so later unrelated head changes cannot reclaim it
 The publication waits for durability and releases its receipt pin. There is no
 parallel manifest, JSON schema or boot-time fixture regeneration.
 
-Before opening the Volume, boot inspects the database read-only. Missing files,
-unknown key layouts, missing heads/roots and missing retention are refused without
-migration or reset. Before serving, it streams and compares every required file
-against bootstrap inputs. Each boot prints the retained Volume ID, exact World
+Boot owns one read-only s4db handle from inspection through serving and close.
+Missing files, unknown key layouts, missing heads/roots and missing retention are
+refused without migration or reset. Before serving, it streams and compares every
+required file against bootstrap inputs. The ordinary bare `store_kvtx` and World
+cursor compose an immutable transaction without a writable Volume, controller or
+tracked reader-pin writes. This isolated experiment has no writer or collector;
+the existing durable selected root protects its descendants. Caller cancellation
+contains the child but leaves readers and storage alive through ordered cleanup.
+A server exit disconnects FUSE and cancels the child before that cleanup. Each boot prints the retained Volume ID, exact World
 reference, byte counts and SHA-256 hashes. The script compares these with the
 seed's independent close/reopen readback, rather than accepting an equivalent
 new fixture.
@@ -98,7 +107,7 @@ bootstrap `/store` and opens `/store/image`. It never mounts the outer Debian di
 The guest needs initramfs, procfs, devtmpfs, FUSE, ELF and serial support.
 
 `boot-qemu.sh` uses one vCPU, 768 MiB RAM and `GOMAXPROCS=1` for PID1 and workload.
-It asserts PID1's actual value, exact retained identity/content and every marker
+It asserts both actual processor values, exact retained identity/content and every marker
 through clean kernel poweroff. KVM is the default; `ACCEL=tcg` selects emulation.
 
 ## Baseline and hosted failure cleanup
@@ -111,7 +120,15 @@ unshares its mount namespace while locked to its OS thread through all cleanup:
 sudo env GOMAXPROCS=1 "$BOOT/init" probe
 sudo env GOMAXPROCS=1 "$BOOT/init" probe-fail # must fail and still unmount
 sudo env GOMAXPROCS=1 "$BOOT/init" probe /path/to/retained/image
+sudo env GOMAXPROCS=1 "$BOOT/init" probe-wait /path/to/retained/image
 ```
+
+`probe-wait` runs the same mmap and EROFS checks, then prints `WAITING` while its
+mapped workload stays live. Send SIGTERM to the supervisor PID, not the child.
+Require nonzero exit, absence of PASS, and ordered CHILD_JOINED, UNMOUNT_OK,
+SERVER_JOINED, SNAPSHOT_RELEASED and STORAGE_CLOSED markers. Compare the calling
+host's namespace and mountinfo before/after, and hash the retained database across
+the probe. The ordinary 45-second supervisor deadline bounds a forgotten probe.
 
 Keep bootstrap executable/runtime pages and physical storage outside the served
 tree. Direct vfork exec through the server's own FUSE tree can retain its sole Go

@@ -29,8 +29,8 @@ func main() {
 		finish(boot.EnterRoot(os.Args[2], os.Args[3]))
 		return
 	}
-	if len(os.Args) == 2 && (os.Args[1] == "workload" || os.Args[1] == "workload-fail") {
-		finish(boot.RunWorkload(os.Args[1] == "workload-fail"))
+	if len(os.Args) == 2 && (os.Args[1] == "workload" || os.Args[1] == "workload-fail" || os.Args[1] == "workload-wait") {
+		finish(boot.RunWorkload(os.Args[1]))
 		return
 	}
 	if len(os.Args) == 3 && os.Args[1] == "seed" {
@@ -60,10 +60,20 @@ func main() {
 	// on failure. The initial experiment powers off instead of restarting work.
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer cancel()
-	fail := len(os.Args) >= 2 && os.Args[1] == "probe-fail"
-	err := boot.Run(ctx, fail, store)
+
+	// Select the bounded workload behavior, then run its ordinary supervisor.
+	workload := "workload"
+	if len(os.Args) >= 2 {
+		switch os.Args[1] {
+		case "probe-fail":
+			workload = "workload-fail"
+		case "probe-wait":
+			workload = "workload-wait"
+		}
+	}
+	err := boot.Run(ctx, workload, store)
 	if pid1 && store != "" {
-		// Run has joined the workload/server and closed the Volume before this.
+		// Run has joined the workload/server and closed storage before this.
 		unmountErr := unix.Unmount("/store", 0)
 		err = errors.Join(err, unmountErr)
 		if unmountErr == nil {

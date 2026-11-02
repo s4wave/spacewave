@@ -4,10 +4,14 @@ package boot
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"errors"
 	"os"
+	"os/signal"
+	"runtime"
 	"strconv"
+	"syscall"
 
 	"golang.org/x/sys/unix"
 )
@@ -24,7 +28,10 @@ func newPayload() *bytes.Reader {
 
 // RunWorkload executes in a separate process chrooted to the FUSE root. Lazy
 // page faults are safe here because this runtime does not serve the filesystem.
-func RunWorkload(fail bool) error {
+func RunWorkload(mode string) error {
+	// Report the actual processor setting of the independently execed runtime.
+	println("SPACEWAVE_OS_WORKLOAD gomaxprocs=" + strconv.Itoa(runtime.GOMAXPROCS(0)))
+
 	// Require a genuine root-relative executable and the image's only data file.
 	if _, err := os.Stat("/workload"); err != nil {
 		return err
@@ -65,9 +72,21 @@ func RunWorkload(fail bool) error {
 	println("SPACEWAVE_OS_READONLY_OK operations=5")
 
 	// Exercise the supervisor's workload-failure cleanup path on request.
-	if fail {
+	if mode == "workload-fail" {
 		return errors.New("injected workload failure")
 	}
+
+	// Hold a real mapped workload for the hosted SIGTERM cleanup check. The
+	// supervisor still enforces its ordinary deadline and joins the killed child.
+	if mode == "workload-wait" {
+		ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+		defer cancel()
+		println("SPACEWAVE_OS_WAITING pid=" + strconv.Itoa(os.Getpid()))
+		<-ctx.Done()
+		return ctx.Err()
+	}
+
+	// Report success only after all requested workload behavior finishes.
 	println("SPACEWAVE_OS_WORKLOAD_OK pid=" + strconv.Itoa(os.Getpid()))
 	return nil
 }
