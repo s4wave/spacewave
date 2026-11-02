@@ -24,7 +24,10 @@ export default defineConfig({
   },
   test: {
     ...base.test,
-    include: ['web/style/stylex-pilots.e2e.test.tsx'],
+    include: [
+      'web/style/stylex-pilots.e2e.test.tsx',
+      'web/ui/FloatingWindow.e2e.test.tsx',
+    ],
     browser: {
       ...base.test.browser,
       connectTimeout: 30000,

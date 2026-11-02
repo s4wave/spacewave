@@ -22,6 +22,7 @@ import { writeTabsFixture } from './tabs-fixture.js'
 import { writeTraceFixture } from './trace-fixture.js'
 import { writeTreeFixture } from './tree-fixture.js'
 import { writeBadgeFixture } from './badge-fixture.js'
+import { writeFloatingFixture } from './floating-fixture.js'
 import { stylexCss } from '../../bldr/web/bundler/vite/stylex.js'
 import { capture } from '../style-parity/capture.js'
 import { compareCaptures } from '../style-parity/compare.js'
@@ -159,6 +160,7 @@ test(
         await writeTraceFixture(root, version)
         await writeTreeFixture(root, version)
         await writeBadgeFixture(root, version)
+        await writeFloatingFixture(root, version)
         main = main.replace(
           "import React from 'react';",
           "import React from 'react';import{TraceSamples}from'./TraceSamples';",
@@ -627,6 +629,7 @@ test(
         await writeDialogFixture(root, version)
         await writePathFixture(root, version)
         await writeTabsFixture(root, version)
+        main = "import{FloatingSamples}from'./FloatingSamples';" + main
         main = "import{BadgeSamples}from'./BadgeSamples';" + main
         main = "import{TabsSamples}from'./TabsSamples';" + main
         main = "import{PathSamples}from'./PathSamples';" + main
@@ -636,7 +639,7 @@ test(
         main = "import{SheetSamples}from'./SheetSamples';" + main
         main = main.replace(
           "createRoot(document.getElementById('root')!).render",
-          "if(new URLSearchParams(location.search).has('badge'))createRoot(document.getElementById('root')!).render(<BadgeSamples/>);else if(new URLSearchParams(location.search).has('tree'))createRoot(document.getElementById('root')!).render(<TreeSamples/>);else if(new URLSearchParams(location.search).has('tabs'))createRoot(document.getElementById('root')!).render(<TabsSamples/>);else if(new URLSearchParams(location.search).has('path'))createRoot(document.getElementById('root')!).render(<PathSamples/>);else if(new URLSearchParams(location.search).has('dialog'))createRoot(document.getElementById('root')!).render(<DialogSamples/>);else if(new URLSearchParams(location.search).has('buttons'))createRoot(document.getElementById('root')!).render(<ButtonSamples/>);else if(new URLSearchParams(location.search).has('input'))createRoot(document.getElementById('root')!).render(<InputSamples/>);else if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
+          "if(new URLSearchParams(location.search).has('floating'))createRoot(document.getElementById('root')!).render(<FloatingSamples/>);else if(new URLSearchParams(location.search).has('badge'))createRoot(document.getElementById('root')!).render(<BadgeSamples/>);else if(new URLSearchParams(location.search).has('tree'))createRoot(document.getElementById('root')!).render(<TreeSamples/>);else if(new URLSearchParams(location.search).has('tabs'))createRoot(document.getElementById('root')!).render(<TabsSamples/>);else if(new URLSearchParams(location.search).has('path'))createRoot(document.getElementById('root')!).render(<PathSamples/>);else if(new URLSearchParams(location.search).has('dialog'))createRoot(document.getElementById('root')!).render(<DialogSamples/>);else if(new URLSearchParams(location.search).has('buttons'))createRoot(document.getElementById('root')!).render(<ButtonSamples/>);else if(new URLSearchParams(location.search).has('input'))createRoot(document.getElementById('root')!).render(<InputSamples/>);else if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
         )
         // Discover the actual tree API through its public barrel before converting the caller.
         const treeImports = await readSharedStyleApis(
@@ -813,6 +816,57 @@ void invalidNativeDelegate;
       // Compare default and hovered controls in both engines at every accepted size.
       const manifest = {
         states: [
+          ...['default', 'dragged', 'resized', 'minimized'].map((mode) => ({
+            id: `floating-${mode}`,
+            path: `/?floating=${mode}`,
+            ready: async (page: import('playwright').Page) => {
+              await page
+                .getByTestId(mode === 'minimized' ? 'floating-1' : 'floating-0')
+                .waitFor({ timeout: 5000 })
+              await page.evaluate(() => document.fonts.ready)
+            },
+            setup: async (page: import('playwright').Page) => {
+              // Exercise the mounted window and require its actual state transition before capture.
+              const panel = page.getByTestId('floating-0')
+              await panel.waitFor({ timeout: 5000 })
+              await page.evaluate(() => document.fonts.ready)
+              if (mode === 'minimized')
+                await panel
+                  .getByRole('button', { name: 'Minimize', exact: true })
+                  .click()
+              if (mode === 'dragged' || mode === 'resized') {
+                const handle =
+                  mode === 'dragged'
+                    ? panel.locator('[role="presentation"]')
+                    : panel.getByRole('separator', {
+                        name: 'Resize se',
+                        exact: true,
+                      })
+                const initial = await panel.boundingBox()
+                const box = await handle.boundingBox()
+                assert(initial && box)
+                await page.mouse.move(
+                  box.x + box.width / 2,
+                  box.y + box.height / 2,
+                )
+                await page.mouse.down()
+                await page.mouse.move(
+                  box.x + box.width / 2 + 30,
+                  box.y + box.height / 2 + 20,
+                )
+                await page.mouse.up()
+                const moved = await panel.boundingBox()
+                assert(moved)
+                if (mode === 'dragged') {
+                  assert.equal(moved.x, initial.x + 30)
+                  assert.equal(moved.y, initial.y + 20)
+                } else {
+                  assert.equal(moved.width, initial.width + 30)
+                  assert.equal(moved.height, initial.height + 20)
+                }
+              }
+            },
+          })),
           ...['default', 'hovered', 'focused'].map((mode) => ({
             id: `badge-${mode}`,
             path: `/?badge=${mode}`,
@@ -1013,6 +1067,15 @@ void invalidNativeDelegate;
             'sheet-inline',
             'sheet-modal',
             'sheet-modal-absolute',
+          ],
+        },
+        {
+          name: 'floating windows',
+          ids: [
+            'floating-default',
+            'floating-dragged',
+            'floating-resized',
+            'floating-minimized',
           ],
         },
         {
