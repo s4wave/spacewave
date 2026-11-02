@@ -11,7 +11,7 @@ import {
 
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 import { cn } from '@s4wave/web/style/utils.js'
-import { inputClass } from '@s4wave/web/ui/credential/CredentialProofInput.js'
+import { credentialInputStyles } from '@s4wave/web/ui/credential/CredentialProofInput.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { SessionFrame } from '@s4wave/app/session/SessionFrame.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
@@ -201,7 +201,7 @@ function AddEmailCard({
                 void handleAdd()
               }
             }}
-            className={inputClass}
+            sx={[credentialInputStyles.input]}
           />
           <button
             type="button"
@@ -393,10 +393,7 @@ function EmailCodeEntry({
             void onVerifyCode()
           }
         }}
-        className={cn(
-          inputClass,
-          'text-center font-mono text-lg tracking-brand-extra-wide',
-        )}
+        sx={[credentialInputStyles.input, credentialInputStyles.code]}
       />
       <button
         type="button"

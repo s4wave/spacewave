@@ -51,6 +51,9 @@ import {
 } from '../../../web/style/tokens.stylex.js'
 
 const stylexStyles = stylex.create({
+  credentialSpacing: {
+    '--credential-proof-space': `calc(${themeLayout['--spacing']} * 2)`,
+  },
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
     height: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -777,7 +780,7 @@ function CredentialUnlockCard({
         passwordPlaceholder="Enter your password"
         pemLabel="Backup key (.pem)"
         disabled={disabled}
-        className="space-y-2"
+        sx={stylexStyles.credentialSpacing}
         onPasswordKeyDown={(e) => {
           if (e.key === 'Enter' && canUnlock) {
             onUnlock()

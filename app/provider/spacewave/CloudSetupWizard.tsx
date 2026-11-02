@@ -17,7 +17,7 @@ import {
 import { cn } from '@s4wave/web/style/utils.js'
 import {
   CredentialProofInput,
-  inputClass,
+  credentialInputStyles,
 } from '@s4wave/web/ui/credential/CredentialProofInput.js'
 import { useCredentialProof } from '@s4wave/web/ui/credential/useCredentialProof.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
@@ -283,7 +283,7 @@ function PinFields({ wiz }: { wiz: SetupWizardState }) {
           value={wiz.pin}
           onChange={(e) => wiz.setPin(e.target.value)}
           placeholder="Enter PIN"
-          className={inputClass}
+          sx={[credentialInputStyles.input]}
         />
       </div>
       <div>
@@ -299,7 +299,10 @@ function PinFields({ wiz }: { wiz: SetupWizardState }) {
           value={wiz.confirmPin}
           onChange={(e) => wiz.setConfirmPin(e.target.value)}
           placeholder="Confirm PIN"
-          className={cn(inputClass, mismatch && 'border-destructive/50')}
+          sx={[
+            credentialInputStyles.input,
+            mismatch && credentialInputStyles.invalid,
+          ]}
         />
       </div>
     </div>

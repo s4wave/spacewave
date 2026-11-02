@@ -5,6 +5,7 @@ import { LuCircleX } from '@s4wave/web/images/icons.js'
 
 import {
   Trace,
+  traceLinkStyles,
   TraceCollapsible,
   TraceCollapsibleContent,
   TraceCollapsibleTrigger,
@@ -14,6 +15,7 @@ import {
 } from '@s4wave/web/ui/trace.js'
 
 import * as stylex from '@stylexjs/stylex'
+import { traceTriggerGroupMarker } from '../style/relations.stylex.js'
 import {
   layout as themeLayout,
   fonts as themeFonts,
@@ -55,7 +57,11 @@ function StackFrameLine({ frame }: { frame: StackFrame }) {
     return line
   }
 
-  return <a href={frame.href}>{line}</a>
+  return (
+    <a href={frame.href} sx={[traceLinkStyles.link, traceTriggerGroupMarker]}>
+      {line}
+    </a>
+  )
 }
 
 /** frameKey distinguishes repeated frames the way numbered code lines do. */
@@ -92,7 +98,7 @@ function StackTrace({
               <TraceTitle>Failed: {error}</TraceTitle>
             </TraceLine>
           </TraceCollapsibleTrigger>
-          <TraceCollapsibleContent {...stylex.props(stylexStyles.rule1)}>
+          <TraceCollapsibleContent sx={stylexStyles.rule1}>
             <p sx={stylexStyles.rule2}>{error}</p>
             <Trace>
               {frames.map((frame) => (

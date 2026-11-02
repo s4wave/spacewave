@@ -1,7 +1,7 @@
 import { useCallback, useId } from 'react'
 import { LuUpload } from '@s4wave/web/images/icons.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
+import type { StyleXStyles } from '@stylexjs/stylex'
 
 import * as stylex from '@stylexjs/stylex'
 import {
@@ -22,32 +22,6 @@ const stylexStyles = stylex.create({
     color: themeColors['--color-foreground-alt'],
     WebkitUserSelect: 'none',
     userSelect: 'none',
-  },
-  rule2: {
-    width: '100%',
-    borderRadius: themeRadii['--radius-md'],
-    borderStyle: themeUtilityState['--tw-border-style'],
-    borderWidth: '1px',
-    borderColor: {
-      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
-      ':focus': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
-    },
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 30%, transparent)`,
-    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
-    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
-    fontSize: themeFonts['--text-sm'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
-    color: themeColors['--color-foreground'],
-    transitionProperty:
-      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
-    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
-    '--tw-outline-style': 'none',
-    outlineStyle: 'none',
-    '::placeholder': {
-      color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
-    },
   },
   rule3: { opacity: 0.5 },
   rule4: {
@@ -80,6 +54,113 @@ const stylexStyles = stylex.create({
   },
 })
 
+/** credentialInputStyles shares the credential field's size and focus treatment. */
+export const credentialInputStyles = stylex.create({
+  input: {
+    width: '100%',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      ':focus': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+    '::placeholder': {
+      color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    },
+  },
+  invalid: {
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 50%, transparent)`,
+      ':focus': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    },
+  },
+  code: {
+    textAlign: 'center',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    letterSpacing: '0.3em',
+  },
+  compactCode: {
+    textAlign: 'center',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: 'var(--text-base)',
+    lineHeight: 'var(--tw-leading, var(--text-base--line-height))',
+    letterSpacing: '0.3em',
+  },
+  pem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    textAlign: 'left',
+    width: '100%',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 30%, transparent)`,
+      },
+      ':focus': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+    '::placeholder': {
+      color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    },
+  },
+})
+
+const spacingStyles = stylex.create({
+  child: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--credential-proof-space, calc(${themeLayout['--spacing']} * 3)) * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--credential-proof-space, calc(${themeLayout['--spacing']} * 3)) * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+/** CredentialProofInputProps delegates proof state and file selection to its caller. */
 export interface CredentialProofInputProps {
   password: string
   onPasswordChange: (v: string) => void
@@ -95,13 +176,9 @@ export interface CredentialProofInputProps {
   disabled?: boolean
   focusOnMount?: boolean
   onPasswordKeyDown?: (e: React.KeyboardEvent) => void
-  className?: string
+  sx?: StyleXStyles | StyleXStyles<{ '--credential-proof-space': string }>
+  className?: never
 }
-
-export const inputClass = cn(
-  'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 text-sm transition-colors outline-none',
-  'focus:border-brand/50',
-)
 
 // CredentialProofInput renders password + optional PEM file upload for
 // EntityCredential proof. Presentational only, all state managed by parent
@@ -121,7 +198,7 @@ export function CredentialProofInput({
   disabled,
   focusOnMount,
   onPasswordKeyDown,
-  className,
+  sx,
 }: CredentialProofInputProps) {
   const passwordId = useId()
   const pemId = useId()
@@ -133,16 +210,9 @@ export function CredentialProofInput({
   )
 
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ cn(
-          'space-y-3',
-          className,
-        )
-      }
-    >
+    <div {...stylex.props(sx)}>
       {showPassword && (
-        <div>
+        <div sx={spacingStyles.child}>
           <label htmlFor={passwordId} sx={stylexStyles.rule1}>
             {passwordLabel}
           </label>
@@ -156,20 +226,23 @@ export function CredentialProofInput({
             disabled={disabled}
             readOnly={disabled}
             onKeyDown={onPasswordKeyDown}
-            sx={[[stylexStyles.rule2], !!disabled && stylexStyles.rule3]}
+            sx={[
+              [credentialInputStyles.input],
+              !!disabled && stylexStyles.rule3,
+            ]}
           />
         </div>
       )}
       {showPem && (
         <>
           {showPassword && (
-            <div sx={stylexStyles.rule4}>
+            <div sx={[spacingStyles.child, stylexStyles.rule4]}>
               <div sx={stylexStyles.rule5} />
               <span>or</span>
               <div sx={stylexStyles.rule5} />
             </div>
           )}
-          <div>
+          <div sx={spacingStyles.child}>
             <label htmlFor={pemId} sx={stylexStyles.rule1}>
               {pemLabel}
             </label>
@@ -178,14 +251,7 @@ export function CredentialProofInput({
               type="button"
               onClick={() => fileInputRef?.current?.click()}
               disabled={disabled}
-              className={
-                /* TODO(stylex): conditional property composition: borderColor */ cn(
-                  inputClass,
-                  'flex items-center gap-2 text-left',
-                  'hover:border-foreground/30',
-                  disabled && 'opacity-50',
-                )
-              }
+              sx={[credentialInputStyles.pem, disabled && stylexStyles.rule3]}
             >
               <LuUpload sx={stylexStyles.rule6} />
               <span sx={[!pemFileName && stylexStyles.rule7]}>
@@ -203,7 +269,7 @@ export function CredentialProofInput({
           </div>
         </>
       )}
-      {error && <p sx={stylexStyles.rule9}>{error}</p>}
+      {error && <p sx={[spacingStyles.child, stylexStyles.rule9]}>{error}</p>}
     </div>
   )
 }

@@ -82,6 +82,12 @@ export const iconDefaults = stylex.create({
 
 /** iconRequired retains menu interaction rules independently of explicit caller defaults. */
 export const iconRequired = stylex.create({
+  trace: {
+    pointerEvents: {
+      default: null,
+      [stylex.when.ancestor(':is(*)', traceIconMarker)]: 'none',
+    },
+  },
   menu: {
     pointerEvents: {
       default: null,

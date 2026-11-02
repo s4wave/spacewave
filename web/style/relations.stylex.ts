@@ -12,3 +12,8 @@ export const codeBlockGroupMarker = stylex.defineMarker()
 export const headerGroupMarker = stylex.defineMarker()
 /** traceTriggerGroupMarker scopes expansion indicators to their trace trigger. */
 export const traceTriggerGroupMarker = stylex.defineMarker()
+
+/** traceLineMarker scopes running title effects to their own trace line. */
+export const traceLineMarker = stylex.defineMarker()
+/** traceTitleMarker identifies the preceding title beside a trailing trace icon. */
+export const traceTitleMarker = stylex.defineMarker()
