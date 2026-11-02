@@ -12,6 +12,7 @@ import type {} from './browser.js'
 export interface ParityState {
   id: string
   path: string
+  hasTouch?: boolean
   ready: string | ((page: Page) => Promise<void>)
   setup?: (page: Page) => Promise<void>
 }
@@ -86,6 +87,7 @@ export async function capture(
               context = await browser.newContext({
                 viewport,
                 deviceScaleFactor: 1,
+                hasTouch: state.hasTouch,
                 colorScheme: 'dark',
                 locale: 'en-US',
                 timezoneId: 'UTC',

@@ -40,6 +40,13 @@ import { base58Decode } from '@s4wave/app/provider/spacewave/keypair-utils.js'
 import { BEARER_INVITE_PREFIX } from '@s4wave/app/routes/pendingRoute.js'
 import { mountSpace } from '@s4wave/app/space/space.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const dialogStyles = stylex.create({
+  description: { marginTop: `calc(${themeLayout['--spacing']} * 1.5)` },
+})
+
 export interface JoinSpaceDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -423,6 +430,7 @@ export function JoinSpaceDialog({
   onAccepted,
   initialCode,
 }: JoinSpaceDialogProps) {
+  // Keep form input and submission generation tied to this mounted dialog.
   const inputId = useId()
   const serverInputId = useId()
   const submitGenerationRef = useRef(0)
@@ -435,6 +443,7 @@ export function JoinSpaceDialog({
   })
   const [backfill, setBackfill] = useState(false)
 
+  // Invalidate pending results when the dialog closes or unmounts.
   useEffect(() => {
     if (!open) {
       submitGenerationRef.current += 1
@@ -445,6 +454,7 @@ export function JoinSpaceDialog({
     }
   }, [open])
 
+  // Reset dismissed input before notifying the caller.
   const handleOpenChange = useCallback(
     (next: boolean) => {
       if (!next) {
@@ -456,11 +466,14 @@ export function JoinSpaceDialog({
     [onOpenChange],
   )
 
+  // Resolve and join the submitted invite within one generation.
   const handleSubmit = useCallback(async () => {
+    // Require a session and nonempty invite before starting.
     if (!session || !state.code.trim()) return
     const input = state.code.trim()
     const generation = ++submitGenerationRef.current
 
+    // Ignore results from a dismissed or superseded submission.
     dispatch({ type: 'resolving' })
     try {
       const inviteMsg = await resolveInvite(session, input, isCloud)
@@ -482,6 +495,7 @@ export function JoinSpaceDialog({
     }
   }, [session, state.code, state.serverAddr, showServer, isCloud, backfill])
 
+  // Derive available controls from the current join phase.
   const busy = state.phase === 'resolving' || state.phase === 'connecting'
   const showBackfill = state.phase !== 'enrolled' && state.phase !== 'pending'
 
@@ -495,7 +509,10 @@ export function JoinSpaceDialog({
             </div>
             <div className="min-w-0">
               <DialogTitle>Join Space</DialogTitle>
-              <DialogDescription variant="relaxed" className="mt-1.5">
+              <DialogDescription
+                variant="relaxed"
+                sx={dialogStyles.description}
+              >
                 {isCloud
                   ? 'Enter an invite code or paste an invite link.'
                   : 'Paste an invite link to continue.'}

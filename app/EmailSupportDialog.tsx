@@ -10,6 +10,17 @@ import {
   DialogTitle,
 } from '@s4wave/web/ui/dialog.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const dialogStyles = stylex.create({
+  content: {
+    maxWidth: {
+      default: 'var(--container-md)',
+      '@media (min-width: 40rem)': 'var(--container-lg)',
+    },
+  },
+})
+
 export const SUPPORT_EMAIL = 'support@aperture.us'
 
 export interface EmailSupportDialogProps {
@@ -29,7 +40,7 @@ export function EmailSupportDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent sx={dialogStyles.content}>
         <DialogHeader>
           <DialogTitle>Email Support</DialogTitle>
           <DialogDescription>

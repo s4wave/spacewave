@@ -390,6 +390,32 @@ export function transform(
         throw new Error(`${translation.reason}: ${candidate}`)
       mergeStyle(style, translation.style)
     }
+
+    // StyleX gives physical sides precedence over logical axes even when Tailwind's media rule comes later.
+    const properties = propertyStyles(style)
+    for (const family of ['padding', 'margin']) {
+      for (const [axis, sides] of [
+        ['Inline', ['Left', 'Right']],
+        ['Block', ['Top', 'Bottom']],
+      ] as const) {
+        const logical = family + axis
+        const physical = sides
+          .map((side) => family + side)
+          .filter((side) => side in properties)
+        if (!(logical in properties) || !physical.length) continue
+        if (
+          [logical, ...physical].some(
+            (key) =>
+              properties[key] !== null && typeof properties[key] === 'object',
+          )
+        )
+          throw new Error(
+            `conditional direction composition: ${logical},${physical.join(',')}`,
+          )
+      }
+    }
+
+    // Reuse this complete outcome across matching source expressions.
     const name = `rule${namespaces.size + 1}`
     namespaces.set(value, { name, style })
     return `${prefix}.${name}`

@@ -11,6 +11,12 @@ import {
 } from '@s4wave/web/ui/dialog.js'
 import { cn } from '@s4wave/web/style/utils.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const dialogStyles = stylex.create({
+  description: { overflowWrap: 'break-word' },
+})
+
 /** RenameSpaceDialogProps supplies the current name and rename operation. */
 export interface RenameSpaceDialogProps {
   open: boolean
@@ -52,6 +58,7 @@ export function RenameSpaceDialog({
   spaceName,
   onConfirm,
 }: RenameSpaceDialogProps) {
+  // Keep the draft tied to the current Space name.
   const [state, dispatch] = useReducer(renameReducer, {
     submitting: false,
     source: spaceName,
@@ -60,6 +67,7 @@ export function RenameSpaceDialog({
   const spaceNameId = useId()
   const value = state.source === spaceName ? state.value : spaceName
 
+  // Discard the draft when the dialog closes.
   const handleOpenChange = useCallback(
     (next: boolean) => {
       if (!next) {
@@ -70,6 +78,7 @@ export function RenameSpaceDialog({
     [onOpenChange, spaceName],
   )
 
+  // Allow submission only for a changed, nonempty name.
   const trimmed = value.trim()
   const canSubmit =
     trimmed.length > 0 && trimmed !== spaceName && !state.submitting
@@ -77,6 +86,7 @@ export function RenameSpaceDialog({
     node?.focus()
   }, [])
 
+  // Submit the current name and keep a failed draft available.
   const handleSubmit = useCallback(async () => {
     if (!canSubmit) return
     dispatch({ type: 'submit' })
@@ -91,6 +101,7 @@ export function RenameSpaceDialog({
     }
   }, [canSubmit, onConfirm, trimmed, handleOpenChange])
 
+  // Style the editable name consistently across pointer types.
   const inputClass = cn(
     'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 min-h-11 w-full rounded-md border px-3 py-2 text-sm outline-none transition-colors fine-pointer:min-h-0',
     'focus:border-brand/50',
@@ -110,7 +121,7 @@ export function RenameSpaceDialog({
 
         <DialogHeader>
           <DialogTitle>Rename Space</DialogTitle>
-          <DialogDescription className="break-words">
+          <DialogDescription sx={dialogStyles.description}>
             Enter a new display name for &ldquo;{spaceName}&rdquo;.
           </DialogDescription>
         </DialogHeader>

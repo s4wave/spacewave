@@ -41,6 +41,17 @@ import type {
 import { useAccountDashboardState } from './AccountDashboardStateContext.js'
 import { useEntityKeypairs } from './useEntityKeypairs.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const dialogStyles = stylex.create({
+  content: {
+    maxWidth: {
+      default: 'var(--container-md)',
+      '@media (min-width: 40rem)': 'var(--container-lg)',
+    },
+  },
+})
+
 // WizardMode determines the operation type.
 export type WizardMode = 'add' | 'remove'
 
@@ -204,6 +215,7 @@ function AuthMutationWizardContent({
   addMethodType,
   accountInfoResource,
 }: AuthMutationWizardContentProps) {
+  // Derive the current step and required signatures from the mounted account.
   const [step, setStep] = useState(0)
   const cred = useCredentialProof()
   const {
@@ -227,7 +239,9 @@ function AuthMutationWizardContent({
     removeMethodLabel,
   )
 
+  // Reset credentials and operation progress when the wizard closes.
   const close = () => {
+    // Lock keypairs unless the caller retains them across the close.
     if (!retainAfterClose) {
       void account.value?.lockAllEntityKeypairs().catch(() => {
         // best-effort cleanup
@@ -249,7 +263,7 @@ function AuthMutationWizardContent({
         if (!next) close()
       }}
     >
-      <DialogContent className="max-w-md">
+      <DialogContent sx={dialogStyles.content}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>

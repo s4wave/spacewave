@@ -28,7 +28,8 @@ Unused consumed class constants and single-purpose imports are removed.
 
 An unsupported attribute remains whole, with a `TODO(stylex)` reason. Descendant,
 group and peer selectors need styles on the affected child or explicit markers.
-Global classes and computed class helpers also need a hand pass. Shared-component
+Global classes and computed class helpers also need a hand pass. Mixed logical axes and physical sides with responsive or pseudo conditions stay
+manual, because StyleX atomic priorities can change their cascade. Shared-component
 API conversion and replacing forwarded `className` with `sx` are coordinated
 with their callers in that pass.
 

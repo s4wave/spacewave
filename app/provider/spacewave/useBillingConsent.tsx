@@ -9,6 +9,16 @@ import {
 } from '@s4wave/web/ui/dialog.js'
 import { CLOUD_OFFER, formatStorageRate } from './pricing.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+const dialogStyles = stylex.create({
+  content: {
+    maxHeight: themeLayout['--max-height-confirmation'],
+    overflowY: 'auto',
+  },
+})
+
 // BillingConsentForm binds the visible terms and spending choice to one action.
 export function BillingConsentForm({
   onAccept,
@@ -95,6 +105,7 @@ export function BillingConsentForm({
 // useBillingConsent waits for the explicit action on the displayed offer.
 // Dismissal and unmount cancel the pending request without granting agreement.
 export function useBillingConsent() {
+  // Keep one pending consent request and its displayed offer.
   const pending = useRef<((consent?: BillingConsent) => void) | null>(null)
   const [choice, setChoice] = useState<{
     limit: number
@@ -102,6 +113,7 @@ export function useBillingConsent() {
     offer: typeof CLOUD_OFFER
   } | null>(null)
 
+  // Resolve the pending request and dismiss the offer together.
   const finish = useCallback((consent?: BillingConsent) => {
     const resolve = pending.current
     pending.current = null
@@ -109,6 +121,7 @@ export function useBillingConsent() {
     resolve?.(consent)
   }, [])
 
+  // Cancel an unanswered request when its owner unmounts.
   useEffect(
     () => () => {
       pending.current?.()
@@ -117,6 +130,7 @@ export function useBillingConsent() {
     [],
   )
 
+  // Replace any previous request with the new offer.
   const requestConsent = useCallback(
     (
       currentLimit = CLOUD_OFFER.defaultOverageLimitCents,
@@ -132,6 +146,7 @@ export function useBillingConsent() {
     [],
   )
 
+  // Render the current offer without granting consent on dismissal.
   const offer = choice?.offer ?? CLOUD_OFFER
   const consentDialog = (
     <Dialog
@@ -140,7 +155,7 @@ export function useBillingConsent() {
         if (!value) finish()
       }}
     >
-      <DialogContent className="max-h-(--max-height-confirmation) overflow-y-auto">
+      <DialogContent sx={dialogStyles.content}>
         <DialogTitle>
           {choice?.spendingOnly ? 'Spending limit' : 'Cloud monthly offer'}
         </DialogTitle>

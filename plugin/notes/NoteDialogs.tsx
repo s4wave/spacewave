@@ -7,6 +7,13 @@ import {
   DialogTitle,
 } from '@s4wave/web/ui/dialog.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const dialogStyles = stylex.create({
+  footer: { marginTop: `calc(${themeLayout['--spacing']} * 4)` },
+})
+
 function getFormString(form: FormData, name: string): string {
   const value = form.get(name)
   return typeof value === 'string' ? value.trim() : ''
@@ -43,6 +50,7 @@ export function TextInputDialog({
         {/* eslint-disable-next-line react-doctor/no-prevent-default -- plugin dialogs submit to in-memory callbacks, not no-JS document actions. */}
         <form
           onSubmit={(event) => {
+            // Read the submitted value before invoking the in-memory confirmation.
             event.preventDefault()
             const form = new FormData(event.currentTarget)
             const value = getFormString(form, 'value')
@@ -67,7 +75,7 @@ export function TextInputDialog({
               className="border-border bg-background text-foreground focus:border-brand h-8 rounded-md border px-2 text-sm outline-none"
             />
           </label>
-          <DialogFooter className="mt-4">
+          <DialogFooter sx={dialogStyles.footer}>
             <button
               type="button"
               onClick={() => onOpenChange(false)}
@@ -105,6 +113,7 @@ export function SourceInputDialog({
         {/* eslint-disable-next-line react-doctor/no-prevent-default -- plugin dialogs submit to in-memory callbacks, not no-JS document actions. */}
         <form
           onSubmit={(event) => {
+            // Read the source fields before invoking the in-memory confirmation.
             event.preventDefault()
             const form = new FormData(event.currentTarget)
             const name = getFormString(form, 'name')
@@ -140,7 +149,7 @@ export function SourceInputDialog({
               />
             </label>
           </div>
-          <DialogFooter className="mt-4">
+          <DialogFooter sx={dialogStyles.footer}>
             <button
               type="button"
               onClick={() => onOpenChange(false)}

@@ -12,6 +12,7 @@ import { CopyableField } from '../ui/CopyableField.js'
 import { RadioOption } from '../ui/RadioOption.js'
 import { Window } from '../ui/Window.js'
 import { Input } from '../ui/input.js'
+import { PathInput } from '../ui/path/PathInput.js'
 import { Button, buttonVariants } from '../ui/button.js'
 import { DashboardButton } from '../ui/DashboardButton.js'
 import { DropdownTriggerButton } from '../ui/DropdownTriggerButton.js'
@@ -28,6 +29,16 @@ import {
   SheetDescription,
 } from '../ui/sheet.js'
 import {
+  Dialog,
+  DialogTrigger,
+  DialogClose,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+} from '../ui/dialog.js'
+import {
   CollapsibleSection,
   collapsibleSectionActionStyles,
 } from '../ui/CollapsibleSection.js'
@@ -39,6 +50,7 @@ const styles = stylex.create({
   secondRule: { color: 'rgb(68, 85, 102)' },
   largeIcon: { width: 32, height: 32 },
   minimumWidth: (minWidth: number) => ({ minWidth }),
+  pathOverride: { marginTop: 19 },
 })
 
 // PilotJourney exercises shared composition together with real app and plugin consumers.
@@ -50,6 +62,8 @@ function PilotJourney() {
   const [actions, setActions] = useState(0)
   const [sheetOpen, setSheetOpen] = useState(false)
   const [buttonActions, setButtonActions] = useState(0)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [path, setPath] = useState('/Users/example/Documents')
 
   return (
     <main>
@@ -82,6 +96,12 @@ function PilotJourney() {
         Recipe action
       </button>
       <output aria-label="Native button actions">{buttonActions}</output>
+      <PathInput
+        path={path}
+        onPathChange={setPath}
+        onNavigate={setPath}
+        sx={styles.pathOverride}
+      />
       <Input
         aria-label="Native input"
         variant="config"
@@ -136,6 +156,18 @@ function PilotJourney() {
           Panel action
         </PanelHeaderButton>
       </PanelHeader>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogTrigger sx={styles.override}>Open native dialog</DialogTrigger>
+        <DialogContent sx={styles.headerOverride}>
+          <DialogHeader>
+            <DialogTitle>Native dialog proof</DialogTitle>
+            <DialogDescription>Review the native dialog</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose sx={styles.override}>Close native dialog</DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetTrigger sx={styles.override}>Open sheet</SheetTrigger>
         <SheetContent>
@@ -173,7 +205,9 @@ it('composes shared, app and plugin styles through the browser build', async () 
   await expect
     .poll(() => document.querySelector('[role=alert]')?.textContent)
     .toBe('UnavailableTry again')
-  const card = document.querySelector('main > div')!
+  const card = page
+    .getByRole('heading', { name: 'Details', exact: true })
+    .element().parentElement!
   const style = getComputedStyle(card)
   expect(style.padding).toBe('19px')
   expect(style.borderRadius).toBe('9px')
@@ -187,7 +221,10 @@ it('composes shared, app and plugin styles through the browser build', async () 
           ?.textContent,
     )
     .toBe('native-css')
-  expect(document.querySelector('main > div')).toBe(card)
+  expect(
+    page.getByRole('heading', { name: 'Details', exact: true }).element()
+      .parentElement,
+  ).toBe(card)
   expect(getComputedStyle(card).padding).toBe('19px')
 
   // Prefix matching wins the overlap, while the next line reaches the predicate rule.
@@ -285,6 +322,35 @@ it('composes shared, app and plugin styles through the browser build', async () 
     .toBe(getComputedStyle(reference).color)
   reference.remove()
 
+  // The migrated dialog retains trigger, footer and Escape behavior with caller overrides.
+  const modalTrigger = page.getByRole('button', {
+    name: 'Open native dialog',
+    exact: true,
+  })
+  await modalTrigger.click()
+  const modal = page.getByRole('dialog', {
+    name: 'Native dialog proof',
+    exact: true,
+  })
+  await expect.element(modal).toBeVisible()
+  expect(getComputedStyle(modal.element()).padding).toBe('19px')
+  const modalClose = page.getByRole('button', {
+    name: 'Close native dialog',
+    exact: true,
+  })
+  expect(getComputedStyle(modalClose.element()).padding).toBe('19px')
+
+  // The footer dismisses the dialog and restores the trigger focus.
+  await modalClose.click()
+  await expect.poll(() => modal.query()?.checkVisibility() ?? false).toBe(false)
+  await expect.poll(() => document.activeElement).toBe(modalTrigger.element())
+
+  // Reopening retains the standard Escape close path.
+  await modalTrigger.click()
+  await expect.element(modal).toBeVisible()
+  await userEvent.keyboard('{Escape}')
+  await expect.poll(() => modal.query()?.checkVisibility() ?? false).toBe(false)
+
   // The two owned inputs keep the caller's final padding override.
   expect(getComputedStyle(panelButton).padding).toBe('19px')
   expect(getComputedStyle(panelButton.parentElement!).padding).toBe('19px')
@@ -327,6 +393,45 @@ it('composes shared, app and plugin styles through the browser build', async () 
       page.getByRole('textbox', { name: 'Disabled native input', exact: true }),
     )
     .toBeDisabled()
+
+  // Breadcrumb edits commit with Enter, discard with Escape and navigate through their owner.
+  await page.getByRole('button', { name: 'Edit path', exact: true }).click()
+  const pathEditor = page.getByRole('textbox', {
+    name: 'File path',
+    exact: true,
+  })
+  await pathEditor.fill('/Users/example/Projects')
+  await userEvent.keyboard('{Enter}')
+  await expect
+    .element(
+      page.getByRole('button', { name: 'Navigate to Projects', exact: true }),
+    )
+    .toBeVisible()
+
+  // Discard the second draft without changing the committed path.
+  await page.getByRole('button', { name: 'Edit path', exact: true }).click()
+  await pathEditor.fill('/discarded')
+  await userEvent.keyboard('{Escape}')
+  await expect
+    .element(
+      page.getByRole('button', { name: 'Navigate to Projects', exact: true }),
+    )
+    .toBeVisible()
+
+  // Root navigation updates the controlled path and retains its caller styling.
+  await page
+    .getByRole('button', { name: 'Navigate to root', exact: true })
+    .click()
+  expect(
+    getComputedStyle(
+      page.getByRole('group', { name: 'File path', exact: true }).element(),
+    ).marginTop,
+  ).toBe('19px')
+  await expect
+    .element(
+      page.getByRole('button', { name: 'Navigate to Projects', exact: true }),
+    )
+    .not.toBeInTheDocument()
 
   // Shared icons retain inherited color and the button's descendant dimensions.
   const action = page.getByRole('button', {
