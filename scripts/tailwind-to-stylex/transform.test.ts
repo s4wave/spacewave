@@ -1051,9 +1051,72 @@ void invalidNativeDelegate;
               await page.getByRole('dialog').waitFor()
             },
           })),
-          ...['inline', 'dropdown', 'menubar'].map((mode) => ({
+          ...[
+            'inline',
+            'dropdown',
+            'menubar',
+            'dropdown-keyboard',
+            'menubar-keyboard',
+            'dropdown-coarse',
+            'menubar-coarse',
+            'dropdown-forced',
+            'menubar-forced',
+            'dropdown-dark',
+            'menubar-dark',
+          ].map((mode) => ({
             id: `icon-defaults-${mode}`,
-            path: `/?icon-defaults=${mode}`,
+            path: `/?icon-defaults=${mode.split('-')[0]}`,
+            hasTouch: mode.endsWith('coarse'),
+            forcedColors: mode.endsWith('forced')
+              ? ('active' as const)
+              : undefined,
+            setup: async (page: import('playwright').Page) => {
+              // Establish the authored dark and forced-color states through the actual controls.
+              if (mode.endsWith('dark')) {
+                await page.evaluate(() =>
+                  document.documentElement.classList.add('dark'),
+                )
+                await page
+                  .getByRole('menuitem', {
+                    name: 'Destructive item',
+                    exact: true,
+                  })
+                  .focus({ timeout: 5000 })
+                return
+              }
+              if (mode.endsWith('forced')) {
+                await page
+                  .getByRole('menuitem', { name: 'Default item', exact: true })
+                  .focus({ timeout: 5000 })
+                return
+              }
+
+              // Exercise roving focus through the real disabled menu item.
+              if (!mode.endsWith('keyboard')) return
+              await page
+                .getByRole('menuitem', {
+                  name: mode.startsWith('dropdown')
+                    ? 'Selected item'
+                    : 'Dimmed item',
+                  exact: true,
+                })
+                .focus({ timeout: 5000 })
+              await page.keyboard.press('ArrowDown')
+              await page
+                .locator('[role="menuitemcheckbox"]:focus')
+                .waitFor({ timeout: 5000 })
+              const focused = await page
+                .getByRole('menuitemcheckbox', {
+                  name: 'Checked item',
+                  exact: true,
+                })
+                .evaluate((element) => element === document.activeElement)
+              assert.equal(
+                focused,
+                true,
+                'Keyboard selection must skip the disabled item',
+              )
+            },
             ready: async (page: import('playwright').Page) => {
               await page.locator('#icon-defaults-fixture').waitFor()
               if (mode !== 'inline')
@@ -1078,6 +1141,54 @@ void invalidNativeDelegate;
                   opacity: '0.5',
                 })
               } else {
+                const checkbox = page.getByRole('menuitemcheckbox', {
+                  name: 'Checked item',
+                  exact: true,
+                })
+                const checkboxStyles = await checkbox.evaluate((element) => ({
+                  width: getComputedStyle(element).width,
+                  opacity: getComputedStyle(element).opacity,
+                  variable:
+                    getComputedStyle(element).getPropertyValue(
+                      '--checkbox-caller',
+                    ),
+                }))
+                assert.deepEqual(checkboxStyles, {
+                  width: '180px',
+                  opacity: '0.9',
+                  variable: 'retained',
+                })
+                if (mode.endsWith('coarse'))
+                  assert.equal(
+                    await page
+                      .getByRole('menuitem', {
+                        name: 'Submenu item',
+                        exact: true,
+                      })
+                      .evaluate(
+                        (element) => getComputedStyle(element).minHeight,
+                      ),
+                    '44px',
+                  )
+                if (mode.endsWith('forced')) {
+                  assert.equal(
+                    await page.evaluate(
+                      () => matchMedia('(forced-colors: active)').matches,
+                    ),
+                    true,
+                  )
+                  assert.equal(
+                    await page
+                      .getByRole('menuitem', {
+                        name: 'Default item',
+                        exact: true,
+                      })
+                      .evaluate(
+                        (element) => getComputedStyle(element).outlineStyle,
+                      ),
+                    'solid',
+                  )
+                }
                 const caller = page.getByRole('menuitem', {
                   name: 'Caller item',
                   exact: true,
@@ -1088,12 +1199,13 @@ void invalidNativeDelegate;
                     .evaluate((icon) => getComputedStyle(icon).width),
                   '28px',
                 )
-                assert.equal(
-                  await caller
-                    .locator('svg')
-                    .evaluate((icon) => getComputedStyle(icon).color),
-                  'rgb(17, 34, 51)',
-                )
+                if (!mode.endsWith('forced'))
+                  assert.equal(
+                    await caller
+                      .locator('svg')
+                      .evaluate((icon) => getComputedStyle(icon).color),
+                    'rgb(17, 34, 51)',
+                  )
               }
             },
           })),
@@ -1176,6 +1288,14 @@ void invalidNativeDelegate;
             'icon-defaults-inline',
             'icon-defaults-dropdown',
             'icon-defaults-menubar',
+            'icon-defaults-dropdown-keyboard',
+            'icon-defaults-menubar-keyboard',
+            'icon-defaults-dropdown-coarse',
+            'icon-defaults-menubar-coarse',
+            'icon-defaults-dropdown-forced',
+            'icon-defaults-menubar-forced',
+            'icon-defaults-dropdown-dark',
+            'icon-defaults-menubar-dark',
           ],
         },
         {

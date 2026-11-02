@@ -124,5 +124,5 @@ export function preserveNativeProps(source: string, filename: string): string {
     source = source.slice(0, edit.start) + edit.text + source.slice(edit.end)
   return imported
     ? source
-    : `import {stylexProps as ${binding}} from '@s4wave/web/style/props.js'\n${source}`
+    : `import {${binding === 'stylexProps' ? binding : 'stylexProps as ' + binding}} from '@s4wave/web/style/props.js'\n${source}`
 }

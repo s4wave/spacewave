@@ -278,17 +278,22 @@ const styles = stylex.create({
         'var(--tw-ring-inset, ) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color)',
     },
     '--tw-outline-style': { default: null, ':focus': 'none' },
-    outlineStyle: { default: null, ':focus': 'none' },
+    outlineStyle: {
+      default: null,
+      ':focus': 'none',
+      '@media (forced-colors: active)': { default: null, ':focus': 'solid' },
+    },
     outlineOffset: {
       default: null,
       '@media (forced-colors: active)': { default: null, ':focus': '2px' },
     },
-    outline: {
+    outlineWidth: {
       default: null,
-      '@media (forced-colors: active)': {
-        default: null,
-        ':focus': '2px solid #0000',
-      },
+      '@media (forced-colors: active)': { default: null, ':focus': '2px' },
+    },
+    outlineColor: {
+      default: null,
+      '@media (forced-colors: active)': { default: null, ':focus': '#0000' },
     },
     pointerEvents: { default: null, ':disabled': 'none' },
     backgroundColor: {

@@ -87,7 +87,10 @@ const styles = stylex.create({
       default: null,
       ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
       ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
-      ':is(:is(.dark *)[aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      ':is(.dark *)': {
+        default: null,
+        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      },
     },
   },
   mono: {
@@ -130,7 +133,10 @@ const styles = stylex.create({
       default: null,
       ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
       ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
-      ':is(:is(.dark *)[aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      ':is(.dark *)': {
+        default: null,
+        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      },
     },
   },
   wizardError: {
@@ -168,7 +174,10 @@ const styles = stylex.create({
       default: null,
       ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
       ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
-      ':is(:is(.dark *)[aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      ':is(.dark *)': {
+        default: null,
+        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      },
     },
   },
   compact: {
@@ -206,7 +215,10 @@ const styles = stylex.create({
       default: null,
       ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
       ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
-      ':is(:is(.dark *)[aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      ':is(.dark *)': {
+        default: null,
+        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      },
     },
   },
   toolbar: {
@@ -244,7 +256,10 @@ const styles = stylex.create({
       default: null,
       ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
       ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
-      ':is(:is(.dark *)[aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      ':is(.dark *)': {
+        default: null,
+        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      },
     },
   },
   plugin: {
@@ -287,7 +302,10 @@ const styles = stylex.create({
       default: null,
       ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
       ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
-      ':is(:is(.dark *)[aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      ':is(.dark *)': {
+        default: null,
+        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      },
     },
   },
   displayName: {
@@ -322,7 +340,10 @@ const styles = stylex.create({
       default: null,
       ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
       ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
-      ':is(:is(.dark *)[aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      ':is(.dark *)': {
+        default: null,
+        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      },
     },
   },
   command: {
@@ -357,7 +378,10 @@ const styles = stylex.create({
       default: null,
       ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
       ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
-      ':is(:is(.dark *)[aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      ':is(.dark *)': {
+        default: null,
+        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      },
     },
   },
   searchPanel: {
@@ -393,7 +417,10 @@ const styles = stylex.create({
       default: null,
       ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
       ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
-      ':is(:is(.dark *)[aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      ':is(.dark *)': {
+        default: null,
+        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      },
     },
   },
   search: {
@@ -429,7 +456,10 @@ const styles = stylex.create({
       default: null,
       ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
       ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
-      ':is(:is(.dark *)[aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      ':is(.dark *)': {
+        default: null,
+        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      },
     },
   },
   config: {
@@ -467,7 +497,10 @@ const styles = stylex.create({
       default: null,
       ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
       ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
-      ':is(:is(.dark *)[aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      ':is(.dark *)': {
+        default: null,
+        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      },
     },
   },
 })

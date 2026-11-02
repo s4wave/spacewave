@@ -1,7 +1,10 @@
-import * as iconStylex from '@stylexjs/stylex'
+import { stylexProps } from '@s4wave/web/style/props.js'
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
+import * as stylex from '@stylexjs/stylex'
 import { IconStylesProvider } from '@s4wave/web/images/icons.js'
 import {
   iconDefaults,
+  iconRequired,
   menuIconMarker,
   menuMutedIconMarker,
 } from '../style/icon-defaults.stylex.js'
@@ -9,13 +12,371 @@ import * as React from 'react'
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu'
 import { LuCheck, LuChevronRight, LuCircle } from '@s4wave/web/images/icons.js'
 
-import { cn } from '../style/utils.js'
-
-import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../style/tokens.stylex.js'
 
-const stylexStyles = stylex.create({
-  rule1: {
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../style/tokens.stylex.js'
+
+const menuStyles = stylex.create({
+  content: {
+    zIndex: 50,
+    maxHeight: 'var(--radix-dropdown-menu-content-available-height)',
+    minWidth: '8rem',
+    transformOrigin: 'var(--radix-dropdown-menu-content-transform-origin)',
+    overflowX: 'hidden',
+    overflowY: 'auto',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: themeColors['--color-popover-border'],
+    backgroundColor: themeColors['--color-popover'],
+    padding: themeLayout['--spacing'],
+    color: themeColors['--color-foreground'],
+    '--tw-shadow':
+      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    '--tw-enter-translate-y': {
+      default: null,
+      ':is([data-side="bottom"])': '-.5rem',
+      ':is([data-side="top"])': '.5rem',
+    },
+    '--tw-enter-translate-x': {
+      default: null,
+      ':is([data-side="left"])': '.5rem',
+      ':is([data-side="right"])': '-.5rem',
+    },
+    animationName: {
+      default: null,
+      ':is([data-state="closed"])': 'shadcn-exit',
+      ':is([data-state="open"])': 'shadcn-enter',
+    },
+    animationDuration: {
+      default: null,
+      ':is([data-state="closed"])': '.15s',
+      ':is([data-state="open"])': '.15s',
+    },
+    animationTimingFunction: {
+      default: null,
+      ':is([data-state="closed"])': 'ease-in',
+      ':is([data-state="open"])': 'ease-out',
+    },
+    animationIterationCount: {
+      default: null,
+      ':is([data-state="closed"])': 1,
+      ':is([data-state="open"])': 1,
+    },
+    animationDirection: {
+      default: null,
+      ':is([data-state="closed"])': 'normal',
+      ':is([data-state="open"])': 'normal',
+    },
+    animationPlayState: {
+      default: null,
+      ':is([data-state="closed"])': 'running',
+      ':is([data-state="open"])': 'running',
+    },
+    animationDelay: {
+      default: null,
+      ':is([data-state="closed"])': '0s',
+      ':is([data-state="open"])': '0s',
+    },
+    animationFillMode: {
+      default: null,
+      ':is([data-state="closed"])': 'both',
+      ':is([data-state="open"])': 'both',
+    },
+    animationTimeline: {
+      default: null,
+      ':is([data-state="closed"])': 'auto',
+      ':is([data-state="open"])': 'auto',
+    },
+    '--tw-exit-opacity': { default: null, ':is([data-state="closed"])': '0' },
+    '--tw-exit-scale': { default: null, ':is([data-state="closed"])': '.95' },
+    '--tw-enter-opacity': { default: null, ':is([data-state="open"])': '0' },
+    '--tw-enter-scale': { default: null, ':is([data-state="open"])': '.95' },
+  },
+  compactContent: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  selectedItem: {
+    position: 'relative',
+    display: 'flex',
+    cursor: 'default',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: 'var(--radius-sm)',
+    backgroundColor: {
+      default: themeColors['--color-accent'],
+      ':focus': themeColors['--color-accent'],
+      ':is([data-variant="destructive"])': {
+        default: null,
+        ':focus': `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+      },
+      ':is(.dark *)': {
+        default: null,
+        ':is([data-variant="destructive"])': {
+          default: null,
+          ':focus': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+        },
+      },
+    },
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingRight: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingLeft: {
+      default: `calc(${themeLayout['--spacing']} * 2)`,
+      ':is([data-inset])': `calc(${themeLayout['--spacing']} * 8)`,
+    },
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-accent-foreground'],
+      ':focus': themeColors['--color-accent-foreground'],
+      ':is([data-variant="destructive"])': {
+        default: themeColors['--color-destructive'],
+        ':focus': themeColors['--color-destructive'],
+      },
+    },
+    '--tw-outline-style': 'none',
+    outlineStyle: {
+      default: 'none',
+      '@media (forced-colors: active)': 'solid',
+    },
+    outlineOffset: { default: null, '@media (forced-colors: active)': '2px' },
+    outlineWidth: { default: null, '@media (forced-colors: active)': '2px' },
+    outlineColor: { default: null, '@media (forced-colors: active)': '#0000' },
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    pointerEvents: { default: null, ':is([data-disabled])': 'none' },
+    opacity: { default: null, ':is([data-disabled])': 0.5 },
+  },
+  item: {
+    position: 'relative',
+    display: 'flex',
+    cursor: 'default',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: 'var(--radius-sm)',
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingRight: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingLeft: {
+      default: `calc(${themeLayout['--spacing']} * 2)`,
+      ':is([data-inset])': `calc(${themeLayout['--spacing']} * 8)`,
+    },
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-outline-style': 'none',
+    outlineStyle: {
+      default: 'none',
+      '@media (forced-colors: active)': 'solid',
+    },
+    outlineOffset: { default: null, '@media (forced-colors: active)': '2px' },
+    outlineWidth: { default: null, '@media (forced-colors: active)': '2px' },
+    outlineColor: { default: null, '@media (forced-colors: active)': '#0000' },
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    backgroundColor: {
+      default: null,
+      ':focus': themeColors['--color-accent'],
+      ':is([data-variant="destructive"])': {
+        default: null,
+        ':focus': `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+      },
+      ':is(.dark *)': {
+        default: null,
+        ':is([data-variant="destructive"])': {
+          default: null,
+          ':focus': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+        },
+      },
+    },
+    color: {
+      default: null,
+      ':focus': themeColors['--color-accent-foreground'],
+      ':is([data-variant="destructive"])': {
+        default: themeColors['--color-destructive'],
+        ':focus': themeColors['--color-destructive'],
+      },
+    },
+    pointerEvents: { default: null, ':is([data-disabled])': 'none' },
+    opacity: { default: null, ':is([data-disabled])': 0.5 },
+  },
+  choiceItem: {
+    position: 'relative',
+    display: 'flex',
+    cursor: 'default',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: 'var(--radius-sm)',
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingRight: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingLeft: `calc(${themeLayout['--spacing']} * 8)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-outline-style': 'none',
+    outlineStyle: {
+      default: 'none',
+      '@media (forced-colors: active)': 'solid',
+    },
+    outlineOffset: { default: null, '@media (forced-colors: active)': '2px' },
+    outlineWidth: { default: null, '@media (forced-colors: active)': '2px' },
+    outlineColor: { default: null, '@media (forced-colors: active)': '#0000' },
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    backgroundColor: { default: null, ':focus': themeColors['--color-accent'] },
+    color: {
+      default: null,
+      ':focus': themeColors['--color-accent-foreground'],
+    },
+    pointerEvents: { default: null, ':is([data-disabled])': 'none' },
+    opacity: { default: null, ':is([data-disabled])': 0.5 },
+  },
+  label: {
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingRight: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingLeft: {
+      default: `calc(${themeLayout['--spacing']} * 2)`,
+      ':is([data-inset])': `calc(${themeLayout['--spacing']} * 8)`,
+    },
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  separator: {
+    marginInline: `calc(${themeLayout['--spacing']} * -1)`,
+    marginBlock: themeLayout['--spacing'],
+    height: '1px',
+    backgroundColor: themeColors['--color-border'],
+  },
+  shortcut: {
+    marginLeft: 'auto',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-tracking': 'var(--tracking-widest)',
+    letterSpacing: 'var(--tracking-widest)',
+    color: themeColors['--color-muted-foreground'],
+  },
+  subTrigger: {
+    display: 'flex',
+    cursor: 'default',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: 'var(--radius-sm)',
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingRight: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingLeft: {
+      default: `calc(${themeLayout['--spacing']} * 2)`,
+      ':is([data-inset])': `calc(${themeLayout['--spacing']} * 8)`,
+    },
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-outline-style': 'none',
+    outlineStyle: {
+      default: 'none',
+      '@media (forced-colors: active)': 'solid',
+    },
+    outlineOffset: { default: null, '@media (forced-colors: active)': '2px' },
+    outlineWidth: { default: null, '@media (forced-colors: active)': '2px' },
+    outlineColor: { default: null, '@media (forced-colors: active)': '#0000' },
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    backgroundColor: {
+      default: null,
+      ':focus': themeColors['--color-accent'],
+      ':is([data-state="open"])': themeColors['--color-accent'],
+    },
+    color: {
+      default: null,
+      ':focus': themeColors['--color-accent-foreground'],
+      ':is([data-state="open"])': themeColors['--color-accent-foreground'],
+    },
+  },
+  subContent: {
+    zIndex: 50,
+    minWidth: '8rem',
+    transformOrigin: 'var(--radix-dropdown-menu-content-transform-origin)',
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: themeColors['--color-popover-border'],
+    backgroundColor: themeColors['--color-popover'],
+    padding: themeLayout['--spacing'],
+    color: themeColors['--color-foreground'],
+    '--tw-shadow':
+      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    '--tw-enter-translate-y': {
+      default: null,
+      ':is([data-side="bottom"])': '-.5rem',
+      ':is([data-side="top"])': '.5rem',
+    },
+    '--tw-enter-translate-x': {
+      default: null,
+      ':is([data-side="left"])': '.5rem',
+      ':is([data-side="right"])': '-.5rem',
+    },
+    animationName: {
+      default: null,
+      ':is([data-state="closed"])': 'shadcn-exit',
+      ':is([data-state="open"])': 'shadcn-enter',
+    },
+    animationDuration: {
+      default: null,
+      ':is([data-state="closed"])': '.15s',
+      ':is([data-state="open"])': '.15s',
+    },
+    animationTimingFunction: {
+      default: null,
+      ':is([data-state="closed"])': 'ease-in',
+      ':is([data-state="open"])': 'ease-out',
+    },
+    animationIterationCount: {
+      default: null,
+      ':is([data-state="closed"])': 1,
+      ':is([data-state="open"])': 1,
+    },
+    animationDirection: {
+      default: null,
+      ':is([data-state="closed"])': 'normal',
+      ':is([data-state="open"])': 'normal',
+    },
+    animationPlayState: {
+      default: null,
+      ':is([data-state="closed"])': 'running',
+      ':is([data-state="open"])': 'running',
+    },
+    animationDelay: {
+      default: null,
+      ':is([data-state="closed"])': '0s',
+      ':is([data-state="open"])': '0s',
+    },
+    animationFillMode: {
+      default: null,
+      ':is([data-state="closed"])': 'both',
+      ':is([data-state="open"])': 'both',
+    },
+    animationTimeline: {
+      default: null,
+      ':is([data-state="closed"])': 'auto',
+      ':is([data-state="open"])': 'auto',
+    },
+    '--tw-exit-opacity': { default: null, ':is([data-state="closed"])': '0' },
+    '--tw-exit-scale': { default: null, ':is([data-state="closed"])': '.95' },
+    '--tw-enter-opacity': { default: null, ':is([data-state="open"])': '0' },
+    '--tw-enter-scale': { default: null, ':is([data-state="open"])': '.95' },
+  },
+})
+
+const indicatorStyles = stylex.create({
+  indicator: {
     pointerEvents: 'none',
     position: 'absolute',
     left: `calc(${themeLayout['--spacing']} * 2)`,
@@ -25,16 +386,16 @@ const stylexStyles = stylex.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  rule2: {
+  checkIcon: {
     width: `calc(${themeLayout['--spacing']} * 4)`,
     height: `calc(${themeLayout['--spacing']} * 4)`,
   },
-  rule3: {
+  radioIcon: {
     width: `calc(${themeLayout['--spacing']} * 2)`,
     height: `calc(${themeLayout['--spacing']} * 2)`,
     fill: 'currentColor',
   },
-  rule4: {
+  submenuArrow: {
     marginLeft: 'auto',
     width: `calc(${themeLayout['--spacing']} * 4)`,
     height: `calc(${themeLayout['--spacing']} * 4)`,
@@ -56,102 +417,122 @@ function DropdownMenuPortal({
 }
 
 function DropdownMenuTrigger({
+  sx,
   ...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.Trigger>) {
+}: Omit<
+  React.ComponentProps<typeof DropdownMenuPrimitive.Trigger>,
+  'className'
+> & { sx?: ComponentStyles; className?: never }) {
   return (
     <DropdownMenuPrimitive.Trigger
       data-slot="dropdown-menu-trigger"
-      {...props}
+      {...stylexProps(sx, props)}
     />
   )
 }
 
 function DropdownMenuContent({
-  className,
+  sx,
   variant,
   sideOffset = 4,
   ...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.Content> & {
-  variant?: 'default' | 'compact'
-}) {
+}: Omit<
+  React.ComponentProps<typeof DropdownMenuPrimitive.Content> & {
+    variant?: 'default' | 'compact'
+  },
+  'className'
+> & { sx?: ComponentStyles; className?: never }) {
   return (
     <DropdownMenuPrimitive.Portal>
       <DropdownMenuPrimitive.Content
         data-slot="dropdown-menu-content"
         sideOffset={sideOffset}
-        className={
-          /* TODO(stylex): dynamic class or forwarded className */ cn(
-            'border-popover-border bg-popover text-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 max-h-(--radix-dropdown-menu-content-available-height) min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border p-1 shadow-lg',
-            variant === 'compact' && 'text-xs',
-            className,
-          )
-        }
-        {...props}
+        {...stylexProps(
+          [
+            menuStyles.content,
+            variant === 'compact' && menuStyles.compactContent,
+            sx,
+          ],
+          props,
+        )}
       />
     </DropdownMenuPrimitive.Portal>
   )
 }
 
 function DropdownMenuGroup({
+  sx,
   ...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.Group>) {
+}: Omit<
+  React.ComponentProps<typeof DropdownMenuPrimitive.Group>,
+  'className'
+> & { sx?: ComponentStyles; className?: never }) {
   return (
-    <DropdownMenuPrimitive.Group data-slot="dropdown-menu-group" {...props} />
+    <DropdownMenuPrimitive.Group
+      data-slot="dropdown-menu-group"
+      {...stylexProps(sx, props)}
+    />
   )
 }
 
 function DropdownMenuItem({
-  className,
+  sx,
   inset,
   variant = 'default',
   ...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.Item> & {
-  inset?: boolean
-  variant?: 'default' | 'destructive' | 'selected'
-}) {
+}: Omit<
+  React.ComponentProps<typeof DropdownMenuPrimitive.Item> & {
+    inset?: boolean
+    variant?: 'default' | 'destructive' | 'selected'
+  },
+  'className'
+> & { sx?: ComponentStyles; className?: never }) {
   return (
-    <IconStylesProvider sx={[iconDefaults.menu, iconDefaults.menuMuted]}>
+    <IconStylesProvider
+      sx={[iconDefaults.menu, iconDefaults.menuMuted]}
+      requiredSx={[iconRequired.menu, iconRequired.menuDestructive]}
+    >
       <DropdownMenuPrimitive.Item
         data-slot="dropdown-menu-item"
         data-inset={inset}
         data-variant={variant}
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: data-[variant=destructive]:focus:bg-destructive/10 */ cn(
-            'focus:bg-accent focus:text-accent-foreground data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive/10 dark:data-[variant=destructive]:focus:bg-destructive/20 data-[variant=destructive]:focus:text-destructive data-[variant=destructive]:*:[svg]:!text-destructive relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-xs outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0',
-            variant === 'selected' && 'bg-accent text-accent-foreground',
-            className,
-            iconStylex.props(menuIconMarker, menuMutedIconMarker).className,
-          )
-        }
-        {...props}
+        {...stylexProps(
+          [
+            menuIconMarker,
+            menuMutedIconMarker,
+            [
+              variant === 'selected'
+                ? menuStyles.selectedItem
+                : menuStyles.item,
+              sx,
+            ],
+          ],
+          props,
+        )}
       />
     </IconStylesProvider>
   )
 }
 
 function DropdownMenuCheckboxItem({
-  className,
+  sx,
   children,
   checked,
   ...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.CheckboxItem>) {
+}: Omit<
+  React.ComponentProps<typeof DropdownMenuPrimitive.CheckboxItem>,
+  'className'
+> & { sx?: ComponentStyles; className?: never }) {
   return (
-    <IconStylesProvider sx={[iconDefaults.menu]}>
+    <IconStylesProvider sx={[iconDefaults.menu]} requiredSx={iconRequired.menu}>
       <DropdownMenuPrimitive.CheckboxItem
         data-slot="dropdown-menu-checkbox-item"
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: [&_svg]:pointer-events-none */ cn(
-            'focus:bg-accent focus:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 pl-8 text-xs outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0',
-            className,
-            iconStylex.props(menuIconMarker).className,
-          )
-        }
         checked={checked}
-        {...props}
+        {...stylexProps([menuIconMarker, [menuStyles.choiceItem, sx]], props)}
       >
-        <span sx={stylexStyles.rule1}>
+        <span sx={indicatorStyles.indicator}>
           <DropdownMenuPrimitive.ItemIndicator>
-            <LuCheck sx={stylexStyles.rule2} />
+            <LuCheck sx={indicatorStyles.checkIcon} />
           </DropdownMenuPrimitive.ItemIndicator>
         </span>
         {children}
@@ -161,37 +542,37 @@ function DropdownMenuCheckboxItem({
 }
 
 function DropdownMenuRadioGroup({
+  sx,
   ...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.RadioGroup>) {
+}: Omit<
+  React.ComponentProps<typeof DropdownMenuPrimitive.RadioGroup>,
+  'className'
+> & { sx?: ComponentStyles; className?: never }) {
   return (
     <DropdownMenuPrimitive.RadioGroup
       data-slot="dropdown-menu-radio-group"
-      {...props}
+      {...stylexProps(sx, props)}
     />
   )
 }
 
 function DropdownMenuRadioItem({
-  className,
+  sx,
   children,
   ...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.RadioItem>) {
+}: Omit<
+  React.ComponentProps<typeof DropdownMenuPrimitive.RadioItem>,
+  'className'
+> & { sx?: ComponentStyles; className?: never }) {
   return (
-    <IconStylesProvider sx={[iconDefaults.menu]}>
+    <IconStylesProvider sx={[iconDefaults.menu]} requiredSx={iconRequired.menu}>
       <DropdownMenuPrimitive.RadioItem
         data-slot="dropdown-menu-radio-item"
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: [&_svg]:pointer-events-none */ cn(
-            'focus:bg-accent focus:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 pl-8 text-xs outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0',
-            className,
-            iconStylex.props(menuIconMarker).className,
-          )
-        }
-        {...props}
+        {...stylexProps([menuIconMarker, [menuStyles.choiceItem, sx]], props)}
       >
-        <span sx={stylexStyles.rule1}>
+        <span sx={indicatorStyles.indicator}>
           <DropdownMenuPrimitive.ItemIndicator>
-            <LuCircle sx={stylexStyles.rule3} />
+            <LuCircle sx={indicatorStyles.radioIcon} />
           </DropdownMenuPrimitive.ItemIndicator>
         </span>
         {children}
@@ -201,59 +582,50 @@ function DropdownMenuRadioItem({
 }
 
 function DropdownMenuLabel({
-  className,
+  sx,
   inset,
   ...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.Label> & {
-  inset?: boolean
-}) {
+}: Omit<
+  React.ComponentProps<typeof DropdownMenuPrimitive.Label> & {
+    inset?: boolean
+  },
+  'className'
+> & { sx?: ComponentStyles; className?: never }) {
   return (
     <DropdownMenuPrimitive.Label
       data-slot="dropdown-menu-label"
       data-inset={inset}
-      className={
-        /* TODO(stylex): dynamic class or forwarded className */ cn(
-          'px-2 py-1.5 text-xs font-medium data-[inset]:pl-8',
-          className,
-        )
-      }
-      {...props}
+      {...stylexProps([menuStyles.label, sx], props)}
     />
   )
 }
 
 function DropdownMenuSeparator({
-  className,
+  sx,
   ...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.Separator>) {
+}: Omit<
+  React.ComponentProps<typeof DropdownMenuPrimitive.Separator>,
+  'className'
+> & { sx?: ComponentStyles; className?: never }) {
   return (
     <DropdownMenuPrimitive.Separator
       data-slot="dropdown-menu-separator"
-      className={
-        /* TODO(stylex): dynamic class or forwarded className */ cn(
-          'bg-border -mx-1 my-1 h-px',
-          className,
-        )
-      }
-      {...props}
+      {...stylexProps([menuStyles.separator, sx], props)}
     />
   )
 }
 
 function DropdownMenuShortcut({
-  className,
+  sx,
   ...props
-}: React.ComponentProps<'span'>) {
+}: Omit<React.ComponentProps<'span'>, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
   return (
     <span
       data-slot="dropdown-menu-shortcut"
-      className={
-        /* TODO(stylex): dynamic class or forwarded className */ cn(
-          'text-muted-foreground ml-auto text-xs tracking-widest',
-          className,
-        )
-      }
-      {...props}
+      {...stylexProps([menuStyles.shortcut, sx], props)}
     />
   )
 }
@@ -265,48 +637,47 @@ function DropdownMenuSub({
 }
 
 function DropdownMenuSubTrigger({
-  className,
+  sx,
   inset,
   children,
   ...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.SubTrigger> & {
-  inset?: boolean
-}) {
+}: Omit<
+  React.ComponentProps<typeof DropdownMenuPrimitive.SubTrigger> & {
+    inset?: boolean
+  },
+  'className'
+> & { sx?: ComponentStyles; className?: never }) {
   return (
-    <IconStylesProvider sx={[iconDefaults.menu, iconDefaults.menuMuted]}>
+    <IconStylesProvider
+      sx={[iconDefaults.menu, iconDefaults.menuMuted]}
+      requiredSx={iconRequired.menu}
+    >
       <DropdownMenuPrimitive.SubTrigger
         data-slot="dropdown-menu-sub-trigger"
         data-inset={inset}
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: [&_svg]:pointer-events-none */ cn(
-            'focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-xs outline-hidden select-none data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0',
-            className,
-            iconStylex.props(menuIconMarker, menuMutedIconMarker).className,
-          )
-        }
-        {...props}
+        {...stylexProps(
+          [menuIconMarker, menuMutedIconMarker, [menuStyles.subTrigger, sx]],
+          props,
+        )}
       >
         {children}
-        <LuChevronRight sx={stylexStyles.rule4} />
+        <LuChevronRight sx={indicatorStyles.submenuArrow} />
       </DropdownMenuPrimitive.SubTrigger>
     </IconStylesProvider>
   )
 }
 
 function DropdownMenuSubContent({
-  className,
+  sx,
   ...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.SubContent>) {
+}: Omit<
+  React.ComponentProps<typeof DropdownMenuPrimitive.SubContent>,
+  'className'
+> & { sx?: ComponentStyles; className?: never }) {
   return (
     <DropdownMenuPrimitive.SubContent
       data-slot="dropdown-menu-sub-content"
-      className={
-        /* TODO(stylex): dynamic class or forwarded className */ cn(
-          'border-popover-border bg-popover text-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-md border p-1 shadow-lg',
-          className,
-        )
-      }
-      {...props}
+      {...stylexProps([menuStyles.subContent, sx], props)}
     />
   )
 }
