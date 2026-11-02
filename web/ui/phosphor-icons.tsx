@@ -3,10 +3,13 @@
 // Importing react-icons/pi makes the Vite development server prebundle every
 // Phosphor icon into one 16 MB module that each page load fetches, so the few
 // icons the app uses live here instead; oxlint rejects react-icons/pi imports.
-import { GenIcon, type IconBaseProps } from 'react-icons/lib'
+import { GenIcon } from 'react-icons/lib'
+import type { IconType } from '../images/icons.js'
+import { createStyledIcon } from '../images/styled-icon.js'
 
-export function PiAppStoreLogoBold(props: IconBaseProps) {
-  return GenIcon({
+/** PiAppStoreLogoBold renders its retained vector paths with native icon styles. */
+export const PiAppStoreLogoBold: IconType = /*#__PURE__*/ createStyledIcon(
+  GenIcon({
     tag: 'svg',
     attr: { viewBox: '0 0 256 256', fill: 'currentColor' },
     child: [
@@ -18,11 +21,12 @@ export function PiAppStoreLogoBold(props: IconBaseProps) {
         child: [],
       },
     ],
-  })(props)
-}
+  }),
+)
 
-export function PiAppStoreLogoLight(props: IconBaseProps) {
-  return GenIcon({
+/** PiAppStoreLogoLight renders its retained vector paths with native icon styles. */
+export const PiAppStoreLogoLight: IconType = /*#__PURE__*/ createStyledIcon(
+  GenIcon({
     tag: 'svg',
     attr: { viewBox: '0 0 256 256', fill: 'currentColor' },
     child: [
@@ -34,11 +38,12 @@ export function PiAppStoreLogoLight(props: IconBaseProps) {
         child: [],
       },
     ],
-  })(props)
-}
+  }),
+)
 
-export function PiRocketLaunchDuotone(props: IconBaseProps) {
-  return GenIcon({
+/** PiRocketLaunchDuotone renders its retained vector paths with native icon styles. */
+export const PiRocketLaunchDuotone: IconType = /*#__PURE__*/ createStyledIcon(
+  GenIcon({
     tag: 'svg',
     attr: { viewBox: '0 0 256 256', fill: 'currentColor' },
     child: [
@@ -58,11 +63,12 @@ export function PiRocketLaunchDuotone(props: IconBaseProps) {
         child: [],
       },
     ],
-  })(props)
-}
+  }),
+)
 
-export function PiUserCircleDuotone(props: IconBaseProps) {
-  return GenIcon({
+/** PiUserCircleDuotone renders its retained vector paths with native icon styles. */
+export const PiUserCircleDuotone: IconType = /*#__PURE__*/ createStyledIcon(
+  GenIcon({
     tag: 'svg',
     attr: { viewBox: '0 0 256 256', fill: 'currentColor' },
     child: [
@@ -82,5 +88,5 @@ export function PiUserCircleDuotone(props: IconBaseProps) {
         child: [],
       },
     ],
-  })(props)
-}
+  }),
+)

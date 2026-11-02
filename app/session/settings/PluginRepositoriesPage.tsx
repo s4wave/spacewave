@@ -26,6 +26,25 @@ import {
 } from './plugin-repositories.js'
 import { PluginRepositorySheet } from './PluginRepositorySheet.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 // A build asks its Worker for this much capacity: one core and 2 GiB.
 const BUILD_MILLI_CPU = 1000n
 const BUILD_MEMORY_BYTES = 2n << 30n
@@ -67,7 +86,7 @@ export function PluginRepositoriesPage() {
           onClick={() => navigate({ path: '../../' })}
           className="text-foreground-alt hover:text-foreground mb-6 flex items-center gap-1.5 text-sm transition-colors"
         >
-          <LuArrowLeft className="size-4" />
+          <LuArrowLeft sx={stylexStyles.rule1} />
           Back to dashboard
         </button>
 
@@ -473,7 +492,7 @@ function PluginRepositoryRow({
 
   return (
     <li className="flex items-center gap-3 py-3">
-      <LuGitBranch className="text-foreground-alt size-4 shrink-0" />
+      <LuGitBranch sx={stylexStyles.rule2} />
       <div className="min-w-0 flex-1">
         <p className="text-foreground truncate text-sm font-medium">{name}</p>
         <p className="text-foreground-alt text-xs">

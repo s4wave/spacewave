@@ -12,6 +12,16 @@ import {
   type FlexTabContextMenuState,
 } from '@s4wave/web/layout/FlexTabContextMenu.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 export type ShellTabContextMenuState = FlexTabContextMenuState
 
 // ShellTabContextMenuProps configures the shell tab context menu binding.
@@ -47,39 +57,39 @@ export function ShellTabContextMenu({
         {
           id: 'new-tab',
           label: 'New Tab',
-          icon: <LuPlus className="size-4" />,
+          icon: <LuPlus sx={stylexStyles.rule1} />,
           onSelect: onNewTab,
         },
         {
           id: 'rename-tab',
           label: 'Rename Tab',
-          icon: <LuPencil className="size-4" />,
+          icon: <LuPencil sx={stylexStyles.rule1} />,
           onSelect: onRenameTab,
         },
         {
           id: 'duplicate-tab',
           label: 'Duplicate Tab',
-          icon: <LuCopy className="size-4" />,
+          icon: <LuCopy sx={stylexStyles.rule1} />,
           onSelect: onDuplicateTab,
         },
         {
           id: 'popout-tab',
           label: 'Open in New Tab',
-          icon: <LuExternalLink className="size-4" />,
+          icon: <LuExternalLink sx={stylexStyles.rule1} />,
           onSelect: onPopoutTab,
         },
         { id: 'close-separator', type: 'separator' },
         {
           id: 'close-other-tabs',
           label: 'Close Other Tabs',
-          icon: <LuCircleX className="size-4" />,
+          icon: <LuCircleX sx={stylexStyles.rule1} />,
           disabled: !canCloseTabs,
           onSelect: onCloseOtherTabs,
         },
         {
           id: 'close-tab',
           label: 'Close Tab',
-          icon: <LuX className="size-4" />,
+          icon: <LuX sx={stylexStyles.rule1} />,
           disabled: !canCloseTabs,
           variant: 'destructive',
           onSelect: onCloseTab,

@@ -7,6 +7,16 @@ import { cn } from '@s4wave/web/style/utils.js'
 import { siteDefs } from './sections.js'
 import type { DocSection, DocPage } from './types.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 // DocsSidebarProps defines the props for DocsSidebar.
 interface DocsSidebarProps {
   sections: DocSection[]
@@ -114,7 +124,7 @@ export function DocsSidebar({ sections, currentDoc }: DocsSidebarProps) {
           href={githubUrl}
           className="text-foreground-alt/50 hover:bg-foreground/5 hover:text-foreground-alt focus-visible:ring-brand/30 flex min-h-11 items-center gap-1.5 rounded-md px-2 text-xs transition-colors focus-visible:ring-1 focus-visible:outline-none @2xl:min-h-9"
         >
-          <LuExternalLink className="size-3" />
+          <LuExternalLink sx={stylexStyles.rule1} />
           View on GitHub
         </ExternalLink>
         <button
@@ -122,7 +132,7 @@ export function DocsSidebar({ sections, currentDoc }: DocsSidebarProps) {
           onClick={currentDoc ? goToIndex : goHome}
           className="text-foreground-alt/50 hover:bg-foreground/5 hover:text-foreground-alt focus-visible:ring-brand/30 flex min-h-11 cursor-pointer items-center gap-1.5 rounded-md px-2 text-left text-xs transition-colors focus-visible:ring-1 focus-visible:outline-none @2xl:min-h-9"
         >
-          <LuArrowLeft className="size-3" />
+          <LuArrowLeft sx={stylexStyles.rule1} />
           {currentDoc ? 'Back to Documentation' : 'Back to Home'}
         </button>
       </div>

@@ -147,20 +147,11 @@ export function AuthProgressCard({
                     ]}
                   >
                     {active ? (
-                      <LuKeyRound
-                        {...stylex.props(styles.stepIcon)}
-                        aria-hidden="true"
-                      />
+                      <LuKeyRound sx={styles.stepIcon} aria-hidden="true" />
                     ) : index === steps.length - 1 ? (
-                      <LuCheck
-                        {...stylex.props(styles.stepIcon)}
-                        aria-hidden="true"
-                      />
+                      <LuCheck sx={styles.stepIcon} aria-hidden="true" />
                     ) : (
-                      <LuShield
-                        {...stylex.props(styles.stepIcon)}
-                        aria-hidden="true"
-                      />
+                      <LuShield sx={styles.stepIcon} aria-hidden="true" />
                     )}
                   </div>
                   <span>{step}</span>

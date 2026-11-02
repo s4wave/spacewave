@@ -35,6 +35,24 @@ import {
 import { PageFooter, PageWrapper } from './CloudConfirmationPage.js'
 import { useBillingAccountCheckout } from './useBillingAccountCheckout.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 interface BillingSetupTarget {
   ownerType: 'account' | 'organization'
   ownerId: string
@@ -214,9 +232,9 @@ function BillingTargetBadge({ target }: { target: BillingSetupTarget }) {
       <div className="border-foreground/10 bg-background-card/35 inline-flex items-center gap-3 rounded-xl border p-3">
         <div className="bg-brand/10 text-brand flex size-10 items-center justify-center rounded-xl">
           {target.ownerType === 'organization' ? (
-            <LuBuilding2 className="size-5" />
+            <LuBuilding2 sx={stylexStyles.rule1} />
           ) : (
-            <RxPerson className="size-5" />
+            <RxPerson sx={stylexStyles.rule1} />
           )}
         </div>
         <div className="min-w-0">
@@ -278,7 +296,7 @@ function CheckoutPollingNotice({ checkout }: { checkout: BillingCheckout }) {
           onClick={checkout.continueCheckout}
           className="border-brand/30 bg-brand/10 hover:bg-brand/20 text-foreground mt-3 inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors"
         >
-          <LuZap className="size-3.5" />
+          <LuZap sx={stylexStyles.rule2} />
           <span>Continue with Stripe</span>
         </button>
       )}
@@ -340,7 +358,7 @@ function BillingAccountRow({
           onClick={() => onManage(baId)}
           className="text-foreground-alt hover:text-foreground flex cursor-pointer items-center gap-1.5 text-xs transition-colors"
         >
-          <LuSettings className="size-3.5" />
+          <LuSettings sx={stylexStyles.rule2} />
           <span className="select-none">Manage</span>
         </button>
         <button
@@ -353,7 +371,7 @@ function BillingAccountRow({
             'disabled:cursor-not-allowed disabled:opacity-50',
           )}
         >
-          {busy ? <Spinner size="sm" /> : <LuZap className="size-3.5" />}
+          {busy ? <Spinner size="sm" /> : <LuZap sx={stylexStyles.rule2} />}
           <span>{busy ? 'Starting…' : activateLabel}</span>
         </button>
       </div>
@@ -389,7 +407,7 @@ function CreateBillingAccountButton({
           'disabled:cursor-not-allowed disabled:opacity-50',
         )}
       >
-        {creating ? <Spinner /> : <LuPlus className="size-4" />}
+        {creating ? <Spinner /> : <LuPlus sx={stylexStyles.rule3} />}
         <span>{creating ? 'Creating…' : 'Create new billing account'}</span>
       </button>
     </div>

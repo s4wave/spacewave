@@ -22,6 +22,33 @@ import NoteContentView from './NoteContentView.js'
 import { useNotebookViewerState } from './useNotebookViewerState.js'
 import NotebookSavedViews from './NotebookSavedViews.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+  },
+  rule2: {
+    pointerEvents: 'none',
+    position: 'absolute',
+    top: '50%',
+    right: themeLayout['--spacing'],
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    '--tw-translate-y': 'calc(calc(1 / 2 * 100%) * -1)',
+    translate: 'var(--tw-translate-x) var(--tw-translate-y)',
+    display: {
+      default: null,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 'none',
+      },
+    },
+  },
+})
+
 /** NotebookViewer presents the notebook's source, note list, and active note. */
 function NotebookViewer({
   objectInfo,
@@ -97,9 +124,9 @@ function NotebookViewer({
             onClick={() => setSidebarOpen(!sidebarOpen)}
           >
             {sidebarOpen ? (
-              <LuX className="size-5" />
+              <LuX sx={stylexStyles.rule1} />
             ) : (
-              <LuMenu className="size-5" />
+              <LuMenu sx={stylexStyles.rule1} />
             )}
           </button>
           {selectedNote && (
@@ -109,7 +136,7 @@ function NotebookViewer({
               className="text-foreground-alt hover:text-foreground flex size-11 shrink-0 items-center justify-center"
               onClick={() => handleChangePath(currentPath)}
             >
-              <LuArrowLeft className="size-5" />
+              <LuArrowLeft sx={stylexStyles.rule1} />
             </button>
           )}
           <span className="min-w-0 truncate px-2 text-sm font-medium">
@@ -169,10 +196,7 @@ function NotebookViewer({
                 <option value="name">File name</option>
                 <option value="title">Title</option>
               </select>
-              <LuChevronDown
-                aria-hidden="true"
-                className="pointer-events-none absolute top-1/2 right-1 size-3 -translate-y-1/2 md:pointer-fine:hidden"
-              />
+              <LuChevronDown aria-hidden="true" sx={stylexStyles.rule2} />
             </span>
           </label>
           <div className="min-h-0 flex-1">

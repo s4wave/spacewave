@@ -13,6 +13,20 @@ import type { KeybindingCommand } from './keybindings-model.js'
 
 import * as stylex from '@stylexjs/stylex'
 
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: themeColors['--color-destructive'],
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: { width: '100%', justifyContent: 'flex-start', textAlign: 'left' },
 })
@@ -59,9 +73,7 @@ export function FinderResult({
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2">
           <span className="truncate text-sm font-medium">{command.label}</span>
-          {hasConflict ? (
-            <LuTriangleAlert className="text-destructive size-3.5 shrink-0" />
-          ) : null}
+          {hasConflict ? <LuTriangleAlert sx={stylexStyles2.rule1} /> : null}
         </span>
         <span className="text-foreground-alt/45 text-metadata mt-0.5 block truncate font-normal">
           {command.category} · {command.context}

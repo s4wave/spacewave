@@ -3,6 +3,25 @@ import { LuSearch } from '@s4wave/web/images/icons.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import type { DocPage } from './types.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    position: 'absolute',
+    top: '50%',
+    left: `calc(${themeLayout['--spacing']} * 3)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    '--tw-translate-y': 'calc(calc(1 / 2 * 100%) * -1)',
+    translate: 'var(--tw-translate-x) var(--tw-translate-y)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+})
+
 // DocsSearchProps defines the props for DocsSearch.
 interface DocsSearchProps {
   docs: DocPage[]
@@ -67,7 +86,7 @@ export function DocsSearch({ docs, onSelect }: DocsSearchProps) {
   return (
     <div className="relative">
       <div className="relative">
-        <LuSearch className="text-foreground-alt/40 absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+        <LuSearch sx={stylexStyles.rule1} />
         <input
           ref={inputRef}
           type="text"

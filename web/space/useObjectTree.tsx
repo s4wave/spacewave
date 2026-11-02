@@ -122,10 +122,10 @@ function moreNode(
   return {
     id: `${prefix}…`,
     name: 'Show more',
-    icon: <LuEllipsis {...stylex.props(stylexStyles.rule1)} />,
+    icon: <LuEllipsis sx={stylexStyles.rule1} />,
     icons: [
       {
-        icon: <LuEllipsis {...stylex.props(treeRowActionIconStyles.icon)} />,
+        icon: <LuEllipsis sx={treeRowActionIconStyles.icon} />,
         tooltip: 'Show more objects',
         onClick: () => loadMore(prefix),
       },

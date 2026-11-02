@@ -41,6 +41,52 @@ import {
 
 import { accountDescription, accountTitle } from './account-presentation.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-warning'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+    transitionProperty: 'transform, translate, scale, rotate',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule4: { rotate: '-90deg' },
+  rule5: {
+    marginTop: '1px',
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+  },
+  rule6: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+  },
+  rule7: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+})
+
 // SessionSelector displays a full-page session picker for users with multiple sessions.
 export function SessionSelector() {
   const resource = useSessionList()
@@ -216,7 +262,7 @@ function SelectorActions(props: {
     <>
       <div className="mt-6 flex items-center justify-center gap-3">
         <Button variant="outline" onClick={props.onAddAccount}>
-          <LuUserPlus className="size-4" />
+          <LuUserPlus sx={stylexStyles.rule1} />
           Add account
         </Button>
         <Button
@@ -228,7 +274,7 @@ function SelectorActions(props: {
           }}
           disabled={!addRootAlias.canAdd}
         >
-          <LuFolderPlus className="size-4" />
+          <LuFolderPlus sx={stylexStyles.rule1} />
           {addRootAlias.adding ? 'Adding state root' : 'Add state root'}
         </Button>
       </div>
@@ -288,9 +334,9 @@ function SpaceRootCard(props: {
         >
           <div className="bg-foreground/5 flex size-9 shrink-0 items-center justify-center rounded-lg">
             {ready ? (
-              <LuHardDrive className="size-4" />
+              <LuHardDrive sx={stylexStyles.rule1} />
             ) : (
-              <LuTriangleAlert className="text-warning size-4" />
+              <LuTriangleAlert sx={stylexStyles.rule2} />
             )}
           </div>
           <div className="min-w-0 flex-1">
@@ -308,10 +354,7 @@ function SpaceRootCard(props: {
           </div>
           {ready && (
             <LuChevronDown
-              className={cn(
-                'text-foreground-alt/40 size-4 shrink-0 transition-transform',
-                !open && '-rotate-90',
-              )}
+              sx={[stylexStyles.rule3, !open && stylexStyles.rule4]}
             />
           )}
         </button>
@@ -324,7 +367,7 @@ function SpaceRootCard(props: {
           variant="muted"
           size="iconSm"
         >
-          <LuTrash2 className="size-4" />
+          <LuTrash2 sx={stylexStyles.rule1} />
         </Button>
       </div>
       {open && <SpaceRootAccounts runtime={runtime} />}
@@ -350,7 +393,7 @@ function SpaceRootAccounts(props: {
   if (status === SpaceRootRuntimeStatus.SpaceRootRuntimeStatus_ERROR) {
     return (
       <div className="border-foreground/10 text-warning flex items-start gap-2 border-t px-4 py-3 text-xs">
-        <LuTriangleAlert className="mt-px size-3.5 shrink-0" />
+        <LuTriangleAlert sx={stylexStyles.rule5} />
         <span>{runtime?.error || 'State root unavailable'}</span>
       </div>
     )
@@ -407,7 +450,7 @@ function SpaceRootAccount(props: { runtimeSession: SpaceRootRuntimeSession }) {
     <div className="px-4 py-3">
       <div className="flex items-center gap-3">
         <div className="bg-foreground/5 flex size-9 shrink-0 items-center justify-center rounded-lg">
-          <LuUser className="size-4" />
+          <LuUser sx={stylexStyles.rule1} />
         </div>
         <div className="min-w-0 flex-1">
           <div className="text-foreground truncate text-sm font-medium">
@@ -435,7 +478,7 @@ function SpaceRootAccount(props: { runtimeSession: SpaceRootRuntimeSession }) {
               }
               className="bg-foreground/5 text-foreground-alt/80 inline-flex max-w-full items-center gap-1.5 rounded-md px-2 py-1 text-xs"
             >
-              <LuFolderOpen className="size-3.5 shrink-0" />
+              <LuFolderOpen sx={stylexStyles.rule6} />
               <span className="truncate">
                 {space.spaceMeta?.name || 'Untitled space'}
               </span>
@@ -494,7 +537,7 @@ function SessionCard(props: {
       )}
     >
       <div className="bg-foreground/5 flex size-9 items-center justify-center rounded-lg">
-        <LuUser className="size-4" />
+        <LuUser sx={stylexStyles.rule1} />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
@@ -519,7 +562,7 @@ function SessionCard(props: {
           {subtitle}
         </div>
       </div>
-      <LuChevronRight className="text-foreground-alt/40 size-4" />
+      <LuChevronRight sx={stylexStyles.rule7} />
     </div>
   )
 }

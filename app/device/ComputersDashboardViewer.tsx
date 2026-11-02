@@ -35,6 +35,29 @@ import {
 import { ComputersDashboardTypeID } from './computers.js'
 import { projectSshConnectionStatus } from './SshHostViewer.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+})
+
 export { ComputersDashboardTypeID }
 
 type InventoryFilter = 'all' | 'devices' | 'hosts'
@@ -146,12 +169,12 @@ export function ComputersDashboardViewer({
     <div className="bg-background-primary flex h-full w-full flex-col">
       <div className="border-foreground/8 flex h-9 shrink-0 items-center justify-between border-b px-4">
         <span className="text-foreground flex min-w-0 items-center gap-2 text-sm font-semibold select-none">
-          <LuMonitor className="size-4 shrink-0" />
+          <LuMonitor sx={stylexStyles.rule1} />
           Computers
         </span>
         {canAddDevice && (
           <DashboardButton
-            icon={<LuPlus className="size-3.5" />}
+            icon={<LuPlus sx={stylexStyles.rule2} />}
             onClick={() => void handleAddDevice()}
             disabled={opening}
           >
@@ -179,7 +202,7 @@ export function ComputersDashboardViewer({
 
           {computers && devices.length + hosts.length === 0 ? (
             <InfoCard
-              icon={<LuMonitor className="text-foreground-alt/60 size-3.5" />}
+              icon={<LuMonitor sx={stylexStyles.rule3} />}
               title="No computers added"
             >
               <div className="flex flex-col items-start gap-3">

@@ -2,7 +2,7 @@ import { stylexProps } from '@s4wave/web/style/props.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
 import { Slot } from '@radix-ui/react-slot'
-import { IconContext } from '@s4wave/web/images/icons.js'
+import { IconStylesProvider } from '@s4wave/web/images/icons.js'
 import { badgeMarker, badgeIconStyles } from '../style/badge-icons.stylex.js'
 
 import * as stylex from '@stylexjs/stylex'
@@ -321,26 +321,15 @@ export function badgeVariants({
   ] as const
 }
 
-const iconProps = stylex.props(badgeIconStyles.icon)
 /** Badge renders a status label or lends its appearance to one child. */
 export function Badge({ sx, variant, asChild = false, ...props }: BadgeProps) {
-  const inheritedIcons = React.useContext(IconContext)
-  const icons = React.useMemo(
-    () => ({
-      ...inheritedIcons,
-      className: [inheritedIcons.className, iconProps.className]
-        .filter(Boolean)
-        .join(' '),
-    }),
-    [inheritedIcons],
-  )
   const Comp = asChild ? Slot : 'span'
   return (
-    <IconContext.Provider value={icons}>
+    <IconStylesProvider requiredSx={badgeIconStyles.icon}>
       <Comp
         data-slot="badge"
         {...stylexProps([badgeVariants({ variant, sx }), badgeMarker], props)}
       />
-    </IconContext.Provider>
+    </IconStylesProvider>
   )
 }

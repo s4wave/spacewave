@@ -10,6 +10,30 @@ import { LinkDeviceBackButton } from './LinkDeviceBackButton.js'
 import { pairingErrorMessage } from './pairing-copy.js'
 import { QRScannerModal } from './QRScannerModal.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-brand'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-brand'],
+  },
+})
+
 // extractCodeFromQR extracts a pairing code from a QR-encoded URL or raw code string.
 function extractCodeFromQR(decoded: string): string | null {
   const urlMatch = decoded.match(/#\/pair\/([A-Za-z0-9]{8})/)
@@ -150,7 +174,7 @@ export function EnterCodeStep({
 
       <div className="text-center">
         <div className="mx-auto mb-2 flex size-10 items-center justify-center">
-          <LuLink className="text-brand size-5" />
+          <LuLink sx={stylexStyles.rule1} />
         </div>
         <h2 className="text-foreground text-sm font-medium">
           Pair another device
@@ -179,7 +203,7 @@ export function EnterCodeStep({
           'flex h-9 items-center justify-center gap-2',
         )}
       >
-        <LuCamera className="text-foreground-alt size-4" />
+        <LuCamera sx={stylexStyles.rule2} />
         <span className="text-foreground-alt text-xs">Scan QR code</span>
       </button>
 
@@ -204,7 +228,7 @@ export function EnterCodeStep({
             <Spinner />
           ) : (
             <>
-              <LuLink className="text-brand size-4" />
+              <LuLink sx={stylexStyles.rule3} />
               <span className="text-foreground text-sm">Connect</span>
             </>
           )}

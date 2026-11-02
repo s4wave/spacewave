@@ -9,6 +9,16 @@ import { BlogPostView } from './BlogPostView.js'
 import type { BlogPostData } from './types.js'
 import type { AuthorRegistry } from './authors.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 // BlogReadingViewProps defines the props for BlogReadingView.
 interface BlogReadingViewProps {
   posts: BlogPostData[]
@@ -123,7 +133,7 @@ export function BlogReadingView({
                 onClick={handleClearFilter}
                 className="text-foreground-alt/50 hover:text-foreground flex items-center gap-1 text-xs transition-colors"
               >
-                <LuX className="size-3" />
+                <LuX sx={stylexStyles.rule1} />
                 Clear
               </button>
             )}

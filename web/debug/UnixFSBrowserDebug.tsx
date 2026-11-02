@@ -1,3 +1,6 @@
+import * as ownerStylex from '@stylexjs/stylex'
+import { cn as ownerClasses } from '@s4wave/web/style/utils.js'
+import { groupMarker as ownergroupMarker } from '@s4wave/web/style/relations.stylex.js'
 import { useCallback, useState, type ReactNode } from 'react'
 import {
   LuArrowLeft,
@@ -25,6 +28,81 @@ import {
   fonts as themeFonts,
   radii as themeRadii,
 } from '../style/tokens.stylex.js'
+
+import { groupMarker } from '../style/relations.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    position: 'relative',
+    display: 'flex',
+    cursor: 'pointer',
+    alignItems: 'center',
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule2: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    color: themeColors['--color-foreground'],
+  },
+  rule3: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground']} 90%, transparent)`,
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+  },
+  rule4: {
+    display: 'flex',
+    cursor: 'pointer',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule5: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+  },
+  rule6: {
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 12%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+      },
+    },
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -892,7 +970,7 @@ export function UnixFSBrowserDebug() {
           sx={stylexStyles.rule3}
           aria-label="Back"
         >
-          <LuArrowLeft {...stylex.props(stylexStyles.rule4)} />
+          <LuArrowLeft sx={stylexStyles.rule4} />
         </button>
         <span sx={stylexStyles.rule5}>UnixFS Browser UI Prototype</span>
       </div>
@@ -1142,7 +1220,10 @@ function CurrentRow({
       }}
       className={
         /* TODO(stylex): global or unknown class: group */ cn(
-          'group text-file-browser-row flex items-center px-3 py-1.5 text-xs',
+          ownerClasses(
+            'group text-file-browser-row flex items-center px-3 py-1.5 text-xs',
+            ownerStylex.props(ownergroupMarker).className,
+          ),
           'hover:bg-outliner-selected-highlight cursor-pointer transition-colors select-none',
           selected && 'bg-ui-selected hover:bg-ui-selected',
           index % 2 === 1 && !selected && 'bg-file-row-alternate',
@@ -1151,9 +1232,9 @@ function CurrentRow({
     >
       <div sx={stylexStyles.rule17}>
         {row.isDir ? (
-          <LuFolder {...stylex.props(stylexStyles.rule18)} />
+          <LuFolder sx={stylexStyles.rule18} />
         ) : (
-          <LuFile {...stylex.props(stylexStyles.rule19)} />
+          <LuFile sx={stylexStyles.rule19} />
         )}
         <span sx={stylexStyles.rule20}>{row.name}</span>
       </div>
@@ -1182,30 +1263,26 @@ function DenseRow({
         event.preventDefault()
         onSelect()
       }}
-      className={
-        /* TODO(stylex): global or unknown class: group */ cn(
-          'group relative flex cursor-pointer items-center px-3 py-1.5 text-xs transition-colors select-none',
-          selected
-            ? 'bg-brand/10 text-foreground'
-            : 'text-foreground/90 hover:bg-foreground/5',
-        )
-      }
+      sx={[
+        [stylexStyles2.rule1, groupMarker],
+        selected ? stylexStyles2.rule2 : stylexStyles2.rule3,
+      ]}
     >
       {selected && <span sx={stylexStyles.rule23} />}
       <div sx={stylexStyles.rule17}>
         {row.isDir ? (
           <LuFolder
-            {...stylex.props([
+            sx={[
               stylexStyles.rule24,
               selected ? stylexStyles.rule25 : stylexStyles.rule26,
-            ])}
+            ]}
           />
         ) : (
           <LuFile
-            {...stylex.props([
+            sx={[
               stylexStyles.rule24,
               selected ? stylexStyles.rule27 : stylexStyles.rule28,
-            ])}
+            ]}
           />
         )}
         <span sx={stylexStyles.rule20}>{row.name}</span>
@@ -1235,14 +1312,10 @@ function CardRow({
         event.preventDefault()
         onSelect()
       }}
-      className={
-        /* TODO(stylex): global or unknown class: group */ cn(
-          'group flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2 text-xs transition-all duration-150 select-none',
-          selected
-            ? 'border-brand/30 bg-brand/5'
-            : 'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50',
-        )
-      }
+      sx={[
+        [stylexStyles2.rule4, groupMarker],
+        selected ? stylexStyles2.rule5 : stylexStyles2.rule6,
+      ]}
     >
       <span
         className={
@@ -1256,17 +1329,17 @@ function CardRow({
       >
         {row.isDir ? (
           <LuFolder
-            {...stylex.props([
+            sx={[
               stylexStyles.rule31,
               selected ? stylexStyles.rule25 : stylexStyles.rule32,
-            ])}
+            ]}
           />
         ) : (
           <LuFile
-            {...stylex.props([
+            sx={[
               stylexStyles.rule31,
               selected ? stylexStyles.rule27 : stylexStyles.rule28,
-            ])}
+            ]}
           />
         )}
       </span>
@@ -1311,25 +1384,25 @@ function CurrentToolbar() {
     <div sx={stylexStyles.rule37}>
       <div sx={stylexStyles.rule38}>
         <button type="button" aria-label="Back" sx={stylexStyles.rule39}>
-          <LuChevronLeft {...stylex.props(stylexStyles.rule40)} />
+          <LuChevronLeft sx={stylexStyles.rule40} />
         </button>
         <button type="button" aria-label="Forward" sx={stylexStyles.rule41}>
-          <LuChevronRight {...stylex.props(stylexStyles.rule40)} />
+          <LuChevronRight sx={stylexStyles.rule40} />
         </button>
         <button type="button" aria-label="Up" sx={stylexStyles.rule39}>
-          <LuChevronUp {...stylex.props(stylexStyles.rule40)} />
+          <LuChevronUp sx={stylexStyles.rule40} />
         </button>
       </div>
       <div sx={stylexStyles.rule42}>
-        <LuFolderOpen {...stylex.props(stylexStyles.rule43)} />
+        <LuFolderOpen sx={stylexStyles.rule43} />
         <span sx={stylexStyles.rule44}>/photos/2026/april</span>
       </div>
       <div sx={stylexStyles.rule45}>
         <button type="button" title="New folder" sx={stylexStyles.rule39}>
-          <LuFolderPlus {...stylex.props(stylexStyles.rule40)} />
+          <LuFolderPlus sx={stylexStyles.rule40} />
         </button>
         <button type="button" title="Upload files" sx={stylexStyles.rule39}>
-          <LuUpload {...stylex.props(stylexStyles.rule40)} />
+          <LuUpload sx={stylexStyles.rule40} />
         </button>
       </div>
     </div>
@@ -1341,30 +1414,30 @@ function ModernToolbar() {
     <div sx={stylexStyles.rule46}>
       <div sx={stylexStyles.rule47}>
         <NavIconButton
-          icon={<LuChevronLeft {...stylex.props(stylexStyles.rule31)} />}
+          icon={<LuChevronLeft sx={stylexStyles.rule31} />}
           label="Back"
         />
         <NavIconButton
-          icon={<LuChevronRight {...stylex.props(stylexStyles.rule31)} />}
+          icon={<LuChevronRight sx={stylexStyles.rule31} />}
           label="Forward"
           disabled
         />
         <NavIconButton
-          icon={<LuChevronUp {...stylex.props(stylexStyles.rule31)} />}
+          icon={<LuChevronUp sx={stylexStyles.rule31} />}
           label="Up"
         />
       </div>
       <div sx={stylexStyles.rule48}>
-        <LuFolderOpen {...stylex.props(stylexStyles.rule49)} />
+        <LuFolderOpen sx={stylexStyles.rule49} />
         <span sx={stylexStyles.rule50}>/photos/2026/april</span>
       </div>
       <div sx={stylexStyles.rule47}>
         <NavIconButton
-          icon={<LuFolderPlus {...stylex.props(stylexStyles.rule31)} />}
+          icon={<LuFolderPlus sx={stylexStyles.rule31} />}
           label="New folder"
         />
         <NavIconButton
-          icon={<LuUpload {...stylex.props(stylexStyles.rule31)} />}
+          icon={<LuUpload sx={stylexStyles.rule31} />}
           label="Upload"
         />
       </div>
@@ -1430,7 +1503,7 @@ function EmptyStateSection() {
           <div sx={stylexStyles.rule60}>
             <div sx={stylexStyles.rule61}>
               <span sx={stylexStyles.rule62}>
-                <LuFolder {...stylex.props(stylexStyles.rule63)} />
+                <LuFolder sx={stylexStyles.rule63} />
               </span>
               <div sx={stylexStyles.rule64}>
                 <p sx={stylexStyles.rule65}>UnixFS object not found</p>
@@ -1450,7 +1523,7 @@ function EmptyStateSection() {
       >
         <div sx={stylexStyles.rule59}>
           <div sx={stylexStyles.rule68}>
-            <LuFolder {...stylex.props(stylexStyles.rule69)} />
+            <LuFolder sx={stylexStyles.rule69} />
             <span>No UnixFS object yet. Create a drive via quickstart.</span>
           </div>
         </div>
@@ -1477,7 +1550,7 @@ function DragOverlaySection() {
           <DummyRows />
           <div sx={stylexStyles.rule71}>
             <div sx={stylexStyles.rule72}>
-              <LuUpload {...stylex.props(stylexStyles.rule73)} />
+              <LuUpload sx={stylexStyles.rule73} />
               <span sx={stylexStyles.rule74}>Drop files to upload</span>
             </div>
           </div>
@@ -1493,7 +1566,7 @@ function DragOverlaySection() {
           <div sx={stylexStyles.rule75}>
             <div sx={stylexStyles.rule76}>
               <span sx={stylexStyles.rule77}>
-                <LuUpload {...stylex.props(stylexStyles.rule78)} />
+                <LuUpload sx={stylexStyles.rule78} />
               </span>
               <div sx={stylexStyles.rule64}>
                 <p sx={stylexStyles.rule65}>Drop files to upload</p>
@@ -1514,9 +1587,9 @@ function DummyRows() {
         <div key={row.id} sx={stylexStyles.rule81}>
           <div sx={stylexStyles.rule17}>
             {row.isDir ? (
-              <LuFolder {...stylex.props(stylexStyles.rule82)} />
+              <LuFolder sx={stylexStyles.rule82} />
             ) : (
-              <LuFile {...stylex.props(stylexStyles.rule82)} />
+              <LuFile sx={stylexStyles.rule82} />
             )}
             <span sx={stylexStyles.rule83}>{row.name}</span>
           </div>
@@ -1558,7 +1631,7 @@ function ErrorStateSection() {
         <div sx={stylexStyles.rule59}>
           <div sx={stylexStyles.rule87}>
             <div sx={stylexStyles.rule61}>
-              <LuCircleAlert {...stylex.props(stylexStyles.rule88)} />
+              <LuCircleAlert sx={stylexStyles.rule88} />
               <div sx={stylexStyles.rule89}>
                 <p sx={stylexStyles.rule65}>Error loading files</p>
                 <p sx={stylexStyles.rule90}>
@@ -1568,7 +1641,7 @@ function ErrorStateSection() {
             </div>
             <div sx={stylexStyles.rule91}>
               <button type="button" sx={stylexStyles.rule92}>
-                <LuRotateCw {...stylex.props(stylexStyles.rule93)} />
+                <LuRotateCw sx={stylexStyles.rule93} />
                 Retry
               </button>
             </div>
@@ -1582,12 +1655,12 @@ function ErrorStateSection() {
       >
         <div sx={stylexStyles.rule94}>
           <div sx={stylexStyles.rule95}>
-            <LuCircleAlert {...stylex.props(stylexStyles.rule96)} />
+            <LuCircleAlert sx={stylexStyles.rule96} />
             <p sx={stylexStyles.rule97}>
               Error loading files: permission denied
             </p>
             <button type="button" sx={stylexStyles.rule98}>
-              <LuRotateCw {...stylex.props(stylexStyles.rule93)} />
+              <LuRotateCw sx={stylexStyles.rule93} />
               Retry
             </button>
           </div>

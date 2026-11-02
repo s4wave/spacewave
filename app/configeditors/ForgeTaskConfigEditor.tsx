@@ -9,6 +9,29 @@ import type { ForgeTaskCreateOp } from '@s4wave/core/forge/task/task.pb.js'
 import { listObjectsWithType } from '@s4wave/sdk/world/types/types.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+})
+
 // ForgeTaskConfigEditor edits the config-specific fields of a ForgeTaskCreateOp.
 // Renders a job picker for selecting which Job to link the new Task to.
 export function ForgeTaskConfigEditor({
@@ -34,13 +57,13 @@ export function ForgeTaskConfigEditor({
     <section>
       <div className="mb-2 flex items-center justify-between">
         <h3 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-          <LuBriefcase className="size-3.5" />
+          <LuBriefcase sx={stylexStyles.rule1} />
           Target Job
         </h3>
       </div>
       {jobs.length === 0 && (
         <div className="border-foreground/6 bg-background-card/30 text-foreground-alt/40 flex items-center gap-2 rounded-lg border px-3.5 py-3 text-xs">
-          <LuBriefcase className="size-3.5 shrink-0" />
+          <LuBriefcase sx={stylexStyles.rule2} />
           {jobsResource.loading
             ? 'Loading jobs…'
             : 'No jobs found. Create a job first.'}
@@ -58,7 +81,7 @@ export function ForgeTaskConfigEditor({
             onClick={() => handleSelectJob(jobKey)}
           >
             <span className="bg-foreground/5 flex size-7 shrink-0 items-center justify-center rounded-md">
-              <LuBriefcase className="text-foreground-alt/50 size-3.5" />
+              <LuBriefcase sx={stylexStyles.rule3} />
             </span>
             <span className="text-foreground text-xs font-medium">
               {jobKey}

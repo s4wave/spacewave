@@ -1,3 +1,4 @@
+import type { IconType } from '@s4wave/web/images/icons.js'
 import { CommandSurface } from '@s4wave/sdk/command/command.pb.js'
 import {
   useCallback,
@@ -5,7 +6,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type ComponentType,
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
 } from 'react'
@@ -387,7 +387,7 @@ interface ChordContinuation {
 
 // subItemIcons maps SubItem.iconName react-icons identifiers (the same
 // vocabulary as ObjectWizard.IconName) to icon components.
-const subItemIcons: Record<string, ComponentType<{ className?: string }>> = {
+const subItemIcons: Record<string, IconType> = {
   LuBookOpen,
   LuBox,
   LuBriefcase,
@@ -412,7 +412,7 @@ const subItemIcons: Record<string, ComponentType<{ className?: string }>> = {
 function SubItemIcon({ iconName }: { iconName?: string }) {
   if (!iconName) return null
   const Icon = subItemIcons[iconName] ?? LuBox
-  return <Icon {...stylex.props(stylexStyles.rule2)} />
+  return <Icon sx={stylexStyles.rule2} />
 }
 
 function dedupeSubItems(items: SubItem[]): SubItem[] {

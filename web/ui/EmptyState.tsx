@@ -126,10 +126,10 @@ export function EmptyState({
       >
         {icon ?? (
           <LuFolderOpen
-            {...stylex.props([
+            sx={[
               stylexStyles.rule8,
               isCompact ? stylexStyles.rule9 : stylexStyles.rule10,
-            ])}
+            ]}
           />
         )}
       </div>
@@ -158,7 +158,7 @@ export function EmptyState({
           onClick={action.onClick}
           sx={isCompact ? stylexStyles.rule15 : stylexStyles.rule16}
         >
-          <LuPlus {...stylex.props(stylexStyles.rule17)} />
+          <LuPlus sx={stylexStyles.rule17} />
           {action.label}
         </Button>
       )}

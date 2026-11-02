@@ -153,7 +153,7 @@ export function CacheSeedTab({ rootResource }: CacheSeedTabProps) {
     return (
       <div sx={stylexStyles.rule1}>
         <div sx={stylexStyles.rule2}>
-          <LuRadar {...stylex.props(stylexStyles.rule3)} />
+          <LuRadar sx={stylexStyles.rule3} />
           <span>Cache-seed inspector unavailable.</span>
         </div>
         <div sx={stylexStyles.rule4}>{error}</div>

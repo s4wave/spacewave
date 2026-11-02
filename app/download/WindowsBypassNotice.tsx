@@ -3,6 +3,43 @@ import { LuPlus, LuShieldAlert } from '@s4wave/web/images/icons.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+import { groupMarker } from '../../web/style/relations.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    width: '100%',
+    cursor: 'pointer',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    padding: `calc(${themeLayout['--spacing']} * 5)`,
+    textAlign: 'left',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    flexShrink: 0,
+    color: themeColors['--color-brand'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 // WindowsBypassNotice renders a collapsible "How to run on Windows" block
 // describing how to bypass SmartScreen for the interim unsigned build.
 // Collapsed by default. Keyboard accessible as a <button> disclosure.
@@ -22,10 +59,10 @@ export function WindowsBypassNotice() {
         type="button"
         aria-expanded={isOpen}
         onClick={() => setOpen((v) => !v)}
-        className="group flex w-full cursor-pointer items-start justify-between gap-4 p-5 text-left select-none"
+        sx={[stylexStyles2.rule1, groupMarker]}
       >
         <div className="flex items-start gap-3">
-          <LuShieldAlert className="text-brand mt-0.5 size-5 shrink-0" />
+          <LuShieldAlert sx={stylexStyles.rule1} />
           <h3 className="text-foreground group-hover:text-brand text-sm leading-relaxed font-semibold transition-colors @lg:text-base">
             How to run on Windows
           </h3>
@@ -38,7 +75,7 @@ export function WindowsBypassNotice() {
               : 'bg-foreground/6 text-foreground-alt group-hover:bg-brand/8 group-hover:text-brand',
           )}
         >
-          <LuPlus className="size-3" />
+          <LuPlus sx={stylexStyles.rule2} />
         </div>
       </button>
       <div

@@ -11,6 +11,20 @@ import { cn } from '@s4wave/web/style/utils.js'
 
 import { RefSelector } from '../refs/RefSelector.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 // GitToolbarProps are props for the GitToolbar component.
 export interface GitToolbarProps {
   effectiveRef: string | null
@@ -61,7 +75,7 @@ export function GitToolbar({
             canGoBack ? 'hover:bg-pulldown-hover' : 'cursor-default opacity-40',
           )}
         >
-          <LuChevronLeft className="text-foreground-alt size-4" />
+          <LuChevronLeft sx={stylexStyles.rule1} />
         </button>
         <button
           type="button"
@@ -75,7 +89,7 @@ export function GitToolbar({
               : 'cursor-default opacity-40',
           )}
         >
-          <LuChevronRight className="text-foreground-alt size-4" />
+          <LuChevronRight sx={stylexStyles.rule1} />
         </button>
         <button
           type="button"
@@ -89,7 +103,7 @@ export function GitToolbar({
               : 'cursor-default opacity-40',
           )}
         >
-          <LuChevronUp className="text-foreground-alt size-4" />
+          <LuChevronUp sx={stylexStyles.rule1} />
         </button>
       </div>
       {showPath && (

@@ -1,3 +1,6 @@
+import * as ownerStylex from '@stylexjs/stylex'
+import { cn as ownerClasses } from '@s4wave/web/style/utils.js'
+import { groupMarker as ownergroupMarker } from '@s4wave/web/style/relations.stylex.js'
 import React from 'react'
 
 import { cn } from '@s4wave/web/style/utils.js'
@@ -26,13 +29,18 @@ export function ActionCard({
       type="button"
       onClick={onClick}
       disabled={!onClick}
-      className={cn(
-        'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 group flex w-full cursor-pointer items-center rounded-lg border text-left transition-all',
-        compact ? 'gap-2 p-2' : 'gap-3 p-3',
-        variant === 'destructive' &&
-          'hover:border-destructive/30 hover:bg-destructive/5',
-        !onClick && 'cursor-not-allowed opacity-50',
-      )}
+      className={
+        /* TODO(stylex): conditional property composition: borderColor */ cn(
+          ownerClasses(
+            'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 group flex w-full cursor-pointer items-center rounded-lg border text-left transition-all',
+            ownerStylex.props(ownergroupMarker).className,
+          ),
+          compact ? 'gap-2 p-2' : 'gap-3 p-3',
+          variant === 'destructive' &&
+            'hover:border-destructive/30 hover:bg-destructive/5',
+          !onClick && 'cursor-not-allowed opacity-50',
+        )
+      }
     >
       <div
         className={cn(

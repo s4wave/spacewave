@@ -18,6 +18,24 @@ import { KvKeyListToolbar } from './KvKeyListToolbar.js'
 import { bytesToText } from './kv-encoding.js'
 import type { KvKeyRow, KvSortDirection } from './kv-viewer.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 export { KvStoreTypeID }
 
 // KvStoreViewer is the full kv/store viewer: a watch-driven key list with byte
@@ -151,14 +169,14 @@ export function KvStoreViewer({
     <div className="bg-background-primary flex h-full w-full flex-col">
       <div className="border-foreground/8 flex h-9 shrink-0 items-center justify-between border-b px-4">
         <div className="text-foreground flex items-center gap-2 text-sm font-semibold tracking-tight select-none">
-          <LuDatabase className="text-foreground-alt size-3.5" aria-hidden />
+          <LuDatabase sx={stylexStyles.rule1} aria-hidden />
           Key/Value Store
           <span className="text-foreground-alt/50 text-xs">
             {rows.length} {rows.length === 1 ? 'key' : 'keys'}
           </span>
         </div>
         <DashboardButton
-          icon={<LuPlus className="size-3.5" />}
+          icon={<LuPlus sx={stylexStyles.rule2} />}
           onClick={handleStartCreate}
         >
           New Key

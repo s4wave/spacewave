@@ -105,7 +105,7 @@ export type SubagentStep = {
 /** subagentIcon picks the step icon for a child session status. */
 function subagentIcon(status: TraceStatus) {
   if (status === 'running') {
-    return <LuLoaderCircle {...stylex.props(stylexStyles.rule1)} />
+    return <LuLoaderCircle sx={stylexStyles.rule1} />
   }
   if (status === 'error') {
     return <LuCircleX />

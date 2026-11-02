@@ -2,7 +2,7 @@ import { stylexProps } from '@s4wave/web/style/props.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
 import { Slot } from '@radix-ui/react-slot'
-import { IconContext } from '@s4wave/web/images/icons.js'
+import { IconStylesProvider } from '@s4wave/web/images/icons.js'
 
 import * as stylex from '@stylexjs/stylex'
 import { buttonMarker, buttonIconStyles } from '../style/button-icons.stylex.js'
@@ -959,7 +959,6 @@ const variantStyles = {
   unselectedFinder: styles['unselectedFinder'],
   category: styles['category'],
 }
-const iconProps = stylex.props(buttonIconStyles.icon)
 
 /** ButtonProps configures the button's visual variant and native behavior. */
 export interface ButtonProps extends Omit<
@@ -995,18 +994,6 @@ export function buttonVariants({
  * Shared icon exports inherit its SVG dimensions and pointer rules.
  */
 function Button({ sx, variant, size, asChild = false, ...props }: ButtonProps) {
-  // Preserve icon context while applying the button's descendant rule at each icon.
-  const inheritedIcons = React.useContext(IconContext)
-  const icons = React.useMemo(
-    () => ({
-      ...inheritedIcons,
-      className: [inheritedIcons.className, iconProps.className]
-        .filter(Boolean)
-        .join(' '),
-    }),
-    [inheritedIcons],
-  )
-
   // Retain dynamic StyleX variables alongside the native inline override.
   const attributes = stylexProps(
     [buttonVariants({ variant, size, sx }), buttonMarker],
@@ -1014,9 +1001,9 @@ function Button({ sx, variant, size, asChild = false, ...props }: ButtonProps) {
   )
   const Comp = asChild ? Slot : 'button'
   return (
-    <IconContext.Provider value={icons}>
+    <IconStylesProvider requiredSx={buttonIconStyles.icon}>
       <Comp {...attributes} />
-    </IconContext.Provider>
+    </IconStylesProvider>
   )
 }
 Button.displayName = 'Button'

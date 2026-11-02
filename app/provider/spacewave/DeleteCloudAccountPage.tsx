@@ -30,6 +30,47 @@ import { inputClass } from '@s4wave/web/ui/credential/CredentialProofInput.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { AccountLifecycleState } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-destructive'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-brand'],
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule5: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-destructive'],
+  },
+  rule6: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule7: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 const cardClass = cn(
   'border-foreground/20 bg-background-get-started rounded-lg border p-5 shadow-lg backdrop-blur-sm',
 )
@@ -223,7 +264,7 @@ export function DeleteCloudAccountPage() {
             onClick={handleBack}
             className="text-foreground-alt hover:text-foreground -mb-2 flex items-center gap-1.5 self-start text-xs transition-colors select-none"
           >
-            <LuArrowLeft className="size-3.5" />
+            <LuArrowLeft sx={stylexStyles.rule1} />
             Back
           </button>
 
@@ -310,17 +351,17 @@ function InitiateDeleteView({
         </h2>
         <ul className="flex flex-col gap-3">
           <InfoRow
-            icon={<LuTimer className="text-destructive size-4" />}
+            icon={<LuTimer sx={stylexStyles.rule2} />}
             title="Subscription ends now"
             body="Your account becomes read-only. We'll issue the final invoice immediately."
           />
           <InfoRow
-            icon={<LuRotateCcw className="text-brand size-4" />}
+            icon={<LuRotateCcw sx={stylexStyles.rule3} />}
             title="24 hours to undo"
             body="Before the window closes, you can cancel deletion from this page or the confirmation email."
           />
           <InfoRow
-            icon={<LuBanknote className="text-foreground-alt size-4" />}
+            icon={<LuBanknote sx={stylexStyles.rule4} />}
             title="Prorated refund if any"
             body="Any unused time is refunded to your card, less Stripe's $0.30 processing fee."
           />
@@ -330,7 +371,7 @@ function InitiateDeleteView({
       <div className={cn(cardClass, 'space-y-4')}>
         <div className="flex items-start gap-3">
           <div className="bg-destructive/10 flex size-10 shrink-0 items-center justify-center rounded-lg">
-            <LuTriangleAlert className="text-destructive size-5" />
+            <LuTriangleAlert sx={stylexStyles.rule5} />
           </div>
           <div className="flex-1">
             <h2 className="text-foreground text-sm font-semibold select-none">
@@ -363,9 +404,9 @@ function InitiateDeleteView({
           {sending ? (
             <Spinner />
           ) : email ? (
-            <LuCircleCheck className="text-brand size-4" />
+            <LuCircleCheck sx={stylexStyles.rule3} />
           ) : (
-            <LuMail className="size-4" />
+            <LuMail sx={stylexStyles.rule6} />
           )}
           <span className="text-foreground">
             {sending
@@ -480,7 +521,7 @@ function PendingDeleteView({
             'disabled:cursor-not-allowed disabled:opacity-50',
           )}
         >
-          {undoing ? <Spinner /> : <LuRotateCcw className="size-4" />}
+          {undoing ? <Spinner /> : <LuRotateCcw sx={stylexStyles.rule6} />}
           {undoing ? 'Canceling…' : 'Undo deletion'}
         </button>
         <p className="text-foreground-alt text-center text-xs leading-relaxed">
@@ -495,7 +536,7 @@ function PendingDeleteView({
           onClick={onDashboard}
           className="text-foreground-alt hover:text-foreground flex items-center justify-center gap-1.5 text-xs transition-colors select-none"
         >
-          <LuArrowLeft className="size-3" />
+          <LuArrowLeft sx={stylexStyles.rule7} />
           Return to dashboard
         </button>
         <button
@@ -504,7 +545,7 @@ function PendingDeleteView({
           disabled={loggingOut}
           className="text-foreground-alt hover:text-foreground flex items-center justify-center gap-1.5 text-xs transition-colors select-none disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <LuLogOut className="size-3" />
+          <LuLogOut sx={stylexStyles.rule7} />
           {loggingOut ? 'Logging out…' : 'Log out of this device'}
         </button>
       </div>

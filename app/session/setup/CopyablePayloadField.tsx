@@ -3,6 +3,21 @@ import { LuCopy } from '@s4wave/web/images/icons.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: { color: themeColors['--color-brand'] },
+  rule3: { color: themeColors['--color-foreground-alt'] },
+})
+
 export interface CopyablePayloadFieldProps {
   value: string
   label: string
@@ -44,10 +59,10 @@ export function CopyablePayloadField({
         title="Copy to clipboard"
       >
         <LuCopy
-          className={cn(
-            'size-4',
-            copied ? 'text-brand' : 'text-foreground-alt',
-          )}
+          sx={[
+            stylexStyles.rule1,
+            copied ? stylexStyles.rule2 : stylexStyles.rule3,
+          ]}
         />
       </button>
     </div>

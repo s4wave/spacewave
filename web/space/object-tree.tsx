@@ -1,3 +1,4 @@
+import type { IconType } from '@s4wave/web/images/icons.js'
 import React from 'react'
 import {
   LuActivity,
@@ -95,10 +96,7 @@ export function isHiddenSpaceObject(
   return HIDDEN_OBJECT_TYPES.has(objectType ?? '')
 }
 
-const metadataIcons: Record<
-  string,
-  React.ComponentType<{ className?: string }>
-> = {
+const metadataIcons: Record<string, IconType> = {
   activity: LuActivity,
   'book-open': LuBookOpen,
   bot: LuBot,
@@ -141,8 +139,8 @@ export function buildObjectTypeMetadataMap(
 export function getObjectTypeIconComponent(
   typeId: string,
   metadataById?: ObjectTypeMetadataById,
-  fallback: React.ComponentType<{ className?: string }> = LuBox,
-): React.ComponentType<{ className?: string }> {
+  fallback: IconType = LuBox,
+): IconType {
   const iconName = metadataById?.get(typeId)?.iconName?.trim()
   if (iconName) return metadataIcons[iconName] ?? fallback
 
@@ -179,7 +177,7 @@ export function getObjectTypeIcon(
   metadataById?: ObjectTypeMetadataById,
 ): React.ReactNode {
   const Icon = getObjectTypeIconComponent(typeId, metadataById)
-  return <Icon {...stylex.props(stylexStyles.rule1)} />
+  return <Icon sx={stylexStyles.rule1} />
 }
 
 // getObjectTypeLabel returns a human-readable label for a given object type ID.
@@ -442,7 +440,7 @@ export function buildObjectLevel(
               id.split(OBJECT_KEY_DELIMITER).at(-1) ?? id,
             ),
             detail: '',
-            icon: <LuFolder {...stylex.props(stylexStyles.rule1)} />,
+            icon: <LuFolder sx={stylexStyles.rule1} />,
             data: {
               objectKey: id,
               objectType: '',

@@ -81,7 +81,7 @@ export function ObjectViewerNotFoundState({
     <div sx={stylexStyles.rule1}>
       <div sx={stylexStyles.rule2}>
         <div sx={stylexStyles.rule3}>
-          <LuCircleAlert {...stylex.props(stylexStyles.rule4)} />
+          <LuCircleAlert sx={stylexStyles.rule4} />
         </div>
         <div sx={stylexStyles.rule5}>
           <p sx={stylexStyles.rule6}>Object not found</p>

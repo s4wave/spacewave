@@ -13,6 +13,30 @@ import { Cluster } from '@go/github.com/s4wave/spacewave/forge/cluster/cluster.p
 import { listObjectsWithType } from '@s4wave/sdk/world/types/types.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: themeColors['--color-brand'],
+  },
+})
+
 export interface ForgeClusterOption {
   key: string
   name: string
@@ -129,7 +153,7 @@ export function ForgeJobConfigEditor({
       <section>
         <div className="mb-2 flex items-center justify-between">
           <h3 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-            <LuServer className="size-3.5" />
+            <LuServer sx={stylexStyles.rule1} />
             Target Cluster
           </h3>
         </div>
@@ -175,7 +199,7 @@ export function ForgeJobConfigEditor({
               aria-pressed={value.clusterKey === cluster.key}
             >
               <span className="bg-foreground/5 flex size-7 shrink-0 items-center justify-center rounded-md">
-                <LuServer className="text-foreground-alt/50 size-3.5" />
+                <LuServer sx={stylexStyles.rule2} />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="text-foreground block truncate text-xs font-medium">
@@ -186,10 +210,7 @@ export function ForgeJobConfigEditor({
                 </span>
               </span>
               {value.clusterKey === cluster.key && (
-                <LuCheck
-                  className="text-brand size-4 shrink-0"
-                  aria-label="Selected"
-                />
+                <LuCheck sx={stylexStyles.rule3} aria-label="Selected" />
               )}
             </button>
           ))}
@@ -199,11 +220,11 @@ export function ForgeJobConfigEditor({
       <section>
         <div className="mb-2 flex items-center justify-between">
           <h3 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-            <LuPlus className="size-3.5" />
+            <LuPlus sx={stylexStyles.rule1} />
             Initial Tasks
           </h3>
           <Button onClick={handleAddTask} variant="quiet" size="toolbarSm">
-            <LuPlus className="size-3.5" />
+            <LuPlus sx={stylexStyles.rule1} />
             Add Task
           </Button>
         </div>
@@ -226,7 +247,7 @@ export function ForgeJobConfigEditor({
                   aria-label={`Remove task ${i + 1}`}
                   variant="destructiveSubtle"
                 >
-                  <LuTrash className="size-3.5" />
+                  <LuTrash sx={stylexStyles.rule1} />
                 </Button>
               )}
             </div>

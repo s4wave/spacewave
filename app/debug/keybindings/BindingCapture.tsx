@@ -10,6 +10,20 @@ import { chordFromKeyboardEvent } from './keyboard-utils.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
 
+const stylexStyles2 = stylex.create({
+  rule1: {
+    animationName: 'pulse',
+    animationDuration: '2s',
+    animationTimingFunction: 'cubic-bezier(.4, 0, .6, 1)',
+    animationIterationCount: 'infinite',
+    animationDirection: 'normal',
+    animationPlayState: 'running',
+    animationDelay: '0s',
+    animationFillMode: 'none',
+    animationTimeline: 'auto',
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     minWidth: `calc(${themeLayout['--spacing']} * 28)`,
@@ -101,7 +115,7 @@ export function BindingCapture({
       >
         {capturing ? (
           <>
-            <LuKeyboard className="animate-pulse" />
+            <LuKeyboard sx={stylexStyles2.rule1} />
             Press shortcut
           </>
         ) : (

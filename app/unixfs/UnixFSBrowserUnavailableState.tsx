@@ -3,6 +3,25 @@ import { LuCircleAlert, LuRotateCw } from '@s4wave/web/images/icons.js'
 
 import { UnixFSBrowserShell } from './UnixFSBrowserShell.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: themeColors['--color-destructive'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 type UnixFSBrowserShellProps = Omit<
   ComponentProps<typeof UnixFSBrowserShell>,
   'children'
@@ -27,7 +46,7 @@ export function UnixFSBrowserUnavailableState(
     return (
       <UnixFSBrowserShell {...props.shellProps}>
         <div className="border-destructive/20 bg-destructive/5 flex items-center gap-2 border-b px-3 py-1.5">
-          <LuCircleAlert className="text-destructive size-3.5 shrink-0" />
+          <LuCircleAlert sx={stylexStyles.rule1} />
           <p className="text-foreground/80 min-w-0 flex-1 truncate text-xs">
             Error loading files: {props.error.message ?? 'Unknown error'}
           </p>
@@ -36,7 +55,7 @@ export function UnixFSBrowserUnavailableState(
             onClick={props.onRetry}
             className="text-foreground-alt hover:text-foreground inline-flex items-center gap-1 text-xs font-medium transition-colors"
           >
-            <LuRotateCw className="size-3" />
+            <LuRotateCw sx={stylexStyles.rule2} />
             Retry
           </button>
         </div>

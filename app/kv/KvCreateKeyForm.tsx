@@ -10,6 +10,13 @@ import { parseValue, type KvDisplayMode } from './kv-encoding.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 6)`,
@@ -70,7 +77,7 @@ export function KvCreateKeyForm({
     <div className="border-foreground/6 bg-background-card/30 space-y-3 rounded-lg border p-3">
       <div className="flex items-center justify-between">
         <h3 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-          <LuPlus className="size-3.5" />
+          <LuPlus sx={stylexStyles2.rule1} />
           New Key
         </h3>
         <Button
@@ -81,7 +88,7 @@ export function KvCreateKeyForm({
           aria-label="Cancel new key"
           sx={stylexStyles.rule1}
         >
-          <LuX className="size-3.5" />
+          <LuX sx={stylexStyles2.rule1} />
         </Button>
       </div>
       <KvValueEditor
@@ -119,7 +126,7 @@ export function KvCreateKeyForm({
           variant="brandOutline"
           size="toolbar"
         >
-          <LuPlus className="size-3.5" />
+          <LuPlus sx={stylexStyles2.rule1} />
           Create
         </Button>
       </div>

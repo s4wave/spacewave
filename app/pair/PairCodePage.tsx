@@ -26,6 +26,36 @@ import type { Root } from '@s4wave/sdk/root'
 import type { Session } from '@s4wave/sdk/session/session.js'
 import { Html5Qrcode } from 'html5-qrcode'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-brand'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-brand'],
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule5: { color: themeColors['--color-brand'] },
+  rule6: { color: themeColors['--color-foreground-alt'] },
+})
+
 type PairStep = 'enter' | 'direct' | 'verify' | 'done'
 type DisposableResource = { [Symbol.dispose](): void }
 
@@ -89,7 +119,7 @@ function PairBackButton({ onClick }: PairBackButtonProps) {
         'flex size-10 shrink-0 items-center justify-center',
       )}
     >
-      <LuArrowLeft className="text-foreground-alt size-4" />
+      <LuArrowLeft sx={stylexStyles.rule1} />
     </button>
   )
 }
@@ -143,7 +173,7 @@ function PairCodeEnterStep({
     <div className="space-y-4">
       <div className="text-center">
         <div className="mx-auto mb-2 flex size-10 items-center justify-center">
-          <LuLink className="text-brand size-5" />
+          <LuLink sx={stylexStyles.rule2} />
         </div>
         <h2 className="text-foreground text-sm font-medium">
           Pair another device
@@ -193,7 +223,7 @@ function PairCodeEnterStep({
             <Spinner />
           ) : (
             <>
-              <LuLink className="text-brand size-4" />
+              <LuLink sx={stylexStyles.rule3} />
               <span className="text-foreground text-sm">Connect</span>
             </>
           )}
@@ -510,7 +540,7 @@ function PairDirectStep({
 
       <div className="text-center">
         <div className="mx-auto mb-2 flex size-10 items-center justify-center">
-          <LuWifi className="text-brand size-5" />
+          <LuWifi sx={stylexStyles.rule2} />
         </div>
         <h2 className="text-foreground text-sm font-medium">
           {answerPayload ? 'Share this response' : 'Direct pairing'}
@@ -545,7 +575,7 @@ function PairDirectStep({
               'flex h-9 items-center justify-center gap-2',
             )}
           >
-            <LuCamera className="text-foreground-alt size-4" />
+            <LuCamera sx={stylexStyles.rule1} />
             <span className="text-foreground-alt text-xs">Scan QR code</span>
           </button>
         </>
@@ -575,10 +605,10 @@ function PairDirectStep({
               title="Copy to clipboard"
             >
               <LuCopy
-                className={cn(
-                  'size-4',
-                  copied ? 'text-brand' : 'text-foreground-alt',
-                )}
+                sx={[
+                  stylexStyles.rule4,
+                  copied ? stylexStyles.rule5 : stylexStyles.rule6,
+                ]}
               />
             </button>
           </div>
@@ -611,7 +641,7 @@ function PairDirectStep({
               <Spinner />
             ) : (
               <>
-                <LuLink className="text-brand size-4" />
+                <LuLink sx={stylexStyles.rule3} />
                 <span className="text-foreground text-sm">Accept offer</span>
               </>
             )}
@@ -671,7 +701,7 @@ function PairDirectQRScanner({
             onClick={onClose}
             className="text-foreground-alt hover:text-foreground"
           >
-            <LuX className="size-4" />
+            <LuX sx={stylexStyles.rule4} />
           </button>
         </div>
         <div

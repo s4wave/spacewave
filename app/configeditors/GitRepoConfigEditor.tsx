@@ -12,6 +12,25 @@ import { cn } from '@s4wave/web/style/utils.js'
 import { RadioOption } from '@s4wave/web/ui/RadioOption.js'
 import type { CreateGitRepoWizardOp } from '@s4wave/core/git/git.pb.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+})
+
 // GitRepoConfigEditor edits the config-specific fields of a CreateGitRepoWizardOp.
 // Renders a new/clone toggle and clone options (URL, ref, depth, recursive).
 export function GitRepoConfigEditor({
@@ -31,7 +50,7 @@ export function GitRepoConfigEditor({
       <section>
         <div className="mb-2 flex items-center justify-between">
           <h3 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-            <LuGitBranch className="size-3.5" />
+            <LuGitBranch sx={stylexStyles.rule1} />
             Repository Source
           </h3>
         </div>
@@ -39,14 +58,14 @@ export function GitRepoConfigEditor({
           <RadioOption
             selected={!value.clone}
             onSelect={() => handleSelectMode(false)}
-            icon={<LuPlus className="size-3.5" />}
+            icon={<LuPlus sx={stylexStyles.rule1} />}
             label="New empty repository"
             description="Start with an empty Git repository."
           />
           <RadioOption
             selected={value.clone ?? false}
             onSelect={() => handleSelectMode(true)}
-            icon={<LuCopy className="size-3.5" />}
+            icon={<LuCopy sx={stylexStyles.rule1} />}
             label="Clone a repository"
             description="Import history from an existing Git URL."
           />
@@ -57,7 +76,7 @@ export function GitRepoConfigEditor({
         <section>
           <div className="mb-2 flex items-center justify-between">
             <h3 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-              <LuCopy className="size-3.5" />
+              <LuCopy sx={stylexStyles.rule1} />
               Clone Options
             </h3>
           </div>
@@ -154,7 +173,7 @@ export function GitRepoConfigEditor({
                 className="accent-brand size-4 rounded"
               />
               <span className="text-foreground flex min-w-0 items-center gap-2 text-xs font-medium select-none">
-                <LuLayers className="text-foreground-alt/50 size-3.5 shrink-0" />
+                <LuLayers sx={stylexStyles.rule2} />
                 Clone submodules recursively
               </span>
             </label>

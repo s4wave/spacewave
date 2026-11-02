@@ -23,6 +23,35 @@ import type { KeybindingVariantProps } from './variant-types.js'
 
 import * as stylex from '@stylexjs/stylex'
 
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-brand'],
+  },
+  rule2: {
+    pointerEvents: 'none',
+    position: 'absolute',
+    top: '50%',
+    left: `calc(${themeLayout['--spacing']} * 3)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    '--tw-translate-y': 'calc(calc(1 / 2 * 100%) * -1)',
+    translate: 'var(--tw-translate-x) var(--tw-translate-y)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-brand'],
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     height: 'auto',
@@ -99,7 +128,7 @@ export function KeyboardMapVariant({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <LuKeyboard className="text-brand size-4" />
+            <LuKeyboard sx={stylexStyles2.rule1} />
             <h2 className="text-sm font-semibold">Keyboard atlas</h2>
           </div>
           <p className="text-foreground-alt/55 mt-1 max-w-xl text-xs">
@@ -108,7 +137,7 @@ export function KeyboardMapVariant({
           </p>
         </div>
         <label className="relative block w-full sm:max-w-72">
-          <LuSearch className="text-foreground-alt/40 pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+          <LuSearch sx={stylexStyles2.rule2} />
           <Input
             value={query}
             onChange={handleQueryChange}
@@ -167,7 +196,7 @@ export function KeyboardMapVariant({
               </span>
               <div className="mt-1 font-mono text-lg">{activeKey ?? '—'}</div>
             </div>
-            <LuMousePointer2 className="text-brand size-5" />
+            <LuMousePointer2 sx={stylexStyles2.rule3} />
           </div>
 
           <div className="mt-4 space-y-1">

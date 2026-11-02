@@ -123,9 +123,7 @@ export function ComponentSelector({
                   onSelect={() => onSelectComponent(comp)}
                 >
                   <span>{comp.name}</span>
-                  {selected && (
-                    <LuCheck {...stylex.props(stylexStyles.rule3)} />
-                  )}
+                  {selected && <LuCheck sx={stylexStyles.rule3} />}
                 </DropdownMenuItem>
               )
             })}

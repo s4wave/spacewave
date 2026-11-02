@@ -61,6 +61,103 @@ import {
   type SystemTone,
 } from './useSystemModel.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+import { groupMarker } from '../../web/style/relations.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    textAlign: 'left',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    },
+    '--tw-outline-style': { default: null, ':focus-visible': 'none' },
+    outlineStyle: { default: null, ':focus-visible': 'none' },
+  },
+  rule2: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 25%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+      },
+    },
+  },
+  rule3: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-warning']} 20%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-warning']} 5%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-warning']} 10%, transparent)`,
+      },
+    },
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: themeColors['--color-destructive'],
+  },
+  rule3: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: themeColors['--color-warning'],
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule5: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 // InspectorId names a full-size inspector: one per subsystem tile plus the
 // two devtools trees.
 type InspectorId = SubsystemId | 'resources' | 'atoms'
@@ -313,7 +410,7 @@ function VerdictBar({
         aria-label="Close system status"
         className="text-foreground-alt/60 hover:text-foreground hover:bg-foreground/5 focus-visible:ring-brand/50 fine-pointer:size-7 ml-auto flex size-11 shrink-0 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none"
       >
-        <LuX className="size-4" aria-hidden="true" />
+        <LuX sx={stylexStyles.rule1} aria-hidden="true" />
       </button>
     </header>
   )
@@ -339,23 +436,15 @@ function AttentionList({
           <button
             type="button"
             onClick={() => onOpen(item.subsystem)}
-            className={cn(
-              'group focus-visible:ring-brand/50 flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none',
-              item.tone === 'error'
-                ? 'border-destructive/25 bg-destructive/5 hover:bg-destructive/10'
-                : 'border-warning/20 bg-warning/5 hover:bg-warning/10',
-            )}
+            sx={[
+              [stylexStyles2.rule1, groupMarker],
+              item.tone === 'error' ? stylexStyles2.rule2 : stylexStyles2.rule3,
+            ]}
           >
             {item.tone === 'error' ? (
-              <LuCircleAlert
-                className="text-destructive mt-0.5 size-4 shrink-0"
-                aria-hidden="true"
-              />
+              <LuCircleAlert sx={stylexStyles.rule2} aria-hidden="true" />
             ) : (
-              <LuTriangleAlert
-                className="text-warning mt-0.5 size-4 shrink-0"
-                aria-hidden="true"
-              />
+              <LuTriangleAlert sx={stylexStyles.rule3} aria-hidden="true" />
             )}
             <span className="min-w-0 flex-1">
               <span className="text-foreground block text-xs font-medium">
@@ -367,7 +456,7 @@ function AttentionList({
             </span>
             <span className="text-foreground-alt/60 group-hover:text-foreground flex shrink-0 items-center gap-1 text-xs transition-colors">
               Inspect {inspectorMeta[item.subsystem].title}
-              <LuArrowRight className="size-3.5" aria-hidden="true" />
+              <LuArrowRight sx={stylexStyles.rule4} aria-hidden="true" />
             </span>
           </button>
         </li>
@@ -432,11 +521,11 @@ function SyncTile({
     >
       <div className="flex items-center gap-4 font-mono tabular-nums">
         <span className="flex items-center gap-1">
-          <LuArrowUp className="size-3" aria-label="Upload" />
+          <LuArrowUp sx={stylexStyles.rule5} aria-label="Upload" />
           {sync.uploadRateLabel}
         </span>
         <span className="flex items-center gap-1">
-          <LuArrowDown className="size-3" aria-label="Download" />
+          <LuArrowDown sx={stylexStyles.rule5} aria-label="Download" />
           {sync.downloadRateLabel}
         </span>
       </div>
@@ -690,7 +779,7 @@ function UnderTheHood({
       <h2 className="text-foreground-alt/60 mr-1 text-xs">Under the hood</h2>
       <DashboardButton
         ref={tileRef('resources')}
-        icon={<LuLayers className="size-3.5" />}
+        icon={<LuLayers sx={stylexStyles.rule4} />}
         onClick={() => onOpen('resources')}
       >
         Resources
@@ -700,7 +789,7 @@ function UnderTheHood({
       </DashboardButton>
       <DashboardButton
         ref={tileRef('atoms')}
-        icon={<LuBox className="size-3.5" />}
+        icon={<LuBox sx={stylexStyles.rule4} />}
         onClick={() => onOpen('atoms')}
       >
         State atoms
@@ -734,7 +823,7 @@ function InspectorNav({
         onClick={onBack}
         className="text-foreground-alt/70 hover:text-foreground hover:bg-foreground/5 focus-visible:ring-brand/50 flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors focus-visible:ring-2 focus-visible:outline-none"
       >
-        <LuArrowLeft className="size-3.5" aria-hidden="true" />
+        <LuArrowLeft sx={stylexStyles.rule4} aria-hidden="true" />
         All systems
       </button>
       <span

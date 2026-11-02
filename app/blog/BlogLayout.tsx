@@ -3,6 +3,16 @@ import { LuArrowLeft } from '@s4wave/web/images/icons.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { LegalFooter } from '@s4wave/app/landing/LegalFooter.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 // BlogLayoutProps defines the props for BlogLayout.
 interface BlogLayoutProps {
   children: React.ReactNode
@@ -26,7 +36,7 @@ export function BlogLayout({ children, showBack = true }: BlogLayoutProps) {
             onClick={goBack}
             className="text-foreground-alt/60 hover:text-foreground flex cursor-pointer items-center gap-2 text-xs font-medium transition-colors"
           >
-            <LuArrowLeft className="size-3.5" />
+            <LuArrowLeft sx={stylexStyles.rule1} />
             All posts
           </button>
         </div>

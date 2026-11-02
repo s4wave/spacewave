@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { OptimizedLayout, Model, TabNode, IJsonModel } from '@aptre/flex-layout'
 import { LuArrowLeft, LuFile } from '@s4wave/web/images/icons.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import * as stylex from '@stylexjs/stylex'
 import {
   colors as themeColors,
@@ -12,6 +12,44 @@ import {
   utilityState as themeUtilityState,
   motion as themeMotion,
 } from '../style/tokens.stylex.js'
+
+import { groupMarker } from '../style/relations.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    cursor: 'pointer',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: 'var(--radius-xl)',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule2: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+    '--tw-ring-shadow':
+      'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    '--tw-ring-color': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+  },
+  rule3: {
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 15%, transparent)`,
+      },
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -374,7 +412,7 @@ function SampleContent({ node }: { node: TabNode }) {
   return (
     <div sx={stylexStyles.rule1}>
       <div sx={stylexStyles.rule2}>
-        <LuFile {...stylex.props(stylexStyles.rule3)} />
+        <LuFile sx={stylexStyles.rule3} />
         <span sx={stylexStyles.rule4}>{node.getName()}</span>
       </div>
     </div>
@@ -445,14 +483,10 @@ function VariantPreview({
       role="button"
       tabIndex={0}
       data-testid={`variant-card-${id}`}
-      className={
-        /* TODO(stylex): global or unknown class: group */ cn(
-          'group flex cursor-pointer flex-col gap-3 rounded-xl border p-4 transition-all',
-          selected
-            ? 'border-brand/50 bg-brand/5 ring-brand/20 ring-1'
-            : 'border-foreground/8 hover:border-foreground/15 bg-background-card/30',
-        )
-      }
+      sx={[
+        [stylexStyles2.rule1, groupMarker],
+        selected ? stylexStyles2.rule2 : stylexStyles2.rule3,
+      ]}
       onClick={onSelect}
       onKeyDown={(event) => {
         if (event.key !== 'Enter' && event.key !== ' ') return
@@ -663,7 +697,7 @@ export function LayoutDebug() {
     <div sx={stylexStyles.rule13}>
       <div sx={stylexStyles.rule14}>
         <button type="button" onClick={goBack} sx={stylexStyles.rule15}>
-          <LuArrowLeft {...stylex.props(stylexStyles.rule16)} />
+          <LuArrowLeft sx={stylexStyles.rule16} />
           Back to home
         </button>
 

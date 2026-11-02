@@ -7,6 +7,16 @@ import { CollapsibleSection } from '@s4wave/web/ui/CollapsibleSection.js'
 import { StorageBackendsSection } from './StorageBackendsSection.js'
 import { StorageHealth } from './StorageHealth.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 interface StorageHealthSectionProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -32,7 +42,7 @@ export function StorageHealthSection({
   return (
     <CollapsibleSection
       title="Storage"
-      icon={<LuDatabase className="size-3.5" />}
+      icon={<LuDatabase sx={stylexStyles.rule1} />}
       open={open}
       onOpenChange={onOpenChange}
     >

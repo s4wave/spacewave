@@ -10,6 +10,44 @@ import {
   isStatusPastDue,
 } from './billing-utils.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+import { groupMarker } from '../../web/style/relations.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    width: '100%',
+    cursor: 'pointer',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 12%, transparent)`,
+      },
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 20%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 2.5)`,
+    textAlign: 'left',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+})
+
 export interface BillingAccountCardProps {
   label: string
   billing: BillingAccountInfo
@@ -45,7 +83,7 @@ export function BillingAccountCard({
     <button
       type="button"
       onClick={onManage}
-      className="border-foreground/6 bg-background-card/20 hover:border-foreground/12 group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2.5 text-left transition-colors"
+      sx={[stylexStyles.rule1, groupMarker]}
     >
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-center gap-2">

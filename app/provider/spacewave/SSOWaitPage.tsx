@@ -34,6 +34,27 @@ import { setPendingSSOState } from './sso-state.js'
 import { SSOUnlockCard } from './SSOUnlockCard.js'
 import { useCloudProviderConfig } from './useSpacewaveAuth.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 type SSOWaitState =
   | { step: 'waiting' }
   | { step: 'logging_in' }
@@ -305,7 +326,7 @@ export function SSOWaitPage() {
         <>
           <AnimatedLogo followMouse={false} />
           <h2 className="text-foreground flex items-center gap-2 text-lg font-semibold">
-            <ProviderIcon provider={provider} className="size-5" />
+            <ProviderIcon provider={provider} sx={stylexStyles2.rule1} />
             Signing in with {providerLabel}
           </h2>
         </>
@@ -323,7 +344,9 @@ export function SSOWaitPage() {
           <div className="flex w-full flex-col gap-2">
             <AuthPrimaryActionButton
               onClick={handleRetry}
-              icon={<ProviderIcon provider={provider} className="size-4" />}
+              icon={
+                <ProviderIcon provider={provider} sx={stylexStyles2.rule2} />
+              }
             >
               Open again
             </AuthPrimaryActionButton>
@@ -331,7 +354,7 @@ export function SSOWaitPage() {
               onClick={handleCancel}
               className="flex items-center justify-center gap-2"
             >
-              <LuArrowLeft className="size-4" />
+              <LuArrowLeft sx={stylexStyles.rule1} />
               Cancel
             </AuthSecondaryActionButton>
           </div>
@@ -374,7 +397,7 @@ function SSOWaitError({
         <div className="flex w-full flex-col gap-2">
           <AuthPrimaryActionButton
             onClick={isDesktop ? onRetry : onCancel}
-            icon={<ProviderIcon provider={provider} className="size-4" />}
+            icon={<ProviderIcon provider={provider} sx={stylexStyles2.rule2} />}
           >
             {isDesktop ? 'Try again' : 'Return to sign-in'}
           </AuthPrimaryActionButton>
@@ -382,7 +405,7 @@ function SSOWaitError({
             onClick={onCancel}
             className="flex items-center justify-center gap-2"
           >
-            <LuArrowLeft className="size-4" />
+            <LuArrowLeft sx={stylexStyles.rule1} />
             Back to login
           </AuthSecondaryActionButton>
         </div>

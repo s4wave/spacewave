@@ -1,3 +1,9 @@
+import * as iconStylex from '@stylexjs/stylex'
+import { IconStylesProvider } from '@s4wave/web/images/icons.js'
+import {
+  iconDefaults,
+  buttonGroupIconMarker,
+} from '../style/icon-defaults.stylex.js'
 import { Slot } from '@radix-ui/react-slot'
 import { cva, type VariantProps } from 'class-variance-authority'
 
@@ -68,15 +74,18 @@ function ButtonGroupText({
   const Comp = asChild ? Slot : 'div'
 
   return (
-    <Comp
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: [&_svg]:pointer-events-none */ cn(
-          "bg-muted flex items-center gap-2 rounded-md border px-4 text-sm font-medium shadow-xs [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4",
-          className,
-        )
-      }
-      {...props}
-    />
+    <IconStylesProvider sx={[iconDefaults.buttonGroup]}>
+      <Comp
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: [&_svg]:pointer-events-none */ cn(
+            'bg-muted flex items-center gap-2 rounded-md border px-4 text-sm font-medium shadow-xs [&_svg]:pointer-events-none',
+            className,
+            iconStylex.props(buttonGroupIconMarker).className,
+          )
+        }
+        {...props}
+      />
+    </IconStylesProvider>
   )
 }
 

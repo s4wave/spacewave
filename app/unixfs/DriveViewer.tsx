@@ -12,7 +12,7 @@ import { useInvokeCommand } from '@s4wave/web/command/CommandContext.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { usePath } from '@s4wave/web/router/router.js'
 import {
   joinUnixFSDisplayPath,
@@ -26,6 +26,68 @@ import {
   UnixFSBrowser,
   type UnixFSBrowserDirectoryHeaderProps,
 } from './UnixFSBrowser.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+import { groupMarker } from '../../web/style/relations.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    minWidth: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 12%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+      },
+    },
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    textAlign: 'left',
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4.5)`,
+    height: `calc(${themeLayout['--spacing']} * 4.5)`,
+    color: themeColors['--color-brand'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-brand'],
+  },
+})
 
 // DriveViewer owns Drive-specific first-run guidance while delegating all file
 // operations to the generic UnixFS browser.
@@ -95,7 +157,7 @@ function DriveGettingStartedHeader(props: UnixFSBrowserDirectoryHeaderProps) {
       <div className="flex flex-col gap-3">
         <div className="flex items-start gap-3">
           <div className="bg-brand/10 flex size-9 shrink-0 items-center justify-center rounded-md">
-            <LuHardDrive className="text-brand size-4.5" />
+            <LuHardDrive sx={stylexStyles.rule1} />
           </div>
           <div className="min-w-0 flex-1">
             <h2 className="text-foreground text-sm font-semibold tracking-tight select-none">
@@ -112,27 +174,27 @@ function DriveGettingStartedHeader(props: UnixFSBrowserDirectoryHeaderProps) {
             className="text-foreground-alt hover:text-foreground flex size-6 shrink-0 items-center justify-center rounded-md transition-colors [@media(pointer:coarse)]:size-11"
             onClick={() => setDismissed(true)}
           >
-            <LuX className="size-4" />
+            <LuX sx={stylexStyles.rule2} />
           </button>
         </div>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
           <DriveGettingStartedAction
             testId="drive-upload-cta"
-            icon={<LuUpload className="text-brand size-4" />}
+            icon={<LuUpload sx={stylexStyles.rule3} />}
             label="Upload files"
             description="Add content"
             onClick={() => dismissThen(onUploadFiles)}
           />
           <DriveGettingStartedAction
             testId="drive-new-folder-cta"
-            icon={<LuFolderPlus className="text-brand size-4" />}
+            icon={<LuFolderPlus sx={stylexStyles.rule3} />}
             label="New folder"
             description="Create structure"
             onClick={() => dismissThen(onNewFolder)}
           />
           <DriveGettingStartedAction
             testId="drive-open-guide-cta"
-            icon={<LuBookOpen className="text-brand size-4" />}
+            icon={<LuBookOpen sx={stylexStyles.rule3} />}
             label="Open guide"
             description="Read getting-started.md"
             onClick={handleOpenGuide}
@@ -140,7 +202,7 @@ function DriveGettingStartedHeader(props: UnixFSBrowserDirectoryHeaderProps) {
           {canShareSpace && (
             <DriveGettingStartedAction
               testId="drive-invite-cta"
-              icon={<LuUserPlus className="text-brand size-4" />}
+              icon={<LuUserPlus sx={stylexStyles.rule3} />}
               label="Invite people"
               description="Share this Space"
               onClick={handleShareSpace}
@@ -173,10 +235,7 @@ function DriveGettingStartedAction({
       aria-label={label}
       data-testid={testId}
       onClick={onClick}
-      className={cn(
-        'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50',
-        'group flex min-w-0 items-center gap-3 rounded-lg border p-3 text-left transition-all duration-150',
-      )}
+      sx={[[stylexStyles2.rule1, groupMarker]]}
     >
       <span className="bg-brand/10 group-hover:bg-brand/15 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors">
         {icon}

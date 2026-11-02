@@ -113,12 +113,7 @@ interface SpinnerProps {
 export function Spinner({ size = 'md', variant, sx }: SpinnerProps) {
   return (
     <LuLoader
-      {...stylex.props(
-        styles.animation,
-        sizes[size],
-        tones[variant ?? 'default'],
-        sx,
-      )}
+      sx={[styles.animation, sizes[size], tones[variant ?? 'default'], sx]}
       aria-hidden="true"
     />
   )

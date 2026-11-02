@@ -41,6 +41,42 @@ import {
   motion as themeMotion,
 } from '../style/tokens.stylex.js'
 
+import { groupMarker } from '../style/relations.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    width: '100%',
+    cursor: 'pointer',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-destructive'],
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+      },
+    },
+    padding: `calc(${themeLayout['--spacing']} * 2.5)`,
+    textAlign: 'left',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     display: 'flex',
@@ -427,7 +463,7 @@ export function ObjectViewerDetails({
     <div sx={stylexStyles.rule1}>
       <div sx={stylexStyles.rule2}>
         <div sx={stylexStyles.rule3}>
-          <RxCube {...stylex.props(stylexStyles.rule4)} />
+          <RxCube sx={stylexStyles.rule4} />
           <span sx={stylexStyles.rule5}>{objectKey}</span>
           <span sx={stylexStyles.rule6}>· Object</span>
         </div>
@@ -435,7 +471,7 @@ export function ObjectViewerDetails({
           <Tooltip>
             <TooltipTrigger asChild>
               <DashboardButton
-                icon={<LuX {...stylex.props(stylexStyles.rule7)} />}
+                icon={<LuX sx={stylexStyles.rule7} />}
                 onClick={onCloseClick}
               />
             </TooltipTrigger>
@@ -455,7 +491,7 @@ export function ObjectViewerDetails({
               <section>
                 <div sx={stylexStyles.rule11}>
                   <h2 sx={stylexStyles.rule12}>
-                    <LuInfo {...stylex.props(stylexStyles.rule13)} />
+                    <LuInfo sx={stylexStyles.rule13} />
                     About this object
                   </h2>
                 </div>
@@ -479,7 +515,7 @@ export function ObjectViewerDetails({
 
               <CollapsibleSection
                 title="Technical details"
-                icon={<LuInfo {...stylex.props(stylexStyles.rule13)} />}
+                icon={<LuInfo sx={stylexStyles.rule13} />}
                 open={technicalDetailsOpen}
                 onOpenChange={setTechnicalDetailsOpen}
               >
@@ -507,7 +543,7 @@ export function ObjectViewerDetails({
                 <section>
                   <div sx={stylexStyles.rule11}>
                     <h2 sx={stylexStyles.rule12}>
-                      <LuEye {...stylex.props(stylexStyles.rule13)} />
+                      <LuEye sx={stylexStyles.rule13} />
                       Viewer
                     </h2>
                   </div>
@@ -556,7 +592,7 @@ export function ObjectViewerDetails({
                         onClick={onCloseClick}
                         sx={stylexStyles.rule19}
                       >
-                        <LuEye {...stylex.props(stylexStyles.rule13)} />
+                        <LuEye sx={stylexStyles.rule13} />
                         Open viewer
                       </button>
                     )}
@@ -602,7 +638,7 @@ function ExportDataSection({ exportUrl }: { exportUrl: string }) {
     <section>
       <div sx={stylexStyles.rule11}>
         <h2 sx={stylexStyles.rule12}>
-          <LuDownload {...stylex.props(stylexStyles.rule13)} />
+          <LuDownload sx={stylexStyles.rule13} />
           Data
         </h2>
       </div>
@@ -620,7 +656,7 @@ function ExportDataSection({ exportUrl }: { exportUrl: string }) {
           sx={stylexStyles.rule20}
         >
           <div sx={stylexStyles.rule21}>
-            <LuDownload {...stylex.props(stylexStyles.rule22)} />
+            <LuDownload sx={stylexStyles.rule22} />
           </div>
           <div sx={stylexStyles.rule23}>
             <h4 sx={stylexStyles.rule16}>
@@ -706,16 +742,14 @@ function DangerZoneSection({
         <button
           type="button"
           onClick={() => setDialogOpen(true)}
-          className={
-            /* TODO(stylex): global or unknown class: group */ 'border-destructive/30 bg-destructive/5 hover:border-destructive hover:bg-destructive/10 group flex w-full cursor-pointer items-center gap-3 rounded-lg border p-2.5 text-left transition-colors'
-          }
+          sx={[stylexStyles2.rule1, groupMarker]}
         >
           <div
             className={
               /* TODO(stylex): a descendant, group, peer or compound selector: group-hover:bg-destructive/30 */ 'bg-destructive/20 group-hover:bg-destructive/30 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors'
             }
           >
-            <LuTrash2 {...stylex.props(stylexStyles.rule28)} />
+            <LuTrash2 sx={stylexStyles.rule28} />
           </div>
           <div sx={stylexStyles.rule23}>
             <h4 sx={stylexStyles.rule29}>Delete Object</h4>

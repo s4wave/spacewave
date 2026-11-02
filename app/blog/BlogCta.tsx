@@ -10,6 +10,21 @@ import {
   type TurnstileInstance,
 } from '@s4wave/web/ui/turnstile.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+  },
+})
+
 type FormState = 'idle' | 'submitting' | 'success' | 'error'
 
 // parseErrorMessage maps API error responses to user-facing messages.
@@ -121,14 +136,14 @@ export function BlogCta() {
                 className="border-brand/40 bg-brand/10 text-foreground hover:border-brand/60 hover:bg-brand/15 flex cursor-pointer items-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium transition duration-300 select-none hover:-translate-y-0.5"
               >
                 Get started
-                <LuArrowRight className="size-3.5" />
+                <LuArrowRight sx={stylexStyles.rule1} />
               </button>
               <button
                 type="button"
                 onClick={goToCommunity}
                 className="border-foreground/15 bg-background/50 text-foreground hover:border-brand/40 hover:bg-brand/8 flex cursor-pointer items-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium transition duration-300 select-none hover:-translate-y-0.5"
               >
-                <LuGithub className="size-3.5" />
+                <LuGithub sx={stylexStyles.rule1} />
                 Join community
               </button>
             </div>
@@ -138,7 +153,7 @@ export function BlogCta() {
             <div className="flex flex-col gap-3 @lg:w-72 @lg:shrink-0">
               {formState === 'success' ? (
                 <div className="border-brand/20 bg-brand/5 text-brand flex items-center gap-2 rounded-md border px-4 py-2.5 text-sm font-medium select-none">
-                  <LuCheck className="size-4 shrink-0" />
+                  <LuCheck sx={stylexStyles.rule2} />
                   Subscribed. Thanks for joining.
                 </div>
               ) : (

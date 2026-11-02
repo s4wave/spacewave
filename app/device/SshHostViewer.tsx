@@ -26,9 +26,41 @@ import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import { buildCreateSshHostTerminalOpData } from './terminal-action.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule2: { color: themeColors['--color-success'] },
+  rule3: { color: themeColors['--color-destructive'] },
+  rule4: { color: themeColors['--color-warning'] },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+})
 
 export { SshHostTypeID }
 
@@ -130,19 +162,22 @@ export function SshHostViewer({
     <div className="bg-background-primary flex h-full w-full flex-col">
       <div className="border-foreground/8 flex h-9 shrink-0 items-center justify-between border-b px-4">
         <span className="text-foreground flex min-w-0 items-center gap-2 text-sm font-semibold select-none">
-          <LuServer className="size-4 shrink-0" />
+          <LuServer sx={stylexStyles.rule1} />
           {state?.label || 'SSH Host'}
         </span>
         <div className="flex shrink-0 items-center gap-2">
           {state && (
             <DashboardButton
-              icon={<LuTerminal className="size-3.5" />}
+              icon={<LuTerminal sx={stylexStyles.rule2} />}
               onClick={() => void handleOpenTerminal()}
             >
               Open Terminal
             </DashboardButton>
           )}
-          <DashboardButton icon={<LuHardDrive className="size-3.5" />} disabled>
+          <DashboardButton
+            icon={<LuHardDrive sx={stylexStyles.rule2} />}
+            disabled
+          >
             Install Agent
           </DashboardButton>
         </div>
@@ -194,9 +229,7 @@ export function SshHostViewer({
             </InfoCard>
 
             <InfoCard
-              icon={
-                <LuCircleAlert className="text-foreground-alt/60 size-3.5" />
-              }
+              icon={<LuCircleAlert sx={stylexStyles.rule3} />}
               title="Connection status"
             >
               <div className="flex items-start gap-2">
@@ -218,14 +251,14 @@ export function SshHostViewer({
             </InfoCard>
 
             <InfoCard
-              icon={<LuShield className="text-foreground-alt/60 size-3.5" />}
+              icon={<LuShield sx={stylexStyles.rule3} />}
               title="Credentials"
             >
               <CredentialRows refs={state.credentials} />
             </InfoCard>
 
             <InfoCard
-              icon={<LuShield className="text-foreground-alt/60 size-3.5" />}
+              icon={<LuShield sx={stylexStyles.rule3} />}
               title="Host-key trust"
             >
               {pins.length === 0 ? (
@@ -292,14 +325,14 @@ function CanonicalStatusIcon({
         : LuCircleAlert
   return (
     <Icon
-      className={cn(
-        'size-3.5',
+      sx={[
+        stylexStyles2.rule1,
         state === 'ready'
-          ? 'text-success'
+          ? stylexStyles2.rule2
           : state === 'failed'
-            ? 'text-destructive'
-            : 'text-warning',
-      )}
+            ? stylexStyles2.rule3
+            : stylexStyles2.rule4,
+      ]}
     />
   )
 }

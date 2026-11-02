@@ -23,6 +23,16 @@ import {
   findOpenableTerminalCapability,
 } from './terminal-action.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 export { DeviceTypeID }
 
 export function DeviceViewer({
@@ -80,7 +90,7 @@ export function DeviceViewer({
         </span>
         {terminalCapability && (
           <DashboardButton
-            icon={<LuTerminal className="size-3.5" />}
+            icon={<LuTerminal sx={stylexStyles.rule1} />}
             onClick={() => void handleOpenTerminal()}
           >
             Open Terminal

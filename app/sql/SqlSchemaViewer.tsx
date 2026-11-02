@@ -18,6 +18,31 @@ import { SqlSchema, SqlSchemaTypeID } from '@s4wave/sdk/sql/schema/schema.js'
 import { SqlTableViewTypeID } from '@s4wave/sdk/sql/table-view/table-view.js'
 import { TableView } from '@s4wave/sdk/sql/table-view/table-view.pb.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+})
+
 export { SqlSchemaTypeID }
 
 // SqlSchemaViewer is the full sql/schema viewer: a table list with live row
@@ -100,7 +125,7 @@ export function SqlSchemaViewer({
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
       <div className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-4">
-        <LuTable className="text-foreground-alt size-3.5" aria-hidden />
+        <LuTable sx={stylexStyles.rule1} aria-hidden />
         <span className="text-foreground text-sm font-semibold tracking-tight select-none">
           SQL Schema
         </span>
@@ -141,7 +166,7 @@ export function SqlSchemaViewer({
         {schema && schema.tables.length === 0 ? (
           <EmptyState
             variant="compact"
-            icon={<LuTable className="text-foreground-alt size-5" />}
+            icon={<LuTable sx={stylexStyles.rule2} />}
             title="No tables"
             description="This schema has no tables yet."
           />
@@ -215,7 +240,7 @@ function TableRow({
       disabled={!canOpen}
       className="hover:bg-foreground/5 flex w-full items-center gap-2 px-3 py-2 text-left transition-colors disabled:cursor-default"
     >
-      <LuTable className="text-foreground-alt/60 size-3.5 shrink-0" />
+      <LuTable sx={stylexStyles.rule3} />
       <span className="text-foreground min-w-0 flex-1 truncate font-mono text-xs">
         {tableName || 'Unnamed table'}
       </span>

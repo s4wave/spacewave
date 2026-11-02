@@ -24,6 +24,36 @@ import type {
   UploadItem,
 } from './useUploadManager.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-green-500'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule3: { color: themeColors['--color-destructive'] },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 // Auto-dismiss windows for the anchored feedback popover. Completion lingers
 // slightly longer so the "added" confirmation reads before it fades; both are
 // capped by the indicator itself unmounting once the manager clears its items.
@@ -210,7 +240,7 @@ function UploadItemAction({
   }, [item.id, onCancel])
 
   if (item.status === 'done') {
-    return <LuCheck className="size-4 text-green-500" />
+    return <LuCheck sx={stylexStyles.rule1} />
   }
   const dismissing = item.status === 'error'
   return (
@@ -220,7 +250,7 @@ function UploadItemAction({
       onClick={handleCancel}
       title={dismissing ? 'Dismiss' : 'Cancel'}
     >
-      <LuX className={cn('size-4', dismissing && 'text-destructive')} />
+      <LuX sx={[stylexStyles.rule2, !!dismissing && stylexStyles.rule3]} />
     </button>
   )
 }
@@ -270,9 +300,9 @@ function UploadItemRow({
     <div className="border-popover-border flex items-start gap-3 border-t px-5 py-4 first:border-t-0">
       <div className="bg-muted text-foreground-alt mt-0.5 flex size-9 flex-shrink-0 items-center justify-center rounded-md">
         {item.kind === 'directory' ? (
-          <LuFolder className="size-4" />
+          <LuFolder sx={stylexStyles.rule2} />
         ) : (
-          <LuUpload className="size-4" />
+          <LuUpload sx={stylexStyles.rule2} />
         )}
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-2">
@@ -371,7 +401,7 @@ function UploadFeedbackContent({ feedback }: { feedback: UploadEvent }) {
           feedbackToneClassName[tone],
         )}
       >
-        <ToneIcon className="size-4" />
+        <ToneIcon sx={stylexStyles2.rule1} />
       </div>
       <div className="min-w-0 flex-1">
         <div className="text-foreground text-sm font-semibold">{title}</div>
@@ -430,7 +460,7 @@ export function UploadProgressBottomBar({
             {activeUploading > 0 ? (
               <Spinner size="sm" />
             ) : (
-              <LuUpload className="size-3" />
+              <LuUpload sx={stylexStyles.rule4} />
             )}
             {activeUploading > 0
               ? `Uploading ${activeUploading}/${totalCount}`

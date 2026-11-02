@@ -4,8 +4,55 @@ import { LuCircleAlert } from '@s4wave/web/images/icons.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { BackButton } from '@s4wave/web/ui/BackButton.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import type { SessionMetadata } from '@s4wave/core/session/session.pb.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+import { groupMarker } from '../../web/style/relations.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+      },
+    },
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 6)`,
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+    color: themeColors['--color-destructive'],
+  },
+})
 
 export interface DeletedAccountOverlayProps {
   metadata: SessionMetadata
@@ -46,7 +93,7 @@ export function DeletedAccountOverlay({
           <div className="space-y-4 p-6">
             <div className="flex flex-col items-center gap-2">
               <div className="bg-destructive/10 flex size-12 items-center justify-center rounded-full">
-                <LuCircleAlert className="text-destructive size-6" />
+                <LuCircleAlert sx={stylexStyles.rule1} />
               </div>
               <h2 className="text-foreground text-lg font-medium">
                 {metadata.displayName || 'Deleted Session'}
@@ -66,11 +113,7 @@ export function DeletedAccountOverlay({
             <button
               type="button"
               onClick={handleRemoveClick}
-              className={cn(
-                'group w-full rounded-md border transition-all duration-300',
-                'border-destructive/30 bg-destructive/10 hover:bg-destructive/20',
-                'flex h-10 items-center justify-center gap-2',
-              )}
+              sx={[[stylexStyles2.rule1, groupMarker]]}
             >
               <span className="text-foreground text-sm">Remove Session</span>
             </button>

@@ -20,6 +20,56 @@ import {
 
 import { knownSpacePlugin } from './known-plugins.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-brand'],
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    animationName: 'spin',
+    animationDuration: '1s',
+    animationTimingFunction: 'linear',
+    animationIterationCount: 'infinite',
+    animationDirection: 'normal',
+    animationPlayState: 'running',
+    animationDelay: '0s',
+    animationFillMode: 'none',
+    animationTimeline: 'auto',
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    animationName: 'spin',
+    animationDuration: '1s',
+    animationTimingFunction: 'linear',
+    animationIterationCount: 'infinite',
+    animationDirection: 'normal',
+    animationPlayState: 'running',
+    animationDelay: '0s',
+    animationFillMode: 'none',
+    animationTimeline: 'auto',
+    color: themeColors['--color-brand'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+})
+
 interface SourceSpace {
   id: string
   name: string
@@ -137,7 +187,7 @@ function SourceSpaceCatalog({
   if (!sourceSpace || !contentsState) {
     return (
       <p className="text-foreground-alt/70 flex items-center gap-1.5 text-xs">
-        <LuLoaderCircle className="size-3.5 animate-spin" />
+        <LuLoaderCircle sx={stylexStyles.rule1} />
         Reading the plugins in {source.name}
       </p>
     )
@@ -173,9 +223,9 @@ function SourceSpaceCatalog({
           >
             <span className="bg-brand/10 flex size-8 shrink-0 items-center justify-center rounded-md">
               {pending === id ? (
-                <LuLoaderCircle className="text-brand size-4 animate-spin" />
+                <LuLoaderCircle sx={stylexStyles.rule2} />
               ) : (
-                <Icon className="text-brand size-4" />
+                <Icon sx={stylexStyles2.rule1} />
               )}
             </span>
             <span className="flex min-w-0 flex-1 flex-col">
@@ -193,7 +243,7 @@ function SourceSpaceCatalog({
                 {plugin.description || meta.description}
               </span>
             </span>
-            <LuPlus className="text-foreground-alt/50 size-3.5 shrink-0" />
+            <LuPlus sx={stylexStyles.rule3} />
           </button>
         )
       })}

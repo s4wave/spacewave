@@ -15,6 +15,16 @@ import {
   describeMoveProgress,
 } from './storage-backend.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 interface SpaceStorageMoveProps {
   sharedObjectId: string
   // placedId is the backend holding the Space, empty for the account's own storage.
@@ -110,7 +120,7 @@ export function SpaceStorageMove({
         ))}
       </select>
       <DashboardButton
-        icon={<LuArrowRightLeft className="size-3.5" />}
+        icon={<LuArrowRightLeft sx={stylexStyles.rule1} />}
         onClick={() => void handleMove()}
       >
         Move

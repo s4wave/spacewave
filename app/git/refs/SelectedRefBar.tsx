@@ -4,6 +4,16 @@ import type { CommitInfo } from '@s4wave/sdk/git/repo.pb.js'
 
 import { formatRelativeTime } from '../util.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 // SelectedRefBarProps are props for the SelectedRefBar component.
 export interface SelectedRefBarProps {
   lastCommit: CommitInfo | undefined
@@ -69,7 +79,7 @@ export function SelectedRefBar({
           onClick={onClickTree}
           title="Browse files"
         >
-          <LuFolder className="size-3" />
+          <LuFolder sx={stylexStyles.rule1} />
         </button>
       )}
       {onClickLog && (
@@ -79,7 +89,7 @@ export function SelectedRefBar({
           onClick={onClickLog}
           title="View commit log"
         >
-          <LuHistory className="size-3" />
+          <LuHistory sx={stylexStyles.rule1} />
         </button>
       )}
     </div>

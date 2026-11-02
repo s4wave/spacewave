@@ -220,7 +220,7 @@ export function ObjectKeySelector({
       <PopoverContent align="start" sx={stylexStyles.rule2}>
         {path.length > 0 && (
           <button type="button" onClick={handleBack} sx={stylexStyles.rule3}>
-            <LuChevronLeft {...stylex.props(stylexStyles.rule4)} />
+            <LuChevronLeft sx={stylexStyles.rule4} />
             {prefix}
           </button>
         )}
@@ -240,11 +240,9 @@ export function ObjectKeySelector({
               >
                 <span sx={stylexStyles.rule7}>{node.icon}</span>
                 <span sx={stylexStyles.rule8}>{node.name}</span>
-                {isFolder && (
-                  <LuChevronRight {...stylex.props(stylexStyles.rule9)} />
-                )}
+                {isFolder && <LuChevronRight sx={stylexStyles.rule9} />}
                 {!isFolder && isNodeSelected && (
-                  <LuCheck {...stylex.props(stylexStyles.rule10)} />
+                  <LuCheck sx={stylexStyles.rule10} />
                 )}
               </button>
             )

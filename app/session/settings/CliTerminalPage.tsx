@@ -22,6 +22,18 @@ import { BottomBarLevel } from '@s4wave/web/frame/bottom-bar-level.js'
 import { BottomBarItem } from '@s4wave/web/frame/bottom-bar-item.js'
 import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    marginRight: `calc(${themeLayout['--spacing']} * 1.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+  },
+})
+
 const cliTerminalServiceId =
   'plugin/spacewave-cli-plugin/' + CliTerminalServiceServiceName
 
@@ -84,7 +96,7 @@ export function CliTerminalPage() {
         onClick={onClick}
         className={className}
       >
-        <LuTerminal className="mr-1.5 size-3.5 shrink-0" />
+        <LuTerminal sx={stylexStyles.rule1} />
         <div className="flex-shrink flex-grow truncate">Terminal</div>
         <div className="bg-border mx-2 h-3 w-px" />
         <div className="text-muted-foreground truncate text-xs">CLI</div>

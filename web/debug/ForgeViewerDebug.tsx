@@ -24,6 +24,69 @@ import {
   radii as themeRadii,
 } from '../style/tokens.stylex.js'
 
+import { groupMarker } from '../style/relations.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 12%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 12%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-background-card']} 60%, transparent)`,
+      },
+    },
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     display: 'flex',
@@ -704,7 +767,7 @@ export function ForgeViewerDebug() {
           sx={stylexStyles.rule3}
           aria-label="Back"
         >
-          <LuArrowLeft {...stylex.props(stylexStyles.rule4)} />
+          <LuArrowLeft sx={stylexStyles.rule4} />
         </button>
         <span sx={stylexStyles.rule5}>Forge Viewer UI Prototype</span>
       </div>
@@ -1039,18 +1102,14 @@ function CurrentRow({ sample }: { sample: RowSample }) {
 
 function GlassRow({ sample }: { sample: RowSample }) {
   return (
-    <div
-      className={
-        /* TODO(stylex): global or unknown class: group */ 'group border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 flex items-center justify-between gap-3 rounded-lg border px-3.5 py-2.5 transition duration-150'
-      }
-    >
+    <div sx={[stylexStyles2.rule1, groupMarker]}>
       <div sx={stylexStyles.rule28}>
         <span
           className={
             /* TODO(stylex): a descendant, group, peer or compound selector: group-hover:bg-foreground/8 */ 'bg-foreground/5 group-hover:bg-foreground/8 flex size-7 shrink-0 items-center justify-center rounded-md transition-colors'
           }
         >
-          <LuListTodo {...stylex.props(stylexStyles.rule29)} />
+          <LuListTodo sx={stylexStyles.rule29} />
         </span>
         <div sx={stylexStyles.rule25}>
           <div sx={stylexStyles.rule30}>{sample.name}</div>
@@ -1065,7 +1124,7 @@ function GlassRow({ sample }: { sample: RowSample }) {
 function DenseRow({ sample }: { sample: RowSample }) {
   return (
     <div sx={stylexStyles.rule31}>
-      <LuListTodo {...stylex.props(stylexStyles.rule32)} />
+      <LuListTodo sx={stylexStyles.rule32} />
       <span sx={stylexStyles.rule33}>{sample.name}</span>
       <span sx={stylexStyles.rule34}>{sample.meta}</span>
       <DotBadge {...sample.state} />
@@ -1089,13 +1148,13 @@ function StatTileSection() {
       >
         <div sx={stylexStyles.rule35}>
           <CurrentStatCard
-            icon={<LuListTodo {...stylex.props(stylexStyles.rule36)} />}
+            icon={<LuListTodo sx={stylexStyles.rule36} />}
             title="Tasks"
             value="6/12"
             detail="50% complete"
           />
           <CurrentStatCard
-            icon={<LuPlay {...stylex.props(stylexStyles.rule36)} />}
+            icon={<LuPlay sx={stylexStyles.rule36} />}
             title="Passes"
             value="4"
             detail="Current nonce 4"
@@ -1185,17 +1244,13 @@ function InlineStat({
   value: string
 }) {
   return (
-    <div
-      className={
-        /* TODO(stylex): global or unknown class: group */ 'group border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/60 flex items-center gap-3 rounded-lg border p-3 transition duration-150'
-      }
-    >
+    <div sx={[stylexStyles2.rule2, groupMarker]}>
       <div
         className={
           /* TODO(stylex): a descendant, group, peer or compound selector: group-hover:bg-brand/15 */ 'bg-brand/10 group-hover:bg-brand/15 flex size-9 shrink-0 items-center justify-center rounded transition duration-150'
         }
       >
-        <Icon {...stylex.props(stylexStyles.rule44)} />
+        <Icon sx={stylexStyles.rule44} />
       </div>
       <div sx={stylexStyles.rule45}>
         <p sx={stylexStyles.rule46}>{label}</p>
@@ -1228,7 +1283,7 @@ function EmptyStateSection() {
       >
         <div sx={stylexStyles.rule7}>
           <div sx={stylexStyles.rule49}>
-            <LuListTodo {...stylex.props(stylexStyles.rule50)} />
+            <LuListTodo sx={stylexStyles.rule50} />
             <span>No tasks linked to this job yet</span>
           </div>
         </div>
@@ -1371,7 +1426,7 @@ function ViewerShellSection() {
       <div sx={stylexStyles.rule64}>
         <div sx={stylexStyles.rule65}>
           <div sx={stylexStyles.rule66}>
-            <LuBriefcase {...stylex.props(stylexStyles.rule4)} />
+            <LuBriefcase sx={stylexStyles.rule4} />
             <span sx={stylexStyles.rule67}>Build pipeline</span>
             <TintedBadge label="RUNNING" tone="active" />
           </div>
@@ -1446,7 +1501,7 @@ function ViewerShellSection() {
           {tab === 2 && (
             <div sx={stylexStyles.rule7}>
               <div sx={stylexStyles.rule49}>
-                <LuPlay {...stylex.props(stylexStyles.rule50)} />
+                <LuPlay sx={stylexStyles.rule50} />
                 <span>No passes recorded yet</span>
               </div>
             </div>
@@ -1454,12 +1509,9 @@ function ViewerShellSection() {
         </div>
 
         <div sx={stylexStyles.rule71}>
+          <ShellAction icon={<LuCpu sx={stylexStyles.rule36} />} label="Run" />
           <ShellAction
-            icon={<LuCpu {...stylex.props(stylexStyles.rule36)} />}
-            label="Run"
-          />
-          <ShellAction
-            icon={<LuTriangleAlert {...stylex.props(stylexStyles.rule36)} />}
+            icon={<LuTriangleAlert sx={stylexStyles.rule36} />}
             label="Cancel"
             variant="destructive"
           />
@@ -1493,14 +1545,14 @@ function MiniStat({
         ]}
       >
         <Icon
-          {...stylex.props([
+          sx={[
             stylexStyles.rule77,
             tone === 'success'
               ? stylexStyles.rule78
               : tone === 'error'
                 ? stylexStyles.rule79
                 : stylexStyles.rule80,
-          ])}
+          ]}
         />
       </span>
       <div sx={stylexStyles.rule25}>

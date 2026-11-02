@@ -242,9 +242,9 @@ function StateScopeNode({ node }: { node: ScopeNode }) {
       <button type="button" onClick={handleToggle} sx={[stylexStyles.rule3]}>
         <span sx={stylexStyles.rule4}>
           {isExpanded ? (
-            <LuChevronDown {...stylex.props(stylexStyles.rule5)} />
+            <LuChevronDown sx={stylexStyles.rule5} />
           ) : (
-            <LuChevronRight {...stylex.props(stylexStyles.rule5)} />
+            <LuChevronRight sx={stylexStyles.rule5} />
           )}
         </span>
         <span>{node.label}</span>
@@ -291,9 +291,9 @@ function StateGroupNode({ node, level }: { node: GroupNode; level: number }) {
       >
         <span sx={stylexStyles.rule4}>
           {isExpanded ? (
-            <LuChevronDown {...stylex.props(stylexStyles.rule7)} />
+            <LuChevronDown sx={stylexStyles.rule7} />
           ) : (
-            <LuChevronRight {...stylex.props(stylexStyles.rule7)} />
+            <LuChevronRight sx={stylexStyles.rule7} />
           )}
         </span>
         <span sx={stylexStyles.rule8}>{node.label}</span>
@@ -367,14 +367,14 @@ function StateEntryNode({
           sx={[stylexStyles.rule9, !hasChildren && stylexStyles.rule10]}
         >
           {isExpanded ? (
-            <LuChevronDown {...stylex.props(stylexStyles.rule5)} />
+            <LuChevronDown sx={stylexStyles.rule5} />
           ) : (
-            <LuChevronRight {...stylex.props(stylexStyles.rule5)} />
+            <LuChevronRight sx={stylexStyles.rule5} />
           )}
         </button>
 
         <button type="button" onClick={handleSelect} sx={stylexStyles.rule11}>
-          <LuDatabase {...stylex.props(stylexStyles.rule12)} />
+          <LuDatabase sx={stylexStyles.rule12} />
           <span sx={stylexStyles.rule13}>{label}</span>
           <span sx={stylexStyles.rule14}>{preview}</span>
         </button>
@@ -461,9 +461,9 @@ function StateTreeNodeInner({
           sx={[stylexStyles.rule9, !isExpandable && stylexStyles.rule10]}
         >
           {isExpanded ? (
-            <LuChevronDown {...stylex.props(stylexStyles.rule7)} />
+            <LuChevronDown sx={stylexStyles.rule7} />
           ) : (
-            <LuChevronRight {...stylex.props(stylexStyles.rule7)} />
+            <LuChevronRight sx={stylexStyles.rule7} />
           )}
         </button>
 

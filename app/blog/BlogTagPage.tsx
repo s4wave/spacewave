@@ -5,6 +5,16 @@ import { LegalFooter } from '@s4wave/app/landing/LegalFooter.js'
 import { PostList } from './PostList.js'
 import type { BlogPost } from './types.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 // BlogTagPageProps defines the props for BlogTagPage.
 export interface BlogTagPageProps {
   tag: string
@@ -27,7 +37,7 @@ export function BlogTagPage({ tag, posts }: BlogTagPageProps) {
           onClick={navigateBlog}
           className="text-foreground-alt/60 hover:text-foreground flex cursor-pointer items-center gap-2 text-xs font-medium transition-colors"
         >
-          <LuArrowLeft className="size-3.5" />
+          <LuArrowLeft sx={stylexStyles.rule1} />
           All posts
         </button>
       </div>

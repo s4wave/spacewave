@@ -1,3 +1,6 @@
+import * as ownerStylex from '@stylexjs/stylex'
+import { cn as ownerClasses } from '@s4wave/web/style/utils.js'
+import { groupMarker as ownergroupMarker } from '@s4wave/web/style/relations.stylex.js'
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import {
   LuArrowRight,
@@ -29,6 +32,46 @@ import {
 import { completeAndDismissLocalSessionOnboardingProviderChoice } from '@s4wave/app/session/setup/local-session-onboarding-state.js'
 
 import type { SetupWizardState } from '@s4wave/app/session/setup/useSetupWizard.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: themeColors['--color-foreground-alt'],
+    transitionProperty: 'transform, translate, scale, rotate',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.2s',
+    '--tw-duration': '.2s',
+  },
+  rule3: { rotate: '180deg' },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-brand'],
+  },
+  rule5: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground'],
+  },
+  rule6: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
 
 // SetupWizard dispatches to the cloud or local variant based on
 // the session's provider ID.
@@ -76,7 +119,10 @@ function SetupWizardWithOnboarding({
 type ExpandedCard = 'backup' | 'pin' | null
 
 const setupActionButtonClass = cn(
-  'group w-full rounded-md border transition-all duration-300',
+  ownerClasses(
+    'group w-full rounded-md border transition-all duration-300',
+    ownerStylex.props(ownergroupMarker).className,
+  ),
   'border-brand/30 bg-brand/10 hover:bg-brand/20',
   'disabled:cursor-not-allowed disabled:opacity-50',
   'flex h-10 items-center justify-center gap-2',
@@ -167,7 +213,7 @@ function LocalSetupWizard({
           )}
         >
           Continue to app
-          <LuArrowRight className="size-4" />
+          <LuArrowRight sx={stylexStyles.rule1} />
         </button>
       </div>
     </div>
@@ -221,10 +267,7 @@ function CollapsibleSetupCard({
           )}
         </div>
         <LuChevronDown
-          className={cn(
-            'text-foreground-alt size-4 shrink-0 transition-transform duration-200',
-            expanded && 'rotate-180',
-          )}
+          sx={[stylexStyles.rule2, !!expanded && stylexStyles.rule3]}
         />
       </button>
       {expanded && (
@@ -259,8 +302,8 @@ function BackupKeyCard({
       done={wiz.backupComplete}
       expanded={expanded}
       onToggle={onToggle}
-      icon={<LuShieldCheck className="text-brand size-4" />}
-      doneIcon={<LuCheck className="text-brand size-4" />}
+      icon={<LuShieldCheck sx={stylexStyles.rule4} />}
+      doneIcon={<LuCheck sx={stylexStyles.rule4} />}
       title="Download a backup key"
       subtitle="Second way to recover your account"
       doneSubtitle="Backup key saved"
@@ -282,7 +325,7 @@ function BackupKeyCard({
         disabled={wiz.downloading || !wiz.accountReady || !wiz.password}
         className={setupActionButtonClass}
       >
-        <LuDownload className="text-foreground size-4" />
+        <LuDownload sx={stylexStyles.rule5} />
         <span className="text-foreground text-sm">
           {wiz.downloading ? 'Generating key…' : 'Download backup .pem'}
         </span>
@@ -363,8 +406,8 @@ function PinLockCard({
       done={wiz.lockComplete}
       expanded={expanded}
       onToggle={onToggle}
-      icon={<LuLock className="text-brand size-4" />}
-      doneIcon={<LuCheck className="text-brand size-4" />}
+      icon={<LuLock sx={stylexStyles.rule4} />}
+      doneIcon={<LuCheck sx={stylexStyles.rule4} />}
       title="Set a PIN lock"
       subtitle="Require a PIN each time you open the app"
       doneSubtitle="PIN lock enabled"
@@ -373,14 +416,14 @@ function PinLockCard({
         <RadioOption
           selected={wiz.lockMode === 'auto'}
           onSelect={() => wiz.setLockMode('auto')}
-          icon={<LuLockOpen className="size-4" />}
+          icon={<LuLockOpen sx={stylexStyles.rule1} />}
           label="Auto-unlock"
           description="Key stored on disk. No PIN needed."
         />
         <RadioOption
           selected={wiz.lockMode === 'pin'}
           onSelect={() => wiz.setLockMode('pin')}
-          icon={<LuLock className="size-4" />}
+          icon={<LuLock sx={stylexStyles.rule1} />}
           label="PIN lock"
           description="Enter PIN on each app launch."
         />
@@ -396,7 +439,7 @@ function PinLockCard({
         <span className="text-foreground text-sm">
           {wiz.saving ? 'Saving…' : 'Set lock mode'}
         </span>
-        {!wiz.saving && <LuArrowRight className="text-foreground-alt size-4" />}
+        {!wiz.saving && <LuArrowRight sx={stylexStyles.rule6} />}
       </button>
     </CollapsibleSetupCard>
   )

@@ -27,6 +27,27 @@ import {
   validateUnixFSMove,
 } from './move.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: themeColors['--color-file-folder-icon'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: themeColors['--color-brand'],
+  },
+})
+
 export interface UnixFSMoveDialogProps {
   rootHandle: FSHandle
   moveItems: UnixFSMoveItem[]
@@ -168,12 +189,10 @@ export function UnixFSMoveDialog({
                               '--docs-tree-padding-left': `${dir.depth * 12}px`,
                             }}
                           >
-                            <LuFolder className="text-file-folder-icon size-3.5 shrink-0" />
+                            <LuFolder sx={stylexStyles.rule1} />
                             <span className="truncate">{dir.name}</span>
                           </div>
-                          {isSelected && (
-                            <LuCheck className="text-brand size-3.5 shrink-0" />
-                          )}
+                          {isSelected && <LuCheck sx={stylexStyles.rule2} />}
                         </CommandItem>
                       )
                     })}

@@ -10,6 +10,20 @@ import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
 import { RadioOption } from '@s4wave/web/ui/RadioOption.js'
 import { SessionLockMode } from '@s4wave/core/session/session.pb.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 export interface SessionLockSectionProps {
   // embedded hides the section heading and outer wrapper when rendered inside
   // a parent CollapsibleSection.
@@ -92,14 +106,14 @@ export function SessionLockSection({ embedded }: SessionLockSectionProps) {
             <RadioOption
               selected={displayMode === 'auto'}
               onSelect={() => setSelectedMode('auto')}
-              icon={<LuLockOpen className="size-4" />}
+              icon={<LuLockOpen sx={stylexStyles.rule1} />}
               label="Auto-unlock"
               description="Key stored on disk. No PIN needed."
             />
             <RadioOption
               selected={displayMode === 'pin'}
               onSelect={() => setSelectedMode('pin')}
-              icon={<LuLock className="size-4" />}
+              icon={<LuLock sx={stylexStyles.rule1} />}
               label="PIN lock"
               description="Key encrypted with PIN. Enter PIN on each app launch."
             />
@@ -168,7 +182,7 @@ export function SessionLockSection({ embedded }: SessionLockSectionProps) {
     <section>
       <div className="mb-2 flex items-center justify-between">
         <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-          <LuLock className="size-3.5" />
+          <LuLock sx={stylexStyles.rule2} />
           Session Lock
         </h2>
       </div>

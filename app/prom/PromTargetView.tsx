@@ -13,6 +13,20 @@ import {
 } from './prom-view.js'
 import type { TargetAction, TargetState } from './target-state.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 // actionLabels are the approval buttons' labels.
 const actionLabels: Record<Exclude<TargetAction, null>, string> = {
   'scrape-here': 'Scrape from this Device',
@@ -56,7 +70,7 @@ export function PromTargetView({
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
       <header className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-4">
-        <LuActivity className="text-foreground-alt size-3.5" aria-hidden />
+        <LuActivity sx={stylexStyles.rule1} aria-hidden />
         <span className="text-foreground text-sm font-semibold tracking-tight">
           {targetName(objectKey)}
         </span>

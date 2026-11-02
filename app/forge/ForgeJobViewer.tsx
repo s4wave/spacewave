@@ -39,6 +39,38 @@ import { useForgeDecodedLinkedEntities } from './useForgeDecodedLinkedEntities.j
 import { useForgeTaskDependencyGraph } from './useForgeTaskDependencyGraph.js'
 import { useVisibleObjectWizardTypeSet } from '../space/useVisibleObjectWizardTypeSet.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    flexShrink: 0,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule5: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 export const ForgeJobTypeID = 'forge/job'
 
 const jobStateLabels: Record<number, string> = {
@@ -140,7 +172,7 @@ export function ForgeJobViewer({
           <ForgeEntityList
             entities={tasks}
             loading
-            icon={<LuListTodo className="size-3 shrink-0" />}
+            icon={<LuListTodo sx={stylexStyles.rule1} />}
             loadingLabel="Loading tasks..."
             emptyLabel="No tasks in job"
           />
@@ -151,7 +183,7 @@ export function ForgeJobViewer({
           <ForgeEntityList
             entities={tasks}
             loading={tasksLoading}
-            icon={<LuListTodo className="size-3 shrink-0" />}
+            icon={<LuListTodo sx={stylexStyles.rule1} />}
             loadingLabel="Loading tasks..."
             emptyLabel="No tasks in job"
           />
@@ -187,7 +219,7 @@ export function ForgeJobViewer({
       return (
         <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
           <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
-            <LuGitBranch className="size-3.5 shrink-0" />
+            <LuGitBranch sx={stylexStyles.rule2} />
             <span>Loading dependency graph…</span>
           </div>
         </div>
@@ -197,7 +229,7 @@ export function ForgeJobViewer({
       return (
         <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
           <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
-            <LuListTodo className="size-3.5 shrink-0" />
+            <LuListTodo sx={stylexStyles.rule2} />
             <span>No tasks in job</span>
           </div>
         </div>
@@ -207,7 +239,7 @@ export function ForgeJobViewer({
       return (
         <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
           <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
-            <LuGitBranch className="size-3.5 shrink-0" />
+            <LuGitBranch sx={stylexStyles.rule2} />
             <span>No task dependency edges defined yet</span>
           </div>
         </div>
@@ -225,7 +257,7 @@ export function ForgeJobViewer({
               className="border-foreground/6 bg-background-card/30 rounded-lg border px-3.5 py-2.5"
             >
               <div className="text-foreground flex items-center gap-2 text-sm font-medium">
-                <LuGitBranch className="size-3.5" />
+                <LuGitBranch sx={stylexStyles.rule3} />
                 <span>{fromTask?.data.name || edge.from}</span>
                 <span className="text-foreground-alt/50 text-xs">-&gt;</span>
                 <span>{toTask?.data.name || edge.to}</span>
@@ -268,7 +300,7 @@ export function ForgeJobViewer({
               </div>
             </InfoCard>
             <InfoCard
-              icon={<LuListTodo className="text-foreground-alt/60 size-3.5" />}
+              icon={<LuListTodo sx={stylexStyles.rule4} />}
               title="Tasks"
             >
               <div className="text-foreground text-2xl font-semibold">
@@ -304,7 +336,7 @@ export function ForgeJobViewer({
                       : 'text-foreground-alt/60 hover:text-foreground hover:bg-foreground/5 border-transparent',
                   )}
                 >
-                  <LuList className="size-3.5" />
+                  <LuList sx={stylexStyles.rule3} />
                   List
                 </button>
                 <button
@@ -317,13 +349,13 @@ export function ForgeJobViewer({
                       : 'text-foreground-alt/60 hover:text-foreground hover:bg-foreground/5 border-transparent',
                   )}
                 >
-                  <LuGitBranch className="size-3.5" />
+                  <LuGitBranch sx={stylexStyles.rule3} />
                   DAG
                 </button>
               </div>
               {canCreateTask && (
                 <DashboardButton
-                  icon={<LuPlus className="size-3.5" />}
+                  icon={<LuPlus sx={stylexStyles.rule3} />}
                   onClick={() => {
                     void handleAddTask()
                   }}
@@ -356,7 +388,7 @@ export function ForgeJobViewer({
   return (
     <ForgeViewerShell
       stateKey={objectKey}
-      icon={<LuBriefcase className="size-4" />}
+      icon={<LuBriefcase sx={stylexStyles.rule5} />}
       title="Job"
       state={job?.jobState ?? 0}
       stateLabels={jobStateLabels}

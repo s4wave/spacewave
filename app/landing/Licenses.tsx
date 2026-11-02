@@ -15,6 +15,38 @@ import {
 import { ExternalLink } from './ExternalLink.js'
 import { LegalPageLayout } from './LegalPageLayout.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+  },
+  rule4: {
+    pointerEvents: 'none',
+    position: 'absolute',
+    top: '50%',
+    left: `calc(${themeLayout['--spacing']} * 3)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    '--tw-translate-y': 'calc(calc(1 / 2 * 100%) * -1)',
+    translate: 'var(--tw-translate-x) var(--tw-translate-y)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+})
+
 export const metadata = {
   title: 'Open Source Licenses - Spacewave',
   description:
@@ -77,9 +109,9 @@ function LicenseGroup({
           >
             {showBase ? 'Hide' : 'Show'} license text
             {showBase ? (
-              <LuChevronDown className="size-3" />
+              <LuChevronDown sx={stylexStyles.rule1} />
             ) : (
-              <LuChevronRight className="size-3" />
+              <LuChevronRight sx={stylexStyles.rule1} />
             )}
           </button>
         )}
@@ -116,9 +148,9 @@ function LicenseGroup({
                     className="text-foreground-alt/60 hover:text-foreground-alt cursor-pointer transition-colors"
                   >
                     {isExpanded ? (
-                      <LuChevronDown className="size-3.5" />
+                      <LuChevronDown sx={stylexStyles.rule2} />
                     ) : (
-                      <LuChevronRight className="size-3.5" />
+                      <LuChevronRight sx={stylexStyles.rule2} />
                     )}
                   </button>
                 )}
@@ -268,7 +300,7 @@ export function Licenses() {
 
   return (
     <LegalPageLayout
-      icon={<LuScale className="size-10" />}
+      icon={<LuScale sx={stylexStyles.rule3} />}
       title="Open Source Licenses"
       subtitle="Spacewave is built with open source software. This page lists all third-party dependencies and their licenses."
     >
@@ -282,7 +314,7 @@ export function Licenses() {
           </div>
 
           <div className="relative">
-            <LuSearch className="text-foreground-alt/40 pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2" />
+            <LuSearch sx={stylexStyles.rule4} />
             <input
               aria-label="Filter packages"
               type="text"

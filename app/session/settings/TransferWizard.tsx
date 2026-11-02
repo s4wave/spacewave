@@ -28,6 +28,48 @@ import type { SpaceSoListEntry } from '@s4wave/core/space/space.pb.js'
 import type { Session } from '@s4wave/sdk/session/session.js'
 import { usePromise } from '@s4wave/web/hooks/usePromise.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-brand'],
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule5: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-brand'],
+  },
+  rule6: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-destructive'],
+  },
+  rule7: {
+    width: `calc(${themeLayout['--spacing']} * 6)`,
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+    color: themeColors['--color-brand'],
+  },
+})
+
 // WizardStep defines the steps in the transfer wizard.
 type WizardStep = 'select' | 'inventory' | 'progress' | 'complete'
 
@@ -256,7 +298,7 @@ function TransferWizardSteps({
           disabled={shownStep === 'progress' || shownStep === 'complete'}
           className="text-foreground-alt hover:text-foreground mb-6 flex items-center gap-1.5 text-sm transition-colors disabled:opacity-50"
         >
-          <LuArrowLeft className="size-4" />
+          <LuArrowLeft sx={stylexStyles.rule1} />
           {shownStep === 'select' ? 'Back to dashboard' : 'Back'}
         </button>
 
@@ -445,7 +487,7 @@ function WizardAction({
           className={wizardPrimaryActionClass}
         >
           Next
-          <LuArrowRight className="size-3.5" />
+          <LuArrowRight sx={stylexStyles.rule2} />
         </button>
       )
     case 'inventory':
@@ -456,7 +498,7 @@ function WizardAction({
           disabled={!hasSelection}
           className={wizardPrimaryActionClass}
         >
-          <LuMerge className="size-3.5" />
+          <LuMerge sx={stylexStyles.rule2} />
           Start Transfer
         </button>
       )
@@ -471,7 +513,7 @@ function WizardAction({
             'hover:bg-destructive/10',
           )}
         >
-          <LuX className="size-3.5" />
+          <LuX sx={stylexStyles.rule2} />
           Cancel
         </button>
       )
@@ -482,7 +524,7 @@ function WizardAction({
           onClick={onComplete}
           className={wizardPrimaryActionClass}
         >
-          <LuCheck className="size-3.5" />
+          <LuCheck sx={stylexStyles.rule2} />
           Go to Session
         </button>
       )
@@ -561,21 +603,21 @@ function SelectStep({
           <RadioOption
             selected={mode === TransferMode.TransferMode_MERGE}
             onSelect={() => onModeChange(TransferMode.TransferMode_MERGE)}
-            icon={<LuMerge className="size-4" />}
+            icon={<LuMerge sx={stylexStyles.rule1} />}
             label="Merge"
             description="Move all spaces to the target and delete the source session"
           />
           <RadioOption
             selected={mode === TransferMode.TransferMode_MIGRATE}
             onSelect={() => onModeChange(TransferMode.TransferMode_MIGRATE)}
-            icon={<LuMoveRight className="size-4" />}
+            icon={<LuMoveRight sx={stylexStyles.rule1} />}
             label="Migrate"
             description="Move all spaces to a different provider and transfer the keypair"
           />
           <RadioOption
             selected={mode === TransferMode.TransferMode_MIRROR}
             onSelect={() => onModeChange(TransferMode.TransferMode_MIRROR)}
-            icon={<LuCopy className="size-4" />}
+            icon={<LuCopy sx={stylexStyles.rule1} />}
             label="Mirror"
             description="Copy all spaces to the target without deleting the source"
           />
@@ -638,9 +680,9 @@ function InventoryStep({
             >
               <div className="flex size-8 shrink-0 items-center justify-center rounded">
                 {checked ? (
-                  <LuSquareCheck className="text-brand size-5" />
+                  <LuSquareCheck sx={stylexStyles.rule3} />
                 ) : (
-                  <LuSquare className="text-foreground-alt size-5" />
+                  <LuSquare sx={stylexStyles.rule4} />
                 )}
               </div>
               <p className="text-foreground text-sm">{name}</p>
@@ -706,10 +748,10 @@ function ProgressStep({
             <Spinner variant="brand" />
           )}
         {phase === TransferPhase.TransferPhase_COMPLETE && (
-          <LuCheck className="text-brand size-4" />
+          <LuCheck sx={stylexStyles.rule5} />
         )}
         {phase === TransferPhase.TransferPhase_FAILED && (
-          <LuX className="text-destructive size-4" />
+          <LuX sx={stylexStyles.rule6} />
         )}
         <p className="text-foreground text-sm font-medium">
           {phaseLabel(phase)}
@@ -759,7 +801,7 @@ function CompleteStep({ spaceCount }: { spaceCount: number }) {
   return (
     <div className="flex flex-col items-center py-6">
       <div className="bg-brand/10 mb-4 flex size-12 items-center justify-center rounded-full">
-        <LuCheck className="text-brand size-6" />
+        <LuCheck sx={stylexStyles.rule7} />
       </div>
       <p className="text-foreground text-sm font-medium">Transfer complete</p>
       <p className="text-foreground-alt mt-1 text-xs">

@@ -13,6 +13,83 @@ import { SpaceBackfillSection } from './SpaceBackfillSection.js'
 import { SpaceControlSection } from './SpaceControlSection.js'
 import { SpaceSyncSection } from './SpaceSyncSection.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+import { groupMarker } from '../../web/style/relations.stylex.js'
+
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../../web/style/tokens.stylex.js'
+import { groupMarker as groupMarker2 } from '../../web/style/relations.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'flex',
+    width: '100%',
+    cursor: 'pointer',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+      },
+    },
+    padding: `calc(${themeLayout['--spacing']} * 2.5)`,
+    textAlign: 'left',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker)]:
+          themeColors['--color-brand'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+})
+
 interface SpaceSettingsEditorProps {
   canEdit: boolean
   canRename: boolean
@@ -71,7 +148,7 @@ export function SpaceSettingsEditor({
       {!embedded && (
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-            <LuSettings className="size-3.5" />
+            <LuSettings sx={stylexStyles.rule1} />
             Settings
           </h2>
         </div>
@@ -98,7 +175,7 @@ export function SpaceSettingsEditor({
                   {displayName || 'Untitled'}
                 </button>
                 <DashboardButton
-                  icon={<LuPencil className="size-3" />}
+                  icon={<LuPencil sx={stylexStyles.rule2} />}
                   onClick={() => onRenameStart()}
                 >
                   Rename
@@ -134,7 +211,7 @@ export function SpaceSettingsEditor({
       <SpaceBackfillSection />
       <button
         type="button"
-        className="border-foreground/10 bg-foreground/5 hover:border-brand/30 hover:bg-brand/5 group mt-2 flex w-full cursor-pointer items-center gap-3 rounded-md border p-2.5 text-left transition-colors"
+        sx={[stylexStyles2.rule1, groupMarker2]}
         onClick={() =>
           invokeCommand('spacewave.preferences.keyboard-shortcuts', {
             scope: 'space',
@@ -142,7 +219,7 @@ export function SpaceSettingsEditor({
         }
       >
         <div className="bg-foreground/10 group-hover:bg-brand/10 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors">
-          <LuKeyboard className="text-foreground-alt group-hover:text-brand size-3.5 transition-colors" />
+          <LuKeyboard sx={stylexStyles.rule3} />
         </div>
         <div className="flex min-w-0 flex-1 flex-col">
           <h4 className="text-foreground text-xs font-medium select-none">

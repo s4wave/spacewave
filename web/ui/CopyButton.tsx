@@ -101,24 +101,20 @@ function CopyButtonIcon({
     <>
       {status === 'copied' ? (
         <LuCheck
-          {...stylex.props([
+          sx={[
             size === 'md' ? stylexStyles.rule6 : stylexStyles.rule7,
             stylexStyles.rule8,
-          ])}
+          ]}
         />
       ) : status === 'error' ? (
         <LuTriangleAlert
-          {...stylex.props([
+          sx={[
             size === 'md' ? stylexStyles.rule6 : stylexStyles.rule7,
             stylexStyles.rule9,
-          ])}
+          ]}
         />
       ) : (
-        <LuCopy
-          {...stylex.props(
-            size === 'md' ? stylexStyles.rule6 : stylexStyles.rule7,
-          )}
-        />
+        <LuCopy sx={size === 'md' ? stylexStyles.rule6 : stylexStyles.rule7} />
       )}
     </>
   )

@@ -15,6 +15,16 @@ import type { Account } from '@s4wave/sdk/account/account.js'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useAccountDashboardState } from './AccountDashboardStateContext.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 export interface SecurityLevelSectionProps {
   account: Resource<Account>
   retainStepUp?: boolean
@@ -167,7 +177,7 @@ function SecurityLevelSectionContent({
     <section>
       <div className="mb-2 flex items-center justify-between">
         <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-          <LuShield className="size-3.5" />
+          <LuShield sx={stylexStyles.rule1} />
           Security Level
         </h2>
       </div>

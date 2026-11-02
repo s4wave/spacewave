@@ -5,6 +5,16 @@ import { LuList } from '@s4wave/web/images/icons.js'
 
 import type { NoteFileFormat } from '../note-files.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 interface TocHeading {
   level: number
   text: string
@@ -81,7 +91,7 @@ function DocsToc({ content, format }: DocsTocProps) {
   return (
     <div ref={containerRef} className="flex h-full flex-col overflow-y-auto">
       <div className="text-foreground-alt border-border flex items-center gap-1.5 border-b px-3 py-2 text-xs font-medium tracking-wide uppercase">
-        <LuList className="size-3" />
+        <LuList sx={stylexStyles.rule1} />
         On this page
       </div>
       <nav className="flex-1 overflow-y-auto py-1">

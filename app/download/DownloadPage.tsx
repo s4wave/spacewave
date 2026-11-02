@@ -14,6 +14,16 @@ import { PlatformSection } from './PlatformSection.js'
 import { PrimaryDownloadButton } from './PrimaryDownloadButton.js'
 import { WindowsBypassNotice } from './WindowsBypassNotice.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 6)`,
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+})
+
 export const metadata = {
   title: 'Download Spacewave',
   description:
@@ -87,7 +97,7 @@ export function DownloadPage({ cliOnly = false }: { cliOnly?: boolean }) {
 
   return (
     <LegalPageLayout
-      icon={<LuDownload className="size-6" />}
+      icon={<LuDownload sx={stylexStyles.rule1} />}
       title={cliOnly ? 'Download Spacewave CLI' : 'Download Spacewave'}
       subtitle={
         cliOnly

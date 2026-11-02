@@ -26,6 +26,30 @@ import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import type { Session } from '@s4wave/sdk/session/session.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    flexShrink: 0,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 const roleLabels: Record<number, string> = {
   [SOParticipantRole.SOParticipantRole_OWNER]: 'Owner',
   [SOParticipantRole.SOParticipantRole_WRITER]: 'Writer',
@@ -335,7 +359,7 @@ export function SpaceMembersPanel({ compact = false }: SpaceMembersPanelProps) {
 
       {empty && (
         <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
-          <LuUsers className="size-3.5 shrink-0" />
+          <LuUsers sx={stylexStyles.rule1} />
           <span>No users added yet</span>
         </div>
       )}
@@ -404,7 +428,7 @@ function MemberRow(props: {
       data-testid="space-member-row"
       data-member-id={props.memberId}
     >
-      <LuShield className="text-foreground-alt/40 size-3 shrink-0" />
+      <LuShield sx={stylexStyles.rule2} />
       <div className="min-w-0 flex-1">
         <div
           className="text-foreground truncate text-xs font-medium"
@@ -441,7 +465,11 @@ function MemberRow(props: {
           className="text-foreground-alt/40 hover:text-destructive cursor-pointer transition-colors disabled:opacity-50"
           data-testid="space-member-remove"
         >
-          {props.removing ? <Spinner size="sm" /> : <LuX className="size-3" />}
+          {props.removing ? (
+            <Spinner size="sm" />
+          ) : (
+            <LuX sx={stylexStyles.rule3} />
+          )}
         </button>
       )}
     </div>
@@ -479,7 +507,7 @@ function InviteRow(props: {
           {props.revoking ? (
             <Spinner size="sm" />
           ) : (
-            <LuTrash2 className="size-3" />
+            <LuTrash2 sx={stylexStyles.rule3} />
           )}
         </button>
       )}
@@ -525,7 +553,7 @@ function PendingRequestRow(props: {
             onClick={props.onAccept}
             className="text-foreground-alt/40 cursor-pointer transition-colors hover:text-green-500"
           >
-            <LuCheck className="size-3" />
+            <LuCheck sx={stylexStyles.rule3} />
           </button>
           <button
             type="button"
@@ -533,7 +561,7 @@ function PendingRequestRow(props: {
             onClick={props.onReject}
             className="text-foreground-alt/40 hover:text-destructive cursor-pointer transition-colors"
           >
-            <LuX className="size-3" />
+            <LuX sx={stylexStyles.rule3} />
           </button>
         </>
       )}

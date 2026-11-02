@@ -9,6 +9,16 @@ import { cn } from '@s4wave/web/style/utils.js'
 
 import { UseCasePage } from './use-case/UseCasePage.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+  },
+})
+
 export const metadata = {
   title: 'Spacewave CLI - Your Spaces from the terminal.',
   description:
@@ -65,7 +75,7 @@ export function LandingCli() {
 
   return (
     <UseCasePage
-      icon={<LuTerminal className="size-8" />}
+      icon={<LuTerminal sx={stylexStyles.rule1} />}
       title="Your Spaces from the terminal."
       subtitle="The spacewave command runs the same runtime as the app. It starts its daemon on first use, so every command works from a shell, a script or a headless server."
       points={[

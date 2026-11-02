@@ -221,8 +221,52 @@ export function prepareComponentStyles(
     })
   }
 
+  // Explicit function types expose sx even when a factory creates the component value.
+  const styledTypes = new Set<string>()
+  for (const item of ast.program.body) {
+    const declaration =
+      item.type === 'ExportNamedDeclaration' ? item.declaration : item
+    if (
+      declaration?.type !== 'TSTypeAliasDeclaration' ||
+      declaration.typeAnnotation.type !== 'TSFunctionType'
+    )
+      continue
+    const type = declaration.typeAnnotation.parameters[0]?.typeAnnotation
+    if (type?.type !== 'TSTypeAnnotation') continue
+    const input = type.typeAnnotation
+    const parts = input.type === 'TSIntersectionType' ? input.types : [input]
+    if (
+      parts.some(
+        (part) =>
+          part.type === 'TSTypeLiteral' &&
+          part.members.some(
+            (member) =>
+              member.type === 'TSPropertySignature' &&
+              member.key.type === 'Identifier' &&
+              member.key.name === 'sx',
+          ),
+      )
+    )
+      styledTypes.add(declaration.id.name)
+  }
+
   // Collect owned JSX imports and reserve every existing local identifier.
   traverse(ast, {
+    VariableDeclarator(path) {
+      const id = path.node.id
+      const type =
+        id.type === 'Identifier' &&
+        id.typeAnnotation?.type === 'TSTypeAnnotation'
+          ? id.typeAnnotation.typeAnnotation
+          : undefined
+      if (
+        id.type === 'Identifier' &&
+        type?.type === 'TSTypeReference' &&
+        type.typeName.type === 'Identifier' &&
+        styledTypes.has(type.typeName.name)
+      )
+        components.add(id.name)
+    },
     Identifier(path) {
       identifiers.add(path.node.name)
     },

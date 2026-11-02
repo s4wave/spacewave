@@ -1,3 +1,4 @@
+import type { IconType } from '@s4wave/web/images/icons.js'
 import React, { useCallback, useState } from 'react'
 import { isDesktop } from '@aptre/bldr'
 import {
@@ -30,6 +31,78 @@ import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { useOptionalLocalSessionOnboardingContext } from '@s4wave/app/session/setup/LocalSessionOnboardingContext.js'
 import { SPACEWAVE_PUBLIC_BASE_URL } from '@s4wave/app/urls.js'
 import type { Session } from '@s4wave/sdk/session/session.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+} from '../../../web/style/tokens.stylex.js'
+import { groupMarker } from '../../../web/style/relations.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+  },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-brand'],
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 6)`,
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule3: {
+    marginLeft: 'auto',
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-brand'],
+  },
+})
 
 type LinkStep =
   | 'choose'
@@ -258,7 +331,7 @@ function UnsupportedLinkStep({
     <div className="space-y-4">
       <div className="flex flex-col items-center gap-3">
         <div className="bg-foreground/5 flex size-12 items-center justify-center rounded-full">
-          <LuMonitor className="text-foreground-alt size-6" />
+          <LuMonitor sx={stylexStyles.rule1} />
         </div>
         <h2 className="text-foreground text-sm font-medium">
           Device linking unavailable
@@ -278,7 +351,7 @@ function UnsupportedLinkStep({
         )}
       >
         <span className="text-foreground text-sm">{buttonLabel}</span>
-        <LuArrowRight className="text-foreground-alt size-4" />
+        <LuArrowRight sx={stylexStyles.rule2} />
       </button>
     </div>
   )
@@ -378,7 +451,7 @@ function OptionGroup({ label, children }: OptionGroupProps) {
 }
 
 interface ChooseOptionProps {
-  icon: React.ComponentType<{ className?: string }>
+  icon: IconType
   label: string
   description: string
   recommended?: boolean
@@ -404,7 +477,7 @@ function ChooseOption({
       )}
     >
       <div className="bg-brand/10 flex size-9 shrink-0 items-center justify-center rounded-lg">
-        <Icon className="text-brand size-4" />
+        <Icon sx={stylexStyles2.rule1} />
       </div>
       <div className="min-w-0">
         <div className="flex items-center gap-2">
@@ -417,7 +490,7 @@ function ChooseOption({
         </div>
         <p className="text-foreground-alt text-xs">{description}</p>
       </div>
-      <LuArrowRight className="text-foreground-alt ml-auto size-4 shrink-0" />
+      <LuArrowRight sx={stylexStyles.rule3} />
     </button>
   )
 }
@@ -432,7 +505,7 @@ function DownloadStep({ onContinue, onBack }: DownloadStepProps) {
     <div className="space-y-4">
       <div className="flex items-start gap-3">
         <div className="bg-brand/10 flex size-10 shrink-0 items-center justify-center rounded-lg">
-          <LuMonitor className="text-brand size-5" />
+          <LuMonitor sx={stylexStyles.rule4} />
         </div>
         <div>
           <h2 className="text-foreground text-sm font-medium">
@@ -460,14 +533,10 @@ function DownloadStep({ onContinue, onBack }: DownloadStepProps) {
       <button
         type="button"
         onClick={onContinue}
-        className={cn(
-          'group w-full rounded-md border transition-all duration-300',
-          'border-brand/30 bg-brand/10 hover:bg-brand/20',
-          'flex h-10 items-center justify-center gap-2',
-        )}
+        sx={[[stylexStyles3.rule1, groupMarker]]}
       >
         <span className="text-foreground text-sm">I have the desktop app</span>
-        <LuArrowRight className="text-foreground-alt size-4" />
+        <LuArrowRight sx={stylexStyles.rule2} />
       </button>
 
       <button

@@ -10,6 +10,34 @@ import { Facts } from './Facts.js'
 import { formatCount } from './format.js'
 import type { DirectiveGroup, PluginView } from './useSystemModel.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    transitionProperty: 'transform, translate, scale, rotate',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+  },
+  rule3: { rotate: '90deg' },
+  rule4: { visibility: 'hidden' },
+})
+
 // RuntimeView selects which runtime listing the inspector shows.
 export type RuntimeView = 'plugins' | 'controllers' | 'directives'
 
@@ -113,10 +141,7 @@ export function RuntimeInspector({
         </div>
 
         <label className="border-foreground/8 bg-background-card/30 focus-within:border-brand/40 flex min-w-48 flex-1 items-center gap-2 rounded-md border px-2.5 py-1.5">
-          <LuSearch
-            className="text-foreground-alt/50 size-3.5 shrink-0"
-            aria-hidden="true"
-          />
+          <LuSearch sx={stylexStyles.rule1} aria-hidden="true" />
           <span className="sr-only">Filter runtime listing</span>
           <input
             type="search"
@@ -280,11 +305,11 @@ function ControllerRow({ group }: { group: ControllerGroup }) {
   const label = (
     <>
       <LuChevronRight
-        className={cn(
-          'text-foreground-alt/50 size-3.5 shrink-0 transition-transform duration-150',
-          open && 'rotate-90',
-          !store && 'invisible',
-        )}
+        sx={[
+          stylexStyles.rule2,
+          !!open && stylexStyles.rule3,
+          !store && stylexStyles.rule4,
+        ]}
         aria-hidden="true"
       />
       <span className="text-foreground min-w-0 flex-1 truncate font-mono">
@@ -469,10 +494,7 @@ function PluginRow({ plugin }: { plugin: PluginView }) {
         className="hover:bg-foreground/[0.03] focus-visible:bg-foreground/[0.04] flex w-full items-center gap-3 px-4 py-2 text-left text-xs outline-none"
       >
         <LuChevronRight
-          className={cn(
-            'text-foreground-alt/50 size-3.5 shrink-0 transition-transform duration-150',
-            open && 'rotate-90',
-          )}
+          sx={[stylexStyles.rule2, !!open && stylexStyles.rule3]}
           aria-hidden="true"
         />
         <span className="text-foreground min-w-0 flex-1 truncate font-mono">
@@ -618,10 +640,7 @@ function DirectiveRow({
         className="hover:bg-foreground/[0.03] focus-visible:bg-foreground/[0.04] flex w-full items-center gap-3 px-4 py-2 text-left text-xs outline-none"
       >
         <LuChevronRight
-          className={cn(
-            'text-foreground-alt/50 size-3.5 shrink-0 transition-transform duration-150',
-            open && 'rotate-90',
-          )}
+          sx={[stylexStyles.rule2, !!open && stylexStyles.rule3]}
           aria-hidden="true"
         />
         <span className="text-foreground min-w-0 flex-1 truncate font-mono">

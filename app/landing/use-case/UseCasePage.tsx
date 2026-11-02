@@ -1,4 +1,5 @@
-import type { ComponentType, ReactElement, ReactNode } from 'react'
+import type { IconType } from '@s4wave/web/images/icons.js'
+import type { ReactElement, ReactNode } from 'react'
 
 import { LegalPageLayout } from '../LegalPageLayout.js'
 import { UseCaseCtaLink, UseCaseCtaRow } from '../UseCaseCtaRow.js'
@@ -13,7 +14,7 @@ export interface UseCasePoint {
 export interface UseCaseAction {
   href: string
   label: string
-  icon: ComponentType<{ className?: string }>
+  icon: IconType
 }
 
 // UseCasePageProps configures a use-case landing page.

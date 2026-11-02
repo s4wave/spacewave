@@ -14,6 +14,7 @@ import { useKeybindingEditorContext } from './KeybindingEditorContext.js'
 import { scopeLabels, type KeybindingEditorScope } from './component.js'
 
 import * as stylex from '@stylexjs/stylex'
+import { groupMarker } from '../style/relations.stylex.js'
 import {
   utilityState as themeUtilityState,
   colors as themeColors,
@@ -282,17 +283,11 @@ export function KeybindingCommandList() {
             })}
           </div>
         </div>
-        <details
-          className={/* TODO(stylex): global or unknown class: group */ 'group'}
-        >
+        <details sx={groupMarker}>
           <summary sx={stylexStyles.rule9}>
-            <LuSettings2 {...stylex.props(stylexStyles.rule10)} />
+            <LuSettings2 sx={stylexStyles.rule10} />
             Discovery settings
-            <LuChevronDown
-              className={
-                /* TODO(stylex): a descendant, group, peer or compound selector: group-open:rotate-180 */ 'ml-auto size-3 transition-transform group-open:rotate-180'
-              }
-            />
+            <LuChevronDown sx={disclosureIconStyles.icon} />
           </summary>
           <div sx={stylexStyles.rule11}>
             <KeybindingDiscoverySettings />
@@ -300,7 +295,7 @@ export function KeybindingCommandList() {
         </details>
       </div>
       <label sx={stylexStyles.rule12}>
-        <LuSearch {...stylex.props(stylexStyles.rule13)} />
+        <LuSearch sx={stylexStyles.rule13} />
         <span sx={stylexStyles.rule14}>Search commands or shortcuts</span>
         <input
           ref={searchRef}
@@ -352,3 +347,20 @@ export function KeybindingCommandList() {
     </aside>
   )
 }
+
+const disclosureIconStyles = stylex.create({
+  icon: {
+    marginLeft: 'auto',
+    width: 12,
+    height: 12,
+    transitionProperty: 'transform, translate, scale, rotate',
+    transitionTimingFunction:
+      'var(--tw-ease,var(--default-transition-timing-function))',
+    transitionDuration: 'var(--tw-duration,var(--default-transition-duration))',
+    rotate: {
+      default: null,
+      [stylex.when.ancestor(':is([open],:popover-open,:open)', groupMarker)]:
+        '180deg',
+    },
+  },
+})

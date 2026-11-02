@@ -7,6 +7,16 @@ import { PostList } from './PostList.js'
 import { TagChip } from './TagChip.js'
 import type { BlogPost } from './types.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 // metadata exports SEO metadata for prerender.
 export const metadata = {
   title: 'Blog - Spacewave',
@@ -36,7 +46,7 @@ export function BlogIndex({ posts }: BlogIndexProps) {
         onClick={goHome}
         className="text-foreground-alt hover:text-brand absolute top-4 left-4 z-20 flex items-center gap-2 text-sm transition-colors"
       >
-        <LuArrowLeft className="size-4" />
+        <LuArrowLeft sx={stylexStyles.rule1} />
         <span className="select-none">Back to home</span>
       </button>
 

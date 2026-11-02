@@ -25,6 +25,21 @@ import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
 import { ForgeValueSetPanels } from './ForgeValueSetDisplay.js'
 import { useForgeDecodedLinkedEntities } from './useForgeDecodedLinkedEntities.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    flexShrink: 0,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 export const ForgePassTypeID = 'forge/pass'
 
 const passStateLabels: Record<number, string> = {
@@ -120,7 +135,7 @@ export function ForgePassViewer({
             <ForgeEntityList
               entities={executions}
               loading={executionsLoading || decodedExecutionsLoading}
-              icon={<LuActivity className="size-3 shrink-0" />}
+              icon={<LuActivity sx={stylexStyles.rule1} />}
               loadingLabel="Loading executions..."
               emptyLabel="No executions yet"
             />
@@ -191,7 +206,7 @@ export function ForgePassViewer({
   return (
     <ForgeViewerShell
       stateKey={objectKey}
-      icon={<LuPlay className="size-4" />}
+      icon={<LuPlay sx={stylexStyles.rule2} />}
       title="Pass"
       state={pass?.passState ?? 0}
       stateLabels={passStateLabels}

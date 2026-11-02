@@ -8,6 +8,16 @@ import { AuthScreenLayout } from '@s4wave/app/auth/AuthScreenLayout.js'
 import { PageFooter } from './CloudConfirmationPage.js'
 import { useSpacewaveAuth } from './useSpacewaveAuth.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 // UpgradeLoginPage renders a login form for non-cloud sessions upgrading to cloud.
 // After login or account creation, navigates to the new cloud session's /plan/upgrade
 // to start the Stripe checkout flow.
@@ -35,7 +45,7 @@ export function UpgradeLoginPage() {
           onClick={handleBack}
           className="text-foreground-alt hover:text-brand flex items-center gap-2 text-sm transition-colors"
         >
-          <LuArrowLeft className="size-4" />
+          <LuArrowLeft sx={stylexStyles.rule1} />
           <span className="select-none">Back to plan selection</span>
         </button>
       }

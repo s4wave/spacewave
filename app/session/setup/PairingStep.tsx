@@ -16,6 +16,25 @@ import {
 } from './pairing-copy.js'
 import { usePairingWatch } from './usePairingWatch.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-brand'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 const CODE_TTL_SECONDS = 600
 
 // PairingQRCode renders a QR code encoding the deep link URL for the pairing code.
@@ -143,7 +162,7 @@ function PairingCodeView({
     <div className="border-foreground/20 bg-background-get-started w-full rounded-lg border p-6 shadow-lg backdrop-blur-sm">
       <div className="text-center">
         <div className="mx-auto mb-2 flex size-10 items-center justify-center">
-          <LuLink className="text-brand size-5" />
+          <LuLink sx={stylexStyles.rule1} />
         </div>
         <h2 className="text-foreground text-sm font-medium">Link My Device</h2>
         <p className="text-foreground-alt mt-1 text-xs">
@@ -199,7 +218,7 @@ function PairingCodeView({
             'flex h-10 items-center justify-center gap-2',
           )}
         >
-          <LuRefreshCw className="text-foreground-alt size-4" />
+          <LuRefreshCw sx={stylexStyles.rule2} />
           <span className="text-foreground text-sm">Generate new code</span>
         </button>
       </div>

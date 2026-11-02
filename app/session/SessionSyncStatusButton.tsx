@@ -22,6 +22,34 @@ import {
   useSessionSyncSummary,
 } from './SessionSyncStatusContext.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule2: {
+    position: 'absolute',
+    right: `calc(${themeLayout['--spacing']} * -1)`,
+    bottom: `calc(${themeLayout['--spacing']} * -1)`,
+    width: `calc(${themeLayout['--spacing']} * 2)`,
+    height: `calc(${themeLayout['--spacing']} * 2)`,
+    color: themeColors['--color-brand'],
+  },
+})
+
 // SessionSyncStatusButton registers the session sync-status bottom-bar item.
 // The button follows the sync summary; only the open popover follows the
 // transfer rates.
@@ -76,7 +104,7 @@ function SessionSyncStatusGlyph({ status }: { status: SessionSyncSummary }) {
     return <Spinner size="sm" />
   }
   if (status.error) {
-    return <LuCircleAlert className="size-3.5" aria-hidden="true" />
+    return <LuCircleAlert sx={stylexStyles.rule1} aria-hidden="true" />
   }
   const Icon = status.local ? LuHardDrive : LuCloud
   return (
@@ -84,8 +112,8 @@ function SessionSyncStatusGlyph({ status }: { status: SessionSyncSummary }) {
       className="relative flex size-3.5 items-center justify-center"
       aria-hidden="true"
     >
-      <Icon className="size-3" />
-      <LuCircleCheck className="text-brand absolute -right-1 -bottom-1 size-2" />
+      <Icon sx={stylexStyles2.rule1} />
+      <LuCircleCheck sx={stylexStyles.rule2} />
     </span>
   )
 }

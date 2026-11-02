@@ -21,6 +21,29 @@ import type { Account } from '@s4wave/sdk/account/account.js'
 import type { Session } from '@s4wave/sdk/session/session.js'
 import type { EntityKeypair } from '@s4wave/core/session/session.pb.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 export interface EntityKeypairsSectionProps {
   // embedded hides the section heading and outer wrapper when rendered inside
   // a parent CollapsibleSection.
@@ -97,7 +120,7 @@ export function EntityKeypairsSection({
                 onClick={() => setShowAdd(true)}
                 className="text-brand hover:text-brand/80 flex items-center gap-1 text-xs font-medium transition-colors"
               >
-                <LuPlus className="size-3" />
+                <LuPlus sx={stylexStyles.rule1} />
                 Add keypair
               </button>
             </div>
@@ -123,7 +146,7 @@ export function EntityKeypairsSection({
     <section>
       <div className="mb-2 flex items-center justify-between">
         <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-          <LuKey className="size-3.5" />
+          <LuKey sx={stylexStyles.rule2} />
           Entity Keypairs
         </h2>
       </div>
@@ -235,7 +258,7 @@ function AddKeypairPanel({
             busy && 'cursor-not-allowed opacity-50',
           )}
         >
-          <LuDownload className="size-3" />
+          <LuDownload sx={stylexStyles.rule1} />
           {exporting ? 'Adding…' : 'Add backup key'}
         </button>
       </div>
@@ -275,7 +298,7 @@ function KeypairRow({
   return (
     <div className="flex items-center justify-between gap-2">
       <div className="flex min-w-0 flex-1 items-center gap-2">
-        <LuKey className="text-foreground-alt size-3.5 shrink-0" />
+        <LuKey sx={stylexStyles.rule3} />
         <div className="min-w-0 flex-1">
           <p className="text-foreground truncate text-xs font-medium">
             {truncatePeerId(peerId)}
@@ -294,7 +317,7 @@ function KeypairRow({
           )}
           title="Remove keypair"
         >
-          <LuTrash2 className="size-3" />
+          <LuTrash2 sx={stylexStyles.rule1} />
         </button>
       )}
     </div>

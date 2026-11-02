@@ -107,9 +107,9 @@ export function CopyableField({ label, value }: CopyableFieldProps) {
       >
         <span sx={styles.value}>{value}</span>
         {copied ? (
-          <LuCheck {...stylex.props(styles.copiedIcon)} />
+          <LuCheck sx={styles.copiedIcon} />
         ) : (
-          <LuCopy {...stylex.props(styles.copyIcon)} />
+          <LuCopy sx={styles.copyIcon} />
         )}
       </button>
     </div>

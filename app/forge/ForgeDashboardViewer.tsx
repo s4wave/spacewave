@@ -39,6 +39,51 @@ import { ProcessBindingList } from './ProcessBindingList.js'
 import { useForgeDashboardActivity } from './useForgeDashboardActivity.js'
 import { useVisibleObjectWizardTypeSet } from '../space/useVisibleObjectWizardTypeSet.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-brand'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+  },
+  rule5: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    flexShrink: 0,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule6: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    flexShrink: 0,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule7: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 export const ForgeDashboardTypeID = 'spacewave/forge/dashboard'
 
 // entityTypeLabels maps forge type IDs to display labels.
@@ -247,7 +292,7 @@ export function ForgeDashboardViewer({
     if (canCreateJob) {
       nextActions.push({
         label: openingAction === 'job' ? 'Opening Job…' : 'Create Job',
-        icon: <LuBriefcase className="size-3.5" />,
+        icon: <LuBriefcase sx={stylexStyles.rule1} />,
         variant: 'primary' as const,
         disabled: openingAction !== null,
         onClick: () => {
@@ -259,7 +304,7 @@ export function ForgeDashboardViewer({
       nextActions.push({
         label:
           openingAction === 'cluster' ? 'Opening Cluster…' : 'Create Cluster',
-        icon: <LuServer className="size-3.5" />,
+        icon: <LuServer sx={stylexStyles.rule1} />,
         disabled: openingAction !== null,
         onClick: () => {
           void handleCreateCluster()
@@ -318,7 +363,7 @@ export function ForgeDashboardViewer({
 
             {!worldError && !entitiesLoading && entities.length === 0 && (
               <InfoCard
-                icon={<LuLayoutDashboard className="text-brand size-4" />}
+                icon={<LuLayoutDashboard sx={stylexStyles.rule2} />}
                 title="No Forge work yet"
               >
                 <p className="text-foreground-alt/70 text-xs leading-relaxed">
@@ -348,7 +393,7 @@ export function ForgeDashboardViewer({
 
             {pendingWorkers.length > 0 && (
               <InfoCard
-                icon={<LuPlus className="text-brand size-4" />}
+                icon={<LuPlus sx={stylexStyles.rule2} />}
                 title={
                   pendingWorkers.length === 1
                     ? 'Worker ready to start'
@@ -366,7 +411,7 @@ export function ForgeDashboardViewer({
                   }}
                   className="border-brand/40 bg-brand/10 hover:border-brand/60 hover:bg-brand/15 text-foreground mt-3 inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition duration-150"
                 >
-                  <LuPlus className="size-3.5" />
+                  <LuPlus sx={stylexStyles.rule1} />
                   {pendingWorkers.length === 1
                     ? 'Start worker'
                     : 'Start workers'}
@@ -377,7 +422,7 @@ export function ForgeDashboardViewer({
             {entities.length > 0 && (
               <div className="grid gap-3 lg:grid-cols-2">
                 <InfoCard
-                  icon={<LuBox className="text-foreground-alt/70 size-3.5" />}
+                  icon={<LuBox sx={stylexStyles.rule3} />}
                   title="Entity health"
                 >
                   <div className="space-y-1.5">
@@ -396,14 +441,12 @@ export function ForgeDashboardViewer({
                 </InfoCard>
 
                 <InfoCard
-                  icon={
-                    <LuActivity className="text-foreground-alt/70 size-3.5" />
-                  }
+                  icon={<LuActivity sx={stylexStyles.rule3} />}
                   title="Recent activity"
                 >
                   {activityLoading && activityEntries.length === 0 && (
                     <div className="text-foreground-alt/60 flex items-center gap-2 text-xs">
-                      <LuActivity className="size-3.5 shrink-0" />
+                      <LuActivity sx={stylexStyles.rule4} />
                       <span>Loading Forge activity…</span>
                     </div>
                   )}
@@ -418,7 +461,7 @@ export function ForgeDashboardViewer({
                       key={entry.id}
                       className="border-foreground/6 flex items-start gap-2 border-b py-2 last:border-b-0 last:pb-0"
                     >
-                      <LuActivity className="text-foreground-alt/60 mt-0.5 size-3 shrink-0" />
+                      <LuActivity sx={stylexStyles.rule5} />
                       <div className="min-w-0">
                         <div className="text-foreground text-xs font-medium">
                           {entry.title}
@@ -461,9 +504,7 @@ export function ForgeDashboardViewer({
               />
             ) : !activityLoading && activityEntries.length === 0 ? (
               <InfoCard
-                icon={
-                  <LuActivity className="text-foreground-alt/70 size-3.5" />
-                }
+                icon={<LuActivity sx={stylexStyles.rule3} />}
                 title="No recent activity yet"
               >
                 <p className="text-foreground-alt/60 text-xs leading-relaxed">
@@ -492,9 +533,7 @@ export function ForgeDashboardViewer({
                   <ForgeEntityLink
                     key={entry.id}
                     objectKey={entry.objectKey}
-                    icon={
-                      <LuActivity className="text-foreground-alt/60 size-3 shrink-0" />
-                    }
+                    icon={<LuActivity sx={stylexStyles.rule6} />}
                   >
                     {content}
                   </ForgeEntityLink>
@@ -506,7 +545,7 @@ export function ForgeDashboardViewer({
                   key={entry.id}
                   className="border-foreground/6 bg-background-card/30 flex items-start gap-2 rounded-lg border p-3"
                 >
-                  <LuActivity className="text-foreground-alt/60 mt-0.5 size-3 shrink-0" />
+                  <LuActivity sx={stylexStyles.rule5} />
                   {content}
                 </div>
               )
@@ -541,7 +580,7 @@ export function ForgeDashboardViewer({
               />
             ) : !entitiesLoading && entities.length === 0 ? (
               <InfoCard
-                icon={<LuBox className="text-foreground-alt/70 size-3.5" />}
+                icon={<LuBox sx={stylexStyles.rule3} />}
                 title="No linked Forge entities"
               >
                 <p className="text-foreground-alt/60 text-xs leading-relaxed">
@@ -554,9 +593,7 @@ export function ForgeDashboardViewer({
               <ForgeEntityLink
                 key={entity.objectKey}
                 objectKey={entity.objectKey}
-                icon={
-                  <LuBox className="text-foreground-alt/60 size-3 shrink-0" />
-                }
+                icon={<LuBox sx={stylexStyles.rule6} />}
               >
                 {entity.typeId && (
                   <StateBadge
@@ -606,7 +643,7 @@ export function ForgeDashboardViewer({
               />
             ) : (
               <InfoCard
-                icon={<LuBox className="text-foreground-alt/70 size-3.5" />}
+                icon={<LuBox sx={stylexStyles.rule3} />}
                 title="No process bindings"
               >
                 <p className="text-foreground-alt/60 text-xs leading-relaxed">
@@ -641,7 +678,7 @@ export function ForgeDashboardViewer({
 
   return (
     <ForgeViewerShell
-      icon={<LuLayoutDashboard className="size-4" />}
+      icon={<LuLayoutDashboard sx={stylexStyles.rule7} />}
       title={dashboard?.name || 'Forge Dashboard'}
       tabs={tabs}
       headerActions={headerActions}

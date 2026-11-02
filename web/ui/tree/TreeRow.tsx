@@ -279,7 +279,7 @@ function TreeRowToggle<T>({
         ?.map((child: TreeNode<T>) => treeRowDomId(domIdPrefix, child.id))
         .join(' ')}
     >
-      <Chevron {...stylex.props(stylexStyles.rule4)} aria-hidden="true" />
+      <Chevron sx={stylexStyles.rule4} aria-hidden="true" />
     </button>
   )
 }

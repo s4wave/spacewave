@@ -2,7 +2,14 @@ import { transformSync } from '@babel/core'
 import stylexPlugin from '@stylexjs/babel-plugin'
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { mkdtemp, mkdir, readFile, writeFile, rm } from 'node:fs/promises'
+import {
+  mkdtemp,
+  mkdir,
+  readFile,
+  writeFile,
+  rm,
+  readdir,
+} from 'node:fs/promises'
 import { resolve, join } from 'node:path'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
@@ -23,6 +30,7 @@ import { writeTraceFixture } from './trace-fixture.js'
 import { writeTreeFixture } from './tree-fixture.js'
 import { writeBadgeFixture } from './badge-fixture.js'
 import { writeFloatingFixture } from './floating-fixture.js'
+import { writeIconDefaultsFixture } from './icon-defaults-fixture.js'
 import { stylexCss } from '../../bldr/web/bundler/vite/stylex.js'
 import { capture } from '../style-parity/capture.js'
 import { compareCaptures } from '../style-parity/compare.js'
@@ -169,7 +177,7 @@ test(
         // Render the actual virtualized tree inside a bounded viewport through its existing state hook.
         main = main.replace(
           "import React from 'react';",
-          `import React from 'react';import{Tree}from'@s4wave/web/ui/tree/index.js';import{LuEllipsis}from'@s4wave/web/images/icons.js';${version === 'after' ? "import{treeRowActionIconStyles}from'@s4wave/web/ui/tree/styles.stylex.js';" : ''}import{useTreeState}from ${JSON.stringify(resolve('web/ui/tree/TreeState.tsx'))};function TreeSamples(){const state=useTreeState(null,'parity-tree',{expandedIds:new Set(['parity-tree-root']),selectedIds:new Set(['parity-tree-root'])});return <section style={{height:120,width:'100%',display:'flex'}}><Tree className="max-h-75" state={state} nodes={[{id:'parity-tree-root',name:'Tree root',children:[{id:'parity-tree-child',name:'Tree child'}],icons:[{icon:<LuEllipsis ${version === 'before' ? 'className="size-7"' : '{...stylex.props(treeRowActionIconStyles.icon)}'}/>,tooltip:'Tree action'}]},{id:'parity-tree-other',name:'Other row'}]}/></section>}`,
+          `import React from 'react';import{Tree}from'@s4wave/web/ui/tree/index.js';import{LuEllipsis}from'@s4wave/web/images/icons.js';${version === 'after' ? "import{treeRowActionIconStyles}from'@s4wave/web/ui/tree/styles.stylex.js';" : ''}import{useTreeState}from ${JSON.stringify(resolve('web/ui/tree/TreeState.tsx'))};function TreeSamples(){const state=useTreeState(null,'parity-tree',{expandedIds:new Set(['parity-tree-root']),selectedIds:new Set(['parity-tree-root'])});return <section style={{height:120,width:'100%',display:'flex'}}><Tree className="max-h-75" state={state} nodes={[{id:'parity-tree-root',name:'Tree root',children:[{id:'parity-tree-child',name:'Tree child'}],icons:[{icon:<LuEllipsis ${version === 'before' ? 'className="size-7"' : 'sx={treeRowActionIconStyles.icon}'}/>,tooltip:'Tree action'}]},{id:'parity-tree-other',name:'Other row'}]}/></section>}`,
         )
         main = main.replace('</main>', '<TreeSamples/></main>')
         // Preserve progress labels, bounds and reduced-motion behavior through native CSS.
@@ -629,6 +637,8 @@ test(
         await writeDialogFixture(root, version)
         await writePathFixture(root, version)
         await writeTabsFixture(root, version)
+        await writeIconDefaultsFixture(root, version)
+        main = "import{IconDefaultsSamples}from'./IconDefaultsSamples';" + main
         main = "import{FloatingSamples}from'./FloatingSamples';" + main
         main = "import{BadgeSamples}from'./BadgeSamples';" + main
         main = "import{TabsSamples}from'./TabsSamples';" + main
@@ -639,7 +649,7 @@ test(
         main = "import{SheetSamples}from'./SheetSamples';" + main
         main = main.replace(
           "createRoot(document.getElementById('root')!).render",
-          "if(new URLSearchParams(location.search).has('floating'))createRoot(document.getElementById('root')!).render(<FloatingSamples/>);else if(new URLSearchParams(location.search).has('badge'))createRoot(document.getElementById('root')!).render(<BadgeSamples/>);else if(new URLSearchParams(location.search).has('tree'))createRoot(document.getElementById('root')!).render(<TreeSamples/>);else if(new URLSearchParams(location.search).has('tabs'))createRoot(document.getElementById('root')!).render(<TabsSamples/>);else if(new URLSearchParams(location.search).has('path'))createRoot(document.getElementById('root')!).render(<PathSamples/>);else if(new URLSearchParams(location.search).has('dialog'))createRoot(document.getElementById('root')!).render(<DialogSamples/>);else if(new URLSearchParams(location.search).has('buttons'))createRoot(document.getElementById('root')!).render(<ButtonSamples/>);else if(new URLSearchParams(location.search).has('input'))createRoot(document.getElementById('root')!).render(<InputSamples/>);else if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
+          "if(new URLSearchParams(location.search).has('icon-defaults'))createRoot(document.getElementById('root')!).render(<IconDefaultsSamples/>);else if(new URLSearchParams(location.search).has('floating'))createRoot(document.getElementById('root')!).render(<FloatingSamples/>);else if(new URLSearchParams(location.search).has('badge'))createRoot(document.getElementById('root')!).render(<BadgeSamples/>);else if(new URLSearchParams(location.search).has('tree'))createRoot(document.getElementById('root')!).render(<TreeSamples/>);else if(new URLSearchParams(location.search).has('tabs'))createRoot(document.getElementById('root')!).render(<TabsSamples/>);else if(new URLSearchParams(location.search).has('path'))createRoot(document.getElementById('root')!).render(<PathSamples/>);else if(new URLSearchParams(location.search).has('dialog'))createRoot(document.getElementById('root')!).render(<DialogSamples/>);else if(new URLSearchParams(location.search).has('buttons'))createRoot(document.getElementById('root')!).render(<ButtonSamples/>);else if(new URLSearchParams(location.search).has('input'))createRoot(document.getElementById('root')!).render(<InputSamples/>);else if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
         )
         // Discover the actual tree API through its public barrel before converting the caller.
         const treeImports = await readSharedStyleApis(
@@ -746,11 +756,70 @@ void invalidNativeDelegate;
               ),
           )
         }
+        // Freeze transitive native controls against the historical icon context.
+        if (version === 'before') {
+          for (const name of ['button', 'badge', 'FloatingWindow']) {
+            const source = await readFile(
+              `scripts/tailwind-to-stylex/testdata/components/${name}-native.tsx`,
+              'utf8',
+            )
+            await writeFile(
+              join(root, `${name}-native.tsx`),
+              source.replace(
+                /(['"])(\.\.\/[^'"]+)\1/g,
+                (_match, _quote, specifier) =>
+                  JSON.stringify(resolve('web/ui', specifier)),
+              ),
+            )
+          }
+        }
+        // Relocated controls keep their actual theme sources; historical icons keep class props.
+        for (const name of await readdir(root)) {
+          if (!name.endsWith('.tsx')) continue
+          const path = join(root, name)
+          let source = await readFile(path, 'utf8')
+          source = source.replace(
+            /(['"])(?:\.\.\/)+(?:web\/)?style\/([\w-]+)\.stylex\.js\1/g,
+            (_match, _quote, module) =>
+              JSON.stringify(resolve(`web/style/${module}.stylex.ts`)),
+          )
+          if (version === 'before')
+            source = source.replace(
+              /(['"])@s4wave\/web\/images\/icons\.js\1/g,
+              JSON.stringify(
+                resolve(
+                  'scripts/tailwind-to-stylex/testdata/components/icons.ts',
+                ),
+              ),
+            )
+          if (version === 'before')
+            source = source.replace(
+              /(['"])@s4wave\/web\/ui\/phosphor-icons\.js\1/g,
+              JSON.stringify(
+                resolve(
+                  'scripts/tailwind-to-stylex/testdata/components/phosphor-icons.tsx',
+                ),
+              ),
+            )
+          await writeFile(path, source)
+        }
         const config = {
           configFile: false as const,
           root,
           plugins: [stylexCss(), tailwind(), react()],
-          resolve: { alias: { '@s4wave/web': resolve('web') } },
+          resolve: {
+            alias: {
+              ...(version === 'before'
+                ? Object.fromEntries(
+                    ['button', 'badge', 'FloatingWindow'].map((name) => [
+                      `@s4wave/web/ui/${name}.js`,
+                      join(root, `${name}-native.tsx`),
+                    ]),
+                  )
+                : {}),
+              '@s4wave/web': resolve('web'),
+            },
+          },
           logLevel: 'warn' as const,
           preview: { host: '127.0.0.1', port: 0 },
         }
@@ -982,6 +1051,52 @@ void invalidNativeDelegate;
               await page.getByRole('dialog').waitFor()
             },
           })),
+          ...['inline', 'dropdown', 'menubar'].map((mode) => ({
+            id: `icon-defaults-${mode}`,
+            path: `/?icon-defaults=${mode}`,
+            ready: async (page: import('playwright').Page) => {
+              await page.locator('#icon-defaults-fixture').waitFor()
+              if (mode !== 'inline')
+                await page
+                  .getByRole('menuitem', { name: 'Caller item', exact: true })
+                  .waitFor()
+              await page.evaluate(() => document.fonts.ready)
+              if (mode === 'inline') {
+                const caller = page.getByRole('option', {
+                  name: 'Caller command',
+                  exact: true,
+                })
+                await caller.waitFor({ timeout: 5000 })
+                const styles = await caller.locator('svg').evaluate((icon) => ({
+                  width: getComputedStyle(icon).width,
+                  color: getComputedStyle(icon).color,
+                  opacity: getComputedStyle(icon).opacity,
+                }))
+                assert.deepEqual(styles, {
+                  width: '28px',
+                  color: 'rgb(17, 34, 51)',
+                  opacity: '0.5',
+                })
+              } else {
+                const caller = page.getByRole('menuitem', {
+                  name: 'Caller item',
+                  exact: true,
+                })
+                assert.equal(
+                  await caller
+                    .locator('svg')
+                    .evaluate((icon) => getComputedStyle(icon).width),
+                  '28px',
+                )
+                assert.equal(
+                  await caller
+                    .locator('svg')
+                    .evaluate((icon) => getComputedStyle(icon).color),
+                  'rgb(17, 34, 51)',
+                )
+              }
+            },
+          })),
           ...['default', 'focused', 'hovered'].map((mode) => ({
             id: `buttons-${mode}`,
             path: `/?buttons=${mode}`,
@@ -1055,6 +1170,14 @@ void invalidNativeDelegate;
       }
       // Give each bounded area its own deadline and close its browser when that deadline expires.
       const groups = [
+        {
+          name: 'icon defaults',
+          ids: [
+            'icon-defaults-inline',
+            'icon-defaults-dropdown',
+            'icon-defaults-menubar',
+          ],
+        },
         {
           name: 'shared components',
           ids: ['components', 'reduced-motion', 'hovered', 'relations-hovered'],

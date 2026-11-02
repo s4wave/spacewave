@@ -1,3 +1,4 @@
+import type { IconType } from '@s4wave/web/images/icons.js'
 import {
   useCallback,
   useId,
@@ -67,6 +68,97 @@ import { RadioOption } from '@s4wave/web/ui/RadioOption.js'
 
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+import {
+  colors as themeColors,
+  motion as themeMotion,
+} from '../../../web/style/tokens.stylex.js'
+import { groupMarker } from '../../../web/style/relations.stylex.js'
+
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../../../web/style/tokens.stylex.js'
+import { groupMarker as groupMarker2 } from '../../../web/style/relations.stylex.js'
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+})
+
+const stylexStyles3 = stylex.create({
+  rule1: { color: themeColors['--color-brand'] },
+  rule2: { color: themeColors['--color-foreground-alt'] },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: themeColors['--color-brand'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-brand'],
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: themeColors['--color-foreground'],
+  },
+  rule5: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule6: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+      [stylex.when.ancestor(':is([data-selected="true"])', groupMarker)]:
+        themeColors['--color-foreground-alt'],
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -423,20 +515,20 @@ function InlineSecureAccountSection(props: {
     <div className="mt-4 w-full max-w-md">
       <div className="border-ui-outline/50 rounded-lg border p-4">
         <h2 className="text-foreground mb-3 flex items-center gap-2 text-sm font-medium">
-          <LuShieldCheck className="size-4" />
+          <LuShieldCheck sx={stylexStyles2.rule1} />
           Secure Your Account
         </h2>
         <div className="space-y-4">
           {onboarding.onboarding.backupComplete ? (
             <div className="text-foreground-alt flex items-center gap-2 px-3 py-2 text-sm">
-              <LuCheck className="text-brand size-4 shrink-0" />
+              <LuCheck sx={stylexStyles2.rule2} />
               <span>Backup key downloaded</span>
             </div>
           ) : (
             <div className="space-y-3">
               <div className="flex items-start gap-3">
                 <div className="bg-brand/10 flex size-8 shrink-0 items-center justify-center rounded-lg">
-                  <LuDownload className="text-brand size-4" />
+                  <LuDownload sx={stylexStyles2.rule3} />
                 </div>
                 <div>
                   <p className="text-foreground text-sm font-medium">
@@ -471,14 +563,9 @@ function InlineSecureAccountSection(props: {
                 type="button"
                 onClick={() => void handleDownloadPem()}
                 disabled={downloading || !account || !password}
-                className={cn(
-                  'group w-full rounded-md border transition-all duration-300',
-                  'border-brand/30 bg-brand/10 hover:bg-brand/20',
-                  'disabled:cursor-not-allowed disabled:opacity-50',
-                  'flex h-9 items-center justify-center gap-2',
-                )}
+                sx={[[stylexStyles4.rule1, groupMarker2]]}
               >
-                <LuDownload className="text-foreground size-3.5" />
+                <LuDownload sx={stylexStyles2.rule4} />
                 <span className="text-foreground text-sm">
                   {downloading ? 'Generating…' : 'Download backup .pem'}
                 </span>
@@ -493,14 +580,14 @@ function InlineSecureAccountSection(props: {
 
           {onboarding.onboarding.lockComplete ? (
             <div className="text-foreground-alt flex items-center gap-2 px-3 py-2 text-sm">
-              <LuCheck className="text-brand size-4 shrink-0" />
+              <LuCheck sx={stylexStyles2.rule2} />
               <span>Session lock configured</span>
             </div>
           ) : (
             <div className="space-y-3">
               <div className="flex items-start gap-3">
                 <div className="bg-brand/10 flex size-8 shrink-0 items-center justify-center rounded-lg">
-                  <LuKeyRound className="text-brand size-4" />
+                  <LuKeyRound sx={stylexStyles2.rule3} />
                 </div>
                 <div>
                   <p className="text-foreground text-sm font-medium">
@@ -518,7 +605,7 @@ function InlineSecureAccountSection(props: {
                   onSelect={() =>
                     dispatchLock({ type: 'set-mode', mode: 'auto' })
                   }
-                  icon={<LuLockOpen className="size-4" />}
+                  icon={<LuLockOpen sx={stylexStyles2.rule1} />}
                   label="Auto-unlock"
                   description="Key stored on disk. No PIN needed on launch."
                 />
@@ -527,7 +614,7 @@ function InlineSecureAccountSection(props: {
                   onSelect={() =>
                     dispatchLock({ type: 'set-mode', mode: 'pin' })
                   }
-                  icon={<LuLock className="size-4" />}
+                  icon={<LuLock sx={stylexStyles2.rule1} />}
                   label="PIN lock"
                   description="Key encrypted with PIN. Enter PIN on each app launch."
                 />
@@ -588,12 +675,7 @@ function InlineSecureAccountSection(props: {
                 type="button"
                 onClick={() => void handleSetLockMode()}
                 disabled={savingLock}
-                className={cn(
-                  'group w-full rounded-md border transition-all duration-300',
-                  'border-brand/30 bg-brand/10 hover:bg-brand/20',
-                  'disabled:cursor-not-allowed disabled:opacity-50',
-                  'flex h-9 items-center justify-center gap-2',
-                )}
+                sx={[[stylexStyles4.rule1, groupMarker2]]}
               >
                 <span className="text-foreground text-sm">
                   {savingLock ? 'Saving…' : 'Set lock mode'}
@@ -645,7 +727,7 @@ function CreateOrgSection() {
       <div className="mt-4 w-full max-w-md">
         <div className="border-ui-outline/50 rounded-lg border p-4">
           <div className="text-foreground-alt flex items-center gap-2 text-sm">
-            <LuCheck className="text-brand size-4 shrink-0" />
+            <LuCheck sx={stylexStyles2.rule2} />
             <span>Organization created</span>
           </div>
         </div>
@@ -657,7 +739,7 @@ function CreateOrgSection() {
     <div className="mt-4 w-full max-w-md">
       <div className="border-ui-outline/50 rounded-lg border p-4">
         <h2 className="text-foreground mb-3 flex items-center gap-2 text-sm font-medium">
-          <LuBuilding2 className="size-4" />
+          <LuBuilding2 sx={stylexStyles2.rule1} />
           Create an Organization
         </h2>
         <p className="text-foreground-alt mb-3 text-xs leading-relaxed">
@@ -680,14 +762,9 @@ function CreateOrgSection() {
             type="button"
             onClick={() => void handleCreate()}
             disabled={creating || !orgName.trim()}
-            className={cn(
-              'group w-full rounded-md border transition-all duration-300',
-              'border-brand/30 bg-brand/10 hover:bg-brand/20',
-              'disabled:cursor-not-allowed disabled:opacity-50',
-              'flex h-9 items-center justify-center gap-2',
-            )}
+            sx={[[stylexStyles4.rule1, groupMarker2]]}
           >
-            <LuBuilding2 className="text-foreground size-3.5" />
+            <LuBuilding2 sx={stylexStyles2.rule4} />
             <span className="text-foreground text-sm">
               {creating ? 'Creating…' : 'Create organization'}
             </span>
@@ -1107,7 +1184,7 @@ function DashboardCommandPalette({
           role="note"
           className="border-foreground/8 bg-background-card/80 text-foreground-alt/60 micro-ten flex h-7 shrink-0 items-center justify-center gap-1 border-t select-none"
         >
-          <LuChevronDown className="size-3" />
+          <LuChevronDown sx={stylexStyles2.rule5} />
           Scroll to see all {recentSpaces.length} spaces
         </div>
       )}
@@ -1177,26 +1254,23 @@ function SectionHeading(props: {
 
 type IconTone = 'brand' | 'muted'
 
-const iconToneClasses: Record<IconTone, { icon: string; bg: string }> = {
+const iconToneClasses: Record<
+  IconTone,
+  { icon: import('@stylexjs/stylex').StyleXStyles; bg: string }
+> = {
   brand: {
-    icon: 'text-brand',
+    icon: stylexStyles3.rule1,
     bg: 'bg-brand/10 group-data-[selected=true]:bg-brand/20',
   },
   muted: {
-    icon: 'text-foreground-alt',
+    icon: stylexStyles3.rule2,
     bg: 'bg-foreground/5 group-data-[selected=true]:bg-foreground/10',
   },
 }
 
 // IconButton renders the lozenge-shaped icon container shared by every
 // DashboardItem row.
-function IconButton({
-  icon: Icon,
-  tone,
-}: {
-  icon: React.ComponentType<{ className?: string }>
-  tone: IconTone
-}) {
+function IconButton({ icon: Icon, tone }: { icon: IconType; tone: IconTone }) {
   const tones = iconToneClasses[tone]
   return (
     <div
@@ -1205,14 +1279,14 @@ function IconButton({
         tones.bg,
       )}
     >
-      <Icon className={cn('size-3.5', tones.icon)} />
+      <Icon sx={[stylexStyles3.rule3, tones.icon]} />
     </div>
   )
 }
 
 interface DashboardItemProps {
   value: string
-  icon: React.ComponentType<{ className?: string }>
+  icon: IconType
   iconTone: IconTone
   label: string
   sublabel?: string
@@ -1274,7 +1348,7 @@ function DashboardItem({
           </div>
         )}
       </div>
-      <LuChevronRight className="text-foreground-alt/40 group-data-[selected=true]:text-foreground-alt size-4 shrink-0 transition-colors" />
+      <LuChevronRight sx={stylexStyles2.rule6} />
     </CommandItem>
   )
 

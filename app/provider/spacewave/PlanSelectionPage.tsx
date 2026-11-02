@@ -39,6 +39,39 @@ import { useCloudProviderConfig } from './useSpacewaveAuth.js'
 import type { Session } from '@s4wave/sdk/session/session.js'
 import { useSessionMetadata } from '@s4wave/app/hooks/useSessionMetadata.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-brand'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule3: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: themeColors['--color-brand'],
+  },
+  rule4: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    flexShrink: 0,
+    color: themeColors['--color-brand'],
+  },
+})
+
 // CheckoutState is the reducer state for the checkout flow.
 export interface CheckoutState {
   cloudExpanded: boolean
@@ -376,7 +409,7 @@ export function PlanSelectionPage({
       <div className="border-brand/40 bg-background-card/50 hover:border-brand/60 hover:shadow-brand/5 relative overflow-hidden rounded-lg border p-6 transition duration-300 hover:shadow-md">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <LuCloud className="text-brand size-5" />
+            <LuCloud sx={stylexStyles.rule1} />
             <h2 className="text-foreground text-lg font-semibold">Cloud</h2>
           </div>
           <div className="flex items-baseline gap-1">
@@ -415,7 +448,7 @@ export function PlanSelectionPage({
       <div className="border-foreground/10 bg-background-card/30 hover:border-foreground/20 rounded-lg border p-6 transition duration-300 hover:shadow-md">
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <LuServer className="text-foreground-alt size-5" />
+            <LuServer sx={stylexStyles.rule2} />
             <h2 className="text-foreground text-lg font-semibold">Local</h2>
           </div>
           <span className="text-foreground-alt text-sm">free forever</span>
@@ -424,7 +457,7 @@ export function PlanSelectionPage({
         <div className="mb-4 space-y-2">
           {LOCAL_FEATURES.map((text) => (
             <div key={text} className="flex items-start gap-2">
-              <LuCheck className="text-brand mt-0.5 size-4 shrink-0" />
+              <LuCheck sx={stylexStyles.rule3} />
               <span className="text-foreground-alt text-sm">{text}</span>
             </div>
           ))}
@@ -448,7 +481,7 @@ export function PlanSelectionPage({
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {SHARED_FEATURES.map((feature) => (
             <div key={feature} className="flex items-start gap-2">
-              <LuCheck className="text-brand mt-0.5 size-3 shrink-0" />
+              <LuCheck sx={stylexStyles.rule4} />
               <span className="text-foreground-alt text-xs">{feature}</span>
             </div>
           ))}

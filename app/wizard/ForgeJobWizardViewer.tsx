@@ -12,6 +12,17 @@ import { WizardShell } from './WizardShell.js'
 
 import * as stylex from '@stylexjs/stylex'
 
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    marginRight: `calc(${themeLayout['--spacing']} * 2)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: { width: '100%', maxWidth: 'var(--container-sm)' },
 })
@@ -109,7 +120,7 @@ export function ForgeJobWizardViewer(props: ObjectViewerComponentProps) {
     <WizardShell
       title={
         <>
-          <LuBriefcase className="mr-2 size-4 shrink-0" />
+          <LuBriefcase sx={stylexStyles2.rule1} />
           New Forge Job
         </>
       }

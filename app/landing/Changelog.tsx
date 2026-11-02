@@ -8,6 +8,28 @@ import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { ReleaseCard } from './ReleaseCard.js'
 import { useLandingBackNavigation } from './useLandingBackNavigation.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    transitionProperty: 'transform, translate, scale, rotate',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule3: { rotate: '180deg' },
+})
+
 export const metadata = {
   title: 'Changelog - Spacewave',
   description: 'See what is new in Spacewave.',
@@ -59,7 +81,7 @@ export function Changelog() {
           onClick={goBack}
           className="text-foreground-alt hover:text-foreground flex cursor-pointer items-center gap-2 text-sm transition-colors"
         >
-          <LuArrowLeft className="size-4" />
+          <LuArrowLeft sx={stylexStyles.rule1} />
           Back
         </button>
       </div>
@@ -88,10 +110,7 @@ export function Changelog() {
             >
               {latestVersion ? `v${latestVersion}` : 'Versions'}
               <LuChevronDown
-                className={cn(
-                  'size-4 transition-transform',
-                  dropdownOpen && 'rotate-180',
-                )}
+                sx={[stylexStyles.rule2, !!dropdownOpen && stylexStyles.rule3]}
               />
             </button>
             {dropdownOpen && (

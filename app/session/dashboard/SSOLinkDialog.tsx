@@ -33,6 +33,31 @@ import {
 } from './AuthConfirmDialog.js'
 import { startSSOPopupFlow, type SSOPopupFlow } from './sso-popup.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-destructive'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 type SSOProvider = 'google' | 'github'
 
 interface SSOLinkDialogProps {
@@ -47,11 +72,14 @@ function getProviderLabel(provider: SSOProvider): string {
   return provider === 'google' ? 'Google' : 'GitHub'
 }
 
-function ProviderIcon(props: { provider: SSOProvider; className?: string }) {
+function ProviderIcon(props: {
+  provider: SSOProvider
+  sx?: import('@stylexjs/stylex').StyleXStyles
+}) {
   if (props.provider === 'google') {
-    return <FcGoogle className={props.className} />
+    return <FcGoogle sx={props.sx} />
   }
-  return <LuGithub className={props.className} />
+  return <LuGithub sx={props.sx} />
 }
 
 export function SSOLinkDialog({
@@ -213,7 +241,7 @@ export function SSOLinkDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle variant="withIcon">
-            <ProviderIcon provider={provider} className="size-5" />
+            <ProviderIcon provider={provider} sx={stylexStyles2.rule1} />
             Link {getProviderLabel(provider)}
           </DialogTitle>
           <DialogDescription>
@@ -229,7 +257,7 @@ export function SSOLinkDialog({
           <div className="border-foreground/10 bg-background/30 rounded-lg border p-4">
             <div className="flex items-start gap-3">
               <div className="border-foreground/10 bg-background/60 flex size-10 shrink-0 items-center justify-center rounded-full border">
-                <ProviderIcon provider={provider} className="size-5" />
+                <ProviderIcon provider={provider} sx={stylexStyles2.rule1} />
               </div>
               <div className="space-y-1">
                 <p className="text-foreground text-sm font-medium">
@@ -269,7 +297,7 @@ export function SSOLinkDialog({
           {error && (
             <div className="border-destructive/20 bg-destructive/5 rounded-lg border px-3 py-2.5">
               <div className="flex items-center gap-2">
-                <LuCircleAlert className="text-destructive size-4" />
+                <LuCircleAlert sx={stylexStyles.rule1} />
                 <p className="text-destructive text-sm">{error}</p>
               </div>
             </div>
@@ -293,7 +321,7 @@ export function SSOLinkDialog({
               'inline-flex items-center gap-2',
             )}
           >
-            <LuArrowUpRight className="size-4" />
+            <LuArrowUpRight sx={stylexStyles.rule2} />
             {waiting
               ? 'Open again'
               : isDesktop

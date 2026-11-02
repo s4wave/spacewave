@@ -10,6 +10,16 @@ import { useBillingStateContextSafe } from './BillingStateProvider.js'
 import { isStatusActive } from './billing-utils.js'
 import { BillingAccountCard } from './BillingAccountCard.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 export interface BillingSectionProps {
   isLocal: boolean
   open?: boolean
@@ -58,7 +68,7 @@ export function BillingSection({
   return (
     <CollapsibleSection
       title="Billing"
-      icon={<LuCreditCard className="size-3.5" />}
+      icon={<LuCreditCard sx={stylexStyles.rule1} />}
       open={sectionOpen}
       onOpenChange={handleOpenChange}
       badge={

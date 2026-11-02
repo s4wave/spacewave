@@ -55,7 +55,7 @@ function Reasoning({
     <TraceLine status={status}>
       <TraceIcon>
         {thinking ? (
-          <LuLoaderCircle {...stylex.props(stylexStyles.rule1)} />
+          <LuLoaderCircle sx={stylexStyles.rule1} />
         ) : (
           <LuCircleCheck />
         )}

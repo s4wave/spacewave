@@ -1,3 +1,6 @@
+import * as ownerStylex from '@stylexjs/stylex'
+import { cn as ownerClasses } from '@s4wave/web/style/utils.js'
+import { groupMarker as ownergroupMarker } from '@s4wave/web/style/relations.stylex.js'
 /* eslint-disable react-doctor/no-giant-component */
 import { useCallback, useMemo, useState } from 'react'
 import {
@@ -30,6 +33,97 @@ import {
   type AnnotatedLicenseEntry,
 } from '@s4wave/app/licenses/data.js'
 import { useLandingBackNavigation } from './useLandingBackNavigation.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  motion as themeMotion,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+import { groupMarker } from '../../web/style/relations.stylex.js'
+
+import { groupMarker as groupMarker2 } from '../../web/style/relations.stylex.js'
+
+import { groupMarker as groupMarker3 } from '../../web/style/relations.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker2)]:
+          themeColors['--color-brand'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-brand'],
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    transitionProperty: 'transform, translate, scale, rotate',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-translate-x': {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker)]:
+          themeLayout['--spacing'],
+      },
+    },
+    translate: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker)]:
+          'var(--tw-translate-x) var(--tw-translate-y)',
+      },
+    },
+  },
+  rule4: {
+    pointerEvents: 'none',
+    position: 'absolute',
+    top: '50%',
+    left: `calc(${themeLayout['--spacing']} * 3)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    '--tw-translate-y': 'calc(calc(1 / 2 * 100%) * -1)',
+    translate: 'var(--tw-translate-x) var(--tw-translate-y)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 30%, transparent)`,
+  },
+})
 
 export const metadata = {
   title: 'Community - Spacewave',
@@ -170,7 +264,7 @@ export function Community() {
           onClick={goBack}
           className="text-foreground-alt hover:text-foreground flex cursor-pointer items-center gap-2 text-sm transition-colors"
         >
-          <LuArrowLeft className="size-4" />
+          <LuArrowLeft sx={stylexStyles.rule1} />
           Back
         </button>
       </div>
@@ -178,7 +272,7 @@ export function Community() {
       {/* Hero */}
       <header className="mx-auto w-full max-w-3xl px-4 pt-14 pb-14 text-center @lg:px-8 @lg:pt-20 @lg:pb-16">
         <div className="text-brand mb-6 flex items-center justify-center gap-2">
-          <LuHeart className="size-5" />
+          <LuHeart sx={stylexStyles.rule2} />
         </div>
         <h1 className="text-foreground mb-6 text-4xl font-semibold tracking-tight @lg:text-5xl">
           Built in the open,
@@ -193,7 +287,7 @@ export function Community() {
             href={GITHUB_REPO_URL}
             className="border-foreground/20 hover:border-brand/40 hover:bg-brand/5 text-foreground inline-flex items-center gap-2.5 rounded-lg border px-6 py-3 text-sm font-medium transition"
           >
-            <LuGithub className="size-5" />
+            <LuGithub sx={stylexStyles.rule2} />
             View on GitHub
           </ExternalLink>
           <button
@@ -201,7 +295,7 @@ export function Community() {
             onClick={handleEmailSupport}
             className="border-foreground/20 hover:border-brand/40 hover:bg-brand/5 text-foreground inline-flex cursor-pointer items-center gap-2.5 rounded-lg border px-6 py-3 text-sm font-medium transition"
           >
-            <LuMessageSquare className="size-5" />
+            <LuMessageSquare sx={stylexStyles.rule2} />
             Email Support
           </button>
         </div>
@@ -217,9 +311,12 @@ export function Community() {
             <ExternalLink
               key={c.title}
               href={c.href}
-              className="border-foreground/8 hover:border-foreground/15 bg-background-card/50 group flex flex-col gap-3 rounded-lg border p-5 transition hover:-translate-y-0.5"
+              className={ownerClasses(
+                'border-foreground/8 hover:border-foreground/15 bg-background-card/50 group flex flex-col gap-3 rounded-lg border p-5 transition hover:-translate-y-0.5',
+                ownerStylex.props(ownergroupMarker).className,
+              )}
             >
-              <c.icon className="text-foreground-alt group-hover:text-brand size-5 transition-colors" />
+              <c.icon sx={stylexStyles2.rule1} />
               <h3 className="text-foreground text-sm font-semibold">
                 {c.title}
               </h3>
@@ -228,7 +325,7 @@ export function Community() {
               </p>
               <span className="text-brand mt-auto flex items-center gap-1 text-sm font-medium">
                 {c.linkText}
-                <LuArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" />
+                <LuArrowRight sx={stylexStyles.rule3} />
               </span>
             </ExternalLink>
           ))}
@@ -245,9 +342,9 @@ export function Community() {
         </span>
         <div className="grid gap-x-8 gap-y-10 @lg:grid-cols-2">
           {PRINCIPLES.map((p) => (
-            <div key={p.title} className="group flex items-center gap-4">
+            <div key={p.title} sx={[stylexStyles3.rule1, groupMarker3]}>
               <div className="bg-brand/8 group-hover:bg-brand/12 flex size-10 shrink-0 items-center justify-center rounded-lg transition-colors">
-                <p.icon className="text-brand size-5" />
+                <p.icon sx={stylexStyles2.rule2} />
               </div>
               <div>
                 <h3 className="text-foreground mb-1 text-sm font-semibold">
@@ -299,7 +396,7 @@ export function Community() {
         )}
         {!devCount && <div className="mb-6" />}
         <div className="relative mx-auto mb-8 max-w-md">
-          <LuSearch className="text-foreground-alt/30 pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2" />
+          <LuSearch sx={stylexStyles.rule4} />
           <input
             aria-label="Filter packages"
             type="text"
@@ -441,7 +538,7 @@ export function Community() {
           href={GITHUB_REPO_URL}
           className="text-brand hover:text-brand-highlight mt-4 inline-flex items-center gap-2 text-sm underline"
         >
-          <LuGithub className="size-4" />
+          <LuGithub sx={stylexStyles.rule1} />
           Contribute to Spacewave
         </ExternalLink>
       </section>

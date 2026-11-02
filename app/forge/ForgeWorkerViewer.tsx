@@ -25,6 +25,25 @@ import { FigureStrip } from '@s4wave/web/ui/FigureStrip.js'
 import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
 import { useForgeClusterSnapshot } from './useForgeClusterSnapshot.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 export const ForgeWorkerTypeID = 'forge/worker'
 
 const executionStateLabels: Record<number, string> = {
@@ -114,7 +133,7 @@ export function ForgeWorkerViewer({
     return [
       {
         label: (binding?.approved ?? false) ? 'Stop Worker' : 'Start Worker',
-        icon: <LuActivity className="size-3.5" />,
+        icon: <LuActivity sx={stylexStyles.rule1} />,
         onClick: () => {
           void handleToggleWorker()
         },
@@ -191,7 +210,7 @@ export function ForgeWorkerViewer({
             {activeExecutions.length === 0 && (
               <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
                 <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
-                  <LuActivity className="size-3.5 shrink-0" />
+                  <LuActivity sx={stylexStyles.rule2} />
                   <span>No active executions assigned to this worker</span>
                 </div>
               </div>
@@ -235,7 +254,7 @@ export function ForgeWorkerViewer({
             {completeExecutions.length === 0 && (
               <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
                 <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
-                  <LuActivity className="size-3.5 shrink-0" />
+                  <LuActivity sx={stylexStyles.rule2} />
                   <span>No completed executions recorded yet</span>
                 </div>
               </div>
@@ -292,7 +311,7 @@ export function ForgeWorkerViewer({
   return (
     <ForgeViewerShell
       stateKey={objectKey}
-      icon={<LuCpu className="size-4" />}
+      icon={<LuCpu sx={stylexStyles.rule3} />}
       title={worker?.name || 'Worker'}
       tabs={tabs}
       actions={actions}

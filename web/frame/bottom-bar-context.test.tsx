@@ -6,8 +6,12 @@ import { BottomBarLevel } from './bottom-bar-level.js'
 import { BottomBarRoot } from './bottom-bar-root.js'
 import { ViewerFrame } from './ViewerFrame.js'
 
-function TestContextMenuIcon({ className }: { className?: string }) {
-  return <span data-testid="test-context-menu-icon" className={className} />
+function TestContextMenuIcon({
+  sx,
+}: {
+  sx?: import('@stylexjs/stylex').StyleXStyles
+}) {
+  return <span data-testid="test-context-menu-icon" sx={sx} />
 }
 
 // ItemButton renders the plain bottom bar button used by most registry tests.

@@ -11,6 +11,24 @@ import type { LiveDemoAppProps } from './use-case/LiveDemoApp.js'
 import { UseCaseDemo } from './use-case/UseCaseDemo.js'
 import { UseCasePage } from './use-case/UseCasePage.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 export const metadata = {
   title: 'Spacewave Chat - Talk in a Space you own.',
   description:
@@ -28,7 +46,7 @@ export function LandingChat({
 
   return (
     <UseCasePage
-      icon={<LuMessageSquare className="size-8" />}
+      icon={<LuMessageSquare sx={stylexStyles.rule1} />}
       title="Talk in a Space you own."
       subtitle="Spacewave Chat keeps channels inside a private Space. The history lives on your devices and the devices of the people you invite, not on a chat server."
       points={[
@@ -82,7 +100,7 @@ function ChatPoster() {
           My Chat
         </span>
         <span className="bg-foreground/5 text-foreground flex items-center gap-2 rounded px-2 py-1">
-          <LuHash className="text-foreground-alt size-4" />
+          <LuHash sx={stylexStyles.rule2} />
           general
         </span>
       </div>

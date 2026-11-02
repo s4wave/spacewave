@@ -49,6 +49,16 @@ import { SessionsSection } from './SessionsSection.js'
 import { SessionSyncStatusSummary } from './SessionSyncStatusSummary.js'
 import { StorageHealthSection } from '../storage/StorageHealthSection.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 const LazyLinkDeviceWizard = lazy(async () => {
   const { LinkDeviceWizard } = await import('../setup/LinkDeviceWizard.js')
   return { default: LinkDeviceWizard }
@@ -365,7 +375,7 @@ export function SessionDetails({
                   className="border-foreground/10 bg-background-card/90 text-foreground-alt hover:text-foreground flex min-h-11 items-center gap-1 rounded-full border px-3 text-xs shadow-md transition-colors"
                 >
                   More settings
-                  <LuChevronDown className="size-3" />
+                  <LuChevronDown sx={stylexStyles.rule1} />
                 </button>
               </div>
             )}

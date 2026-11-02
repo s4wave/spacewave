@@ -23,6 +23,89 @@ import { Facts } from './Facts.js'
 import { InspectorSection } from './InspectorSection.js'
 import { spaceEngineId } from './useSystemModel.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+import { groupMarker } from '../../web/style/relations.stylex.js'
+
+import {
+  radii as themeRadii,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+import { groupMarker as groupMarker2 } from '../../web/style/relations.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-md'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    textAlign: 'left',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 3%, transparent)`,
+      },
+    },
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    },
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker)]:
+          themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 // SpacesInspector lists every account session on this device and every Space
 // in the current session, with actions to switch to or open each one.
 export function SpacesInspector({
@@ -83,7 +166,7 @@ export function SpacesInspector({
                       navigate({ path: `/u/${sessionIndex}/so/${id}` })
                       onClose()
                     }}
-                    className="group hover:bg-foreground/[0.03] focus-visible:ring-brand/50 flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-xs outline-none focus-visible:ring-2"
+                    sx={[stylexStyles2.rule1, groupMarker2]}
                     aria-label={`Open ${name}`}
                   >
                     <span className="min-w-0 flex-1">
@@ -97,10 +180,7 @@ export function SpacesInspector({
                     <span className="text-foreground-alt/60 shrink-0">
                       {space.entry?.source === 'shared' ? 'Shared' : 'Owned'}
                     </span>
-                    <LuArrowRight
-                      className="text-foreground-alt/40 group-hover:text-foreground size-3.5 shrink-0 transition-colors"
-                      aria-hidden="true"
-                    />
+                    <LuArrowRight sx={stylexStyles.rule1} aria-hidden="true" />
                   </button>
                 </li>
               )
@@ -136,10 +216,7 @@ function SessionRow({
       )}
     >
       <div className="flex items-center gap-2 text-xs">
-        <LuUser
-          className="text-foreground-alt/60 size-3.5 shrink-0"
-          aria-hidden="true"
-        />
+        <LuUser sx={stylexStyles.rule2} aria-hidden="true" />
         <span className="text-foreground min-w-0 flex-1 truncate font-medium">
           {name}
         </span>
@@ -176,16 +253,16 @@ function SessionRow({
         {metadata?.lockMode != null && (
           <span className="text-foreground-alt/60 mr-auto flex items-center gap-1.5 text-xs">
             {autoUnlock ? (
-              <LuLockOpen className="size-3.5" aria-hidden="true" />
+              <LuLockOpen sx={stylexStyles.rule3} aria-hidden="true" />
             ) : (
-              <LuLock className="size-3.5" aria-hidden="true" />
+              <LuLock sx={stylexStyles.rule3} aria-hidden="true" />
             )}
             {autoUnlock ? 'Unlocks automatically' : 'Locked with a PIN'}
           </span>
         )}
         {!current && (
           <DashboardButton
-            icon={<LuArrowRightLeft className="size-3.5" />}
+            icon={<LuArrowRightLeft sx={stylexStyles.rule3} />}
             onClick={() => {
               navigate({ path: `/u/${sessionIndex}` })
               onClose()
@@ -195,7 +272,7 @@ function SessionRow({
           </DashboardButton>
         )}
         <DashboardButton
-          icon={<LuIdCard className="size-3.5" />}
+          icon={<LuIdCard sx={stylexStyles.rule3} />}
           onClick={() => {
             if (!current) {
               navigate({ path: `/u/${sessionIndex}` })

@@ -20,6 +20,16 @@ import { DropdownMenuGhostAnchor } from '@s4wave/web/ui/DropdownMenuGhostAnchor.
 import type { FileEntry } from '@s4wave/web/editors/file-browser/types.js'
 import type { UnixFSMoveItem } from './move.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 export interface ContextMenuState {
   position: { x: number; y: number }
   entry: FileEntry | null
@@ -108,27 +118,27 @@ export function UnixFSContextMenu({
         {state?.entry ? (
           <>
             <DropdownMenuItem onClick={handleOpen}>
-              <LuFolderOpen className="size-3.5" />
+              <LuFolderOpen sx={stylexStyles.rule1} />
               Open
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleNewFolder} disabled={!onNewFolder}>
-              <LuFolderPlus className="size-3.5" />
+              <LuFolderPlus sx={stylexStyles.rule1} />
               New folder
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={handleDownload}
               disabled={!onDownload || actionEntries.length === 0}
             >
-              <LuDownload className="size-3.5" />
+              <LuDownload sx={stylexStyles.rule1} />
               {actionEntries.length > 1 ? 'Download selected' : 'Download'}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleRename} disabled={!onRename}>
-              <LuPencil className="size-3.5" />
+              <LuPencil sx={stylexStyles.rule1} />
               Rename
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleMove} disabled={!onMove}>
-              <LuFolderInput className="size-3.5" />
+              <LuFolderInput sx={stylexStyles.rule1} />
               Move…
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -136,7 +146,7 @@ export function UnixFSContextMenu({
               onClick={handleDelete}
               disabled={!onDelete}
             >
-              <LuTrash2 className="size-3.5" />
+              <LuTrash2 sx={stylexStyles.rule1} />
               Delete
               <DropdownMenuShortcut>Del</DropdownMenuShortcut>
             </DropdownMenuItem>
@@ -144,11 +154,11 @@ export function UnixFSContextMenu({
         ) : (
           <>
             <DropdownMenuItem onClick={handleNewFolder} disabled={!onNewFolder}>
-              <LuFolderPlus className="size-3.5" />
+              <LuFolderPlus sx={stylexStyles.rule1} />
               New folder
             </DropdownMenuItem>
             <DropdownMenuItem onClick={onUploadFiles} disabled={!onUploadFiles}>
-              <LuUpload className="size-3.5" />
+              <LuUpload sx={stylexStyles.rule1} />
               Upload files
             </DropdownMenuItem>
           </>

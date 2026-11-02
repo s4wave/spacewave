@@ -1,12 +1,11 @@
+import type { IconType } from '@s4wave/web/images/icons.js'
 import React, { createContext, use, useSyncExternalStore } from 'react'
 
 export type BottomBarContextMenuOpenKind = 'mouse' | 'keyboard' | 'touch'
 
 export type BottomBarContextMenuActionVariant = 'default' | 'destructive'
 
-export type BottomBarContextMenuIcon = React.ComponentType<{
-  className?: string
-}>
+export type BottomBarContextMenuIcon = IconType
 
 export interface BottomBarContextMenuActionContext {
   itemId: string

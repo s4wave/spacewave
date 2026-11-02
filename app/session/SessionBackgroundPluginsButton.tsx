@@ -20,6 +20,16 @@ import {
   useBackgroundPlugins,
 } from './useBackgroundPlugins.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 // BackgroundSpace groups the background plugins of one Space.
 interface BackgroundSpace {
   spaceId: string
@@ -72,7 +82,7 @@ export function SessionBackgroundPluginsButton() {
             aria-label={ariaLabel}
             data-testid="session-background-plugins-button"
           >
-            <LuActivity className="size-3.5" aria-hidden="true" />
+            <LuActivity sx={stylexStyles.rule1} aria-hidden="true" />
           </BottomBarItem>
         </PopoverAnchor>
         <PopoverContent

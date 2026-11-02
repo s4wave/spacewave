@@ -9,6 +9,16 @@ import {
   DialogTitle,
 } from '@s4wave/web/ui/dialog.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 // DetachAssignmentTarget identifies the principal whose billing pointer is
 // being cleared.
 export interface DetachAssignmentTarget {
@@ -65,7 +75,7 @@ export function DetachAssignmentDialog({
             disabled={busy}
             className="border-destructive/30 bg-destructive/10 hover:bg-destructive/20 text-destructive flex cursor-pointer items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <LuUnlink className="size-3" />
+            <LuUnlink sx={stylexStyles.rule1} />
             <span>{busy ? 'Detaching…' : 'Detach'}</span>
           </button>
         </DialogFooter>

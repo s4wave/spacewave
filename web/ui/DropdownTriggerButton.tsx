@@ -110,7 +110,7 @@ export function DropdownTriggerButton({
     >
       {icon}
       <span>{children}</span>
-      {showChevron && <LuChevronDown {...stylex.props(styles.chevron)} />}
+      {showChevron && <LuChevronDown sx={styles.chevron} />}
     </Button>
   )
 }

@@ -29,6 +29,16 @@ import {
 } from '@s4wave/web/command/KeybindingResolver.js'
 import { useKeybindingGraph } from '@s4wave/web/command/useKeybindingGraph.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+  },
+})
+
 // MenuNode represents a node in the menu tree.
 interface MenuNode {
   label: string
@@ -252,7 +262,7 @@ export function ShellMenuBar() {
                 aria-label="Open app menu"
                 className="text-topbar-button-text hover:text-topbar-button-text-hi hover:bg-pulldown-hover rounded-menu-button flex size-7 items-center justify-center pointer-coarse:size-11"
               >
-                <LuMenu className="size-5" />
+                <LuMenu sx={stylexStyles.rule1} />
               </button>
             </MenubarTrigger>
             <MenubarContent align="start" data-phone-menu>

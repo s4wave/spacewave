@@ -35,6 +35,29 @@ import {
   type TimeRange,
 } from './prom-view.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 export { DashboardTypeID }
 
 // PromDashboardViewer shows a prom/dashboard object under its Alarm strip.
@@ -100,7 +123,7 @@ function DashboardHandle({
       return (
         <Frame>
           <EmptyState
-            icon={<LuChartLine className="text-foreground-alt size-5" />}
+            icon={<LuChartLine sx={stylexStyles.rule1} />}
             title="This Dashboard no longer exists."
           />
         </Frame>
@@ -112,7 +135,7 @@ function DashboardHandle({
             <LoadingInline label="Starting the metrics plugin" />
           ) : (
             <EmptyState
-              icon={<LuChartLine className="text-foreground-alt size-5" />}
+              icon={<LuChartLine sx={stylexStyles.rule1} />}
               title="Metrics queries run on a desktop Device."
               description="Open this Space in the Spacewave desktop app to see these panels."
             />
@@ -245,7 +268,7 @@ function DashboardBody({ dashboard }: { dashboard: PromDashboard }) {
     <div className="bg-background-primary flex h-full w-full flex-col">
       <header className="border-foreground/8 flex h-9 shrink-0 items-center gap-3 border-b px-4">
         <div className="text-foreground flex items-center gap-2 text-sm font-semibold tracking-tight select-none">
-          <LuChartLine className="text-foreground-alt size-3.5" aria-hidden />
+          <LuChartLine sx={stylexStyles.rule2} aria-hidden />
           Dashboard
         </div>
         <UpdatedAt targets={targets.value} />
@@ -273,7 +296,7 @@ function DashboardBody({ dashboard }: { dashboard: PromDashboard }) {
         </div>
         {canWrite && panels.length > 0 ? (
           <DashboardButton
-            icon={<LuPlus className="size-3.5" />}
+            icon={<LuPlus sx={stylexStyles.rule3} />}
             onClick={() => dispatch({ kind: 'edit-panel', panelId: null })}
           >
             Add panel
@@ -322,7 +345,7 @@ function DashboardBody({ dashboard }: { dashboard: PromDashboard }) {
     if (targets.value.size === 0) {
       return (
         <EmptyState
-          icon={<LuChartLine className="text-foreground-alt size-5" />}
+          icon={<LuChartLine sx={stylexStyles.rule1} />}
           title="No Scrape targets in this Space yet."
           action={
             canWrite
@@ -338,7 +361,7 @@ function DashboardBody({ dashboard }: { dashboard: PromDashboard }) {
     if (panels.length === 0 && editingPanelId === undefined) {
       return (
         <EmptyState
-          icon={<LuChartLine className="text-foreground-alt size-5" />}
+          icon={<LuChartLine sx={stylexStyles.rule1} />}
           title="This Dashboard has no panels."
           action={
             canWrite

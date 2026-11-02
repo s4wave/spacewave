@@ -78,7 +78,7 @@ export function ResourceErrorsTab() {
   if (errorResources.length === 0) {
     return (
       <div sx={stylexStyles.rule1}>
-        <RiErrorWarningLine {...stylex.props(stylexStyles.rule2)} />
+        <RiErrorWarningLine sx={stylexStyles.rule2} />
         <span>No errors</span>
       </div>
     )

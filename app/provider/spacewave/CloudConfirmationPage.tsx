@@ -1,3 +1,4 @@
+import type { IconType } from '@s4wave/web/images/icons.js'
 import type { BillingConsent } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 import { BillingConsentForm } from './useBillingConsent.js'
 import { useState, useCallback } from 'react'
@@ -29,6 +30,126 @@ import {
   STORAGE_RATE_DISPLAY,
 } from '@s4wave/app/provider/spacewave/pricing.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+  motion as themeMotion,
+} from '../../../web/style/tokens.stylex.js'
+import { groupMarker } from '../../../web/style/relations.stylex.js'
+
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+} from '../../../web/style/tokens.stylex.js'
+import { groupMarker as groupMarker2 } from '../../../web/style/relations.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'flex',
+    alignItems: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 15%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-background']} 50%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+  },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: themeColors['--color-brand'],
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-brand'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: themeColors['--color-brand'],
+  },
+  rule4: {
+    marginRight: `calc(${themeLayout['--spacing']} * 1.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    transitionProperty: 'transform, translate, scale, rotate',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    '--tw-scale-x': {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker)]: '110%',
+      },
+    },
+    '--tw-scale-y': {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker)]: '110%',
+      },
+    },
+    '--tw-scale-z': {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker)]: '110%',
+      },
+    },
+    scale: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker)]:
+          'var(--tw-scale-x) var(--tw-scale-y)',
+      },
+    },
+  },
+  rule5: {
+    width: `calc(${themeLayout['--spacing']} * 2.5)`,
+    height: `calc(${themeLayout['--spacing']} * 2.5)`,
+  },
+})
 
 const CLOUD_EXPANDED_FEATURES = [
   { icon: LuGlobe, text: 'Cloud sync and backup across all devices' },
@@ -141,7 +262,7 @@ export function CloudConfirmationPage({
           onClick={onBack}
           className="text-foreground-alt hover:text-foreground flex cursor-pointer items-center gap-2 text-sm transition-colors"
         >
-          <LuArrowLeft className="size-4" />
+          <LuArrowLeft sx={stylexStyles.rule1} />
           Back to plan selection
         </button>
       }
@@ -162,7 +283,7 @@ export function CloudConfirmationPage({
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="bg-brand/10 flex size-10 items-center justify-center rounded-lg">
-              <LuCloud className="text-brand size-5" />
+              <LuCloud sx={stylexStyles.rule2} />
             </div>
             <div>
               <h2 className="text-foreground text-lg font-semibold">Cloud</h2>
@@ -226,7 +347,7 @@ export function CloudConfirmationPage({
                 className="border-brand bg-brand/10 text-foreground hover:bg-brand/20 flex cursor-pointer items-center justify-center rounded-r-md border border-l-0 px-3 transition duration-300"
                 title="Retry"
               >
-                <LuRefreshCw className="size-4" />
+                <LuRefreshCw sx={stylexStyles.rule1} />
               </button>
             )}
           </div>
@@ -241,7 +362,7 @@ export function CloudConfirmationPage({
       <div className="text-foreground-alt flex flex-wrap items-center justify-center gap-6 text-xs">
         {TRUST_SIGNALS.map((text) => (
           <span key={text} className="flex items-center gap-1.5">
-            <LuCheck className="text-brand size-3.5" />
+            <LuCheck sx={stylexStyles.rule3} />
             {text}
           </span>
         ))}
@@ -254,7 +375,7 @@ export function CloudConfirmationPage({
       <div className="border-foreground/6 via-brand/5 flex flex-col items-center justify-between gap-4 rounded-lg border bg-gradient-to-r from-blue-500/5 to-cyan-500/5 px-6 py-5 sm:flex-row">
         <div className="flex items-center gap-3">
           <div className="rounded-lg bg-blue-500/10 p-2.5">
-            <LuCode className="text-brand size-5" />
+            <LuCode sx={stylexStyles.rule2} />
           </div>
           <div>
             <h3 className="text-foreground text-sm font-semibold">
@@ -269,9 +390,9 @@ export function CloudConfirmationPage({
           href="https://github.com/aperturerobotics"
           target="_blank"
           rel="noopener noreferrer"
-          className="group border-foreground/15 bg-background/50 text-foreground hover:border-brand/30 hover:bg-brand/10 flex items-center rounded-md border px-4 py-1.5 text-xs font-medium transition duration-300"
+          sx={[stylexStyles3.rule1, groupMarker2]}
         >
-          <LuGithub className="mr-1.5 size-3.5 transition-transform duration-300 group-hover:scale-110" />
+          <LuGithub sx={stylexStyles.rule4} />
           <span className="select-none">View on GitHub</span>
         </a>
       </div>
@@ -311,7 +432,7 @@ export function FeatureGrid({
   features,
 }: {
   features: {
-    icon: React.ComponentType<{ className?: string }>
+    icon: IconType
     text: string
   }[]
 }) {
@@ -319,7 +440,7 @@ export function FeatureGrid({
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       {features.map((feature) => (
         <div key={feature.text} className="flex items-start gap-2">
-          <feature.icon className="text-brand mt-0.5 size-4 shrink-0" />
+          <feature.icon sx={stylexStyles2.rule1} />
           <span className="text-foreground-alt text-sm">{feature.text}</span>
         </div>
       ))}
@@ -410,7 +531,7 @@ export function PlanFaqItem({
               : 'bg-foreground/6 text-foreground-alt',
           )}
         >
-          <LuPlus className="size-2.5" />
+          <LuPlus sx={stylexStyles.rule5} />
         </div>
       </div>
       <div

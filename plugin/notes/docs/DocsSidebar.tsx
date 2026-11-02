@@ -23,6 +23,17 @@ import {
 import type { NotebookSource } from '../proto/notebook.pb.js'
 import { isNoteFileName, stripNoteFileExtension } from '../note-files.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    flexShrink: 0,
+  },
+})
+
 interface DocsSidebarProps {
   source: NotebookSource | undefined
   worldState: Resource<IWorldState>
@@ -231,14 +242,14 @@ function FolderNode({
         onClick={handleToggle}
       >
         {expanded ? (
-          <LuChevronDown className="size-3 shrink-0" />
+          <LuChevronDown sx={stylexStyles.rule1} />
         ) : (
-          <LuChevronRight className="size-3 shrink-0" />
+          <LuChevronRight sx={stylexStyles.rule1} />
         )}
         {expanded ? (
-          <LuFolderOpen className="size-3 shrink-0" />
+          <LuFolderOpen sx={stylexStyles.rule1} />
         ) : (
-          <LuFolder className="size-3 shrink-0" />
+          <LuFolder sx={stylexStyles.rule1} />
         )}
         <span className="truncate">{name}</span>
       </button>
@@ -288,7 +299,7 @@ function FileNode({ name, path, selected, onSelect, depth }: FileNodeProps) {
       style={{ '--docs-tree-padding-left': paddingLeft }}
       onClick={handleDocSelect}
     >
-      <LuFile className="size-3 shrink-0" />
+      <LuFile sx={stylexStyles.rule1} />
       <span className="truncate">{title}</span>
     </button>
   )

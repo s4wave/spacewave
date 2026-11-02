@@ -7,6 +7,16 @@ import { ChatMessage } from '@s4wave/sdk/chat/chat.pb.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { useForgeBlockData } from '@s4wave/web/forge/useForgeBlockData.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 export const ChatMessageTypeID = 'spacewave-chat/message'
 
 // ChatMessageViewer displays a Chat Message entity.
@@ -22,7 +32,7 @@ export function ChatMessageViewer({ objectState }: ObjectViewerComponentProps) {
     <div className="bg-background-primary flex h-full w-full flex-col overflow-auto">
       <div className="border-foreground/8 flex h-9 shrink-0 items-center border-b px-4">
         <div className="text-foreground flex items-center gap-2 text-sm font-semibold select-none">
-          <LuMessageCircle className="size-4" />
+          <LuMessageCircle sx={stylexStyles.rule1} />
           <span className="tracking-tight">Message</span>
         </div>
       </div>

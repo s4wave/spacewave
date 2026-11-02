@@ -31,6 +31,87 @@ import {
   type AuthCredential,
 } from './AuthConfirmDialog.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+  motion as themeMotion,
+} from '../../../web/style/tokens.stylex.js'
+import { groupMarker } from '../../../web/style/relations.stylex.js'
+
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../../../web/style/tokens.stylex.js'
+import { groupMarker as groupMarker2 } from '../../../web/style/relations.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    width: '100%',
+    cursor: 'pointer',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+      },
+    },
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
+    textAlign: 'left',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker)]:
+          themeColors['--color-brand'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 export interface SessionsSectionProps {
   account: Resource<Account>
   isLocal: boolean
@@ -134,7 +215,7 @@ export function SessionsSection({
   return (
     <CollapsibleSection
       title="Sessions"
-      icon={<LuCloud className="size-3.5" />}
+      icon={<LuCloud sx={stylexStyles.rule1} />}
       open={isOpen}
       onOpenChange={handleOpenChange}
       badge={
@@ -197,10 +278,10 @@ function LinkDeviceCard({ onClick }: { onClick: () => void }) {
       <button
         type="button"
         onClick={onClick}
-        className="border-foreground/10 bg-foreground/5 hover:border-brand/30 hover:bg-brand/5 group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2 text-left transition-colors"
+        sx={[stylexStyles2.rule1, groupMarker2]}
       >
         <div className="bg-foreground/10 group-hover:bg-brand/10 flex size-7 shrink-0 items-center justify-center rounded-md transition-colors">
-          <LuLink className="text-foreground-alt group-hover:text-brand size-3.5 transition-colors" />
+          <LuLink sx={stylexStyles.rule2} />
         </div>
         <div className="flex min-w-0 flex-1 flex-col">
           <span className="text-foreground text-xs font-medium select-none">
@@ -303,9 +384,9 @@ function SessionRow({ row, pending, onAction }: SessionRowProps) {
       <div className="flex min-w-0 flex-1 items-center gap-2">
         <div className="relative shrink-0">
           {isLocalRow ? (
-            <LuSmartphone className="text-foreground-alt size-3.5" />
+            <LuSmartphone sx={stylexStyles.rule3} />
           ) : (
-            <LuCloud className="text-foreground-alt size-3.5" />
+            <LuCloud sx={stylexStyles.rule3} />
           )}
           {row.currentSession && (
             <span className="bg-success absolute -top-0.5 -right-0.5 size-1.5 rounded-full" />
@@ -346,9 +427,9 @@ function SessionRow({ row, pending, onAction }: SessionRowProps) {
           title={actionLabel}
         >
           {isLocalRow ? (
-            <LuUnlink className="size-3" />
+            <LuUnlink sx={stylexStyles.rule4} />
           ) : (
-            <LuLogOut className="size-3" />
+            <LuLogOut sx={stylexStyles.rule4} />
           )}
         </button>
       )}

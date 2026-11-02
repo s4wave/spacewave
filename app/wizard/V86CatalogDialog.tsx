@@ -30,6 +30,16 @@ import { V86ImageRow } from './V86ImageRow.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+import { colors as themeColors } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: { marginTop: `calc(${themeLayout['--spacing']} * 3)` },
 })
@@ -139,7 +149,7 @@ function CatalogEntries({
   if (entries.length === 0) {
     return (
       <InfoCard
-        icon={<LuCloud className="text-foreground-alt/60 size-3.5" />}
+        icon={<LuCloud sx={stylexStyles2.rule1} />}
         title="No VM images are published yet"
       >
         <p className="text-foreground-alt/70 text-xs leading-relaxed">

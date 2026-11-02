@@ -11,6 +11,16 @@ import { cn } from '@s4wave/web/style/utils.js'
 import { LuBold, LuItalic, LuCode, LuLink } from '@s4wave/web/images/icons.js'
 import { TextInputDialog } from '../NoteDialogs.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 // FloatingToolbarPlugin shows a floating toolbar when text is selected.
 function FloatingToolbarPlugin() {
   const [editor] = useLexicalComposerContext()
@@ -153,7 +163,7 @@ function FloatingToolbarPlugin() {
             }}
             title="Bold"
           >
-            <LuBold className="size-3.5" />
+            <LuBold sx={stylexStyles.rule1} />
           </button>
           <button
             type="button"
@@ -164,7 +174,7 @@ function FloatingToolbarPlugin() {
             }}
             title="Italic"
           >
-            <LuItalic className="size-3.5" />
+            <LuItalic sx={stylexStyles.rule1} />
           </button>
           <button
             type="button"
@@ -175,7 +185,7 @@ function FloatingToolbarPlugin() {
             }}
             title="Code"
           >
-            <LuCode className="size-3.5" />
+            <LuCode sx={stylexStyles.rule1} />
           </button>
           <button
             type="button"
@@ -186,7 +196,7 @@ function FloatingToolbarPlugin() {
             }}
             title="Link"
           >
-            <LuLink className="size-3.5" />
+            <LuLink sx={stylexStyles.rule1} />
           </button>
         </div>
       )}

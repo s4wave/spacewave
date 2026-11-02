@@ -17,6 +17,24 @@ import {
 import { flattenRowBatches } from './sql-cell.js'
 import { SqlResultGrid } from './SqlResultGrid.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 export { SqlQueryResultTypeID }
 
 // SqlQueryResultViewer is the full sql/query-result viewer: a typed result grid
@@ -60,10 +78,7 @@ export function SqlQueryResultViewer({
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
       <div className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-4">
-        <LuTableProperties
-          className="text-foreground-alt size-3.5"
-          aria-hidden
-        />
+        <LuTableProperties sx={stylexStyles.rule1} aria-hidden />
         <span className="text-foreground text-sm font-semibold tracking-tight select-none">
           Query Result
         </span>
@@ -79,7 +94,7 @@ export function SqlQueryResultViewer({
             size="xs"
             onClick={() => navigate(grid.sourceQueryObjectKey)}
           >
-            <LuExternalLink className="size-3" />
+            <LuExternalLink sx={stylexStyles.rule2} />
             Query
           </Button>
         ) : null}
@@ -89,7 +104,7 @@ export function SqlQueryResultViewer({
             size="xs"
             onClick={() => navigate(grid.targetDbObjectKey)}
           >
-            <LuExternalLink className="size-3" />
+            <LuExternalLink sx={stylexStyles.rule2} />
             Database
           </Button>
         ) : null}

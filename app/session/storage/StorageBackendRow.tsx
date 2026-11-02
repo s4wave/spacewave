@@ -23,6 +23,16 @@ import {
   type StorageCheckView,
 } from './storage-backend.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 interface StorageBackendRowProps {
   info: StorageBackendInfo
   isDefault: boolean
@@ -110,7 +120,7 @@ export function StorageBackendRow({ info, isDefault }: StorageBackendRowProps) {
         </div>
         <div className="flex shrink-0 items-center gap-1">
           <DashboardButton
-            icon={<LuPlugZap className="size-3.5" />}
+            icon={<LuPlugZap sx={stylexStyles.rule1} />}
             onClick={() => void handleCheck()}
             disabled={busy}
           >
@@ -119,9 +129,9 @@ export function StorageBackendRow({ info, isDefault }: StorageBackendRowProps) {
           <DashboardButton
             icon={
               isDefault ? (
-                <LuStarOff className="size-3.5" />
+                <LuStarOff sx={stylexStyles.rule1} />
               ) : (
-                <LuStar className="size-3.5" />
+                <LuStar sx={stylexStyles.rule1} />
               )
             }
             onClick={handleDefault}
@@ -135,7 +145,7 @@ export function StorageBackendRow({ info, isDefault }: StorageBackendRowProps) {
             {isDefault ? 'Stop using for new' : 'Use for new'}
           </DashboardButton>
           <DashboardButton
-            icon={<LuTrash2 className="size-3.5" />}
+            icon={<LuTrash2 sx={stylexStyles.rule1} />}
             variant="destructive"
             onClick={handleRemove}
             onBlur={() => setConfirmRemove(false)}

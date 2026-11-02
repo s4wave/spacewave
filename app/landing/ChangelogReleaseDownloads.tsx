@@ -12,6 +12,20 @@ import { PrimaryDownloadButton } from '@s4wave/app/download/PrimaryDownloadButto
 import { cn } from '@s4wave/web/style/utils.js'
 import { detectPlatform } from '@s4wave/web/platform/detect-platform.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 const PLATFORM_ORDER: readonly DownloadOS[] = ['macos', 'windows', 'linux']
 type ReleaseChoice = 'latest' | 'this-release'
 
@@ -57,7 +71,7 @@ export function ChangelogReleaseDownloads({ version }: { version: string }) {
     <section className="flex w-full flex-col gap-8">
       <header className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
-          <LuMonitorDown className="text-foreground-alt size-5" />
+          <LuMonitorDown sx={stylexStyles.rule1} />
           <h2 className="text-foreground text-2xl font-semibold @lg:text-3xl">
             Download the desktop app
           </h2>

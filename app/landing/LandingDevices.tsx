@@ -13,6 +13,31 @@ import type { LiveDemoAppProps } from './use-case/LiveDemoApp.js'
 import { UseCaseDemo } from './use-case/UseCaseDemo.js'
 import { UseCasePage } from './use-case/UseCasePage.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 export const metadata = {
   title: 'Spacewave Devices - Your computers, in one Space.',
   description:
@@ -31,7 +56,7 @@ export function LandingDevices({
 
   return (
     <UseCasePage
-      icon={<LuMonitor className="size-8" />}
+      icon={<LuMonitor sx={stylexStyles.rule1} />}
       title="Your computers, in one Space."
       subtitle="Spacewave Devices lists the machines you work with in a private Space: Devices you link with the Spacewave CLI, and SSH hosts you connect to on demand."
       points={[
@@ -87,11 +112,11 @@ function DevicesPoster() {
     <div className="flex h-full flex-col text-sm">
       <div className="border-foreground/10 flex items-center justify-between border-b px-4 py-2">
         <span className="text-foreground flex items-center gap-2 font-semibold">
-          <LuMonitor className="size-4" />
+          <LuMonitor sx={stylexStyles.rule2} />
           Computers
         </span>
         <span className="border-foreground/10 text-foreground flex items-center gap-1.5 rounded border px-2 py-1 text-xs">
-          <LuPlus className="size-3.5" />
+          <LuPlus sx={stylexStyles.rule3} />
           Add Device
         </span>
       </div>
@@ -103,7 +128,7 @@ function DevicesPoster() {
               className="border-foreground/10 rounded-lg border p-3.5"
             >
               <span className="text-foreground-alt flex items-center gap-1.5 text-xs font-medium">
-                <tile.icon className="size-3.5" />
+                <tile.icon sx={stylexStyles2.rule1} />
                 {tile.label}
               </span>
               <div className="text-foreground mt-2 text-xl font-semibold">

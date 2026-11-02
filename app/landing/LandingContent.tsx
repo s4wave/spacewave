@@ -1,3 +1,7 @@
+import * as ownerStylex from '@stylexjs/stylex'
+import { cn as ownerClasses } from '@s4wave/web/style/utils.js'
+import { groupMarker as ownergroupMarker } from '@s4wave/web/style/relations.stylex.js'
+import type { IconType } from '@s4wave/web/images/icons.js'
 import React, { useCallback, useState, useMemo } from 'react'
 import { cn } from '@s4wave/web/style/utils.js'
 import { useScrollReveal } from './useScrollReveal.js'
@@ -44,6 +48,349 @@ import {
   useStaticHref,
 } from '@s4wave/app/prerender/StaticContext.js'
 import { ExternalLink } from './ExternalLink.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+import { groupMarker } from '../../web/style/relations.stylex.js'
+
+import { utilityState as themeUtilityState } from '../../web/style/tokens.stylex.js'
+import { groupMarker as groupMarker2 } from '../../web/style/relations.stylex.js'
+
+const stylexStyles5 = ownerStylex.create({
+  rule1: {
+    marginRight: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'inline-block',
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    '--tw-translate-y': `calc(${themeLayout['--spacing']} * -.5)`,
+    translate: 'var(--tw-translate-x) var(--tw-translate-y)',
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    display: 'flex',
+    alignItems: 'center',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: 'var(--ease-in-out)',
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    '--tw-ease': 'var(--ease-in-out)',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    '--tw-translate-y': {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `calc(${themeLayout['--spacing']} * -.25)`,
+      },
+    },
+    translate: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': 'var(--tw-translate-x) var(--tw-translate-y)',
+      },
+    },
+  },
+  rule2: {
+    cursor: 'pointer',
+    borderRadius: 'var(--radius-xl)',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    padding: `calc(${themeLayout['--spacing']} * 5)`,
+    '--tw-shadow': {
+      default: `inset 0 1px 0 var(--tw-shadow-color, color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)), 0 24px 48px -32px var(--tw-shadow-color, oklch(0% 0 0 / .7))`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `inset 0 1px 0 var(--tw-shadow-color, color-mix(in oklab, ${themeColors['--color-foreground']} 7%, transparent)), 0 32px 56px -30px var(--tw-shadow-color, oklch(0% 0 0 / .85))`,
+      },
+    },
+    boxShadow: {
+      default:
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+      '@media (hover: hover)': {
+        default: null,
+        ':hover':
+          'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule3: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 12%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 60%, transparent)`,
+  },
+  rule4: {
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 12%, transparent)`,
+      },
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    '--tw-translate-y': {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `calc(${themeLayout['--spacing']} * -.5)`,
+      },
+    },
+    translate: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': 'var(--tw-translate-x) var(--tw-translate-y)',
+      },
+    },
+  },
+  rule5: {
+    borderRadius: 'var(--radius-xl)',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 5)`,
+    '--tw-shadow': {
+      default: `inset 0 1px 0 var(--tw-shadow-color, color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)), 0 24px 48px -32px var(--tw-shadow-color, oklch(0% 0 0 / .7))`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `inset 0 1px 0 var(--tw-shadow-color, color-mix(in oklab, ${themeColors['--color-foreground']} 7%, transparent)), 0 32px 56px -30px var(--tw-shadow-color, oklch(0% 0 0 / .85))`,
+      },
+    },
+    boxShadow: {
+      default:
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+      '@media (hover: hover)': {
+        default: null,
+        ':hover':
+          'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    '--tw-translate-y': {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `calc(${themeLayout['--spacing']} * -.5)`,
+      },
+    },
+    translate: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': 'var(--tw-translate-x) var(--tw-translate-y)',
+      },
+    },
+  },
+  rule6: {
+    transitionDelay: 'var(--feature-reveal-delay)',
+    cursor: 'pointer',
+    borderRadius: 'var(--radius-xl)',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+    textDecorationLine: 'none',
+    '--tw-shadow': {
+      default: `inset 0 1px 0 var(--tw-shadow-color, color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)), 0 24px 48px -32px var(--tw-shadow-color, oklch(0% 0 0 / .7))`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `inset 0 1px 0 var(--tw-shadow-color, color-mix(in oklab, ${themeColors['--color-foreground']} 7%, transparent)), 0 32px 56px -30px var(--tw-shadow-color, oklch(0% 0 0 / .85))`,
+      },
+    },
+    boxShadow: {
+      default:
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+      '@media (hover: hover)': {
+        default: null,
+        ':hover':
+          'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.5s',
+    '--tw-duration': '.5s',
+  },
+  rule7: {
+    '--tw-translate-y': {
+      default: '0px',
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `calc(${themeLayout['--spacing']} * -1)`,
+      },
+    },
+    translate: {
+      default: 'var(--tw-translate-x) var(--tw-translate-y)',
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': 'var(--tw-translate-x) var(--tw-translate-y)',
+      },
+    },
+    opacity: 1,
+  },
+  rule8: {
+    '--tw-translate-y': `calc(${themeLayout['--spacing']} * 8)`,
+    translate: 'var(--tw-translate-x) var(--tw-translate-y)',
+    opacity: 0,
+  },
+})
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 3)`,
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-brand'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-brand'],
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-brand'],
+  },
+  rule5: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    color: themeColors['--color-brand'],
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+  },
+  rule3: {
+    marginRight: `calc(${themeLayout['--spacing']} * 2)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule5: {
+    width: `calc(${themeLayout['--spacing']} * 2.5)`,
+    height: `calc(${themeLayout['--spacing']} * 2.5)`,
+  },
+  rule6: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    color: themeColors['--color-brand'],
+  },
+  rule7: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    '--tw-font-weight': 'var(--font-weight-bold)',
+    fontWeight: 'var(--font-weight-bold)',
+    color: themeColors['--color-success'],
+  },
+  rule8: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-red-400'],
+  },
+  rule9: {
+    width: `calc(${themeLayout['--spacing']} * 6)`,
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+    '--tw-font-weight': 'var(--font-weight-bold)',
+    fontWeight: 'var(--font-weight-bold)',
+    color: themeColors['--color-success'],
+  },
+  rule10: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-red-400'],
+  },
+  rule11: {
+    width: `calc(${themeLayout['--spacing']} * 6)`,
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+    color: themeColors['--color-brand'],
+  },
+  rule12: {
+    marginRight: `calc(${themeLayout['--spacing']} * 2)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    transitionProperty: 'transform, translate, scale, rotate',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    '--tw-scale-x': {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker)]: '110%',
+      },
+    },
+    '--tw-scale-y': {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker)]: '110%',
+      },
+    },
+    '--tw-scale-z': {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker)]: '110%',
+      },
+    },
+    scale: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker)]:
+          'var(--tw-scale-x) var(--tw-scale-y)',
+      },
+    },
+  },
+})
 
 // Section provides consistent section styling with optional scroll-reveal.
 function Section({
@@ -118,7 +465,7 @@ function CtaButton({
   variant = 'default',
   onClick,
 }: {
-  icon: React.ComponentType<{ className?: string }>
+  icon: IconType
   children: React.ReactNode
   variant?: 'default' | 'primary'
   onClick?: () => void
@@ -134,7 +481,7 @@ function CtaButton({
           : 'border-foreground/15 bg-background/50 text-foreground hover:border-brand/40 hover:bg-brand/8',
       )}
     >
-      <Icon className="size-4" />
+      <Icon sx={stylexStyles2.rule1} />
       <span>{children}</span>
     </button>
   )
@@ -207,7 +554,7 @@ const HeroFeature: React.FC<HeroFeatureProps> = ({
   } as const
 
   return (
-    <li className="group flex items-center transition duration-300 ease-in-out select-none hover:-translate-y-0.25">
+    <li sx={[stylexStyles4.rule1, groupMarker2]}>
       <span
         className={cn(
           colorClasses[color],
@@ -247,12 +594,10 @@ const FaqItem: React.FC<FaqItemProps> = ({
     <div
       role="button"
       tabIndex={0}
-      className={cn(
-        'group shadow-landing-card hover:shadow-landing-card-raised cursor-pointer rounded-xl border p-5 transition',
-        isOpen
-          ? 'border-foreground/12 bg-background-card/60'
-          : 'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:-translate-y-0.5',
-      )}
+      sx={[
+        [stylexStyles4.rule2, groupMarker2],
+        isOpen ? stylexStyles4.rule3 : stylexStyles4.rule4,
+      ]}
       onClick={onToggle}
       onKeyDown={handleFaqKeyDown}
     >
@@ -275,7 +620,7 @@ const FaqItem: React.FC<FaqItemProps> = ({
               : 'bg-foreground/6 text-foreground-alt group-hover:bg-brand/8 group-hover:text-brand',
           )}
         >
-          <LuPlus className="size-3" />
+          <LuPlus sx={stylexStyles.rule1} />
         </div>
       </div>
       <div
@@ -446,7 +791,7 @@ const HeroSection: React.FC = () => {
           href={blogHref}
           className="border-brand/30 text-brand hover:border-brand/50 shadow-landing-button mb-8 inline-block cursor-pointer rounded-full border px-4 py-2 text-sm font-medium no-underline transition duration-300 hover:-translate-y-0.5 [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center"
         >
-          <PiRocketLaunchDuotone className="mr-2 inline-block size-4 -translate-y-0.5" />
+          <PiRocketLaunchDuotone sx={stylexStyles5.rule1} />
           Announcing open beta
         </a>
 
@@ -477,22 +822,22 @@ const HeroSection: React.FC = () => {
         <div className="mx-auto mb-8 flex max-w-xl flex-col items-center">
           <ul className="mx-auto grid max-w-2xl grid-cols-1 gap-x-8 gap-y-3 text-base @lg:grid-cols-2">
             <HeroFeature
-              icon={<PiAppStoreLogoBold className="size-5" />}
+              icon={<PiAppStoreLogoBold sx={stylexStyles5.rule2} />}
               text="Spaces for any purpose"
               color="emerald"
             />
             <HeroFeature
-              icon={<LuMousePointer className="size-5" />}
+              icon={<LuMousePointer sx={stylexStyles.rule2} />}
               text="Instant live sync"
               color="pink"
             />
             <HeroFeature
-              icon={<LuShield className="size-5" />}
+              icon={<LuShield sx={stylexStyles.rule2} />}
               text="End-to-end encrypted"
               color="purple"
             />
             <HeroFeature
-              icon={<LuGithub className="size-5" />}
+              icon={<LuGithub sx={stylexStyles.rule2} />}
               text="Open-source & extensible"
               color="amber"
             />
@@ -501,14 +846,14 @@ const HeroSection: React.FC = () => {
 
         <div className="mt-2 flex flex-wrap justify-center gap-4">
           <HeroButton
-            icon={<LuRocket className="mr-2 size-4" />}
+            icon={<LuRocket sx={stylexStyles.rule3} />}
             onClick={nav.getStarted}
           >
             Get started (free)
           </HeroButton>
           {!isDesktop && (
             <HeroButton
-              icon={<LuDownload className="mr-2 size-4" />}
+              icon={<LuDownload sx={stylexStyles.rule3} />}
               onClick={nav.download}
             >
               Download app
@@ -624,7 +969,7 @@ function NetworkNode({
   x: number
   y: number
   label: string
-  icon: React.ComponentType<{ className?: string }>
+  icon: IconType
   delay: number
   color: string
 }) {
@@ -677,7 +1022,7 @@ function NetworkNode({
           className="landing-feature-color flex h-full w-full items-center justify-center"
           style={{ '--landing-feature-color': color }}
         >
-          <Icon className="size-4" />
+          <Icon sx={stylexStyles2.rule1} />
         </div>
       </foreignObject>
     </g>
@@ -762,7 +1107,7 @@ function TraditionalDiagram({ label }: { label: string }) {
       />
       <foreignObject x={server.x - 10} y={server.y - 10} width="20" height="20">
         <div className="text-foreground-alt flex h-full w-full items-center justify-center opacity-60">
-          <LuServer className="size-4" />
+          <LuServer sx={stylexStyles.rule4} />
         </div>
       </foreignObject>
       <text
@@ -788,7 +1133,7 @@ function TraditionalDiagram({ label }: { label: string }) {
           />
           <foreignObject x={d.x - 8} y={d.y - 8} width="16" height="16">
             <div className="text-foreground-alt flex h-full w-full items-center justify-center opacity-40">
-              <d.icon className="size-3.5" />
+              <d.icon sx={stylexStyles3.rule1} />
             </div>
           </foreignObject>
           <text
@@ -940,11 +1285,8 @@ function HowItWorksSection() {
         {cards.map((card, i) => {
           const CardIcon = HOW_ICONS[i]
           return (
-            <div
-              key={card.title}
-              className="border-foreground/6 bg-background-card/30 group shadow-landing-card hover:shadow-landing-card-raised rounded-xl border p-5 transition duration-300 hover:-translate-y-0.5"
-            >
-              <CardIcon className="text-brand mb-3 size-5" />
+            <div key={card.title} sx={[stylexStyles4.rule5, groupMarker2]}>
+              <CardIcon sx={stylexStyles2.rule2} />
               <h3 className="text-foreground mb-2 text-sm font-semibold">
                 {card.title}
               </h3>
@@ -1024,7 +1366,7 @@ function UseCaseCard({
   href,
   index,
 }: {
-  icon: React.ComponentType<{ className?: string }>
+  icon: IconType
   highlight: string
   title: string
   description: string
@@ -1037,17 +1379,15 @@ function UseCaseCard({
     <a
       ref={ref}
       href={resolvedHref}
-      className={cn(
-        'feature-reveal-delay border-foreground/6 bg-background-card/30 group shadow-landing-card hover:shadow-landing-card-raised cursor-pointer rounded-xl border p-6 no-underline transition duration-500',
-        visible
-          ? 'translate-y-0 opacity-100 hover:-translate-y-1'
-          : 'translate-y-8 opacity-0',
-      )}
+      sx={[
+        [stylexStyles4.rule6, groupMarker2],
+        visible ? stylexStyles4.rule7 : stylexStyles4.rule8,
+      ]}
       style={{ '--feature-reveal-delay': `${index * 80}ms` }}
     >
       <div className="mb-4 flex items-center gap-3">
         <div className="bg-brand/8 group-hover:bg-brand/15 inset-ring-brand/14 flex size-10 shrink-0 items-center justify-center rounded-lg inset-ring transition-colors">
-          <Icon className="text-brand size-5" />
+          <Icon sx={stylexStyles2.rule3} />
         </div>
         <span className="text-brand/70 text-metadata font-semibold tracking-widest uppercase">
           {highlight}
@@ -1135,7 +1475,7 @@ function ArchitectureStackDiagram() {
                 >
                   <div className="flex items-center gap-3">
                     <div className="bg-brand/8 flex size-9 shrink-0 items-center justify-center rounded-md">
-                      <LayerIcon className="text-brand size-4" />
+                      <LayerIcon sx={stylexStyles2.rule4} />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="text-foreground text-sm font-semibold">
@@ -1154,7 +1494,7 @@ function ArchitectureStackDiagram() {
                         '--landing-stack-delay': `${STACK_LAYERS.length * 100 + 300}ms`,
                       }}
                     >
-                      <LuPlus className="size-2.5" />
+                      <LuPlus sx={stylexStyles.rule5} />
                       plugins
                     </div>
                   </div>
@@ -1168,7 +1508,7 @@ function ArchitectureStackDiagram() {
                   }}
                 >
                   <div className="bg-brand/8 flex size-5 shrink-0 items-center justify-center rounded">
-                    <LayerIcon className="text-brand size-3" />
+                    <LayerIcon sx={stylexStyles2.rule5} />
                   </div>
                   <span className="text-foreground-alt text-xs font-medium">
                     {layer.name}
@@ -1191,7 +1531,7 @@ function ArchitectureStackDiagram() {
         style={{ '--landing-cta-delay': '600ms' }}
       >
         <div className="border-brand/20 bg-brand/5 flex items-center gap-1.5 rounded-full border px-3 py-1">
-          <LuCircuitBoard className="text-brand size-3" />
+          <LuCircuitBoard sx={stylexStyles.rule6} />
           <span className="text-brand micro-tiny font-semibold tracking-widest uppercase">
             ControllerBus connects all layers
           </span>
@@ -1243,7 +1583,7 @@ function ForDevelopersSection() {
               return (
                 <div key={card.title}>
                   <div className="text-brand mb-2 flex items-center gap-2 text-sm font-semibold">
-                    <CardIcon className="size-4" />
+                    <CardIcon sx={stylexStyles2.rule1} />
                     {card.title}
                   </div>
                   <p className="text-foreground-alt text-sm leading-relaxed text-balance">
@@ -1264,7 +1604,7 @@ function ForDevelopersSection() {
           href={GITHUB_REPO_URL}
           className="border-foreground/15 bg-background/50 text-foreground hover:border-brand/40 hover:bg-brand/8 rounded-landing-control shadow-landing-button flex cursor-pointer items-center gap-2 border px-5 py-2.5 text-sm font-medium no-underline transition duration-300 select-none hover:-translate-y-0.5 [@media(pointer:coarse)]:min-h-11"
         >
-          <LuGithub className="size-4" />
+          <LuGithub sx={stylexStyles.rule4} />
           <span>Browse Source</span>
         </ExternalLink>
       </CtaRow>
@@ -1287,43 +1627,43 @@ const ComparisonChart: React.FC = () => {
       name: 'Free and open-source',
       spacewave: true,
       traditional: false,
-      icon: <LuGift className="size-4" />,
+      icon: <LuGift sx={stylexStyles.rule4} />,
     },
     {
       name: 'No account required',
       spacewave: true,
       traditional: false,
-      icon: <LuUserX className="size-4" />,
+      icon: <LuUserX sx={stylexStyles.rule4} />,
     },
     {
       name: 'Works offline without limitations',
       spacewave: true,
       traditional: 'partial',
-      icon: <LuWifiOff className="size-4" />,
+      icon: <LuWifiOff sx={stylexStyles.rule4} />,
     },
     {
       name: 'Runs on your devices w/ p2p sync',
       spacewave: true,
       traditional: false,
-      icon: <PiAppStoreLogoBold className="size-4" />,
+      icon: <PiAppStoreLogoBold sx={stylexStyles5.rule3} />,
     },
     {
       name: 'End-to-end encryption by default',
       spacewave: true,
       traditional: 'partial',
-      icon: <LuLock className="size-4" />,
+      icon: <LuLock sx={stylexStyles.rule4} />,
     },
     {
       name: 'Low-cost cloud storage and APIs',
       spacewave: true,
       traditional: 'partial',
-      icon: <LuCreditCard className="size-4" />,
+      icon: <LuCreditCard sx={stylexStyles.rule4} />,
     },
     {
       name: 'No telemetry or ad tracking',
       spacewave: true,
       traditional: false,
-      icon: <LuEyeOff className="size-4" />,
+      icon: <LuEyeOff sx={stylexStyles.rule4} />,
     },
   ]
 
@@ -1331,7 +1671,7 @@ const ComparisonChart: React.FC = () => {
   const renderLegend = () => (
     <div className="text-foreground-alt mt-4 flex items-center justify-center gap-6 text-xs">
       <div className="flex items-center gap-2">
-        <LuCheck className="text-success size-5 font-bold" />
+        <LuCheck sx={stylexStyles.rule7} />
         <span>Full support</span>
       </div>
       <div className="flex items-center gap-2">
@@ -1339,7 +1679,7 @@ const ComparisonChart: React.FC = () => {
         <span>Partial support</span>
       </div>
       <div className="flex items-center gap-2">
-        <LuX className="size-4 text-red-400" />
+        <LuX sx={stylexStyles.rule8} />
         <span>Not supported</span>
       </div>
     </div>
@@ -1375,20 +1715,20 @@ const ComparisonChart: React.FC = () => {
               </div>
               <div className="flex justify-center px-2 py-4 @md:p-4">
                 {feature.spacewave === true ? (
-                  <LuCheck className="text-success size-6 font-bold" />
+                  <LuCheck sx={stylexStyles.rule9} />
                 ) : feature.spacewave === 'partial' ? (
                   <div className="bg-partial size-5 rounded-full" />
                 ) : (
-                  <LuX className="size-5 text-red-400" />
+                  <LuX sx={stylexStyles.rule10} />
                 )}
               </div>
               <div className="flex justify-center px-2 py-4 @md:p-4">
                 {feature.traditional === true ? (
-                  <LuCheck className="text-success size-6 font-bold" />
+                  <LuCheck sx={stylexStyles.rule9} />
                 ) : feature.traditional === 'partial' ? (
                   <div className="bg-warning h-0.5 w-4 rounded-full" />
                 ) : (
-                  <LuX className="size-5 text-red-400" />
+                  <LuX sx={stylexStyles.rule10} />
                 )}
               </div>
             </div>
@@ -1416,7 +1756,7 @@ const OpenSourceSection: React.FC = () => {
       <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-4 @lg:flex-row @2xl:px-6">
         <div className="flex items-center gap-4">
           <div className="bg-brand/8 inset-ring-brand/14 rounded-lg p-3 inset-ring">
-            <LuCode className="text-brand size-6" />
+            <LuCode sx={stylexStyles.rule11} />
           </div>
           <div>
             <h2 className="text-foreground text-xl font-medium tracking-tight">
@@ -1429,9 +1769,12 @@ const OpenSourceSection: React.FC = () => {
         </div>
         <ExternalLink
           href={GITHUB_REPO_URL}
-          className="group hover:border-brand/40 hover:bg-brand/8 border-foreground/15 bg-background/50 text-foreground rounded-landing-control shadow-landing-button flex cursor-pointer items-center border px-6 py-2 text-sm font-medium no-underline transition duration-300 [@media(pointer:coarse)]:min-h-11"
+          className={ownerClasses(
+            'group hover:border-brand/40 hover:bg-brand/8 border-foreground/15 bg-background/50 text-foreground rounded-landing-control shadow-landing-button flex cursor-pointer items-center border px-6 py-2 text-sm font-medium no-underline transition duration-300 [@media(pointer:coarse)]:min-h-11',
+            ownerStylex.props(ownergroupMarker).className,
+          )}
         >
-          <LuGithub className="mr-2 size-4 transition-transform duration-300 group-hover:scale-110" />
+          <LuGithub sx={stylexStyles.rule12} />
           <span className="select-none">View on GitHub</span>
         </ExternalLink>
       </div>

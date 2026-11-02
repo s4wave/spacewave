@@ -1,3 +1,9 @@
+import * as ownerStylex from '@stylexjs/stylex'
+import { cn as ownerClasses } from '@s4wave/web/style/utils.js'
+import { groupMarker as ownergroupMarker } from '@s4wave/web/style/relations.stylex.js'
+import * as stylex from '@stylexjs/stylex'
+import { groupMarker } from '../../web/style/relations.stylex.js'
+import { colors } from '../../web/style/tokens.stylex.js'
 import type { ReactNode, Ref } from 'react'
 import { LuMaximize2 } from '@s4wave/web/images/icons.js'
 
@@ -30,12 +36,18 @@ export function SystemTile({
 }) {
   return (
     <section
-      className={cn(
-        'group border-foreground/8 bg-background-card/30 relative flex min-h-36 flex-col rounded-lg border p-4 transition-colors duration-150',
-        'hover:border-foreground/15 hover:bg-background-card/60',
-        'has-[button:focus-visible]:ring-brand/50 has-[button:focus-visible]:ring-2',
-        className,
-      )}
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: has-[button:focus-visible]:ring-2 */ cn(
+          ownerClasses(
+            'group border-foreground/8 bg-background-card/30 relative flex min-h-36 flex-col rounded-lg border p-4 transition-colors duration-150',
+            ownerStylex.props(ownergroupMarker).className,
+          ),
+          'hover:border-foreground/15 hover:bg-background-card/60',
+          'has-[button:focus-visible]:ring-brand/50 has-[button:focus-visible]:ring-2',
+          className,
+          stylex.props(groupMarker).className,
+        )
+      }
     >
       <h2 className="text-foreground-alt/60 flex items-center gap-2">
         <span className="shrink-0 [&>svg]:size-3.5" aria-hidden="true">
@@ -54,10 +66,7 @@ export function SystemTile({
           className={cn('size-1.5 rounded-full', toneDotClass[tone])}
           aria-hidden="true"
         />
-        <LuMaximize2
-          className="text-foreground-alt/50 ml-auto size-3.5 opacity-0 transition-opacity group-hover:opacity-100 group-has-[button:focus-visible]:opacity-100"
-          aria-hidden="true"
-        />
+        <LuMaximize2 sx={tileIconStyles.icon} aria-hidden="true" />
       </h2>
 
       <div className="text-foreground mt-3 text-lg font-semibold tracking-tight">
@@ -72,3 +81,24 @@ export function SystemTile({
     </section>
   )
 }
+
+const tileIconStyles = stylex.create({
+  icon: {
+    color: `color-mix(in oklab, ${colors['--color-foreground-alt']} 50%, transparent)`,
+    marginLeft: 'auto',
+    width: 14,
+    height: 14,
+    transitionProperty: 'opacity',
+    transitionTimingFunction:
+      'var(--tw-ease,var(--default-transition-timing-function))',
+    transitionDuration: 'var(--tw-duration,var(--default-transition-duration))',
+    opacity: {
+      default: 0,
+      [stylex.when.ancestor(':has(button:focus-visible)', groupMarker)]: 1,
+      '@media (hover:hover)': {
+        default: null,
+        [stylex.when.ancestor(':hover', groupMarker)]: 1,
+      },
+    },
+  },
+})

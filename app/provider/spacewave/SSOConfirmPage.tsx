@@ -50,6 +50,36 @@ import {
   withSpacewaveProvider,
 } from './auth-flow-shared.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: themeColors['--color-brand'],
+  },
+})
+
 type SSOConfirmState =
   | { step: 'form' }
   | { step: 'confirm'; username: string }
@@ -299,7 +329,7 @@ function BackToLoginButton({
       onClick={onClick}
       className="hover:text-brand flex items-center justify-center gap-1.5"
     >
-      <LuArrowLeft className="size-3" />
+      <LuArrowLeft sx={stylexStyles.rule1} />
       {children}
     </AuthSecondaryActionButton>
   )
@@ -470,7 +500,10 @@ function SSOSignupForm({
         {/* Provider context header */}
         <div className="mb-4 flex items-center gap-3">
           <div className="bg-brand/10 flex size-10 items-center justify-center rounded-lg">
-            <ProviderIcon provider={pendingState.provider} className="size-5" />
+            <ProviderIcon
+              provider={pendingState.provider}
+              sx={stylexStyles2.rule1}
+            />
           </div>
           <div>
             <h2 className="text-foreground text-sm font-semibold">
@@ -505,7 +538,7 @@ function SSOSignupForm({
           <AuthPrimaryActionButton
             onClick={onRequestConfirm}
             disabled={!username || !!usernameError || !agreed}
-            icon={<LuUserPlus className="text-foreground size-4" />}
+            icon={<LuUserPlus sx={stylexStyles.rule2} />}
           >
             Create account
           </AuthPrimaryActionButton>
@@ -519,7 +552,7 @@ function SSOSignupForm({
       <div className="text-foreground-alt flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-xs">
         {SIGNUP_HIGHLIGHTS.map((text) => (
           <span key={text} className="flex items-center gap-1.5">
-            <LuCheck className="text-brand size-3.5" />
+            <LuCheck sx={stylexStyles.rule3} />
             {text}
           </span>
         ))}
@@ -561,7 +594,7 @@ function ConfirmUsernameDialog({
         <div className="flex flex-col gap-2">
           <AuthPrimaryActionButton
             onClick={onConfirm}
-            icon={<LuUserPlus className="text-foreground size-4" />}
+            icon={<LuUserPlus sx={stylexStyles.rule2} />}
           >
             Confirm and create account
           </AuthPrimaryActionButton>

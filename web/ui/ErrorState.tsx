@@ -157,10 +157,10 @@ export function ErrorState({
         ]}
       >
         <LuCircleAlert
-          {...stylex.props([
+          sx={[
             stylexStyles.rule4,
             variant === 'fullscreen' ? stylexStyles.rule5 : stylexStyles.rule6,
-          ])}
+          ]}
         />
       </div>
       <div
@@ -200,7 +200,7 @@ export function ErrorState({
             variant === 'fullscreen' ? stylexStyles.rule16 : stylexStyles.rule8,
           ]}
         >
-          <LuRefreshCw {...stylex.props(stylexStyles.rule17)} />
+          <LuRefreshCw sx={stylexStyles.rule17} />
           Retry
         </Button>
       )}
@@ -211,7 +211,7 @@ export function ErrorState({
   if (variant === 'inline') {
     return (
       <div sx={[stylexStyles.rule18, sx]}>
-        <LuCircleAlert {...stylex.props(stylexStyles.rule19)} />
+        <LuCircleAlert sx={stylexStyles.rule19} />
         <p sx={stylexStyles.rule20}>{message}</p>
         {onRetry && (
           <Button
@@ -220,7 +220,7 @@ export function ErrorState({
             onClick={onRetry}
             sx={stylexStyles.rule21}
           >
-            <LuRefreshCw {...stylex.props(stylexStyles.rule22)} />
+            <LuRefreshCw sx={stylexStyles.rule22} />
           </Button>
         )}
       </div>

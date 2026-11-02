@@ -11,6 +11,16 @@ import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { SessionLockSection } from './SessionLockSection.js'
 import { SecurityLevelSection } from './SecurityLevelSection.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 export interface SecuritySectionProps {
   account?: Resource<Account>
   retainStepUp?: boolean
@@ -41,7 +51,7 @@ export function SecuritySection({
   return (
     <CollapsibleSection
       title="Security"
-      icon={<LuShield className="size-3.5" />}
+      icon={<LuShield sx={stylexStyles.rule1} />}
       open={sectionOpen}
       onOpenChange={handleOpenChange}
     >

@@ -7,6 +7,20 @@ import { CliInstallSnippet } from './CliInstallSnippet.js'
 import type { DownloadEntry, DownloadOS } from './manifest.js'
 import { PrimaryDownloadButton } from './PrimaryDownloadButton.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 interface CliSectionProps {
   primary: DownloadEntry | null
   groups: ReadonlyArray<{ os: DownloadOS; entries: readonly DownloadEntry[] }>
@@ -31,7 +45,7 @@ export function CliSection({ primary, groups }: CliSectionProps) {
     >
       <header className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
-          <LuTerminal className="text-foreground-alt size-5" />
+          <LuTerminal sx={stylexStyles.rule1} />
           <h2
             id="cli-heading"
             className="text-foreground text-2xl font-semibold select-none @lg:text-3xl"

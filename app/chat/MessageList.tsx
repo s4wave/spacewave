@@ -3,6 +3,16 @@ import { useCallback, useEffect, useRef } from 'react'
 
 import type { ChatMessageInfo } from '@s4wave/sdk/chat/rpc/rpc.pb.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+  },
+})
+
 function peerLabel(id: string): string {
   if (!id) return 'Unknown peer'
   if (id.length <= 14) return id
@@ -46,7 +56,7 @@ export function MessageList({ messages }: { messages: ChatMessageInfo[] }) {
       {messages.length === 0 ? (
         <div className="mx-auto flex h-full max-w-sm flex-col items-center justify-center px-6 py-12 text-center">
           <div className="bg-background-tertiary text-brand mb-4 flex size-11 items-center justify-center rounded-full">
-            <LuMessageCircle className="size-5" aria-hidden="true" />
+            <LuMessageCircle sx={stylexStyles.rule1} aria-hidden="true" />
           </div>
           <h2 className="text-foreground text-sm font-semibold">
             Start the conversation

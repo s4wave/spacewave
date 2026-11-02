@@ -17,6 +17,16 @@ import { getNoteFileFormat, stripNoteFileExtension } from './note-files.js'
 import { useNoteWrite } from './useNoteWrite.js'
 import type { parseNote } from './frontmatter.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 interface NoteContentViewProps {
   worldState: Resource<IWorldState>
   sourceRef: string
@@ -154,12 +164,12 @@ function NoteHeader({
       >
         {editing ? (
           <>
-            <LuPenLine className="size-3" />
+            <LuPenLine sx={stylexStyles.rule1} />
             WYSIWYG
           </>
         ) : (
           <>
-            <LuCode className="size-3" />
+            <LuCode sx={stylexStyles.rule1} />
             Source
           </>
         )}

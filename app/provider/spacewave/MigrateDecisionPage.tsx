@@ -8,7 +8,7 @@ import {
 } from '@s4wave/web/images/icons.js'
 
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
@@ -19,6 +19,161 @@ import {
   PageFooter,
   PageWrapper,
 } from './CloudConfirmationPage.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+  motion as themeMotion,
+} from '../../../web/style/tokens.stylex.js'
+import { groupMarker } from '../../../web/style/relations.stylex.js'
+
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../../../web/style/tokens.stylex.js'
+import { groupMarker as groupMarker2 } from '../../../web/style/relations.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    cursor: { default: 'pointer', ':disabled': 'not-allowed' },
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+      },
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+    textAlign: 'left',
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    '--tw-shadow': {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover':
+          '0 4px 6px -1px var(--tw-shadow-color, #0000001a), 0 2px 4px -2px var(--tw-shadow-color, #0000001a)',
+      },
+    },
+    boxShadow: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover':
+          'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+      },
+    },
+    '--tw-shadow-color': {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent) var(--tw-shadow-alpha), transparent)`,
+      },
+    },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule2: {
+    cursor: { default: 'pointer', ':disabled': 'not-allowed' },
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      },
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+    textAlign: 'left',
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    '--tw-shadow': {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover':
+          '0 4px 6px -1px var(--tw-shadow-color, #0000001a), 0 2px 4px -2px var(--tw-shadow-color, #0000001a)',
+      },
+    },
+    boxShadow: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover':
+          'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+      },
+    },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-brand'],
+  },
+  rule3: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker)]:
+          themeColors['--color-brand'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule5: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker)]:
+          themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+})
 
 // MigrateDecisionPage renders the migration decision UI at /plan/migrate.
 // Shown when the user has an active subscription and a linked local session
@@ -62,7 +217,7 @@ export function MigrateDecisionPage() {
           onClick={handleBack}
           className="text-foreground-alt hover:text-foreground flex cursor-pointer items-center gap-2 text-sm transition-colors"
         >
-          <LuArrowLeft className="size-4" />
+          <LuArrowLeft sx={stylexStyles.rule1} />
           Back
         </button>
       }
@@ -84,14 +239,11 @@ export function MigrateDecisionPage() {
         type="button"
         onClick={handleMigrate}
         disabled={unlinking}
-        className={cn(
-          'border-brand/30 bg-background-card/50 hover:border-brand/50 hover:shadow-brand/5 group cursor-pointer overflow-hidden rounded-lg border p-6 text-left transition-all duration-300 hover:shadow-md',
-          'disabled:cursor-not-allowed disabled:opacity-50',
-        )}
+        sx={[[stylexStyles2.rule1, groupMarker2]]}
       >
         <div className="flex items-start gap-4">
           <div className="bg-brand/10 flex size-10 shrink-0 items-center justify-center rounded-lg">
-            <LuCloud className="text-brand size-5" />
+            <LuCloud sx={stylexStyles.rule2} />
           </div>
           <div className="flex-1">
             <h2 className="text-foreground text-sm font-semibold">
@@ -102,7 +254,7 @@ export function MigrateDecisionPage() {
               will be synced across all your devices.
             </p>
           </div>
-          <LuArrowRight className="text-foreground-alt group-hover:text-brand mt-0.5 size-4 shrink-0 transition-colors" />
+          <LuArrowRight sx={stylexStyles.rule3} />
         </div>
       </button>
 
@@ -111,17 +263,14 @@ export function MigrateDecisionPage() {
         type="button"
         onClick={() => void handleKeepSeparate()}
         disabled={unlinking || !session}
-        className={cn(
-          'border-foreground/10 bg-background-card/30 hover:border-foreground/20 group cursor-pointer overflow-hidden rounded-lg border p-6 text-left transition-all duration-300 hover:shadow-md',
-          'disabled:cursor-not-allowed disabled:opacity-50',
-        )}
+        sx={[[stylexStyles2.rule2, groupMarker2]]}
       >
         <div className="flex items-start gap-4">
           <div className="bg-foreground/5 flex size-10 shrink-0 items-center justify-center rounded-lg">
             {unlinking ? (
               <Spinner size="md" variant="muted" />
             ) : (
-              <LuUnlink className="text-foreground-alt size-5" />
+              <LuUnlink sx={stylexStyles.rule4} />
             )}
           </div>
           <div className="flex-1">
@@ -133,7 +282,7 @@ export function MigrateDecisionPage() {
               remain accessible independently.
             </p>
           </div>
-          <LuHardDrive className="text-foreground-alt group-hover:text-foreground mt-0.5 size-4 shrink-0 transition-colors" />
+          <LuHardDrive sx={stylexStyles.rule5} />
         </div>
       </button>
 

@@ -17,6 +17,21 @@ import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
 import { ForgeValueSetDisplay } from './ForgeValueSetDisplay.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 export const ForgeExecutionTypeID = 'forge/execution'
 
 const execStateLabels: Record<number, string> = {
@@ -77,7 +92,7 @@ function LogViewer({ logEntries }: { logEntries: Execution['logEntries'] }) {
     return (
       <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
         <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
-          <LuActivity className="size-3.5 shrink-0" />
+          <LuActivity sx={stylexStyles.rule1} />
           <span>No log output</span>
         </div>
       </div>
@@ -201,7 +216,7 @@ export function ForgeExecutionViewer({
   return (
     <ForgeViewerShell
       stateKey={objectKey}
-      icon={<LuActivity className="size-4" />}
+      icon={<LuActivity sx={stylexStyles.rule2} />}
       title="Execution"
       state={execution?.executionState ?? 0}
       stateLabels={execStateLabels}

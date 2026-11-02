@@ -5,6 +5,16 @@ import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import type { OrgMemberInfo } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 import { ORG_ROLE_OWNER } from './org-constants.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 function getOrgMemberPrimaryLabel(member: OrgMemberInfo): string {
   return member.entityId || member.subjectId || 'Unknown member'
 }
@@ -95,7 +105,7 @@ function OrgMemberRow(props: {
       </div>
       {isOwner && !isMemberOwner && onRemove && (
         <DashboardButton
-          icon={<LuUserMinus className="size-3" />}
+          icon={<LuUserMinus sx={stylexStyles.rule1} />}
           onClick={() => void handleRemove()}
           disabled={removing}
           variant="destructive"

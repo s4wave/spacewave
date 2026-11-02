@@ -195,7 +195,7 @@ export function SessionSettingsDebug() {
           aria-label="Go back"
           sx={stylexStyles.rule3}
         >
-          <LuArrowLeft {...stylex.props(stylexStyles.rule4)} />
+          <LuArrowLeft sx={stylexStyles.rule4} />
         </button>
         <span sx={stylexStyles.rule5}>Session Settings Variants</span>
       </div>
@@ -208,7 +208,7 @@ export function SessionSettingsDebug() {
         >
           <CollapsibleSection
             title="Security"
-            icon={<LuShield {...stylex.props(stylexStyles.rule7)} />}
+            icon={<LuShield sx={stylexStyles.rule7} />}
             open={securityOpen}
             onOpenChange={setSecurityOpen}
           >
@@ -227,7 +227,7 @@ export function SessionSettingsDebug() {
 
           <CollapsibleSection
             title="Billing"
-            icon={<LuCreditCard {...stylex.props(stylexStyles.rule7)} />}
+            icon={<LuCreditCard sx={stylexStyles.rule7} />}
             open={billingOpen}
             onOpenChange={setBillingOpen}
             badge={<StatusBadge label="Active" />}
@@ -250,7 +250,7 @@ export function SessionSettingsDebug() {
 
           <CollapsibleSection
             title="Organizations"
-            icon={<LuBuilding2 {...stylex.props(stylexStyles.rule7)} />}
+            icon={<LuBuilding2 sx={stylexStyles.rule7} />}
             open={orgsOpen}
             onOpenChange={setOrgsOpen}
             badge={<CountBadge count={2} />}
@@ -270,7 +270,7 @@ export function SessionSettingsDebug() {
 
           <CollapsibleSection
             title="Crypto & Keys"
-            icon={<LuKey {...stylex.props(stylexStyles.rule7)} />}
+            icon={<LuKey sx={stylexStyles.rule7} />}
             open={cryptoOpen}
             onOpenChange={setCryptoOpen}
           >
@@ -286,7 +286,7 @@ export function SessionSettingsDebug() {
 
           <CollapsibleSection
             title="Identifiers"
-            icon={<LuFingerprint {...stylex.props(stylexStyles.rule7)} />}
+            icon={<LuFingerprint sx={stylexStyles.rule7} />}
             open={identifiersOpen}
             onOpenChange={setIdentifiersOpen}
           >

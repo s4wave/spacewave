@@ -4,6 +4,16 @@ import policies from './customer-policies.json'
 import { LegalPageLayout } from './LegalPageLayout.js'
 import { LegalPolicyContent } from './LegalPolicyContent.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+  },
+})
+
 export const metadata = {
   title: 'Terms of Service - Spacewave',
   description:
@@ -15,7 +25,7 @@ export const metadata = {
 export function TermsOfService() {
   return (
     <LegalPageLayout
-      icon={<LuFileText className="size-10" />}
+      icon={<LuFileText sx={stylexStyles.rule1} />}
       title="Terms of Service"
       subtitle="Your service, subscription, and content rights."
       lastUpdated={

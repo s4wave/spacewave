@@ -384,7 +384,7 @@ export function TransformConfigDisplay({ info }: TransformConfigDisplayProps) {
             <TooltipTrigger asChild>
               <div sx={stylexStyles2.rule1}>
                 <div sx={[stylexStyles2.rule2]}>
-                  <Icon {...stylex.props(stylexStyles2.rule3)} />
+                  <Icon sx={stylexStyles2.rule3} />
                 </div>
                 <div sx={stylexStyles2.rule4}>
                   <span sx={stylexStyles2.rule5}>{step.label}</span>
@@ -404,7 +404,7 @@ export function TransformConfigDisplay({ info }: TransformConfigDisplayProps) {
           <TooltipTrigger asChild>
             <div sx={stylexStyles2.rule1}>
               <div sx={stylexStyles2.rule2}>
-                <LuHardDrive {...stylex.props(stylexStyles2.rule3)} />
+                <LuHardDrive sx={stylexStyles2.rule3} />
               </div>
               <div sx={stylexStyles2.rule4}>
                 <span sx={stylexStyles2.rule5}>Storage</span>
@@ -430,10 +430,10 @@ export function TransformConfigDisplay({ info }: TransformConfigDisplayProps) {
           >
             <div sx={stylexStyles2.rule10}>
               <LuLock
-                {...stylex.props([
+                sx={[
                   stylexStyles2.rule11,
                   hasEncryption ? stylexStyles2.rule12 : stylexStyles2.rule13,
-                ])}
+                ]}
               />
               <span sx={stylexStyles2.rule14}>Encryption</span>
               <span
@@ -447,7 +447,7 @@ export function TransformConfigDisplay({ info }: TransformConfigDisplayProps) {
             </div>
             {hasEncryption && grantCount > 0 && (
               <div sx={stylexStyles2.rule18}>
-                <LuUsers {...stylex.props(stylexStyles2.rule19)} />
+                <LuUsers sx={stylexStyles2.rule19} />
                 {grantCount} {grantCount === 1 ? 'key' : 'keys'}
               </div>
             )}

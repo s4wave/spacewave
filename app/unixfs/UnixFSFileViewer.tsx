@@ -31,6 +31,32 @@ import { UnixFSPdfFileViewer } from './UnixFSPdfFileViewer.js'
 import { UnixFSVideoFileViewer } from './UnixFSVideoFileViewer.js'
 import { UnixFSTextFileViewer } from './UnixFSTextFileViewer.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 // UnixFSFileViewerProps are the props passed to the UnixFSFileViewer component.
 export interface UnixFSFileViewerProps {
   // path is the file path being viewed.
@@ -49,26 +75,26 @@ export interface UnixFSFileViewerProps {
 // FileIcon returns the appropriate icon for a mime type.
 function FileIcon({
   mimeType,
-  className,
+  sx,
 }: {
   mimeType: string
-  className?: string
+  sx?: import('@stylexjs/stylex').StyleXStyles
 }) {
-  const cls = className ?? 'text-foreground-alt size-4'
+  const cls = sx ?? fileIconStyles.default
 
   if (isTextMimeType(mimeType)) {
-    return <LuFileText className={cls} />
+    return <LuFileText sx={cls} />
   }
   if (isImageMimeType(mimeType)) {
-    return <LuImage className={cls} />
+    return <LuImage sx={cls} />
   }
   if (isAudioMimeType(mimeType)) {
-    return <LuMusic className={cls} />
+    return <LuMusic sx={cls} />
   }
   if (isVideoMimeType(mimeType)) {
-    return <LuVideo className={cls} />
+    return <LuVideo sx={cls} />
   }
-  return <LuFile className={cls} />
+  return <LuFile sx={cls} />
 }
 
 // BinaryFileViewer displays a placeholder for binary files.
@@ -78,10 +104,7 @@ function BinaryFileViewer({ mimeType }: { mimeType: string }) {
       <div className="border-foreground/6 bg-background-card/30 w-full max-w-xs rounded-lg border p-4">
         <div className="flex items-start gap-2.5">
           <span className="bg-foreground/5 flex size-8 shrink-0 items-center justify-center rounded-md">
-            <FileIcon
-              mimeType={mimeType}
-              className="text-foreground-alt/70 size-4"
-            />
+            <FileIcon mimeType={mimeType} sx={stylexStyles2.rule1} />
           </span>
           <div className="min-w-0">
             <p className="text-foreground text-xs font-medium select-none">
@@ -134,7 +157,7 @@ function SymlinkViewer({
       <div className="border-foreground/6 bg-background-card/30 w-full max-w-xs rounded-lg border p-4">
         <div className="flex items-start gap-2.5">
           <span className="bg-foreground/5 flex size-8 shrink-0 items-center justify-center rounded-md">
-            <LuLink className="text-foreground-alt/70 size-4" />
+            <LuLink sx={stylexStyles.rule1} />
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-foreground text-xs font-medium select-none">
@@ -159,7 +182,7 @@ function SymlinkViewer({
               className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition duration-150"
             >
               Go to target
-              <LuArrowRight className="size-3" />
+              <LuArrowRight sx={stylexStyles.rule2} />
             </button>
           </div>
         )}
@@ -376,3 +399,11 @@ export function UnixFSFileViewer({
     </div>
   )
 }
+
+const fileIconStyles = stylex.create({
+  default: {
+    color: themeColors['--color-foreground-alt'],
+    width: 16,
+    height: 16,
+  },
+})

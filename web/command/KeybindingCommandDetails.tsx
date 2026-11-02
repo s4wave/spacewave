@@ -143,7 +143,7 @@ export function KeybindingCommandDetails() {
           sx={stylexStyles.rule5}
           onClick={() => setSelectedCommandId(null)}
         >
-          <LuArrowLeft {...stylex.props(stylexStyles.rule6)} />
+          <LuArrowLeft sx={stylexStyles.rule6} />
           Back
         </button>
         <div sx={stylexStyles.rule7}>

@@ -61,6 +61,36 @@ import { OrgBillingSection } from './OrgBillingSection.js'
 
 import * as stylex from '@stylexjs/stylex'
 
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-warning'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-destructive'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule5: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: { maxWidth: 'var(--container-xs)' },
 })
@@ -282,9 +312,9 @@ type RecoverySummary = ReturnType<typeof getRecoverySummary>
 function RecoveryToneIcon({ tone }: { tone: RecoverySummary['tone'] }) {
   if (tone === 'loading') return <Spinner variant="foreground" />
   if (tone === 'degraded') {
-    return <LuTriangleAlert className="text-warning size-4" />
+    return <LuTriangleAlert sx={stylexStyles2.rule1} />
   }
-  return <LuShieldAlert className="text-destructive size-4" />
+  return <LuShieldAlert sx={stylexStyles2.rule2} />
 }
 
 /** RecoverySummaryCard renders the health summary of the org root object. */
@@ -380,11 +410,14 @@ function ReinitializeConfirm({
         object in place on the same shared object id and canonical org route.
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
-        <DashboardButton icon={<LuX className="size-3.5" />} onClick={onCancel}>
+        <DashboardButton
+          icon={<LuX sx={stylexStyles2.rule3} />}
+          onClick={onCancel}
+        >
           Cancel
         </DashboardButton>
         <DashboardButton
-          icon={<LuShieldAlert className="size-3.5" />}
+          icon={<LuShieldAlert sx={stylexStyles2.rule3} />}
           onClick={onConfirm}
           disabled={pending}
           variant="destructive"
@@ -429,7 +462,7 @@ function RecoveryRemediation({
       <div className="mt-3 flex flex-wrap gap-2">
         <RecoveryActionButton
           label={pending ? 'Repairing...' : 'Repair'}
-          icon={<LuRefreshCw className="size-3.5" />}
+          icon={<LuRefreshCw sx={stylexStyles2.rule3} />}
           onClick={() => {
             setConfirming(false)
             void run('repair')
@@ -439,7 +472,7 @@ function RecoveryRemediation({
         />
         <RecoveryActionButton
           label="Reinitialize"
-          icon={<LuShieldAlert className="size-3.5" />}
+          icon={<LuShieldAlert sx={stylexStyles2.rule3} />}
           onClick={() => setConfirming(true)}
           disabled={pending}
           disabledReason={disabledReasonFor(
@@ -484,7 +517,7 @@ function OrgRecoverySection({
   return (
     <CollapsibleSection
       title="Recovery"
-      icon={<LuCircleAlert className="size-3.5" />}
+      icon={<LuCircleAlert sx={stylexStyles2.rule3} />}
       open={open}
       onOpenChange={onOpenChange}
     >
@@ -536,7 +569,7 @@ function OrgMembersSection({
   return (
     <CollapsibleSection
       title="Members"
-      icon={<LuUsers className="size-3.5" />}
+      icon={<LuUsers sx={stylexStyles2.rule3} />}
       open={open}
       onOpenChange={onOpenChange}
       badge={
@@ -629,7 +662,7 @@ function UsernameInviteForm({
           )}
         />
         <DashboardButton
-          icon={<LuUserPlus className="size-3" />}
+          icon={<LuUserPlus sx={stylexStyles2.rule4} />}
           onClick={() => void invite.submit()}
           disabled={invite.pending || !invite.username.trim() || !session}
         >
@@ -677,7 +710,7 @@ function OrgInvitesSection({
   return (
     <CollapsibleSection
       title="Invites"
-      icon={<LuLink className="size-3.5" />}
+      icon={<LuLink sx={stylexStyles2.rule3} />}
       open={open}
       onOpenChange={onOpenChange}
       badge={
@@ -696,7 +729,7 @@ function OrgInvitesSection({
           aria-label="Create invite"
           title="Create invite"
         >
-          <LuPlus className="size-3.5" />
+          <LuPlus sx={stylexStyles2.rule3} />
         </button>
       }
     >
@@ -776,14 +809,14 @@ function OrgRenameEditor({
         )}
       />
       <DashboardButton
-        icon={<LuSave className="size-3" />}
+        icon={<LuSave sx={stylexStyles2.rule4} />}
         onClick={() => void rename.save()}
         disabled={rename.saving || rename.value.trim() === orgName}
       >
         {rename.saving ? 'Saving…' : 'Save'}
       </DashboardButton>
       <DashboardButton
-        icon={<LuX className="size-3" />}
+        icon={<LuX sx={stylexStyles2.rule4} />}
         onClick={rename.cancel}
         disabled={rename.saving}
       >
@@ -816,7 +849,10 @@ function OrgRenameDisplay({
       >
         {orgName}
       </button>
-      <DashboardButton icon={<LuPencil className="size-3" />} onClick={onStart}>
+      <DashboardButton
+        icon={<LuPencil sx={stylexStyles2.rule4} />}
+        onClick={onStart}
+      >
         Edit
       </DashboardButton>
     </div>
@@ -837,7 +873,7 @@ function OrgSettingsSection({
   return (
     <CollapsibleSection
       title="Settings"
-      icon={<LuSettings className="size-3.5" />}
+      icon={<LuSettings sx={stylexStyles2.rule3} />}
       open={open}
       onOpenChange={onOpenChange}
     >
@@ -928,7 +964,7 @@ function OrgHeader({
     <div className="border-foreground/8 flex min-h-9 shrink-0 items-center justify-between gap-3 border-b px-4 py-2">
       <div className="text-foreground flex min-w-0 flex-1 items-center gap-2 text-sm font-semibold select-none">
         <div className="bg-brand/10 text-brand flex size-5 shrink-0 items-center justify-center rounded">
-          <LuBuilding2 className="size-3" />
+          <LuBuilding2 sx={stylexStyles2.rule4} />
         </div>
         <span className="min-w-0 truncate tracking-tight">{orgName}</span>
         <span className="text-foreground-alt/50 text-xs font-normal">
@@ -940,7 +976,7 @@ function OrgHeader({
           <Tooltip>
             <TooltipTrigger asChild>
               <DashboardButton
-                icon={<LuLogOut className="size-4" />}
+                icon={<LuLogOut sx={stylexStyles2.rule5} />}
                 variant="destructive"
                 onClick={() => void handleLeave()}
               >
@@ -954,7 +990,7 @@ function OrgHeader({
           <Tooltip>
             <TooltipTrigger asChild>
               <DashboardButton
-                icon={<LuX className="size-4" />}
+                icon={<LuX sx={stylexStyles2.rule5} />}
                 onClick={onCloseClick}
               />
             </TooltipTrigger>
@@ -1059,7 +1095,7 @@ export function OrganizationDetails({
 
           <CollapsibleSection
             title="Identifiers"
-            icon={<LuFingerprint className="size-3.5" />}
+            icon={<LuFingerprint sx={stylexStyles2.rule3} />}
             {...sectionProps('identifiers')}
           >
             <InfoCard>

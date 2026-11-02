@@ -18,6 +18,25 @@ import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-brand'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 export { SecretTypeID }
 
 type SecretGrant = SecretState['grantStatus']
@@ -37,7 +56,7 @@ function grantLabel(
 function ProtectedValueCard() {
   return (
     <InfoCard
-      icon={<LuLockKeyhole className="text-brand size-4" />}
+      icon={<LuLockKeyhole sx={stylexStyles.rule1} />}
       title="Protected value"
     >
       <div className="border-foreground/8 bg-background-dark text-foreground tracking-brand-wide rounded-md border px-3 py-2 font-mono text-sm">
@@ -93,7 +112,7 @@ function SecretAccessCard({
 }) {
   return (
     <InfoCard
-      icon={<LuShieldCheck className="text-foreground-alt size-4" />}
+      icon={<LuShieldCheck sx={stylexStyles.rule2} />}
       title="Access status"
     >
       {healthStatus === SharedObjectHealthStatus.READY ? (
@@ -228,7 +247,7 @@ export function SecretViewer({
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
       <div className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-4">
-        <LuKeyRound className="text-foreground-alt size-4" aria-hidden="true" />
+        <LuKeyRound sx={stylexStyles.rule2} aria-hidden="true" />
         <span className="text-foreground truncate text-sm font-semibold tracking-tight">
           {title || 'Secret'}
         </span>

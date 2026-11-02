@@ -12,6 +12,16 @@ import { VmState, type VmMount } from '@s4wave/sdk/vm/v86.pb.js'
 
 import { VmErrorBanner } from '@s4wave/app/vm/VmErrorBanner.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+  },
+})
+
 // OverrideSlot is a boot asset a VM may take from a UnixFS object instead
 // of its V86Image.
 export type OverrideSlot = 'kernel' | 'rootfs' | 'bios' | 'wasm'
@@ -83,7 +93,7 @@ export function VmMachineCard({
           {/* Identity */}
           <div className="flex items-center gap-3">
             <div className="bg-foreground/5 text-foreground-alt flex size-10 shrink-0 items-center justify-center rounded-lg">
-              <LuTv className="size-5" />
+              <LuTv sx={stylexStyles.rule1} />
             </div>
             <div className="min-w-0 flex-1">
               <h2 className="text-foreground truncate text-base font-medium">

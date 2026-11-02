@@ -6,6 +6,20 @@ import { ProgressBar } from '@s4wave/web/ui/loading/ProgressBar.js'
 
 import { PhaseChecklist } from './PhaseChecklist.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-brand'],
+  },
+})
+
 const pairingPhaseLabels = [
   'Connecting to your other device',
   'Establishing encrypted channel',
@@ -63,7 +77,7 @@ export function PairingChannelProgress({
     <div className="border-foreground/10 bg-foreground/[0.02] space-y-4 rounded-lg border p-4">
       <div className="flex items-center gap-3">
         <div className="bg-brand/10 text-brand flex size-9 shrink-0 items-center justify-center rounded-lg">
-          <LuLink className="text-brand size-4" aria-hidden="true" />
+          <LuLink sx={stylexStyles.rule1} aria-hidden="true" />
         </div>
         <div className="min-w-0">
           <h2 className="text-foreground text-sm font-medium">

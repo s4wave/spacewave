@@ -15,6 +15,26 @@ import {
 } from './storage-backend.js'
 import { useSpaceStorage } from './useSpaceStorage.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: themeColors['--color-success'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+  },
+})
+
 interface SpaceUploadStatusProps {
   sharedObjectId: string
   // preset selects the CORS rule format shown when uploads cannot reach the bucket.
@@ -64,15 +84,12 @@ export function SpaceUploadStatus({
       <p className="text-foreground-alt flex items-center gap-1.5 text-xs">
         {pending === 0 ? (
           <>
-            <LuCircleCheck
-              className="text-success size-3.5 shrink-0"
-              aria-hidden="true"
-            />
+            <LuCircleCheck sx={stylexStyles.rule1} aria-hidden="true" />
             All changes uploaded
           </>
         ) : (
           <>
-            <LuUpload className="size-3.5 shrink-0" aria-hidden="true" />
+            <LuUpload sx={stylexStyles.rule2} aria-hidden="true" />
             {pendingLabel}
           </>
         )}
@@ -83,7 +100,7 @@ export function SpaceUploadStatus({
   return (
     <div className="space-y-2">
       <p className="text-warning flex items-center gap-1.5 text-xs">
-        <LuUpload className="size-3.5 shrink-0" aria-hidden="true" />
+        <LuUpload sx={stylexStyles.rule2} aria-hidden="true" />
         {pendingLabel}. Uploads are failing.
       </p>
       {checkView && !checkView.ok ? (

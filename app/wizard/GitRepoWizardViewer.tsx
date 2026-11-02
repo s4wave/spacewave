@@ -18,6 +18,24 @@ import { applySpaceIndexPath } from '../space/space-settings.js'
 import { useWizardState } from './useWizardState.js'
 import { WizardShell } from './WizardShell.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    marginRight: `calc(${themeLayout['--spacing']} * 2)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+  },
+  rule2: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+  },
+})
+
 export const GitRepoWizardTypeID = 'wizard/git/repo'
 const githubBrowserCloneError =
   'The browser cannot clone directly from GitHub because GitHub does not set the required cross-origin headers. Use the desktop app to clone this repository.'
@@ -213,7 +231,7 @@ export function GitRepoWizardViewer(props: ObjectViewerComponentProps) {
     <WizardShell
       title={
         <>
-          <LuGitBranch className="mr-2 size-4 shrink-0" />
+          <LuGitBranch sx={stylexStyles.rule1} />
           New Git Repository
         </>
       }
@@ -308,7 +326,7 @@ function GitCloneProgressStep({
 function GitCloneUrlError({ message }: { message: string }) {
   return (
     <div className="border-warning/20 bg-warning/5 text-warning flex items-start gap-2 rounded-lg border px-3 py-2 text-xs">
-      <LuTriangleAlert className="mt-0.5 size-3.5 shrink-0" />
+      <LuTriangleAlert sx={stylexStyles.rule2} />
       <p>{message}</p>
     </div>
   )

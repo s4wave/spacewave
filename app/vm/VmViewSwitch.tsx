@@ -2,6 +2,16 @@ import type { IconType } from '@s4wave/web/images/icons.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 // VmViewOption is one panel a running VM can show.
 export interface VmViewOption<V extends string> {
   view: V
@@ -44,7 +54,7 @@ export function VmViewSwitch<V extends string>({
               : 'text-foreground-alt hover:text-foreground',
           )}
         >
-          <Icon className="size-3.5" />
+          <Icon sx={stylexStyles.rule1} />
           <span className="hidden @lg:inline">{label}</span>
         </button>
       ))}

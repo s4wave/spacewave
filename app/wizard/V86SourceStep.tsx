@@ -20,6 +20,20 @@ import { V86ImageRow } from './V86ImageRow.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+import { colors as themeColors } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: { marginTop: `calc(${themeLayout['--spacing']} * 3)` },
 })
@@ -55,7 +69,7 @@ export function V86SourceStep({
   return (
     <section className="flex flex-col gap-2">
       <h3 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-        <LuMonitor className="size-3.5" />
+        <LuMonitor sx={stylexStyles2.rule1} />
         Choose a VM image
       </h3>
 
@@ -104,7 +118,7 @@ export function V86SourceStep({
 
       {!pending && empty && (
         <InfoCard
-          icon={<LuHardDrive className="text-foreground-alt/60 size-3.5" />}
+          icon={<LuHardDrive sx={stylexStyles2.rule2} />}
           title="No VM images in this Space"
         >
           <p className="text-foreground-alt/70 text-xs leading-relaxed">

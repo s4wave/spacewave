@@ -5,6 +5,30 @@ import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { SpacewaveOrgListContext } from '@s4wave/web/contexts/SpacewaveOrgListContext.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    pointerEvents: 'none',
+    position: 'absolute',
+    top: '50%',
+    right: `calc(${themeLayout['--spacing']} * 2.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    '--tw-translate-y': 'calc(calc(1 / 2 * 100%) * -1)',
+    translate: 'var(--tw-translate-x) var(--tw-translate-y)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 // TransferResourceDialog lets the user transfer a space between personal
 // (their own account) and an organization. Personal target is encoded as the
 // caller's own accountId under the typed principal model.
@@ -88,7 +112,7 @@ export function TransferResourceDialog(props: {
             </option>
           ))}
         </select>
-        <LuChevronDown className="text-foreground-alt/50 pointer-events-none absolute top-1/2 right-2.5 size-3.5 -translate-y-1/2" />
+        <LuChevronDown sx={stylexStyles.rule1} />
       </div>
       {sameAsCurrent && (
         <div className="text-foreground-alt/50 text-xs">
@@ -97,7 +121,7 @@ export function TransferResourceDialog(props: {
         </div>
       )}
       <DashboardButton
-        icon={<LuArrowRight className="size-3" />}
+        icon={<LuArrowRight sx={stylexStyles.rule2} />}
         onClick={() => void handleTransfer()}
         disabled={transferring || sameAsCurrent}
       >

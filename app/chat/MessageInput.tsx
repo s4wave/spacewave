@@ -1,6 +1,16 @@
 import { LuSendHorizontal } from '@s4wave/web/images/icons.js'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 interface MessageInputProps {
   disabled?: boolean
   onSend: (text: string) => Promise<void>
@@ -79,7 +89,7 @@ export function MessageInput({ disabled = false, onSend }: MessageInputProps) {
           onClick={() => void handleSubmit()}
           className="bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-primary focus-visible:ring-offset-background flex size-11 shrink-0 items-center justify-center rounded-sm transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-35 sm:pointer-fine:size-9"
         >
-          <LuSendHorizontal className="size-4" aria-hidden="true" />
+          <LuSendHorizontal sx={stylexStyles.rule1} aria-hidden="true" />
         </button>
       </div>
       <div className="mt-1.5 flex min-h-4 items-center justify-between gap-3 px-1 text-xs">

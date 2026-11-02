@@ -13,6 +13,20 @@ import type { ListItem, ListStateHandle } from '@s4wave/web/ui/list'
 
 import type { UnixFSBrowserDirectoryHeaderProps } from './UnixFSBrowser.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 interface UnixFSEmptyFolderStateProps {
   onNewFolder: () => void
   onUploadFiles: () => void
@@ -25,7 +39,7 @@ function UnixFSEmptyFolderState({
   return (
     <div className="flex flex-col items-center gap-3 text-center">
       <div className="border-foreground/10 bg-background/70 text-foreground-alt flex size-10 items-center justify-center rounded-md border">
-        <LuUpload className="size-5" />
+        <LuUpload sx={stylexStyles.rule1} />
       </div>
       <div>
         <h2 className="text-foreground text-sm font-medium">
@@ -39,7 +53,7 @@ function UnixFSEmptyFolderState({
           className="border-border text-foreground hover:bg-foreground/5 inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors"
           onClick={onUploadFiles}
         >
-          <LuUpload className="size-3.5" />
+          <LuUpload sx={stylexStyles.rule2} />
           Upload files
         </button>
         <button
@@ -47,7 +61,7 @@ function UnixFSEmptyFolderState({
           className="border-border text-foreground hover:bg-foreground/5 inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors"
           onClick={onNewFolder}
         >
-          <LuFolderPlus className="size-3.5" />
+          <LuFolderPlus sx={stylexStyles.rule2} />
           New folder
         </button>
       </div>

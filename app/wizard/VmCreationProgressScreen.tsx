@@ -10,6 +10,28 @@ import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 
 import type { VmCreationProgress, VmCreationStage } from '../vm/v86-creation.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-destructive'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 interface VmCreationProgressScreenProps {
   progress: VmCreationProgress
   vmName: string
@@ -74,12 +96,9 @@ export function VmCreationProgressScreen({
         <div className="flex items-center gap-3">
           <div className="bg-brand/10 text-brand flex size-9 shrink-0 items-center justify-center rounded-lg">
             {error ? (
-              <LuCircleAlert
-                className="text-destructive size-4"
-                aria-hidden="true"
-              />
+              <LuCircleAlert sx={stylexStyles.rule1} aria-hidden="true" />
             ) : progress.stage === 'ready' ? (
-              <LuMonitor className="size-4" aria-hidden="true" />
+              <LuMonitor sx={stylexStyles.rule2} aria-hidden="true" />
             ) : (
               <Spinner variant="brand" />
             )}
@@ -110,7 +129,7 @@ export function VmCreationProgressScreen({
             onClick={onRetry}
             className="border-foreground/10 bg-foreground/5 hover:bg-foreground/10 text-foreground mt-5 inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-medium transition-colors motion-reduce:transition-none"
           >
-            <LuRotateCw className="size-3.5" aria-hidden="true" />
+            <LuRotateCw sx={stylexStyles.rule3} aria-hidden="true" />
             Retry
           </button>
         ) : null}

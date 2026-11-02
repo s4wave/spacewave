@@ -1,8 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { LuChevronRight, LuCornerLeftUp } from '@s4wave/web/images/icons.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
-
 import {
   directiveMatches,
   relevantDirectives,
@@ -12,6 +10,34 @@ import {
   type DirectiveTree,
 } from './directiveTree.js'
 import { formatCount } from './format.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    transitionProperty: 'transform, translate, scale, rotate',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+  },
+  rule3: { rotate: '90deg' },
+  rule4: { visibility: 'hidden' },
+})
 
 // DirectiveTreeView draws the session bus's directives under their origins.
 // A directive with several origins appears under each one.
@@ -261,10 +287,7 @@ function DirectiveRowLabel({
   return (
     <>
       {backLink ? (
-        <LuCornerLeftUp
-          className="text-foreground-alt/50 size-3.5 shrink-0"
-          aria-label="Back link"
-        />
+        <LuCornerLeftUp sx={stylexStyles.rule1} aria-label="Back link" />
       ) : (
         <Chevron open={open} hidden={!childCount} />
       )}
@@ -315,11 +338,11 @@ function identArgs(node: { name: string; ident: string }): string {
 function Chevron({ open, hidden }: { open: boolean; hidden?: boolean }) {
   return (
     <LuChevronRight
-      className={cn(
-        'text-foreground-alt/50 size-3.5 shrink-0 transition-transform duration-150',
-        open && 'rotate-90',
-        hidden && 'invisible',
-      )}
+      sx={[
+        stylexStyles.rule2,
+        !!open && stylexStyles.rule3,
+        !!hidden && stylexStyles.rule4,
+      ]}
       aria-hidden="true"
     />
   )

@@ -10,6 +10,28 @@ import type { HandoffRequest } from '@s4wave/core/session/handoff/handoff.pb.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { clientTypeLabel } from './handoff-state.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    color: themeColors['--color-brand'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 // detailChipClassName styles one handoff detail chip.
 const detailChipClassName =
   'border-foreground/10 bg-foreground/5 text-foreground-alt inline-flex items-center gap-1.5 rounded-full border px-3 py-1 whitespace-nowrap'
@@ -28,13 +50,13 @@ export function HandoffDetails({
     <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
       {username && (
         <span className={detailChipClassName}>
-          <LuUser className="size-3.5" />
+          <LuUser sx={stylexStyles.rule1} />
           <span className="text-foreground font-medium">{username}</span>
         </span>
       )}
       {deviceName && (
         <span className={detailChipClassName}>
-          <LuLaptop className="size-3.5" />
+          <LuLaptop sx={stylexStyles.rule1} />
           {deviceName}
         </span>
       )}
@@ -61,7 +83,7 @@ export function HandoffComplete({
     <div className="bg-background-landing relative flex flex-1 flex-col items-center justify-center gap-6 p-6">
       <div className="relative z-10 flex max-w-sm flex-col items-center gap-4 text-center">
         <div className="bg-brand/10 border-brand/30 flex size-16 items-center justify-center rounded-full border">
-          <LuCheck className="text-brand size-8" />
+          <LuCheck sx={stylexStyles.rule2} />
         </div>
         <h1 className="text-xl font-semibold tracking-wide">
           Sign-in complete
@@ -77,7 +99,7 @@ export function HandoffComplete({
           className="bg-brand text-brand-foreground hover:bg-brand/90 mt-2 flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors"
         >
           Open Spacewave
-          <LuArrowRight className="size-4" />
+          <LuArrowRight sx={stylexStyles.rule3} />
         </button>
       </div>
     </div>

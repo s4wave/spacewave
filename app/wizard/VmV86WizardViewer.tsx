@@ -47,6 +47,18 @@ import { VmCreationProgressScreen } from './VmCreationProgressScreen.js'
 import { WizardShell } from './WizardShell.js'
 import { useWizardState } from './useWizardState.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    marginRight: `calc(${themeLayout['--spacing']} * 2)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+  },
+})
+
 // decodeConfig reads the wizard config, or an empty one when it is missing or
 // does not decode.
 function decodeConfig(configData: Uint8Array | undefined): V86WizardConfig {
@@ -620,7 +632,7 @@ export function VmV86WizardViewer({
       <WizardShell
         title={
           <>
-            <LuMonitor className="mr-2 size-4 shrink-0" />
+            <LuMonitor sx={stylexStyles.rule1} />
             New virtual machine
           </>
         }

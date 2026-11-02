@@ -4,6 +4,16 @@ import { LuCheck, LuX } from '@s4wave/web/images/icons.js'
 import type { RenderEntryCallback } from '@s4wave/web/editors/file-browser/FileListEntry.js'
 import type { FileEntry } from '@s4wave/web/editors/file-browser/types.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 interface UnixFSInlineEntryRendererOptions {
   newFolderName: string | null
   newFileName: string | null
@@ -101,7 +111,7 @@ export function useUnixFSInlineEntryRenderer({
                 void onConfirmRename()
               }}
             >
-              <LuCheck className="size-3" />
+              <LuCheck sx={stylexStyles.rule1} />
             </button>
             <button
               type="button"
@@ -114,7 +124,7 @@ export function useUnixFSInlineEntryRenderer({
                 onCancelRename()
               }}
             >
-              <LuX className="size-3" />
+              <LuX sx={stylexStyles.rule1} />
             </button>
           </div>
         )

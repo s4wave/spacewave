@@ -4,6 +4,16 @@ import { LuExternalLink } from '@s4wave/web/images/icons.js'
 
 import { MarkdownLink } from '@s4wave/app/docs/MarkdownLink.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 interface YouTubeEmbedProps {
   videoid?: string
   title?: string
@@ -79,7 +89,7 @@ function YouTubeFallback({
         className="border-brand/30 bg-brand/10 hover:bg-brand/20 text-foreground inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors"
       >
         Watch on YouTube
-        <LuExternalLink className="size-4" aria-hidden="true" />
+        <LuExternalLink sx={stylexStyles.rule1} aria-hidden="true" />
       </a>
     </div>
   )

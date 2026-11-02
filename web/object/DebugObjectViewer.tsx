@@ -192,7 +192,7 @@ export function DebugObjectViewer({
     <div sx={stylexStyles.rule1}>
       <div sx={stylexStyles.rule2}>
         <div sx={stylexStyles.rule3}>
-          <LuBug {...stylex.props(stylexStyles.rule4)} />
+          <LuBug sx={stylexStyles.rule4} />
           <span sx={stylexStyles.rule5}>Debug Viewer</span>
         </div>
       </div>
@@ -206,7 +206,7 @@ export function DebugObjectViewer({
           {untyped && (
             <div sx={stylexStyles.rule7}>
               <div sx={stylexStyles.rule8}>
-                <LuCircleAlert {...stylex.props(stylexStyles.rule4)} />
+                <LuCircleAlert sx={stylexStyles.rule4} />
               </div>
               <div sx={stylexStyles.rule9}>
                 <p sx={stylexStyles.rule10}>Object has no type</p>
@@ -222,7 +222,7 @@ export function DebugObjectViewer({
           <section>
             <div sx={stylexStyles.rule12}>
               <h2 sx={stylexStyles.rule13}>
-                <LuBug {...stylex.props(stylexStyles.rule14)} />
+                <LuBug sx={stylexStyles.rule14} />
                 Object Info
               </h2>
             </div>

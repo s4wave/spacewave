@@ -1,7 +1,6 @@
 import { useCallback, useMemo } from 'react'
 import { LuChevronDown } from '@s4wave/web/images/icons.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import { Badge } from '@s4wave/web/ui/badge.js'
 import { Button } from '@s4wave/web/ui/button.js'
 
@@ -13,6 +12,25 @@ import type {
 import type { KeybindingVariantProps } from './variant-types.js'
 
 import * as stylex from '@stylexjs/stylex'
+
+import {
+  layout as themeLayout,
+  colors as themeColors,
+  motion as themeMotion,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    transitionProperty: 'transform, translate, scale, rotate',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule2: { rotate: '-90deg' },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -88,10 +106,7 @@ export function CategoryPanel({
             <Badge variant="conflict">{conflictCount} conflicting</Badge>
           ) : null}
           <LuChevronDown
-            className={cn(
-              'text-foreground-alt/50 size-4 transition-transform',
-              collapsed && '-rotate-90',
-            )}
+            sx={[stylexStyles2.rule1, !!collapsed && stylexStyles2.rule2]}
           />
         </span>
       </Button>

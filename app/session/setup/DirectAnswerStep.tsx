@@ -10,6 +10,30 @@ import { LinkDeviceBackButton } from './LinkDeviceBackButton.js'
 import { QRScannerModal } from './QRScannerModal.js'
 import { usePairingWatch } from './usePairingWatch.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-brand'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-brand'],
+  },
+})
+
 // extractDirectOfferPayload extracts the raw b58 offer payload from a QR-decoded
 // string. The QR may encode a full URL (https://spacewave.app/#/pair/<payload>)
 // or just the raw payload. Returns the payload either way.
@@ -85,7 +109,7 @@ export function DirectAnswerStep({
 
       <div className="text-center">
         <div className="mx-auto mb-2 flex size-10 items-center justify-center">
-          <LuCamera className="text-brand size-5" />
+          <LuCamera sx={stylexStyles.rule1} />
         </div>
         <h2 className="text-foreground text-sm font-medium">
           {answerPayload ? 'Share this response' : 'Scan or paste offer'}
@@ -120,7 +144,7 @@ export function DirectAnswerStep({
               'flex h-9 items-center justify-center gap-2',
             )}
           >
-            <LuCamera className="text-foreground-alt size-4" />
+            <LuCamera sx={stylexStyles.rule2} />
             <span className="text-foreground-alt text-xs">Scan QR code</span>
           </button>
         </>
@@ -158,7 +182,7 @@ export function DirectAnswerStep({
               <Spinner />
             ) : (
               <>
-                <LuLink className="text-brand size-4" />
+                <LuLink sx={stylexStyles.rule3} />
                 <span className="text-foreground text-sm">Accept offer</span>
               </>
             )}

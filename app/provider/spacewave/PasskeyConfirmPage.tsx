@@ -42,6 +42,29 @@ import { OptionalPinLock } from './OptionalPinLock.js'
 import { TermsAgreement } from './TermsAgreement.js'
 import { wrapPemWithPasskeyPrf } from './passkey-prf.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    color: themeColors['--color-destructive'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-brand'],
+  },
+})
+
 type PasskeyConfirmState =
   | { step: 'form' }
   | { step: 'creating' }
@@ -200,13 +223,13 @@ export function PasskeyConfirmPage() {
         }
       >
         <AuthStatusPanel
-          icon={<LuCircleAlert className="text-destructive size-10" />}
+          icon={<LuCircleAlert sx={stylexStyles.rule1} />}
           message="Your desktop passkey session has expired. Start the passkey flow again."
         >
           <div className="flex w-full flex-col gap-2">
             <AuthPrimaryActionButton
               onClick={handleRestart}
-              icon={<LuFingerprint className="size-4" />}
+              icon={<LuFingerprint sx={stylexStyles.rule2} />}
             >
               Restart sign-in
             </AuthPrimaryActionButton>
@@ -214,7 +237,7 @@ export function PasskeyConfirmPage() {
               onClick={handleCancel}
               className="flex items-center justify-center gap-2"
             >
-              <LuArrowLeft className="size-4" />
+              <LuArrowLeft sx={stylexStyles.rule2} />
               Back to login
             </AuthSecondaryActionButton>
           </div>
@@ -236,13 +259,13 @@ export function PasskeyConfirmPage() {
         }
       >
         <AuthStatusPanel
-          icon={<LuCircleAlert className="text-destructive size-10" />}
+          icon={<LuCircleAlert sx={stylexStyles.rule1} />}
           message={state.message}
         >
           <div className="flex w-full flex-col gap-2">
             <AuthPrimaryActionButton
               onClick={handleRestart}
-              icon={<LuFingerprint className="size-4" />}
+              icon={<LuFingerprint sx={stylexStyles.rule2} />}
             >
               Restart sign-in
             </AuthPrimaryActionButton>
@@ -250,7 +273,7 @@ export function PasskeyConfirmPage() {
               onClick={handleCancel}
               className="flex items-center justify-center gap-2"
             >
-              <LuArrowLeft className="size-4" />
+              <LuArrowLeft sx={stylexStyles.rule2} />
               Back to login
             </AuthSecondaryActionButton>
           </div>
@@ -274,7 +297,7 @@ export function PasskeyConfirmPage() {
           <AnimatedLogo followMouse={false} />
           <div className="flex items-center gap-2">
             <div className="bg-brand/10 border-brand/30 flex size-11 items-center justify-center rounded-full border">
-              <LuFingerprint className="text-brand size-5" />
+              <LuFingerprint sx={stylexStyles.rule3} />
             </div>
             <div className="text-left">
               <h2 className="text-foreground text-lg font-semibold">
@@ -353,7 +376,9 @@ export function PasskeyConfirmPage() {
             <AuthPrimaryActionButton
               onClick={() => void handleCreateAccount()}
               disabled={isBusy || !username || !!usernameError || !agreed}
-              icon={isBusy ? <Spinner /> : <LuUserPlus className="size-4" />}
+              icon={
+                isBusy ? <Spinner /> : <LuUserPlus sx={stylexStyles.rule2} />
+              }
             >
               {isBusy ? statusMessage : 'Create account'}
             </AuthPrimaryActionButton>
@@ -361,7 +386,7 @@ export function PasskeyConfirmPage() {
               onClick={handleCancel}
               className="flex items-center justify-center gap-2"
             >
-              <LuArrowLeft className="size-4" />
+              <LuArrowLeft sx={stylexStyles.rule2} />
               Back to login
             </AuthSecondaryActionButton>
           </div>

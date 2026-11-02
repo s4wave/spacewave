@@ -57,6 +57,46 @@ import {
 
 import * as stylex from '@stylexjs/stylex'
 
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule4: {
+    height: `calc(${themeLayout['--spacing']} * 2.5)`,
+    width: `calc(${themeLayout['--spacing']} * 2.5)`,
+    flexShrink: 0,
+    fill: 'currentColor',
+  },
+  rule5: { color: themeColors['--color-emerald-500'] },
+  rule6: { color: themeColors['--color-brand'] },
+  rule7: { color: themeColors['--color-danger'] },
+  rule8: { color: themeColors['--color-amber-500'] },
+  rule9: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+})
+
 const stylexStyles = stylex.create({ rule1: { flexShrink: 0 } })
 
 // CommandLineSetupPage launches the session CLI and offers desktop installation.
@@ -112,7 +152,7 @@ export function CommandLineSetupPage() {
           onClick={handleBack}
           className="text-foreground-alt hover:text-foreground focus-visible:ring-brand mb-6 inline-flex min-h-9 items-center gap-1.5 rounded text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
         >
-          <LuArrowLeft aria-hidden="true" className="size-4" />
+          <LuArrowLeft aria-hidden="true" sx={stylexStyles2.rule1} />
           Back to dashboard
         </button>
 
@@ -497,7 +537,7 @@ function ActionButtons({
             onClick={() => void onInvokeAction?.(action)}
             className="border-foreground/10 text-foreground-alt hover:text-foreground hover:bg-foreground/5 disabled:text-foreground-alt/30 flex size-7 items-center justify-center rounded-md border transition-colors disabled:cursor-not-allowed"
           >
-            <Icon className="size-3.5" />
+            <Icon sx={stylexStyles3.rule1} />
           </button>
         )
       })}
@@ -658,7 +698,7 @@ function InstallGuidanceSection() {
           href={cliDownloadHref}
           className="text-foreground hover:text-brand focus-visible:ring-brand inline-flex min-h-9 items-center gap-1.5 rounded focus-visible:ring-2 focus-visible:outline-none"
         >
-          <LuDownload aria-hidden="true" className="size-4" />
+          <LuDownload aria-hidden="true" sx={stylexStyles2.rule1} />
           Download the spacewave CLI
         </a>
         <a
@@ -666,7 +706,7 @@ function InstallGuidanceSection() {
           className="text-foreground-alt hover:text-foreground focus-visible:ring-brand inline-flex min-h-9 items-center gap-1 rounded focus-visible:ring-2 focus-visible:outline-none"
         >
           Install and quickstart guide
-          <LuArrowUpRight aria-hidden="true" className="size-3.5" />
+          <LuArrowUpRight aria-hidden="true" sx={stylexStyles2.rule2} />
         </a>
       </div>
     </section>
@@ -823,7 +863,7 @@ function ListenerStatusChip() {
           </span>
           {listening && (
             <span className="text-foreground-alt micro-label inline-flex items-center gap-1">
-              <LuUsers className="size-3" />
+              <LuUsers sx={stylexStyles2.rule3} />
               {status?.connectedClients ?? 0} connected
             </span>
           )}
@@ -861,19 +901,20 @@ function StatusDot({
 }: {
   tone: 'ready' | 'warning' | 'muted' | 'active' | 'error'
 }) {
-  const cls =
-    tone === 'ready'
-      ? 'text-emerald-500'
-      : tone === 'active'
-        ? 'text-brand'
-        : tone === 'error'
-          ? 'text-danger'
-          : tone === 'warning'
-            ? 'text-amber-500'
-            : 'text-foreground-alt/40'
   return (
     <LuCircle
-      className={cn('h-2.5 w-2.5 shrink-0 fill-current', cls)}
+      sx={[
+        stylexStyles2.rule4,
+        tone === 'ready'
+          ? stylexStyles2.rule5
+          : tone === 'active'
+            ? stylexStyles2.rule6
+            : tone === 'error'
+              ? stylexStyles2.rule7
+              : tone === 'warning'
+                ? stylexStyles2.rule8
+                : stylexStyles2.rule9,
+      ]}
       aria-hidden="true"
     />
   )

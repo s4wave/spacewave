@@ -35,6 +35,35 @@ import {
 
 import * as stylex from '@stylexjs/stylex'
 
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-green-500'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: themeColors['--color-green-500'],
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: themeColors['--color-yellow-500'],
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: { width: '100%', justifyContent: 'center' },
 })
@@ -169,7 +198,7 @@ export function PasskeySection({
         <div className="space-y-3">
           {status === 'idle' && (
             <DashboardButton
-              icon={<LuFingerprint className="size-4" />}
+              icon={<LuFingerprint sx={stylexStyles2.rule1} />}
               onClick={() => void handleRegister()}
               sx={stylexStyles.rule1}
             >
@@ -194,7 +223,7 @@ export function PasskeySection({
           {status === 'success' && (
             <div className="space-y-2">
               <div className="flex items-center gap-2 py-2">
-                <LuFingerprint className="size-5 text-green-500" />
+                <LuFingerprint sx={stylexStyles2.rule2} />
                 <span className="text-foreground text-sm font-medium">
                   Passkey registered
                 </span>
@@ -209,9 +238,9 @@ export function PasskeySection({
                   )}
                 >
                   {prfResult ? (
-                    <LuShieldCheck className="size-4 shrink-0 text-green-500" />
+                    <LuShieldCheck sx={stylexStyles2.rule3} />
                   ) : (
-                    <LuShieldAlert className="size-4 shrink-0 text-yellow-500" />
+                    <LuShieldAlert sx={stylexStyles2.rule4} />
                   )}
                   <span className="text-foreground-alt text-xs">
                     {prfResult
@@ -234,7 +263,7 @@ export function PasskeySection({
             <div className="space-y-2">
               <p className="text-destructive text-xs">{error}</p>
               <DashboardButton
-                icon={<LuFingerprint className="size-4" />}
+                icon={<LuFingerprint sx={stylexStyles2.rule1} />}
                 onClick={() => void handleRegister()}
                 sx={stylexStyles.rule1}
               >
