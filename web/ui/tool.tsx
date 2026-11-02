@@ -1,3 +1,4 @@
+import { stylexProps } from '@s4wave/web/style/props.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
 import { LuTerminal } from '@s4wave/web/images/icons.js'
@@ -56,7 +57,7 @@ function Tool({
   )
 
   return (
-    <div data-slot="tool" sx={sx} {...props}>
+    <div data-slot="tool" {...stylexProps(sx, props)}>
       <Trace>
         {expandable ? (
           <TraceCollapsible>

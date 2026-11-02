@@ -1,3 +1,4 @@
+import { stylexProps } from '@s4wave/web/style/props.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
 import * as TabsPrimitive from '@radix-ui/react-tabs'
@@ -152,12 +153,14 @@ function Tabs({
   return (
     <TabsPrimitive.Root
       data-slot="tabs"
-      {...stylex.props([
-        styles.rootBase,
-        variant === 'debug' ? styles.rootDebug : styles.root,
-        sx,
-      ])}
-      {...props}
+      {...stylexProps(
+        [
+          styles.rootBase,
+          variant === 'debug' ? styles.rootDebug : styles.root,
+          sx,
+        ],
+        props,
+      )}
     />
   )
 }
@@ -176,12 +179,14 @@ function TabsList({
   return (
     <TabsPrimitive.List
       data-slot="tabs-list"
-      {...stylex.props([
-        styles.listBase,
-        variant === 'debug' ? styles.listDebug : styles.list,
-        sx,
-      ])}
-      {...props}
+      {...stylexProps(
+        [
+          styles.listBase,
+          variant === 'debug' ? styles.listDebug : styles.list,
+          sx,
+        ],
+        props,
+      )}
     />
   )
 }
@@ -200,12 +205,14 @@ function TabsTrigger({
   return (
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
-      {...stylex.props([
-        styles.triggerBase,
-        variant === 'debug' ? styles.triggerDebug : styles.trigger,
-        sx,
-      ])}
-      {...props}
+      {...stylexProps(
+        [
+          styles.triggerBase,
+          variant === 'debug' ? styles.triggerDebug : styles.trigger,
+          sx,
+        ],
+        props,
+      )}
     />
   )
 }
@@ -224,16 +231,18 @@ function TabsContent({
   return (
     <TabsPrimitive.Content
       data-slot="tabs-content"
-      {...stylex.props([
-        styles.contentBase,
-        variant === 'form'
-          ? styles.contentForm
-          : variant === 'formTight'
-            ? styles.contentFormTight
-            : undefined,
-        sx,
-      ])}
-      {...props}
+      {...stylexProps(
+        [
+          styles.contentBase,
+          variant === 'form'
+            ? styles.contentForm
+            : variant === 'formTight'
+              ? styles.contentFormTight
+              : undefined,
+          sx,
+        ],
+        props,
+      )}
     />
   )
 }

@@ -1,3 +1,4 @@
+import { stylexProps } from '@s4wave/web/style/props.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
@@ -381,8 +382,7 @@ function DialogTrigger({
   return (
     <DialogPrimitive.Trigger
       data-slot="dialog-trigger"
-      {...stylex.props(sx)}
-      {...props}
+      {...stylexProps(sx, props)}
     />
   )
 }
@@ -405,8 +405,7 @@ function DialogClose({
   return (
     <DialogPrimitive.Close
       data-slot="dialog-close"
-      {...stylex.props(sx)}
-      {...props}
+      {...stylexProps(sx, props)}
     />
   )
 }
@@ -422,8 +421,7 @@ function DialogOverlay({
   return (
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
-      {...stylex.props([styles.overlay, sx])}
-      {...props}
+      {...stylexProps([styles.overlay, sx], props)}
     />
   )
 }
@@ -449,18 +447,20 @@ function DialogContent({
       <DialogPrimitive.Content
         data-spacewave-app={environment.id || undefined}
         data-slot="dialog-content"
-        {...stylex.props([
-          styles.contentBase,
-          variant === 'compact'
-            ? styles.contentCompact
-            : variant === 'editor'
-              ? styles.contentEditor
-              : variant === 'panel'
-                ? styles.contentPanel
-                : styles.contentDefault,
-          sx,
-        ])}
-        {...props}
+        {...stylexProps(
+          [
+            styles.contentBase,
+            variant === 'compact'
+              ? styles.contentCompact
+              : variant === 'editor'
+                ? styles.contentEditor
+                : variant === 'panel'
+                  ? styles.contentPanel
+                  : styles.contentDefault,
+            sx,
+          ],
+          props,
+        )}
       >
         {children}
         {showCloseButton && (
@@ -491,16 +491,18 @@ function DialogHeader({
   return (
     <div
       data-slot="dialog-header"
-      sx={[
-        styles.headerBase,
-        variant === 'editor'
-          ? styles.headerEditor
-          : variant === 'panel'
-            ? styles.headerPanel
-            : styles.headerDefault,
-        sx,
-      ]}
-      {...props}
+      {...stylexProps(
+        [
+          styles.headerBase,
+          variant === 'editor'
+            ? styles.headerEditor
+            : variant === 'panel'
+              ? styles.headerPanel
+              : styles.headerDefault,
+          sx,
+        ],
+        props,
+      )}
     />
   )
 }
@@ -513,7 +515,12 @@ function DialogFooter({
   sx?: ComponentStyles
   className?: never
 }) {
-  return <div data-slot="dialog-footer" sx={[styles.footer, sx]} {...props} />
+  return (
+    <div
+      data-slot="dialog-footer"
+      {...stylexProps([styles.footer, sx], props)}
+    />
+  )
 }
 
 /** DialogTitle names the dialog for assistive technology. */
@@ -530,13 +537,15 @@ function DialogTitle({
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      {...stylex.props([
-        styles.title,
-        variant === 'withIcon' && styles.withIcon,
-        variant === 'editor' && styles.editorTitle,
-        sx,
-      ])}
-      {...props}
+      {...stylexProps(
+        [
+          styles.title,
+          variant === 'withIcon' && styles.withIcon,
+          variant === 'editor' && styles.editorTitle,
+          sx,
+        ],
+        props,
+      )}
     />
   )
 }
@@ -555,13 +564,15 @@ function DialogDescription({
   return (
     <DialogPrimitive.Description
       data-slot="dialog-description"
-      {...stylex.props([
-        styles.description,
-        variant === 'editor' && styles.editorDescription,
-        variant === 'relaxed' && styles.relaxedDescription,
-        sx,
-      ])}
-      {...props}
+      {...stylexProps(
+        [
+          styles.description,
+          variant === 'editor' && styles.editorDescription,
+          variant === 'relaxed' && styles.relaxedDescription,
+          sx,
+        ],
+        props,
+      )}
     />
   )
 }

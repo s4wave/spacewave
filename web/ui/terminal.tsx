@@ -1,3 +1,4 @@
+import { stylexProps } from '@s4wave/web/style/props.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
 import { LuTerminal } from '@s4wave/web/images/icons.js'
@@ -72,14 +73,14 @@ function Terminal({
   )
   if (output.length === 0) {
     return (
-      <div data-slot="terminal" sx={sx} {...props}>
+      <div data-slot="terminal" {...stylexProps(sx, props)}>
         <Trace>{line}</Trace>
       </div>
     )
   }
 
   return (
-    <div data-slot="terminal" sx={sx} {...props}>
+    <div data-slot="terminal" {...stylexProps(sx, props)}>
       <Trace>
         <TraceCollapsible open={chosen ?? true} onOpenChange={setChosen}>
           <TraceCollapsibleTrigger>{line}</TraceCollapsibleTrigger>

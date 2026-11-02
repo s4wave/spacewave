@@ -1,3 +1,4 @@
+import { stylexProps } from '@s4wave/web/style/props.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
 
@@ -68,8 +69,10 @@ function Message({
   return (
     <div
       data-slot="message"
-      sx={[stylexStyles.rule1, !!alignEnd && stylexStyles.rule2, sx]}
-      {...props}
+      {...stylexProps(
+        [stylexStyles.rule1, !!alignEnd && stylexStyles.rule2, sx],
+        props,
+      )}
     >
       {alignEnd ? (
         <div data-slot="message-bubble" sx={stylexStyles.rule3}>

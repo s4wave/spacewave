@@ -1,3 +1,4 @@
+import { stylexProps } from '@s4wave/web/style/props.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 /* eslint-disable react-doctor/rerender-state-only-in-handlers */
 import {
@@ -116,7 +117,7 @@ export function PanelSizeGate({
       (minHeight > 0 && size.height < minHeight))
 
   return (
-    <div {...props} ref={containerRef} sx={[stylexStyles.rule1, sx]}>
+    <div {...stylexProps([stylexStyles.rule1, sx], props)} ref={containerRef}>
       {tooSmall ? fallback : children}
     </div>
   )

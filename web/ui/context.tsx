@@ -1,3 +1,4 @@
+import { stylexProps } from '@s4wave/web/style/props.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
 
@@ -79,8 +80,7 @@ function Context({
       aria-valuemin={0}
       aria-valuenow={percent}
       aria-valuetext={`${shown} of ${limit}`}
-      sx={[stylexStyles.rule1, sx]}
-      {...props}
+      {...stylexProps([stylexStyles.rule1, sx], props)}
     >
       <div sx={stylexStyles.rule2}>
         <span sx={stylexStyles.rule3}>{percent}%</span>

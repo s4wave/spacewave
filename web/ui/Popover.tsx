@@ -1,3 +1,4 @@
+import { stylexProps } from '@s4wave/web/style/props.js'
 import type { StyleXStyles } from '@stylexjs/stylex'
 import * as React from 'react'
 import * as PopoverPrimitive from '@radix-ui/react-popover'
@@ -158,14 +159,16 @@ function PopoverContent({
         data-slot="popover-content"
         align={align}
         sideOffset={sideOffset}
-        {...stylex.props([
-          styles.content,
-          variant !== 'status' && styles.typography,
-          variant === 'status' && styles.status,
-          variant === 'compact' && styles.compact,
-          sx,
-        ])}
-        {...props}
+        {...stylexProps(
+          [
+            styles.content,
+            variant !== 'status' && styles.typography,
+            variant === 'status' && styles.status,
+            variant === 'compact' && styles.compact,
+            sx,
+          ],
+          props,
+        )}
       />
     </PopoverPrimitive.Portal>
   )

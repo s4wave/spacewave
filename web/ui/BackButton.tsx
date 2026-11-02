@@ -1,3 +1,4 @@
+import { stylexProps } from '@s4wave/web/style/props.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import type React from 'react'
 import { LuArrowLeft } from '@s4wave/web/images/icons.js'
@@ -67,8 +68,10 @@ export function BackButton({
   return (
     <button
       type={type}
-      sx={[stylexStyles.rule1, !!floating && stylexStyles.rule2, sx]}
-      {...props}
+      {...stylexProps(
+        [stylexStyles.rule1, !!floating && stylexStyles.rule2, sx],
+        props,
+      )}
     >
       <LuArrowLeft {...stylex.props(stylexStyles.rule3)} />
       <span sx={stylexStyles.rule4}>{children}</span>

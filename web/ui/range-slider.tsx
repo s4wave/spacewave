@@ -1,3 +1,4 @@
+import { stylexProps } from '@s4wave/web/style/props.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
 import * as SliderPrimitive from '@radix-ui/react-slider'
@@ -80,10 +81,7 @@ function Slider({
   'className'
 > & { sx?: ComponentStyles; className?: never }) {
   return (
-    <SliderPrimitive.Root
-      {...stylex.props([stylexStyles.rule1, sx])}
-      {...props}
-    >
+    <SliderPrimitive.Root {...stylexProps([stylexStyles.rule1, sx], props)}>
       <SliderPrimitive.Track {...stylex.props(stylexStyles.rule2)}>
         <SliderPrimitive.Range {...stylex.props(stylexStyles.rule3)} />
       </SliderPrimitive.Track>

@@ -28,6 +28,23 @@ export async function writeButtonFixture(
     )
   }
 
+  // The separator wrapper must forward compiled styles through its owned component API.
+  const group = await readFile(
+    version === 'before'
+      ? 'scripts/tailwind-to-stylex/testdata/components/button-group.tsx'
+      : 'web/ui/button-group.tsx',
+    'utf8',
+  )
+  await writeFile(
+    join(root, 'button-group.tsx'),
+    group
+      .replace(/@s4wave\/web\/ui\/separator(?:\.js)?/g, './separator')
+      .replace(
+        /(['"])(?:\.\.\/)+(?:web\/)?style\/tokens\.stylex\.js\1/g,
+        JSON.stringify(resolve('web/style/tokens.stylex.ts')),
+      ),
+  )
+
   // One row per variant and size covers both independent axes without a redundant Cartesian grid.
   const override =
     version === 'before' ? 'className="w-full"' : 'sx={styles.full}'
@@ -36,6 +53,7 @@ export async function writeButtonFixture(
     `
 import * as stylex from '@stylexjs/stylex';
 import {Button,buttonVariants} from './button';
+import {ButtonGroupSeparator} from './button-group';
 import {DashboardButton} from './DashboardButton';
 import {DropdownTriggerButton} from './DropdownTriggerButton';
 import {IconContext,LuPlus} from '@s4wave/web/images/icons.js';
@@ -59,6 +77,7 @@ export function ButtonSamples(){return <main id="button-fixtures"><IconContext.P
  <DropdownTriggerButton icon={<LuPlus/>}>Outline dropdown</DropdownTriggerButton>
  <DropdownTriggerButton triggerStyle="ghost" icon={<LuPlus/>}>Ghost dropdown</DropdownTriggerButton>
  <button type="button" ${version === 'before' ? "className={buttonVariants({variant:'outline',size:'sm'})}" : "sx={buttonVariants({variant:'outline',size:'sm'})}"}>Recipe action</button>
+ {['vertical','horizontal'].map(orientation=><div key={orientation} style={{display:'flex',height:64}}><ButtonGroupSeparator orientation={orientation as 'vertical'}/></div>)}
  <Button aria-label="Focus button">Focus action</Button>
 </IconContext.Provider></main>}
 `,

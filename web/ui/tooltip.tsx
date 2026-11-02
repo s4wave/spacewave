@@ -1,3 +1,4 @@
+import { stylexProps } from '@s4wave/web/style/props.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
 import * as TooltipPrimitive from '@radix-ui/react-tooltip'
@@ -133,8 +134,7 @@ function TooltipContent({
       <TooltipPrimitive.Content
         data-slot="tooltip-content"
         sideOffset={sideOffset}
-        {...stylex.props([stylexStyles.rule1, sx])}
-        {...props}
+        {...stylexProps([stylexStyles.rule1, sx], props)}
       >
         {children}
         <TooltipPrimitive.Arrow {...stylex.props(stylexStyles.rule2)} />

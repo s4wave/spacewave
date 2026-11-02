@@ -8,6 +8,18 @@ type Edit = { start: number; end: number; text: string }
 
 const sharedApis = new Map<string, Promise<ReadonlySet<string>>>()
 
+/** invalidateSharedStyleApis refreshes aliases of a component after its API changes on disk. */
+export function invalidateSharedStyleApis(filename: string): void {
+  const base = resolve(filename).replace(/\.[cm]?[jt]sx?$/, '')
+  for (const target of [
+    base,
+    ...(base.endsWith('/index') ? [dirname(base)] : []),
+  ]) {
+    for (const extension of ['', '.js', '.ts', '.tsx'])
+      sharedApis.delete(target + extension)
+  }
+}
+
 // sharedPath resolves owned source modules so style inputs can follow forwarding wrappers.
 function sharedPath(target: string, filename: string): string | undefined {
   // Resolve project aliases and relative imports before reading a component's actual API.

@@ -1,3 +1,4 @@
+import { stylexProps } from '@s4wave/web/style/props.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
 import { LuListChecks, LuListTodo } from '@s4wave/web/images/icons.js'
@@ -105,7 +106,7 @@ function Queue({
   const completed = items.filter((item) => item.status === 'done')
 
   return (
-    <div data-slot="queue" sx={sx} {...props}>
+    <div data-slot="queue" {...stylexProps(sx, props)}>
       <Trace>
         {todo.length > 0 ? (
           <QueueSection title="to do" icon={<LuListTodo />} items={todo} />

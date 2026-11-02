@@ -1,3 +1,4 @@
+import { stylexProps } from '@s4wave/web/style/props.js'
 import React, { type ReactNode, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { colors, radii, utilityState } from '../style/tokens.stylex.js'
@@ -55,8 +56,10 @@ export function Window({
 
   return (
     <div
-      sx={[styles.window, isHovered ? styles.hovered : styles.idle, sx]}
-      style={style}
+      {...stylexProps(
+        [styles.window, isHovered ? styles.hovered : styles.idle, sx],
+        { style },
+      )}
       data-area-id={dataAreaId}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}

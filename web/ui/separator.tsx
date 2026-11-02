@@ -1,3 +1,4 @@
+import { stylexProps } from '@s4wave/web/style/props.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
 import * as SeparatorPrimitive from '@radix-ui/react-separator'
@@ -24,12 +25,16 @@ function Separator({
     <SeparatorPrimitive.Root
       decorative={decorative}
       orientation={orientation}
-      {...stylex.props([
-        stylexStyles.rule1,
-        orientation === 'horizontal' ? stylexStyles.rule2 : stylexStyles.rule3,
-        sx,
-      ])}
-      {...props}
+      {...stylexProps(
+        [
+          stylexStyles.rule1,
+          orientation === 'horizontal'
+            ? stylexStyles.rule2
+            : stylexStyles.rule3,
+          sx,
+        ],
+        props,
+      )}
     />
   )
 }

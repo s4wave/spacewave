@@ -1,3 +1,4 @@
+import { stylexProps } from '@s4wave/web/style/props.js'
 import type { StyleXStyles } from '@stylexjs/stylex'
 import * as React from 'react'
 import * as SheetPrimitive from '@radix-ui/react-dialog'
@@ -335,8 +336,7 @@ function SheetTrigger({
   return (
     <SheetPrimitive.Trigger
       data-slot="sheet-trigger"
-      {...stylex.props(sx)}
-      {...props}
+      {...stylexProps(sx, props)}
     />
   )
 }
@@ -350,11 +350,7 @@ function SheetClose({
   className?: never
 }) {
   return (
-    <SheetPrimitive.Close
-      data-slot="sheet-close"
-      {...stylex.props(sx)}
-      {...props}
-    />
+    <SheetPrimitive.Close data-slot="sheet-close" {...stylexProps(sx, props)} />
   )
 }
 
@@ -376,8 +372,7 @@ function SheetOverlay({
   return (
     <SheetPrimitive.Overlay
       data-slot="sheet-overlay"
-      {...stylex.props([styles.overlay, sx])}
-      {...props}
+      {...stylexProps([styles.overlay, sx], props)}
     />
   )
 }
@@ -409,14 +404,16 @@ function SheetContent({
       />
       <SheetPrimitive.Content
         data-slot="sheet-content"
-        {...stylex.props([
-          styles.content,
-          position === 'absolute' ? styles.absolute : styles.fixed,
-          sideStyles[side],
-          (variant === 'docs' || variant === 'docsPlain') && styles.docs,
-          sx,
-        ])}
-        {...props}
+        {...stylexProps(
+          [
+            styles.content,
+            position === 'absolute' ? styles.absolute : styles.fixed,
+            sideStyles[side],
+            (variant === 'docs' || variant === 'docsPlain') && styles.docs,
+            sx,
+          ],
+          props,
+        )}
       >
         {children}
         {showCloseButton && (
@@ -438,7 +435,12 @@ function SheetHeader({
   sx?: StyleXStyles
   className?: never
 }) {
-  return <div data-slot="sheet-header" sx={[styles.header, sx]} {...props} />
+  return (
+    <div
+      data-slot="sheet-header"
+      {...stylexProps([styles.header, sx], props)}
+    />
+  )
 }
 
 /** SheetFooter lays out the final sheet actions. */
@@ -449,7 +451,12 @@ function SheetFooter({
   sx?: StyleXStyles
   className?: never
 }) {
-  return <div data-slot="sheet-footer" sx={[styles.footer, sx]} {...props} />
+  return (
+    <div
+      data-slot="sheet-footer"
+      {...stylexProps([styles.footer, sx], props)}
+    />
+  )
 }
 
 /** SheetTitle labels the dialog for assistive technology. */
@@ -466,13 +473,15 @@ function SheetTitle({
   return (
     <SheetPrimitive.Title
       data-slot="sheet-title"
-      {...stylex.props([
-        styles.title,
-        (variant === 'docs' || variant === 'docsPlain') && styles.docsTitle,
-        variant === 'docsPlain' && styles.plainTitle,
-        sx,
-      ])}
-      {...props}
+      {...stylexProps(
+        [
+          styles.title,
+          (variant === 'docs' || variant === 'docsPlain') && styles.docsTitle,
+          variant === 'docsPlain' && styles.plainTitle,
+          sx,
+        ],
+        props,
+      )}
     />
   )
 }
@@ -488,8 +497,7 @@ function SheetDescription({
   return (
     <SheetPrimitive.Description
       data-slot="sheet-description"
-      {...stylex.props([styles.description, sx])}
-      {...props}
+      {...stylexProps([styles.description, sx], props)}
     />
   )
 }

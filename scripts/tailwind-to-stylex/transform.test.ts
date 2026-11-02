@@ -653,6 +653,26 @@ test(
             ).source,
             migration.source,
           )
+          // Exercise a dynamic native caller through the generated public API, beside its inline variable.
+          let output = migration.source
+          if (version === 'after' && file.endsWith('/OwnedStyles.tsx')) {
+            output = output.replace(
+              /(<Box\s+label="Dynamic native caller"\s+)sx=\{[^}]+\}/,
+              '$1sx={compiledStyles.dynamic(123)}',
+            )
+            assert.notEqual(
+              output,
+              migration.source,
+              'The dynamic native caller must reach its compiled API',
+            )
+            output += `
+import{stylexProps as nativeAttributes}from'@s4wave/web/style/props.js';
+const forwardedNoClass:{className?:never}={};
+// @ts-expect-error Native attributes cannot replace a component's sx protocol.
+const invalidNativeDelegate=<Box label="Invalid native attributes" {...nativeAttributes(undefined,forwardedNoClass)}/>;
+void invalidNativeDelegate;
+`
+          }
           await writeFile(
             join(root, file.split('/').at(-1)!),
             (version === 'before'
@@ -661,7 +681,7 @@ test(
                   !file.endsWith('/ExpressionCases.tsx') &&
                   !file.endsWith('/OwnedStyles.tsx')
                 ? await readFile(file, 'utf8')
-                : migration.source
+                : output
             )
               .replace(
                 /(['"])(?:\.\.\/)+(?:web\/)?style\/tokens\.stylex\.js\1/g,

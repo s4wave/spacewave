@@ -157,7 +157,11 @@ function PilotJourney() {
         selected={radioSelected}
         onSelect={() => setRadioSelected(true)}
       />
-      <Window data-area-id="fixture-window">
+      <Window
+        data-area-id="fixture-window"
+        sx={styles.minimumWidth(123)}
+        style={{ '--native-window-test': 'retained' }}
+      >
         <button type="button">Window action</button>
       </Window>
       <CollapsibleSection
@@ -186,7 +190,11 @@ function PilotJourney() {
       </PanelHeader>
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogTrigger sx={styles.override}>Open native dialog</DialogTrigger>
-        <DialogContent sx={styles.headerOverride}>
+        <DialogContent
+          sx={[styles.headerOverride, styles.minimumWidth(123)]}
+          style={{ '--native-dialog-test': 'retained' }}
+          className={undefined}
+        >
           <DialogHeader>
             <DialogTitle>Native dialog proof</DialogTitle>
             <DialogDescription>Review the native dialog</DialogDescription>
@@ -292,6 +300,10 @@ it('composes shared, app and plugin styles through the browser build', async () 
 
   // The existing frame hover event updates its owned border without replacing the frame.
   const frame = document.querySelector('[data-area-id="fixture-window"]')!
+  expect(getComputedStyle(frame).minWidth).toBe('123px')
+  expect(getComputedStyle(frame).getPropertyValue('--native-window-test')).toBe(
+    'retained',
+  )
   const border = getComputedStyle(frame).borderColor
   await page.getByRole('button', { name: 'Window action', exact: true }).hover()
   await expect.poll(() => getComputedStyle(frame).borderColor).not.toBe(border)
@@ -362,6 +374,14 @@ it('composes shared, app and plugin styles through the browser build', async () 
   })
   await expect.element(modal).toBeVisible()
   expect(getComputedStyle(modal.element()).padding).toBe('19px')
+
+  // Native inline properties preserve the caller's dynamic sx variables.
+  expect(getComputedStyle(modal.element()).minWidth).toBe('123px')
+  expect(
+    getComputedStyle(modal.element()).getPropertyValue('--native-dialog-test'),
+  ).toBe('retained')
+
+  // The footer action retains its caller's padding.
   const modalClose = page.getByRole('button', {
     name: 'Close native dialog',
     exact: true,

@@ -12,7 +12,11 @@ const separatorStyles = stylex.create({
     position: 'relative',
     margin: 0,
     alignSelf: 'stretch',
-    height: { default: null, ':is([data-orientation="vertical"])': 'auto' },
+    height: {
+      default: null,
+      ':is([data-orientation="horizontal"])': '1px',
+      ':is([data-orientation="vertical"])': 'auto',
+    },
   },
 })
 
