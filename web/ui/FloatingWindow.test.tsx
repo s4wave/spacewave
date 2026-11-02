@@ -245,25 +245,6 @@ describe('FloatingWindow', () => {
     expect(screen.getByTestId('my-floating-window')).toBeTruthy()
   })
 
-  it('applies custom className', () => {
-    const state = makeState()
-    render(
-      <FloatingWindow
-        id="test"
-        title="Win"
-        state={state}
-        onStateChange={vi.fn()}
-        className="mt-1"
-        testId="win"
-      >
-        <div>content</div>
-      </FloatingWindow>,
-    )
-
-    const el = screen.getByTestId('win')
-    expect(el.className).toContain('mt-1')
-  })
-
   it('minimize button calls onStateChange with expanded: false', () => {
     const state = makeState({ expanded: true })
     const onStateChange = vi.fn()

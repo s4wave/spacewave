@@ -1,4 +1,10 @@
 import {
+  floatingWindowIconMarker,
+  floatingWindowHeaderIconStyles,
+} from '../style/floating-window-icons.stylex.js'
+import { stylexProps } from '@s4wave/web/style/props.js'
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
+import {
   createContext,
   useCallback,
   use,
@@ -8,11 +14,8 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from 'react'
-import { LuMinus, LuX } from '@s4wave/web/images/icons.js'
+import { IconContext, LuMinus, LuX } from '@s4wave/web/images/icons.js'
 import { isDesktop } from '@aptre/bldr'
-
-import { cn } from '@s4wave/web/style/utils.js'
-
 import * as stylex from '@stylexjs/stylex'
 import {
   layout as themeLayout,
@@ -20,7 +23,178 @@ import {
   colors as themeColors,
   motion as themeMotion,
 } from '../style/tokens.stylex.js'
-
+import {
+  radii as themeRadii,
+  fonts as themeFonts,
+} from '../style/tokens.stylex.js'
+const stylexStyles2 = stylex.create({
+  rule1: {
+    position: 'fixed',
+    top: 'var(--floating-window-top)',
+    left: 'var(--floating-window-left)',
+    zIndex: 'var(--floating-window-z-index)',
+    margin: 0,
+    display: 'flex',
+    height: 'var(--floating-window-height)',
+    width: 'var(--floating-window-width)',
+    flexDirection: 'column',
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: themeColors['--color-popover-border'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-menu']} 95%, transparent)`,
+    padding: 0,
+    color: 'inherit',
+    '--tw-shadow':
+      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+  },
+  rule2: {
+    color: themeColors['--color-text-secondary'],
+    fontSize: themeLayout['--text-ui'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-ui--line-height']})`,
+    letterSpacing: `var(--tw-tracking, ${themeLayout['--text-ui--letter-spacing']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  rule3: {
+    position: 'absolute',
+    top: 0,
+    right: `calc(${themeLayout['--spacing']} * 2)`,
+    left: `calc(${themeLayout['--spacing']} * 2)`,
+    zIndex: 10,
+    height: themeLayout['--spacing'],
+    cursor: 'ns-resize',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+  },
+  rule4: {
+    position: 'absolute',
+    right: `calc(${themeLayout['--spacing']} * 2)`,
+    bottom: 0,
+    left: `calc(${themeLayout['--spacing']} * 2)`,
+    zIndex: 10,
+    height: themeLayout['--spacing'],
+    cursor: 'ns-resize',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+  },
+  rule5: {
+    position: 'absolute',
+    top: `calc(${themeLayout['--spacing']} * 2)`,
+    right: 0,
+    bottom: `calc(${themeLayout['--spacing']} * 2)`,
+    zIndex: 10,
+    width: themeLayout['--spacing'],
+    cursor: 'ew-resize',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+  },
+  rule6: {
+    position: 'absolute',
+    top: `calc(${themeLayout['--spacing']} * 2)`,
+    bottom: `calc(${themeLayout['--spacing']} * 2)`,
+    left: 0,
+    zIndex: 10,
+    width: themeLayout['--spacing'],
+    cursor: 'ew-resize',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+  },
+  rule7: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    zIndex: 10,
+    width: `calc(${themeLayout['--spacing']} * 2)`,
+    height: `calc(${themeLayout['--spacing']} * 2)`,
+    cursor: 'nesw-resize',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+  },
+  rule8: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    zIndex: 10,
+    width: `calc(${themeLayout['--spacing']} * 2)`,
+    height: `calc(${themeLayout['--spacing']} * 2)`,
+    cursor: 'nwse-resize',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+  },
+  rule9: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    zIndex: 10,
+    width: `calc(${themeLayout['--spacing']} * 2)`,
+    height: `calc(${themeLayout['--spacing']} * 2)`,
+    cursor: 'nwse-resize',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+  },
+  rule10: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    zIndex: 10,
+    width: `calc(${themeLayout['--spacing']} * 2)`,
+    height: `calc(${themeLayout['--spacing']} * 2)`,
+    cursor: 'nesw-resize',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+  },
+})
 const stylexStyles = stylex.create({
   rule1: {
     display: 'flex',
@@ -113,7 +287,6 @@ const stylexStyles = stylex.create({
     overflow: 'hidden',
   },
 })
-
 const MIN_Y_ELECTRON = 60
 
 // FloatingWindowManagerContext manages z-index ordering for multiple floating windows.
@@ -124,7 +297,6 @@ interface FloatingWindowManagerContextValue {
   unregister: (id: string) => void
   subscribe: (callback: () => void) => () => void
 }
-
 const FloatingWindowManagerContext =
   createContext<FloatingWindowManagerContextValue | null>(null)
 
@@ -194,10 +366,15 @@ export function FloatingWindowManagerProvider({
 
   // Expose stable window-order operations through the manager context.
   const value = useMemo(
-    () => ({ bringToFront, getZIndex, register, unregister, subscribe }),
+    () => ({
+      bringToFront,
+      getZIndex,
+      register,
+      unregister,
+      subscribe,
+    }),
     [bringToFront, getZIndex, register, unregister, subscribe],
   )
-
   return (
     <FloatingWindowManagerContext.Provider value={value}>
       {children}
@@ -209,40 +386,34 @@ export function FloatingWindowManagerProvider({
 export function useFloatingWindowManager() {
   return use(FloatingWindowManagerContext)
 }
-
 export interface FloatingWindowPosition {
   x: number
   y: number
 }
-
 export interface FloatingWindowSize {
   width: number
   height: number
 }
-
 export interface FloatingWindowState {
   position: FloatingWindowPosition
   size: FloatingWindowSize
   expanded: boolean
 }
-
 export const DEFAULT_FLOATING_WINDOW_POSITION: FloatingWindowPosition = {
   x: 16,
   y: isDesktop ? MIN_Y_ELECTRON : 16,
 }
-
 export const DEFAULT_FLOATING_WINDOW_SIZE: FloatingWindowSize = {
   width: 320,
   height: 240,
 }
-
 export const DEFAULT_FLOATING_WINDOW_STATE: FloatingWindowState = {
   position: DEFAULT_FLOATING_WINDOW_POSITION,
   size: DEFAULT_FLOATING_WINDOW_SIZE,
   expanded: false,
 }
-
 export interface FloatingWindowProps {
+  className?: never
   /** Unique identifier for this window (used for z-index management) */
   id: string
   /** Window title displayed in header */
@@ -255,8 +426,8 @@ export interface FloatingWindowProps {
   onStateChange: (state: FloatingWindowState) => void
   /** Window content */
   children: ReactNode
-  /** Additional class name for the window */
-  className?: string
+  /** Caller styles compose after the window appearance. */
+  sx?: ComponentStyles
   /** Minimum window width */
   minWidth?: number
   /** Minimum window height */
@@ -279,7 +450,7 @@ export function FloatingWindow({
   state,
   onStateChange,
   children,
-  className,
+  sx,
   minWidth = 200,
   minHeight = 120,
   defaultPosition = DEFAULT_FLOATING_WINDOW_POSITION,
@@ -299,12 +470,21 @@ export function FloatingWindow({
   }, [manager, id])
 
   // Refs for drag/resize - update DOM directly, persist on mouseup
-  const dragOffset = useRef({ x: 0, y: 0 })
-  const current = useRef({ pos: state.position, size: state.size })
+  const dragOffset = useRef({
+    x: 0,
+    y: 0,
+  })
+  const current = useRef({
+    pos: state.position,
+    size: state.size,
+  })
 
   // Sync ref from props when they change
   useEffect(() => {
-    current.current = { pos: state.position, size: state.size }
+    current.current = {
+      pos: state.position,
+      size: state.size,
+    }
   }, [state.position, state.size])
 
   // Apply the current drag geometry directly to the mounted dialog.
@@ -322,7 +502,10 @@ export function FloatingWindow({
 
   // Collapse the window through its existing state callback.
   const handleMinimize = useCallback(() => {
-    onStateChange({ ...state, expanded: false })
+    onStateChange({
+      ...state,
+      expanded: false,
+    })
   }, [state, onStateChange])
 
   // Restore the window's configured position and size.
@@ -346,7 +529,10 @@ export function FloatingWindow({
       e.preventDefault()
       manager?.bringToFront(id)
       const { pos } = current.current
-      dragOffset.current = { x: e.clientX - pos.x, y: e.clientY - pos.y }
+      dragOffset.current = {
+        x: e.clientX - pos.x,
+        y: e.clientY - pos.y,
+      }
 
       // Keep a usable part of the dragged window inside the viewport.
       const maxX = window.innerWidth - 100
@@ -366,7 +552,11 @@ export function FloatingWindow({
         document.removeEventListener('mousemove', onMove)
         document.removeEventListener('mouseup', onUp)
         const { pos, size } = current.current
-        onStateChange({ ...state, position: pos, size })
+        onStateChange({
+          ...state,
+          position: pos,
+          size,
+        })
       }
 
       // Track pointer movement only for this active drag.
@@ -387,8 +577,12 @@ export function FloatingWindow({
       // Retain the pointer and window geometry at the start of this resize.
       const startX = e.clientX
       const startY = e.clientY
-      const startPos = { ...current.current.pos }
-      const startSize = { ...current.current.size }
+      const startPos = {
+        ...current.current.pos,
+      }
+      const startSize = {
+        ...current.current.size,
+      }
 
       // Resolve viewport bounds before tracking the active resize.
       const maxWidth = window.innerWidth - startPos.x - 20
@@ -399,8 +593,12 @@ export function FloatingWindow({
         // Resolve the resize displacement against the original position and size.
         const dx = e.clientX - startX
         const dy = e.clientY - startY
-        const pos = { ...startPos }
-        const size = { ...startSize }
+        const pos = {
+          ...startPos,
+        }
+        const size = {
+          ...startSize,
+        }
 
         // Constrain every resized edge to the window's minimum size and viewport.
         if (edge.includes('e')) {
@@ -429,7 +627,10 @@ export function FloatingWindow({
         }
 
         // Apply the current resize geometry without committing each pointer movement.
-        current.current = { pos, size }
+        current.current = {
+          pos,
+          size,
+        }
         applyStyle()
       }
 
@@ -438,7 +639,11 @@ export function FloatingWindow({
         document.removeEventListener('mousemove', onMove)
         document.removeEventListener('mouseup', onUp)
         const { pos, size } = current.current
-        onStateChange({ ...state, position: pos, size })
+        onStateChange({
+          ...state,
+          position: pos,
+          size,
+        })
       }
 
       // Track pointer movement only for this active resize.
@@ -468,28 +673,20 @@ export function FloatingWindow({
     getZIndexSnapshot,
     getZIndexSnapshot,
   )
-
   return (
     <dialog
       ref={panelRef}
       open
       aria-label={title}
-      className={
-        /* TODO(stylex): global or unknown class: floating-window-position */ cn(
-          'floating-window-position fixed m-0 flex flex-col overflow-hidden p-0 text-inherit outline-none',
-          'rounded-lg shadow-lg',
-          'bg-background-menu/95 backdrop-blur-sm',
-          'border-popover-border border',
-          className,
-        )
-      }
-      style={{
-        '--floating-window-left': `${state.position.x}px`,
-        '--floating-window-top': `${state.position.y}px`,
-        '--floating-window-width': `${state.size.width}px`,
-        '--floating-window-height': `${state.size.height}px`,
-        '--floating-window-z-index': zIndex,
-      }}
+      {...stylexProps([stylexStyles2.rule1, sx], {
+        style: {
+          '--floating-window-left': `${state.position.x}px`,
+          '--floating-window-top': `${state.position.y}px`,
+          '--floating-window-width': `${state.size.width}px`,
+          '--floating-window-height': `${state.size.height}px`,
+          '--floating-window-z-index': zIndex,
+        },
+      })}
       tabIndex={-1}
       onFocus={handleFocus}
       data-testid={testId}
@@ -502,22 +699,8 @@ export function FloatingWindow({
         onDoubleClick={handleDoubleClick}
       >
         <div sx={stylexStyles.rule2}>
-          {icon && (
-            <span
-              className={
-                /* TODO(stylex): a descendant, group, peer or compound selector: [&>svg]:h-3 */ 'text-brand flex size-3 items-center justify-center [&>svg]:h-3 [&>svg]:w-3'
-              }
-            >
-              {icon}
-            </span>
-          )}
-          <span
-            className={
-              /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary text-xs font-medium'
-            }
-          >
-            {title}
-          </span>
+          {icon && <HeaderIcon>{icon}</HeaderIcon>}
+          <span sx={stylexStyles2.rule2}>{title}</span>
         </div>
         <div sx={stylexStyles.rule3}>
           <button
@@ -554,23 +737,10 @@ export function FloatingWindow({
     </dialog>
   )
 }
-
 interface ResizeHandleProps {
   edge: string
   onMouseDown: (e: React.MouseEvent) => void
 }
-
-const RESIZE_HANDLE_CLASSES: Record<string, string> = {
-  n: 'top-0 left-2 right-2 h-1 cursor-ns-resize',
-  s: 'bottom-0 left-2 right-2 h-1 cursor-ns-resize',
-  e: 'right-0 top-2 bottom-2 w-1 cursor-ew-resize',
-  w: 'left-0 top-2 bottom-2 w-1 cursor-ew-resize',
-  ne: 'top-0 right-0 size-2 cursor-nesw-resize',
-  nw: 'top-0 left-0 size-2 cursor-nwse-resize',
-  se: 'bottom-0 right-0 size-2 cursor-nwse-resize',
-  sw: 'bottom-0 left-0 size-2 cursor-nesw-resize',
-}
-
 function ResizeHandle({ edge, onMouseDown }: ResizeHandleProps) {
   return (
     <div
@@ -580,13 +750,41 @@ function ResizeHandle({ edge, onMouseDown }: ResizeHandleProps) {
       aria-orientation={
         edge === 'n' || edge === 's' ? 'horizontal' : 'vertical'
       }
-      className={
-        /* TODO(stylex): dynamic class or forwarded className */ cn(
-          'hover:bg-brand/20 absolute z-10',
-          RESIZE_HANDLE_CLASSES[edge],
-        )
-      }
+      sx={resizeStyles[edge]}
       onMouseDown={onMouseDown}
     />
+  )
+}
+const resizeStyles: Record<string, stylex.StyleXStyles> = {
+  n: stylexStyles2.rule3,
+  s: stylexStyles2.rule4,
+  e: stylexStyles2.rule5,
+  w: stylexStyles2.rule6,
+  ne: stylexStyles2.rule7,
+  nw: stylexStyles2.rule8,
+  se: stylexStyles2.rule9,
+  sw: stylexStyles2.rule10,
+}
+const headerIconAttributes = stylex.props(floatingWindowHeaderIconStyles.icon)
+// HeaderIcon sizes only the SVG directly inside the title's icon slot.
+function HeaderIcon({ children }: { children: ReactNode }) {
+  const inherited = use(IconContext)
+  const icons = useMemo(
+    () => ({
+      ...inherited,
+      className: [inherited.className, headerIconAttributes.className]
+        .filter(Boolean)
+        .join(' '),
+    }),
+    [inherited],
+  )
+  return (
+    <IconContext.Provider value={icons}>
+      <span
+        sx={[floatingWindowHeaderIconStyles.slot, floatingWindowIconMarker]}
+      >
+        {children}
+      </span>
+    </IconContext.Provider>
   )
 }
