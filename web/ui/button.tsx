@@ -1,3 +1,4 @@
+import { stylexProps } from '@s4wave/web/style/props.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
 import { Slot } from '@radix-ui/react-slot'
@@ -993,14 +994,7 @@ export function buttonVariants({
 /** Button renders an action or lends its behavior and styles to one child.
  * Shared icon exports inherit its SVG dimensions and pointer rules.
  */
-function Button({
-  sx,
-  variant,
-  size,
-  asChild = false,
-  style,
-  ...props
-}: ButtonProps) {
+function Button({ sx, variant, size, asChild = false, ...props }: ButtonProps) {
   // Preserve icon context while applying the button's descendant rule at each icon.
   const inheritedIcons = React.useContext(IconContext)
   const icons = React.useMemo(
@@ -1014,22 +1008,16 @@ function Button({
   )
 
   // Retain dynamic StyleX variables alongside the native inline override.
-  const attributes = stylex.props(
-    buttonVariants({ variant, size, sx }),
-    buttonMarker,
+  const attributes = stylexProps(
+    [buttonVariants({ variant, size, sx }), buttonMarker],
+    props,
   )
   const Comp = asChild ? Slot : 'button'
-  /* eslint-disable shadcn/no-inline-styles -- Merge native caller styles with compiler-generated dynamic CSS variables. */
   return (
     <IconContext.Provider value={icons}>
-      <Comp
-        {...attributes}
-        {...props}
-        style={style ? { ...attributes.style, ...style } : attributes.style}
-      />
+      <Comp {...attributes} />
     </IconContext.Provider>
   )
-  /* eslint-enable shadcn/no-inline-styles */
 }
 Button.displayName = 'Button'
 export { Button }

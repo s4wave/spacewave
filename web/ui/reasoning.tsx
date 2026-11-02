@@ -1,3 +1,4 @@
+import { stylexProps } from '@s4wave/web/style/props.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
 import { LuCircleCheck, LuLoaderCircle } from '@s4wave/web/images/icons.js'
@@ -67,7 +68,7 @@ function Reasoning({
   )
 
   return (
-    <div data-slot="reasoning" sx={sx} {...props}>
+    <div data-slot="reasoning" {...stylexProps(sx, props)}>
       <Trace>
         {text.length === 0 ? (
           line

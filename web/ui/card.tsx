@@ -1,3 +1,4 @@
+import { stylexProps } from '@s4wave/web/style/props.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
 
@@ -83,7 +84,7 @@ function Card({
   sx?: ComponentStyles
   className?: never
 }) {
-  return <div data-slot="card" sx={[styles.card, sx]} {...props} />
+  return <div data-slot="card" {...stylexProps([styles.card, sx], props)} />
 }
 
 // CardHeader keeps the action column and optional separator with its content.
@@ -98,13 +99,15 @@ function CardHeader({
   return (
     <div
       data-slot="card-header"
-      sx={[
-        styles.header,
-        styles.headerAction,
-        !!bordered && styles.headerBorder,
-        sx,
-      ]}
-      {...props}
+      {...stylexProps(
+        [
+          styles.header,
+          styles.headerAction,
+          !!bordered && styles.headerBorder,
+          sx,
+        ],
+        props,
+      )}
     />
   )
 }
@@ -116,7 +119,9 @@ function CardTitle({
   sx?: ComponentStyles
   className?: never
 }) {
-  return <div data-slot="card-title" sx={[styles.title, sx]} {...props} />
+  return (
+    <div data-slot="card-title" {...stylexProps([styles.title, sx], props)} />
+  )
 }
 
 function CardDescription({
@@ -129,8 +134,7 @@ function CardDescription({
   return (
     <div
       data-slot="card-description"
-      sx={[styles.description, sx]}
-      {...props}
+      {...stylexProps([styles.description, sx], props)}
     />
   )
 }
@@ -145,8 +149,7 @@ function CardAction({
   return (
     <div
       data-slot="card-action"
-      {...stylex.props(styles.action, sx, stylex.defaultMarker())}
-      {...props}
+      {...stylexProps([styles.action, sx, stylex.defaultMarker()], props)}
     />
   )
 }
@@ -158,7 +161,12 @@ function CardContent({
   sx?: ComponentStyles
   className?: never
 }) {
-  return <div data-slot="card-content" sx={[styles.content, sx]} {...props} />
+  return (
+    <div
+      data-slot="card-content"
+      {...stylexProps([styles.content, sx], props)}
+    />
+  )
 }
 
 // CardFooter adds the top separator and its spacing when bordered is set.
@@ -173,8 +181,10 @@ function CardFooter({
   return (
     <div
       data-slot="card-footer"
-      sx={[styles.footer, !!bordered && styles.footerBorder, sx]}
-      {...props}
+      {...stylexProps(
+        [styles.footer, !!bordered && styles.footerBorder, sx],
+        props,
+      )}
     />
   )
 }

@@ -1,3 +1,4 @@
+import { stylexProps } from '@s4wave/web/style/props.js'
 import * as React from 'react'
 
 import * as stylex from '@stylexjs/stylex'
@@ -77,16 +78,15 @@ export function ShineBorder({
 }: ShineBorderProps) {
   return (
     <div
-      style={{
-        '--border-width': `${borderWidth}px`,
-        '--duration': `${duration}s`,
-        '--shine-border-background': `radial-gradient(transparent,transparent, ${
-          Array.isArray(shineColor) ? shineColor.join(',') : shineColor
-        },transparent,transparent)`,
-        ...style,
-      }}
-      sx={[styles.border, sx]}
-      {...props}
+      {...stylexProps([styles.border, sx], {
+        ...props,
+        style: {
+          '--border-width': `${borderWidth}px`,
+          '--duration': `${duration}s`,
+          '--shine-border-background': `radial-gradient(transparent,transparent, ${Array.isArray(shineColor) ? shineColor.join(',') : shineColor},transparent,transparent)`,
+          ...style,
+        },
+      })}
     />
   )
 }

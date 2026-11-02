@@ -4,6 +4,7 @@ import { dirname, relative, resolve } from 'node:path'
 
 import type { createOracle, StyleRule } from './oracle.js'
 import { compileVariants } from './variants.js'
+import { preserveNativeProps } from './native-props.js'
 
 /** MigrationSite records a class expression that needs a component-level decision. */
 export interface MigrationSite {
@@ -730,7 +731,14 @@ export function transform(
   }
 
   // Apply edits from the end; a second run sees no className at these sites.
-  if (!edits.length) return { source, converted: 0, remaining }
+  if (!edits.length)
+    return {
+      source: options.componentProps
+        ? preserveNativeProps(source, filename)
+        : source,
+      converted: 0,
+      remaining,
+    }
   if (namespaces.size) {
     const definitions = Object.fromEntries(
       [...namespaces.values()].map(({ name, style }) => [
@@ -809,7 +817,13 @@ export function transform(
     filename,
     new Set([...classHelpers, ...variantHelpers]),
   )
-  return { source, converted, remaining }
+  return {
+    source: options.componentProps
+      ? preserveNativeProps(source, filename)
+      : source,
+    converted,
+    remaining,
+  }
 }
 
 // pruneHelperImports reads bindings after consumed constants and recipe constructors have disappeared.

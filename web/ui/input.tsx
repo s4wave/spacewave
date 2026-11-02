@@ -1,3 +1,4 @@
+import { stylexProps } from '@s4wave/web/style/props.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
 
@@ -499,8 +500,10 @@ function Input({ sx, type, variant, ...props }: InputProps) {
     <input
       type={type}
       data-slot="input"
-      sx={[styles.base, variant ? variantStyles[variant] : styles.default, sx]}
-      {...props}
+      {...stylexProps(
+        [styles.base, variant ? variantStyles[variant] : styles.default, sx],
+        props,
+      )}
     />
   )
 }

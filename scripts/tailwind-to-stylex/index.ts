@@ -3,7 +3,11 @@ import { dirname, resolve } from 'node:path'
 
 import { createOracle } from './oracle.js'
 import { transform } from './transform.js'
-import { prepareComponentStyles, readSharedStyleApis } from './component-api.js'
+import {
+  prepareComponentStyles,
+  readSharedStyleApis,
+  invalidateSharedStyleApis,
+} from './component-api.js'
 
 // sourceFiles streams rg's source manifest without collecting the repository tree.
 async function* sourceFiles(paths: string[]): AsyncGenerator<string> {
@@ -92,9 +96,10 @@ async function main(): Promise<void> {
         !(sharedSx && source.includes('@stylexjs/stylex'))
       )
         continue
-      const sharedComponents = sharedSx
-        ? await readSharedStyleApis(source, file)
-        : undefined
+      const sharedComponents =
+        sharedSx || componentApi
+          ? await readSharedStyleApis(source, file)
+          : undefined
       const migrate = (input: string) => {
         const prepared = prepareComponentStyles(input, file, {
           convertProps: componentApi,
@@ -127,7 +132,10 @@ async function main(): Promise<void> {
       apis += result.apis
       if (source !== result.source) {
         changed++
-        if (write) await writeFile(file, result.source)
+        if (write) {
+          await writeFile(file, result.source)
+          invalidateSharedStyleApis(file)
+        }
       }
       for (const site of result.remaining)
         reasons.set(site.reason, (reasons.get(site.reason) ?? 0) + 1)

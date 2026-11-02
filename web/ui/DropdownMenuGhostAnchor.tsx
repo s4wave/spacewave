@@ -1,3 +1,4 @@
+import { stylexProps } from '@s4wave/web/style/props.js'
 import { type ComponentPropsWithRef } from 'react'
 import { createPortal } from 'react-dom'
 import * as stylex from '@stylexjs/stylex'
@@ -36,12 +37,14 @@ export function DropdownMenuGhostAnchor({
   return createPortal(
     <div
       data-slot="dropdown-menu-ghost-anchor"
-      sx={[styles.anchor, sx]}
-      style={{
-        '--dropdown-ghost-left': `${x}px`,
-        '--dropdown-ghost-top': `${y}px`,
-      }}
-      {...props}
+      {...stylexProps([styles.anchor, sx], {
+        ...props,
+        style: {
+          '--dropdown-ghost-left': `${x}px`,
+          '--dropdown-ghost-top': `${y}px`,
+          ...props.style,
+        },
+      })}
     />,
     document.body,
   )
