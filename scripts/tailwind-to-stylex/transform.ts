@@ -5,6 +5,7 @@ import { dirname, relative, resolve } from 'node:path'
 import type { createOracle, StyleRule } from './oracle.js'
 import { compileVariants } from './variants.js'
 import { preserveNativeProps } from './native-props.js'
+import { relationMarkers } from './relations.js'
 
 /** MigrationSite records a class expression that needs a component-level decision. */
 export interface MigrationSite {
@@ -203,6 +204,23 @@ export function transform(
   const binding = existingStylex[0] ?? unique('stylex')
   const tokenBindings = new Map<string, string>()
 
+  // Resolve owned relationship markers once for literals and computed conditions.
+  const markerBindings = new Map<string, string>()
+  const literalMarkers = new Map<string, string[]>()
+  const markerReference = (marker: string): string => {
+    let name = markerBindings.get(marker)
+    if (!name) {
+      name = unique(relationMarkers[marker]!)
+      markerBindings.set(marker, name)
+    }
+    return name
+  }
+  const styleKey = (key: string): string => {
+    if (!key.startsWith('@stylex-relation ')) return JSON.stringify(key)
+    const [method, marker, predicate] = JSON.parse(key.slice(17)) as string[]
+    return `[${binding}.when.${method}(${JSON.stringify(':is(' + predicate + ')')},${markerReference(marker!)})]`
+  }
+
   // Compound CSS values interpolate typed variables without changing their CSS spelling.
   const serialize = (value: StyleRule | string | number | null): string => {
     // Preserve scalar CSS values without treating them as rule objects.
@@ -212,7 +230,7 @@ export function transform(
     // Keep condition objects nested; only leaf values contain variable references.
     if (typeof value !== 'string')
       return `{${Object.entries(value)
-        .map(([key, nested]) => `${JSON.stringify(key)}:${serialize(nested)}`)
+        .map(([key, nested]) => `${styleKey(key)}:${serialize(nested)}`)
         .join(',')}}`
 
     // Translate known theme variables while retaining fallback expressions and internal CSS variables.
@@ -381,15 +399,22 @@ export function transform(
     // Empty and repeated class sets need no additional style namespace.
     if (!value.trim()) return 'false'
     const existing = namespaces.get(value)
-    if (existing) return `${prefix}.${existing.name}`
+    if (existing) {
+      const markers = literalMarkers.get(value) ?? []
+      return markers.length
+        ? `[${prefix}.${existing.name},${markers.join(',')}]`
+        : `${prefix}.${existing.name}`
+    }
 
     // Resolve conflicts inside one literal before StyleX assigns its atomic priorities.
     const style: StyleRule = {}
+    const markers: string[] = []
     for (const candidate of oracle.order(value.trim().split(/\s+/))) {
       const translation = oracle.translate(candidate)
       if (translation.kind === 'manual')
         throw new Error(`${translation.reason}: ${candidate}`)
-      mergeStyle(style, translation.style)
+      if (translation.kind === 'marker') markers.push(translation.marker)
+      else mergeStyle(style, translation.style)
     }
 
     // StyleX gives physical sides precedence over logical axes even when Tailwind's media rule comes later.
@@ -419,7 +444,11 @@ export function transform(
     // Reuse this complete outcome across matching source expressions.
     const name = `rule${namespaces.size + 1}`
     namespaces.set(value, { name, style })
-    return `${prefix}.${name}`
+    const references = markers.map(markerReference)
+    literalMarkers.set(value, references)
+    return references.length
+      ? `[${prefix}.${name},${references.join(',')}]`
+      : `${prefix}.${name}`
   }
 
   // Preserve JavaScript branch evaluation while replacing only its class-string leaves.
@@ -689,6 +718,7 @@ export function transform(
             ? (value.expression as Syntax)
             : value
         const checkpoint = new Map(namespaces)
+        const markerCheckpoint = new Map(markerBindings)
         try {
           const styles = expression(content)
           checkComposition(styles)
@@ -703,6 +733,9 @@ export function transform(
           })
         } catch (error) {
           namespaces.clear()
+          markerBindings.clear()
+          for (const [key, name] of markerCheckpoint)
+            markerBindings.set(key, name)
           for (const [key, entry] of checkpoint) namespaces.set(key, entry)
           const reason = (error as Error).message
           remaining.push({
@@ -757,6 +790,14 @@ export function transform(
       ).replaceAll('\\', '/')
       if (!tokenPath.startsWith('.')) tokenPath = './' + tokenPath
       imports += `import {${[...tokenBindings].map(([group, name]) => `${group} as ${name}`).join(',')}} from ${JSON.stringify(tokenPath)}\n`
+    }
+    if (markerBindings.size) {
+      let markerPath = relative(
+        dirname(resolve(filename)),
+        resolve('web/style/relations.stylex.js'),
+      ).replaceAll('\\', '/')
+      if (!markerPath.startsWith('.')) markerPath = './' + markerPath
+      imports += `import {${[...markerBindings].map(([marker, name]) => `${relationMarkers[marker]} as ${name}`).join(',')}} from ${JSON.stringify(markerPath)}\n`
     }
     const firstBody = ast.program.body.find(
       (node) => node.type !== 'ImportDeclaration',

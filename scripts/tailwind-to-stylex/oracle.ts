@@ -6,6 +6,7 @@ import { parseSync } from '@babel/core'
 import { join } from 'node:path'
 import { cn } from 'cnfast'
 import { expandAnimation } from './animation.js'
+import { relationMarkers, relationCondition } from './relations.js'
 
 /** StyleRule is a StyleX declaration object with nested conditions. */
 export interface StyleRule {
@@ -15,6 +16,7 @@ export interface StyleRule {
 /** Translation retains an unsupported class for the component's hand pass. */
 export type Translation =
   | { kind: 'style'; style: StyleRule }
+  | { kind: 'marker'; marker: string }
   | { kind: 'manual'; reason: string }
 
 // propertyName preserves custom properties and converts CSS names to StyleX names.
@@ -49,7 +51,12 @@ function readRule(container: Container, selector: string): StyleRule {
         style[condition] = readRule(node, selector)
       else if (/^(?::[\w-]+(?:\([^)]*\))?|\[[^\]]+\])+$/.test(condition))
         style[`:is(${condition})`] = readRule(node, selector)
-      else throw new Error('a descendant, group, peer or compound selector')
+      else {
+        const relation = relationCondition(condition)
+        if (!relation)
+          throw new Error('a descendant, group, peer or compound selector')
+        style[relation] = readRule(node, selector)
+      }
     }
   }
   return style
@@ -124,7 +131,9 @@ export async function createOracle(theme: string) {
     // Keep the compiler's exact declarations and conditions for this candidate.
     const css = design.candidatesToCss([candidate])[0]
     let result: Translation
-    if (globalAliases.has(candidate))
+    if (relationMarkers[candidate])
+      result = { kind: 'marker', marker: candidate }
+    else if (globalAliases.has(candidate))
       result = {
         kind: 'manual',
         reason: 'global class adds declarations outside the utility compiler',

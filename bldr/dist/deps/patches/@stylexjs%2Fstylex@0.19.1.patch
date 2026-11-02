@@ -156,3 +156,35 @@ diff --git a/lib/es/types/StyleXTypes.js.flow b/lib/es/types/StyleXTypes.js.flow
  
  type _MapNamespace<out CSS extends { readonly [string]: unknown }> = Readonly<{
    [Key in keyof CSS]: StyleXClassNameFor<Key, ComplexStyleValueType<CSS[Key]>>,
+diff --git a/lib/cjs/types/StyleXTypes.d.ts b/lib/cjs/types/StyleXTypes.d.ts
+--- a/lib/cjs/types/StyleXTypes.d.ts
++++ b/lib/cjs/types/StyleXTypes.d.ts
+@@ -221 +221 @@
+-> = StyleXArray<false | null | undefined | GenStylePropType<CSS>>;
++> = StyleXArray<false | null | undefined | GenStylePropType<CSS> | MapNamespace<{ readonly marker: symbol | 'default-marker' }>>;
+@@ -233,0 +234 @@
++  | MapNamespace<{ readonly marker: symbol | 'default-marker' }>
+diff --git a/lib/es/types/StyleXTypes.d.ts b/lib/es/types/StyleXTypes.d.ts
+--- a/lib/es/types/StyleXTypes.d.ts
++++ b/lib/es/types/StyleXTypes.d.ts
+@@ -221 +221 @@
+-> = StyleXArray<false | null | undefined | GenStylePropType<CSS>>;
++> = StyleXArray<false | null | undefined | GenStylePropType<CSS> | MapNamespace<{ readonly marker: symbol | 'default-marker' }>>;
+@@ -233,0 +234 @@
++  | MapNamespace<{ readonly marker: symbol | 'default-marker' }>
+diff --git a/lib/cjs/types/StyleXTypes.js.flow b/lib/cjs/types/StyleXTypes.js.flow
+--- a/lib/cjs/types/StyleXTypes.js.flow
++++ b/lib/cjs/types/StyleXTypes.js.flow
+@@ -178 +178 @@
+-> = StyleXArray<false | ?GenStylePropType<Readonly<CSS>>>;
++> = StyleXArray<false | ?GenStylePropType<Readonly<CSS>> | MapNamespace<{ readonly marker: symbol | 'default-marker' }>>;
+@@ -188,0 +189 @@
++  | MapNamespace<{ readonly marker: symbol | 'default-marker' }>
+diff --git a/lib/es/types/StyleXTypes.js.flow b/lib/es/types/StyleXTypes.js.flow
+--- a/lib/es/types/StyleXTypes.js.flow
++++ b/lib/es/types/StyleXTypes.js.flow
+@@ -178 +178 @@
+-> = StyleXArray<false | ?GenStylePropType<Readonly<CSS>>>;
++> = StyleXArray<false | ?GenStylePropType<Readonly<CSS>> | MapNamespace<{ readonly marker: symbol | 'default-marker' }>>;
+@@ -188,0 +189 @@
++  | MapNamespace<{ readonly marker: symbol | 'default-marker' }>
