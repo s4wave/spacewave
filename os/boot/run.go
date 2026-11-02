@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"syscall"
 	"time"
 
 	unixfs_fuse "github.com/s4wave/spacewave/db/unixfs/fuse"
@@ -19,6 +18,8 @@ import (
 // Run builds, freezes and mounts the image, runs a bounded chroot workload,
 // then unmounts and joins the server before releasing its pinned storage.
 // It requires root in a private mount namespace, or an isolated guest.
+// The filesystem server must never enter a blocking exec or mmap through its
+// own served tree: its runtime and every bootstrap exec use independent pages.
 func Run(ctx context.Context, fail bool) (retErr error) {
 	// Keep every bootstrap path outside the mounted tree.
 	base, err := os.MkdirTemp("", "spacewave-os-")
@@ -65,6 +66,7 @@ func Run(ctx context.Context, fail bool) (retErr error) {
 		return err
 	}
 	served := make(chan error, 1)
+	println("SPACEWAVE_OS_MOUNTED")
 	go func() {
 		// Disconnect on an unexpected server exit so kernel users cannot wait
 		// indefinitely on a dead server's still-open FUSE channel.
@@ -92,8 +94,10 @@ func Run(ctx context.Context, fail bool) (retErr error) {
 		}
 	}()
 
-	// Exec from the FUSE tree in another process; this runtime never faults on
-	// pages that need its own FUSE goroutines. Chroot is rooting, not a sandbox.
+	// First exec bootstrap pages in a separate address space. Direct vfork exec
+	// from our own FUSE mount can retain the sole Go processor while the kernel
+	// waits for that processor's server. The bootstrap child enters UnixFS only
+	// after the parent's vfork has finished. Chroot is rooting, not a sandbox.
 	workCtx, cancel := context.WithTimeout(ctx, 45*time.Second)
 	defer cancel()
 	arg := "workload"
@@ -102,10 +106,9 @@ func Run(ctx context.Context, fail bool) (retErr error) {
 	}
 
 	// Launch with inherited serial descriptors but without bootstrap paths.
-	cmd := exec.CommandContext(workCtx, "/workload", arg)
+	cmd := exec.CommandContext(workCtx, executable, "enter", mountPath, arg)
 	cmd.Dir = "/"
 	cmd.Env = []string{"GOMAXPROCS=4"}
-	cmd.SysProcAttr = &syscall.SysProcAttr{Chroot: mountPath}
 	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
 	if err := cmd.Run(); err != nil {
 		return err

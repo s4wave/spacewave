@@ -4,7 +4,7 @@ PKGS = ./os/boot ./os/cmd/spacewave-init
 export CGO_ENABLED = 0
 export GOMAXPROCS = 4
 
-.PHONY: build check test
+.PHONY: build check test model
 build:
 	mkdir -p $(OUT)
 	go build -p 4 -trimpath -ldflags='-s -w' -o $(OUT)/init ./os/cmd/spacewave-init
@@ -18,3 +18,13 @@ check:
 
 test:
 	go test -p 4 -timeout=45s -run 'TestRootPinsRevision|TestMountHelperRejectsUnsafeArguments' ./os/boot
+
+model:
+	bun node_modules/.bin/aptre-tla os/boot/Boot.cfg
+	mkdir -p $(OUT)/.tmp/direct-model
+	cp os/boot/Boot.tla $(OUT)/.tmp/direct-model/Boot.tla
+	cp os/boot/Boot-direct.cfg.refuted $(OUT)/.tmp/direct-model/Boot.cfg
+	@if bun node_modules/.bin/aptre-tla $(OUT)/.tmp/direct-model/Boot.cfg >$(OUT)/.tmp/direct-model/trace.log 2>&1; then cat $(OUT)/.tmp/direct-model/trace.log; exit 1; fi
+	grep -F 'EventuallyStopped' $(OUT)/.tmp/direct-model/trace.log
+	grep -F 'StartExec: child = TRUE, execWait = TRUE, phase = "entering", serverAvailable = FALSE' $(OUT)/.tmp/direct-model/trace.log
+	rm $(OUT)/.tmp/direct-model/Boot.tla $(OUT)/.tmp/direct-model/Boot.cfg
