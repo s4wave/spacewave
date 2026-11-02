@@ -172,12 +172,20 @@ export async function capture(
               // Retain failed states and continue so one broken screen cannot hide others.
               const message =
                 error instanceof Error ? error.message : String(error)
-              // A browser transport reset can interrupt unrelated module requests together.
+              // Retry a transient browser operation once, retaining its failure before rebuilding the state.
+              const networkChanged = networkFailures.some((failure) =>
+                failure.includes('net::ERR_NETWORK_CHANGED'),
+              )
+              const screenshotProtocolFailure =
+                stage === 'screenshot' &&
+                message.startsWith(
+                  'page.screenshot: Protocol error (Page.captureScreenshot): Unable to capture screenshot',
+                ) &&
+                errors.length === 0 &&
+                networkFailures.length === 0 &&
+                consoleFailures.length === 0
               const retry =
-                attempt === 1 &&
-                networkFailures.some((failure) =>
-                  failure.includes('net::ERR_NETWORK_CHANGED'),
-                )
+                attempt === 1 && (networkChanged || screenshotProtocolFailure)
               const diagnostic = retry
                 ? `${relative}.attempt-${attempt}`
                 : relative
@@ -224,7 +232,7 @@ export async function capture(
               )
               if (retry) {
                 console.error(
-                  `retrying ${relative} after a browser network change; first attempt saved`,
+                  `retrying ${relative} after a browser ${networkChanged ? 'network change' : 'screenshot protocol failure'}; first attempt saved`,
                 )
               } else {
                 failures.push(relative)
