@@ -30,13 +30,18 @@ import (
 // rootKey selects the single UnixFS object in this disposable World.
 const rootKey = "os/root"
 
-// Root retains the Volume, World snapshot and UnixFS handle until unmount.
+// Root retains physical storage, a World snapshot and UnixFS handle until unmount.
 type Root struct {
-	// volume holds blocks outside the served tree.
+	// volume holds writable seed/baseline blocks outside the served tree.
 	volume volume.Volume
+	// volumeID is the retained serving identity read from the stored key.
+	volumeID string
+	// head is the exact selected serving revision.
+	head *bucket.ObjectRef
 	// publisher publishes the completed image through its tracked bucket.
 	publisher block.AtomicPublisher
-	// releaseStorage joins the persistent bucket controller after readers close.
+	// releaseStorage closes retained storage after readers, or joins the seed
+	// controller which owns and closes its writable Volume.
 	releaseStorage func() error
 	// engine owns the mutable World used to construct the image.
 	engine *world_block.Engine
@@ -110,7 +115,14 @@ func (r *Root) pin(ctx context.Context, le *logrus.Entry) error {
 	if err != nil {
 		return err
 	}
-	r.handle, err = unixfs.NewFSHandle(unixfs_world.NewFSCursorWithContext(ctx, le, r.snapshot, rootKey, unixfs_world.FSType_FSType_FS_NODE, nil, false))
+	return r.openHandle(ctx, le)
+}
+
+// openHandle borrows the immutable transaction without tying its lifetime to
+// request cancellation. Each operation still receives its own request context.
+func (r *Root) openHandle(ctx context.Context, le *logrus.Entry) error {
+	var err error
+	r.handle, err = unixfs.NewFSHandle(unixfs_world.NewFSCursorWithContext(context.WithoutCancel(ctx), le, r.snapshot, rootKey, unixfs_world.FSType_FSType_FS_NODE, nil, false))
 	if err != nil {
 		return err
 	}
@@ -131,6 +143,7 @@ func (r *Root) Close() error {
 	}
 	if r.snapshot != nil {
 		r.snapshot.Discard()
+		println("SPACEWAVE_OS_SNAPSHOT_RELEASED")
 	}
 
 	// Preserve either storage close error for the caller.
@@ -141,8 +154,11 @@ func (r *Root) Close() error {
 	if r.releaseStorage != nil {
 		err = errors.Join(err, r.releaseStorage())
 	}
-	if r.volume != nil {
+	if r.releaseStorage == nil && r.volume != nil {
 		err = errors.Join(err, r.volume.Close())
+	}
+	if err == nil {
+		println("SPACEWAVE_OS_STORAGE_CLOSED")
 	}
 	return err
 }

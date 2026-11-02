@@ -26,10 +26,11 @@ timeout 90 qemu-system-x86_64 -accel "$accel" -cpu "$cpu" -m 768 -smp 1 \
 	-nodefaults -no-reboot -display none -serial "file:$log" \
 	-kernel "$kernel" -initrd "$image" \
 	-append "$append" "$@"
-for marker in PID1 FROZEN MMAP_OK READONLY_OK WORKLOAD_OK EXEC_OK UNMOUNT_OK PASS POWEROFF; do
+for marker in PID1 FROZEN MMAP_OK READONLY_OK WORKLOAD_OK EXEC_OK CHILD_JOINED UNMOUNT_OK SERVER_JOINED SNAPSHOT_RELEASED STORAGE_CLOSED PASS POWEROFF; do
 	grep -F "SPACEWAVE_OS_$marker" "$log"
 done
 grep -F 'SPACEWAVE_OS_PID1 gomaxprocs=1' "$log"
+grep -Fx 'SPACEWAVE_OS_WORKLOAD gomaxprocs=1' "$log" || grep -Fx "$(printf 'SPACEWAVE_OS_WORKLOAD gomaxprocs=1\r')" "$log"
 if grep -E 'SPACEWAVE_OS_(FAILED|ERROR)|Kernel panic' "$log"; then
 	exit 1
 fi
