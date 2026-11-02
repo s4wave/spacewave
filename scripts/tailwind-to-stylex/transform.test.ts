@@ -12,13 +12,14 @@ import tailwind from '@tailwindcss/vite'
 
 import { createOracle } from './oracle.js'
 import { transform } from './transform.js'
-import { prepareComponentStyles } from './component-api.js'
+import { prepareComponentStyles, readSharedStyleApis } from './component-api.js'
 import { writeSheetFixture } from './sheet-fixture.js'
 import { writeInputFixture } from './input-fixture.js'
 import { writeButtonFixture } from './button-fixture.js'
 import { writeDialogFixture } from './dialog-fixture.js'
 import { writePathFixture } from './path-fixture.js'
 import { writeTabsFixture } from './tabs-fixture.js'
+import { writeTraceFixture } from './trace-fixture.js'
 import { stylexCss } from '../../bldr/web/bundler/vite/stylex.js'
 import { capture } from '../style-parity/capture.js'
 import { compareCaptures } from '../style-parity/compare.js'
@@ -29,6 +30,8 @@ const projectSources = [
   'plugin/notes/blog/TagChip.tsx',
   'web/ui/InfoCard.tsx',
   'web/ui/separator.tsx',
+  'web/ui/label.tsx',
+  'web/ui/tree/Tree.tsx',
   'web/ui/EmptyState.tsx',
   'web/ui/ErrorState.tsx',
   'scripts/tailwind-to-stylex/testdata/components/ExpressionCases.tsx',
@@ -126,6 +129,11 @@ test(
       for (const version of ['before', 'after'] as const) {
         const root = join(parent, version)
         await mkdir(root)
+        // Scan this paired source explicitly; production CSS excludes generated artifacts.
+        await writeFile(
+          join(root, 'fixture.css'),
+          `@import ${JSON.stringify(resolve('web/style/app.css'))};\n@source ${JSON.stringify(root)};\n`,
+        )
         await writeFile(
           join(root, 'index.html'),
           '<!doctype html><html lang="en"><head></head><body><div id="root"></div><script type="module" src="/main.tsx"></script></body></html>',
@@ -146,7 +154,19 @@ test(
               JSON.stringify(resolve('web/style', name + '.stylex.ts')),
           ),
         )
-        let main = `import React from 'react';import{createRoot}from'react-dom/client';import{VmErrorBanner}from'./VmErrorBanner';import{TagChip}from'./TagChip';import{InfoCard}from'./InfoCard';import{Separator}from'./separator';import{EmptyState}from'./EmptyState';import{ErrorState}from'./ErrorState';import{ExpressionCases}from'./ExpressionCases';import{OwnedStyles}from'./OwnedStyles';import${JSON.stringify(resolve('web/style/app.css'))};createRoot(document.getElementById('root')!).render(<main><VmErrorBanner title="VM unavailable" message="Choose an available image to continue."/><TagChip tag="example"/><InfoCard title="Status" icon={<span>!</span>}>Ready</InfoCard><InfoCard compact title="Compact">Ready</InfoCard><InfoCard icon={<span>!</span>}>Untitled</InfoCard><ExpressionCases/><OwnedStyles/><Separator/><EmptyState title="Empty"/><EmptyState title="Compact" variant="compact" action={{label:'Create',onClick:()=>{}}}/><EmptyState title="Panel" variant="panel" className="p-6"/><ErrorState message="Try again" onRetry={()=>{}}/><ErrorState message="Inline" variant="inline"/><ErrorState message="Fullscreen" variant="fullscreen" className="p-6"/></main>);`
+        let main = `import React from 'react';import{createRoot}from'react-dom/client';import{VmErrorBanner}from'./VmErrorBanner';import{TagChip}from'./TagChip';import{InfoCard}from'./InfoCard';import{Separator}from'./separator';import{EmptyState}from'./EmptyState';import{ErrorState}from'./ErrorState';import{ExpressionCases}from'./ExpressionCases';import{OwnedStyles}from'./OwnedStyles';import${JSON.stringify(join(root, 'fixture.css'))};createRoot(document.getElementById('root')!).render(<main><VmErrorBanner title="VM unavailable" message="Choose an available image to continue."/><TagChip tag="example"/><InfoCard title="Status" icon={<span>!</span>}>Ready</InfoCard><InfoCard compact title="Compact">Ready</InfoCard><InfoCard icon={<span>!</span>}>Untitled</InfoCard><ExpressionCases/><OwnedStyles/><Separator/><EmptyState title="Empty"/><EmptyState title="Compact" variant="compact" action={{label:'Create',onClick:()=>{}}}/><EmptyState title="Panel" variant="panel" className="p-6"/><ErrorState message="Try again" onRetry={()=>{}}/><ErrorState message="Inline" variant="inline"/><ErrorState message="Fullscreen" variant="fullscreen" className="p-6"/></main>);`
+        await writeTraceFixture(root, version)
+        main = main.replace(
+          "import React from 'react';",
+          "import React from 'react';import{TraceSamples}from'./TraceSamples';",
+        )
+        main = main.replace('</main>', '<TraceSamples/></main>')
+        // Render the actual virtualized tree inside a bounded viewport through its existing state hook.
+        main = main.replace(
+          "import React from 'react';",
+          `import React from 'react';import{Tree}from'@s4wave/web/ui/tree/index.js';import{useTreeState}from ${JSON.stringify(resolve('web/ui/tree/TreeState.tsx'))};function TreeSamples(){const state=useTreeState(null,'parity-tree',{expandedIds:new Set(['root'])});return <section style={{height:120,display:'flex'}}><Tree className="max-h-75" state={state} nodes={[{id:'root',name:'Tree root',children:[{id:'child',name:'Tree child'}]},{id:'other',name:'Other row'}]}/></section>}`,
+        )
+        main = main.replace('</main>', '<TreeSamples/></main>')
         // Preserve progress labels, bounds and reduced-motion behavior through native CSS.
         main = main.replace(
           "import React from 'react';",
@@ -614,16 +634,32 @@ test(
           "createRoot(document.getElementById('root')!).render",
           "if(new URLSearchParams(location.search).has('tabs'))createRoot(document.getElementById('root')!).render(<TabsSamples/>);else if(new URLSearchParams(location.search).has('path'))createRoot(document.getElementById('root')!).render(<PathSamples/>);else if(new URLSearchParams(location.search).has('dialog'))createRoot(document.getElementById('root')!).render(<DialogSamples/>);else if(new URLSearchParams(location.search).has('buttons'))createRoot(document.getElementById('root')!).render(<ButtonSamples/>);else if(new URLSearchParams(location.search).has('input'))createRoot(document.getElementById('root')!).render(<InputSamples/>);else if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
         )
+        // Discover the actual tree API through its public barrel before converting the caller.
+        const treeImports = await readSharedStyleApis(
+          "import{Tree}from'@s4wave/web/ui/tree/index.js'",
+          resolve('web/ui/stylex-tree-fixture.tsx'),
+        )
+        const mainApis = prepareComponentStyles(main, join(root, 'main.tsx'), {
+          convertProps: false,
+          sharedComponents: treeImports,
+        }).components
         await writeFile(
           join(root, 'main.tsx'),
           version === 'before'
-            ? main
+            ? main.replace('@s4wave/web/ui/tree/index.js', './Tree')
             : transform(main, join(root, 'main.tsx'), oracle, {
-                components: new Set(['Separator', 'EmptyState', 'ErrorState']),
-              }).source.replace(
-                /(?:\.\.\/)+(?:web\/)?style\/tokens\.stylex\.js/g,
-                resolve('web/style/tokens.stylex.ts'),
-              ),
+                components: new Set([
+                  'Separator',
+                  'EmptyState',
+                  'ErrorState',
+                  ...mainApis,
+                ]),
+              })
+                .source.replace('@s4wave/web/ui/tree/index.js', './Tree')
+                .replace(
+                  /(?:\.\.\/)+(?:web\/)?style\/tokens\.stylex\.js/g,
+                  resolve('web/style/tokens.stylex.ts'),
+                ),
         )
         for (const file of projectSources) {
           const source = await readFile(
@@ -634,7 +670,9 @@ test(
             'utf8',
           )
           const componentApi =
-            /\/(OwnedStyles|separator|EmptyState|ErrorState)\.tsx$/.test(file)
+            /\/(OwnedStyles|separator|label|Tree|EmptyState|ErrorState)\.tsx$/.test(
+              file,
+            )
           const prepare = componentApi
             ? prepareComponentStyles
             : (source: string) => ({ source, components: new Set<string>() })
@@ -689,6 +727,11 @@ void invalidNativeDelegate;
                 /(['"])(?:\.\.\/)+(?:web\/)?style\/(tokens|relations)\.stylex\.js\1/g,
                 (_match, _quote, module) =>
                   JSON.stringify(resolve(`web/style/${module}.stylex.ts`)),
+              )
+              .replace(
+                /(['"])\.\/(TreeNode|TreeState|TreeRow)\.js\1/g,
+                (_match, _quote, module) =>
+                  JSON.stringify(resolve(`web/ui/tree/${module}.tsx`)),
               )
               .replace(
                 /(['"])\.\/button\.js\1/g,
@@ -767,6 +810,8 @@ void invalidNativeDelegate;
             path: '/',
             ready,
             setup: async (page: import('playwright').Page) => {
+              await ready(page)
+              await page.evaluate(() => document.fonts.ready)
               await page
                 .getByRole('button', { name: 'Unselected branch', exact: true })
                 .hover()
@@ -777,6 +822,9 @@ void invalidNativeDelegate;
             path: '/',
             ready,
             setup: async (page: import('playwright').Page) => {
+              // Choose the hover scroll position after mounted content and font metrics settle.
+              await ready(page)
+              await page.evaluate(() => document.fonts.ready)
               await page
                 .getByRole('button', { name: 'Code hover', exact: true })
                 .hover()

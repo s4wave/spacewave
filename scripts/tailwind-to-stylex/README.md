@@ -41,6 +41,10 @@ with their callers in that pass. Native roots use `stylexProps` to retain the
 variables emitted for dynamic styles beside forwarded native inline styles.
 Wrappers delegate `sx` to the component that renders their DOM.
 
+Production's remaining Tailwind CSS scans only `app`, `web` and `plugin` while
+they convert. Each paired fixture adds its own source directory explicitly, so
+build artifacts and retained captures cannot grow the production scan.
+
 Run `test:stylex-migrate` for the real compiler and browser comparison. It builds
 original and converted components with Vite and compares resolved properties,
 geometry, accessibility and rendered pixels in Chromium and WebKit at three

@@ -48,6 +48,148 @@ import {
   motion as themeMotion,
 } from '../style/tokens.stylex.js'
 
+import {
+  layout as themeLayout2,
+  radii as themeRadii2,
+  utilityState as themeUtilityState2,
+  colors as themeColors2,
+  motion as themeMotion2,
+  fonts as themeFonts2,
+} from '../style/tokens.stylex.js'
+import { groupMarker } from '../style/relations.stylex.js'
+
+const actionStyles = stylex.create({
+  brand: {
+    display: 'flex',
+    height: `calc(${themeLayout2['--spacing']} * 11)`,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout2['--spacing']} * 2)`,
+    borderRadius: themeRadii2['--radius-md'],
+    borderStyle: themeUtilityState2['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors2['--color-brand']} 30%, transparent)`,
+      ':disabled': `color-mix(in oklab, ${themeColors2['--color-foreground']} 10%, transparent)`,
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors2['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors2['--color-brand']} 20%, transparent)`,
+        ':disabled:hover': `color-mix(in oklab, ${themeColors2['--color-foreground']} 5%, transparent)`,
+      },
+      ':disabled': `color-mix(in oklab, ${themeColors2['--color-foreground']} 5%, transparent)`,
+    },
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion2['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.6 },
+  },
+  continue: {
+    position: 'relative',
+    display: 'flex',
+    height: `calc(${themeLayout2['--spacing']} * 11)`,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    overflow: 'hidden',
+    borderRadius: themeRadii2['--radius-md'],
+    borderStyle: themeUtilityState2['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors2['--color-foreground']} 20%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors2['--color-brand']} 30%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors2['--color-background']} 20%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors2['--color-background']} 40%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout2['--spacing']} * 4)`,
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion2['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  userIcon: {
+    width: `calc(${themeLayout2['--spacing']} * 5)`,
+    height: `calc(${themeLayout2['--spacing']} * 5)`,
+    color: {
+      default: themeColors2['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker)]:
+          themeColors2['--color-brand'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion2['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  userLabel: {
+    fontSize: themeFonts2['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts2['--text-sm--line-height']})`,
+    color: {
+      default: themeColors2['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker)]:
+          themeColors2['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion2['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  userArrow: {
+    width: `calc(${themeLayout2['--spacing']} * 4)`,
+    height: `calc(${themeLayout2['--spacing']} * 4)`,
+    color: {
+      default: themeColors2['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker)]:
+          themeColors2['--color-brand'],
+      },
+    },
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion2['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    '--tw-translate-x': {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker)]:
+          themeLayout2['--spacing'],
+      },
+    },
+    translate: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker)]:
+          'var(--tw-translate-x) var(--tw-translate-y)',
+      },
+    },
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: { color: themeColors['--color-foreground-alt'] },
   rule2: {
@@ -1107,14 +1249,7 @@ function PasswordSubmit({
         type="button"
         onClick={onSubmit}
         disabled={disabled}
-        className={
-          /* TODO(stylex): global or unknown class: group */ cn(
-            'group w-full rounded-md border transition-all duration-300',
-            'border-brand/30 bg-brand/10 hover:bg-brand/20',
-            'disabled:cursor-not-allowed disabled:border-foreground/10 disabled:bg-foreground/5 disabled:opacity-60 disabled:hover:bg-foreground/5',
-            'flex h-11 items-center justify-center gap-2',
-          )
-        }
+        sx={[[actionStyles.brand, groupMarker]]}
       >
         {busy ? (
           <Spinner sx={stylexStyles.rule25} />
@@ -1254,39 +1389,17 @@ function ContinueWithoutAccount({
             type="button"
             onClick={onContinue}
             disabled={loading !== null}
-            className={
-              /* TODO(stylex): global or unknown class: group */ cn(
-                'group relative w-full overflow-hidden rounded-md border transition-all duration-300',
-                'border-foreground/20 bg-background/20 hover:border-brand/30 hover:bg-background/40',
-                'disabled:cursor-not-allowed disabled:opacity-50',
-                'flex h-11 items-center justify-between px-4',
-              )
-            }
+            sx={[[actionStyles.continue, groupMarker]]}
           >
             <div sx={stylexStyles.rule30}>
-              <PiUserCircleDuotone
-                className={
-                  /* TODO(stylex): a descendant, group, peer or compound selector: group-hover:text-brand */ 'text-foreground-alt group-hover:text-brand size-5 transition-colors'
-                }
-              />
-              <span
-                className={
-                  /* TODO(stylex): a descendant, group, peer or compound selector: group-hover:text-foreground */ 'text-foreground-alt group-hover:text-foreground text-sm transition-colors'
-                }
-              >
+              <PiUserCircleDuotone {...stylex.props(actionStyles.userIcon)} />
+              <span sx={actionStyles.userLabel}>
                 {loading === 'continue'
                   ? 'Starting…'
                   : 'Continue without account'}
               </span>
             </div>
-            <RxArrowRight
-              className={
-                /* TODO(stylex): a descendant, group, peer or compound selector: group-hover:translate-x-1 */ cn(
-                  'text-foreground-alt group-hover:text-brand size-4 transition-all duration-300',
-                  'group-hover:translate-x-1',
-                )
-              }
-            />
+            <RxArrowRight {...stylex.props([actionStyles.userArrow])} />
           </button>
         </TooltipTrigger>
         <TooltipContent side="bottom" sx={stylexStyles.rule31}>

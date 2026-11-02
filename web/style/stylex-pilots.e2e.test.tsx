@@ -12,6 +12,16 @@ import { CopyableField } from '../ui/CopyableField.js'
 import { RadioOption } from '../ui/RadioOption.js'
 import { Window } from '../ui/Window.js'
 import { Input } from '../ui/input.js'
+import { Label } from '../ui/label.js'
+import { groupMarker, peerMarker } from './relations.stylex.js'
+import {
+  Trace,
+  TraceLine,
+  TraceTitle,
+  TraceCollapsible,
+  TraceCollapsibleTrigger,
+  TraceCollapsibleContent,
+} from '../ui/trace.js'
 import { PathInput } from '../ui/path/PathInput.js'
 import {
   Tabs,
@@ -74,6 +84,32 @@ function PilotJourney() {
 
   return (
     <main>
+      <div sx={groupMarker} data-disabled="true">
+        <Label data-testid="ancestor-label">Disabled ancestor label</Label>
+      </div>
+      <div>
+        <Label data-testid="preceding-label">Preceding label</Label>
+        <input type="checkbox" disabled sx={peerMarker} />
+        <Label data-testid="following-label">Following label</Label>
+      </div>
+      <input id="native-label-choice" type="checkbox" />
+      <Label
+        htmlFor="native-label-choice"
+        sx={styles.minimumWidth(123)}
+        style={{ '--native-label-test': 'retained' }}
+      >
+        Native choice
+      </Label>
+      <Trace>
+        <TraceCollapsible>
+          <TraceCollapsibleTrigger>
+            <TraceLine status="done">
+              <TraceTitle>Native trace</TraceTitle>
+            </TraceLine>
+          </TraceCollapsibleTrigger>
+          <TraceCollapsibleContent>Trace detail</TraceCollapsibleContent>
+        </TraceCollapsible>
+      </Trace>
       <IconContext.Provider value={{ color: 'rgb(17, 34, 51)' }}>
         <Button
           sx={[styles.headerOverride, styles.minimumWidth(123)]}
@@ -247,6 +283,51 @@ it('composes shared, app and plugin styles through the browser build', async () 
   const style = getComputedStyle(card)
   expect(style.padding).toBe('19px')
   expect(style.borderRadius).toBe('9px')
+
+  // Native label activation and marker conditions retain their direction and caller properties.
+  const ancestorLabel = document.querySelector(
+    '[data-testid="ancestor-label"]',
+  )!
+  expect(getComputedStyle(ancestorLabel).opacity).toBe('0.5')
+  expect(getComputedStyle(ancestorLabel).pointerEvents).toBe('none')
+
+  // Only a preceding disabled peer changes the label's state.
+  expect(
+    getComputedStyle(document.querySelector('[data-testid="preceding-label"]')!)
+      .opacity,
+  ).toBe('1')
+  expect(
+    getComputedStyle(document.querySelector('[data-testid="following-label"]')!)
+      .opacity,
+  ).toBe('0.5')
+
+  // Native activation retains the caller's dynamic width and inline property.
+  const label = page.getByText('Native choice', { exact: true })
+  expect(getComputedStyle(label.element()).minWidth).toBe('123px')
+  expect(
+    getComputedStyle(label.element()).getPropertyValue('--native-label-test'),
+  ).toBe('retained')
+  await label.click()
+  await expect
+    .element(page.getByRole('checkbox', { name: 'Native choice', exact: true }))
+    .toBeChecked()
+
+  // The actual trace trigger drives expansion and its marked indicator together.
+  const trace = page.getByRole('button', { name: 'Native trace', exact: true })
+  const indicator = trace.element().querySelector('[data-slot="trace-icon"]')!
+  expect(getComputedStyle(indicator).rotate).toBe('none')
+
+  // Opening the trace rotates its indicator and reveals the nested detail.
+  await trace.click()
+  await expect.element(trace).toHaveAttribute('aria-expanded', 'true')
+  await expect.poll(() => getComputedStyle(indicator).rotate).toBe('90deg')
+  await expect
+    .element(page.getByText('Trace detail', { exact: true }))
+    .toBeVisible()
+
+  // The same trigger returns to its closed state.
+  await trace.click()
+  await expect.element(trace).toHaveAttribute('aria-expanded', 'false')
 
   // A plugin interaction retains the same shared card and its caller's final override.
   await page.getByRole('button', { name: 'native-css', exact: true }).click()

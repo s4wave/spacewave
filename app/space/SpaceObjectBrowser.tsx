@@ -35,6 +35,13 @@ import type { TreeNode } from '@s4wave/web/ui/tree/TreeNode.js'
 import { Tree, useTreeState } from '@s4wave/web/ui/tree/index.js'
 import { applySpaceIndexPath } from './space-settings.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: { maxHeight: `calc(${themeLayout['--spacing']} * 75)` },
+})
+
 export interface SpaceObjectBrowserProps {
   embedded?: boolean
 }
@@ -387,7 +394,7 @@ function SpaceObjectBrowserView({
         onRowContextMenu={handleContextMenu}
         state={treeState}
         placeholder="No objects"
-        className="max-h-75"
+        sx={stylexStyles.rule1}
       />
     </InfoCard>
   )

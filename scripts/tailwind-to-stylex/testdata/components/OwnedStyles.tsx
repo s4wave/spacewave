@@ -1,6 +1,7 @@
 import React from 'react'
 import { cn } from 'cnfast'
 import * as compiled from '@stylexjs/stylex'
+import { Label } from './label.js'
 
 const ComponentStyles = 'existing-binding'
 const compiledStyles = compiled.create({
@@ -42,18 +43,14 @@ export function OwnedStyles({ optional = false }: { optional?: boolean } = {}) {
           className="group flex gap-2"
           data-disabled={disabled}
         >
-          <span className="group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50">
-            Ancestor {String(disabled)}
-          </span>
+          <Label>Ancestor {String(disabled)}</Label>
           <input
             aria-label={'Peer ' + disabled}
             type="checkbox"
             className="peer"
             disabled={disabled}
           />
-          <span className="peer-disabled:cursor-not-allowed peer-disabled:opacity-50">
-            Following peer
-          </span>
+          <Label>Following peer</Label>
           <span>Independent sibling</span>
         </div>
       ))}
