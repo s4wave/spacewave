@@ -1,6 +1,9 @@
 import { stylexProps } from '@s4wave/web/style/props.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
+import { buttonGroupControlStyles } from '../style/button-group.stylex.js'
+import { useControlStyles } from '@s4wave/web/style/ControlStylesProvider.js'
+import { cn } from '@s4wave/web/style/utils.js'
 import { Slot } from '@radix-ui/react-slot'
 import { IconStylesProvider } from '@s4wave/web/images/icons.js'
 
@@ -960,6 +963,8 @@ const variantStyles = {
   category: styles['category'],
 }
 
+const groupClass = stylex.props(buttonGroupControlStyles.child).className
+
 /** ButtonProps configures the button's visual variant and native behavior. */
 export interface ButtonProps extends Omit<
   React.ComponentPropsWithRef<'button'>,
@@ -999,6 +1004,10 @@ function Button({ sx, variant, size, asChild = false, ...props }: ButtonProps) {
     [buttonVariants({ variant, size, sx }), buttonMarker],
     props,
   )
+
+  // Keep DOM-gated control rules independent of the button's overridable defaults.
+  const relationshipClass = useControlStyles()
+  attributes.className = cn(attributes.className, groupClass, relationshipClass)
   const Comp = asChild ? Slot : 'button'
   return (
     <IconStylesProvider requiredSx={buttonIconStyles.icon}>

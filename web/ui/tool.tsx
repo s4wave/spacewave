@@ -65,7 +65,7 @@ function Tool({
             <TraceCollapsibleContent sx={stylexStyles.rule1}>
               {input ? (
                 <CodeBlock size="sm">
-                  <CodeBlockContent wrap {...stylex.props(stylexStyles.rule2)}>
+                  <CodeBlockContent wrap sx={stylexStyles.rule2}>
                     {input}
                   </CodeBlockContent>
                 </CodeBlock>
@@ -75,7 +75,7 @@ function Tool({
                   size="sm"
                   variant={status === 'error' ? 'destructive' : 'default'}
                 >
-                  <CodeBlockContent wrap {...stylex.props(stylexStyles.rule2)}>
+                  <CodeBlockContent wrap sx={stylexStyles.rule2}>
                     {output}
                   </CodeBlockContent>
                 </CodeBlock>

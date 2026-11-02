@@ -82,6 +82,30 @@ export const iconDefaults = stylex.create({
 
 /** iconRequired retains menu interaction rules independently of explicit caller defaults. */
 export const iconRequired = stylex.create({
+  buttonGroup: {
+    pointerEvents: {
+      default: null,
+      [stylex.when.ancestor(':is(*)', buttonGroupIconMarker)]: 'none',
+    },
+  },
+  codeTitle: {
+    pointerEvents: {
+      default: null,
+      [stylex.when.ancestor(':is(*)', codeTitleIconMarker)]: 'none',
+    },
+    display: {
+      default: null,
+      [stylex.when.ancestor(':is(*)', codeTitleIconMarker)]: 'inline-block',
+    },
+    verticalAlign: {
+      default: null,
+      [stylex.when.ancestor(':is(*)', codeTitleIconMarker)]: 'middle',
+    },
+    marginInlineEnd: {
+      default: null,
+      [stylex.when.ancestor(':is(*) >', codeTitleIconMarker)]: '6px',
+    },
+  },
   trace: {
     pointerEvents: {
       default: null,

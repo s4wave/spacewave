@@ -70,6 +70,7 @@ function readRule(container: Container, selector: string): StyleRule {
       const condition = node.selector
         .slice(selector.length)
         .replace(/^:(before|after|first-letter|first-line)(?=$|:)/, '::$1')
+        .replace(/(?<!:):(before|after|first-letter|first-line)$/, '::$1')
       if (!condition) Object.assign(style, readRule(node, selector))
       else if (
         /^:{1,2}(?:[\w-]+(?:\([^)]*\))?)(?::[\w-]+(?:\([^)]*\))?)*$/.test(
@@ -82,10 +83,16 @@ function readRule(container: Container, selector: string): StyleRule {
           readRule(node, selector),
         )
       else {
-        const relation = relationCondition(condition)
+        const pseudo = condition.match(
+          /^(.*)(::(?:before|after|first-letter|first-line))$/,
+        )
+        const relation = relationCondition(pseudo?.[1] ?? condition)
         if (!relation)
           throw new Error('a descendant, group, peer or compound selector')
-        style[relation] = readRule(node, selector)
+        const target = pseudo
+          ? ((style[pseudo[2]!] ??= {}) as StyleRule)
+          : style
+        target[relation] = readRule(node, selector)
       }
     }
   }
@@ -291,7 +298,8 @@ export async function createOracle(theme: string) {
         let selector = ''
         root.walkRules((rule) => {
           if (!selector)
-            selector = rule.selector.match(/^\.(?:\\.|[\w-])+/)?.[0] ?? ''
+            selector =
+              rule.selector.match(/^\.(?:\\.|[\w\u0080-\uFFFF-])+/)?.[0] ?? ''
         })
         if (!selector)
           throw new Error('a descendant, group, peer or compound selector')
