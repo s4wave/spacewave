@@ -519,6 +519,11 @@ export interface BuildWebPkgRequest {
    * JsSourcemaps controls JavaScript sourcemap output for this build.
    */
   jsSourcemaps?: boolean
+  /**
+   * PackageRoots maps shared package IDs to source roots for compiler metadata.
+   * These imports stay external in JavaScript; StyleX reads their static exports.
+   */
+  packageRoots?: { [key: string]: string }
 }
 
 export const BuildWebPkgRequest: MessageType<BuildWebPkgRequest> =
@@ -536,6 +541,7 @@ export const BuildWebPkgRequest: MessageType<BuildWebPkgRequest> =
       [9, 'cache_dir', 9],
       [10, 'js_minification', 8],
       [11, 'js_sourcemaps', 8],
+      [12, 'package_roots', 9, 584],
     ],
   )
 

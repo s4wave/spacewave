@@ -650,7 +650,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/web/bundler/vite": {
-      "hash": "fd2a4e116e261866164082fc3d9b63fbf59d25446ca79a10f327d54bee8e455d",
+      "hash": "cad38eb4f9dbb5bcda5f92bf681980ed2feb4a6d5b31a568c26e1d0c60a15ecc",
       "generatedFiles": [
         "bldr/web/bundler/vite/vite.pb.go",
         "bldr/web/bundler/vite/vite.pb.ts",

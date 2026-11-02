@@ -63,6 +63,12 @@ for (const [engine, launcher] of Object.entries({ chromium, webkit })) {
           }
         })
       assert.deepEqual(button, { minWidth: '123px', custom: 'retained' })
+      assert.equal(
+        await page
+          .locator('#consumer-marker')
+          .evaluate((element) => getComputedStyle(element).paddingTop),
+        '13px',
+      )
       console.log(
         `${engine}: shared native button styles its caller's icon after CSS delivery`,
       )

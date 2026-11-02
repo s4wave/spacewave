@@ -680,6 +680,9 @@ type BuildWebPkgRequest struct {
 	JsMinification bool `protobuf:"varint,10,opt,name=js_minification,json=jsMinification,proto3" json:"jsMinification,omitempty"`
 	// JsSourcemaps controls JavaScript sourcemap output for this build.
 	JsSourcemaps bool `protobuf:"varint,11,opt,name=js_sourcemaps,json=jsSourcemaps,proto3" json:"jsSourcemaps,omitempty"`
+	// PackageRoots maps shared package IDs to source roots for compiler metadata.
+	// These imports stay external in JavaScript; StyleX reads their static exports.
+	PackageRoots map[string]string `protobuf:"bytes,12,rep,name=package_roots,json=packageRoots,proto3" json:"packageRoots,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }
 
 func (x *BuildWebPkgRequest) Reset() {
@@ -763,6 +766,13 @@ func (x *BuildWebPkgRequest) GetJsSourcemaps() bool {
 		return x.JsSourcemaps
 	}
 	return false
+}
+
+func (x *BuildWebPkgRequest) GetPackageRoots() map[string]string {
+	if x != nil {
+		return x.PackageRoots
+	}
+	return nil
 }
 
 // BuildWebPkgResponse is the response from building a single web package.
@@ -889,6 +899,32 @@ func (x *BuildRequest_DefinesEntry) GetKey() string {
 }
 
 func (x *BuildRequest_DefinesEntry) GetValue() string {
+	if x != nil {
+		return x.Value
+	}
+	return ""
+}
+
+type BuildWebPkgRequest_PackageRootsEntry struct {
+	unknownFields []byte
+	Key           string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Value         string `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+}
+
+func (x *BuildWebPkgRequest_PackageRootsEntry) Reset() {
+	*x = BuildWebPkgRequest_PackageRootsEntry{}
+}
+
+func (*BuildWebPkgRequest_PackageRootsEntry) ProtoMessage() {}
+
+func (x *BuildWebPkgRequest_PackageRootsEntry) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *BuildWebPkgRequest_PackageRootsEntry) GetValue() string {
 	if x != nil {
 		return x.Value
 	}
@@ -1128,6 +1164,7 @@ func (m *BuildWebPkgRequest) CloneVT() *BuildWebPkgRequest {
 	r.Imports = protobuf_go_lite.CloneSlice(m.Imports)
 	r.SiblingPkgIds = protobuf_go_lite.CloneSlice(m.SiblingPkgIds)
 	r.ExternalPkgs = protobuf_go_lite.CloneSlice(m.ExternalPkgs)
+	r.PackageRoots = protobuf_go_lite.CloneMap(m.PackageRoots)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1554,6 +1591,9 @@ func (this *BuildWebPkgRequest) EqualVT(that *BuildWebPkgRequest) bool {
 		return false
 	}
 	if this.JsSourcemaps != that.JsSourcemaps {
+		return false
+	}
+	if !protobuf_go_lite.EqualMap(this.PackageRoots, that.PackageRoots) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2732,6 +2772,56 @@ func (x *ViteOutputMeta) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the BuildWebPkgRequest_PackageRootsEntry message to JSON.
+func (x *BuildWebPkgRequest_PackageRootsEntry) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Key != "" || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		s.WriteString(x.Key)
+	}
+	if x.Value != "" || s.HasField("value") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("value")
+		s.WriteString(x.Value)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the BuildWebPkgRequest_PackageRootsEntry to JSON.
+func (x *BuildWebPkgRequest_PackageRootsEntry) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the BuildWebPkgRequest_PackageRootsEntry message from JSON.
+func (x *BuildWebPkgRequest_PackageRootsEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "key":
+			s.AddField("key")
+			x.Key = s.ReadString()
+		case "value":
+			s.AddField("value")
+			x.Value = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the BuildWebPkgRequest_PackageRootsEntry from JSON.
+func (x *BuildWebPkgRequest_PackageRootsEntry) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the BuildWebPkgRequest message to JSON.
 func (x *BuildWebPkgRequest) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -2795,6 +2885,19 @@ func (x *BuildWebPkgRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("jsSourcemaps")
 		s.WriteBool(x.JsSourcemaps)
 	}
+	if x.PackageRoots != nil || s.HasField("packageRoots") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("packageRoots")
+		s.WriteObjectStart()
+		var wroteElement bool
+		for _, k := range slices.Sorted(maps.Keys(x.PackageRoots)) {
+			v := x.PackageRoots[k]
+			s.WriteMoreIf(&wroteElement)
+			s.WriteObjectStringField(k)
+			s.WriteString(v)
+		}
+		s.WriteObjectEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2857,6 +2960,16 @@ func (x *BuildWebPkgRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "js_sourcemaps", "jsSourcemaps":
 			s.AddField("js_sourcemaps")
 			x.JsSourcemaps = s.ReadBool()
+		case "package_roots", "packageRoots":
+			s.AddField("package_roots")
+			if s.ReadNil() {
+				x.PackageRoots = nil
+				return
+			}
+			x.PackageRoots = make(map[string]string)
+			s.ReadStringMap(func(key string) {
+				x.PackageRoots[key] = s.ReadString()
+			})
 		}
 	})
 }
@@ -3734,6 +3847,21 @@ func (m *BuildWebPkgRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.PackageRoots) > 0 {
+		for k := range m.PackageRoots {
+			v := m.PackageRoots[k]
+			baseI := i
+			i = protobuf_go_lite.EncodeString(dAtA, i, v)
+			i--
+			dAtA[i] = 0x12
+			i = protobuf_go_lite.EncodeString(dAtA, i, k)
+			i--
+			dAtA[i] = 0xa
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0x62
+		}
+	}
 	if m.JsSourcemaps {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.JsSourcemaps)
 		i--
@@ -4108,6 +4236,12 @@ func (m *BuildWebPkgRequest) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.CacheDir)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.JsMinification)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.JsSourcemaps)
+	for k, v := range m.PackageRoots {
+		_ = k
+		_ = v
+		mapEntrySize := protobuf_go_lite.SizeStringValue(1, k) + protobuf_go_lite.SizeStringValue(1, v)
+		n += protobuf_go_lite.SizeMessage(1, mapEntrySize)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -4601,6 +4735,24 @@ func (x *ViteOutputMeta) String() string {
 	return x.MarshalProtoText()
 }
 
+func (x *BuildWebPkgRequest_PackageRootsEntry) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PackageRootsEntry")
+	if x.Key != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "key")
+		protobuf_go_lite.TextWriteString(&sb, x.Key)
+	}
+	if x.Value != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "value")
+		protobuf_go_lite.TextWriteString(&sb, x.Value)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *BuildWebPkgRequest_PackageRootsEntry) String() string {
+	return x.MarshalProtoText()
+}
+
 func (x *BuildWebPkgRequest) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "BuildWebPkgRequest")
@@ -4659,6 +4811,17 @@ func (x *BuildWebPkgRequest) MarshalProtoText() string {
 	if x.JsSourcemaps != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "js_sourcemaps")
 		protobuf_go_lite.TextWriteBool(&sb, x.JsSourcemaps)
+	}
+	if len(x.PackageRoots) > 0 {
+		protobuf_go_lite.TextWriteMapStart(&sb, initialLen, "package_roots")
+		for _, k := range slices.Sorted(maps.Keys(x.PackageRoots)) {
+			v := x.PackageRoots[k]
+			protobuf_go_lite.TextWriteMapEntryPrefix(&sb)
+			protobuf_go_lite.TextWriteString(&sb, k)
+			protobuf_go_lite.TextWriteMapKeyValueSeparator(&sb)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteMapEnd(&sb)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -5931,6 +6094,48 @@ func (m *BuildWebPkgRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.JsSourcemaps = bool(v)
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PackageRoots", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			iNdEx = msgStart
+			if m.PackageRoots == nil {
+				m.PackageRoots = make(map[string]string)
+			}
+			var mapkey string
+			var mapvalue string
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+				if err != nil {
+					return err
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					mapkey, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+					if err != nil {
+						return err
+					}
+				} else if fieldNum == 2 {
+					mapvalue, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+					if err != nil {
+						return err
+					}
+				} else {
+					iNdEx = entryPreIndex
+					iNdEx, err = protobuf_go_lite.SkipWithin(dAtA, iNdEx, postIndex)
+					if err != nil {
+						return err
+					}
+				}
+			}
+			m.PackageRoots[mapkey] = mapvalue
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

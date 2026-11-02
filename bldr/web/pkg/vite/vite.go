@@ -85,9 +85,11 @@ func BuildWebPkgsViteWithManagedRoot(
 		}
 	}
 
-	// Build the deduplicated list of web pkg IDs.
+	// Build the package source index and deduplicated IDs once for this bundle group.
+	packageRoots := make(map[string]string, len(webPkgsRefs))
 	for _, ref := range webPkgsRefs {
 		webPkgIDs = append(webPkgIDs, ref.GetWebPkgId())
+		packageRoots[ref.GetWebPkgId()] = ref.GetWebPkgRoot()
 	}
 	slices.Sort(webPkgIDs)
 	webPkgIDs = slices.Compact(webPkgIDs)
@@ -127,6 +129,7 @@ func BuildWebPkgsViteWithManagedRoot(
 
 		resp, err := viteBundler.BuildWebPkg(ctx, &bldr_vite.BuildWebPkgRequest{
 			PkgId:          webPkgID,
+			PackageRoots:   packageRoots,
 			PkgRoot:        pkgRoot,
 			Imports:        imports,
 			SiblingPkgIds:  siblingIDs,

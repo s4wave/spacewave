@@ -605,7 +605,9 @@ async function buildWebPkg(
     )
 
     const sourceFiles = new Set<string>()
-    const stylex = stylexCss(distRoot, 'module')
+    const stylex = stylexCss(distRoot, 'module', {
+      packageRoots: request.packageRoots,
+    })
     const config: InlineConfig = {
       root: pkgRoot,
       cacheDir: cacheDir || undefined,
