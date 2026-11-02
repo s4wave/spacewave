@@ -245,15 +245,16 @@ func NewVolume(
 // keeps them unless disabled: it begins a walk after a stop, and a block pass
 // runs the walk. One that keeps none stops the walk, so its counts, stale
 // from then on, are rebuilt if it keeps them again. A store of format 5 keeps
-// none and has no walk.
+// none and has no walk. A store without atomic publications leaves the shared
+// counts unchanged, including when a read-only store opens an existing walk.
 func (v *Volume) openSharing(ctx context.Context, format uint64, disabled bool) error {
-	// A store of format 5 keeps no counts.
-	if format < store_kvkey.FormatVersion {
+	// Skip stores that cannot maintain shared counts.
+	if format < store_kvkey.FormatVersion || v.publications == nil {
 		return nil
 	}
 
 	// Stop or begin the walk when the Config changed.
-	keep := v.publications != nil && !disabled
+	keep := !disabled
 	rg := OpenRefGraph(v.kvtxStore)
 	s, err := rg.GetSharing(ctx)
 	switch {

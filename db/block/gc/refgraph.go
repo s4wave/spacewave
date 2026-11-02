@@ -670,7 +670,7 @@ func (g *RefGraph) PrefetchPutBatch(ctx context.Context, parent string, entries 
 	// the block pass and young log head the flush's logs read.
 	adds = append(adds, RefEdge{Subject: NodeGCRoot, Object: parent})
 	return g.transaction(ctx, false, func(ctx context.Context, tx kvtx.Tx) error {
-		if err := kvtx.Prefetch(ctx, tx, [][]byte{passKey, youngKey}); err != nil {
+		if err := kvtx.Prefetch(ctx, tx, [][]byte{passKey, youngKey, sharingKey}); err != nil {
 			return err
 		}
 		return prefetchRefBatchTx(ctx, tx, adds, removes)

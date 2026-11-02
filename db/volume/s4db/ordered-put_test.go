@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/s4wave/spacewave/db/block"
+	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	"github.com/s4wave/spacewave/db/core"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/volume"
@@ -49,7 +50,7 @@ func TestOrderedPut(t *testing.T) {
 	// Ordered writes of a block and a batch flush nothing.
 	before := db.Stats().Flushes
 	orderedCtx := kvtx.WithOrderedCommitContext(ctx)
-	if _, _, err := vol.PutBlock(orderedCtx, []byte("ordered"), nil); err != nil {
+	if _, _, err := block.PutBlock(orderedCtx, vol, block_mock.NewExample("ordered")); err != nil {
 		t.Fatal(err)
 	}
 	batch := []*block.PutBatchEntry{{Data: []byte("batch"), RefsKnown: true}}
@@ -65,7 +66,7 @@ func TestOrderedPut(t *testing.T) {
 	}
 
 	// A plain write flushes.
-	if _, _, err := vol.PutBlock(ctx, []byte("durable"), nil); err != nil {
+	if _, _, err := block.PutBlock(ctx, vol, block_mock.NewExample("durable")); err != nil {
 		t.Fatal(err)
 	}
 	if after := db.Stats().Flushes; after == before {

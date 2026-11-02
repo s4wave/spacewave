@@ -2,6 +2,7 @@ package provider_spacewave
 
 import (
 	"context"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -16,7 +17,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// sessionLookupTestLower records source routing and cache fill completion.
 type sessionLookupTestLower struct {
+	// mtx guards blocks while background fills and reads overlap.
+	mtx      sync.Mutex
 	data     []byte
 	blocks   map[string][]byte
 	getCalls atomic.Int32
@@ -25,6 +29,8 @@ type sessionLookupTestLower struct {
 	// refsKnown serves blocks as leaves from GetStoredBlock, as DEX does.
 	refsKnown bool
 	beforeGet func()
+	// putDone reports completion of an optional asynchronous cache fill.
+	putDone chan struct{}
 }
 
 func (s *sessionLookupTestLower) GetHashType() hash.HashType {
@@ -35,7 +41,9 @@ func (s *sessionLookupTestLower) BeginReadOperation(context.Context) (block.Stor
 	return s, func() {}, nil
 }
 
-func (s *sessionLookupTestLower) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+// PutBlock stores a forced reference and reports the cache fill after writing.
+func (s *sessionLookupTestLower) PutBlock(_ context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	// Reject writes that the test source cannot store.
 	if !s.writable {
 		return nil, false, block_store.ErrReadOnly
 	}
@@ -43,11 +51,18 @@ func (s *sessionLookupTestLower) PutBlock(ctx context.Context, data []byte, opts
 	if ref == nil {
 		return nil, false, block_store.ErrReadOnly
 	}
+
+	// Publish the cached bytes before reporting completion to the test.
+	s.mtx.Lock()
 	if s.blocks == nil {
 		s.blocks = make(map[string][]byte)
 	}
 	s.blocks[ref.MarshalString()] = append([]byte(nil), data...)
 	s.putCalls.Add(1)
+	s.mtx.Unlock()
+	if s.putDone != nil {
+		s.putDone <- struct{}{}
+	}
 	return ref, true, nil
 }
 
@@ -59,11 +74,18 @@ func (s *sessionLookupTestLower) RmBlock(context.Context, *block.BlockRef) error
 	return block_store.ErrReadOnly
 }
 func (s *sessionLookupTestLower) Sync(context.Context) (bool, error) { return true, nil }
+
+// GetBlock records a source read and returns any cached bytes.
 func (s *sessionLookupTestLower) GetBlock(_ context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	// Let demand tests hold the lower read while inspecting telemetry.
 	if s.beforeGet != nil {
 		s.beforeGet()
 	}
 	s.getCalls.Add(1)
+
+	// Read the map while excluding a concurrent background cache fill.
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
 	var data []byte
 	if s.blocks != nil {
 		data = s.blocks[ref.MarshalString()]
@@ -164,10 +186,14 @@ func telemetryStore(t *testing.T, account *ProviderAccount, id string) SyncTelem
 	return SyncTelemetryBlockStoreSnapshot{}
 }
 
+// TestSessionDirectLookupRoutesPerChildAndFallsBackOnce checks each session's
+// cache, direct and fallback routes, including asynchronous direct cache fills.
 func TestSessionDirectLookupRoutesPerChildAndFallsBackOnce(t *testing.T) {
+	// Run independently from the other provider routing fixtures.
 	t.Parallel()
 
-	ctx, cancel := context.WithCancel(t.Context())
+	// Build references shared by the two independent session pipelines.
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 	refCache, err := block.BuildBlockRef([]byte("cache"), nil)
 	if err != nil {
@@ -182,6 +208,7 @@ func TestSessionDirectLookupRoutesPerChildAndFallsBackOnce(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Give each session its own cache and direct source for the shared ref.
 	direct1 := &sessionLookupTestLower{
 		blocks:    map[string][]byte{refDirect.MarshalString(): []byte("session-one")},
 		refsKnown: true,
@@ -191,15 +218,19 @@ func TestSessionDirectLookupRoutesPerChildAndFallsBackOnce(t *testing.T) {
 		refsKnown: true,
 	}
 
+	// Keep each local cache and Cloud fallback separate from its direct source.
 	cache1 := &sessionLookupTestLower{
 		blocks:   map[string][]byte{refCache.MarshalString(): []byte("cached-one")},
 		writable: true,
+		putDone:  make(chan struct{}, 1),
 	}
 	cloud1 := &sessionLookupTestLower{
 		blocks: map[string][]byte{refFallback.MarshalString(): []byte("cloud-one")},
 	}
-	cache2 := &sessionLookupTestLower{blocks: map[string][]byte{}, writable: true}
+	cache2 := &sessionLookupTestLower{blocks: map[string][]byte{}, writable: true, putDone: make(chan struct{}, 1)}
 	cloud2 := &sessionLookupTestLower{blocks: map[string][]byte{}}
+
+	// Compose the production session stores with the routing test sources.
 	account := &ProviderAccount{}
 	store1, err := newProductionSessionStore(account, "session-one", direct1, cache1, cloud1)
 	if err != nil {
@@ -210,6 +241,7 @@ func TestSessionDirectLookupRoutesPerChildAndFallsBackOnce(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// A local cache hit avoids both network sources.
 	data, found, err := store1.GetBlock(ctx, refCache)
 	if err != nil || !found || string(data) != "cached-one" {
 		t.Fatalf("local cache read = %q/%v/%v", data, found, err)
@@ -218,9 +250,15 @@ func TestSessionDirectLookupRoutesPerChildAndFallsBackOnce(t *testing.T) {
 		t.Fatalf("local cache hit touched DEX/Cloud: %d/%d", direct1.getCalls.Load(), cloud1.getCalls.Load())
 	}
 
+	// Wait for the direct hit's background cache fill before reading it again.
 	data, found, err = store1.GetBlock(ctx, refDirect)
 	if err != nil || !found || string(data) != "session-one" {
 		t.Fatalf("session one direct read = %q/%v/%v", data, found, err)
+	}
+	select {
+	case <-cache1.putDone:
+	case <-ctx.Done():
+		t.Fatal("session one cache fill did not finish")
 	}
 	if direct1.getCalls.Load() != 1 || cloud1.getCalls.Load() != 0 || cache1.putCalls.Load() != 1 {
 		t.Fatalf("direct hit calls = dex %d/cloud %d/cache puts %d, want 1/0/1", direct1.getCalls.Load(), cloud1.getCalls.Load(), cache1.putCalls.Load())
@@ -233,6 +271,7 @@ func TestSessionDirectLookupRoutesPerChildAndFallsBackOnce(t *testing.T) {
 		t.Fatalf("cached direct read touched DEX/Cloud: %d/%d", direct1.getCalls.Load(), cloud1.getCalls.Load())
 	}
 
+	// A direct miss falls back to Cloud exactly once.
 	data, found, err = store1.GetBlock(ctx, refFallback)
 	if err != nil || !found || string(data) != "cloud-one" {
 		t.Fatalf("Cloud fallback read = %q/%v/%v", data, found, err)
@@ -241,9 +280,15 @@ func TestSessionDirectLookupRoutesPerChildAndFallsBackOnce(t *testing.T) {
 		t.Fatalf("fallback calls = dex %d/cloud %d, want 2/1", direct1.getCalls.Load(), cloud1.getCalls.Load())
 	}
 
+	// The second session fills and reads its own cache for the same reference.
 	data, found, err = store2.GetBlock(ctx, refDirect)
 	if err != nil || !found || string(data) != "session-two" {
 		t.Fatalf("session two direct read = %q/%v/%v", data, found, err)
+	}
+	select {
+	case <-cache2.putDone:
+	case <-ctx.Done():
+		t.Fatal("session two cache fill did not finish")
 	}
 	data, found, err = store2.GetBlock(ctx, refDirect)
 	if err != nil || !found || string(data) != "session-two" {
@@ -253,11 +298,11 @@ func TestSessionDirectLookupRoutesPerChildAndFallsBackOnce(t *testing.T) {
 		t.Fatalf("session two cache routing = dex %d/cloud %d, want 1/0", direct2.getCalls.Load(), cloud2.getCalls.Load())
 	}
 
+	// Attribute the cache, direct and Cloud hits to their owning sessions.
 	one := telemetryStore(t, account, "session-one")
 	if one.DirectHitCount != 1 || one.CloudHitCount != 1 || one.CacheHitCount != 2 {
 		t.Fatalf("session one telemetry = %+v, want direct=1 cloud=1 cache=2", one)
 	}
-
 	two := telemetryStore(t, account, "session-two")
 	if two.DirectHitCount != 1 || two.CloudHitCount != 0 || two.CacheHitCount != 1 {
 		t.Fatalf("session two telemetry = %+v, want direct=1 cloud=0 cache=1", two)

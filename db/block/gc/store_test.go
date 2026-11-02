@@ -217,13 +217,13 @@ func TestGCStoreOps_FlushPendingNormalizesDuplicateEdges(t *testing.T) {
 
 	// Verify the batch contains distinct additions and removals.
 	wantAdds := []RefEdge{
-		{Subject: NodeUnreferenced, Object: "block:a"},
-		{Subject: NodeUnreferenced, Object: "block:b"},
+		{Subject: NodeUnreferenced, Object: "block:a", Uncounted: true},
+		{Subject: NodeUnreferenced, Object: "block:b", Uncounted: true},
 		{Subject: "block:a", Object: "block:b"},
 		{Subject: "block:c", Object: "block:d"},
 	}
 	wantRemoves := []RefEdge{
-		{Subject: NodeUnreferenced, Object: "block:b"},
+		{Subject: NodeUnreferenced, Object: "block:b", Uncounted: true},
 	}
 	if !slices.Equal(refGraph.adds, wantAdds) {
 		t.Fatalf("adds = %#v, want %#v", refGraph.adds, wantAdds)
@@ -272,9 +272,9 @@ func TestGCStoreOps_FlushPendingRebuffersApplyRemainder(t *testing.T) {
 
 	// Verify each staging edge was applied exactly once.
 	if !slices.Equal(refGraph.applied, wantRefEdges(
-		RefEdge{Subject: NodeUnreferenced, Object: "block:a"},
-		RefEdge{Subject: NodeUnreferenced, Object: "block:b"},
-		RefEdge{Subject: NodeUnreferenced, Object: "block:c"},
+		RefEdge{Subject: NodeUnreferenced, Object: "block:a", Uncounted: true},
+		RefEdge{Subject: NodeUnreferenced, Object: "block:b", Uncounted: true},
+		RefEdge{Subject: NodeUnreferenced, Object: "block:c", Uncounted: true},
 	)) {
 		t.Fatalf("applied edges = %v, want each edge once", refGraph.applied)
 	}
@@ -1102,10 +1102,10 @@ func TestGCStoreOps_ParentIRI_PutBlockBatchExistingTreeBuffersOwnerOnly(t *testi
 	// above it.
 	var wantAdds, wantRemoves []RefEdge
 	for _, entry := range tree {
-		wantAdds = append(wantAdds, RefEdge{Subject: parent, Object: BlockIRI(entry.Ref)})
+		wantAdds = append(wantAdds, RefEdge{Subject: parent, Object: BlockIRI(entry.Ref), Uncounted: true})
 	}
 	for _, entry := range []*block.PutBatchEntry{leaf, mid} {
-		wantRemoves = append(wantRemoves, RefEdge{Subject: parent, Object: BlockIRI(entry.Ref)})
+		wantRemoves = append(wantRemoves, RefEdge{Subject: parent, Object: BlockIRI(entry.Ref), Uncounted: true})
 	}
 	if !slices.Equal(sortedEdges(refGraph.adds), sortedEdges(wantAdds)) {
 		t.Fatalf("adds = %v, want %v", refGraph.adds, wantAdds)

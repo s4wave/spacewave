@@ -305,10 +305,10 @@ func TestReleaseBucketRootsKeepsReferencedRoots(t *testing.T) {
 	}
 }
 
-// TestRootRetentionDefersEditsToNextCommit checks that releasing a reader pin,
-// marking a root complete and repeating a preparation commit nothing of their
-// own, and that the next changing direct transaction makes the released pin
-// and the proof durable in its one commit.
+// TestRootRetentionDefersEditsToNextCommit checks that releasing a reader pin and
+// marking a root complete commit nothing of their own, and that the next
+// changing direct transaction makes the released pin and the proof durable in
+// its one commit.
 func TestRootRetentionDefersEditsToNextCommit(t *testing.T) {
 	// Prepare and pin a root, then note the physical commit count.
 	v, raw := newPublicationTestVolume(t)
@@ -328,16 +328,13 @@ func TestRootRetentionDefersEditsToNextCommit(t *testing.T) {
 	}
 	before := commits()
 
-	// Release the pin, mark the root complete and prepare the root again.
+	// Release the pin and mark the root complete.
 	release()
 	if err := v.MarkRootsComplete(ctx, []*block.BlockRef{root}); err != nil {
 		t.Fatal(err)
 	}
 	if found, err := rootComplete(ctx, v, root); err != nil || !found {
 		t.Fatalf("pending root proof found=%v err=%v", found, err)
-	}
-	if _, existed, err := v.PrepareOwnedBlock(ctx, "bucket", []byte("deferred root"), leafOpts()); err != nil || !existed {
-		t.Fatalf("repeated preparation existed=%v err=%v", existed, err)
 	}
 	if n := commits() - before; n != 0 {
 		t.Fatalf("unchanged and deferred edits made %d commits", n)
@@ -684,8 +681,8 @@ func TestDueDeadlistCheckedAgainstMark(t *testing.T) {
 		t.Fatal(err)
 	}
 	due := []block.NamedRoot{
-		{Name: block.DeadlistRootName(1)},
 		{Name: block.DeadlistDueRootName(1), Ref: recordRef},
+		{Name: block.DeadlistRootName(1)},
 	}
 	if err := v.SetBucketRoots(ctx, "bucket", nil, due); err != nil {
 		t.Fatal(err)

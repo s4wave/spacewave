@@ -110,8 +110,13 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		return errors.Wrap(err, "get root ref")
 	}
 
-	// Prepare an empty root reference for read-only and writable transaction checks.
-	oref2 := &bucket.ObjectRef{}
+	// Use the local bucket for the replacement so later object writes can follow it.
+	storage, err := ws.BuildStorageCursor(ctx)
+	if err != nil {
+		return err
+	}
+	oref2 := storage.GetRefWithOpArgs()
+	storage.Release()
 
 	// Confirm that read transactions reject root-reference writes.
 	_, err = objState.SetRootRef(ctx, oref2)
