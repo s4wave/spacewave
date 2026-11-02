@@ -4,6 +4,7 @@ import { createObjectWithBlockData } from "./object-block.js";
 
 describe("object block helpers", () => {
   it("creates a new object from the written world-storage root", async () => {
+    // Build the World staging and cursor RPC handles.
     const release = vi.fn();
     const cursor = {
       putBlock: vi.fn(() =>
@@ -41,16 +42,18 @@ describe("object block helpers", () => {
       createObject,
     };
 
+    // Write the bytes and adopt the root returned by World storage.
     await createObjectWithBlockData(
       worldState as never,
       "blog/site",
       new Uint8Array([4, 5, 6]),
     );
 
+    // Require complete leaf metadata and the returned World object reference.
     expect(worldState.stageWorldState).toHaveBeenCalledWith(undefined);
     expect(stage.buildStorageCursor).toHaveBeenCalledWith(undefined);
     expect(cursor.putBlock).toHaveBeenCalledWith(
-      { data: new Uint8Array([4, 5, 6]) },
+      { data: new Uint8Array([4, 5, 6]), opts: { refsKnown: true } },
       undefined,
     );
     expect(createObject).toHaveBeenCalledWith(
