@@ -13,6 +13,29 @@ import {
   TooltipTrigger,
 } from '@s4wave/web/ui/tooltip.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const dialogStyles = stylex.create({
+  content: {
+    overflow: 'hidden',
+    maxWidth: {
+      default: 'calc(100% - 2rem)',
+      '@media (min-width: 40rem)': 'var(--container-sm)',
+    },
+  },
+  accessibleOnly: {
+    clipPath: 'inset(50%)',
+    whiteSpace: 'nowrap',
+    borderWidth: 0,
+    width: '1px',
+    height: '1px',
+    margin: '-1px',
+    padding: 0,
+    position: 'absolute',
+    overflow: 'hidden',
+  },
+})
+
 interface AboutDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -27,10 +50,12 @@ export function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
       <DialogContent
         showCloseButton={false}
         variant="compact"
-        className="overflow-hidden sm:max-w-sm"
+        sx={dialogStyles.content}
       >
-        <DialogTitle className="sr-only">About Spacewave</DialogTitle>
-        <DialogDescription className="sr-only">
+        <DialogTitle sx={dialogStyles.accessibleOnly}>
+          About Spacewave
+        </DialogTitle>
+        <DialogDescription sx={dialogStyles.accessibleOnly}>
           Free, open-source, local-first platform for file sync, communication,
           device management, and community plugins.
         </DialogDescription>

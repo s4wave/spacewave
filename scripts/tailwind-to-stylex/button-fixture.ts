@@ -35,7 +35,7 @@ export async function writeButtonFixture(
     join(root, 'ButtonSamples.tsx'),
     `
 import * as stylex from '@stylexjs/stylex';
-import {Button} from './button';
+import {Button,buttonVariants} from './button';
 import {DashboardButton} from './DashboardButton';
 import {DropdownTriggerButton} from './DropdownTriggerButton';
 import {IconContext,LuPlus} from '@s4wave/web/images/icons.js';
@@ -58,6 +58,7 @@ export function ButtonSamples(){return <main id="button-fixtures"><IconContext.P
  {['default','active','destructive','primary'].map(variant=><DashboardButton key={variant} variant={variant as 'default'} icon={<LuPlus/>}>Dashboard {variant}</DashboardButton>)}
  <DropdownTriggerButton icon={<LuPlus/>}>Outline dropdown</DropdownTriggerButton>
  <DropdownTriggerButton triggerStyle="ghost" icon={<LuPlus/>}>Ghost dropdown</DropdownTriggerButton>
+ <button type="button" ${version === 'before' ? "className={buttonVariants({variant:'outline',size:'sm'})}" : "sx={buttonVariants({variant:'outline',size:'sm'})}"}>Recipe action</button>
  <Button aria-label="Focus button">Focus action</Button>
 </IconContext.Provider></main>}
 `,

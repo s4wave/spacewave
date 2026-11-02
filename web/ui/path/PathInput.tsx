@@ -1,3 +1,4 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 /* eslint-disable react-doctor/rerender-state-only-in-handlers */
 import {
   useState,
@@ -9,34 +10,226 @@ import {
   type KeyboardEvent,
 } from 'react'
 import { LuChevronRight, LuHouse } from '@s4wave/web/images/icons.js'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import * as stylex from '@stylexjs/stylex'
 import {
   layout as themeLayout,
+  fonts as themeFonts,
+  motion as themeMotion,
   colors as themeColors,
 } from '../../style/tokens.stylex.js'
 
-const stylexStyles = stylex.create({
-  rule1: {
+const styles = stylex.create({
+  rootIcon: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
     height: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
-  rule2: {
+  chevronIcon: {
     width: `calc(${themeLayout['--spacing']} * 3)`,
     height: `calc(${themeLayout['--spacing']} * 3)`,
     color: themeColors['--color-foreground-alt'],
   },
-  rule3: {
+  editTarget: {
     height: '100%',
     minWidth: `calc(${themeLayout['--spacing']} * 2)`,
     flex: 1,
     cursor: 'text',
     alignSelf: 'stretch',
   },
+  active: {
+    fontSize: themeLayout['--text-ui'],
+    lineHeight: 'var(--tw-leading, var(--text-ui--line-height))',
+    letterSpacing: 'var(--tw-tracking, var(--text-ui--letter-spacing))',
+  },
+  editingBase: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    flex: 1,
+    alignItems: 'center',
+    borderRadius: '.25rem',
+    backgroundColor: themeColors['--color-file-path-bar'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  inputBase: {
+    width: '100%',
+    backgroundColor: '#0000',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    color: themeColors['--color-foreground'],
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+  },
+  breadcrumbsBase: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    flex: 1,
+    alignItems: 'center',
+    overflow: 'hidden',
+    borderRadius: '.25rem',
+    backgroundColor: {
+      default: themeColors['--color-file-path-bar'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-file-path-bar-hover'],
+      },
+    },
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rootBase: {
+    display: 'flex',
+    alignItems: 'center',
+    borderRadius: '.25rem',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-pulldown-hover'],
+      },
+    },
+  },
+  segmentBase: { alignItems: 'center' },
+  crumbBase: {
+    borderRadius: '.25rem',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-pulldown-hover'],
+      },
+    },
+  },
+  editingTouch: {
+    minHeight: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+  },
+  inputTouch: {
+    fontSize: {
+      default: themeFonts['--text-xs'],
+      '@media (pointer: coarse)': 'var(--text-base)',
+    },
+    lineHeight: {
+      default: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+      '@media (pointer: coarse)':
+        'var(--tw-leading, var(--text-base--line-height))',
+    },
+  },
+  input: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  breadcrumbsTouch: {
+    minWidth: 0,
+    gap: {
+      default: `calc(${themeLayout['--spacing']} * .5)`,
+      '@media (pointer: coarse)': 0,
+    },
+    paddingInline: {
+      default: `calc(${themeLayout['--spacing']} * 2)`,
+      '@media (pointer: coarse)': 0,
+    },
+    fontSize: {
+      default: themeFonts['--text-xs'],
+      '@media (pointer: coarse)': themeFonts['--text-sm'],
+    },
+    lineHeight: {
+      default: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+      '@media (pointer: coarse)': `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    },
+    minHeight: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+  },
+  breadcrumbs: {
+    gap: `calc(${themeLayout['--spacing']} * .5)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rootTouch: {
+    paddingInline: {
+      default: themeLayout['--spacing'],
+      '@media (pointer: coarse)': 0,
+    },
+    width: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+    height: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+    flexShrink: { default: null, '@media (pointer: coarse)': 0 },
+    justifyContent: { default: null, '@media (pointer: coarse)': 'center' },
+  },
+  root: { paddingInline: themeLayout['--spacing'] },
+  lastSegmentTouch: {
+    display: 'flex',
+    minWidth: { default: null, '@media not all and (min-width: 40rem)': 0 },
+    flex: { default: null, '@media not all and (min-width: 40rem)': 1 },
+  },
+  hiddenSegmentTouch: {
+    display: {
+      default: 'flex',
+      '@media not all and (min-width: 40rem)': 'none',
+    },
+  },
+  segment: { display: 'flex' },
+  crumbTouch: {
+    paddingInline: {
+      default: themeLayout['--spacing'],
+      '@media not all and (min-width: 40rem)': `calc(${themeLayout['--spacing']} * 2)`,
+    },
+    whiteSpace: {
+      default: 'nowrap',
+      '@media not all and (min-width: 40rem)': 'nowrap',
+    },
+    minWidth: { default: null, '@media not all and (min-width: 40rem)': 0 },
+    flex: { default: null, '@media not all and (min-width: 40rem)': 1 },
+    textOverflow: {
+      default: null,
+      '@media not all and (min-width: 40rem)': 'ellipsis',
+    },
+    overflow: {
+      default: null,
+      '@media not all and (min-width: 40rem)': 'hidden',
+    },
+    textAlign: {
+      default: null,
+      '@media not all and (min-width: 40rem)': 'left',
+    },
+    minHeight: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+  },
+  crumb: { paddingInline: themeLayout['--spacing'], whiteSpace: 'nowrap' },
 })
 
 interface PathInputProps {
+  className?: never
   path: string
   onPathChange?: (path: string) => void
   onNavigate?: (path: string) => void
@@ -45,7 +238,7 @@ interface PathInputProps {
     event: DragEvent<HTMLElement>,
   ) => boolean
   onPathTargetDrop?: (path: string, event: DragEvent<HTMLElement>) => void
-  className?: string
+  sx?: ComponentStyles
   mobileTouchTargets?: boolean
 }
 
@@ -56,7 +249,7 @@ export function PathInput({
   onNavigate,
   onPathTargetDragOver,
   onPathTargetDrop,
-  className,
+  sx,
   mobileTouchTargets = false,
 }: PathInputProps) {
   // Keep the path draft scoped to the path currently being edited.
@@ -128,13 +321,10 @@ export function PathInput({
   if (isEditing) {
     return (
       <div
-        className={
-          /* TODO(stylex): dynamic class or forwarded className */ cn(
-            'bg-file-path-bar flex h-5 flex-1 items-center rounded px-2',
-            mobileTouchTargets && '[@media(pointer:coarse)]:min-h-11',
-            className,
-          )
-        }
+        sx={[
+          [styles.editingBase, mobileTouchTargets && styles.editingTouch],
+          sx,
+        ]}
       >
         <input
           ref={inputRef}
@@ -144,12 +334,10 @@ export function PathInput({
           onChange={(e) => setEditValue(e.target.value)}
           onBlur={handleInputBlur}
           onKeyDown={handleInputKeyDown}
-          className={
-            /* TODO(stylex): conditional property composition: fontSize */ cn(
-              'text-foreground w-full bg-transparent font-mono text-xs outline-none',
-              mobileTouchTargets && '[@media(pointer:coarse)]:text-base',
-            )
-          }
+          sx={[
+            styles.inputBase,
+            mobileTouchTargets ? styles.inputTouch : styles.input,
+          ]}
           spellCheck={false}
           autoComplete="off"
         />
@@ -161,14 +349,13 @@ export function PathInput({
     <div
       role="group"
       aria-label="File path"
-      className={
-        /* TODO(stylex): dynamic class or forwarded className */ cn(
-          'bg-file-path-bar hover:bg-file-path-bar-hover text-foreground flex h-5 flex-1 items-center gap-0.5 overflow-hidden rounded px-2 text-xs transition-colors select-none',
-          mobileTouchTargets &&
-            'min-w-0 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:gap-0 [@media(pointer:coarse)]:px-0 [@media(pointer:coarse)]:text-sm',
-          className,
-        )
-      }
+      sx={[
+        [
+          styles.breadcrumbsBase,
+          mobileTouchTargets ? styles.breadcrumbsTouch : styles.breadcrumbs,
+        ],
+        sx,
+      ]}
     >
       <button
         type="button"
@@ -178,33 +365,29 @@ export function PathInput({
         }}
         onDragOver={(e) => onPathTargetDragOver?.('/', e)}
         onDrop={(e) => onPathTargetDrop?.('/', e)}
-        className={
-          /* TODO(stylex): conditional property composition: paddingInline */ cn(
-            'hover:bg-pulldown-hover flex items-center rounded px-1 transition-colors',
-            mobileTouchTargets &&
-              '[@media(pointer:coarse)]:size-11 [@media(pointer:coarse)]:shrink-0 [@media(pointer:coarse)]:justify-center [@media(pointer:coarse)]:px-0',
-            pathSegments.length === 0 && 'text-text-highlight',
-          )
-        }
+        sx={[
+          styles.rootBase,
+          mobileTouchTargets ? styles.rootTouch : styles.root,
+          pathSegments.length === 0 && styles.active,
+        ]}
         aria-label="Navigate to root"
       >
-        <LuHouse {...stylex.props(stylexStyles.rule1)} />
+        <LuHouse {...stylex.props(styles.rootIcon)} />
       </button>
 
       {pathSegments.map((segment, index) => (
         <div
           key={pathSegments.slice(0, index + 1).join('/')}
-          className={
-            /* TODO(stylex): conditional property composition: display */ cn(
-              'flex items-center',
-              mobileTouchTargets &&
-                (index === pathSegments.length - 1
-                  ? 'max-sm:min-w-0 max-sm:flex-1'
-                  : 'max-sm:hidden'),
-            )
-          }
+          sx={[
+            styles.segmentBase,
+            mobileTouchTargets
+              ? index === pathSegments.length - 1
+                ? styles.lastSegmentTouch
+                : styles.hiddenSegmentTouch
+              : styles.segment,
+          ]}
         >
-          <LuChevronRight {...stylex.props(stylexStyles.rule2)} />
+          <LuChevronRight {...stylex.props(styles.chevronIcon)} />
           <button
             type="button"
             onClick={(e) => {
@@ -223,14 +406,11 @@ export function PathInput({
                 e,
               )
             }
-            className={
-              /* TODO(stylex): conditional property composition: whiteSpace */ cn(
-                'hover:bg-pulldown-hover rounded px-1 whitespace-nowrap transition-colors',
-                mobileTouchTargets &&
-                  '[@media(pointer:coarse)]:min-h-11 max-sm:min-w-0 max-sm:flex-1 max-sm:truncate max-sm:px-2 max-sm:text-left',
-                index === pathSegments.length - 1 && 'text-text-highlight',
-              )
-            }
+            sx={[
+              styles.crumbBase,
+              mobileTouchTargets ? styles.crumbTouch : styles.crumb,
+              index === pathSegments.length - 1 && styles.active,
+            ]}
             aria-label={`Navigate to ${segment}`}
           >
             {segment}
@@ -242,7 +422,7 @@ export function PathInput({
         type="button"
         aria-label="Edit path"
         onClick={handleEditClick}
-        sx={stylexStyles.rule3}
+        sx={styles.editTarget}
       />
     </div>
   )
