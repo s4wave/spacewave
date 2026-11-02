@@ -1,57 +1,346 @@
+import { stylexProps } from '@s4wave/web/style/props.js'
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
 import { Slot } from '@radix-ui/react-slot'
-import { cva, type VariantProps } from 'class-variance-authority'
+import { IconContext } from '@s4wave/web/images/icons.js'
+import { badgeMarker, badgeIconStyles } from '../style/badge-icons.stylex.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+  motion as themeMotion,
+  colors as themeColors,
+} from '../style/tokens.stylex.js'
 
-const badgeVariants = cva(
-  'inline-flex items-center justify-center rounded-full border px-2 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive transition-[color,box-shadow] overflow-hidden',
-  {
-    variants: {
-      variant: {
-        default:
-          'border-transparent bg-primary text-primary-foreground [a&]:hover:bg-primary/90',
-        secondary:
-          'border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90',
-        destructive:
-          'border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60',
-        outline:
-          'text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground',
-        subtle: 'bg-foreground/5 font-normal',
-        conflict: 'bg-destructive/15 text-destructive',
-        brand: 'border-brand/25 bg-brand/5 text-brand',
-        success: 'border-success/25 bg-success/5 text-success',
-        muted: 'border-foreground/10 text-foreground-alt/65 font-normal',
-        release: 'text-foreground-alt border-foreground/15',
-      },
+const styles = stylex.create({
+  base: {
+    display: 'inline-flex',
+    width: 'fit-content',
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: themeLayout['--spacing'],
+    overflow: 'hidden',
+    borderRadius: '3.40282e38px',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    whiteSpace: 'nowrap',
+    transitionProperty: 'color, box-shadow',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
     },
-    defaultVariants: {
-      variant: 'default',
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     },
   },
-)
+  unselected: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    borderColor: {
+      default: null,
+      ':focus-visible': themeColors['--color-ring'],
+      ':is([aria-invalid="true"])': themeColors['--color-destructive'],
+      ':is([aria-invalid="true"]):focus-visible':
+        themeColors['--color-destructive'],
+    },
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
+      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+      ':is(:is(.dark *)[aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+    },
+  },
+  release: {
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 15%, transparent)`,
+      ':focus-visible': themeColors['--color-ring'],
+      ':is([aria-invalid="true"])': themeColors['--color-destructive'],
+      ':is([aria-invalid="true"]):focus-visible':
+        themeColors['--color-destructive'],
+    },
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground-alt'],
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
+      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+      ':is(:is(.dark *)[aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+    },
+  },
+  muted: {
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      ':focus-visible': themeColors['--color-ring'],
+      ':is([aria-invalid="true"])': themeColors['--color-destructive'],
+      ':is([aria-invalid="true"]):focus-visible':
+        themeColors['--color-destructive'],
+    },
+    '--tw-font-weight': 'var(--font-weight-normal)',
+    fontWeight: 'var(--font-weight-normal)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 65%, transparent)`,
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
+      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+      ':is(:is(.dark *)[aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+    },
+  },
+  success: {
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-success']} 25%, transparent)`,
+      ':focus-visible': themeColors['--color-ring'],
+      ':is([aria-invalid="true"])': themeColors['--color-destructive'],
+      ':is([aria-invalid="true"]):focus-visible':
+        themeColors['--color-destructive'],
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-success']} 5%, transparent)`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-success'],
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
+      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+      ':is(:is(.dark *)[aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+    },
+  },
+  brand: {
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 25%, transparent)`,
+      ':focus-visible': themeColors['--color-ring'],
+      ':is([aria-invalid="true"])': themeColors['--color-destructive'],
+      ':is([aria-invalid="true"]):focus-visible':
+        themeColors['--color-destructive'],
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-brand'],
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
+      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+      ':is(:is(.dark *)[aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+    },
+  },
+  conflict: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 15%, transparent)`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-destructive'],
+    borderColor: {
+      default: null,
+      ':focus-visible': themeColors['--color-ring'],
+      ':is([aria-invalid="true"])': themeColors['--color-destructive'],
+      ':is([aria-invalid="true"]):focus-visible':
+        themeColors['--color-destructive'],
+    },
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
+      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+      ':is(:is(.dark *)[aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+    },
+  },
+  subtle: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    '--tw-font-weight': 'var(--font-weight-normal)',
+    fontWeight: 'var(--font-weight-normal)',
+    borderColor: {
+      default: null,
+      ':focus-visible': themeColors['--color-ring'],
+      ':is([aria-invalid="true"])': themeColors['--color-destructive'],
+      ':is([aria-invalid="true"]):focus-visible':
+        themeColors['--color-destructive'],
+    },
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
+      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+      ':is(:is(.dark *)[aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+    },
+  },
+  outline: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: {
+      default: themeColors['--color-foreground'],
+      '@media (hover: hover)': {
+        default: null,
+        ':is(a):hover': themeColors['--color-accent-foreground'],
+      },
+    },
+    borderColor: {
+      default: null,
+      ':focus-visible': themeColors['--color-ring'],
+      ':is([aria-invalid="true"])': themeColors['--color-destructive'],
+      ':is([aria-invalid="true"]):focus-visible':
+        themeColors['--color-destructive'],
+    },
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
+      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+      ':is(:is(.dark *)[aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+    },
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':is(a):hover': themeColors['--color-accent'],
+      },
+    },
+  },
+  destructive: {
+    borderColor: {
+      default: '#0000',
+      ':focus-visible': themeColors['--color-ring'],
+      ':is([aria-invalid="true"])': themeColors['--color-destructive'],
+      ':is([aria-invalid="true"]):focus-visible':
+        themeColors['--color-destructive'],
+    },
+    backgroundColor: {
+      default: themeColors['--color-destructive'],
+      ':is(.dark *)': `color-mix(in oklab, ${themeColors['--color-destructive']} 60%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':is(a):hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 90%, transparent)`,
+      },
+    },
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-white'],
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+      ':is(.dark *):focus-visible': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      ':is(:is(.dark *)[aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+    },
+  },
+  secondary: {
+    borderColor: {
+      default: '#0000',
+      ':focus-visible': themeColors['--color-ring'],
+      ':is([aria-invalid="true"])': themeColors['--color-destructive'],
+      ':is([aria-invalid="true"]):focus-visible':
+        themeColors['--color-destructive'],
+    },
+    backgroundColor: {
+      default: themeColors['--color-secondary'],
+      '@media (hover: hover)': {
+        default: null,
+        ':is(a):hover': `color-mix(in oklab, ${themeColors['--color-secondary']} 90%, transparent)`,
+      },
+    },
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-secondary-foreground'],
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
+      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+      ':is(:is(.dark *)[aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+    },
+  },
+  default: {
+    borderColor: {
+      default: '#0000',
+      ':focus-visible': themeColors['--color-ring'],
+      ':is([aria-invalid="true"])': themeColors['--color-destructive'],
+      ':is([aria-invalid="true"]):focus-visible':
+        themeColors['--color-destructive'],
+    },
+    backgroundColor: {
+      default: themeColors['--color-primary'],
+      '@media (hover: hover)': {
+        default: null,
+        ':is(a):hover': `color-mix(in oklab, ${themeColors['--color-primary']} 90%, transparent)`,
+      },
+    },
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-primary-foreground'],
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
+      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+      ':is(:is(.dark *)[aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+    },
+  },
+})
 
-function Badge({
-  className,
-  variant,
-  asChild = false,
-  ...props
-}: React.ComponentProps<'span'> &
-  VariantProps<typeof badgeVariants> & { asChild?: boolean }) {
-  const Comp = asChild ? Slot : 'span'
+/** BadgeVariant selects the badge's semantic appearance. */
+export type BadgeVariant =
+  | 'default'
+  | 'secondary'
+  | 'destructive'
+  | 'outline'
+  | 'subtle'
+  | 'conflict'
+  | 'brand'
+  | 'success'
+  | 'muted'
+  | 'release'
 
-  return (
-    <Comp
-      data-slot="badge"
-      className={
-        /* TODO(stylex): computed class helper */ cn(
-          badgeVariants({ variant }),
-          className,
-        )
-      }
-      {...props}
-    />
-  )
+/** BadgeProps composes native span attributes with a finite appearance and caller styles. */
+export type BadgeProps = Omit<React.ComponentProps<'span'>, 'className'> & {
+  variant?: BadgeVariant | null
+  asChild?: boolean
+  sx?: ComponentStyles
+  className?: never
 }
 
-export { Badge, badgeVariants }
+/** badgeVariants returns the complete badge appearance for a native element. */
+export function badgeVariants({
+  variant,
+  sx,
+}: Pick<BadgeProps, 'variant' | 'sx'> = {}) {
+  return [
+    styles.base,
+    variant === undefined
+      ? styles.default
+      : variant
+        ? styles[variant]
+        : styles.unselected,
+    sx,
+  ] as const
+}
+
+const iconProps = stylex.props(badgeIconStyles.icon)
+/** Badge renders a status label or lends its appearance to one child. */
+export function Badge({ sx, variant, asChild = false, ...props }: BadgeProps) {
+  const inheritedIcons = React.useContext(IconContext)
+  const icons = React.useMemo(
+    () => ({
+      ...inheritedIcons,
+      className: [inheritedIcons.className, iconProps.className]
+        .filter(Boolean)
+        .join(' '),
+    }),
+    [inheritedIcons],
+  )
+  const Comp = asChild ? Slot : 'span'
+  return (
+    <IconContext.Provider value={icons}>
+      <Comp
+        data-slot="badge"
+        {...stylexProps([badgeVariants({ variant, sx }), badgeMarker], props)}
+      />
+    </IconContext.Provider>
+  )
+}

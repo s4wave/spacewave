@@ -190,11 +190,7 @@ function SubagentBadges({
     <div data-slot="subagent-badges" sx={stylexStyles.rule3}>
       {model ? <Badge variant="secondary">{model}</Badge> : null}
       {tools.map((tool) => (
-        <Badge
-          key={tool}
-          variant="outline"
-          {...stylex.props(stylexStyles.rule4)}
-        >
+        <Badge key={tool} variant="outline" sx={stylexStyles.rule4}>
           {tool}
         </Badge>
       ))}
