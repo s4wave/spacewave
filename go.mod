@@ -84,7 +84,7 @@ require (
 	github.com/prometheus/prometheus v0.315.1
 	github.com/quic-go/quic-go v0.64.1
 	github.com/restic/chunker v0.5.0
-	github.com/s4wave/goscript v0.6.3-0.20261101103155-034b375630e2
+	github.com/s4wave/goscript v0.6.3-0.20261102223635-c9e0c68afe43
 	github.com/sasha-s/go-deadlock v0.3.9
 	github.com/satori/go.uuid v1.2.0
 	github.com/sergi/go-diff v1.4.0
