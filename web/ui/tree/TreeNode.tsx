@@ -12,6 +12,7 @@ export interface TreeNode<T = void> {
   data?: T
   draggable?: boolean
   onDragStart?: TreeNodeOnDragStart<T>
+  // Action SVGs apply treeRowActionIconStyles.icon at the element that renders them.
   icons?: {
     icon: React.ReactNode
     onClick?: (e: React.MouseEvent) => void
@@ -29,3 +30,8 @@ export type TreeNodeOnDragStart<T> = (
   node: TreeNode<T>,
   state: TreeState,
 ) => void
+
+/** treeRowDomId scopes a rendered node ID without changing its domain identity. */
+export function treeRowDomId(prefix: string, nodeId: string): string {
+  return `${prefix}-node-${encodeURIComponent(nodeId)}`
+}

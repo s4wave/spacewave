@@ -41,7 +41,10 @@ function readRule(container: Container, selector: string): StyleRule {
     } else if (node.type === 'rule') {
       if (!node.selector.startsWith(selector))
         throw new Error('a selector outside the styled element')
-      const condition = node.selector.slice(selector.length)
+      // CSS optimization prints legacy pseudo-elements with one colon; keep them as separate targets.
+      const condition = node.selector
+        .slice(selector.length)
+        .replace(/^:(before|after|first-letter|first-line)(?=$|:)/, '::$1')
       if (!condition) Object.assign(style, readRule(node, selector))
       else if (
         /^:{1,2}(?:[\w-]+(?:\([^)]*\))?)(?::[\w-]+(?:\([^)]*\))?)*$/.test(

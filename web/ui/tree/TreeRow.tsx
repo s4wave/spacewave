@@ -1,15 +1,129 @@
 import { memo, use, useCallback } from 'react'
+import * as stylex from '@stylexjs/stylex'
+import { stylexProps } from '@s4wave/web/style/props.js'
 import { LuChevronDown, LuChevronRight } from '@s4wave/web/images/icons.js'
-import { cn } from '@s4wave/web/style/utils.js'
-import { isExpandable, TreeNode } from './TreeNode.js'
+
+import { isExpandable, treeRowDomId, TreeNode } from './TreeNode.js'
 import { TreeDispatchContext } from './TreeState.js'
 
-import * as stylex from '@stylexjs/stylex'
 import {
   layout as themeLayout,
   motion as themeMotion,
   colors as themeColors,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
 } from '../../style/tokens.stylex.js'
+
+const rowStyles = stylex.create({
+  guide: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 'var(--tree-guide-left)',
+    borderLeftStyle: themeUtilityState['--tw-border-style'],
+    borderLeftWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+  },
+  action: {
+    position: 'relative',
+    borderRadius: '.25rem',
+    padding: `calc(${themeLayout['--spacing']} * .5)`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+  },
+  row: {
+    position: 'relative',
+    display: 'flex',
+    height: '100%',
+    minHeight: {
+      default: 'var(--tree-row-min-height)',
+      '@media (max-width: 640px) and (pointer: coarse), (max-height: 470px) and (hover: none) and (pointer: coarse)':
+        '44px',
+    },
+    cursor: 'pointer',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    paddingBlock: themeLayout['--spacing'],
+    paddingRight: 'var(--tree-row-padding-right)',
+    paddingLeft: 'var(--tree-row-padding-left)',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    },
+    '--tw-ring-inset': { default: null, ':focus-visible': 'inset' },
+  },
+  selected: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    '::before': {
+      content: 'var(--tw-content)',
+      position: 'absolute',
+      insetBlock: themeLayout['--spacing'],
+      left: 0,
+      width: `calc(${themeLayout['--spacing']} * .5)`,
+      borderRadius: '3.40282e38px',
+      backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 60%, transparent)`,
+    },
+  },
+  alternate: {
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-background-card']} 20%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+      },
+    },
+  },
+  idle: {
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+      },
+    },
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -77,7 +191,11 @@ const stylexStyles = stylex.create({
   },
 })
 
+/** TreeRowProps describes one rendered tree row and its owned style override. */
 export interface TreeRowProps<T = void> {
+  sx?: stylex.StyleXStyles
+  // domIdPrefix keeps rendered IDs separate from domain IDs and other mounted trees.
+  domIdPrefix: string
   node: TreeNode<T>
   // level is the depth of the node, zero at the root.
   level: number
@@ -122,9 +240,7 @@ function TreeIndentGuides({ level }: { level: number }) {
       {Array.from({ length: level }).map((_, i) => (
         <div
           key={i}
-          className={
-            /* TODO(stylex): global or unknown class: tree-guide-position */ 'border-foreground/6 tree-guide-position absolute top-0 bottom-0 border-l'
-          }
+          sx={rowStyles.guide}
           style={{
             '--tree-guide-left': `${(i + 1) * levelIndentPx + 1.5}px`,
           }}
@@ -140,11 +256,13 @@ function TreeRowToggle<T>({
   hasChildren,
   isExpanded,
   onToggle,
+  domIdPrefix,
 }: {
   node: TreeNode<T>
   hasChildren: boolean
   isExpanded: boolean
   onToggle: (e: React.MouseEvent) => void
+  domIdPrefix: string
 }) {
   if (!hasChildren) return <span sx={stylexStyles.rule2} />
 
@@ -153,12 +271,12 @@ function TreeRowToggle<T>({
   return (
     <button
       type="button"
-      sx={stylexStyles.rule3}
+      sx={[stylexStyles.rule3, rowTargetStyles.touch]}
       onClick={onToggle}
       tabIndex={-1}
       aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${node.name}`}
       aria-controls={node.children
-        ?.map((child: TreeNode<T>) => child.id)
+        ?.map((child: TreeNode<T>) => treeRowDomId(domIdPrefix, child.id))
         .join(' ')}
     >
       <Chevron {...stylex.props(stylexStyles.rule4)} aria-hidden="true" />
@@ -183,9 +301,7 @@ function TreeRowContent<T>({ node }: { node: TreeNode<T> }) {
             <button
               type="button"
               key={iconIndex}
-              className={
-                /* TODO(stylex): a descendant, group, peer or compound selector: [&>svg]:h-3 */ 'text-foreground-alt hover:bg-foreground/5 hover:text-foreground relative rounded p-0.5 transition-colors [&>svg]:h-3 [&>svg]:w-3'
-              }
+              sx={[rowStyles.action, rowTargetStyles.touch]}
               onClick={(e) => {
                 e.stopPropagation()
                 iconData.onClick?.(e)
@@ -327,27 +443,31 @@ function TreeRowImpl<T = void>(props: TreeRowProps<T>) {
   const hasChildren = isExpandable(node)
   const isExpanded = hasChildren && props.isExpanded
   const handlers = useTreeRowHandlers(props)
+  const domIdPrefix = props.domIdPrefix
 
   return (
     <div
-      className={
-        /* TODO(stylex): global or unknown class: tree-row-indent */ cn(
-          'tree-row-indent relative flex h-full cursor-pointer items-center gap-1 py-1 text-xs select-none',
-          'border-foreground/6 border-b outline-none transition-colors',
-          'focus-visible:ring-brand/30 focus-visible:ring-1 focus-visible:ring-inset',
-          isSelected &&
-            'bg-brand/10 before:bg-brand/60 before:absolute before:inset-y-1 before:left-0 before:w-0.5 before:rounded-full',
-          !isSelected && 'hover:bg-background-card/50',
-          !isSelected && index % 2 === 1 && 'bg-background-card/20',
-        )
-      }
+      {...stylexProps(
+        [
+          rowStyles.row,
+          isSelected
+            ? rowStyles.selected
+            : index % 2 === 1
+              ? rowStyles.alternate
+              : rowStyles.idle,
+          props.sx,
+        ],
+        {
+          style: {
+            '--tree-row-padding-left': `${level * levelIndentPx + 4}px`,
+            '--tree-row-padding-right': '8px',
+            '--tree-row-min-height': '28px',
+          },
+        },
+      )}
       draggable={!!node.onDragStart}
       onDragStart={handlers.onDragStart}
-      style={{
-        '--tree-row-padding-left': `${level * levelIndentPx + 4}px`,
-        '--tree-row-padding-right': '8px',
-        '--tree-row-min-height': '28px',
-      }}
+
       onClick={handlers.handleTreeItemSelect}
       onKeyDown={handlers.handleTreeItemKeyDown}
       onDoubleClick={handlers.handleDoubleClick}
@@ -366,7 +486,7 @@ function TreeRowImpl<T = void>(props: TreeRowProps<T>) {
       ref={handlers.handleRef}
       data-autofocus={isFocused || undefined}
       data-focused={isFocused || undefined}
-      id={node.id}
+      id={treeRowDomId(domIdPrefix, node.id)}
     >
       <TreeIndentGuides level={level} />
       <TreeRowToggle
@@ -374,6 +494,7 @@ function TreeRowImpl<T = void>(props: TreeRowProps<T>) {
         hasChildren={hasChildren}
         isExpanded={isExpanded}
         onToggle={handlers.handleToggle}
+        domIdPrefix={domIdPrefix}
       />
       <TreeRowContent node={node} />
     </div>
@@ -382,3 +503,31 @@ function TreeRowImpl<T = void>(props: TreeRowProps<T>) {
 
 // TreeRow renders one tree row, skipping renders while its props are unchanged.
 export const TreeRow = memo(TreeRowImpl) as typeof TreeRowImpl
+
+const rowTargetStyles = stylex.create({
+  touch: {
+    display: {
+      default: null,
+      '@media (max-width: 640px) and (pointer: coarse), (max-height: 470px) and (hover: none) and (pointer: coarse)':
+        'inline-flex',
+    },
+    alignItems: {
+      default: null,
+      '@media (max-width: 640px) and (pointer: coarse), (max-height: 470px) and (hover: none) and (pointer: coarse)':
+        'center',
+    },
+    justifyContent: {
+      default: null,
+      '@media (max-width: 640px) and (pointer: coarse), (max-height: 470px) and (hover: none) and (pointer: coarse)':
+        'center',
+    },
+    minWidth: {
+      default: null,
+      '@media (max-width: 640px) and (pointer: coarse), (max-height: 470px) and (hover: none) and (pointer: coarse)': 44,
+    },
+    minHeight: {
+      default: null,
+      '@media (max-width: 640px) and (pointer: coarse), (max-height: 470px) and (hover: none) and (pointer: coarse)': 44,
+    },
+  },
+})

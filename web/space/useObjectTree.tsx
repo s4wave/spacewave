@@ -5,6 +5,7 @@ import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import { useWorldQuery } from '@s4wave/web/hooks/useWorldQuery.js'
 import type { TreeNode } from '@s4wave/web/ui/tree/TreeNode.js'
+import { treeRowActionIconStyles } from '@s4wave/web/ui/tree/styles.stylex.js'
 
 import {
   listObjectLevel,
@@ -124,7 +125,7 @@ function moreNode(
     icon: <LuEllipsis {...stylex.props(stylexStyles.rule1)} />,
     icons: [
       {
-        icon: <LuEllipsis />,
+        icon: <LuEllipsis {...stylex.props(treeRowActionIconStyles.icon)} />,
         tooltip: 'Show more objects',
         onClick: () => loadMore(prefix),
       },

@@ -18,19 +18,15 @@ const stylexStyles = stylex.create({
   },
   rule2: { display: 'flex', flexShrink: 0, overflow: 'hidden' },
   rule3: {
-    content: { default: null, ':after': '""' },
-    pointerEvents: { default: null, ':after': 'none' },
-    position: { default: null, ':after': 'absolute' },
-    top: { default: null, ':after': 0 },
-    left: { default: null, ':after': 0 },
-    height: {
-      default: null,
-      ':after': `calc(${themeLayout['--spacing']} * .25)`,
-    },
-    width: { default: null, ':after': '100%' },
-    backgroundColor: {
-      default: null,
-      ':after': themeColors['--color-bar-border-top'],
+    '::after': {
+      content: '""',
+      pointerEvents: 'none',
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      height: `calc(${themeLayout['--spacing']} * .25)`,
+      width: '100%',
+      backgroundColor: themeColors['--color-bar-border-top'],
     },
   },
 })
