@@ -18,7 +18,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@s4wave/web/ui/tooltip.js'
-import { inputClass } from '@s4wave/web/ui/credential/CredentialProofInput.js'
+import { credentialInputStyles } from '@s4wave/web/ui/credential/CredentialProofInput.js'
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 import { useStateAtom, useStateNamespace } from '@s4wave/web/state/persist.js'
 import { useEmailManagement } from '@s4wave/web/hooks/useEmailManagement.js'
@@ -302,7 +302,10 @@ function AddEmailForm({
           }
         }}
         disabled={adding}
-        className={cn(inputClass, error && 'border-destructive/50')}
+        sx={[
+          credentialInputStyles.input,
+          !!error && credentialInputStyles.invalid,
+        ]}
         aria-invalid={!!error}
         aria-describedby={error ? 'add-email-error' : undefined}
       />
@@ -661,10 +664,7 @@ function VerifyCodePanel({
             void onVerifyCode()
           }
         }}
-        className={cn(
-          inputClass,
-          'text-center font-mono text-base tracking-brand-extra-wide',
-        )}
+        sx={[credentialInputStyles.input, credentialInputStyles.compactCode]}
         aria-label={'Verification code for ' + addr}
       />
       <div className="flex items-center justify-between gap-2">

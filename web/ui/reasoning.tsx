@@ -75,7 +75,7 @@ function Reasoning({
         ) : (
           <TraceCollapsible open={chosen ?? thinking} onOpenChange={setChosen}>
             <TraceCollapsibleTrigger>{line}</TraceCollapsibleTrigger>
-            <TraceCollapsibleContent {...stylex.props(stylexStyles.rule2)}>
+            <TraceCollapsibleContent sx={stylexStyles.rule2}>
               {text}
             </TraceCollapsibleContent>
           </TraceCollapsible>

@@ -26,7 +26,7 @@ import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { cn } from '@s4wave/web/style/utils.js'
-import { inputClass } from '@s4wave/web/ui/credential/CredentialProofInput.js'
+import { credentialInputStyles } from '@s4wave/web/ui/credential/CredentialProofInput.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { AccountLifecycleState } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 
@@ -434,10 +434,7 @@ function InitiateDeleteView({
             value={code}
             onChange={(e) => onCodeChange(e.target.value.replace(/\D/g, ''))}
             placeholder="000000"
-            className={cn(
-              inputClass,
-              'text-center font-mono text-lg tracking-brand-extra-wide',
-            )}
+            sx={[credentialInputStyles.input, credentialInputStyles.code]}
           />
         </div>
 

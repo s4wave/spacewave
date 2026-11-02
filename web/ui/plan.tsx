@@ -91,7 +91,7 @@ function Plan({
               </TraceDescription>
             </TraceLine>
           </TraceCollapsibleTrigger>
-          <TraceCollapsibleContent {...stylex.props(stylexStyles.rule1)}>
+          <TraceCollapsibleContent sx={stylexStyles.rule1}>
             {description ? <p>{description}</p> : null}
             <Trace>
               {steps.map((step) => (

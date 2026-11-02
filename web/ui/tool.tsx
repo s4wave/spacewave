@@ -62,7 +62,7 @@ function Tool({
         {expandable ? (
           <TraceCollapsible>
             <TraceCollapsibleTrigger>{line}</TraceCollapsibleTrigger>
-            <TraceCollapsibleContent {...stylex.props(stylexStyles.rule1)}>
+            <TraceCollapsibleContent sx={stylexStyles.rule1}>
               {input ? (
                 <CodeBlock size="sm">
                   <CodeBlockContent wrap {...stylex.props(stylexStyles.rule2)}>

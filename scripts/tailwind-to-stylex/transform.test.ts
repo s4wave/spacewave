@@ -28,6 +28,7 @@ import { writePathFixture } from './path-fixture.js'
 import { writeTabsFixture } from './tabs-fixture.js'
 import { writeTraceFixture } from './trace-fixture.js'
 import { writeTreeFixture } from './tree-fixture.js'
+import { writeCredentialFixture } from './credential-fixture.js'
 import { writeBadgeFixture } from './badge-fixture.js'
 import { writeFloatingFixture } from './floating-fixture.js'
 import { writeIconDefaultsFixture } from './icon-defaults-fixture.js'
@@ -168,6 +169,7 @@ test(
         await writeTraceFixture(root, version)
         await writeTreeFixture(root, version)
         await writeBadgeFixture(root, version)
+        await writeCredentialFixture(root, version)
         await writeFloatingFixture(root, version)
         main = main.replace(
           "import React from 'react';",
@@ -640,6 +642,7 @@ test(
         await writeIconDefaultsFixture(root, version)
         main = "import{IconDefaultsSamples}from'./IconDefaultsSamples';" + main
         main = "import{FloatingSamples}from'./FloatingSamples';" + main
+        main = "import{CredentialSamples}from'./CredentialSamples';" + main
         main = "import{BadgeSamples}from'./BadgeSamples';" + main
         main = "import{TabsSamples}from'./TabsSamples';" + main
         main = "import{PathSamples}from'./PathSamples';" + main
@@ -649,7 +652,7 @@ test(
         main = "import{SheetSamples}from'./SheetSamples';" + main
         main = main.replace(
           "createRoot(document.getElementById('root')!).render",
-          "if(new URLSearchParams(location.search).has('icon-defaults'))createRoot(document.getElementById('root')!).render(<IconDefaultsSamples/>);else if(new URLSearchParams(location.search).has('floating'))createRoot(document.getElementById('root')!).render(<FloatingSamples/>);else if(new URLSearchParams(location.search).has('badge'))createRoot(document.getElementById('root')!).render(<BadgeSamples/>);else if(new URLSearchParams(location.search).has('tree'))createRoot(document.getElementById('root')!).render(<TreeSamples/>);else if(new URLSearchParams(location.search).has('tabs'))createRoot(document.getElementById('root')!).render(<TabsSamples/>);else if(new URLSearchParams(location.search).has('path'))createRoot(document.getElementById('root')!).render(<PathSamples/>);else if(new URLSearchParams(location.search).has('dialog'))createRoot(document.getElementById('root')!).render(<DialogSamples/>);else if(new URLSearchParams(location.search).has('buttons'))createRoot(document.getElementById('root')!).render(<ButtonSamples/>);else if(new URLSearchParams(location.search).has('input'))createRoot(document.getElementById('root')!).render(<InputSamples/>);else if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
+          "if(new URLSearchParams(location.search).has('trace'))createRoot(document.getElementById('root')!).render(<TraceSamples/>);else if(new URLSearchParams(location.search).has('credential'))createRoot(document.getElementById('root')!).render(<CredentialSamples/>);else if(new URLSearchParams(location.search).has('icon-defaults'))createRoot(document.getElementById('root')!).render(<IconDefaultsSamples/>);else if(new URLSearchParams(location.search).has('floating'))createRoot(document.getElementById('root')!).render(<FloatingSamples/>);else if(new URLSearchParams(location.search).has('badge'))createRoot(document.getElementById('root')!).render(<BadgeSamples/>);else if(new URLSearchParams(location.search).has('tree'))createRoot(document.getElementById('root')!).render(<TreeSamples/>);else if(new URLSearchParams(location.search).has('tabs'))createRoot(document.getElementById('root')!).render(<TabsSamples/>);else if(new URLSearchParams(location.search).has('path'))createRoot(document.getElementById('root')!).render(<PathSamples/>);else if(new URLSearchParams(location.search).has('dialog'))createRoot(document.getElementById('root')!).render(<DialogSamples/>);else if(new URLSearchParams(location.search).has('buttons'))createRoot(document.getElementById('root')!).render(<ButtonSamples/>);else if(new URLSearchParams(location.search).has('input'))createRoot(document.getElementById('root')!).render(<InputSamples/>);else if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
         )
         // Discover the actual tree API through its public barrel before converting the caller.
         const treeImports = await readSharedStyleApis(
@@ -952,6 +955,53 @@ void invalidNativeDelegate;
                 await page
                   .getByRole('link', { name: 'Invalid 4', exact: true })
                   .focus()
+            },
+          })),
+          ...['default', 'focused', 'hovered'].map((mode) => ({
+            id: `credential-${mode}`,
+            path: `/?credential=${mode}`,
+            ready: async (page: import('playwright').Page) => {
+              await page.locator('#credential-fixtures').waitFor()
+              await page.evaluate(() => document.fonts.ready)
+            },
+            setup: async (page: import('playwright').Page) => {
+              if (mode === 'focused')
+                await page
+                  .getByRole('textbox', {
+                    name: 'Invalid shared field',
+                    exact: true,
+                  })
+                  .focus()
+              if (mode === 'hovered')
+                await page
+                  .getByRole('button', {
+                    name: 'Backup key (.pem)',
+                    exact: true,
+                  })
+                  .first()
+                  .hover({ timeout: 5000 })
+            },
+          })),
+          ...['default', 'hovered', 'focused', 'reduced'].map((mode) => ({
+            id: `trace-${mode}`,
+            path: `/?trace=${mode}`,
+            reducedMotion: mode === 'reduced' ? ('reduce' as const) : undefined,
+            ready: async (page: import('playwright').Page) => {
+              await page.locator('#trace-fixtures').waitFor()
+              await page.evaluate(() => document.fonts.ready)
+            },
+            setup: async (page: import('playwright').Page) => {
+              if (mode === 'focused')
+                await page
+                  .getByRole('link', { name: 'file.ts:42', exact: true })
+                  .focus({ timeout: 5000 })
+              if (mode === 'hovered')
+                await page
+                  .getByRole('button', {
+                    name: 'done trace false',
+                    exact: true,
+                  })
+                  .hover({ timeout: 5000 })
             },
           })),
           { id: 'components', path: '/', ready },
@@ -1301,6 +1351,23 @@ void invalidNativeDelegate;
         {
           name: 'shared components',
           ids: ['components', 'reduced-motion', 'hovered', 'relations-hovered'],
+        },
+        {
+          name: 'trace controls',
+          ids: [
+            'trace-default',
+            'trace-hovered',
+            'trace-focused',
+            'trace-reduced',
+          ],
+        },
+        {
+          name: 'credential fields',
+          ids: [
+            'credential-default',
+            'credential-focused',
+            'credential-hovered',
+          ],
         },
         {
           name: 'sheets and fields',

@@ -15,7 +15,7 @@ import {
 import { cn } from '@s4wave/web/style/utils.js'
 import {
   CredentialProofInput,
-  inputClass,
+  credentialInputStyles,
 } from '@s4wave/web/ui/credential/CredentialProofInput.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { RadioOption } from '@s4wave/web/ui/RadioOption.js'
@@ -355,7 +355,7 @@ function PinFields({ wiz }: { wiz: SetupWizardState }) {
           value={wiz.pin}
           onChange={(e) => wiz.setPin(e.target.value)}
           placeholder="Enter PIN"
-          className={inputClass}
+          sx={[credentialInputStyles.input]}
         />
       </div>
       <div>
@@ -371,12 +371,12 @@ function PinFields({ wiz }: { wiz: SetupWizardState }) {
           value={wiz.confirmPin}
           onChange={(e) => wiz.setConfirmPin(e.target.value)}
           placeholder="Confirm PIN"
-          className={cn(
-            inputClass,
+          sx={[
+            credentialInputStyles.input,
             wiz.confirmPin.length > 0 &&
               wiz.pin !== wiz.confirmPin &&
-              'border-destructive/50',
-          )}
+              credentialInputStyles.invalid,
+          ]}
         />
       </div>
     </div>

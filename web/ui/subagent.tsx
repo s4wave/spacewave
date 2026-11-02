@@ -286,7 +286,7 @@ function Subagent({
             <TraceCollapsibleTrigger>{line}</TraceCollapsibleTrigger>
             {link}
           </div>
-          <TraceCollapsibleContent {...stylex.props(stylexStyles.rule7)}>
+          <TraceCollapsibleContent sx={stylexStyles.rule7}>
             <SubagentBadges model={model} tools={tools} />
             <SubagentNote label="Task" text={task} />
             <SubagentSteps steps={steps} />
