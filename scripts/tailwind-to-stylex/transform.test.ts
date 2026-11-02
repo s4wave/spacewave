@@ -28,6 +28,8 @@ import { writePathFixture } from './path-fixture.js'
 import { writeTabsFixture } from './tabs-fixture.js'
 import { writeTraceFixture } from './trace-fixture.js'
 import { writeTreeFixture } from './tree-fixture.js'
+import { writeGroupFixture } from './group-fixture.js'
+import { writeCodeFixture } from './code-fixture.js'
 import { writeCredentialFixture } from './credential-fixture.js'
 import { writeBadgeFixture } from './badge-fixture.js'
 import { writeFloatingFixture } from './floating-fixture.js'
@@ -147,7 +149,7 @@ test(
         )
         await writeFile(
           join(root, 'index.html'),
-          '<!doctype html><html lang="en"><head></head><body><div id="root"></div><script type="module" src="/main.tsx"></script></body></html>',
+          '<!doctype html><html lang="en"><head><meta charset="utf-8"></head><body><div id="root"></div><script type="module" src="/main.tsx"></script></body></html>',
         )
         // Keep the original button API in the before capture as shared primitives continue converting.
         await writeFile(
@@ -170,6 +172,8 @@ test(
         await writeTreeFixture(root, version)
         await writeBadgeFixture(root, version)
         await writeCredentialFixture(root, version)
+        await writeCodeFixture(root, version)
+        await writeGroupFixture(root, version)
         await writeFloatingFixture(root, version)
         main = main.replace(
           "import React from 'react';",
@@ -642,6 +646,8 @@ test(
         await writeIconDefaultsFixture(root, version)
         main = "import{IconDefaultsSamples}from'./IconDefaultsSamples';" + main
         main = "import{FloatingSamples}from'./FloatingSamples';" + main
+        main = "import{GroupSamples}from'./GroupSamples';" + main
+        main = "import{CodeSamples}from'./CodeSamples';" + main
         main = "import{CredentialSamples}from'./CredentialSamples';" + main
         main = "import{BadgeSamples}from'./BadgeSamples';" + main
         main = "import{TabsSamples}from'./TabsSamples';" + main
@@ -652,7 +658,7 @@ test(
         main = "import{SheetSamples}from'./SheetSamples';" + main
         main = main.replace(
           "createRoot(document.getElementById('root')!).render",
-          "if(new URLSearchParams(location.search).has('trace'))createRoot(document.getElementById('root')!).render(<TraceSamples/>);else if(new URLSearchParams(location.search).has('credential'))createRoot(document.getElementById('root')!).render(<CredentialSamples/>);else if(new URLSearchParams(location.search).has('icon-defaults'))createRoot(document.getElementById('root')!).render(<IconDefaultsSamples/>);else if(new URLSearchParams(location.search).has('floating'))createRoot(document.getElementById('root')!).render(<FloatingSamples/>);else if(new URLSearchParams(location.search).has('badge'))createRoot(document.getElementById('root')!).render(<BadgeSamples/>);else if(new URLSearchParams(location.search).has('tree'))createRoot(document.getElementById('root')!).render(<TreeSamples/>);else if(new URLSearchParams(location.search).has('tabs'))createRoot(document.getElementById('root')!).render(<TabsSamples/>);else if(new URLSearchParams(location.search).has('path'))createRoot(document.getElementById('root')!).render(<PathSamples/>);else if(new URLSearchParams(location.search).has('dialog'))createRoot(document.getElementById('root')!).render(<DialogSamples/>);else if(new URLSearchParams(location.search).has('buttons'))createRoot(document.getElementById('root')!).render(<ButtonSamples/>);else if(new URLSearchParams(location.search).has('input'))createRoot(document.getElementById('root')!).render(<InputSamples/>);else if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
+          "if(new URLSearchParams(location.search).has('groups'))createRoot(document.getElementById('root')!).render(<GroupSamples/>);else if(new URLSearchParams(location.search).has('code'))createRoot(document.getElementById('root')!).render(<CodeSamples/>);else if(new URLSearchParams(location.search).has('trace'))createRoot(document.getElementById('root')!).render(<TraceSamples/>);else if(new URLSearchParams(location.search).has('credential'))createRoot(document.getElementById('root')!).render(<CredentialSamples/>);else if(new URLSearchParams(location.search).has('icon-defaults'))createRoot(document.getElementById('root')!).render(<IconDefaultsSamples/>);else if(new URLSearchParams(location.search).has('floating'))createRoot(document.getElementById('root')!).render(<FloatingSamples/>);else if(new URLSearchParams(location.search).has('badge'))createRoot(document.getElementById('root')!).render(<BadgeSamples/>);else if(new URLSearchParams(location.search).has('tree'))createRoot(document.getElementById('root')!).render(<TreeSamples/>);else if(new URLSearchParams(location.search).has('tabs'))createRoot(document.getElementById('root')!).render(<TabsSamples/>);else if(new URLSearchParams(location.search).has('path'))createRoot(document.getElementById('root')!).render(<PathSamples/>);else if(new URLSearchParams(location.search).has('dialog'))createRoot(document.getElementById('root')!).render(<DialogSamples/>);else if(new URLSearchParams(location.search).has('buttons'))createRoot(document.getElementById('root')!).render(<ButtonSamples/>);else if(new URLSearchParams(location.search).has('input'))createRoot(document.getElementById('root')!).render(<InputSamples/>);else if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
         )
         // Discover the actual tree API through its public barrel before converting the caller.
         const treeImports = await readSharedStyleApis(
@@ -1004,6 +1010,83 @@ void invalidNativeDelegate;
                   .hover({ timeout: 5000 })
             },
           })),
+          ...[
+            'default',
+            'hovered',
+            'focused',
+            'action-focused',
+            'action-hovered',
+            'coarse',
+            'dark',
+          ].map((mode) => ({
+            id: `code-${mode}`,
+            path: `/?code=${mode}`,
+            hasTouch: mode === 'coarse',
+            ready: async (page: import('playwright').Page) => {
+              await page.locator('#code-fixtures').waitFor()
+              await page.evaluate(() => document.fonts.ready)
+              const first = page
+                .locator('[data-slot="code-block-content"]')
+                .first()
+              assert.deepEqual(
+                await first.evaluate((element) => ({
+                  opacity: getComputedStyle(element).opacity,
+                  caller:
+                    getComputedStyle(element).getPropertyValue('--caller-code'),
+                  start:
+                    getComputedStyle(element).getPropertyValue(
+                      '--code-block-start',
+                    ),
+                })),
+                { opacity: '0.9', caller: 'retained', start: '2' },
+              )
+            },
+            setup: async (page: import('playwright').Page) => {
+              // Exercise content and overlay controls through their actual focus and hover states.
+              if (mode === 'focused')
+                await page
+                  .locator('[data-slot="code-block-content"]')
+                  .first()
+                  .focus({ timeout: 5000 })
+              if (mode === 'hovered')
+                await page
+                  .locator('[data-slot="code-block"]')
+                  .first()
+                  .hover({ timeout: 5000 })
+              if (mode === 'action-focused')
+                await page
+                  .locator(
+                    '[data-slot="code-block"] > [data-slot="code-block-actions"] button',
+                  )
+                  .first()
+                  .focus({ timeout: 5000 })
+              if (mode === 'action-hovered')
+                await page
+                  .locator(
+                    '[data-slot="code-block"] > [data-slot="code-block-actions"] button',
+                  )
+                  .first()
+                  .hover({ timeout: 5000 })
+              if (mode === 'dark')
+                await page.evaluate(() =>
+                  document.documentElement.classList.add('dark'),
+                )
+            },
+          })),
+          ...['default', 'focused'].map((mode) => ({
+            id: `groups-${mode}`,
+            path: `/?groups=${mode}`,
+            ready: async (page: import('playwright').Page) => {
+              await page.locator('#group-fixtures').waitFor()
+              await page.evaluate(() => document.fonts.ready)
+            },
+            setup: async (page: import('playwright').Page) => {
+              if (mode === 'focused')
+                await page
+                  .getByRole('textbox', { name: 'Group field 0', exact: true })
+                  .focus({ timeout: 5000 })
+            },
+          })),
           { id: 'components', path: '/', ready },
           {
             id: 'reduced-motion',
@@ -1351,6 +1434,22 @@ void invalidNativeDelegate;
         {
           name: 'shared components',
           ids: ['components', 'reduced-motion', 'hovered', 'relations-hovered'],
+        },
+        {
+          name: 'button groups',
+          ids: ['groups-default', 'groups-focused'],
+        },
+        {
+          name: 'code blocks',
+          ids: [
+            'code-default',
+            'code-hovered',
+            'code-focused',
+            'code-action-focused',
+            'code-action-hovered',
+            'code-coarse',
+            'code-dark',
+          ],
         },
         {
           name: 'trace controls',

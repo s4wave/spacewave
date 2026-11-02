@@ -1,6 +1,9 @@
 /** relationMarkers maps the existing utility marker classes to stable StyleX exports. */
 export const relationMarkers: Readonly<Record<string, string>> = {
   group: 'groupMarker',
+  'group/button-group': 'buttonGroupMarker',
+  'group/button-group-horizontal': 'buttonGroupHorizontalMarker',
+  'group/button-group-vertical': 'buttonGroupVerticalMarker',
   peer: 'peerMarker',
   'group/code': 'codeGroupMarker',
   'group/code-block': 'codeBlockGroupMarker',

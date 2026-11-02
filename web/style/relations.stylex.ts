@@ -17,3 +17,10 @@ export const traceTriggerGroupMarker = stylex.defineMarker()
 export const traceLineMarker = stylex.defineMarker()
 /** traceTitleMarker identifies the preceding title beside a trailing trace icon. */
 export const traceTitleMarker = stylex.defineMarker()
+
+/** buttonGroupMarker scopes direct control focus and input layout. */
+export const buttonGroupMarker = stylex.defineMarker()
+/** buttonGroupHorizontalMarker joins horizontal control edges. */
+export const buttonGroupHorizontalMarker = stylex.defineMarker()
+/** buttonGroupVerticalMarker joins vertical control edges. */
+export const buttonGroupVerticalMarker = stylex.defineMarker()

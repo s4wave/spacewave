@@ -86,7 +86,7 @@ function Terminal({
           <TraceCollapsibleTrigger>{line}</TraceCollapsibleTrigger>
           <TraceCollapsibleContent>
             <CodeBlock size="sm" variant={failed ? 'destructive' : 'default'}>
-              <CodeBlockContent wrap {...stylex.props(stylexStyles.rule1)}>
+              <CodeBlockContent wrap sx={stylexStyles.rule1}>
                 {output}
               </CodeBlockContent>
             </CodeBlock>

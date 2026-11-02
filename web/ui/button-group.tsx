@@ -1,16 +1,80 @@
-import * as iconStylex from '@stylexjs/stylex'
+import { useControlStyles } from '@s4wave/web/style/ControlStylesProvider.js'
+import { cn } from '@s4wave/web/style/utils.js'
+import { buttonGroupControlStyles } from '../style/button-group.stylex.js'
+import { stylexProps } from '@s4wave/web/style/props.js'
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import { IconStylesProvider } from '@s4wave/web/images/icons.js'
 import {
   iconDefaults,
+  iconRequired,
   buttonGroupIconMarker,
 } from '../style/icon-defaults.stylex.js'
 import { Slot } from '@radix-ui/react-slot'
-import { cva, type VariantProps } from 'class-variance-authority'
+import { type VariantProps } from 'class-variance-authority'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import { Separator } from '@s4wave/web/ui/separator'
 import * as stylex from '@stylexjs/stylex'
 import { colors } from '../style/tokens.stylex.js'
+
+import {
+  layout as themeLayout,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+} from '../style/tokens.stylex.js'
+import {
+  buttonGroupMarker,
+  buttonGroupVerticalMarker,
+  buttonGroupHorizontalMarker,
+} from '../style/relations.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    width: 'fit-content',
+    alignItems: 'stretch',
+    gap: {
+      default: null,
+      ':has( > [data-slot="button-group"])': `calc(${themeLayout['--spacing']} * 2)`,
+    },
+  },
+  rule2: {
+    display: 'flex',
+    width: 'fit-content',
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    gap: {
+      default: null,
+      ':has( > [data-slot="button-group"])': `calc(${themeLayout['--spacing']} * 2)`,
+    },
+  },
+  rule3: {
+    display: 'flex',
+    width: 'fit-content',
+    alignItems: 'stretch',
+    gap: {
+      default: null,
+      ':has( > [data-slot="button-group"])': `calc(${themeLayout['--spacing']} * 2)`,
+    },
+  },
+  rule4: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    backgroundColor: colors['--color-muted'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-shadow': '0 1px 2px 0 var(--tw-shadow-color, #0000000d)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+  },
+})
 
 const separatorStyles = stylex.create({
   base: {
@@ -26,69 +90,84 @@ const separatorStyles = stylex.create({
   },
 })
 
-const buttonGroupVariants = cva(
-  "flex w-fit items-stretch has-[>[data-slot=button-group]]:gap-2 [&>*]:focus-visible:relative [&>*]:focus-visible:z-10 has-[select[aria-hidden=true]:last-child]:[&>[data-slot=select-trigger]:last-of-type]:rounded-r-md [&>[data-slot=select-trigger]:not([class*='w-'])]:w-fit [&>input]:flex-1",
-  {
-    variants: {
-      orientation: {
-        horizontal:
-          '[&>*:not(:first-child)]:rounded-l-none [&>*:not(:first-child)]:border-l-0 [&>*:not(:last-child)]:rounded-r-none',
-        vertical:
-          'flex-col [&>*:not(:first-child)]:rounded-t-none [&>*:not(:first-child)]:border-t-0 [&>*:not(:last-child)]:rounded-b-none',
-      },
-    },
-    defaultVariants: {
-      orientation: 'horizontal',
-    },
-  },
-)
+/** buttonGroupVariants supplies group layout and DOM markers without adding an element. */
+const buttonGroupVariants = (props?: {
+  orientation?: 'horizontal' | 'vertical' | null
+  sx?: stylex.StyleXStyles
+}) => {
+  // Resolve "orientation" once, retaining explicit null instead of its default.
+  const variant0Input = props?.['orientation']
+  const variant0 = variant0Input === undefined ? 'horizontal' : variant0Input
 
+  // Select one fully compiled recipe outcome, then compose caller styles.
+  return [
+    variant0 === 'horizontal'
+      ? [stylexStyles.rule3, buttonGroupMarker, buttonGroupHorizontalMarker]
+      : variant0 === 'vertical'
+        ? [stylexStyles.rule2, buttonGroupMarker, buttonGroupVerticalMarker]
+        : [stylexStyles.rule1, buttonGroupMarker],
+    props?.sx,
+  ] as const
+}
+
+const groupClass = stylex.props(buttonGroupControlStyles.child).className
+
+/** ButtonGroup joins native controls along one axis and retains their focus treatment. */
 function ButtonGroup({
-  className,
+  sx,
   orientation,
   ...props
-}: React.ComponentProps<'div'> & VariantProps<typeof buttonGroupVariants>) {
+}: Omit<
+  React.ComponentProps<'div'> & VariantProps<typeof buttonGroupVariants>,
+  'className'
+> & { sx?: ComponentStyles; className?: never }) {
+  const attributes = stylexProps(
+    [buttonGroupVariants({ orientation }), sx],
+    props,
+  )
+  const inheritedClass = useControlStyles()
+  attributes.className = cn(attributes.className, groupClass, inheritedClass)
   return (
     <div
       role="group"
       data-slot="button-group"
       data-orientation={orientation}
-      className={
-        /* TODO(stylex): computed class helper */ cn(
-          buttonGroupVariants({ orientation }),
-          className,
-        )
-      }
-      {...props}
+      {...attributes}
     />
   )
 }
 
+/** ButtonGroupText renders a label alongside joined controls. */
 function ButtonGroupText({
-  className,
+  sx,
   asChild = false,
   ...props
-}: React.ComponentProps<'div'> & {
-  asChild?: boolean
-}) {
+}: Omit<
+  React.ComponentProps<'div'> & {
+    asChild?: boolean
+  },
+  'className'
+> & { sx?: ComponentStyles; className?: never }) {
+  // Compose the label's native attributes before applying its independent control rules.
   const Comp = asChild ? Slot : 'div'
+  const attributes = stylexProps(
+    [buttonGroupIconMarker, stylexStyles.rule4, sx],
+    props,
+  )
+  const inheritedClass = useControlStyles()
+  attributes.className = cn(attributes.className, groupClass, inheritedClass)
 
   return (
-    <IconStylesProvider sx={[iconDefaults.buttonGroup]}>
-      <Comp
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: [&_svg]:pointer-events-none */ cn(
-            'bg-muted flex items-center gap-2 rounded-md border px-4 text-sm font-medium shadow-xs [&_svg]:pointer-events-none',
-            className,
-            iconStylex.props(buttonGroupIconMarker).className,
-          )
-        }
-        {...props}
-      />
+    <IconStylesProvider
+      sx={[iconDefaults.buttonGroup]}
+      requiredSx={iconRequired.buttonGroup}
+    >
+      <Comp {...attributes} />
     </IconStylesProvider>
   )
 }
 
+/** ButtonGroupSeparator separates controls along the selected axis. */
 function ButtonGroupSeparator({
   sx,
   orientation = 'vertical',
@@ -104,9 +183,6 @@ function ButtonGroupSeparator({
   )
 }
 
-export {
-  ButtonGroup,
-  ButtonGroupSeparator,
-  ButtonGroupText,
-  buttonGroupVariants,
-}
+export { ButtonGroup, ButtonGroupSeparator, ButtonGroupText }
+
+export { buttonGroupVariants }

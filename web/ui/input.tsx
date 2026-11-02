@@ -1,3 +1,6 @@
+import { cn } from '@s4wave/web/style/utils.js'
+import { buttonGroupControlStyles } from '../style/button-group.stylex.js'
+import { useControlStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import { stylexProps } from '@s4wave/web/style/props.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
@@ -527,18 +530,21 @@ interface InputProps extends Omit<React.ComponentProps<'input'>, 'className'> {
   variant?: keyof typeof variantStyles | null
 }
 
+const groupClass = stylex.props([
+  buttonGroupControlStyles.child,
+  buttonGroupControlStyles.input,
+]).className
+
 /** Input renders a themed native field with compiled caller styles. */
 function Input({ sx, type, variant, ...props }: InputProps) {
-  return (
-    <input
-      type={type}
-      data-slot="input"
-      {...stylexProps(
-        [styles.base, variant ? variantStyles[variant] : styles.default, sx],
-        props,
-      )}
-    />
+  // Preserve field defaults while applying the group's direct-child rules independently.
+  const attributes = stylexProps(
+    [styles.base, variant ? variantStyles[variant] : styles.default, sx],
+    props,
   )
+  const inheritedClass = useControlStyles()
+  attributes.className = cn(attributes.className, groupClass, inheritedClass)
+  return <input type={type} data-slot="input" {...attributes} />
 }
 
 export { Input }
