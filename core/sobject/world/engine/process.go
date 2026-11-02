@@ -306,15 +306,15 @@ func (c *Controller) processApplyTxOpWithEngine(
 		return err
 	}()
 
-	// A canceled context explains any failure.
-	if ctx.Err() != nil {
-		return nil, nil, context.Canceled
+	// End the pass when its own context ends.
+	if err := ctx.Err(); err != nil {
+		return nil, nil, err
 	}
 
-	// A block that is not available, or a declared handler that has not
-	// resolved, is a local gap, not a property of the operation, so it stops
-	// replay instead of rejecting.
-	if isReplayGap(aerr) {
+	// A dependency's canceled read can outlive its transport while this pass
+	// stays live. Like an unavailable block or handler, it stops replay:
+	// rejecting the operation would make a local failure split replicas.
+	if isReplayGap(aerr) || errors.Is(aerr, context.Canceled) || errors.Is(aerr, context.DeadlineExceeded) {
 		return nil, nil, aerr
 	}
 

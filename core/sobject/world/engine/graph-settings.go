@@ -113,14 +113,18 @@ func processGraphSettingsStepOp(
 		return err
 	}()
 
-	// A canceled context explains any failure, and a block that is not
-	// available stops replay instead of rejecting.
-	if ctx.Err() != nil {
-		return nil, nil, context.Canceled
+	// End the pass when its own context ends.
+	if err := ctx.Err(); err != nil {
+		return nil, nil, err
 	}
-	if isReplayGap(aerr) {
+
+	// A canceled dependency or unavailable block stops this pass without
+	// turning a local transport failure into a replicated rejection.
+	if isReplayGap(aerr) || errors.Is(aerr, context.Canceled) || errors.Is(aerr, context.DeadlineExceeded) {
 		return nil, nil, aerr
 	}
+
+	// Reject a step whose application failed for a property of the operation.
 	if aerr != nil {
 		le.WithError(aerr).Warn("rejecting graph settings step")
 		return nil, opRejection(peerID, nonce, "graph settings step failed: "+aerr.Error()), nil

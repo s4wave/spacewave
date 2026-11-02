@@ -71,6 +71,119 @@ func (s *hidingBlockStore) serve() {
 	}
 }
 
+// TestReplayRetriesCanceledBlockRead keeps the replay context live while a
+// block read's transport lifetime ends. The failed operation stays unplaced,
+// including in the saved cursor, and applies after the transport is replaced.
+func TestReplayRetriesCanceledBlockRead(t *testing.T) {
+	for _, want := range []error{context.Canceled, context.DeadlineExceeded} {
+		t.Run(want.Error(), func(t *testing.T) {
+			// Build a real World that resolves the object edit operation.
+			ctx := t.Context()
+			priv, pid := newReplayTestKey(t)
+			space := newReplayTestSpace(t, pid)
+			space.c.SetOpTypes(OpTypes{Lookup: world_mock.LookupMockOp})
+
+			// Write the encrypted payload the edit will read.
+			conf := space.genesis.GetHeadRef().GetTransformConf()
+			xfrm, err := block_transform.NewTransformer(controller.ConstructOpts{}, space.c.sfs, conf)
+			if err != nil {
+				t.Fatal(err)
+			}
+			btx, bcs := block.NewTransaction(space.so.blockStore, xfrm, nil, nil)
+			bcs.SetBlock(&block_mock.Example{Msg: "before"}, true)
+			payload, _, err := btx.Write(ctx, true)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// Sign an object creation followed by an edit that reads its payload.
+			create, err := world_block_tx.NewTxCreateObject("object", &bucket.ObjectRef{RootRef: payload, TransformConf: conf})
+			if err != nil {
+				t.Fatal(err)
+			}
+			edit, err := world_block_tx.NewTxApplyObjectOp(world_mock.MockObjectOpTypeID, world_mock.NewMockObjectOp("after"), "object", pid)
+			if err != nil {
+				t.Fatal(err)
+			}
+			o1 := space.signTx("create", priv, create, &sobject.SOOperationLink{Nonce: 1})
+			o2 := space.signTx("edit", priv, edit, &sobject.SOOperationLink{Nonce: 2, PrevOpHash: o1.Hash()})
+
+			// Deliver the signed operations to the replaying member.
+			member := space.member(pid, false)
+			member.replayer.lookupOp = space.c.buildLookupWorldOp(space.c.le)
+			for _, op := range []*sobject.SOOperation{o1, o2} {
+				if _, err := member.set.Add(op); err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			// End the child read lifetime without ending the replay's context.
+			readCtx, cancel := context.WithCancelCause(ctx)
+			cancel(want)
+			store := &hidingBlockStore{BlockStore: space.so.blockStore, ref: payload, err: errors.Wrap(context.Cause(readCtx), "transport read")}
+			store.hidden.Store(true)
+			member.replayer.so = &testSharedObject{peerID: pid, blockStore: store}
+			_, _, err = member.replayer.replay(ctx, member.snap, member.set, nil)
+			if !errors.Is(err, want) || ctx.Err() != nil {
+				t.Fatalf("replay error=%v context=%v, want child error %v", err, ctx.Err(), want)
+			}
+			if got := len(member.replayer.positions); got != 1 {
+				t.Fatalf("replay placed %d operations, want only the creation", got)
+			}
+
+			// A saved cursor must not turn the interruption into a rejection.
+			data, err := member.replayer.encodeCursor()
+			if err != nil {
+				t.Fatal(err)
+			}
+			cursor := &ReplayCursor{}
+			if err := cursor.UnmarshalVT(data); err != nil {
+				t.Fatal(err)
+			}
+			if len(cursor.GetOutcomes()) != 1 || cursor.GetOutcomes()[0].GetReason() != "" {
+				t.Fatalf("saved replay contains an interrupted operation: %v", cursor.GetOutcomes())
+			}
+
+			// Replacing the transport lets the same edit apply successfully.
+			store.serve()
+			state, outcomes, err := member.replayer.replay(ctx, member.snap, member.set, nil)
+			if err != nil || len(outcomes) != 2 || outcomes[1].reason != "" {
+				t.Fatalf("resumed replay outcomes=%v error=%v", outcomes, err)
+			}
+
+			// Bind the resumed World for a fresh read.
+			w := newReplayWorld(space.c, store)
+			defer w.close(ctx)
+			ws, err := w.bind(ctx, state.GetHeadRef())
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// Read the edited payload through the object API.
+			tx, err := ws.bengine.NewTransaction(ctx, false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer tx.Discard()
+			obj, found, err := tx.GetObject(ctx, "object")
+			defer world.ReleaseObjectState(obj)
+			if err != nil || !found {
+				t.Fatalf("resumed object found=%v error=%v", found, err)
+			}
+			_, _, err = world.AccessObjectState(ctx, obj, false, func(cursor *block.Cursor) error {
+				value, err := cursor.Unmarshal(ctx, block_mock.NewExampleBlock)
+				if err == nil && value.(*block_mock.Example).GetMsg() != "after" {
+					t.Fatalf("resumed edit left payload %q", value.(*block_mock.Example).GetMsg())
+				}
+				return err
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
 // opCounter counts the operations replay starts to apply.
 type opCounter struct {
 	n atomic.Int32
