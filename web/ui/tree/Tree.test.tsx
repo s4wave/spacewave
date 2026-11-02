@@ -66,17 +66,42 @@ describe('Tree', () => {
   })
 
   it('should not pull focus out of an input elsewhere on the page', async () => {
-    render(<input aria-label="Name" />)
+    // An external mount ID and repeated domain IDs must not become row DOM IDs.
+    render(<input id="root" aria-label="Name" />)
     const input = screen.getByLabelText('Name')
     input.focus()
-
-    render(<TestTree nodes={mockNodes} />)
-    await waitFor(() => {
-      expect(screen.getByText('Root')).toBeTruthy()
-    })
+    render(
+      <>
+        <TestTree nodes={mockNodes} />
+        <TestTree nodes={mockNodes} />
+      </>,
+    )
+    const trees = screen.getAllByRole('tree')
+    await waitFor(() =>
+      expect(trees[1].querySelector('[role="treeitem"]')).toBeTruthy(),
+    )
     await new Promise((resolve) => requestAnimationFrame(resolve))
-
     expect(document.activeElement).toBe(input)
+
+    // Each tree describes its own instructions and transfers focus to its own current row.
+    const descriptions = trees.map((tree) =>
+      document.getElementById(tree.getAttribute('aria-describedby')!),
+    )
+    expect(descriptions[0]).not.toBe(descriptions[1])
+    expect(
+      descriptions.every(
+        (description, index) =>
+          description && trees[index].contains(description),
+      ),
+    ).toBe(true)
+    trees[1].focus()
+    await waitFor(() =>
+      expect(trees[1].contains(document.activeElement)).toBe(true),
+    )
+    expect(document.activeElement?.id).toBe(
+      trees[1].getAttribute('aria-activedescendant'),
+    )
+    expect(trees[0].contains(document.activeElement)).toBe(false)
   })
 
   it('should show placeholder when no nodes', () => {

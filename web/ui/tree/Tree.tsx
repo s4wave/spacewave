@@ -1,11 +1,11 @@
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef } from 'react'
 import { List, useListRef, type RowComponentProps } from 'react-window'
 import {
   coarsePointerQuery,
   useMediaQuery,
 } from '@s4wave/web/hooks/useMediaQuery.js'
-import { isExpandable, TreeNode } from './TreeNode.js'
+import { isExpandable, treeRowDomId, TreeNode } from './TreeNode.js'
 import {
   findNodeById,
   findParentNode,
@@ -108,6 +108,7 @@ type TreeListRowProps<T> = Pick<
 > & {
   rows: TreeRowEntry<T>[]
   state: TreeState
+  domIdPrefix: string
 }
 
 // TreeListRow renders the row at index inside the list's positioned slot.
@@ -116,6 +117,7 @@ function TreeListRow<T>({
   style,
   rows,
   state,
+  domIdPrefix,
   onRowDefaultAction,
   onRowContextMenu,
   onRowDragStart,
@@ -125,6 +127,7 @@ function TreeListRow<T>({
     <div role="none" style={style}>
       <TreeRow
         node={node}
+        domIdPrefix={domIdPrefix}
         level={level}
         index={index}
         isSelected={state.selectedIds.has(node.id)}
@@ -357,6 +360,10 @@ export function Tree<T>({
     [dispatch],
   )
 
+  // Scope row and instruction IDs to this mounted tree rather than its caller's node IDs.
+  const domIdPrefix = useId()
+  const instructionsId = `${domIdPrefix}-instructions`
+
   // Scroll the focused row into view when the focus moves, which mounts it.
   const listRef = useListRef(null)
   useEffect(() => {
@@ -374,11 +381,19 @@ export function Tree<T>({
     (): TreeListRowProps<T> => ({
       rows,
       state,
+      domIdPrefix,
       onRowDefaultAction,
       onRowContextMenu,
       onRowDragStart: handleRowDragStart,
     }),
-    [rows, state, onRowDefaultAction, onRowContextMenu, handleRowDragStart],
+    [
+      rows,
+      state,
+      domIdPrefix,
+      onRowDefaultAction,
+      onRowContextMenu,
+      handleRowDragStart,
+    ],
   )
 
   return (
@@ -394,7 +409,9 @@ export function Tree<T>({
           onFocus={(e) => {
             // Forward tree-container focus to its current mounted row.
             if (e.target !== e.currentTarget || !state.focusedId) return
-            const focusedElement = document.getElementById(state.focusedId)
+            const focusedElement = document.getElementById(
+              treeRowDomId(domIdPrefix, state.focusedId),
+            )
             if (!focusedElement) return
             e.preventDefault()
             requestAnimationFrame(() => {
@@ -402,13 +419,15 @@ export function Tree<T>({
               focusedElement.scrollIntoView({ block: 'nearest' })
             })
           }}
-          aria-describedby="tree-instructions"
+          aria-describedby={instructionsId}
           aria-activedescendant={
-            state.focusedId ? `${state.focusedId}` : undefined
+            state.focusedId
+              ? treeRowDomId(domIdPrefix, state.focusedId)
+              : undefined
           }
           onKeyDown={handleKeyDown}
         >
-          <div id="tree-instructions" sx={stylexStyles.rule1}>
+          <div id={instructionsId} sx={stylexStyles.rule1}>
             Use arrow keys or j/k to navigate, Enter to select, and h/l to
             collapse/expand nodes
           </div>

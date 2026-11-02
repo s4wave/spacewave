@@ -2,6 +2,8 @@ export { Tree } from './Tree.js'
 export type { TreeProps } from './Tree.js'
 export type { TreeNode, TreeNodeOnDragStart } from './TreeNode.js'
 export { TreeRow } from './TreeRow.js'
+export { treeRowActionIconStyles } from './styles.stylex.js'
+export { treeRowDomId } from './TreeNode.js'
 export {
   TreeStateContext,
   TreeDispatchContext,

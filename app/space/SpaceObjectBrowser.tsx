@@ -1,3 +1,4 @@
+import { treeRowActionIconStyles } from '@s4wave/web/ui/tree/styles.stylex.js'
 import { useMemo, useState, useCallback, useId } from 'react'
 import {
   LuArrowRight,
@@ -18,7 +19,6 @@ import type { ObjectTreeNode } from '@s4wave/web/space/object-tree.js'
 import { useObjectTree } from '@s4wave/web/space/useObjectTree.js'
 import { RootContext } from '@s4wave/web/contexts/contexts.js'
 import { useObjectTypeMetadata } from '@s4wave/web/hooks/useObjectTypeMetadata.js'
-import { cn } from '@s4wave/web/style/utils.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import {
   DropdownMenu,
@@ -124,7 +124,10 @@ function useSpaceObjectBrowserController() {
             {
               icon: (
                 <LuFolderOpen
-                  className={cn('size-3', isCurrentObject && 'opacity-30')}
+                  {...stylex.props(
+                    treeRowActionIconStyles.icon,
+                    isCurrentObject && treeActionStyles.dimmed,
+                  )}
                 />
               ),
               tooltip: isCurrentObject ? 'Already open' : 'Open',
@@ -132,7 +135,12 @@ function useSpaceObjectBrowserController() {
             },
             {
               icon: (
-                <LuHouse className={cn('size-3', isIndex && 'opacity-30')} />
+                <LuHouse
+                  {...stylex.props(
+                    treeRowActionIconStyles.icon,
+                    isIndex && treeActionStyles.dimmed,
+                  )}
+                />
               ),
               tooltip: isIndex
                 ? 'This object is the default object already'
@@ -595,3 +603,5 @@ function rewriteLocalObjectReference(
   if (!key.startsWith(prefix)) return key
   return newKey + key.slice(oldKey.length)
 }
+
+const treeActionStyles = stylex.create({ dimmed: { opacity: 0.3 } })

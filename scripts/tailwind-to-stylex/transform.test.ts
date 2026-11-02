@@ -20,6 +20,7 @@ import { writeDialogFixture } from './dialog-fixture.js'
 import { writePathFixture } from './path-fixture.js'
 import { writeTabsFixture } from './tabs-fixture.js'
 import { writeTraceFixture } from './trace-fixture.js'
+import { writeTreeFixture } from './tree-fixture.js'
 import { stylexCss } from '../../bldr/web/bundler/vite/stylex.js'
 import { capture } from '../style-parity/capture.js'
 import { compareCaptures } from '../style-parity/compare.js'
@@ -31,7 +32,6 @@ const projectSources = [
   'web/ui/InfoCard.tsx',
   'web/ui/separator.tsx',
   'web/ui/label.tsx',
-  'web/ui/tree/Tree.tsx',
   'web/ui/EmptyState.tsx',
   'web/ui/ErrorState.tsx',
   'scripts/tailwind-to-stylex/testdata/components/ExpressionCases.tsx',
@@ -156,6 +156,7 @@ test(
         )
         let main = `import React from 'react';import{createRoot}from'react-dom/client';import{VmErrorBanner}from'./VmErrorBanner';import{TagChip}from'./TagChip';import{InfoCard}from'./InfoCard';import{Separator}from'./separator';import{EmptyState}from'./EmptyState';import{ErrorState}from'./ErrorState';import{ExpressionCases}from'./ExpressionCases';import{OwnedStyles}from'./OwnedStyles';import${JSON.stringify(join(root, 'fixture.css'))};createRoot(document.getElementById('root')!).render(<main><VmErrorBanner title="VM unavailable" message="Choose an available image to continue."/><TagChip tag="example"/><InfoCard title="Status" icon={<span>!</span>}>Ready</InfoCard><InfoCard compact title="Compact">Ready</InfoCard><InfoCard icon={<span>!</span>}>Untitled</InfoCard><ExpressionCases/><OwnedStyles/><Separator/><EmptyState title="Empty"/><EmptyState title="Compact" variant="compact" action={{label:'Create',onClick:()=>{}}}/><EmptyState title="Panel" variant="panel" className="p-6"/><ErrorState message="Try again" onRetry={()=>{}}/><ErrorState message="Inline" variant="inline"/><ErrorState message="Fullscreen" variant="fullscreen" className="p-6"/></main>);`
         await writeTraceFixture(root, version)
+        await writeTreeFixture(root, version)
         main = main.replace(
           "import React from 'react';",
           "import React from 'react';import{TraceSamples}from'./TraceSamples';",
@@ -164,7 +165,7 @@ test(
         // Render the actual virtualized tree inside a bounded viewport through its existing state hook.
         main = main.replace(
           "import React from 'react';",
-          `import React from 'react';import{Tree}from'@s4wave/web/ui/tree/index.js';import{useTreeState}from ${JSON.stringify(resolve('web/ui/tree/TreeState.tsx'))};function TreeSamples(){const state=useTreeState(null,'parity-tree',{expandedIds:new Set(['root'])});return <section style={{height:120,display:'flex'}}><Tree className="max-h-75" state={state} nodes={[{id:'root',name:'Tree root',children:[{id:'child',name:'Tree child'}]},{id:'other',name:'Other row'}]}/></section>}`,
+          `import React from 'react';import{Tree}from'@s4wave/web/ui/tree/index.js';import{LuEllipsis}from'@s4wave/web/images/icons.js';${version === 'after' ? "import{treeRowActionIconStyles}from'@s4wave/web/ui/tree/styles.stylex.js';" : ''}import{useTreeState}from ${JSON.stringify(resolve('web/ui/tree/TreeState.tsx'))};function TreeSamples(){const state=useTreeState(null,'parity-tree',{expandedIds:new Set(['parity-tree-root']),selectedIds:new Set(['parity-tree-root'])});return <section style={{height:120,width:'100%',display:'flex'}}><Tree className="max-h-75" state={state} nodes={[{id:'parity-tree-root',name:'Tree root',children:[{id:'parity-tree-child',name:'Tree child'}],icons:[{icon:<LuEllipsis ${version === 'before' ? 'className="size-7"' : '{...stylex.props(treeRowActionIconStyles.icon)}'}/>,tooltip:'Tree action'}]},{id:'parity-tree-other',name:'Other row'}]}/></section>}`,
         )
         main = main.replace('</main>', '<TreeSamples/></main>')
         // Preserve progress labels, bounds and reduced-motion behavior through native CSS.
@@ -632,7 +633,7 @@ test(
         main = "import{SheetSamples}from'./SheetSamples';" + main
         main = main.replace(
           "createRoot(document.getElementById('root')!).render",
-          "if(new URLSearchParams(location.search).has('tabs'))createRoot(document.getElementById('root')!).render(<TabsSamples/>);else if(new URLSearchParams(location.search).has('path'))createRoot(document.getElementById('root')!).render(<PathSamples/>);else if(new URLSearchParams(location.search).has('dialog'))createRoot(document.getElementById('root')!).render(<DialogSamples/>);else if(new URLSearchParams(location.search).has('buttons'))createRoot(document.getElementById('root')!).render(<ButtonSamples/>);else if(new URLSearchParams(location.search).has('input'))createRoot(document.getElementById('root')!).render(<InputSamples/>);else if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
+          "if(new URLSearchParams(location.search).has('tree'))createRoot(document.getElementById('root')!).render(<TreeSamples/>);else if(new URLSearchParams(location.search).has('tabs'))createRoot(document.getElementById('root')!).render(<TabsSamples/>);else if(new URLSearchParams(location.search).has('path'))createRoot(document.getElementById('root')!).render(<PathSamples/>);else if(new URLSearchParams(location.search).has('dialog'))createRoot(document.getElementById('root')!).render(<DialogSamples/>);else if(new URLSearchParams(location.search).has('buttons'))createRoot(document.getElementById('root')!).render(<ButtonSamples/>);else if(new URLSearchParams(location.search).has('input'))createRoot(document.getElementById('root')!).render(<InputSamples/>);else if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
         )
         // Discover the actual tree API through its public barrel before converting the caller.
         const treeImports = await readSharedStyleApis(
@@ -793,6 +794,19 @@ void invalidNativeDelegate;
           .waitFor()
       }
 
+      // Require usable tree geometry before any pointer action can exercise a row.
+      const treeReady = async (page: import('playwright').Page) => {
+        await page
+          .getByRole('treeitem', { name: 'Tree child', exact: true })
+          .waitFor()
+        await page.evaluate(() => document.fonts.ready)
+        const box = await page.getByRole('tree').boundingBox()
+        assert(
+          box && box.width > 0,
+          'The tree fixture must have a usable width',
+        )
+      }
+
       // Compare default and hovered controls in both engines at every accepted size.
       const manifest = {
         states: [
@@ -830,6 +844,21 @@ void invalidNativeDelegate;
                 .hover()
             },
           },
+          ...['default', 'selected', 'hovered', 'coarse'].map((mode) => ({
+            id: `tree-${mode}`,
+            path: `/?tree=${mode}`,
+            hasTouch: mode === 'coarse',
+            ready: treeReady,
+            setup: async (page: import('playwright').Page) => {
+              await treeReady(page)
+              const child = page.getByRole('treeitem', {
+                name: 'Tree child',
+                exact: true,
+              })
+              if (mode === 'hovered') await child.hover()
+              if (mode === 'selected') await child.click()
+            },
+          })),
           ...['default', 'selected'].map((mode) => ({
             id: `tabs-${mode}`,
             path: `/?tabs=${mode}`,
@@ -964,6 +993,10 @@ void invalidNativeDelegate;
             'sheet-modal',
             'sheet-modal-absolute',
           ],
+        },
+        {
+          name: 'tree rows',
+          ids: ['tree-default', 'tree-selected', 'tree-hovered', 'tree-coarse'],
         },
         {
           name: 'tabs',

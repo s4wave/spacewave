@@ -25,8 +25,6 @@ export default defineConfig({
   test: {
     ...base.test,
     include: ['web/style/stylex-pilots.e2e.test.tsx'],
-    // The measured cold CSS and renderer preparation takes about 75 seconds on the shared host.
-    env: { ...base.test?.env, VITEST_BROWSER_IFRAME_TIMEOUT: '120000' },
     browser: {
       ...base.test.browser,
       connectTimeout: 30000,
