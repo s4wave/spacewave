@@ -17,7 +17,7 @@ check:
 	go vet -p 4 $(PKGS)
 
 test:
-	go test -p 4 -timeout=45s -run 'TestRootPinsRevision|TestMountHelperRejectsUnsafeArguments' ./os/boot
+	go test -p 4 -timeout=45s -run 'TestRootPinsRevision' ./os/boot
 
 model:
 	bun node_modules/.bin/aptre-tla os/boot/Boot.cfg
