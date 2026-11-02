@@ -25,6 +25,100 @@ import { useSessionNavigate } from '@s4wave/web/contexts/contexts.js'
 import { MissingBillingAccountBanner } from './MissingBillingAccountBanner.js'
 import { useOrgContainerState } from './OrgContainer.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+import { groupMarker } from '../../web/style/relations.stylex.js'
+
+import { groupMarker as groupMarker2 } from '../../web/style/relations.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'flex',
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: themeColors['--color-destructive'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    flexShrink: 0,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker)]:
+          themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 6)`,
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+  },
+  rule5: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: themeColors['--color-brand'],
+  },
+  rule6: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+      [stylex.when.ancestor(':is([data-selected="true"])', groupMarker)]:
+        themeColors['--color-foreground-alt'],
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule7: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 // OrganizationDashboard renders the main content area for an organization.
 // Mirrors SessionDashboard: command palette with space list and actions.
 export function OrganizationDashboard() {
@@ -94,7 +188,7 @@ export function OrganizationDashboard() {
           className="border-destructive/20 bg-destructive/5 hover:bg-destructive/8 relative z-10 flex w-full items-center border-b text-left transition-colors"
         >
           <div className="flex min-w-0 flex-1 items-start gap-2 px-3 py-1.5">
-            <LuTriangleAlert className="text-destructive size-3.5 shrink-0" />
+            <LuTriangleAlert sx={stylexStyles.rule1} />
             <div className="min-w-0">
               <p className="text-foreground/80 text-xs font-medium">
                 Organization root unavailable.
@@ -105,11 +199,11 @@ export function OrganizationDashboard() {
               </p>
             </div>
           </div>
-          <div className="group flex shrink-0 items-center gap-1 px-3 py-1.5 transition-colors">
+          <div sx={[stylexStyles3.rule1, groupMarker2]}>
             <span className="text-foreground/70 group-hover:text-foreground text-xs font-medium transition-colors">
               Fix issue
             </span>
-            <LuArrowRight className="text-foreground-alt group-hover:text-foreground size-3 shrink-0 transition-colors" />
+            <LuArrowRight sx={stylexStyles.rule2} />
           </div>
         </button>
       )}
@@ -129,7 +223,9 @@ export function OrganizationDashboard() {
               isEmpty ? 'size-12' : 'size-10',
             )}
           >
-            <LuBuilding2 className={isEmpty ? 'size-6' : 'size-5'} />
+            <LuBuilding2
+              sx={isEmpty ? stylexStyles.rule3 : stylexStyles.rule4}
+            />
           </div>
           <h1
             className={cn(
@@ -181,7 +277,7 @@ export function OrganizationDashboard() {
                       onSelect={() => handleSpaceClick(space.id ?? '')}
                     >
                       <div className="bg-brand/10 group-data-[selected=true]:bg-brand/20 flex size-7 shrink-0 items-center justify-center rounded-md transition-colors">
-                        <LuLayers className="text-brand size-3.5" />
+                        <LuLayers sx={stylexStyles.rule5} />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="text-foreground truncate text-sm font-medium">
@@ -193,7 +289,7 @@ export function OrganizationDashboard() {
                           </div>
                         )}
                       </div>
-                      <LuChevronRight className="text-foreground-alt/40 group-data-[selected=true]:text-foreground-alt size-4 shrink-0 transition-colors" />
+                      <LuChevronRight sx={stylexStyles.rule6} />
                     </CommandItem>
                   ))}
                 </CommandGroup>
@@ -212,7 +308,7 @@ export function OrganizationDashboard() {
                     onSelect={() => handleCreateSpace(opt.id)}
                   >
                     <div className="bg-foreground/5 group-data-[selected=true]:bg-foreground/10 flex size-7 shrink-0 items-center justify-center rounded-md transition-colors">
-                      <opt.icon className="text-foreground-alt size-3.5" />
+                      <opt.icon sx={stylexStyles2.rule1} />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="text-foreground truncate text-sm font-medium">
@@ -222,7 +318,7 @@ export function OrganizationDashboard() {
                         {opt.description}
                       </div>
                     </div>
-                    <LuChevronRight className="text-foreground-alt/40 group-data-[selected=true]:text-foreground-alt size-4 shrink-0 transition-colors" />
+                    <LuChevronRight sx={stylexStyles.rule6} />
                   </CommandItem>
                 ))}
                 <CommandItem
@@ -232,7 +328,7 @@ export function OrganizationDashboard() {
                   onSelect={handleJoinSpace}
                 >
                   <div className="bg-foreground/5 group-data-[selected=true]:bg-foreground/10 flex size-7 shrink-0 items-center justify-center rounded-md transition-colors">
-                    <LuLogIn className="text-foreground-alt size-3.5" />
+                    <LuLogIn sx={stylexStyles.rule7} />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="text-foreground truncate text-sm font-medium">
@@ -242,7 +338,7 @@ export function OrganizationDashboard() {
                       Join a shared space via invite code or link
                     </div>
                   </div>
-                  <LuChevronRight className="text-foreground-alt/40 group-data-[selected=true]:text-foreground-alt size-4 shrink-0 transition-colors" />
+                  <LuChevronRight sx={stylexStyles.rule6} />
                 </CommandItem>
               </CommandGroup>
             </CommandList>

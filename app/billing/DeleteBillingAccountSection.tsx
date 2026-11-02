@@ -22,6 +22,15 @@ import { deleteBillingAccountDisabledReason } from './billing-utils.js'
 
 import * as stylex from '@stylexjs/stylex'
 
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: { maxWidth: 'var(--container-xs)' },
 })
@@ -101,7 +110,7 @@ export function DeleteBillingAccountSection({
   // Expose the deletion trigger with the current eligibility reason.
   const button = (
     <DashboardButton
-      icon={<LuTrash2 className="size-3" />}
+      icon={<LuTrash2 sx={stylexStyles2.rule1} />}
       onClick={() => handleOpenChange(true)}
       disabled={deleteDisabled}
       variant="destructive"

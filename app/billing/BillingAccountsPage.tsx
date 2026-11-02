@@ -41,6 +41,35 @@ import {
   statusLabel,
 } from './billing-utils.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-foreground'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 7)`,
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule5: { color: themeColors['--color-brand'] },
+  rule6: { color: '#0000' },
+})
+
 // AssignTarget is one option offered in the per-row "Assign to..." menu.
 interface AssignTarget {
   ownerType: 'account' | 'organization'
@@ -217,7 +246,7 @@ export function BillingAccountsPage() {
       <div className="w-full max-w-md px-4">
         <div className="mb-6 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <LuCreditCard className="text-foreground size-5" />
+            <LuCreditCard sx={stylexStyles.rule1} />
             <h1 className="text-foreground text-lg font-semibold tracking-tight">
               Billing Accounts
             </h1>
@@ -228,7 +257,7 @@ export function BillingAccountsPage() {
             disabled={creating || !checkoutResultBaseUrl}
             className="border-brand/30 bg-brand/10 hover:bg-brand/20 text-brand flex cursor-pointer items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <LuPlus className="size-3.5" />
+            <LuPlus sx={stylexStyles.rule2} />
             <span>{creating ? 'Creating…' : 'New billing account'}</span>
           </button>
         </div>
@@ -260,7 +289,7 @@ export function BillingAccountsPage() {
         )}
         {!loading && !error && accounts.length === 0 && (
           <EmptyState
-            icon={<LuCreditCard className="text-foreground-alt size-7" />}
+            icon={<LuCreditCard sx={stylexStyles.rule3} />}
             title="No billing accounts yet"
             description="A billing account holds your subscription. Create one, run checkout to activate it, then assign it to your personal account or to an organization you own."
             action={{
@@ -353,7 +382,7 @@ export function BillingAccountsPage() {
                               aria-label={`Detach ${label}`}
                               className="hover:text-destructive cursor-pointer transition-colors"
                             >
-                              <LuX className="size-3" />
+                              <LuX sx={stylexStyles.rule4} />
                             </button>
                           </span>
                         )
@@ -385,12 +414,12 @@ export function BillingAccountsPage() {
                               onSelect={() => void handleAssign(baId, t)}
                             >
                               <LuCheck
-                                className={cn(
-                                  'size-3',
+                                sx={[
+                                  stylexStyles.rule4,
                                   isSelected
-                                    ? 'text-brand'
-                                    : 'text-transparent',
-                                )}
+                                    ? stylexStyles.rule5
+                                    : stylexStyles.rule6,
+                                ]}
                               />
                               <span>{t.label}</span>
                             </DropdownMenuItem>

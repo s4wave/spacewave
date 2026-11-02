@@ -12,6 +12,29 @@ import type { LiveDemoAppProps } from './use-case/LiveDemoApp.js'
 import { UseCaseDemo } from './use-case/UseCaseDemo.js'
 import { UseCasePage } from './use-case/UseCasePage.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-brand'],
+  },
+})
+
 // PLUGINS_DEMO_QUERY is the query the demo suggests running.
 const PLUGINS_DEMO_QUERY = 'SELECT name, role FROM quickstart.people'
 
@@ -33,7 +56,7 @@ export function LandingPlugins({
 
   return (
     <UseCasePage
-      icon={<LuPuzzle className="size-8" />}
+      icon={<LuPuzzle sx={stylexStyles.rule1} />}
       title="New kinds of objects, in your Space."
       subtitle="Plugins teach Spacewave new object types. The SQL Database below is a plugin: it loads when the Space needs it and runs on your device, not on a server."
       points={[
@@ -93,19 +116,19 @@ function PluginsPoster() {
           My SQL Database
         </span>
         <span className="text-foreground flex items-center gap-2 px-2 py-1">
-          <LuDatabase className="text-foreground-alt size-4" />
+          <LuDatabase sx={stylexStyles.rule2} />
           information_schema
         </span>
         <span className="text-foreground flex items-center gap-2 px-2 py-1">
-          <LuDatabase className="text-brand size-4" />
+          <LuDatabase sx={stylexStyles.rule3} />
           quickstart
         </span>
         <span className="bg-foreground/5 text-foreground flex items-center gap-2 rounded px-2 py-1 pl-8">
-          <LuTable className="text-foreground-alt size-4" />
+          <LuTable sx={stylexStyles.rule2} />
           people
         </span>
         <span className="text-foreground flex items-center gap-2 px-2 py-1 pl-8">
-          <LuTable className="text-foreground-alt size-4" />
+          <LuTable sx={stylexStyles.rule2} />
           projects
         </span>
       </div>

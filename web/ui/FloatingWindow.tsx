@@ -14,7 +14,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from 'react'
-import { IconContext, LuMinus, LuX } from '@s4wave/web/images/icons.js'
+import { IconStylesProvider, LuMinus, LuX } from '@s4wave/web/images/icons.js'
 import { isDesktop } from '@aptre/bldr'
 import * as stylex from '@stylexjs/stylex'
 import {
@@ -709,7 +709,7 @@ export function FloatingWindow({
             aria-label="Minimize"
             sx={[stylexStyles.rule4]}
           >
-            <LuMinus {...stylex.props(stylexStyles.rule5)} />
+            <LuMinus sx={stylexStyles.rule5} />
           </button>
           <button
             type="button"
@@ -717,7 +717,7 @@ export function FloatingWindow({
             aria-label="Close"
             sx={[stylexStyles.rule6]}
           >
-            <LuX {...stylex.props(stylexStyles.rule5)} />
+            <LuX sx={stylexStyles.rule5} />
           </button>
         </div>
       </div>
@@ -765,26 +765,15 @@ const resizeStyles: Record<string, stylex.StyleXStyles> = {
   se: stylexStyles2.rule9,
   sw: stylexStyles2.rule10,
 }
-const headerIconAttributes = stylex.props(floatingWindowHeaderIconStyles.icon)
 // HeaderIcon sizes only the SVG directly inside the title's icon slot.
 function HeaderIcon({ children }: { children: ReactNode }) {
-  const inherited = use(IconContext)
-  const icons = useMemo(
-    () => ({
-      ...inherited,
-      className: [inherited.className, headerIconAttributes.className]
-        .filter(Boolean)
-        .join(' '),
-    }),
-    [inherited],
-  )
   return (
-    <IconContext.Provider value={icons}>
+    <IconStylesProvider requiredSx={floatingWindowHeaderIconStyles.icon}>
       <span
         sx={[floatingWindowHeaderIconStyles.slot, floatingWindowIconMarker]}
       >
         {children}
       </span>
-    </IconContext.Provider>
+    </IconStylesProvider>
   )
 }

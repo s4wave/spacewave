@@ -31,6 +31,62 @@ import {
 
 import { SqlWorkbenchTargetDbContext } from './sql-workbench-context.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+import { groupMarker } from '../../web/style/relations.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: themeLayout['--spacing'],
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+  },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    flexShrink: 0,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 export { SqlWorkbenchTypeID }
 
 const DEFAULT_SIDEBAR_WIDTH = 280
@@ -153,7 +209,7 @@ export function SqlWorkbenchViewer({
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
       <div className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-4">
-        <LuLayoutGrid className="text-foreground-alt size-3.5" aria-hidden />
+        <LuLayoutGrid sx={stylexStyles.rule1} aria-hidden />
         <span className="text-foreground text-sm font-semibold tracking-tight select-none">
           SQL Workbench
         </span>
@@ -307,13 +363,13 @@ interface PinnedRowProps {
 
 function PinnedRow({ queryKey, onOpen, onUnpin }: PinnedRowProps) {
   return (
-    <div className="hover:bg-foreground/5 group flex items-center gap-1.5 px-3 py-1">
+    <div sx={[stylexStyles3.rule1, groupMarker]}>
       <button
         type="button"
         onClick={() => onOpen(queryKey)}
         className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
       >
-        <LuFileText className="text-foreground-alt/60 size-3.5 shrink-0" />
+        <LuFileText sx={stylexStyles.rule2} />
         <span className="text-foreground min-w-0 flex-1 truncate font-mono text-xs">
           {queryKey.split('/').pop() || queryKey}
         </span>
@@ -324,7 +380,7 @@ function PinnedRow({ queryKey, onOpen, onUnpin }: PinnedRowProps) {
         onClick={() => onUnpin(queryKey)}
         className="text-foreground-alt/40 hover:text-foreground shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
       >
-        <LuPinOff className="size-3.5" />
+        <LuPinOff sx={stylexStyles.rule3} />
       </button>
     </div>
   )
@@ -360,7 +416,7 @@ function TabStrip({ tabs, activeTabId, onSelect, onClose }: TabStripProps) {
               onClick={() => onSelect(tab.tabId ?? '')}
               className="flex items-center gap-1.5"
             >
-              <Icon className="text-foreground-alt/60 size-3 shrink-0" />
+              <Icon sx={stylexStyles2.rule1} />
               <span
                 className={cn(
                   'max-w-40 truncate text-xs',
@@ -376,7 +432,7 @@ function TabStrip({ tabs, activeTabId, onSelect, onClose }: TabStripProps) {
               onClick={() => onClose(tab.tabId ?? '')}
               className="text-foreground-alt/40 hover:text-foreground shrink-0"
             >
-              <LuX className="size-3" />
+              <LuX sx={stylexStyles.rule4} />
             </button>
           </div>
         )

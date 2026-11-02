@@ -6,6 +6,57 @@ import { formatBytes } from '@s4wave/app/system/format.js'
 import type { WasiVmHandle } from '@s4wave/sdk/vm/wasivm.js'
 import { WasiVmDownloads } from '@s4wave/sdk/vm/wasivm.pb.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    animationName: {
+      default: 'pulse',
+      '@media (prefers-reduced-motion: reduce)': 'none',
+    },
+    animationDuration: {
+      default: '2s',
+      '@media (prefers-reduced-motion: reduce)': '0s',
+    },
+    animationTimingFunction: {
+      default: 'cubic-bezier(.4, 0, .6, 1)',
+      '@media (prefers-reduced-motion: reduce)': 'ease',
+    },
+    animationIterationCount: {
+      default: 'infinite',
+      '@media (prefers-reduced-motion: reduce)': 1,
+    },
+    animationDirection: {
+      default: 'normal',
+      '@media (prefers-reduced-motion: reduce)': 'normal',
+    },
+    animationPlayState: {
+      default: 'running',
+      '@media (prefers-reduced-motion: reduce)': 'running',
+    },
+    animationDelay: {
+      default: '0s',
+      '@media (prefers-reduced-motion: reduce)': '0s',
+    },
+    animationFillMode: {
+      default: 'none',
+      '@media (prefers-reduced-motion: reduce)': 'none',
+    },
+    animationTimeline: {
+      default: 'auto',
+      '@media (prefers-reduced-motion: reduce)': 'auto',
+    },
+    color: themeColors['--color-brand'],
+  },
+})
+
 // useWasiVmDownloads watches what the VM's run has downloaded for its root
 // filesystem, starting again for each run. It is undefined until the run's
 // first report and after the run ends.
@@ -45,7 +96,7 @@ export function WasiVmDownloadChip({
         title={`Downloaded ${bytes} of the VM image`}
         className="text-foreground-alt flex min-w-0 items-center gap-1 text-xs tabular-nums opacity-0 transition-opacity delay-500 duration-200 ease-out data-[active=true]:opacity-100 data-[active=true]:delay-0"
       >
-        <LuCloudDownload className="text-brand size-3.5 shrink-0 animate-pulse motion-reduce:animate-none" />
+        <LuCloudDownload sx={stylexStyles.rule1} />
         <span className="hidden @md:inline">Downloading</span>
         <span className="truncate">{bytes}</span>
       </span>

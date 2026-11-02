@@ -30,6 +30,20 @@ import { PromTargetView } from './PromTargetView.js'
 import { clockPeriodMs, defaultTimeRange, shortPeer } from './prom-view.js'
 import { targetAction, targetState } from './target-state.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 export { TargetTypeID }
 
 // PromTargetViewer shows a prom/target object: its configuration, its scrape
@@ -63,7 +77,7 @@ export function PromTargetViewer({
     case 'absent':
       return (
         <EmptyState
-          icon={<LuActivity className="text-foreground-alt size-5" />}
+          icon={<LuActivity sx={stylexStyles.rule1} />}
           title="This Scrape target no longer exists."
         />
       )
@@ -72,7 +86,7 @@ export function PromTargetViewer({
         <LoadingInline label="Starting the metrics plugin" />
       ) : (
         <EmptyState
-          icon={<LuActivity className="text-foreground-alt size-5" />}
+          icon={<LuActivity sx={stylexStyles.rule1} />}
           title="Scrape targets run on a desktop Device."
           description="Open this Space in the Spacewave desktop app to see and approve this target."
         />

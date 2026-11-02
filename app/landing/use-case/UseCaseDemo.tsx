@@ -16,6 +16,20 @@ import { cn } from '@s4wave/web/style/utils.js'
 import type { DemoId } from './demos.js'
 import type { LiveDemoAppProps } from './LiveDemoApp.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 // UseCaseDemoProps configures a use-case demo frame.
 export interface UseCaseDemoProps {
   demo: DemoId
@@ -76,14 +90,14 @@ export function UseCaseDemo({
                 onClick={() => setRun((value) => value + 1)}
                 className="text-foreground-alt hover:text-foreground hover:bg-foreground/5 flex items-center gap-1.5 rounded px-2 py-1 transition-colors"
               >
-                <LuRotateCcw className="size-3.5" />
+                <LuRotateCcw sx={stylexStyles.rule1} />
                 Reset
               </button>
               <a
                 href={stopHref}
                 className="text-foreground-alt hover:text-foreground hover:bg-foreground/5 flex items-center gap-1.5 rounded px-2 py-1 no-underline transition-colors"
               >
-                <LuX className="size-3.5" />
+                <LuX sx={stylexStyles.rule1} />
                 Stop
               </a>
             </div>
@@ -115,7 +129,7 @@ export function UseCaseDemo({
                 data-landing-live-start
                 className="bg-brand text-background hover:bg-brand/90 flex items-center gap-2 rounded-md px-5 py-2.5 text-sm font-semibold no-underline shadow-lg transition duration-300 select-none hover:-translate-y-0.5"
               >
-                <LuPlay className="size-4" />
+                <LuPlay sx={stylexStyles.rule2} />
                 Try it live
               </a>
               <p className="text-foreground-alt max-w-xs text-xs leading-relaxed">

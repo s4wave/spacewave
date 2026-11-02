@@ -13,6 +13,30 @@ import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 import { PairingChannelProgress } from './PairingChannelProgress.js'
 import { PairingAccountChoice } from './PairingAccountChoice.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-brand'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-destructive'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-brand'],
+  },
+})
+
 interface PairingVerificationStepProps {
   session: Session | null | undefined
   onContinue: () => void
@@ -208,7 +232,7 @@ function PairingVerification({
     <div className="space-y-4">
       <div className="flex flex-col items-center gap-2 text-center">
         <div className="bg-brand/10 flex size-10 items-center justify-center rounded-full">
-          <LuShieldCheck className="text-brand size-5" />
+          <LuShieldCheck sx={stylexStyles.rule1} />
         </div>
         <h2 className="text-foreground text-sm font-medium">{heading}</h2>
         {snapshot?.accountId && (
@@ -245,7 +269,7 @@ function PairingVerification({
             onClick={() => onConfirm(false)}
             className="border-destructive/30 hover:bg-destructive/10 flex h-10 flex-1 items-center justify-center gap-2 rounded-md border"
           >
-            <LuX className="text-destructive size-4" />
+            <LuX sx={stylexStyles.rule2} />
             <span className="text-destructive text-sm">No, abort</span>
           </button>
           <button
@@ -253,7 +277,7 @@ function PairingVerification({
             onClick={() => onConfirm(true)}
             className="border-brand/30 bg-brand/10 hover:bg-brand/20 flex h-10 flex-1 items-center justify-center gap-2 rounded-md border"
           >
-            <LuCircleCheck className="text-brand size-4" />
+            <LuCircleCheck sx={stylexStyles.rule3} />
             <span className="text-foreground text-sm">Yes, they match</span>
           </button>
         </div>

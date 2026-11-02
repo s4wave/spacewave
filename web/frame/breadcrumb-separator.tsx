@@ -30,10 +30,7 @@ export function BottomBarBreadcrumbSeparator({
 
   return (
     <div sx={stylexStyles.rule2}>
-      <RxChevronRight
-        {...stylex.props(stylexStyles.rule3)}
-        aria-hidden="true"
-      />
+      <RxChevronRight sx={stylexStyles.rule3} aria-hidden="true" />
     </div>
   )
 }

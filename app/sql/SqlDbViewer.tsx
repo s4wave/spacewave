@@ -22,6 +22,41 @@ import { setObjectType } from '@s4wave/sdk/world/types/types.js'
 import { SqlDatabase, SqlDbTypeID } from '@s4wave/sdk/sql/sql.js'
 import { SqlQueryTypeID } from '@s4wave/sdk/sql/query/query.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule5: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+})
+
 export { SqlDbTypeID }
 
 // SqlDbViewer is the full sql/db viewer: a lazily expanded schema tree and an
@@ -82,14 +117,14 @@ export function SqlDbViewer({
     <div className="bg-background-primary flex h-full w-full flex-col">
       <div className="border-foreground/8 flex h-9 shrink-0 items-center justify-between border-b px-4">
         <div className="text-foreground flex items-center gap-2 text-sm font-semibold tracking-tight select-none">
-          <LuDatabase className="text-foreground-alt size-3.5" aria-hidden />
+          <LuDatabase sx={stylexStyles.rule1} aria-hidden />
           SQL Database
           <span className="text-foreground-alt/50 text-xs">
             {schemas.length} {schemas.length === 1 ? 'schema' : 'schemas'}
           </span>
         </div>
         <DashboardButton
-          icon={<LuPlus className="size-3.5" />}
+          icon={<LuPlus sx={stylexStyles.rule2} />}
           onClick={() => void handleOpenQueryEditor()}
           disabled={!container || creating}
         >
@@ -123,7 +158,7 @@ export function SqlDbViewer({
         schemas.length === 0 ? (
           <EmptyState
             variant="compact"
-            icon={<LuDatabase className="text-foreground-alt size-5" />}
+            icon={<LuDatabase sx={stylexStyles.rule3} />}
             title="No schemas"
             description="This database has no schemas yet."
           />
@@ -176,11 +211,11 @@ function SchemaTreeNode({ handle, schema }: SchemaTreeNodeProps) {
         )}
       >
         {expanded ? (
-          <LuChevronDown className="text-foreground-alt/60 size-3.5 shrink-0" />
+          <LuChevronDown sx={stylexStyles.rule4} />
         ) : (
-          <LuChevronRight className="text-foreground-alt/60 size-3.5 shrink-0" />
+          <LuChevronRight sx={stylexStyles.rule4} />
         )}
-        <LuDatabase className="text-foreground-alt/70 size-3.5 shrink-0" />
+        <LuDatabase sx={stylexStyles.rule5} />
         <span className="text-foreground min-w-0 flex-1 truncate font-mono text-xs">
           {schema}
         </span>
@@ -212,7 +247,7 @@ function SchemaTreeNode({ handle, schema }: SchemaTreeNodeProps) {
               role="treeitem"
               className="text-foreground flex items-center gap-1.5 px-2 py-1 font-mono text-xs"
             >
-              <LuTable className="text-foreground-alt/60 size-3.5 shrink-0" />
+              <LuTable sx={stylexStyles.rule4} />
               <span className="min-w-0 flex-1 truncate" title={table}>
                 {table}
               </span>

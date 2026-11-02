@@ -21,6 +21,19 @@ import { applySpaceIndexPath } from './space-settings.js'
 
 import * as stylex from '@stylexjs/stylex'
 
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 7)`,
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: { flexShrink: '0' },
   rule2: { flex: '1' },
@@ -212,7 +225,7 @@ export function SpaceIndex() {
       <div className="flex min-h-0 flex-1 flex-col">
         <EmptyState
           sx={stylexStyles.rule1}
-          icon={<LuBox className="text-foreground-alt size-7" />}
+          icon={<LuBox sx={stylexStyles2.rule1} />}
           title="Choose an object"
           description="Select an object to view, or add a new one."
           action={{
@@ -230,7 +243,7 @@ export function SpaceIndex() {
   return (
     <EmptyState
       sx={stylexStyles.rule2}
-      icon={<LuBox className="text-foreground-alt size-7" />}
+      icon={<LuBox sx={stylexStyles2.rule1} />}
       title="Empty Space"
       description="This space has no objects yet."
       action={{

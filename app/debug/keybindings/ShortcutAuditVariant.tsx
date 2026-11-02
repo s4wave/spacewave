@@ -20,6 +20,38 @@ import { commandMatchesQuery, contextsOverlap } from './keybindings-model.js'
 import { chordsMatch } from './keyboard-utils.js'
 import type { KeybindingVariantProps } from './variant-types.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-brand'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-destructive'],
+  },
+  rule3: {
+    pointerEvents: 'none',
+    position: 'absolute',
+    top: '50%',
+    left: `calc(${themeLayout['--spacing']} * 3)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    '--tw-translate-y': 'calc(calc(1 / 2 * 100%) * -1)',
+    translate: 'var(--tw-translate-x) var(--tw-translate-y)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule4: { color: themeColors['--color-destructive'] },
+  rule5: { color: themeColors['--color-brand'] },
+})
+
 type AuditMode = 'issues' | 'customized' | 'all'
 
 const SUGGESTED_CHORDS = [
@@ -120,7 +152,7 @@ export function ShortcutAuditVariant({
     <section className="space-y-4">
       <div>
         <div className="flex items-center gap-2">
-          <LuChartNoAxesColumnIncreasing className="text-brand size-4" />
+          <LuChartNoAxesColumnIncreasing sx={stylexStyles.rule1} />
           <h2 className="text-sm font-semibold">Binding health workbench</h2>
         </div>
         <p className="text-foreground-alt/55 mt-1 max-w-2xl text-xs">
@@ -139,7 +171,7 @@ export function ShortcutAuditVariant({
           )}
           onClick={showIssues}
         >
-          <LuTriangleAlert className="text-destructive size-4" />
+          <LuTriangleAlert sx={stylexStyles.rule2} />
           <strong className="mt-3 block text-2xl font-semibold">
             {conflictCommandIds.size + unassignedCount}
           </strong>
@@ -156,7 +188,7 @@ export function ShortcutAuditVariant({
           )}
           onClick={showCustomized}
         >
-          <LuSparkles className="text-brand size-4" />
+          <LuSparkles sx={stylexStyles.rule1} />
           <strong className="mt-3 block text-2xl font-semibold">
             {customizedCommandIds.size}
           </strong>
@@ -171,7 +203,7 @@ export function ShortcutAuditVariant({
           )}
           onClick={showAll}
         >
-          <LuCheck className="text-brand size-4" />
+          <LuCheck sx={stylexStyles.rule1} />
           <strong className="mt-3 block text-2xl font-semibold">
             {commands.length - conflictCommandIds.size - unassignedCount}
           </strong>
@@ -183,7 +215,7 @@ export function ShortcutAuditVariant({
         <div className="border-foreground/8 border-b lg:border-r lg:border-b-0">
           <div className="border-foreground/8 border-b p-3">
             <label className="relative block">
-              <LuSearch className="text-foreground-alt/40 pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+              <LuSearch sx={stylexStyles.rule3} />
               <Input
                 value={query}
                 onChange={handleQueryChange}
@@ -259,7 +291,7 @@ export function ShortcutAuditVariant({
               {conflictPartners.length > 0 ? (
                 <div className="border-destructive/25 bg-destructive/5 mt-5 rounded-lg border p-4">
                   <div className="flex items-center gap-2 text-sm font-semibold">
-                    <LuTriangleAlert className="text-destructive" />
+                    <LuTriangleAlert sx={stylexStyles.rule4} />
                     Also assigned in an overlapping context
                   </div>
                   <div className="mt-3 space-y-2">
@@ -283,14 +315,14 @@ export function ShortcutAuditVariant({
                 </div>
               ) : (
                 <div className="border-brand/20 bg-brand/5 mt-5 flex items-center gap-3 rounded-lg border p-4 text-sm">
-                  <LuCheck className="text-brand size-4" />
+                  <LuCheck sx={stylexStyles.rule1} />
                   This assignment is clear in its active context.
                 </div>
               )}
 
               <div className="border-foreground/8 mt-5 rounded-lg border p-4">
                 <div className="flex items-center gap-2 text-sm font-semibold">
-                  <LuWandSparkles className="text-brand" />
+                  <LuWandSparkles sx={stylexStyles.rule5} />
                   Available alternatives
                 </div>
                 <p className="text-foreground-alt/45 mt-1 text-xs">

@@ -15,6 +15,16 @@ import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { RadioOption } from '@s4wave/web/ui/RadioOption.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 // SpaceBackfillSection lets this device choose between downloading the Space
 // on demand and keeping a complete copy. The choice applies to this device
 // only.
@@ -67,7 +77,7 @@ export function SpaceBackfillSection() {
             selected={!backfill}
             onSelect={() => backfill && void choose(false)}
             disabled={pending}
-            icon={<LuMousePointerClick className="size-3.5" />}
+            icon={<LuMousePointerClick sx={stylexStyles.rule1} />}
             label="On demand"
             description="Download items when you open them, and keep what you open or edit."
           />
@@ -75,7 +85,7 @@ export function SpaceBackfillSection() {
             selected={backfill}
             onSelect={() => !backfill && void choose(true)}
             disabled={pending}
-            icon={<LuHardDriveDownload className="size-3.5" />}
+            icon={<LuHardDriveDownload sx={stylexStyles.rule1} />}
             label="Whole Space"
             description="Download everything in the background, so the whole Space is available offline."
           />

@@ -13,6 +13,29 @@ import type { LiveDemoAppProps } from './use-case/LiveDemoApp.js'
 import { UseCaseDemo } from './use-case/UseCaseDemo.js'
 import { UseCasePage } from './use-case/UseCasePage.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-brand'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 export const metadata = {
   title: 'Spacewave Notes - Write it down. Keep it yours.',
   description:
@@ -30,7 +53,7 @@ export function LandingNotes({
 
   return (
     <UseCasePage
-      icon={<LuBookOpen className="size-8" />}
+      icon={<LuBookOpen sx={stylexStyles.rule1} />}
       title="Write it down. Keep it yours."
       subtitle="Spacewave Notes keeps a Markdown notebook in a private Space on your own devices. It works offline and syncs when your devices meet."
       points={[
@@ -85,15 +108,15 @@ function NotesPoster() {
           My Notes
         </span>
         <span className="text-foreground flex items-center gap-2 px-2 py-1">
-          <LuFolder className="text-brand size-4" />
+          <LuFolder sx={stylexStyles.rule2} />
           Org
         </span>
         <span className="text-foreground flex items-center gap-2 px-2 py-1 pl-8">
-          <LuFileText className="text-foreground-alt size-4" />
+          <LuFileText sx={stylexStyles.rule3} />
           getting-started
         </span>
         <span className="bg-foreground/5 text-foreground flex items-center gap-2 rounded px-2 py-1">
-          <LuFileText className="text-foreground-alt size-4" />
+          <LuFileText sx={stylexStyles.rule3} />
           welcome
         </span>
       </div>

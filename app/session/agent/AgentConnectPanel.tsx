@@ -18,6 +18,34 @@ import { cn } from '@s4wave/web/style/utils.js'
 import { SessionsSection } from '../dashboard/SessionsSection.js'
 import { PairingVerificationStep } from '../setup/PairingVerificationStep.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule3: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-brand'],
+  },
+})
+
 // AgentPairing is the state of the panel's pairing attempt.
 export interface AgentPairing {
   // code is the pairing code, empty while it is being created.
@@ -68,7 +96,7 @@ export function AgentConnectPanel({
     >
       <div className="flex items-start gap-3">
         <div className="bg-brand/10 text-brand flex size-8 shrink-0 items-center justify-center rounded-md">
-          <LuBot className="size-4" aria-hidden="true" />
+          <LuBot sx={stylexStyles.rule1} aria-hidden="true" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="text-sm font-semibold tracking-tight">
@@ -82,7 +110,7 @@ export function AgentConnectPanel({
           aria-label="Close"
           className="text-foreground-alt/60 hover:text-foreground sm:fine-pointer:size-auto sm:fine-pointer:p-1 flex size-11 shrink-0 items-center justify-center rounded"
         >
-          <LuX className="size-3.5" />
+          <LuX sx={stylexStyles.rule2} />
         </button>
       </div>
 
@@ -196,7 +224,7 @@ function PairingBody({
     return (
       <div className="space-y-3">
         <div className="text-destructive flex items-start gap-2 text-xs">
-          <LuCircleAlert className="mt-0.5 size-3.5 shrink-0" />
+          <LuCircleAlert sx={stylexStyles.rule3} />
           <span className="break-words">{pairing.error}</span>
         </div>
         <PanelButton
@@ -318,7 +346,7 @@ function AgentConnected({
     return (
       <div className="space-y-3">
         <div className="text-destructive flex items-start gap-2 text-xs">
-          <LuCircleAlert className="mt-0.5 size-3.5 shrink-0" />
+          <LuCircleAlert sx={stylexStyles.rule3} />
           <span className="break-words">{error}</span>
         </div>
         <PanelButton
@@ -335,7 +363,7 @@ function AgentConnected({
     <div className="space-y-3">
       <div className="flex items-center gap-2 text-sm">
         {done ? (
-          <LuCircleCheck className="text-brand size-4" />
+          <LuCircleCheck sx={stylexStyles.rule4} />
         ) : (
           <Spinner size="sm" />
         )}

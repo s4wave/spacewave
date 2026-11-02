@@ -10,6 +10,28 @@ import { formatBytes } from '@s4wave/web/transform/TransformConfigDisplay.js'
 import type { SessionCryptoInfo } from '@s4wave/sdk/session/session.pb.js'
 import { EntityKeypairsSection } from './EntityKeypairsSection.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    color: themeColors['--color-green-500'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 export interface CryptoKeysSectionProps {
   open?: boolean
   onOpenChange?: (open: boolean) => void
@@ -37,7 +59,7 @@ export function CryptoKeysSection({
   return (
     <CollapsibleSection
       title="Crypto & Keys"
-      icon={<LuKey className="size-3.5" />}
+      icon={<LuKey sx={stylexStyles.rule1} />}
       open={sectionOpen}
       onOpenChange={handleOpenChange}
     >
@@ -80,9 +102,9 @@ function CryptoIdentity({ crypto }: { crypto: SessionCryptoInfo }) {
             aria-label={pemCopied ? 'Copied!' : 'Copy public key PEM'}
           >
             {pemCopied ? (
-              <LuCheck className="size-3 text-green-500" />
+              <LuCheck sx={stylexStyles.rule2} />
             ) : (
-              <LuCopy className="size-3" />
+              <LuCopy sx={stylexStyles.rule3} />
             )}
             <span>{pemCopied ? 'Copied' : 'Export Public Key (PEM)'}</span>
           </button>
@@ -91,7 +113,7 @@ function CryptoIdentity({ crypto }: { crypto: SessionCryptoInfo }) {
       {(crypto.spaceCount ?? 0) > 0 && (
         <div className="border-foreground/10 flex items-center gap-4 border-t pt-2">
           <div className="text-foreground-alt flex items-center gap-1 text-xs">
-            <LuDatabase className="size-3" />
+            <LuDatabase sx={stylexStyles.rule3} />
             <span>
               {crypto.spaceCount} {crypto.spaceCount === 1 ? 'space' : 'spaces'}
             </span>

@@ -2,6 +2,16 @@ import { LuArrowLeft } from '@s4wave/web/images/icons.js'
 import { LegalFooter } from './LegalFooter.js'
 import { useLandingBackNavigation } from './useLandingBackNavigation.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 // LegalPageLayoutProps defines the props for LegalPageLayout.
 interface LegalPageLayoutProps {
   icon?: React.ReactElement
@@ -31,7 +41,7 @@ export function LegalPageLayout({
           onClick={goBack}
           className="text-foreground-alt hover:text-foreground flex cursor-pointer items-center gap-2 text-sm transition-colors"
         >
-          <LuArrowLeft className="size-4" />
+          <LuArrowLeft sx={stylexStyles.rule1} />
           Back
         </button>
       </div>

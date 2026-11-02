@@ -1,3 +1,6 @@
+import * as ownerStylex from '@stylexjs/stylex'
+import { cn as ownerClasses } from '@s4wave/web/style/utils.js'
+import { groupMarker as ownergroupMarker } from '@s4wave/web/style/relations.stylex.js'
 import { useMemo, useEffect, useState, type RefObject } from 'react'
 import { useDocumentVisibility } from '@aptre/bldr-react'
 import { useMouse } from '@uidotdev/usehooks'
@@ -158,11 +161,16 @@ const AnimatedLogo = ({
   return (
     <div
       ref={mouseRef}
-      className={cn(
-        'group relative perspective-logo',
-        fixedSize && 'animated-logo-fixed-size',
-        containerClassName,
-      )}
+      className={
+        /* TODO(stylex): global or unknown class: animated-logo-fixed-size */ cn(
+          ownerClasses(
+            'group relative perspective-logo',
+            ownerStylex.props(ownergroupMarker).className,
+          ),
+          fixedSize && 'animated-logo-fixed-size',
+          containerClassName,
+        )
+      }
       style={
         fixedSize
           ? {

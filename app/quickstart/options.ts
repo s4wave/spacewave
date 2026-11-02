@@ -1,4 +1,4 @@
-import React from 'react'
+import type { IconType } from '@s4wave/web/images/icons.js'
 import {
   LuBookOpen,
   LuBox,
@@ -25,7 +25,7 @@ export interface QuickstartOption {
   description: string
   seoDescription?: string
   category: string
-  icon: React.ComponentType<{ className?: string }>
+  icon: IconType
   path?: string
   hidden?: boolean
   // experimental marks options only shown when experimental creators are enabled.

@@ -17,6 +17,29 @@ import type { LiveDemoAppProps } from './use-case/LiveDemoApp.js'
 import { UseCaseDemo } from './use-case/UseCaseDemo.js'
 import { UseCasePage } from './use-case/UseCasePage.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-brand'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 export const metadata = {
   title: 'Spacewave Drive - Your files, on your devices.',
   description:
@@ -34,7 +57,7 @@ export function LandingDrive({
 
   return (
     <UseCasePage
-      icon={<LuHardDrive className="size-8" />}
+      icon={<LuHardDrive sx={stylexStyles.rule1} />}
       title="Your files, on your devices."
       subtitle="Spacewave Drive keeps a private file space in your browser, syncs it to the devices you link, and backs it up to the cloud only if you ask."
       points={[
@@ -102,9 +125,9 @@ function DrivePoster() {
             className="border-foreground/5 flex items-center gap-3 border-b px-4 py-2.5"
           >
             {row.folder ? (
-              <LuFolder className="text-brand size-4" />
+              <LuFolder sx={stylexStyles.rule2} />
             ) : (
-              <LuFileText className="text-foreground-alt size-4" />
+              <LuFileText sx={stylexStyles.rule3} />
             )}
             <span className="text-foreground">{row.name}</span>
             <span className="text-foreground-alt ml-auto text-xs">

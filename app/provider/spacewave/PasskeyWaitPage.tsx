@@ -30,6 +30,28 @@ import {
   unwrapPemWithPasskeyPrf,
 } from './passkey-prf.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    color: themeColors['--color-destructive'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+  },
+})
+
 type PasskeyWaitState =
   | { step: 'waiting' }
   | { step: 'logging_in' }
@@ -204,13 +226,13 @@ export function PasskeyWaitPage() {
         }
       >
         <AuthStatusPanel
-          icon={<LuCircleAlert className="text-destructive size-10" />}
+          icon={<LuCircleAlert sx={stylexStyles.rule1} />}
           message={state.message}
         >
           <div className="flex w-full flex-col gap-2">
             <AuthPrimaryActionButton
               onClick={handleRetry}
-              icon={<LuFingerprint className="size-4" />}
+              icon={<LuFingerprint sx={stylexStyles.rule2} />}
             >
               Open again
             </AuthPrimaryActionButton>
@@ -218,7 +240,7 @@ export function PasskeyWaitPage() {
               onClick={handleCancel}
               className="flex items-center justify-center gap-2"
             >
-              <LuArrowLeft className="size-4" />
+              <LuArrowLeft sx={stylexStyles.rule2} />
               Back to login
             </AuthSecondaryActionButton>
           </div>
@@ -266,7 +288,7 @@ export function PasskeyWaitPage() {
           <div className="flex w-full flex-col gap-2">
             <AuthPrimaryActionButton
               onClick={() => void handleSubmitPin()}
-              icon={<LuFingerprint className="size-4" />}
+              icon={<LuFingerprint sx={stylexStyles.rule2} />}
             >
               Continue
             </AuthPrimaryActionButton>
@@ -274,7 +296,7 @@ export function PasskeyWaitPage() {
               onClick={handleCancel}
               className="flex items-center justify-center gap-2"
             >
-              <LuArrowLeft className="size-4" />
+              <LuArrowLeft sx={stylexStyles.rule2} />
               Cancel
             </AuthSecondaryActionButton>
           </div>
@@ -294,7 +316,7 @@ export function PasskeyWaitPage() {
         <>
           <AnimatedLogo followMouse={false} />
           <h2 className="text-foreground flex items-center gap-2 text-lg font-semibold">
-            <LuFingerprint className="size-5" />
+            <LuFingerprint sx={stylexStyles.rule3} />
             Signing in with Passkey
           </h2>
         </>
@@ -308,7 +330,7 @@ export function PasskeyWaitPage() {
           <div className="flex w-full flex-col gap-2">
             <AuthPrimaryActionButton
               onClick={handleRetry}
-              icon={<LuFingerprint className="size-4" />}
+              icon={<LuFingerprint sx={stylexStyles.rule2} />}
             >
               Open again
             </AuthPrimaryActionButton>
@@ -316,7 +338,7 @@ export function PasskeyWaitPage() {
               onClick={handleCancel}
               className="flex items-center justify-center gap-2"
             >
-              <LuArrowLeft className="size-4" />
+              <LuArrowLeft sx={stylexStyles.rule2} />
               Cancel
             </AuthSecondaryActionButton>
           </div>

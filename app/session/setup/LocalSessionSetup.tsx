@@ -32,6 +32,31 @@ import { useNavigate } from '@s4wave/web/router/router.js'
 
 import { SetupPageLayout } from './SetupPageLayout.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-brand'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+})
+
 // LocalSessionSetup bridges older local onboarding entry points into the full
 // setup wizard. The cloud mode provisions or resumes a linked local session and
 // then navigates into /setup. The local mode redirects stale /setup/free-local
@@ -246,7 +271,7 @@ export function WarningCard({
       <div className="p-6">
         <div className="mb-4 flex items-center gap-3">
           <div className="bg-brand/10 flex size-10 shrink-0 items-center justify-center rounded-lg">
-            <LuTriangleAlert className="text-brand size-5" />
+            <LuTriangleAlert sx={stylexStyles.rule1} />
           </div>
           <div>
             <h2 className="text-foreground text-sm font-medium">
@@ -272,9 +297,9 @@ export function WarningCard({
           >
             <div className="bg-foreground/5 flex size-8 shrink-0 items-center justify-center rounded-md">
               {isDesktop ? (
-                <LuCheck className="text-foreground-alt size-4" />
+                <LuCheck sx={stylexStyles.rule2} />
               ) : (
-                <LuMonitor className="text-foreground-alt size-4" />
+                <LuMonitor sx={stylexStyles.rule2} />
               )}
             </div>
             <div className="min-w-0 flex-1">
@@ -285,9 +310,7 @@ export function WarningCard({
                 Persistent storage on your computer.
               </p>
             </div>
-            {!isDesktop && (
-              <LuArrowRight className="text-foreground-alt/50 size-4 shrink-0" />
-            )}
+            {!isDesktop && <LuArrowRight sx={stylexStyles.rule3} />}
           </button>
 
           <button
@@ -300,7 +323,7 @@ export function WarningCard({
               {upgradeLoading ? (
                 <Spinner variant="muted" />
               ) : (
-                <LuCloud className="text-foreground-alt size-4" />
+                <LuCloud sx={stylexStyles.rule2} />
               )}
             </div>
             <div className="min-w-0 flex-1">
@@ -311,7 +334,7 @@ export function WarningCard({
                 Cloud sync and backup for ${PLAN_PRICE_MONTHLY}/mo.
               </p>
             </div>
-            <LuArrowRight className="text-foreground-alt/50 size-4 shrink-0" />
+            <LuArrowRight sx={stylexStyles.rule3} />
           </button>
         </div>
       </div>

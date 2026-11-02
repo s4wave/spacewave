@@ -21,6 +21,102 @@ import { Turnstile, type TurnstileInstance } from '@s4wave/web/ui/turnstile.js'
 import { useCloudProviderConfig } from '@s4wave/app/provider/spacewave/useSpacewaveAuth.js'
 import { AuthScreenLayout } from '@s4wave/app/auth/AuthScreenLayout.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+import { groupMarker } from '../../web/style/relations.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+  },
+  rule2: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-brand'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground'],
+  },
+  rule5: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-destructive'],
+  },
+  rule6: {
+    width: `calc(${themeLayout['--spacing']} * 6)`,
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+    color: themeColors['--color-brand'],
+  },
+})
+
 type RecoveryStep = 'verifying' | 'form' | 'executing' | 'done'
 
 // parseRecoveryToken extracts the token query parameter from either the hash
@@ -229,7 +325,7 @@ export function RecoveryPage() {
           onClick={handleBack}
           className="text-foreground-alt hover:text-brand flex items-center gap-2 text-sm transition-colors"
         >
-          <LuArrowLeft className="size-4" />
+          <LuArrowLeft sx={stylexStyles.rule1} />
           <span className="select-none">Back to home</span>
         </button>
       }
@@ -324,7 +420,7 @@ function RequestRecoveryForm({
       <div className="space-y-4">
         <div className="flex flex-col items-center gap-2">
           <div className="bg-brand/10 flex size-10 items-center justify-center rounded-full">
-            <LuCircleCheck className="text-brand size-5" />
+            <LuCircleCheck sx={stylexStyles.rule2} />
           </div>
           <h2 className="text-foreground text-sm font-medium">
             Check your email
@@ -337,14 +433,10 @@ function RequestRecoveryForm({
         <button
           type="button"
           onClick={onGoToLogin}
-          className={cn(
-            'group w-full rounded-md border transition-all duration-300',
-            'border-brand/30 bg-brand/10 hover:bg-brand/20',
-            'flex h-10 items-center justify-center gap-2',
-          )}
+          sx={[[stylexStyles2.rule1, groupMarker]]}
         >
           <span className="text-foreground text-sm">Back to login</span>
-          <LuArrowRight className="text-foreground-alt size-4" />
+          <LuArrowRight sx={stylexStyles.rule3} />
         </button>
       </div>
     )
@@ -354,7 +446,7 @@ function RequestRecoveryForm({
     <div className="space-y-4">
       <div className="flex flex-col items-center gap-2">
         <div className="bg-brand/10 flex size-10 items-center justify-center rounded-full">
-          <LuKeyRound className="text-brand size-5" />
+          <LuKeyRound sx={stylexStyles.rule2} />
         </div>
         <h2 className="text-foreground text-sm font-medium">
           Send a recovery link
@@ -393,18 +485,13 @@ function RequestRecoveryForm({
       <button
         type="button"
         onClick={() => void onSubmit()}
-        className={cn(
-          'group w-full rounded-md border transition-all duration-300',
-          'border-brand/30 bg-brand/10 hover:bg-brand/20',
-          'disabled:cursor-not-allowed disabled:opacity-50',
-          'flex h-10 items-center justify-center gap-2',
-        )}
+        sx={[[stylexStyles2.rule2, groupMarker]]}
         disabled={loading}
       >
         {loading ? (
           <Spinner variant="foreground" />
         ) : (
-          <LuArrowRight className="text-foreground size-4" />
+          <LuArrowRight sx={stylexStyles.rule4} />
         )}
         <span className="text-foreground text-sm">
           {loading ? 'Sending recovery link…' : 'Send recovery link'}
@@ -446,7 +533,7 @@ function VerifyingStep({ loading, error, onGoToLogin }: VerifyingStepProps) {
       <div className="space-y-4">
         <div className="flex flex-col items-center gap-2">
           <div className="bg-destructive/10 flex size-10 items-center justify-center rounded-full">
-            <LuKeyRound className="text-destructive size-5" />
+            <LuKeyRound sx={stylexStyles.rule5} />
           </div>
           <h2 className="text-foreground text-sm font-medium">
             Token verification failed
@@ -461,14 +548,10 @@ function VerifyingStep({ loading, error, onGoToLogin }: VerifyingStepProps) {
         <button
           type="button"
           onClick={onGoToLogin}
-          className={cn(
-            'group w-full rounded-md border transition-all duration-300',
-            'border-brand/30 bg-brand/10 hover:bg-brand/20',
-            'flex h-10 items-center justify-center gap-2',
-          )}
+          sx={[[stylexStyles2.rule1, groupMarker]]}
         >
           <span className="text-foreground text-sm">Back to login</span>
-          <LuArrowRight className="text-foreground-alt size-4" />
+          <LuArrowRight sx={stylexStyles.rule3} />
         </button>
       </div>
     )
@@ -515,7 +598,7 @@ function PasswordForm({
     <div className="space-y-4">
       <div className="flex flex-col items-center gap-2">
         <div className="bg-brand/10 flex size-10 items-center justify-center rounded-full">
-          <LuShieldCheck className="text-brand size-5" />
+          <LuShieldCheck sx={stylexStyles.rule2} />
         </div>
         <h2 className="text-foreground text-sm font-medium">
           Set a new password
@@ -596,14 +679,9 @@ function PasswordForm({
         type="button"
         onClick={() => void onSubmit()}
         disabled={!canSubmit}
-        className={cn(
-          'group w-full rounded-md border transition-all duration-300',
-          'border-brand/30 bg-brand/10 hover:bg-brand/20',
-          'disabled:cursor-not-allowed disabled:opacity-50',
-          'flex h-10 items-center justify-center gap-2',
-        )}
+        sx={[[stylexStyles2.rule2, groupMarker]]}
       >
-        <LuRefreshCw className="text-foreground size-4" />
+        <LuRefreshCw sx={stylexStyles.rule4} />
         <span className="text-foreground text-sm">Reset password</span>
       </button>
     </div>
@@ -663,7 +741,7 @@ function DoneStep({ onGoToLogin }: { onGoToLogin: () => void }) {
     <div className="space-y-4">
       <div className="flex flex-col items-center gap-3">
         <div className="bg-brand/10 flex size-12 items-center justify-center rounded-full">
-          <LuCircleCheck className="text-brand size-6" />
+          <LuCircleCheck sx={stylexStyles.rule6} />
         </div>
         <h2 className="text-foreground text-sm font-medium">
           Password reset successfully!
@@ -676,14 +754,10 @@ function DoneStep({ onGoToLogin }: { onGoToLogin: () => void }) {
       <button
         type="button"
         onClick={onGoToLogin}
-        className={cn(
-          'group w-full rounded-md border transition-all duration-300',
-          'border-brand/30 bg-brand/10 hover:bg-brand/20',
-          'flex h-10 items-center justify-center gap-2',
-        )}
+        sx={[[stylexStyles2.rule1, groupMarker]]}
       >
         <span className="text-foreground text-sm">Go to login</span>
-        <LuArrowRight className="text-foreground-alt size-4" />
+        <LuArrowRight sx={stylexStyles.rule3} />
       </button>
     </div>
   )

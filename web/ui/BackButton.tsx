@@ -73,7 +73,7 @@ export function BackButton({
         props,
       )}
     >
-      <LuArrowLeft {...stylex.props(stylexStyles.rule3)} />
+      <LuArrowLeft sx={stylexStyles.rule3} />
       <span sx={stylexStyles.rule4}>{children}</span>
     </button>
   )

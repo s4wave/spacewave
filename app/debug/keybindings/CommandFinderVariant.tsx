@@ -20,6 +20,25 @@ import { Keycap } from './Keycap.js'
 import { commandMatchesQuery } from './keybindings-model.js'
 import type { KeybindingVariantProps } from './variant-types.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    flexShrink: 0,
+    color: themeColors['--color-brand'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 export function CommandFinderVariant({
   commands,
   conflictCommandIds,
@@ -91,7 +110,7 @@ export function CommandFinderVariant({
     <section className="mx-auto max-w-5xl">
       <div className="border-foreground/8 bg-background-card/40 overflow-hidden rounded-xl border shadow-xl">
         <div className="border-foreground/8 flex items-center gap-3 border-b px-4 py-3">
-          <LuSearch className="text-brand size-5 shrink-0" />
+          <LuSearch sx={stylexStyles.rule1} />
           <Input
             ref={focusSearchInput}
             value={query}
@@ -181,7 +200,7 @@ export function CommandFinderVariant({
                     onReset={reset}
                   />
                   <div className="text-foreground-alt/45 mt-4 flex items-center gap-2 text-xs">
-                    <LuCornerDownLeft className="size-3.5" />
+                    <LuCornerDownLeft sx={stylexStyles.rule2} />
                     Click the binding, then press a new key combination.
                   </div>
                 </div>

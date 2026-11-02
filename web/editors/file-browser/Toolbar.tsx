@@ -253,19 +253,19 @@ function ToolbarNav({
   return (
     <div sx={stylexStyles2.rule1}>
       <NavIconButton
-        icon={<LuChevronLeft {...stylex.props(stylexStyles2.rule2)} />}
+        icon={<LuChevronLeft sx={stylexStyles2.rule2} />}
         label="Back"
         onClick={onBack}
         disabled={!canGoBack}
       />
       <NavIconButton
-        icon={<LuChevronRight {...stylex.props(stylexStyles2.rule2)} />}
+        icon={<LuChevronRight sx={stylexStyles2.rule2} />}
         label="Forward"
         onClick={onForward}
         disabled={!canGoForward}
       />
       <NavIconButton
-        icon={<LuChevronUp {...stylex.props(stylexStyles2.rule2)} />}
+        icon={<LuChevronUp sx={stylexStyles2.rule2} />}
         label="Up"
         onClick={onUp}
         disabled={!canGoUp}
@@ -291,14 +291,14 @@ function ToolbarActions({
     <div sx={stylexStyles2.rule1}>
       {showNewFolder && (
         <NavIconButton
-          icon={<LuFolderPlus {...stylex.props(stylexStyles2.rule2)} />}
+          icon={<LuFolderPlus sx={stylexStyles2.rule2} />}
           label="New folder"
           onClick={onNewFolder}
         />
       )}
       {onUploadFiles && (
         <NavIconButton
-          icon={<LuUpload {...stylex.props(stylexStyles2.rule2)} />}
+          icon={<LuUpload sx={stylexStyles2.rule2} />}
           label="Upload files"
           onClick={onUploadFiles}
         />
@@ -487,7 +487,7 @@ function OverflowMenu({
           aria-label="More actions"
           sx={stylexStyles2.rule7}
         >
-          <LuEllipsisVertical {...stylex.props(stylexStyles2.rule2)} />
+          <LuEllipsisVertical sx={stylexStyles2.rule2} />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -499,7 +499,7 @@ function OverflowMenu({
           {...stylex.props(stylexStyles2.rule9)}
           onClick={onSearchClick}
         >
-          <LuSearch {...stylex.props(stylexStyles2.rule10)} />
+          <LuSearch sx={stylexStyles2.rule10} />
           Search
         </DropdownMenuItem>
         {showNavItems && (
@@ -510,7 +510,7 @@ function OverflowMenu({
               onClick={onBack}
               disabled={!canGoBack}
             >
-              <LuChevronLeft {...stylex.props(stylexStyles2.rule10)} />
+              <LuChevronLeft sx={stylexStyles2.rule10} />
               Back
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -518,7 +518,7 @@ function OverflowMenu({
               onClick={onForward}
               disabled={!canGoForward}
             >
-              <LuChevronRight {...stylex.props(stylexStyles2.rule10)} />
+              <LuChevronRight sx={stylexStyles2.rule10} />
               Forward
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -532,7 +532,7 @@ function OverflowMenu({
                 onPathTargetDrop,
               )}
             >
-              <LuChevronUp {...stylex.props(stylexStyles2.rule10)} />
+              <LuChevronUp sx={stylexStyles2.rule10} />
               Up
             </DropdownMenuItem>
           </>
@@ -544,7 +544,7 @@ function OverflowMenu({
               {...stylex.props(stylexStyles2.rule9)}
               onClick={onNewFolder}
             >
-              <LuFolderPlus {...stylex.props(stylexStyles2.rule10)} />
+              <LuFolderPlus sx={stylexStyles2.rule10} />
               New folder
             </DropdownMenuItem>
           </>

@@ -13,6 +13,13 @@ import {
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 70)`,
@@ -60,7 +67,7 @@ function DocsMobileNav({
             aria-label="Open documentation navigation"
             className="text-foreground-alt hover:bg-foreground/5 hover:text-foreground focus-visible:ring-brand/30 inline-flex size-11 shrink-0 items-center justify-center rounded-md transition-colors focus-visible:ring-1 focus-visible:outline-none"
           >
-            <LuMenu className="size-4" />
+            <LuMenu sx={stylexStyles2.rule1} />
           </button>
         </SheetTrigger>
         <span className="text-foreground min-w-0 truncate text-sm font-semibold">
@@ -84,7 +91,7 @@ function DocsMobileNav({
                 aria-label="Close documentation navigation"
                 className="text-foreground-alt hover:bg-foreground/5 hover:text-foreground focus-visible:ring-brand/30 inline-flex size-11 items-center justify-center rounded-md transition-colors focus-visible:ring-1 focus-visible:outline-none"
               >
-                <LuX className="size-4" />
+                <LuX sx={stylexStyles2.rule1} />
               </button>
             </SheetClose>
           </div>

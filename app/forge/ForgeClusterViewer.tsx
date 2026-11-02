@@ -46,6 +46,33 @@ import { buildWizardObjectKey } from '@s4wave/app/space/create-op-builders.js'
 import { useForgeClusterSnapshot } from './useForgeClusterSnapshot.js'
 import { useVisibleObjectWizardTypeSet } from '../space/useVisibleObjectWizardTypeSet.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    flexShrink: 0,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 export const ForgeClusterTypeID = 'forge/cluster'
 
 const jobStateLabels: Record<number, string> = {
@@ -198,7 +225,7 @@ export function ForgeClusterViewer({
               ]}
             />
             <InfoCard
-              icon={<LuListTodo className="text-foreground-alt/60 size-3.5" />}
+              icon={<LuListTodo sx={stylexStyles.rule1} />}
               title="Task States"
             >
               {snapshotError ? (
@@ -257,7 +284,7 @@ export function ForgeClusterViewer({
           <ForgeEntityList
             entities={workers}
             loading={workersLoading || snapshotLoading}
-            icon={<LuCpu className="size-3 shrink-0" />}
+            icon={<LuCpu sx={stylexStyles.rule2} />}
             loadingLabel="Loading workers..."
             emptyLabel="No workers assigned"
           />
@@ -296,7 +323,7 @@ export function ForgeClusterViewer({
             {canCreateJob && (
               <div className="flex justify-end">
                 <DashboardButton
-                  icon={<LuPlus className="size-3.5" />}
+                  icon={<LuPlus sx={stylexStyles.rule3} />}
                   onClick={() => {
                     void handleCreateJob()
                   }}
@@ -320,7 +347,7 @@ export function ForgeClusterViewer({
               <ForgeEntityList
                 entities={jobs}
                 loading={jobsLoading || snapshotLoading}
-                icon={<LuBriefcase className="size-3 shrink-0" />}
+                icon={<LuBriefcase sx={stylexStyles.rule2} />}
                 loadingLabel="Loading jobs..."
                 emptyLabel="No jobs in cluster"
               />
@@ -371,7 +398,7 @@ export function ForgeClusterViewer({
                       {startable && (
                         <div className="flex justify-end">
                           <DashboardButton
-                            icon={<LuPlay className="size-3.5" />}
+                            icon={<LuPlay sx={stylexStyles.rule3} />}
                             onClick={() => {
                               void handleStartJob(job.objectKey)
                             }}
@@ -440,7 +467,7 @@ export function ForgeClusterViewer({
   return (
     <ForgeViewerShell
       stateKey={objectKey}
-      icon={<LuServer className="size-4" />}
+      icon={<LuServer sx={stylexStyles.rule4} />}
       title={cluster?.name || 'Cluster'}
       tabs={tabs}
     />

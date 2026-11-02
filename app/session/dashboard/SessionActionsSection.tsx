@@ -13,62 +13,371 @@ import type { Session } from '@s4wave/sdk/session/session.js'
 import { useInvokeCommand } from '@s4wave/web/command/index.js'
 import { useSessionNavigate } from '@s4wave/web/contexts/contexts.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { CollapsibleSection } from '@s4wave/web/ui/CollapsibleSection.js'
 
 import { LogoutConfirmDialog } from '../LogoutConfirmDialog.js'
 import { DeleteAccountDialog } from './DeleteAccountDialog.js'
 import { DeleteSpaceEscapeHatchDialog } from './DeleteSpaceEscapeHatchDialog.js'
 
-// ActionTone holds the class names that give an action card its tone.
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+  motion as themeMotion,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+} from '../../../web/style/tokens.stylex.js'
+import { groupMarker } from '../../../web/style/relations.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      },
+    },
+  },
+  rule2: {
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker)]:
+          `color-mix(in oklab, ${themeColors['--color-foreground']} 15%, transparent)`,
+      },
+    },
+  },
+  rule3: { color: themeColors['--color-foreground'] },
+  rule4: { color: themeColors['--color-foreground-alt'] },
+  rule5: {
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+      },
+    },
+  },
+  rule6: {
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker)]:
+          `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      },
+    },
+  },
+  rule7: {
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-warning']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-warning'],
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-warning']} 5%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-warning']} 10%, transparent)`,
+      },
+    },
+  },
+  rule8: {
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-warning']} 20%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker)]:
+          `color-mix(in oklab, ${themeColors['--color-warning']} 30%, transparent)`,
+      },
+    },
+  },
+  rule9: { color: themeColors['--color-warning'] },
+  rule10: {
+    color: `color-mix(in oklab, ${themeColors['--color-warning']} 80%, transparent)`,
+  },
+  rule11: {
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+      },
+    },
+  },
+  rule12: {
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker)]:
+          `color-mix(in oklab, ${themeColors['--color-destructive']} 15%, transparent)`,
+      },
+    },
+  },
+  rule13: {
+    color: themeColors['--color-destructive'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule14: {
+    color: `color-mix(in oklab, ${themeColors['--color-destructive']} 80%, transparent)`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule15: {
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-destructive'],
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-destructive'],
+      },
+    },
+    color: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-destructive-foreground'],
+      },
+    },
+  },
+  rule16: {
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker)]:
+          `color-mix(in oklab, ${themeColors['--color-destructive-foreground']} 20%, transparent)`,
+      },
+    },
+  },
+  rule17: {
+    color: {
+      default: themeColors['--color-destructive'],
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker)]:
+          themeColors['--color-destructive-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule18: {
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 80%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker)]:
+          `color-mix(in oklab, ${themeColors['--color-destructive-foreground']} 80%, transparent)`,
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: themeColors['--color-foreground-alt'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker)]:
+          themeColors['--color-brand'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: themeColors['--color-warning'],
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: themeColors['--color-destructive'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule5: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: {
+      default: themeColors['--color-destructive'],
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker)]:
+          themeColors['--color-destructive-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule6: {
+    display: 'flex',
+    width: '100%',
+    cursor: 'pointer',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
+    textAlign: 'left',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule7: { cursor: 'not-allowed', opacity: 0.5 },
+  rule8: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 7)`,
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule9: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule10: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+})
+
+// ActionTone holds the compiled styles that give an action card its tone.
 interface ActionTone {
-  card: string
-  iconBox: string
-  icon: string
-  title: string
-  description: string
+  card: import('@stylexjs/stylex').StyleXStyles
+  iconBox: import('@stylexjs/stylex').StyleXStyles
+  icon: import('@stylexjs/stylex').StyleXStyles
+  title: import('@stylexjs/stylex').StyleXStyles
+  description: import('@stylexjs/stylex').StyleXStyles
 }
 
 const neutralTone: ActionTone = {
-  card: 'border-foreground/10 bg-foreground/5 hover:border-foreground/20 hover:bg-foreground/10',
-  iconBox: 'bg-foreground/10 group-hover:bg-foreground/15',
-  icon: 'text-foreground-alt size-3.5 transition-colors',
-  title: 'text-foreground',
-  description: 'text-foreground-alt',
+  card: stylexStyles2.rule1,
+  iconBox: stylexStyles2.rule2,
+  icon: stylexStyles.rule1,
+  title: stylexStyles2.rule3,
+  description: stylexStyles2.rule4,
 }
 
 const brandTone: ActionTone = {
-  card: 'border-foreground/10 bg-foreground/5 hover:border-brand/30 hover:bg-brand/5',
-  iconBox: 'bg-foreground/10 group-hover:bg-brand/10',
-  icon: 'text-foreground-alt group-hover:text-brand size-3.5 transition-colors',
-  title: 'text-foreground',
-  description: 'text-foreground-alt',
+  card: stylexStyles2.rule5,
+  iconBox: stylexStyles2.rule6,
+  icon: stylexStyles.rule2,
+  title: stylexStyles2.rule3,
+  description: stylexStyles2.rule4,
 }
 
 const warningTone: ActionTone = {
-  card: 'border-warning/30 bg-warning/5 hover:border-warning hover:bg-warning/10',
-  iconBox: 'bg-warning/20 group-hover:bg-warning/30',
-  icon: 'text-warning size-3.5',
-  title: 'text-warning',
-  description: 'text-warning/80',
+  card: stylexStyles2.rule7,
+  iconBox: stylexStyles2.rule8,
+  icon: stylexStyles.rule3,
+  title: stylexStyles2.rule9,
+  description: stylexStyles2.rule10,
 }
 
 const destructiveTone: ActionTone = {
-  card: 'border-destructive/20 bg-destructive/5 hover:border-destructive/40 hover:bg-destructive/10',
-  iconBox: 'bg-destructive/10 group-hover:bg-destructive/15',
-  icon: 'text-destructive size-3.5 transition-colors',
-  title: 'text-destructive transition-colors',
-  description: 'text-destructive/80 transition-colors',
+  card: stylexStyles2.rule11,
+  iconBox: stylexStyles2.rule12,
+  icon: stylexStyles.rule4,
+  title: stylexStyles2.rule13,
+  description: stylexStyles2.rule14,
 }
 
 const destructiveStrongTone: ActionTone = {
-  card: 'border-destructive/30 bg-destructive/5 hover:border-destructive hover:bg-destructive hover:text-destructive-foreground',
-  iconBox: 'bg-destructive/20 group-hover:bg-destructive-foreground/20',
-  icon: 'text-destructive group-hover:text-destructive-foreground size-3.5 transition-colors',
-  title:
-    'text-destructive group-hover:text-destructive-foreground transition-colors',
-  description:
-    'text-destructive/80 group-hover:text-destructive-foreground/80 transition-colors',
+  card: stylexStyles2.rule15,
+  iconBox: stylexStyles2.rule16,
+  icon: stylexStyles.rule5,
+  title: stylexStyles2.rule17,
+  description: stylexStyles2.rule18,
 }
 
 interface ActionCardProps {
@@ -94,27 +403,16 @@ function ActionCard({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={cn(
-        'group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2 text-left transition-colors',
+      sx={[
+        [stylexStyles.rule6, groupMarker],
         tone.card,
-        disabled && 'cursor-not-allowed opacity-50',
-      )}
+        disabled && stylexStyles.rule7,
+      ]}
     >
-      <div
-        className={cn(
-          'flex size-7 shrink-0 items-center justify-center rounded-md transition-colors',
-          tone.iconBox,
-        )}
-      >
-        {icon}
-      </div>
+      <div sx={[stylexStyles.rule8, tone.iconBox]}>{icon}</div>
       <div className="flex min-w-0 flex-1 flex-col">
-        <h4 className={cn('text-xs font-medium select-none', tone.title)}>
-          {title}
-        </h4>
-        <p className={cn('text-xs select-none', tone.description)}>
-          {description}
-        </p>
+        <h4 sx={[stylexStyles.rule9, tone.title]}>{title}</h4>
+        <p sx={[stylexStyles.rule10, tone.description]}>{description}</p>
       </div>
     </button>
   )
@@ -188,7 +486,7 @@ export function SessionActionsSection({
         {isLocal && sessionIdx != null && (
           <ActionCard
             tone={brandTone}
-            icon={<LuCloud className={brandTone.icon} />}
+            icon={<LuCloud sx={brandTone.icon} />}
             title="Upgrade to Cloud"
             description="Sync across devices with Spacewave Cloud"
             onClick={onUpgradeToCloud}
@@ -197,7 +495,7 @@ export function SessionActionsSection({
 
         <ActionCard
           tone={neutralTone}
-          icon={<LuKeyboard className={neutralTone.icon} />}
+          icon={<LuKeyboard sx={neutralTone.icon} />}
           title="Keyboard Shortcuts"
           description="Open account keyboard shortcut overrides"
           onClick={() =>
@@ -209,7 +507,7 @@ export function SessionActionsSection({
 
         <ActionCard
           tone={neutralTone}
-          icon={<LuTerminal className={neutralTone.icon} />}
+          icon={<LuTerminal sx={neutralTone.icon} />}
           title="Command Line"
           description="Connect the spacewave CLI to this session"
           onClick={() => navigateSession({ path: 'settings/cli' })}
@@ -217,7 +515,7 @@ export function SessionActionsSection({
 
         <ActionCard
           tone={neutralTone}
-          icon={<LuGitBranch className={neutralTone.icon} />}
+          icon={<LuGitBranch sx={neutralTone.icon} />}
           title="Plugins"
           description="Add a plugin from GitHub and check it for updates"
           onClick={() => navigateSession({ path: 'settings/plugins' })}
@@ -226,7 +524,7 @@ export function SessionActionsSection({
         {showTransfer && (
           <ActionCard
             tone={neutralTone}
-            icon={<LuMerge className={neutralTone.icon} />}
+            icon={<LuMerge sx={neutralTone.icon} />}
             title="Transfer Sessions"
             description="Merge spaces from another session into this one"
             onClick={() => navigateSession({ path: 'settings/transfer' })}
@@ -236,7 +534,7 @@ export function SessionActionsSection({
         {showLogout && (
           <ActionCard
             tone={warningTone}
-            icon={<LuLogOut className={warningTone.icon} />}
+            icon={<LuLogOut sx={warningTone.icon} />}
             title={loggingOut ? 'Logging out…' : 'Log Out'}
             description="Sign out and remove session data"
             onClick={onLogoutClick}
@@ -252,7 +550,7 @@ export function SessionActionsSection({
           <div className="space-y-2">
             <ActionCard
               tone={destructiveTone}
-              icon={<LuTrash2 className={destructiveTone.icon} />}
+              icon={<LuTrash2 sx={destructiveTone.icon} />}
               title="Delete a Space"
               description="Permanently remove a broken space without opening it"
               onClick={() => setDeleteSpaceOpen(true)}
@@ -260,7 +558,7 @@ export function SessionActionsSection({
             />
             <ActionCard
               tone={destructiveStrongTone}
-              icon={<LuTrash2 className={destructiveStrongTone.icon} />}
+              icon={<LuTrash2 sx={destructiveStrongTone.icon} />}
               title={isLocal ? 'Delete Local Data' : 'Delete Account'}
               description={
                 isLocal

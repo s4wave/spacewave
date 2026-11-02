@@ -57,6 +57,7 @@ import {ButtonGroupSeparator} from './button-group';
 import {DashboardButton} from './DashboardButton';
 import {DropdownTriggerButton} from './DropdownTriggerButton';
 import {IconContext,LuPlus} from '@s4wave/web/images/icons.js';
+import{PiAppStoreLogoBold,PiRocketLaunchDuotone}from'@s4wave/web/ui/phosphor-icons.js';
 import {Spinner} from './Spinner';
 const styles=stylex.create({full:{width:'100%'},largeIcon:{width:32,height:32}});
 const variants=['default','destructive','outline','secondary','ghost','link','brandOutline','quiet','destructiveOutline','dangerGhost','brandGhost','muted','brandSoft','selectedBrand','capture','unselectedRow','selectedRow','debugOutline','debugGhost','destructiveSubtle','errorGhost','selectedFinder','unselectedFinder','category'] as const;
@@ -72,12 +73,14 @@ export function ButtonSamples(){return <main id="button-fixtures"><IconContext.P
  <Button variant="outline" ${override}><LuPlus/>Caller width</Button>
  <Button asChild><a href="#button-target"><LuPlus/>Child link</a></Button>
  <Button><Spinner size="sm"/>Busy action</Button>
- <Button>${version === 'before' ? '<LuPlus className="size-8"/>' : '<LuPlus {...stylex.props(styles.largeIcon)}/>'}Large icon action</Button>
+ <Button>${version === 'before' ? '<LuPlus className="size-8"/>' : '<LuPlus sx={styles.largeIcon}/>'}Large icon action</Button>
  {['default','active','destructive','primary'].map(variant=><DashboardButton key={variant} variant={variant as 'default'} icon={<LuPlus/>}>Dashboard {variant}</DashboardButton>)}
  <DropdownTriggerButton icon={<LuPlus/>}>Outline dropdown</DropdownTriggerButton>
  <DropdownTriggerButton triggerStyle="ghost" icon={<LuPlus/>}>Ghost dropdown</DropdownTriggerButton>
  <button type="button" ${version === 'before' ? "className={buttonVariants({variant:'outline',size:'sm'})}" : "sx={buttonVariants({variant:'outline',size:'sm'})}"}>Recipe action</button>
  {['vertical','horizontal'].map(orientation=><div key={orientation} style={{display:'flex',height:64}}><ButtonGroupSeparator orientation={orientation as 'vertical'}/></div>)}
+ <Button><PiAppStoreLogoBold ${version === 'before' ? 'className="size-8"' : 'sx={styles.largeIcon}'}/>Phosphor action</Button>
+ <span><PiRocketLaunchDuotone ${version === 'before' ? 'className="size-8"' : 'sx={styles.largeIcon}'}/>Phosphor caller</span>
  <Button aria-label="Focus button">Focus action</Button>
 </IconContext.Provider></main>}
 `,

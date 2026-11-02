@@ -1,3 +1,12 @@
+import * as iconStylex from '@stylexjs/stylex'
+import { IconStylesProvider } from '@s4wave/web/images/icons.js'
+import {
+  iconDefaults,
+  codeTitleIconMarker,
+} from '../style/icon-defaults.stylex.js'
+import * as ownerStylex from '@stylexjs/stylex'
+import { cn as ownerClasses } from '@s4wave/web/style/utils.js'
+import { codeBlockGroupMarker as ownercodeBlockGroupMarker } from '@s4wave/web/style/relations.stylex.js'
 import * as React from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { LuCheck, LuCopy } from '@s4wave/web/images/icons.js'
@@ -33,7 +42,10 @@ const stylexStyles = stylex.create({
 })
 
 const codeBlockVariants = cva(
-  'group/code-block relative flex w-full min-w-0 flex-col overflow-hidden rounded-lg text-sm has-[>[data-slot=code-block-content]:focus-visible]:ring-3 has-[>[data-slot=code-block-content]:focus-visible]:ring-ring/50 data-[size=sm]:text-xs',
+  ownerClasses(
+    'group/code-block relative flex w-full min-w-0 flex-col overflow-hidden rounded-lg text-sm has-[>[data-slot=code-block-content]:focus-visible]:ring-3 has-[>[data-slot=code-block-content]:focus-visible]:ring-ring/50 data-[size=sm]:text-xs',
+    ownerStylex.props(ownercodeBlockGroupMarker).className,
+  ),
   {
     variants: {
       variant: {
@@ -89,16 +101,19 @@ function CodeBlockHeader({ className, ...props }: React.ComponentProps<'div'>) {
 
 function CodeBlockTitle({ className, ...props }: React.ComponentProps<'div'>) {
   return (
-    <div
-      data-slot="code-block-title"
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: group-data-[size=sm]/code-block:text-xs */ cn(
-          "min-w-0 truncate font-sans text-sm font-medium text-foreground group-data-[size=sm]/code-block:text-xs group-data-[variant=destructive]/code-block:text-destructive [&_svg]:pointer-events-none [&_svg]:inline-block [&_svg]:align-middle [&_svg:not([class*='size-'])]:size-3.5 *:[svg]:me-1.5",
-          className,
-        )
-      }
-      {...props}
-    />
+    <IconStylesProvider sx={[iconDefaults.codeTitle]}>
+      <div
+        data-slot="code-block-title"
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: group-data-[size=sm]/code-block:text-xs */ cn(
+            'min-w-0 truncate font-sans text-sm font-medium text-foreground group-data-[size=sm]/code-block:text-xs group-data-[variant=destructive]/code-block:text-destructive [&_svg]:pointer-events-none [&_svg]:inline-block [&_svg]:align-middle *:[svg]:me-1.5',
+            className,
+            iconStylex.props(codeTitleIconMarker).className,
+          )
+        }
+        {...props}
+      />
+    </IconStylesProvider>
   )
 }
 

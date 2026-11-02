@@ -26,6 +26,24 @@ import {
   targetName,
 } from './prom-view.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    color: themeColors['--color-amber-500'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 // PanelAnswer is the state of a panel's query.
 export type PanelAnswer =
   // The first answer has not arrived.
@@ -130,7 +148,7 @@ export function PromPanelView({
               key={t.objectKey}
               className="text-foreground-alt flex items-center gap-1.5 text-xs"
             >
-              <LuTriangleAlert className="size-3 text-amber-500" aria-hidden />
+              <LuTriangleAlert sx={stylexStyles.rule1} aria-hidden />
               <button
                 type="button"
                 className="hover:text-foreground underline-offset-2 hover:underline"
@@ -237,7 +255,7 @@ function PanelActionButtons({ actions }: { actions: PanelActions }) {
         disabled={!actions.onMoveUp}
         onClick={actions.onMoveUp}
       >
-        <LuArrowUp className="size-3.5" />
+        <LuArrowUp sx={stylexStyles.rule2} />
       </button>
       <button
         type="button"
@@ -247,7 +265,7 @@ function PanelActionButtons({ actions }: { actions: PanelActions }) {
         disabled={!actions.onMoveDown}
         onClick={actions.onMoveDown}
       >
-        <LuArrowDown className="size-3.5" />
+        <LuArrowDown sx={stylexStyles.rule2} />
       </button>
       <button
         type="button"
@@ -256,7 +274,7 @@ function PanelActionButtons({ actions }: { actions: PanelActions }) {
         aria-label="Edit"
         onClick={actions.onEdit}
       >
-        <LuPencil className="size-3.5" />
+        <LuPencil sx={stylexStyles.rule2} />
       </button>
       <button
         type="button"
@@ -265,7 +283,7 @@ function PanelActionButtons({ actions }: { actions: PanelActions }) {
         aria-label="Remove"
         onClick={actions.onRemove}
       >
-        <LuTrash2 className="size-3.5" />
+        <LuTrash2 sx={stylexStyles.rule2} />
       </button>
     </div>
   )

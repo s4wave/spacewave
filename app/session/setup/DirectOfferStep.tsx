@@ -11,6 +11,25 @@ import type { Session } from '@s4wave/sdk/session/session.js'
 import { CopyablePayloadField } from './CopyablePayloadField.js'
 import { LinkDeviceBackButton } from './LinkDeviceBackButton.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-brand'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-brand'],
+  },
+})
+
 export interface DirectOfferStepProps {
   session: Session | null | undefined
   onRemotePeerResolved: (peerId: string) => void
@@ -84,7 +103,7 @@ export function DirectOfferStep({
     <div className="space-y-4">
       <div className="text-center">
         <div className="mx-auto mb-2 flex size-10 items-center justify-center">
-          <LuWifi className="text-brand size-5" />
+          <LuWifi sx={stylexStyles.rule1} />
         </div>
         <h2 className="text-foreground text-sm font-medium">
           Direct connection
@@ -150,7 +169,7 @@ export function DirectOfferStep({
             <Spinner />
           ) : (
             <>
-              <LuLink className="text-brand size-4" />
+              <LuLink sx={stylexStyles.rule2} />
               <span className="text-foreground text-sm">Connect</span>
             </>
           )}

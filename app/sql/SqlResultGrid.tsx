@@ -14,6 +14,16 @@ import {
   type SqlGridData,
 } from './sql-cell.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 const PAGE_SIZE = 100
 
 interface SqlResultGridProps {
@@ -114,7 +124,7 @@ export function SqlResultGrid({
             disabled={data.rows.length === 0}
             size="xs"
           >
-            <LuDownload className="size-3" />
+            <LuDownload sx={stylexStyles.rule1} />
             CSV
           </Button>
         ) : null}

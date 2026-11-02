@@ -550,7 +550,7 @@ export function HDRDebug() {
     <div sx={stylexStyles.rule11}>
       <div sx={stylexStyles.rule12}>
         <button type="button" onClick={goBack} sx={stylexStyles.rule13}>
-          <LuArrowLeft {...stylex.props(stylexStyles.rule14)} />
+          <LuArrowLeft sx={stylexStyles.rule14} />
           Back to home
         </button>
 

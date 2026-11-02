@@ -2,6 +2,16 @@ import { useEffect, useEffectEvent, useRef } from 'react'
 import { Html5Qrcode } from 'html5-qrcode'
 import { LuX } from '@s4wave/web/images/icons.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 export interface QRScannerModalProps {
   title: string
   hint: string
@@ -59,7 +69,7 @@ export function QRScannerModal({
             onClick={onClose}
             className="text-foreground-alt hover:text-foreground"
           >
-            <LuX className="size-4" />
+            <LuX sx={stylexStyles.rule1} />
           </button>
         </div>
         <div

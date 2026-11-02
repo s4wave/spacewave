@@ -14,6 +14,59 @@ import {
   type SessionMetadata,
 } from '@s4wave/core/session/session.pb.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+import { groupMarker } from '../../web/style/relations.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 6)`,
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+    color: themeColors['--color-brand'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 export interface PinUnlockOverlayProps {
   metadata: SessionMetadata
   onUnlock: (pin: Uint8Array) => Promise<void>
@@ -109,7 +162,7 @@ export function PinUnlockOverlay({
           <div className="space-y-4 p-6">
             <div className="flex flex-col items-center gap-2">
               <div className="bg-brand/10 flex size-12 items-center justify-center rounded-full">
-                <LuLock className="text-brand size-6" />
+                <LuLock sx={stylexStyles.rule1} />
               </div>
               <h2 className="text-foreground text-lg font-medium">
                 {metadata.displayName || 'Locked Session'}
@@ -159,14 +212,9 @@ export function PinUnlockOverlay({
                   data-testid="pin-unlock-submit"
                   onClick={() => void handleUnlock()}
                   disabled={unlocking || pin.length === 0}
-                  className={cn(
-                    'group w-full rounded-md border transition-all duration-300',
-                    'border-brand/30 bg-brand/10 hover:bg-brand/20',
-                    'disabled:cursor-not-allowed disabled:opacity-50',
-                    'flex h-10 items-center justify-center gap-2',
-                  )}
+                  sx={[[stylexStyles2.rule1, groupMarker]]}
                 >
-                  <LuLockOpen className="size-4" />
+                  <LuLockOpen sx={stylexStyles.rule2} />
                   <span className="text-foreground text-sm">
                     {unlocking ? 'Unlocking…' : 'Unlock'}
                   </span>
@@ -224,12 +272,7 @@ export function PinUnlockOverlay({
                   type="button"
                   onClick={() => void handleReset()}
                   disabled={resetting || !cred.hasCredential}
-                  className={cn(
-                    'group w-full rounded-md border transition-all duration-300',
-                    'border-brand/30 bg-brand/10 hover:bg-brand/20',
-                    'disabled:cursor-not-allowed disabled:opacity-50',
-                    'flex h-10 items-center justify-center gap-2',
-                  )}
+                  sx={[[stylexStyles2.rule1, groupMarker]]}
                 >
                   <span className="text-foreground text-sm">
                     {resetting ? 'Resetting…' : 'Reset session'}

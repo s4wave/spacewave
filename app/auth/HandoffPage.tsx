@@ -21,6 +21,20 @@ import {
   setStoredHandoffPayload,
 } from './handoff-state.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 6)`,
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+    color: themeColors['--color-brand'],
+  },
+})
+
 interface HandoffRouteHints {
   authIntent: string
   username: string
@@ -48,9 +62,9 @@ type HandoffState =
 // ClientTypeIcon renders the icon for the client type.
 function ClientTypeIcon({ clientType }: { clientType: string }) {
   if (clientType === 'cli') {
-    return <LuTerminal className="text-brand size-6" />
+    return <LuTerminal sx={stylexStyles.rule1} />
   }
-  return <LuMonitor className="text-brand size-6" />
+  return <LuMonitor sx={stylexStyles.rule1} />
 }
 
 // HandoffPage handles browser-delegated auth for desktop/CLI clients.

@@ -24,6 +24,25 @@ import {
 } from '@s4wave/web/ui/command.js'
 import { useIsStaticMode } from '../prerender/StaticContext.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    strokeWidth: '1.5px',
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    strokeWidth: '1.5px',
+  },
+})
+
 declare global {
   var __swStaticHandoffLinks: boolean | undefined
 }
@@ -53,7 +72,7 @@ const GetStartedItem = ({ item }: { item: QuickstartOption }) => {
   return (
     <CommandItem key={item.id} variant="landing" onSelect={handleClick}>
       <div className="bg-foreground/10 text-foreground rounded-landing-control shadow-landing-tile flex size-9 shrink-0 items-center justify-center transition-colors">
-        <item.icon className="icon-stroke-thin size-5" />
+        <item.icon sx={stylexStyles2.rule1} />
       </div>
       <div>
         <div className="text-sm font-medium">{item.name}</div>
@@ -77,7 +96,7 @@ function AddStateRootItem() {
       onSelect={handleClick}
     >
       <div className="bg-foreground/10 text-foreground rounded-landing-control shadow-landing-tile flex size-9 shrink-0 items-center justify-center transition-colors">
-        <LuFolderOpen className="icon-stroke-thin size-5" />
+        <LuFolderOpen sx={stylexStyles.rule1} />
       </div>
       <div>
         <div className="text-sm font-medium">Open a local state root</div>
@@ -119,7 +138,7 @@ function SessionItem({ session }: { session: SessionListEntry }) {
       onSelect={handleClick}
     >
       <div className="bg-foreground/10 text-foreground rounded-landing-control shadow-landing-tile flex size-9 shrink-0 items-center justify-center transition-colors">
-        <LuUser className="icon-stroke-thin size-5" />
+        <LuUser sx={stylexStyles.rule1} />
       </div>
       <div>
         <div className="text-sm font-medium">Account: {accountName}</div>
@@ -186,7 +205,7 @@ function StaticGetStarted({ className }: { className?: string }) {
                 className="text-foreground-alt hover:bg-foreground/5 mx-2 flex items-center gap-3 rounded-lg px-3 py-1.5 no-underline transition-colors duration-200"
               >
                 <div className="bg-foreground/10 text-foreground rounded-landing-control shadow-landing-tile flex size-9 shrink-0 items-center justify-center">
-                  <item.icon className="icon-stroke-thin size-5" />
+                  <item.icon sx={stylexStyles2.rule1} />
                 </div>
                 <div>
                   <div className="text-sm font-medium">{item.name}</div>

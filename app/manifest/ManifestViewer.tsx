@@ -15,6 +15,28 @@ import type { BlockRef } from '@go/github.com/s4wave/spacewave/db/block/block.pb
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { useForgeBlockData } from '@s4wave/web/forge/useForgeBlockData.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+  },
+})
+
 export const ManifestTypeID = 'bldr/manifest'
 
 // formatBlockRefHash formats a BlockRef hash as a truncated hex string.
@@ -60,7 +82,7 @@ function ManifestSection({
     <section>
       <div className="mb-2 flex items-center justify-between">
         <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-          <Icon className="size-3.5" />
+          <Icon sx={stylexStyles2.rule1} />
           {title}
         </h2>
       </div>
@@ -123,7 +145,7 @@ export function ManifestViewer({
     <div className="bg-background-primary flex h-full w-full flex-col overflow-auto">
       <div className="border-foreground/8 flex h-9 shrink-0 items-center border-b px-4">
         <div className="text-foreground flex items-center gap-2 text-sm font-semibold select-none">
-          <LuPackage className="size-4" />
+          <LuPackage sx={stylexStyles.rule1} />
           <span className="tracking-tight">Manifest</span>
           {headerMeta && (
             <span className="text-foreground-alt/50 font-normal">
@@ -137,7 +159,7 @@ export function ManifestViewer({
           {isEmpty && (
             <InfoCard>
               <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
-                <LuPackage className="size-3.5 shrink-0" />
+                <LuPackage sx={stylexStyles.rule2} />
                 <span>No manifest data</span>
               </div>
             </InfoCard>

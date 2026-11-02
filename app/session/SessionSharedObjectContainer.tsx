@@ -1,3 +1,4 @@
+import type { IconType } from '@s4wave/web/images/icons.js'
 import { useAppEnvironment } from '@s4wave/web/sdk/app/environment.js'
 import {
   useCallback,
@@ -5,7 +6,6 @@ import {
   useMemo,
   useState,
   type ComponentProps,
-  type ComponentType,
   type ReactNode,
 } from 'react'
 import {
@@ -94,6 +94,35 @@ import {
 } from '@s4wave/app/hooks/useSharedMounts.js'
 
 import * as stylex from '@stylexjs/stylex'
+
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: themeColors['--color-destructive'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: { maxWidth: 'var(--container-xs)' },
@@ -297,16 +326,16 @@ function getSharedObjectHealthTone(
   cardBorder: string
   cardBackground: string
   iconWrap: string
-  iconColor: string
+  iconColor: stylex.StyleXStyles
   badgeTone: string
-  Icon: ComponentType<{ className?: string }>
+  Icon: IconType
 } {
   if (isLoading) {
     return {
       cardBorder: 'border-foreground/8',
       cardBackground: 'bg-background-card/30',
       iconWrap: 'bg-foreground/5',
-      iconColor: 'text-foreground',
+      iconColor: healthIconStyles['--color-foreground'],
       badgeTone: 'border-foreground/10 bg-foreground/5 text-foreground-alt/70',
       Icon: LuCircleAlert,
     }
@@ -316,7 +345,7 @@ function getSharedObjectHealthTone(
       cardBorder: 'border-warning/20',
       cardBackground: 'bg-warning/5',
       iconWrap: 'bg-warning/10',
-      iconColor: 'text-warning',
+      iconColor: healthIconStyles['--color-warning'],
       badgeTone: 'border-warning/20 bg-warning/10 text-warning',
       Icon: LuTriangleAlert,
     }
@@ -325,7 +354,7 @@ function getSharedObjectHealthTone(
     cardBorder: 'border-destructive/20',
     cardBackground: 'bg-destructive/5',
     iconWrap: 'bg-destructive/10',
-    iconColor: 'text-destructive',
+    iconColor: healthIconStyles['--color-destructive'],
     badgeTone: 'border-destructive/20 bg-destructive/10 text-destructive',
     Icon: LuShieldAlert,
   }
@@ -488,7 +517,7 @@ function HealthSummaryHeader({
           tone.iconWrap,
         )}
       >
-        <tone.Icon className={cn('size-6', tone.iconColor)} />
+        <tone.Icon sx={[healthIconStyles.size, tone.iconColor]} />
       </div>
       <span
         className={cn(
@@ -513,7 +542,7 @@ function HealthIssuePanel({ hint, detail }: { hint: string; detail: string }) {
   return (
     <div className="border-foreground/8 bg-background-card/30 rounded-lg border p-3">
       <div className="flex items-center gap-1.5">
-        <LuCircleAlert className="text-foreground-alt/60 size-3.5" />
+        <LuCircleAlert sx={stylexStyles2.rule1} />
         <span className="text-foreground text-xs font-medium select-none">
           Issue
         </span>
@@ -620,7 +649,7 @@ function RemediationPanel({
   return (
     <div className="border-foreground/8 bg-background-card/30 rounded-lg border p-3">
       <div className="flex items-center gap-1.5">
-        <LuArrowRight className="text-foreground-alt/60 size-3.5" />
+        <LuArrowRight sx={stylexStyles2.rule1} />
         <span className="text-foreground text-xs font-medium select-none">
           Next step
         </span>
@@ -631,14 +660,14 @@ function RemediationPanel({
       <div className="mt-3 flex flex-wrap gap-2">
         {showRetry ? (
           <DashboardButton
-            icon={<LuRotateCcw className="size-3.5" />}
+            icon={<LuRotateCcw sx={stylexStyles2.rule2} />}
             onClick={onRetry}
           >
             Retry
           </DashboardButton>
         ) : null}
         <RemediationActionButton
-          icon={<LuRefreshCw className="size-3.5" />}
+          icon={<LuRefreshCw sx={stylexStyles2.rule2} />}
           label="Repair"
           onClick={flow.requestRepair}
           disabledReason={disabledReason}
@@ -646,7 +675,7 @@ function RemediationPanel({
           active={selectedAction === 'repair'}
         />
         <RemediationActionButton
-          icon={<LuShieldAlert className="size-3.5" />}
+          icon={<LuShieldAlert sx={stylexStyles2.rule2} />}
           label="Reinitialize"
           onClick={flow.requestReinitialize}
           disabledReason={disabledReason}
@@ -699,7 +728,7 @@ function RemediationConfirm({
   onCancel,
   onConfirm,
 }: {
-  Icon: ComponentType<{ className?: string }>
+  Icon: IconType
   title: string
   description: string
   pending: boolean
@@ -709,7 +738,7 @@ function RemediationConfirm({
   return (
     <div className="border-destructive/20 bg-destructive/5 mt-3 rounded-md border p-3">
       <div className="flex items-center gap-1.5">
-        <Icon className="text-destructive size-3.5" />
+        <Icon sx={stylexStyles3.rule1} />
         <span className="text-destructive text-xs font-medium select-none">
           {title}
         </span>
@@ -719,13 +748,13 @@ function RemediationConfirm({
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
         <DashboardButton
-          icon={<LuRotateCcw className="size-3.5" />}
+          icon={<LuRotateCcw sx={stylexStyles2.rule2} />}
           onClick={onCancel}
         >
           Cancel
         </DashboardButton>
         <DashboardButton
-          icon={<Icon className="size-3.5" />}
+          icon={<Icon sx={stylexStyles3.rule2} />}
           onClick={onConfirm}
           disabled={pending}
           variant="destructive"
@@ -1380,3 +1409,10 @@ export function SessionSharedObjectContainer() {
     </SharedObjectContext.Provider>
   )
 }
+
+const healthIconStyles = stylex.create({
+  size: { width: 24, height: 24 },
+  '--color-foreground': { color: themeColors['--color-foreground'] },
+  '--color-warning': { color: themeColors['--color-warning'] },
+  '--color-destructive': { color: themeColors['--color-destructive'] },
+})

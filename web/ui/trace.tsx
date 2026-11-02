@@ -1,3 +1,6 @@
+import * as iconStylex from '@stylexjs/stylex'
+import { IconStylesProvider } from '@s4wave/web/images/icons.js'
+import { iconDefaults, traceIconMarker } from '../style/icon-defaults.stylex.js'
 import { stylexProps } from '@s4wave/web/style/props.js'
 import * as React from 'react'
 import { LuChevronRight } from '@s4wave/web/images/icons.js'
@@ -123,17 +126,20 @@ function TraceLine({
 /** TraceIcon holds the step icon. */
 function TraceIcon({ className, ...props }: React.ComponentProps<'span'>) {
   return (
-    <span
-      data-slot="trace-icon"
-      aria-hidden="true"
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: [&_svg]:pointer-events-none */ cn(
-          "flex size-4 shrink-0 items-center justify-center [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [[data-slot=trace-title]~&]:-ml-1",
-          className,
-        )
-      }
-      {...props}
-    />
+    <IconStylesProvider sx={[iconDefaults.trace]}>
+      <span
+        data-slot="trace-icon"
+        aria-hidden="true"
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: [&_svg]:pointer-events-none */ cn(
+            'flex size-4 shrink-0 items-center justify-center [&_svg]:pointer-events-none [[data-slot=trace-title]~&]:-ml-1',
+            className,
+            iconStylex.props(traceIconMarker).className,
+          )
+        }
+        {...props}
+      />
+    </IconStylesProvider>
   )
 }
 

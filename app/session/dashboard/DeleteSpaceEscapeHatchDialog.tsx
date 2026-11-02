@@ -31,6 +31,48 @@ import { cn } from '@s4wave/web/style/utils.js'
 
 import { TypedConfirmField } from './TypedConfirmField.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+  motion as themeMotion,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-destructive'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule3: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule4: { color: themeColors['--color-destructive'] },
+  rule5: { color: themeColors['--color-foreground-alt'] },
+  rule6: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule7: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 export interface DeleteSpaceEscapeHatchDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -190,7 +232,7 @@ export function DeleteSpaceEscapeHatchDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle variant="withIcon">
-            <LuShieldAlert className="text-destructive size-4" />
+            <LuShieldAlert sx={stylexStyles.rule1} />
             Delete a Space
           </DialogTitle>
           <DeleteSpaceDescription step={step} selected={selected} />
@@ -509,7 +551,7 @@ function SpaceSelectList({
   if (loading) {
     return (
       <div className="text-foreground-alt flex items-center gap-2 text-xs select-none">
-        <LuBoxes className="text-foreground-alt/40 size-3.5" />
+        <LuBoxes sx={stylexStyles.rule2} />
         Loading spaces…
       </div>
     )
@@ -517,7 +559,7 @@ function SpaceSelectList({
   if (choices.length === 0) {
     return (
       <div className="text-foreground-alt flex items-center gap-2 text-xs select-none">
-        <LuBoxes className="text-foreground-alt/40 size-3.5" />
+        <LuBoxes sx={stylexStyles.rule2} />
         No spaces in this session.
       </div>
     )
@@ -545,10 +587,10 @@ function SpaceSelectList({
             )}
           >
             <LuBoxes
-              className={cn(
-                'mt-0.5 size-3.5 shrink-0 transition-colors',
-                isSelected ? 'text-destructive' : 'text-foreground-alt',
-              )}
+              sx={[
+                stylexStyles.rule3,
+                isSelected ? stylexStyles.rule4 : stylexStyles.rule5,
+              ]}
             />
             <div className="min-w-0 flex-1">
               <div className="text-foreground truncate text-xs font-medium select-none">
@@ -599,7 +641,7 @@ function HealthBadge({ health }: HealthBadgeProps) {
   if (status === SharedObjectHealthStatus.READY) {
     return (
       <div className="text-foreground-alt/70 mt-2 flex items-center gap-1.5 text-xs select-none">
-        <LuCircleCheck className="text-foreground-alt/50 size-3" />
+        <LuCircleCheck sx={stylexStyles.rule6} />
         Space is reachable.
       </div>
     )
@@ -607,7 +649,7 @@ function HealthBadge({ health }: HealthBadgeProps) {
   if (status === SharedObjectHealthStatus.LOADING) {
     return (
       <div className="text-foreground-alt/70 mt-2 flex items-center gap-1.5 text-xs select-none">
-        <LuCircleAlert className="text-foreground-alt/50 size-3" />
+        <LuCircleAlert sx={stylexStyles.rule6} />
         Checking status…
       </div>
     )
@@ -615,7 +657,7 @@ function HealthBadge({ health }: HealthBadgeProps) {
   if (status === SharedObjectHealthStatus.DEGRADED) {
     return (
       <div className="text-warning mt-2 flex items-center gap-1.5 text-xs select-none">
-        <LuTriangleAlert className="size-3" />
+        <LuTriangleAlert sx={stylexStyles.rule7} />
         Degraded. Some data may be partially available.
       </div>
     )
@@ -623,7 +665,7 @@ function HealthBadge({ health }: HealthBadgeProps) {
   if (status === SharedObjectHealthStatus.CLOSED) {
     return (
       <div className="text-destructive mt-2 flex items-center gap-1.5 text-xs select-none">
-        <LuShieldAlert className="size-3" />
+        <LuShieldAlert sx={stylexStyles.rule7} />
         Cannot mount. This space is broken and must be deleted from here.
       </div>
     )

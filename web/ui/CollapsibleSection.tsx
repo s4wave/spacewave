@@ -191,7 +191,7 @@ export function CollapsibleSection({
               <span sx={styles.title}>{title}</span>
               {badge}
               <LuChevronDown
-                {...stylex.props([styles.chevron, open && styles.openChevron])}
+                sx={[styles.chevron, open && styles.openChevron]}
               />
             </button>
           </Collapsible.Trigger>

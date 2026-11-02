@@ -13,6 +13,67 @@ import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
 import { ExternalLink } from './ExternalLink.js'
 import { LegalPageLayout } from './LegalPageLayout.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+import { colors as themeColors } from '../../web/style/tokens.stylex.js'
+
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+import { groupMarker } from '../../web/style/relations.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    '--tw-translate-y': {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `calc(${themeLayout['--spacing']} * -.5)`,
+      },
+    },
+    translate: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': 'var(--tw-translate-x) var(--tw-translate-y)',
+      },
+    },
+  },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-brand'],
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 export const metadata = {
   title: 'ControllerBus - The kernel for your distributed system.',
   description:
@@ -95,7 +156,7 @@ export function LandingControllerbus() {
 
   return (
     <LegalPageLayout
-      icon={<LuCpu className="size-8" />}
+      icon={<LuCpu sx={stylexStyles.rule1} />}
       title="The kernel for your distributed system."
       subtitle="ControllerBus is an open-source framework for coordinating controllers with hot-reload, directive resolution, and deterministic lifecycle management."
     >
@@ -105,13 +166,10 @@ export function LandingControllerbus() {
           {FEATURES.map((feature) => {
             const Icon = feature.icon
             return (
-              <div
-                key={feature.title}
-                className="border-foreground/6 bg-background-card/30 group rounded-lg border p-6 transition duration-300 hover:-translate-y-0.5"
-              >
+              <div key={feature.title} sx={[stylexStyles3.rule1, groupMarker]}>
                 <div className="mb-3 flex items-center gap-3">
                   <div className="bg-brand/8 group-hover:bg-brand/15 flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors">
-                    <Icon className="text-brand size-4" />
+                    <Icon sx={stylexStyles2.rule1} />
                   </div>
                   <h3 className="text-foreground text-sm font-semibold">
                     {feature.title}
@@ -177,14 +235,14 @@ export function LandingControllerbus() {
               'flex items-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium no-underline transition-all duration-300 select-none hover:-translate-y-0.5',
             )}
           >
-            <LuGithub className="size-4" />
+            <LuGithub sx={stylexStyles.rule2} />
             <span>View on GitHub</span>
           </ExternalLink>
           <a
             href={landingHref}
             className="border-foreground/15 bg-background/50 text-foreground hover:border-brand/40 hover:bg-brand/8 flex items-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium no-underline transition duration-300 select-none hover:-translate-y-0.5"
           >
-            <LuCheck className="size-4" />
+            <LuCheck sx={stylexStyles.rule2} />
             <span>See all features</span>
           </a>
         </div>

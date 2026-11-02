@@ -19,6 +19,30 @@ import { cn } from '@s4wave/web/style/utils.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule3: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: themeColors['--color-warning'],
+  },
+})
+
 interface StorageHealthProps {
   mode: 'settings' | 'recovery'
   storageIncident?: boolean
@@ -51,7 +75,7 @@ export function StorageHealth({
           >
             <div className="flex items-start gap-3">
               <div className="bg-warning/10 text-warning flex size-8 shrink-0 items-center justify-center rounded-md">
-                <LuTriangleAlert className="size-4" aria-hidden="true" />
+                <LuTriangleAlert sx={stylexStyles.rule1} aria-hidden="true" />
               </div>
               <div>
                 <h2 className="text-foreground text-sm font-semibold tracking-tight">
@@ -71,7 +95,7 @@ export function StorageHealth({
           >
             <div className="flex items-start gap-3">
               <div className="bg-success/10 text-success flex size-8 shrink-0 items-center justify-center rounded-md">
-                <LuShieldCheck className="size-4" aria-hidden="true" />
+                <LuShieldCheck sx={stylexStyles.rule1} aria-hidden="true" />
               </div>
               <div>
                 <h2 className="text-foreground text-sm font-semibold tracking-tight">
@@ -91,7 +115,7 @@ export function StorageHealth({
         description="These readings cover all Spacewave data stored by this browser."
       >
         <HealthRow
-          icon={<LuHardDrive className="size-3.5" />}
+          icon={<LuHardDrive sx={stylexStyles.rule2} />}
           label="Browser usage estimate"
           value={originLabel}
           detail={
@@ -102,7 +126,7 @@ export function StorageHealth({
           tone="neutral"
         />
         <HealthRow
-          icon={<LuShieldCheck className="size-3.5" />}
+          icon={<LuShieldCheck sx={stylexStyles.rule2} />}
           label="Automatic cleanup protection"
           value={protectionLabel(health.protectionState)}
           detail="When on, the browser is less likely to remove this copy automatically. It is not a backup."
@@ -114,10 +138,7 @@ export function StorageHealth({
             data-testid="safari-storage-risk"
           >
             <div className="flex items-start gap-2.5">
-              <LuTriangleAlert
-                className="text-warning mt-0.5 size-4 shrink-0"
-                aria-hidden="true"
-              />
+              <LuTriangleAlert sx={stylexStyles.rule3} aria-hidden="true" />
               <div>
                 <h3 className="text-foreground text-xs font-medium">
                   Safari storage policy
@@ -138,7 +159,7 @@ export function StorageHealth({
         description="These readings describe Spacewave's local block store on this device."
       >
         <HealthRow
-          icon={<LuDatabase className="size-3.5" />}
+          icon={<LuDatabase sx={stylexStyles.rule2} />}
           label="Physical storage used"
           value={
             health.providerLoading
@@ -173,7 +194,7 @@ export function StorageHealth({
         description="This shows transfer work that Spacewave can currently see."
       >
         <HealthRow
-          icon={<LuRefreshCw className="size-3.5" />}
+          icon={<LuRefreshCw sx={stylexStyles.rule2} />}
           label="Transfer activity"
           value={transferActivityLabel(health.sync)}
           detail={transferActivityDetail(health.sync)}
@@ -206,7 +227,7 @@ export function StorageHealth({
           </div>
           {mode === 'settings' && onOpenRecovery && (
             <DashboardButton
-              icon={<LuShieldCheck className="size-3.5" />}
+              icon={<LuShieldCheck sx={stylexStyles.rule2} />}
               onClick={onOpenRecovery}
             >
               Storage recovery
@@ -215,7 +236,7 @@ export function StorageHealth({
         </div>
         <div className="space-y-2">
           <SolutionRow
-            icon={<LuShieldCheck className="size-3.5" />}
+            icon={<LuShieldCheck sx={stylexStyles.rule2} />}
             title="Request automatic cleanup protection"
             detail="Requesting this protects this browser copy from automatic cleanup. This does not create another copy."
             action="Request protection"
@@ -224,26 +245,26 @@ export function StorageHealth({
             }}
           />
           <SolutionRow
-            icon={<LuDatabase className="size-3.5" />}
+            icon={<LuDatabase sx={stylexStyles.rule2} />}
             title="Export a backup"
             detail="Open an important Space and choose File > Export Space. Keep the archive outside this browser."
           />
           <SolutionRow
-            icon={<LuLink className="size-3.5" />}
+            icon={<LuLink sx={stylexStyles.rule2} />}
             title="Link another device"
             detail="Set up another destination for a second copy. Linking alone does not verify that the copy can restore this Space."
             action="Link device"
             onAction={onLinkDevice}
           />
           <SolutionRow
-            icon={<LuCloud className="size-3.5" />}
+            icon={<LuCloud sx={stylexStyles.rule2} />}
             title="Set up Spacewave Cloud"
             detail="Choose Spacewave Cloud as another destination. Setup alone does not verify a complete copy."
             action="Cloud options"
             onAction={onUseCloud}
           />
           <SolutionRow
-            icon={<LuHardDrive className="size-3.5" />}
+            icon={<LuHardDrive sx={stylexStyles.rule2} />}
             title="Make room for future saves"
             detail="If a save fails, remove unrelated downloads, applications, or site data before retrying. Do not clear Spacewave site data as an ordinary fix."
           />
@@ -341,7 +362,7 @@ function SolutionRow({
       </div>
       {action && onAction && (
         <DashboardButton
-          icon={<LuArrowRight className="size-3.5" />}
+          icon={<LuArrowRight sx={stylexStyles.rule2} />}
           onClick={onAction}
         >
           {action}

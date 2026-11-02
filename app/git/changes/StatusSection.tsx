@@ -4,6 +4,37 @@ import { cn } from '@s4wave/web/style/utils.js'
 import type { StatusEntry } from '@s4wave/sdk/git/worktree.pb.js'
 import { FileStatusCode } from '@s4wave/sdk/git/worktree.pb.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+import { colors as themeColors } from '../../../web/style/tokens.stylex.js'
+import { groupMarker } from '../../../web/style/relations.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-white']} 3%, transparent)`,
+      },
+    },
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+  },
+})
+
 // statusCodeToLetter maps a FileStatusCode to a display letter.
 function statusCodeToLetter(code: FileStatusCode): string {
   switch (code) {
@@ -83,9 +114,9 @@ export function StatusSection({
         onClick={toggle}
       >
         {collapsed ? (
-          <LuChevronRight className="size-3.5 shrink-0" />
+          <LuChevronRight sx={stylexStyles.rule1} />
         ) : (
-          <LuChevronDown className="size-3.5 shrink-0" />
+          <LuChevronDown sx={stylexStyles.rule1} />
         )}
         <span>
           {title} ({entries.length})
@@ -103,10 +134,7 @@ export function StatusSection({
             const color = statusCodeToColor(code)
 
             return (
-              <div
-                key={path}
-                className="group flex items-center gap-2 px-3 py-0.5 hover:bg-white/[0.03]"
-              >
+              <div key={path} sx={[stylexStyles2.rule1, groupMarker]}>
                 <span
                   className={cn('w-4 shrink-0 text-center font-mono', color)}
                 >

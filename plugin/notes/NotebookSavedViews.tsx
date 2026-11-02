@@ -10,6 +10,29 @@ import type { SavedView } from './saved-views.js'
 import { useNotebookSavedViews } from './useNotebookSavedViews.js'
 import { ConfirmActionDialog, TextInputDialog } from './NoteDialogs.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    pointerEvents: 'none',
+    position: 'absolute',
+    top: '50%',
+    right: themeLayout['--spacing'],
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    '--tw-translate-y': 'calc(calc(1 / 2 * 100%) * -1)',
+    translate: 'var(--tw-translate-x) var(--tw-translate-y)',
+    display: {
+      default: null,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 'none',
+      },
+    },
+  },
+})
+
 interface NotebookSavedViewsProps {
   world: Resource<IWorldState>
   notebook: string
@@ -81,10 +104,7 @@ function SavedViewSelect({
             </option>
           ))}
         </select>
-        <LuChevronDown
-          aria-hidden="true"
-          className="pointer-events-none absolute top-1/2 right-1 size-3 -translate-y-1/2 md:pointer-fine:hidden"
-        />
+        <LuChevronDown aria-hidden="true" sx={stylexStyles.rule1} />
       </span>
     </label>
   )

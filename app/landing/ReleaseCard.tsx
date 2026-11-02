@@ -15,6 +15,13 @@ import { useStaticHref } from '../prerender/StaticContext.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: { marginBottom: `calc(${themeLayout['--spacing']} * 2)` },
 })
@@ -105,7 +112,7 @@ export function ReleaseCard({
             className="text-foreground-alt/50 hover:text-foreground shrink-0 transition-colors"
             title="View release"
           >
-            <LuGithub className="size-5" />
+            <LuGithub sx={stylexStyles2.rule1} />
           </ExternalLink>
         )}
       </div>

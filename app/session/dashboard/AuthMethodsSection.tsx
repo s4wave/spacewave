@@ -50,6 +50,42 @@ import {
 import { useStateNamespace, useStateAtom } from '@s4wave/web/state/persist.js'
 import { useAccountDashboardState } from './AccountDashboardStateContext.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule5: {
+    display: 'inline',
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule6: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 export interface AuthMethodsSectionProps {
   account: Resource<Account>
   retainStepUp?: boolean
@@ -176,7 +212,7 @@ function AuthMethodsSectionContent({
     <>
       <CollapsibleSection
         title="Auth Methods"
-        icon={<LuKey className="size-3.5" />}
+        icon={<LuKey sx={stylexStyles.rule1} />}
         open={sectionOpen}
         onOpenChange={handleOpenChange}
         badge={
@@ -195,7 +231,7 @@ function AuthMethodsSectionContent({
             aria-label="Add auth method"
             title="Add auth method"
           >
-            <LuPlus className="size-3.5" />
+            <LuPlus sx={stylexStyles.rule1} />
           </button>
         }
       >
@@ -206,7 +242,7 @@ function AuthMethodsSectionContent({
         )}
         {!authMethodsResource.loading && authMethods.length === 0 && (
           <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
-            <LuKey className="size-3.5 shrink-0" />
+            <LuKey sx={stylexStyles.rule2} />
             <span>No auth methods found</span>
           </div>
         )}
@@ -334,7 +370,7 @@ function AuthMethodRow({
       <div className="flex gap-1">
         {isPasswordMethod(method) && (
           <DashboardButton
-            icon={<LuLock className="size-3" />}
+            icon={<LuLock sx={stylexStyles.rule3} />}
             onClick={onChangePassword}
           >
             Change
@@ -342,7 +378,7 @@ function AuthMethodRow({
         )}
         {isRemovableAuthMethod(method) && (
           <DashboardButton
-            icon={<LuTrash2 className="size-3" />}
+            icon={<LuTrash2 sx={stylexStyles.rule3} />}
             disabled={!hasOtherMethods}
             variant={hasOtherMethods ? 'destructive' : undefined}
             onClick={() => onRemove(peerId, label)}
@@ -388,13 +424,13 @@ function AuthMethodPickerDialog({
           <MethodOption
             label="Google"
             description="Link your Google identity"
-            icon={<FcGoogle className="size-4" />}
+            icon={<FcGoogle sx={stylexStyles.rule4} />}
             onClick={() => onPick('google')}
           />
           <MethodOption
             label="GitHub"
             description="Link your GitHub identity"
-            icon={<LuGithub className="size-4" />}
+            icon={<LuGithub sx={stylexStyles.rule4} />}
             onClick={() => onPick('github')}
           />
         </div>
@@ -486,7 +522,7 @@ function SingleSigDialogs({
         description="Confirm your identity to generate and register a backup key. The .pem file will download automatically."
         confirmLabel={
           <>
-            <LuDownload className="inline size-3.5" /> Generate and download
+            <LuDownload sx={stylexStyles.rule5} /> Generate and download
           </>
         }
         intent={{
@@ -506,13 +542,13 @@ function SingleSigDialogs({
 function AuthMethodIcon({ method }: { method: AccountAuthMethod }) {
   switch (getAuthMethodKind(method)) {
     case AccountAuthMethodKind.GOOGLE_SSO:
-      return <FcGoogle className="size-4" />
+      return <FcGoogle sx={stylexStyles.rule4} />
     case AccountAuthMethodKind.GITHUB_SSO:
-      return <LuGithub className="size-4" />
+      return <LuGithub sx={stylexStyles.rule4} />
     case AccountAuthMethodKind.PASSKEY:
-      return <LuFingerprint className="text-foreground-alt size-4" />
+      return <LuFingerprint sx={stylexStyles.rule6} />
     default:
-      return <LuKey className="text-foreground-alt size-4" />
+      return <LuKey sx={stylexStyles.rule6} />
   }
 }
 

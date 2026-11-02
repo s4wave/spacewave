@@ -1,8 +1,33 @@
 import { useCallback, useEffect, useState } from 'react'
 import { LuClipboard, LuLink, LuTrash2 } from '@s4wave/web/images/icons.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import type { OrgInviteInfo } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    flexShrink: 0,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule4: { color: themeColors['--color-green-500'] },
+})
 
 // OrgInviteSection renders the invite list. Create is handled by the parent
 // section header.
@@ -14,7 +39,7 @@ export function OrgInviteSection(props: {
     <div className="space-y-1">
       {props.invites.length === 0 && (
         <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
-          <LuLink className="size-3.5 shrink-0" />
+          <LuLink sx={stylexStyles.rule1} />
           <span>No active invites</span>
         </div>
       )}
@@ -63,7 +88,7 @@ function InviteRow(props: {
     <div className="flex items-center justify-between gap-2 py-1">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <LuLink className="text-foreground-alt/50 size-3 shrink-0" />
+          <LuLink sx={stylexStyles.rule2} />
           <span className="text-foreground truncate font-mono text-xs">
             {invite.token}
           </span>
@@ -73,14 +98,16 @@ function InviteRow(props: {
       <div className="flex shrink-0 gap-1">
         <DashboardButton
           icon={
-            <LuClipboard className={cn('size-3', copied && 'text-green-500')} />
+            <LuClipboard
+              sx={[stylexStyles.rule3, !!copied && stylexStyles.rule4]}
+            />
           }
           onClick={() => void handleCopy()}
         >
           {copied ? 'Copied' : 'Copy'}
         </DashboardButton>
         <DashboardButton
-          icon={<LuTrash2 className="size-3" />}
+          icon={<LuTrash2 sx={stylexStyles.rule3} />}
           onClick={() => void handleRevoke()}
           disabled={revoking}
           variant="destructive"

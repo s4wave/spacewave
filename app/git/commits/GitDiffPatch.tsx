@@ -6,6 +6,21 @@ import { PatchDiff, type PatchDiffProps } from '@pierre/diffs/react'
 import type { DiffFileStat } from '@s4wave/sdk/git/repo.pb.js'
 import { cn } from '@s4wave/web/style/utils.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+})
+
 // GitDiffPatchProps are props for the GitDiffPatch component.
 export interface GitDiffPatchProps {
   patch: string | undefined
@@ -122,9 +137,9 @@ export function GitDiffPatchFiles({
               onClick={() => toggle(section.path)}
             >
               {isCollapsed ? (
-                <LuChevronRight className="text-foreground-alt/50 size-3.5 shrink-0" />
+                <LuChevronRight sx={stylexStyles.rule1} />
               ) : (
-                <LuChevronDown className="text-foreground-alt/50 size-3.5 shrink-0" />
+                <LuChevronDown sx={stylexStyles.rule1} />
               )}
               <span className="text-foreground min-w-0 flex-1 truncate font-mono text-xs">
                 {section.path}

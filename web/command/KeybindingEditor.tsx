@@ -61,7 +61,7 @@ export function KeybindingEditor({
         <DialogContent variant="editor">
           <DialogHeader variant="editor">
             <DialogTitle variant="editor">
-              <LuKeyboard {...stylex.props(stylexStyles.rule1)} />
+              <LuKeyboard sx={stylexStyles.rule1} />
               Keyboard shortcuts
             </DialogTitle>
             <DialogDescription variant="editor">

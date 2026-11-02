@@ -24,6 +24,92 @@ import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { RadioOption } from '@s4wave/web/ui/RadioOption.js'
 import type { SetupWizardState } from '@s4wave/app/session/setup/useSetupWizard.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+  motion as themeMotion,
+} from '../../../web/style/tokens.stylex.js'
+
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../../../web/style/tokens.stylex.js'
+import { groupMarker } from '../../../web/style/relations.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-brand'],
+  },
+  rule2: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: themeColors['--color-brand'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-brand'],
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: themeColors['--color-foreground-alt'],
+    transitionProperty: 'transform, translate, scale, rotate',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.2s',
+    '--tw-duration': '.2s',
+  },
+  rule5: { rotate: '180deg' },
+  rule6: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground'],
+  },
+  rule7: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule8: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 const CLOUD_PERKS = [
   { icon: LuGlobe, text: 'Cloud sync and backup active' },
   { icon: LuUsers, text: 'Shared Spaces with collaborators' },
@@ -37,7 +123,7 @@ function CloudPerksCard() {
     <div className="border-brand/30 bg-background-card/50 overflow-hidden rounded-lg border p-6">
       <div className="mb-4 flex items-center gap-3">
         <div className="bg-brand/10 flex size-10 items-center justify-center rounded-lg">
-          <LuCloud className="text-brand size-5" />
+          <LuCloud sx={stylexStyles.rule1} />
         </div>
         <div>
           <h2 className="text-foreground font-semibold">You are all set!</h2>
@@ -49,7 +135,7 @@ function CloudPerksCard() {
       <div className="grid grid-cols-2 gap-3">
         {CLOUD_PERKS.map(({ text }) => (
           <div key={text} className="flex items-start gap-2">
-            <LuCheck className="text-brand mt-0.5 size-3.5 shrink-0" />
+            <LuCheck sx={stylexStyles.rule2} />
             <span className="text-foreground-alt text-xs">{text}</span>
           </div>
         ))}
@@ -93,7 +179,7 @@ function SetupCard({
             done ? 'bg-brand/20' : 'bg-brand/10',
           )}
         >
-          {done ? <LuCheck className="text-brand size-4" /> : icon}
+          {done ? <LuCheck sx={stylexStyles.rule3} /> : icon}
         </div>
         <div className="flex-1 text-left">
           <h3 className="text-foreground text-sm font-medium">{title}</h3>
@@ -106,10 +192,7 @@ function SetupCard({
           </p>
         </div>
         <LuChevronDown
-          className={cn(
-            'text-foreground-alt size-4 shrink-0 transition-transform duration-200',
-            expanded && 'rotate-180',
-          )}
+          sx={[stylexStyles.rule4, !!expanded && stylexStyles.rule5]}
         />
       </button>
       {expanded && (
@@ -139,7 +222,7 @@ function BackupKeyCard({ wiz, expanded, onToggle, onDone }: CardActionProps) {
 
   return (
     <SetupCard
-      icon={<LuShieldCheck className="text-brand size-4" />}
+      icon={<LuShieldCheck sx={stylexStyles.rule3} />}
       title="Download a backup key"
       hint="Second way to recover your account"
       doneHint="Backup key saved"
@@ -167,14 +250,9 @@ function BackupKeyCard({ wiz, expanded, onToggle, onDone }: CardActionProps) {
           !wiz.accountReady ||
           (!wiz.password && !cred.pemData)
         }
-        className={cn(
-          'group w-full rounded-md border transition-all duration-300',
-          'border-brand/30 bg-brand/10 hover:bg-brand/20',
-          'disabled:cursor-not-allowed disabled:opacity-50',
-          'flex h-10 items-center justify-center gap-2',
-        )}
+        sx={[[stylexStyles2.rule1, groupMarker]]}
       >
-        <LuDownload className="text-foreground size-4" />
+        <LuDownload sx={stylexStyles.rule6} />
         <span className="text-foreground text-sm">
           {wiz.downloading ? 'Generating key…' : 'Download backup .pem'}
         </span>
@@ -237,7 +315,7 @@ function PinLockCard({ wiz, expanded, onToggle, onDone }: CardActionProps) {
 
   return (
     <SetupCard
-      icon={<LuLock className="text-brand size-4" />}
+      icon={<LuLock sx={stylexStyles.rule3} />}
       title="Set a PIN lock"
       hint="Require a PIN each time you open the app"
       doneHint="PIN lock enabled"
@@ -249,14 +327,14 @@ function PinLockCard({ wiz, expanded, onToggle, onDone }: CardActionProps) {
         <RadioOption
           selected={wiz.lockMode === 'auto'}
           onSelect={() => wiz.setLockMode('auto')}
-          icon={<LuLockOpen className="size-4" />}
+          icon={<LuLockOpen sx={stylexStyles.rule7} />}
           label="Auto-unlock"
           description="Key stored on disk. No PIN needed."
         />
         <RadioOption
           selected={wiz.lockMode === 'pin'}
           onSelect={() => wiz.setLockMode('pin')}
-          icon={<LuLock className="size-4" />}
+          icon={<LuLock sx={stylexStyles.rule7} />}
           label="PIN lock"
           description="Enter PIN on each app launch."
         />
@@ -267,17 +345,12 @@ function PinLockCard({ wiz, expanded, onToggle, onDone }: CardActionProps) {
         type="button"
         onClick={() => void handleFinishLock()}
         disabled={wiz.saving}
-        className={cn(
-          'group w-full rounded-md border transition-all duration-300',
-          'border-brand/30 bg-brand/10 hover:bg-brand/20',
-          'disabled:cursor-not-allowed disabled:opacity-50',
-          'flex h-10 items-center justify-center gap-2',
-        )}
+        sx={[[stylexStyles2.rule1, groupMarker]]}
       >
         <span className="text-foreground text-sm">
           {wiz.saving ? 'Saving…' : 'Set lock mode'}
         </span>
-        {!wiz.saving && <LuArrowRight className="text-foreground-alt size-4" />}
+        {!wiz.saving && <LuArrowRight sx={stylexStyles.rule8} />}
       </button>
     </SetupCard>
   )
@@ -342,7 +415,7 @@ export function CloudSetupWizard({
           )}
         >
           Continue to app
-          <LuArrowRight className="size-4" />
+          <LuArrowRight sx={stylexStyles.rule7} />
         </button>
       </div>
     </div>

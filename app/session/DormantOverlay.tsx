@@ -7,10 +7,84 @@ import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { BackButton } from '@s4wave/web/ui/BackButton.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { useSessionNavigate } from '@s4wave/web/contexts/contexts.js'
 import type { SessionMetadata } from '@s4wave/core/session/session.pb.js'
 import { findPersonalCanceledBillingAccount } from '../provider/spacewave/resubscribe-target.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+import { groupMarker } from '../../web/style/relations.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+  },
+  rule2: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      },
+    },
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 6)`,
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+    color: themeColors['--color-warning'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
 
 export interface DormantOverlayProps {
   metadata: SessionMetadata
@@ -90,7 +164,7 @@ export function DormantOverlay({ metadata }: DormantOverlayProps) {
           <div className="space-y-4 p-6">
             <div className="flex flex-col items-center gap-2">
               <div className="bg-warning/10 flex size-12 items-center justify-center rounded-full">
-                <LuMoon className="text-warning size-6" />
+                <LuMoon sx={stylexStyles.rule1} />
               </div>
             </div>
 
@@ -106,13 +180,9 @@ export function DormantOverlay({ metadata }: DormantOverlayProps) {
                 void handleReactivate()
               }}
               disabled={resolving}
-              className={cn(
-                'group w-full rounded-md border transition-all duration-300',
-                'border-brand/30 bg-brand/10 hover:bg-brand/20',
-                'flex h-10 items-center justify-center gap-2',
-              )}
+              sx={[[stylexStyles2.rule1, groupMarker]]}
             >
-              <LuSparkles className="size-4" />
+              <LuSparkles sx={stylexStyles.rule2} />
               <span className="text-foreground text-sm">
                 {resolving ? 'Opening billing…' : 'Reactivate subscription'}
               </span>
@@ -127,13 +197,9 @@ export function DormantOverlay({ metadata }: DormantOverlayProps) {
             <button
               type="button"
               onClick={handleOpenLocal}
-              className={cn(
-                'group w-full rounded-md border transition-all duration-300',
-                'border-foreground/10 bg-foreground/5 hover:bg-foreground/10',
-                'flex h-10 items-center justify-center gap-2',
-              )}
+              sx={[[stylexStyles2.rule2, groupMarker]]}
             >
-              <LuUser className="size-4" />
+              <LuUser sx={stylexStyles.rule2} />
               <span className="text-foreground text-sm">
                 Open a local session
               </span>

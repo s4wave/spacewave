@@ -4,6 +4,20 @@ import { cn } from '@s4wave/web/style/utils.js'
 
 import { authInputClassName } from './auth-flow-shared.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 export interface OptionalPinLockProps {
   pin: string
   confirmPin: string
@@ -36,7 +50,7 @@ export function OptionalPinLock(props: OptionalPinLockProps) {
   return (
     <div className="flex w-full flex-col gap-2">
       <div className="flex items-center gap-2">
-        <LuLock className="text-foreground-alt size-4" />
+        <LuLock sx={stylexStyles.rule1} />
         <label
           htmlFor={pinInputId}
           className="text-foreground text-sm font-medium"

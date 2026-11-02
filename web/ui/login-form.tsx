@@ -1,3 +1,6 @@
+import * as ownerStylex from '@stylexjs/stylex'
+import { cn as ownerClasses } from '@s4wave/web/style/utils.js'
+import { groupMarker as ownergroupMarker } from '@s4wave/web/style/relations.stylex.js'
 import React, {
   useCallback,
   useEffect,
@@ -636,7 +639,10 @@ function SignInMethodButton({
       onClick={onClick}
       className={
         /* TODO(stylex): global or unknown class: group */ cn(
-          'group rounded-md border transition-all duration-300',
+          ownerClasses(
+            'group rounded-md border transition-all duration-300',
+            ownerStylex.props(ownergroupMarker).className,
+          ),
           fullWidth ? 'w-full' : 'flex-1',
           'border-foreground/10 bg-background/20',
           enabled
@@ -1205,7 +1211,7 @@ function LoginNotices({
             onClick={onBrowserAuth}
             sx={[stylexStyles.rule22]}
           >
-            <LuKeyRound {...stylex.props(stylexStyles.rule23)} />
+            <LuKeyRound sx={stylexStyles.rule23} />
             <span sx={stylexStyles.rule24}>Open browser to sign in…</span>
           </button>
         </div>
@@ -1254,7 +1260,7 @@ function PasswordSubmit({
         {busy ? (
           <Spinner sx={stylexStyles.rule25} />
         ) : (
-          <LuKeyRound {...stylex.props(stylexStyles.rule23)} />
+          <LuKeyRound sx={stylexStyles.rule23} />
         )}
         <span sx={stylexStyles.rule24}>{label}</span>
       </button>
@@ -1277,11 +1283,11 @@ function PasswordSubmit({
 const ssoProviders = {
   google: {
     label: 'Google',
-    icon: <FcGoogle {...stylex.props(stylexStyles.rule26)} />,
+    icon: <FcGoogle sx={stylexStyles.rule26} />,
   },
   github: {
     label: 'GitHub',
-    icon: <LuGithub {...stylex.props(stylexStyles.rule27)} />,
+    icon: <LuGithub sx={stylexStyles.rule27} />,
   },
 }
 
@@ -1330,7 +1336,7 @@ function SignInMethods({
         enabled={canUsePem}
         busy={busy}
         loading={loading === 'pem'}
-        icon={<LuKeyRound {...stylex.props(stylexStyles.rule27)} />}
+        icon={<LuKeyRound sx={stylexStyles.rule27} />}
         label={pemLabel}
         onClick={() => pemInputRef.current?.click()}
       />
@@ -1341,7 +1347,7 @@ function SignInMethods({
               enabled={canUsePasskey}
               busy={busy}
               loading={loading === 'passkey'}
-              icon={<LuFingerprint {...stylex.props(stylexStyles.rule27)} />}
+              icon={<LuFingerprint sx={stylexStyles.rule27} />}
               label="Passkey"
               onClick={onPasskey}
             />
@@ -1392,14 +1398,14 @@ function ContinueWithoutAccount({
             sx={[[actionStyles.continue, groupMarker]]}
           >
             <div sx={stylexStyles.rule30}>
-              <PiUserCircleDuotone {...stylex.props(actionStyles.userIcon)} />
+              <PiUserCircleDuotone sx={actionStyles.userIcon} />
               <span sx={actionStyles.userLabel}>
                 {loading === 'continue'
                   ? 'Starting…'
                   : 'Continue without account'}
               </span>
             </div>
-            <RxArrowRight {...stylex.props([actionStyles.userArrow])} />
+            <RxArrowRight sx={[actionStyles.userArrow]} />
           </button>
         </TooltipTrigger>
         <TooltipContent side="bottom" sx={stylexStyles.rule31}>

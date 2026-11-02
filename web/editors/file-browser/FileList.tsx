@@ -291,9 +291,7 @@ export function FileList({
           onClick={() => handleSort('name')}
         >
           <span>Name</span>
-          {sortKey === 'name' && (
-            <SortChevron {...stylex.props(stylexStyles.rule4)} />
-          )}
+          {sortKey === 'name' && <SortChevron sx={stylexStyles.rule4} />}
         </button>
         <button
           type="button"
@@ -301,18 +299,14 @@ export function FileList({
           onClick={() => handleSort('date')}
         >
           <span>Date Modified</span>
-          {sortKey === 'date' && (
-            <SortChevron {...stylex.props(stylexStyles.rule4)} />
-          )}
+          {sortKey === 'date' && <SortChevron sx={stylexStyles.rule4} />}
         </button>
         <button
           type="button"
           sx={[stylexStyles.rule6, sortKey === 'size' && stylexStyles.rule3]}
           onClick={() => handleSort('size')}
         >
-          {sortKey === 'size' && (
-            <SortChevron {...stylex.props(stylexStyles.rule4)} />
-          )}
+          {sortKey === 'size' && <SortChevron sx={stylexStyles.rule4} />}
           <span>Size</span>
         </button>
         <div sx={stylexStyles.rule7}></div>

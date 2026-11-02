@@ -8,6 +8,16 @@ import { InspectorSection } from './InspectorSection.js'
 import { StorageMeter } from './StorageMeter.js'
 import { formatBytes, formatCount, protectionLabel } from './format.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 // StorageInspector shows the local block store, the browser quota and
 // cleanup protection, and links to the storage settings page.
 export function StorageInspector({
@@ -24,7 +34,7 @@ export function StorageInspector({
         description="Spacewave's local block store. Entries measure storage, not a verified backup."
         action={
           <DashboardButton
-            icon={<LuSettings className="size-3.5" />}
+            icon={<LuSettings sx={stylexStyles.rule1} />}
             onClick={onOpenSettings}
           >
             Storage settings
@@ -60,7 +70,7 @@ export function StorageInspector({
         action={
           storage.protectionState === 'not-protected' && (
             <DashboardButton
-              icon={<LuShieldCheck className="size-3.5" />}
+              icon={<LuShieldCheck sx={stylexStyles.rule1} />}
               onClick={() => {
                 void storage.requestProtection()
               }}

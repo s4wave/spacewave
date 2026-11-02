@@ -1,6 +1,16 @@
 import { LuShield } from '@s4wave/web/images/icons.js'
 import { LegalPageLayout } from './LegalPageLayout.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+  },
+})
+
 export const metadata = {
   title: 'DMCA Policy - Spacewave',
   description:
@@ -12,7 +22,7 @@ export const metadata = {
 export function DMCA() {
   return (
     <LegalPageLayout
-      icon={<LuShield className="size-10" />}
+      icon={<LuShield sx={stylexStyles.rule1} />}
       title="DMCA Policy"
     >
       <section className="relative z-10 mx-auto w-full max-w-4xl px-4 pb-16 @lg:px-8">

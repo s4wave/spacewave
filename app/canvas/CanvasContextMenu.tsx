@@ -17,6 +17,16 @@ import {
 } from '@s4wave/web/ui/DropdownMenu.js'
 import { DropdownMenuGhostAnchor } from '@s4wave/web/ui/DropdownMenuGhostAnchor.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 // CanvasContextMenuState stores the menu anchor in screen and canvas space.
 export interface CanvasContextMenuState {
   position: { x: number; y: number }
@@ -72,31 +82,31 @@ export function CanvasContextMenu({
         }}
       >
         <DropdownMenuItem onSelect={onPaste}>
-          <LuClipboardPaste className="size-3.5" />
+          <LuClipboardPaste sx={stylexStyles.rule1} />
           Paste
           <DropdownMenuShortcut>Cmd+V</DropdownMenuShortcut>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onAddText}>
-          <LuType className="size-3.5" />
+          <LuType sx={stylexStyles.rule1} />
           Add Text Node Here
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onAddObject} disabled={!canAddObject}>
-          <LuSquare className="size-3.5" />
+          <LuSquare sx={stylexStyles.rule1} />
           Add Object to Canvas
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onFitView}>
-          <LuMaximize2 className="size-3.5" />
+          <LuMaximize2 sx={stylexStyles.rule1} />
           Fit View
           <DropdownMenuShortcut>Cmd+0</DropdownMenuShortcut>
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onZoomReset}>
-          <LuScan className="size-3.5" />
+          <LuScan sx={stylexStyles.rule1} />
           Zoom to 100%
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onSelectAll}>
-          <LuSquare className="size-3.5" />
+          <LuSquare sx={stylexStyles.rule1} />
           Select All
           <DropdownMenuShortcut>Cmd+A</DropdownMenuShortcut>
         </DropdownMenuItem>

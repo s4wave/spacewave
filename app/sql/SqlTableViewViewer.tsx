@@ -25,6 +25,24 @@ import type {
 import { flattenRowBatches, type SqlGridData } from './sql-cell.js'
 import { SqlResultGrid } from './SqlResultGrid.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 export { SqlTableViewTypeID }
 
 // SqlTableViewViewer is the full sql/table-view viewer: the persisted filter
@@ -74,7 +92,7 @@ export function SqlTableViewViewer({
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
       <div className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-4">
-        <LuListFilter className="text-foreground-alt size-3.5" aria-hidden />
+        <LuListFilter sx={stylexStyles.rule1} aria-hidden />
         <span className="text-foreground text-sm font-semibold tracking-tight select-none">
           Table View
         </span>
@@ -90,7 +108,7 @@ export function SqlTableViewViewer({
           disabled={rowsResource.loading}
           size="xs"
         >
-          <LuRefreshCw className="size-3" />
+          <LuRefreshCw sx={stylexStyles.rule2} />
           Refresh
         </Button>
       </div>

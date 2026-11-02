@@ -13,6 +13,31 @@ import {
   DropdownMenuSeparator,
 } from '@s4wave/web/ui/DropdownMenu.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    flexShrink: 0,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 // RefSelectorProps are props for the RefSelector component.
 export interface RefSelectorProps {
   effectiveRef: string | null
@@ -43,9 +68,9 @@ export function RefSelector({
           )}
           disabled={loading}
         >
-          <LuGitBranch className="text-foreground-alt size-3.5 shrink-0" />
+          <LuGitBranch sx={stylexStyles.rule1} />
           <span className="max-w-30 truncate">{displayName}</span>
-          <LuChevronDown className="text-foreground-alt size-3 shrink-0" />
+          <LuChevronDown sx={stylexStyles.rule2} />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -57,7 +82,7 @@ export function RefSelector({
           <DropdownMenuGroup>
             <DropdownMenuLabel>
               <div className="flex items-center gap-1">
-                <LuGitBranch className="size-3" />
+                <LuGitBranch sx={stylexStyles.rule3} />
                 <span>Branches</span>
               </div>
             </DropdownMenuLabel>
@@ -82,7 +107,7 @@ export function RefSelector({
           <DropdownMenuGroup>
             <DropdownMenuLabel>
               <div className="flex items-center gap-1">
-                <LuTag className="size-3" />
+                <LuTag sx={stylexStyles.rule3} />
                 <span>Tags</span>
               </div>
             </DropdownMenuLabel>

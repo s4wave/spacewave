@@ -10,6 +10,16 @@ import {
   LuExternalLink,
 } from '@s4wave/web/images/icons.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 2.5)`,
+    height: `calc(${themeLayout['--spacing']} * 2.5)`,
+  },
+})
+
 interface FrontmatterDisplayProps {
   frontmatter: Frontmatter
   className?: string
@@ -66,14 +76,14 @@ function FrontmatterByline({
     <>
       {authors.length > 0 && (
         <span className="text-muted-foreground flex items-center gap-1 text-xs">
-          <LuUser className="size-2.5" />
+          <LuUser sx={stylexStyles.rule1} />
           {authors.join(', ')}
         </span>
       )}
 
       {date && (
         <span className="text-muted-foreground flex items-center gap-1 text-xs">
-          <LuCalendar className="size-2.5" />
+          <LuCalendar sx={stylexStyles.rule1} />
           {date}
         </span>
       )}
@@ -85,7 +95,7 @@ function FrontmatterByline({
           rel="noopener noreferrer"
           className="text-brand flex items-center gap-1 text-xs hover:underline"
         >
-          <LuExternalLink className="size-2.5" />
+          <LuExternalLink sx={stylexStyles.rule1} />
           source
         </a>
       )}
@@ -143,7 +153,7 @@ function FrontmatterDisplay({
           onClick={() => onTagClick?.(tag)}
           title={`Filter by tag: ${tag}`}
         >
-          <LuTag className="size-2.5" />
+          <LuTag sx={stylexStyles.rule1} />
           {tag}
         </button>
       ))}

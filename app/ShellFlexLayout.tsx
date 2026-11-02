@@ -78,6 +78,16 @@ import {
 import { buildShellExternalDrag } from './shell-app-drag.js'
 import { openShellTabInNewTab } from './shell-popout.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 2.5)`,
+    height: `calc(${themeLayout['--spacing']} * 2.5)`,
+  },
+})
+
 function isTabNode(node: { getType(): string } | undefined): node is TabNode {
   return node?.getType() === 'tab'
 }
@@ -734,7 +744,7 @@ function ShellTabStripInner({
   // Custom icons for close button
   const icons = useMemo(
     () => ({
-      close: <LuX className="size-2.5" />,
+      close: <LuX sx={stylexStyles.rule1} />,
     }),
     [],
   )
@@ -896,7 +906,7 @@ function ShellTabStripInner({
           title="Close tab"
           disabled={tabs.length <= 1}
         >
-          <LuX className="size-2.5" />
+          <LuX sx={stylexStyles.rule1} />
         </button>,
         <button
           key="add-tab"
@@ -905,7 +915,7 @@ function ShellTabStripInner({
           onClick={handleNewTab}
           title="New tab"
         >
-          <LuPlus className="size-2.5" />
+          <LuPlus sx={stylexStyles.rule1} />
         </button>,
         <button
           key="popout-tab"
@@ -914,7 +924,7 @@ function ShellTabStripInner({
           onClick={handlePopoutTab}
           title="Open in new tab"
         >
-          <LuExternalLink className="size-2.5" />
+          <LuExternalLink sx={stylexStyles.rule1} />
         </button>,
       )
     },

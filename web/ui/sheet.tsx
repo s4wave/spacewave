@@ -418,7 +418,7 @@ function SheetContent({
         {children}
         {showCloseButton && (
           <SheetPrimitive.Close {...stylex.props(styles.close)}>
-            <XIcon {...stylex.props(styles.closeIcon)} />
+            <XIcon sx={styles.closeIcon} />
             <span sx={styles.closeLabel}>Close</span>
           </SheetPrimitive.Close>
         )}

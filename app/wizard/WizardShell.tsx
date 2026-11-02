@@ -12,6 +12,16 @@ import { cn } from '@s4wave/web/style/utils.js'
 
 import { WizardField } from './WizardField.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 export interface WizardShellProps {
   title: ReactNode
   step: number
@@ -64,7 +74,7 @@ function WizardHeader({
       <Tooltip>
         <TooltipTrigger asChild>
           <DashboardButton
-            icon={<LuTrash2 className="size-3.5" />}
+            icon={<LuTrash2 sx={stylexStyles.rule1} />}
             onClick={onCancel}
             aria-label="Delete wizard"
             variant="destructive"
@@ -179,7 +189,7 @@ function WizardFooter({
       <div>
         {step > 0 && (
           <DashboardButton
-            icon={<LuArrowLeft className="size-3.5" />}
+            icon={<LuArrowLeft sx={stylexStyles.rule1} />}
             onClick={onBack}
             disabled={!canBack}
           >
@@ -205,7 +215,7 @@ function WizardFooter({
             variant="brandOutline"
             size="toolbarWide"
           >
-            <LuCheck className="size-3.5" />
+            <LuCheck sx={stylexStyles.rule1} />
             {creating ? creatingLabel : createLabel}
           </Button>
         )}

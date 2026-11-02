@@ -1,9 +1,5 @@
-import {
-  type ComponentType,
-  type ReactNode,
-  useCallback,
-  useState,
-} from 'react'
+import type { IconType } from '@s4wave/web/images/icons.js'
+import { type ReactNode, useCallback, useState } from 'react'
 import { useWatchStateRpc } from '@aptre/bldr-react'
 import {
   LuLoaderCircle,
@@ -41,6 +37,64 @@ import { KNOWN_SPACE_PLUGINS, knownSpacePlugin } from './known-plugins.js'
 
 import * as stylex from '@stylexjs/stylex'
 
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-brand'],
+  },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    animationName: 'spin',
+    animationDuration: '1s',
+    animationTimingFunction: 'linear',
+    animationIterationCount: 'infinite',
+    animationDirection: 'normal',
+    animationPlayState: 'running',
+    animationDelay: '0s',
+    animationFillMode: 'none',
+    animationTimeline: 'auto',
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    animationName: 'spin',
+    animationDuration: '1s',
+    animationTimingFunction: 'linear',
+    animationIterationCount: 'infinite',
+    animationDirection: 'normal',
+    animationPlayState: 'running',
+    animationDelay: '0s',
+    animationFillMode: 'none',
+    animationTimeline: 'auto',
+    color: themeColors['--color-brand'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+  },
+  rule5: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 const stylexStyles = stylex.create({ rule1: { flex: 1 } })
 
 // CatalogEntry is one browsable plugin row merging the backend catalog with
@@ -49,7 +103,7 @@ interface CatalogEntry {
   id: string
   name: string
   description: string
-  icon: ComponentType<{ className?: string }>
+  icon: IconType
   revision: string
 }
 
@@ -171,7 +225,7 @@ function SpacePluginAddPanel({
             size="sm"
           >
             {pending !== '' && pending === trimmedDraft ? (
-              <LuLoaderCircle className="size-3.5 animate-spin" />
+              <LuLoaderCircle sx={stylexStyles2.rule1} />
             ) : (
               'Add'
             )}
@@ -204,9 +258,9 @@ function SpacePluginAddPanel({
                 >
                   <span className="bg-brand/10 flex size-8 shrink-0 items-center justify-center rounded-md">
                     {isPending ? (
-                      <LuLoaderCircle className="text-brand size-4 animate-spin" />
+                      <LuLoaderCircle sx={stylexStyles2.rule2} />
                     ) : (
-                      <Icon className="text-brand size-4" />
+                      <Icon sx={stylexStyles3.rule1} />
                     )}
                   </span>
                   <span className="flex min-w-0 flex-1 flex-col">
@@ -224,7 +278,7 @@ function SpacePluginAddPanel({
                       {plugin.description}
                     </span>
                   </span>
-                  <LuPlus className="text-foreground-alt/50 size-3.5 shrink-0" />
+                  <LuPlus sx={stylexStyles2.rule3} />
                 </button>
               )
             })}
@@ -286,7 +340,7 @@ function RequestedPluginList({
                     aria-label={`Add ${id}`}
                   >
                     {isPending ? (
-                      <LuLoaderCircle className="size-3.5 animate-spin" />
+                      <LuLoaderCircle sx={stylexStyles2.rule1} />
                     ) : (
                       'Add'
                     )}
@@ -338,7 +392,7 @@ function InstalledPluginList({
   if (plugins.length === 0) {
     return (
       <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
-        <LuPuzzle className="size-3.5 shrink-0" />
+        <LuPuzzle sx={stylexStyles2.rule4} />
         <span className="select-none">No plugins installed</span>
       </div>
     )
@@ -372,7 +426,7 @@ function InstalledPluginList({
                   disabled={isPending}
                 >
                   {isPending ? (
-                    <LuLoaderCircle className="size-3.5 animate-spin" />
+                    <LuLoaderCircle sx={stylexStyles2.rule1} />
                   ) : (
                     'Confirm'
                   )}
@@ -407,7 +461,7 @@ function InstalledPluginList({
                   disabled={isPending}
                 >
                   {isPending ? (
-                    <LuLoaderCircle className="size-3.5 animate-spin" />
+                    <LuLoaderCircle sx={stylexStyles2.rule1} />
                   ) : (
                     'Allow'
                   )}
@@ -483,7 +537,7 @@ function InstalledPluginList({
                     !!pending && 'cursor-not-allowed opacity-50',
                   )}
                 >
-                  <LuTrash2 className="size-3.5" />
+                  <LuTrash2 sx={stylexStyles2.rule5} />
                 </button>
               )}
             </div>
@@ -624,9 +678,9 @@ export function SpacePlugins() {
         <DashboardButton
           icon={
             adding ? (
-              <LuX className="size-3.5" />
+              <LuX sx={stylexStyles2.rule5} />
             ) : (
-              <LuPlus className="size-3.5" />
+              <LuPlus sx={stylexStyles2.rule5} />
             )
           }
           onClick={() => {

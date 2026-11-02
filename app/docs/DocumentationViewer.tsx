@@ -44,6 +44,45 @@ import { docsMarkdownOverrides } from './markdown-overrides.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+import { colors as themeColors } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    flexShrink: 0,
+    color: themeColors['--color-muted-foreground'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    flexShrink: 0,
+  },
+  rule5: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: themeColors['--color-foreground'],
+  },
+  rule6: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+  },
+  rule7: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 60)`,
@@ -204,7 +243,7 @@ function DocPlaceholder({
     <div className="bg-background-primary flex h-full w-full flex-col">
       <div className="border-foreground/8 flex h-9 shrink-0 items-center border-b px-4">
         <div className="text-foreground flex items-center gap-2 text-sm font-semibold select-none">
-          <LuBookOpen className="size-4" />
+          <LuBookOpen sx={stylexStyles2.rule1} />
           <span className="tracking-tight">{title}</span>
         </div>
       </div>
@@ -241,7 +280,7 @@ function DocSidebarBody({
       {/* Search and create */}
       <div className="border-border flex items-center gap-1 border-b px-2 py-1.5">
         <div className="bg-muted flex flex-1 items-center gap-1.5 rounded px-2 py-1">
-          <LuSearch className="text-muted-foreground size-3 shrink-0" />
+          <LuSearch sx={stylexStyles2.rule2} />
           <input
             aria-label="Search pages"
             type="text"
@@ -257,7 +296,7 @@ function DocSidebarBody({
           onClick={onCreatePage}
           title="New page"
         >
-          <LuPlus className="size-3.5" />
+          <LuPlus sx={stylexStyles2.rule3} />
         </button>
       </div>
 
@@ -293,7 +332,7 @@ function DocSidebarBody({
               )}
               onClick={() => onSelectPage(entry.name)}
             >
-              <LuFile className="size-3 shrink-0" />
+              <LuFile sx={stylexStyles2.rule4} />
               <span className="truncate">
                 {entry.name.replace(/\.md$/, '')}
               </span>
@@ -330,10 +369,10 @@ function DocNavDrawer({
             aria-label="Open documentation pages"
             className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground -ml-1 flex items-center justify-center rounded p-1.5"
           >
-            <LuMenu className="size-4" />
+            <LuMenu sx={stylexStyles2.rule1} />
           </button>
         </SheetTrigger>
-        <LuBookOpen className="text-foreground size-4 shrink-0" />
+        <LuBookOpen sx={stylexStyles2.rule5} />
         <span className="text-foreground truncate text-sm font-semibold tracking-tight">
           {title}
         </span>
@@ -349,7 +388,7 @@ function DocNavDrawer({
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="border-foreground/8 flex items-center justify-between border-b px-3 py-2.5">
             <SheetTitle variant="docs">
-              <LuBookOpen className="size-4 shrink-0" />
+              <LuBookOpen sx={stylexStyles2.rule6} />
               {title}
             </SheetTitle>
             <SheetClose asChild>
@@ -358,7 +397,7 @@ function DocNavDrawer({
                 aria-label="Close documentation pages"
                 className="text-foreground-alt hover:text-foreground rounded-md p-1.5 transition-colors"
               >
-                <LuX className="size-4" />
+                <LuX sx={stylexStyles2.rule1} />
               </button>
             </SheetClose>
           </div>
@@ -460,7 +499,7 @@ function DocContent({
               onClick={onCancelEdit}
               title="Cancel editing"
             >
-              <LuX className="size-3" />
+              <LuX sx={stylexStyles2.rule7} />
               Cancel
             </button>
           )}
@@ -474,7 +513,7 @@ function DocContent({
             onClick={onToggleEdit}
             title={editing ? 'Save and preview' : 'Edit page'}
           >
-            <LuPenLine className="size-3" />
+            <LuPenLine sx={stylexStyles2.rule7} />
             {editing ? 'Save' : 'Edit'}
           </button>
         </div>
@@ -611,7 +650,7 @@ export function DocumentationViewer({
         <div className="border-border hidden w-55 shrink-0 flex-col border-r @lg:flex">
           {/* Header */}
           <div className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-3">
-            <LuBookOpen className="text-foreground size-4 shrink-0" />
+            <LuBookOpen sx={stylexStyles2.rule5} />
             <span className="text-foreground truncate text-sm font-semibold tracking-tight">
               {title}
             </span>

@@ -57,6 +57,16 @@ import {
 import { getTabDisplayName, type ShellTab } from '@s4wave/app/shell-tab.js'
 import { buildShellExternalDrag } from './shell-app-drag.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 // useShellGridController owns the FlexLayout model, URL synchronization, and
 // shared Shell Tab mutations for grid mode.
 function useShellGridController() {
@@ -359,7 +369,7 @@ function useShellGridController() {
           title="Close tab"
           disabled={tabCount <= 1}
         >
-          <LuX className="size-3" />
+          <LuX sx={stylexStyles.rule1} />
         </button>,
         <button
           type="button"
@@ -368,7 +378,7 @@ function useShellGridController() {
           onClick={handleAddTab}
           title="Add tab"
         >
-          <LuPlus className="size-3" />
+          <LuPlus sx={stylexStyles.rule1} />
         </button>,
         <button
           type="button"
@@ -377,7 +387,7 @@ function useShellGridController() {
           onClick={() => selectedTabId && handlePopoutTab(selectedTabId)}
           title="Open in new tab"
         >
-          <LuExternalLink className="size-3" />
+          <LuExternalLink sx={stylexStyles.rule1} />
         </button>,
       )
     },

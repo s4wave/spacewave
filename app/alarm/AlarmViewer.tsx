@@ -22,6 +22,20 @@ import { shortPeer } from '@s4wave/app/prom/prom-view.js'
 import { loadAlarm } from './alarm-query.js'
 import { AlarmView } from './AlarmView.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 // clockPeriodMs is how often the viewer advances the holding countdown.
 const clockPeriodMs = 5_000
 
@@ -118,7 +132,7 @@ export function AlarmViewer({
   if (!value) {
     return (
       <EmptyState
-        icon={<LuSiren className="text-foreground-alt size-5" />}
+        icon={<LuSiren sx={stylexStyles.rule1} />}
         title="This Alarm no longer exists."
       />
     )

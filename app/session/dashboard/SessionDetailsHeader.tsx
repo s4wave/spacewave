@@ -16,6 +16,41 @@ import {
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+import { headerGroupMarker } from '../../../web/style/relations.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'flex',
+    minWidth: 0,
+    flex: 1,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: { display: { default: null, '@media (min-width: 48rem)': 'none' } },
   rule2: {
@@ -103,8 +138,8 @@ export function SessionDetailsHeader({
 }: SessionDetailsHeaderProps) {
   return (
     <div className="border-foreground/8 flex min-h-9 shrink-0 items-center justify-between gap-3 border-b px-4 py-2">
-      <div className="text-foreground group/header flex min-w-0 flex-1 items-center gap-2 text-sm font-semibold select-none">
-        <RxPerson className="size-4 shrink-0" />
+      <div sx={[stylexStyles3.rule1, headerGroupMarker]}>
+        <RxPerson sx={stylexStyles2.rule1} />
         <div className="min-w-0">
           <span className="block min-w-0 truncate tracking-tight">{title}</span>
           <span className="text-foreground-alt/50 block truncate text-xs leading-tight font-normal">
@@ -115,7 +150,7 @@ export function SessionDetailsHeader({
       </div>
       <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
         <HeaderAction
-          icon={<LuUserCog className="size-4" />}
+          icon={<LuUserCog sx={stylexStyles2.rule2} />}
           onClick={onChangeAccount}
           tooltip="Change Account"
           collapseLabel
@@ -123,7 +158,7 @@ export function SessionDetailsHeader({
           Change Account
         </HeaderAction>
         <HeaderAction
-          icon={<LuLock className="size-4" />}
+          icon={<LuLock sx={stylexStyles2.rule2} />}
           onClick={onLock}
           disabled={lockDisabled}
           tooltip="Lock"
@@ -133,7 +168,7 @@ export function SessionDetailsHeader({
         </HeaderAction>
         {showLogout && (
           <HeaderAction
-            icon={<LuLogOut className="size-4" />}
+            icon={<LuLogOut sx={stylexStyles2.rule2} />}
             variant="destructive"
             onClick={onLogout}
             disabled={loggingOut}
@@ -147,7 +182,7 @@ export function SessionDetailsHeader({
         )}
         {onClose && (
           <HeaderAction
-            icon={<LuX className="size-4" />}
+            icon={<LuX sx={stylexStyles2.rule2} />}
             onClick={onClose}
             tooltip="Close"
           />

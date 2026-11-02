@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react'
 import { LuKeyRound, LuLogOut } from '@s4wave/web/images/icons.js'
 
 import { useNavigate } from '@s4wave/web/router/router.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { BackButton } from '@s4wave/web/ui/BackButton.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'
@@ -12,6 +12,56 @@ import type { SessionMetadata } from '@s4wave/core/session/session.pb.js'
 import type { ReauthenticateSessionRequest } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 
 import { LogoutConfirmDialog } from './LogoutConfirmDialog.js'
+
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+import { groupMarker } from '../../web/style/relations.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
 
 export interface ReAuthOverlayProps {
   metadata: SessionMetadata
@@ -138,14 +188,9 @@ export function ReAuthOverlay({
               type="button"
               onClick={() => void handleSubmit()}
               disabled={submitting || !cred.hasCredential}
-              className={cn(
-                'group w-full rounded-md border transition-all duration-300',
-                'border-brand/30 bg-brand/10 hover:bg-brand/20',
-                'disabled:cursor-not-allowed disabled:opacity-50',
-                'flex h-10 items-center justify-center gap-2',
-              )}
+              sx={[[stylexStyles2.rule1, groupMarker]]}
             >
-              <LuKeyRound className="size-4" />
+              <LuKeyRound sx={stylexStyles.rule1} />
               <span className="text-foreground text-sm">
                 {submitting ? 'Reconnecting…' : 'Reconnect'}
               </span>
@@ -165,7 +210,7 @@ export function ReAuthOverlay({
                 onClick={() => setLogoutOpen(true)}
                 className="text-destructive/70 hover:text-destructive flex w-full items-center justify-center gap-2 text-center text-xs transition-colors"
               >
-                <LuLogOut className="size-3" />
+                <LuLogOut sx={stylexStyles.rule2} />
                 Log out
               </button>
             </div>

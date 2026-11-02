@@ -43,7 +43,7 @@ export interface VmErrorBannerProps {
 export function VmErrorBanner({ title, message }: VmErrorBannerProps) {
   return (
     <div role="alert" sx={styles.banner}>
-      <LuTriangleAlert {...stylex.props(styles.icon)} />
+      <LuTriangleAlert sx={styles.icon} />
       <div sx={styles.content}>
         <div sx={styles.title}>{title}</div>
         <div sx={styles.message}>{message}</div>

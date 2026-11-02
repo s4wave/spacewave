@@ -13,6 +13,34 @@ import {
   useSessionSyncStatus,
 } from '@s4wave/app/session/SessionSyncStatusContext.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    position: 'absolute',
+    right: `calc(${themeLayout['--spacing']} * -1)`,
+    bottom: `calc(${themeLayout['--spacing']} * -1)`,
+    width: `calc(${themeLayout['--spacing']} * 2.5)`,
+    height: `calc(${themeLayout['--spacing']} * 2.5)`,
+    color: themeColors['--color-brand'],
+  },
+})
+
 // SessionSyncStatusSummary renders a compact sync status card for SessionDetails.
 export function SessionSyncStatusSummary() {
   const status = useSessionSyncStatus()
@@ -61,7 +89,7 @@ function SessionSyncStatusSummaryIcon({
     return <Spinner />
   }
   if (status.error) {
-    return <LuCircleAlert className="size-4" aria-hidden="true" />
+    return <LuCircleAlert sx={stylexStyles.rule1} aria-hidden="true" />
   }
   const Icon = status.local ? LuHardDrive : LuCloud
   return (
@@ -69,8 +97,8 @@ function SessionSyncStatusSummaryIcon({
       className="relative flex size-4 items-center justify-center"
       aria-hidden="true"
     >
-      <Icon className="size-3.5" />
-      <LuCircleCheck className="text-brand absolute -right-1 -bottom-1 size-2.5" />
+      <Icon sx={stylexStyles2.rule1} />
+      <LuCircleCheck sx={stylexStyles.rule2} />
     </span>
   )
 }

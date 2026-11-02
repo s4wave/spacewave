@@ -6,6 +6,20 @@ import { EmptyState } from '@s4wave/web/ui/EmptyState.js'
 
 import type { KvKeyRow } from './kv-viewer.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 interface KvKeyListProps {
   rows: KvKeyRow[]
   selectedKey: string | null
@@ -25,7 +39,7 @@ export function KvKeyList({
       <div className="flex-1 overflow-auto">
         <EmptyState
           variant="compact"
-          icon={<LuKey className="text-foreground-alt size-5" />}
+          icon={<LuKey sx={stylexStyles.rule1} />}
           title={filtered ? 'No matching keys' : 'No keys yet'}
           description={
             filtered

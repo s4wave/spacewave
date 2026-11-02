@@ -231,7 +231,7 @@ export function ResourceDetailsPanel({ resource }: ResourceDetailsPanelProps) {
           Details
         </span>
         <button type="button" onClick={handleClose} sx={[stylexStyles.rule3]}>
-          <LuX {...stylex.props(stylexStyles.rule4)} />
+          <LuX sx={stylexStyles.rule4} />
         </button>
       </div>
 

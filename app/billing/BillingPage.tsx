@@ -32,6 +32,36 @@ import {
   isStatusPastDue,
 } from './billing-utils.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    flexShrink: 0,
+    color: themeColors['--color-foreground'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule3: {
+    animationName: 'spin',
+    animationDuration: '1s',
+    animationTimingFunction: 'linear',
+    animationIterationCount: 'infinite',
+    animationDirection: 'normal',
+    animationPlayState: 'running',
+    animationDelay: '0s',
+    animationFillMode: 'none',
+    animationTimeline: 'auto',
+  },
+})
+
 function statusBadgeColor(status?: BillingStatus): string {
   if (isStatusActive(status)) return 'bg-green-500/15 text-green-500'
   if (isStatusPastDue(status)) return 'bg-yellow-500/15 text-yellow-500'
@@ -171,7 +201,7 @@ function BillingTitle({
   return (
     <>
       <div className="mb-6 flex items-center gap-2">
-        <LuCreditCard className="text-foreground size-5 shrink-0" />
+        <LuCreditCard sx={stylexStyles.rule1} />
         {renaming ? (
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <input
@@ -192,7 +222,7 @@ function BillingTitle({
               aria-label="Billing account name"
             />
             <DashboardButton
-              icon={<LuSave className="size-3" />}
+              icon={<LuSave sx={stylexStyles.rule2} />}
               onClick={() => void handleRenameSave()}
               disabled={
                 renameSaving ||
@@ -203,7 +233,7 @@ function BillingTitle({
               {renameSaving ? 'Saving…' : 'Save'}
             </DashboardButton>
             <DashboardButton
-              icon={<LuX className="size-3" />}
+              icon={<LuX sx={stylexStyles.rule2} />}
               onClick={handleRenameCancel}
               disabled={renameSaving}
             >
@@ -217,7 +247,7 @@ function BillingTitle({
             </h1>
             {canRename && (
               <DashboardButton
-                icon={<LuPencil className="size-3" />}
+                icon={<LuPencil sx={stylexStyles.rule2} />}
                 onClick={handleRenameStart}
               >
                 Edit
@@ -341,10 +371,10 @@ export function BillingPage() {
                 <DashboardButton
                   icon={
                     <LuRefreshCw
-                      className={cn(
-                        'size-3',
-                        usage.refreshing && 'animate-spin',
-                      )}
+                      sx={[
+                        stylexStyles.rule2,
+                        !!usage.refreshing && stylexStyles.rule3,
+                      ]}
                     />
                   }
                   onClick={() => void usage.refresh()}

@@ -110,7 +110,7 @@ export function SearchBox({
         sx,
       ]}
     >
-      <LuSearch {...stylex.props(stylexStyles.rule4)} />
+      <LuSearch sx={stylexStyles.rule4} />
       {focused && (
         <input
           ref={setInputRef}

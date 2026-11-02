@@ -10,6 +10,25 @@ import type { SessionListEntry } from '@s4wave/core/session/session.pb.js'
 import type { Session } from '@s4wave/sdk/session/session.js'
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 6)`,
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+    color: themeColors['--color-brand'],
+  },
+})
+
 export interface LinkDeviceDoneStepProps {
   session: Session | null | undefined
   remotePeerId: string | null
@@ -45,7 +64,7 @@ export function LinkDeviceDoneStep({
           onClick={() => onLinkMore()}
           className="border-foreground/20 hover:border-foreground/40 flex h-10 w-full items-center justify-center gap-2 rounded-md border"
         >
-          <LuRefreshCw className="text-foreground-alt size-4" />
+          <LuRefreshCw sx={stylexStyles.rule1} />
           <span className="text-foreground text-sm">Try again</span>
         </button>
       </div>
@@ -57,7 +76,7 @@ export function LinkDeviceDoneStep({
       <div className="flex flex-col items-center gap-3 text-center">
         <div className="bg-brand/10 flex size-12 items-center justify-center rounded-full">
           {result ? (
-            <LuCircleCheck className="text-brand size-6" />
+            <LuCircleCheck sx={stylexStyles.rule2} />
           ) : (
             <Spinner size="lg" variant="brand" />
           )}
@@ -78,7 +97,7 @@ export function LinkDeviceDoneStep({
             onClick={() => onLinkMore(result.sessionListEntry)}
             className="border-foreground/20 hover:border-foreground/40 flex h-10 flex-1 items-center justify-center gap-2 rounded-md border"
           >
-            <LuLink className="text-foreground-alt size-4" />
+            <LuLink sx={stylexStyles.rule1} />
             <span className="text-foreground text-sm">Link more</span>
           </button>
           <button
@@ -87,7 +106,7 @@ export function LinkDeviceDoneStep({
             className="border-brand/30 bg-brand/10 hover:bg-brand/20 flex h-10 flex-1 items-center justify-center gap-2 rounded-md border"
           >
             <span className="text-foreground text-sm">Open account</span>
-            <LuArrowRight className="text-foreground-alt size-4" />
+            <LuArrowRight sx={stylexStyles.rule1} />
           </button>
         </div>
       )}

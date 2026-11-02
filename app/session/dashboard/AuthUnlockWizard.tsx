@@ -44,6 +44,31 @@ import { startSSOPopupFlow, type SSOPopupFlow } from './sso-popup.js'
 import { useAccountDashboardState } from './AccountDashboardStateContext.js'
 import { useEntityKeypairs } from './useEntityKeypairs.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: themeColors['--color-brand'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 export interface AuthUnlockWizardProps {
   open: boolean
   onClose: () => void
@@ -314,7 +339,7 @@ function UnlockedKeypairRow({
   return (
     <div className="border-foreground/10 flex items-center justify-between gap-2 rounded-md border px-3 py-2">
       <div className="flex min-w-0 items-center gap-2">
-        <LuLockOpen className="text-brand size-3.5 shrink-0" />
+        <LuLockOpen sx={stylexStyles.rule1} />
         <div className="min-w-0">
           <p className="text-foreground text-sm font-medium">
             {methodLabel(method)}
@@ -828,7 +853,7 @@ function UnlockCardHeader({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <LuLock className="text-foreground-alt size-3.5 shrink-0" />
+      <LuLock sx={stylexStyles.rule2} />
       <div className="min-w-0 flex-1">
         <p className="text-foreground text-sm font-medium">
           {methodLabel(method)}
@@ -844,12 +869,12 @@ function UnlockCardHeader({
 // MethodIcon renders the icon for a passkey or SSO method.
 function MethodIcon({ method }: { method: string }) {
   if (method === 'passkey') {
-    return <LuFingerprint className="size-3" />
+    return <LuFingerprint sx={stylexStyles.rule3} />
   }
   if (method === 'google_sso') {
-    return <FcGoogle className="size-3" />
+    return <FcGoogle sx={stylexStyles.rule3} />
   }
-  return <LuGithub className="size-3" />
+  return <LuGithub sx={stylexStyles.rule3} />
 }
 
 // PinField renders the PIN input for resuming a PIN-wrapped recovery. Enter

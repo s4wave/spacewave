@@ -34,6 +34,28 @@ import {
 } from './gallery.js'
 import { UnixFSBrowser, type UnixFSBrowserBodyProps } from './UnixFSBrowser.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 const emptyGalleryItems: UnixFSGalleryCandidate[] = []
 
 // galleryTileMinWidth is the narrowest a tile may be before the grid drops a
@@ -77,7 +99,7 @@ function GalleryTile({
           />
         ) : (
           <div className="text-foreground-alt/40 flex h-full w-full items-center justify-center">
-            <LuImage className="size-8" />
+            <LuImage sx={stylexStyles.rule1} />
           </div>
         )}
       </div>
@@ -154,7 +176,7 @@ function LightboxToolbar({
         onClick={() => window.open(previewURL, '_blank', 'noopener,noreferrer')}
         title="Open In Browser"
       >
-        <LuExternalLink className="size-4" />
+        <LuExternalLink sx={stylexStyles.rule2} />
       </button>
       <button
         type="button"
@@ -162,7 +184,7 @@ function LightboxToolbar({
         onClick={handleDownload}
         title="Download"
       >
-        <LuDownload className="size-4" />
+        <LuDownload sx={stylexStyles.rule2} />
       </button>
     </div>
   )
@@ -310,7 +332,7 @@ function GalleryEmptyState({ isScanning }: { isScanning: boolean }) {
   return (
     <div className="flex h-full min-h-48 items-center justify-center">
       <div className="border-foreground/6 bg-background-card/30 flex max-w-xs flex-col items-center gap-2 rounded-lg border px-4 py-5 text-center">
-        <LuImage className="text-foreground-alt size-5" />
+        <LuImage sx={stylexStyles.rule3} />
         <div className="text-foreground text-sm font-semibold">
           {isScanning ? 'Scanning for images' : 'No images under this path'}
         </div>

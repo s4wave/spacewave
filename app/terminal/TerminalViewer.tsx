@@ -25,6 +25,17 @@ import {
 } from './TerminalPane.js'
 import { TerminalSshTrustPanel } from './TerminalSshTrustPanel.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+  },
+})
+
 export { TerminalTypeID }
 
 export function TerminalViewer({
@@ -67,7 +78,7 @@ export function TerminalViewer({
     <div className="bg-background-primary flex h-full w-full flex-col">
       <div className="border-foreground/8 flex h-9 shrink-0 items-center justify-between border-b px-4">
         <span className="text-foreground flex min-w-0 items-center gap-2 text-sm font-semibold select-none">
-          <LuTerminal className="size-4 shrink-0" />
+          <LuTerminal sx={stylexStyles.rule1} />
           {state?.name || 'Terminal'}
         </span>
         <span className="text-muted-foreground text-xs">

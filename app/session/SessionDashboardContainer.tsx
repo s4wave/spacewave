@@ -34,6 +34,22 @@ import {
 import { LogoutConfirmDialog } from './LogoutConfirmDialog.js'
 import { SessionFrame } from './SessionFrame.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: themeColors['--color-warning'],
+  },
+})
+
 // CDN_SPACE_DISPLAY_NAME is the label shown for the process-scoped CDN Space
 // on the session dashboard. The CDN SharedObject has no user-facing name;
 // dashboards render a fixed label.
@@ -298,7 +314,7 @@ function PendingDeleteNotice({
     <div className="border-warning/20 bg-warning/5 w-content-inset mx-auto mt-3 max-w-3xl rounded-lg border px-4 py-3">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex items-start gap-3">
-          <LuTriangleAlert className="text-warning mt-0.5 size-4 shrink-0" />
+          <LuTriangleAlert sx={stylexStyles.rule1} />
           <div className="space-y-1">
             <p className="text-sm font-medium">
               Delete-now is active. This cloud account is read-only.

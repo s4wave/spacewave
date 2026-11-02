@@ -24,6 +24,47 @@ import { useStateAtom, useStateNamespace } from '@s4wave/web/state/persist.js'
 import { useEmailManagement } from '@s4wave/web/hooks/useEmailManagement.js'
 import type { EmailInfo } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule5: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-brand'],
+  },
+  rule6: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule7: {
+    width: `calc(${themeLayout['--spacing']} * 2.5)`,
+    height: `calc(${themeLayout['--spacing']} * 2.5)`,
+  },
+})
+
 export interface EmailSectionProps {
   open?: boolean
   onOpenChange?: (open: boolean) => void
@@ -124,7 +165,7 @@ export function EmailSection({ open, onOpenChange }: EmailSectionProps) {
   return (
     <CollapsibleSection
       title="Email"
-      icon={<LuMail className="size-3.5" />}
+      icon={<LuMail sx={stylexStyles.rule1} />}
       open={sectionOpen}
       onOpenChange={handleOpenChange}
       badge={
@@ -138,7 +179,7 @@ export function EmailSection({ open, onOpenChange }: EmailSectionProps) {
       )}
       {!loading && emails && emails.length === 0 && (
         <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
-          <LuMail className="size-3.5 shrink-0" />
+          <LuMail sx={stylexStyles.rule2} />
           <span>No email addresses yet</span>
         </div>
       )}
@@ -226,7 +267,7 @@ function AddEmailForm({
         className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/50 bg-background-card/30 flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left transition duration-150"
       >
         <div className="bg-foreground/5 flex size-7 shrink-0 items-center justify-center rounded-md">
-          <LuPlus className="text-foreground-alt size-3.5" />
+          <LuPlus sx={stylexStyles.rule3} />
         </div>
         <span className="text-foreground-alt text-xs">Add another email</span>
       </button>
@@ -238,7 +279,7 @@ function AddEmailForm({
     <div className="border-foreground/6 bg-background-card/30 space-y-2 rounded-lg border px-3 py-2.5">
       <div className="flex items-center gap-2">
         <div className="bg-foreground/5 flex size-7 shrink-0 items-center justify-center rounded-md">
-          <LuPlus className="text-foreground-alt size-3.5" />
+          <LuPlus sx={stylexStyles.rule3} />
         </div>
         <p className="text-foreground text-xs font-medium">Add another email</p>
       </div>
@@ -275,7 +316,7 @@ function AddEmailForm({
       )}
       <div className="flex items-center justify-end gap-1.5">
         <DashboardButton
-          icon={<LuX className="size-3" />}
+          icon={<LuX sx={stylexStyles.rule4} />}
           onClick={() => onOpenChange(false)}
           disabled={adding}
         >
@@ -283,7 +324,11 @@ function AddEmailForm({
         </DashboardButton>
         <DashboardButton
           icon={
-            adding ? <Spinner size="sm" /> : <LuArrowRight className="size-3" />
+            adding ? (
+              <Spinner size="sm" />
+            ) : (
+              <LuArrowRight sx={stylexStyles.rule4} />
+            )
           }
           variant="primary"
           disabled={!canSubmit}
@@ -415,9 +460,9 @@ function EmailIdentity({
         )}
       >
         {verified ? (
-          <LuCheck className="text-brand size-4" />
+          <LuCheck sx={stylexStyles.rule5} />
         ) : (
-          <LuMail className="text-foreground-alt size-4" />
+          <LuMail sx={stylexStyles.rule6} />
         )}
       </div>
       <div className="min-w-0 flex-1">
@@ -425,7 +470,7 @@ function EmailIdentity({
           <p className="text-foreground truncate text-sm font-medium">{addr}</p>
           {primary && (
             <span className="border-brand/30 bg-brand/10 text-brand micro-fine inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 font-semibold tracking-widest uppercase select-none">
-              <LuStar className="size-2.5" />
+              <LuStar sx={stylexStyles.rule7} />
               Primary
             </span>
           )}
@@ -491,7 +536,11 @@ function EmailRowActions({
       {!verified && (
         <DashboardButton
           icon={
-            sendingCode ? <Spinner size="sm" /> : <LuSend className="size-3" />
+            sendingCode ? (
+              <Spinner size="sm" />
+            ) : (
+              <LuSend sx={stylexStyles.rule4} />
+            )
           }
           disabled={busy || retryAfter > 0}
           onClick={() => void onSendCode(addr)}
@@ -505,7 +554,7 @@ function EmailRowActions({
       )}
       {showSetPrimary && (
         <DashboardButton
-          icon={<LuStar className="size-3" />}
+          icon={<LuStar sx={stylexStyles.rule4} />}
           disabled={busy}
           onClick={onRequestPrimary}
         >
@@ -542,7 +591,7 @@ function PrimaryConfirmPanel({
       </p>
       <div className="flex items-center justify-end gap-1.5">
         <DashboardButton
-          icon={<LuX className="size-3" />}
+          icon={<LuX sx={stylexStyles.rule4} />}
           onClick={onCancel}
           disabled={settingPrimary}
         >
@@ -553,7 +602,7 @@ function PrimaryConfirmPanel({
             settingPrimary ? (
               <Spinner size="sm" />
             ) : (
-              <LuStar className="size-3" />
+              <LuStar sx={stylexStyles.rule4} />
             )
           }
           variant="primary"
@@ -636,7 +685,7 @@ function VerifyCodePanel({
             verifyingCode ? (
               <Spinner size="sm" />
             ) : (
-              <LuArrowRight className="size-3" />
+              <LuArrowRight sx={stylexStyles.rule4} />
             )
           }
           disabled={verifyingCode || code.length !== 6}
@@ -662,7 +711,9 @@ function RemoveAction({
 }) {
   const button = (
     <DashboardButton
-      icon={removing ? <Spinner size="sm" /> : <LuTrash2 className="size-3" />}
+      icon={
+        removing ? <Spinner size="sm" /> : <LuTrash2 sx={stylexStyles.rule4} />
+      }
       disabled={!canRemove || removing}
       variant={canRemove ? 'destructive' : undefined}
       onClick={() => void onRemove()}

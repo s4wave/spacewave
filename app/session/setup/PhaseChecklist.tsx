@@ -3,6 +3,16 @@ import { LuCheck } from '@s4wave/web/images/icons.js'
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 import { cn } from '@s4wave/web/style/utils.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 export interface PhaseChecklistItem {
   label: string
   done: boolean
@@ -34,7 +44,7 @@ function PhaseChecklistRow({ label, done, active }: PhaseChecklistItem) {
     >
       {done ? (
         <div className="bg-brand text-background flex size-4 items-center justify-center rounded-full">
-          <LuCheck className="size-3" />
+          <LuCheck sx={stylexStyles.rule1} />
         </div>
       ) : active ? (
         <Spinner variant="brand" />

@@ -37,6 +37,88 @@ import { ActionCard } from './ActionCard.js'
 import { getBodyTypeName } from './body-type.js'
 import { SpaceMembersPanel } from './SpaceMembersPanel.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+import { groupMarker } from '../../web/style/relations.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: { flexShrink: 0 },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    width: '100%',
+    cursor: 'pointer',
+    alignItems: 'center',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-destructive'],
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+      },
+    },
+    textAlign: 'left',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule2: {
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule3: {
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    padding: `calc(${themeLayout['--spacing']} * 2.5)`,
+  },
+  rule4: { cursor: 'not-allowed', opacity: 0.5 },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: themeColors['--color-destructive'],
+  },
+})
+
 export interface SharedObjectDetailsProps {
   displayName?: string
   canRename?: boolean
@@ -123,7 +205,10 @@ function SharedObjectHeader({
         )}
       >
         <PiAppStoreLogoBold
-          className={cn('shrink-0', compact ? 'size-3.5' : 'size-4')}
+          sx={[
+            stylexStyles3.rule1,
+            compact ? stylexStyles3.rule2 : stylexStyles3.rule3,
+          ]}
         />
         <span
           className={cn(
@@ -155,7 +240,7 @@ function SharedObjectHeader({
           <Tooltip>
             <TooltipTrigger asChild>
               <DashboardButton
-                icon={<LuPencil className="size-3.5" />}
+                icon={<LuPencil sx={stylexStyles.rule1} />}
                 onClick={onRenameStart}
               >
                 <span className="hidden md:inline">Rename</span>
@@ -168,7 +253,7 @@ function SharedObjectHeader({
           <Tooltip>
             <TooltipTrigger asChild>
               <DashboardButton
-                icon={<LuX className="size-4" />}
+                icon={<LuX sx={stylexStyles.rule2} />}
                 onClick={onCloseClick}
               />
             </TooltipTrigger>
@@ -189,7 +274,7 @@ function SharedObjectSharingSection({
   return (
     <CollapsibleSection
       title="Sharing"
-      icon={<LuUsers className="size-3.5" />}
+      icon={<LuUsers sx={stylexStyles.rule1} />}
       {...section}
       headerActions={
         canShare && (
@@ -203,7 +288,7 @@ function SharedObjectSharingSection({
                 aria-label="Add user"
                 title="Add user"
               >
-                <LuUserPlus className="size-3.5" />
+                <LuUserPlus sx={stylexStyles.rule1} />
               </button>
             </TooltipTrigger>
             <TooltipContent side="bottom">
@@ -227,12 +312,12 @@ function SharedObjectDataSection({
   return (
     <CollapsibleSection
       title="Data"
-      icon={<LuDatabase className="size-3.5" />}
+      icon={<LuDatabase sx={stylexStyles.rule1} />}
       {...section}
     >
       <div className="space-y-2">
         <ActionCard
-          icon={<LuDownload className="size-4" />}
+          icon={<LuDownload sx={stylexStyles.rule2} />}
           label="Export Data"
           description="Download object contents"
           onClick={onExportClick}
@@ -260,7 +345,7 @@ function SharedObjectIdentifiersSection({
   return (
     <CollapsibleSection
       title="Identifiers"
-      icon={<LuCpu className="size-3.5" />}
+      icon={<LuCpu sx={stylexStyles.rule1} />}
       {...section}
     >
       <InfoCard compact={section.compact}>
@@ -288,11 +373,11 @@ function SharedObjectDangerSection({
         type="button"
         onClick={onDeleteClick}
         disabled={!onDeleteClick}
-        className={cn(
-          'border-destructive/30 bg-destructive/5 hover:border-destructive hover:bg-destructive/10 group flex w-full cursor-pointer items-center rounded-lg border text-left transition-colors',
-          compact ? 'gap-2 p-2' : 'gap-3 p-2.5',
-          !onDeleteClick && 'cursor-not-allowed opacity-50',
-        )}
+        sx={[
+          [stylexStyles2.rule1, groupMarker],
+          compact ? stylexStyles2.rule2 : stylexStyles2.rule3,
+          !onDeleteClick && stylexStyles2.rule4,
+        ]}
       >
         <div
           className={cn(
@@ -300,7 +385,7 @@ function SharedObjectDangerSection({
             compact ? 'size-7' : 'size-8',
           )}
         >
-          <LuTrash2 className="text-destructive size-3.5" />
+          <LuTrash2 sx={stylexStyles.rule3} />
         </div>
         <div className="flex min-w-0 flex-1 flex-col">
           <h4 className="text-destructive text-xs font-medium select-none">
@@ -393,7 +478,7 @@ export function SharedObjectDetails({
           {objectsSection && (
             <CollapsibleSection
               title="Objects"
-              icon={<LuBox className="size-3.5" />}
+              icon={<LuBox sx={stylexStyles.rule1} />}
               {...sectionProps('objects')}
               badge={objectsBadge}
               headerActions={objectsActions}
@@ -410,7 +495,7 @@ export function SharedObjectDetails({
           {settingsSection && (
             <CollapsibleSection
               title="Settings"
-              icon={<LuSettings className="size-3.5" />}
+              icon={<LuSettings sx={stylexStyles.rule1} />}
               {...sectionProps('settings')}
             >
               {settingsSection}
@@ -426,7 +511,7 @@ export function SharedObjectDetails({
           {pluginsSection && (
             <CollapsibleSection
               title="Plugins"
-              icon={<LuPuzzle className="size-3.5" />}
+              icon={<LuPuzzle sx={stylexStyles.rule1} />}
               {...sectionProps('plugins')}
             >
               <InfoCard compact={compact}>{pluginsSection}</InfoCard>

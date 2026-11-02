@@ -187,7 +187,7 @@ export function CredentialProofInput({
                 )
               }
             >
-              <LuUpload {...stylex.props(stylexStyles.rule6)} />
+              <LuUpload sx={stylexStyles.rule6} />
               <span sx={[!pemFileName && stylexStyles.rule7]}>
                 {pemFileName ?? 'Choose .pem file'}
               </span>

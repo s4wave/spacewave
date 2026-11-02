@@ -12,6 +12,16 @@ import {
   type SpaceMountStage,
 } from './spaceMountStage.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 interface SpaceMountingScreenProps {
   // stage is the current phase of the mount used to drive the stepper.
   stage: SpaceMountStage
@@ -53,7 +63,7 @@ export function SpaceMountingScreen({
         onRetry && allowRetry ? (
           <div className="mt-2 flex justify-center">
             <DashboardButton
-              icon={<LuRefreshCw className="size-3.5" />}
+              icon={<LuRefreshCw sx={stylexStyles.rule1} />}
               onClick={onRetry}
             >
               Retry

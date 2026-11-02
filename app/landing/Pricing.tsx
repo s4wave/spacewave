@@ -17,6 +17,90 @@ import {
   STORAGE_RATE_DISPLAY,
 } from '../provider/spacewave/pricing.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+import { groupMarker } from '../../web/style/relations.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    cursor: 'pointer',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    padding: `calc(${themeLayout['--spacing']} * 5)`,
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule2: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 12%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 60%, transparent)`,
+  },
+  rule3: {
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 12%, transparent)`,
+      },
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    '--tw-translate-y': {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `calc(${themeLayout['--spacing']} * -.5)`,
+      },
+    },
+    translate: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': 'var(--tw-translate-x) var(--tw-translate-y)',
+      },
+    },
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: themeColors['--color-brand'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-brand'],
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule5: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: themeColors['--color-brand'],
+  },
+})
+
 export const metadata = {
   title: 'Spacewave Pricing',
   description:
@@ -87,7 +171,7 @@ function FeatureList({ features }: { features: string[] }) {
     <ul className="flex flex-col gap-3">
       {features.map((feature) => (
         <li key={feature} className="flex items-start gap-2">
-          <LuCheck className="text-brand mt-0.5 size-4 shrink-0" />
+          <LuCheck sx={stylexStyles.rule1} />
           <span className="text-foreground-alt text-sm">{feature}</span>
         </li>
       ))}
@@ -117,12 +201,10 @@ function FaqItem({
     <div
       role="button"
       tabIndex={0}
-      className={cn(
-        'group cursor-pointer rounded-lg border p-5 transition-all',
-        isOpen
-          ? 'border-foreground/12 bg-background-card/60'
-          : 'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:-translate-y-0.5',
-      )}
+      sx={[
+        [stylexStyles2.rule1, groupMarker],
+        isOpen ? stylexStyles2.rule2 : stylexStyles2.rule3,
+      ]}
       onClick={onToggle}
       onKeyDown={handleFaqKeyDown}
     >
@@ -145,7 +227,7 @@ function FaqItem({
               : 'bg-foreground/6 text-foreground-alt group-hover:bg-brand/8 group-hover:text-brand',
           )}
         >
-          <LuPlus className="size-3" />
+          <LuPlus sx={stylexStyles.rule2} />
         </div>
       </div>
       <div
@@ -217,7 +299,7 @@ export function Pricing() {
               Popular
             </div>
             <div className="mb-4 flex items-center gap-2">
-              <LuCloud className="text-brand size-5" />
+              <LuCloud sx={stylexStyles.rule3} />
               <h2 className="text-foreground text-xl font-semibold">Cloud</h2>
             </div>
             <div className="mt-2 mb-2 flex items-baseline gap-1">
@@ -243,7 +325,7 @@ export function Pricing() {
           {/* Free tier */}
           <div className="border-foreground/8 bg-background-card/50 flex flex-col rounded-lg border p-6 @lg:p-8">
             <div className="mb-4 flex items-center gap-2">
-              <LuCloudOff className="text-foreground-alt size-5" />
+              <LuCloudOff sx={stylexStyles.rule4} />
               <h2 className="text-foreground text-xl font-semibold">Free</h2>
             </div>
             <div className="mt-2 mb-2 flex items-baseline gap-1">
@@ -313,15 +395,15 @@ export function Pricing() {
       <section className="relative z-10 mx-auto w-full max-w-4xl px-4 pb-8 @lg:px-8">
         <div className="text-foreground-alt flex flex-wrap items-center justify-center gap-6 text-xs">
           <span className="flex items-center gap-1.5">
-            <LuCheck className="text-brand size-3.5" />
+            <LuCheck sx={stylexStyles.rule5} />
             Cancel anytime
           </span>
           <span className="flex items-center gap-1.5">
-            <LuCheck className="text-brand size-3.5" />
+            <LuCheck sx={stylexStyles.rule5} />
             No hidden fees
           </span>
           <span className="flex items-center gap-1.5">
-            <LuCheck className="text-brand size-3.5" />
+            <LuCheck sx={stylexStyles.rule5} />
             Open-source
           </span>
         </div>

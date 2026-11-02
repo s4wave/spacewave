@@ -7,6 +7,24 @@ import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 // MigrationPage renders a placeholder settings page for provider migration.
 // Shows the current provider type and a coming-soon message.
 export function MigrationPage() {
@@ -29,7 +47,7 @@ export function MigrationPage() {
           onClick={handleBack}
           className="text-foreground-alt hover:text-foreground mb-6 flex items-center gap-1.5 text-sm transition-colors"
         >
-          <LuArrowLeft className="size-4" />
+          <LuArrowLeft sx={stylexStyles.rule1} />
           Back to dashboard
         </button>
 
@@ -46,7 +64,7 @@ export function MigrationPage() {
           <div className="space-y-4 p-6">
             <div className="flex items-center gap-3">
               <div className="bg-foreground/5 flex size-10 shrink-0 items-center justify-center rounded-lg">
-                <LuCpu className="text-foreground-alt size-5" />
+                <LuCpu sx={stylexStyles.rule2} />
               </div>
               <div>
                 <p className="text-foreground text-sm font-medium">

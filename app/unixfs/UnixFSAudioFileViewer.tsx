@@ -13,6 +13,20 @@ import { cn } from '@s4wave/web/style/utils.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+  },
+})
+
 // UnixFSAudioFileViewerProps are the props passed to the UnixFSAudioFileViewer.
 export interface UnixFSAudioFileViewerProps {
   // title is the accessible label for the media element.
@@ -135,7 +149,7 @@ function UnixFSAudioPlayerSurface({
         <div className="border-foreground/10 bg-background-card/60 relative flex w-full max-w-2xl flex-col overflow-hidden rounded-xl border shadow-lg">
           <div className="border-foreground/8 flex items-center gap-3 border-b px-4 py-3">
             <div className="bg-brand/10 text-brand flex size-8 items-center justify-center rounded-full">
-              <LuMusic className="size-4" />
+              <LuMusic sx={stylexStyles.rule1} />
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-foreground truncate text-sm font-semibold">
@@ -173,7 +187,7 @@ function UnixFSAudioPlayerSurface({
                 className="bg-background/82 absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 p-6 text-center backdrop-blur-sm"
               >
                 <div className="bg-destructive/10 text-destructive flex size-10 items-center justify-center rounded-full">
-                  <LuTriangleAlert className="size-5" />
+                  <LuTriangleAlert sx={stylexStyles.rule2} />
                 </div>
                 <div className="text-foreground text-sm font-semibold">
                   {state.unsupported

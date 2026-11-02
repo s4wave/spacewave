@@ -29,6 +29,29 @@ import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
 import { ForgeValueSetDisplay } from './ForgeValueSetDisplay.js'
 import { useForgeDecodedLinkedEntities } from './useForgeDecodedLinkedEntities.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    flexShrink: 0,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 export const ForgeTaskTypeID = 'forge/task'
 
 const taskStateLabels: Record<number, string> = {
@@ -158,7 +181,7 @@ export function ForgeTaskViewer({
               ]}
             />
             <InfoCard
-              icon={<LuActivity className="text-foreground-alt/60 size-3.5" />}
+              icon={<LuActivity sx={stylexStyles.rule1} />}
               title="Current Execution"
             >
               {!currentPass && (
@@ -228,7 +251,7 @@ export function ForgeTaskViewer({
               <ForgeEntityList
                 entities={passes}
                 loading={passesLoading || decodedPassesLoading}
-                icon={<LuPlay className="size-3 shrink-0" />}
+                icon={<LuPlay sx={stylexStyles.rule2} />}
                 loadingLabel="Loading passes..."
                 emptyLabel="No passes yet"
               />
@@ -300,7 +323,7 @@ export function ForgeTaskViewer({
   return (
     <ForgeViewerShell
       stateKey={objectKey}
-      icon={<LuListTodo className="size-4" />}
+      icon={<LuListTodo sx={stylexStyles.rule3} />}
       title={task?.name || 'Task'}
       state={task?.taskState ?? 0}
       stateLabels={taskStateLabels}

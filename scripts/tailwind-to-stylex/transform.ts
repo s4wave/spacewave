@@ -828,7 +828,7 @@ export function transform(
         resolve('web/style/relations.stylex.js'),
       ).replaceAll('\\', '/')
       if (!markerPath.startsWith('.')) markerPath = './' + markerPath
-      imports += `import {${[...markerBindings].map(([marker, name]) => `${relationMarkers[marker]} as ${name}`).join(',')}} from ${JSON.stringify(markerPath)}\n`
+      imports += `import {${[...markerBindings].map(([marker, name]) => (name === relationMarkers[marker] ? name : `${relationMarkers[marker]} as ${name}`)).join(',')}} from ${JSON.stringify(markerPath)}\n`
     }
     const firstBody = ast.program.body.find(
       (node) => node.type !== 'ImportDeclaration',

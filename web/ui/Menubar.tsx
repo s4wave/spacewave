@@ -1,3 +1,10 @@
+import * as iconStylex from '@stylexjs/stylex'
+import { IconStylesProvider } from '@s4wave/web/images/icons.js'
+import {
+  iconDefaults,
+  menuIconMarker,
+  menuMutedIconMarker,
+} from '../style/icon-defaults.stylex.js'
 import * as React from 'react'
 import * as MenubarPrimitive from '@radix-ui/react-menubar'
 import { LuCheck, LuChevronRight, LuCircle } from '@s4wave/web/images/icons.js'
@@ -127,19 +134,22 @@ function MenubarItem({
   variant?: 'default' | 'destructive' | 'dimmed'
 }) {
   return (
-    <MenubarPrimitive.Item
-      data-slot="menubar-item"
-      data-inset={inset}
-      data-variant={variant}
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: data-[variant=destructive]:focus:bg-destructive/10 */ cn(
-          "focus:bg-accent focus:text-accent-foreground data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive/10 dark:data-[variant=destructive]:focus:bg-destructive/20 data-[variant=destructive]:focus:text-destructive data-[variant=destructive]:*:[svg]:!text-destructive [&_svg:not([class*='text-'])]:text-muted-foreground relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-xs outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-          variant === 'dimmed' && 'opacity-50',
-          className,
-        )
-      }
-      {...props}
-    />
+    <IconStylesProvider sx={[iconDefaults.menu, iconDefaults.menuMuted]}>
+      <MenubarPrimitive.Item
+        data-slot="menubar-item"
+        data-inset={inset}
+        data-variant={variant}
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: data-[variant=destructive]:focus:bg-destructive/10 */ cn(
+            'focus:bg-accent focus:text-accent-foreground data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive/10 dark:data-[variant=destructive]:focus:bg-destructive/20 data-[variant=destructive]:focus:text-destructive data-[variant=destructive]:*:[svg]:!text-destructive relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-xs outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0',
+            variant === 'dimmed' && 'opacity-50',
+            className,
+            iconStylex.props(menuIconMarker, menuMutedIconMarker).className,
+          )
+        }
+        {...props}
+      />
+    </IconStylesProvider>
   )
 }
 
@@ -150,24 +160,27 @@ function MenubarCheckboxItem({
   ...props
 }: React.ComponentProps<typeof MenubarPrimitive.CheckboxItem>) {
   return (
-    <MenubarPrimitive.CheckboxItem
-      data-slot="menubar-checkbox-item"
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: [&_svg]:pointer-events-none */ cn(
-          'focus:bg-accent focus:text-accent-foreground data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 pl-8 text-xs outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*="size-"])]:size-4',
-          className,
-        )
-      }
-      checked={checked}
-      {...props}
-    >
-      <span sx={stylexStyles.rule1}>
-        <MenubarPrimitive.ItemIndicator>
-          <LuCheck {...stylex.props(stylexStyles.rule2)} />
-        </MenubarPrimitive.ItemIndicator>
-      </span>
-      {children}
-    </MenubarPrimitive.CheckboxItem>
+    <IconStylesProvider sx={[iconDefaults.menu]}>
+      <MenubarPrimitive.CheckboxItem
+        data-slot="menubar-checkbox-item"
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: [&_svg]:pointer-events-none */ cn(
+            'focus:bg-accent focus:text-accent-foreground data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 pl-8 text-xs outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0',
+            className,
+            iconStylex.props(menuIconMarker).className,
+          )
+        }
+        checked={checked}
+        {...props}
+      >
+        <span sx={stylexStyles.rule1}>
+          <MenubarPrimitive.ItemIndicator>
+            <LuCheck sx={stylexStyles.rule2} />
+          </MenubarPrimitive.ItemIndicator>
+        </span>
+        {children}
+      </MenubarPrimitive.CheckboxItem>
+    </IconStylesProvider>
   )
 }
 
@@ -185,23 +198,26 @@ function MenubarRadioItem({
   ...props
 }: React.ComponentProps<typeof MenubarPrimitive.RadioItem>) {
   return (
-    <MenubarPrimitive.RadioItem
-      data-slot="menubar-radio-item"
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: [&_svg]:pointer-events-none */ cn(
-          'focus:bg-accent focus:text-accent-foreground data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 pl-8 text-xs outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*="size-"])]:size-4',
-          className,
-        )
-      }
-      {...props}
-    >
-      <span sx={stylexStyles.rule1}>
-        <MenubarPrimitive.ItemIndicator>
-          <LuCircle {...stylex.props(stylexStyles.rule3)} />
-        </MenubarPrimitive.ItemIndicator>
-      </span>
-      {children}
-    </MenubarPrimitive.RadioItem>
+    <IconStylesProvider sx={[iconDefaults.menu]}>
+      <MenubarPrimitive.RadioItem
+        data-slot="menubar-radio-item"
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: [&_svg]:pointer-events-none */ cn(
+            'focus:bg-accent focus:text-accent-foreground data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 pl-8 text-xs outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0',
+            className,
+            iconStylex.props(menuIconMarker).className,
+          )
+        }
+        {...props}
+      >
+        <span sx={stylexStyles.rule1}>
+          <MenubarPrimitive.ItemIndicator>
+            <LuCircle sx={stylexStyles.rule3} />
+          </MenubarPrimitive.ItemIndicator>
+        </span>
+        {children}
+      </MenubarPrimitive.RadioItem>
+    </IconStylesProvider>
   )
 }
 
@@ -278,20 +294,23 @@ function MenubarSubTrigger({
   inset?: boolean
 }) {
   return (
-    <MenubarPrimitive.SubTrigger
-      data-slot="menubar-sub-trigger"
-      data-inset={inset}
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: [&_svg]:pointer-events-none */ cn(
-          "focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-xs outline-hidden select-none data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-          className,
-        )
-      }
-      {...props}
-    >
-      {children}
-      <LuChevronRight {...stylex.props(stylexStyles.rule4)} />
-    </MenubarPrimitive.SubTrigger>
+    <IconStylesProvider sx={[iconDefaults.menu, iconDefaults.menuMuted]}>
+      <MenubarPrimitive.SubTrigger
+        data-slot="menubar-sub-trigger"
+        data-inset={inset}
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: [&_svg]:pointer-events-none */ cn(
+            'focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-xs outline-hidden select-none data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0',
+            className,
+            iconStylex.props(menuIconMarker, menuMutedIconMarker).className,
+          )
+        }
+        {...props}
+      >
+        {children}
+        <LuChevronRight sx={stylexStyles.rule4} />
+      </MenubarPrimitive.SubTrigger>
+    </IconStylesProvider>
   )
 }
 

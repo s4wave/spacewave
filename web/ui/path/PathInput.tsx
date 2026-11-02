@@ -372,7 +372,7 @@ export function PathInput({
         ]}
         aria-label="Navigate to root"
       >
-        <LuHouse {...stylex.props(styles.rootIcon)} />
+        <LuHouse sx={styles.rootIcon} />
       </button>
 
       {pathSegments.map((segment, index) => (
@@ -387,7 +387,7 @@ export function PathInput({
               : styles.segment,
           ]}
         >
-          <LuChevronRight {...stylex.props(styles.chevronIcon)} />
+          <LuChevronRight sx={styles.chevronIcon} />
           <button
             type="button"
             onClick={(e) => {

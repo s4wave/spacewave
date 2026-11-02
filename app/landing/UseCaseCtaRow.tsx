@@ -1,5 +1,16 @@
-import type { ComponentType, ReactNode } from 'react'
+import type { IconType } from '@s4wave/web/images/icons.js'
+import type { ReactNode } from 'react'
 import { cn } from '@s4wave/web/style/utils.js'
+
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
 
 interface UseCaseCtaRowProps {
   children: ReactNode
@@ -12,7 +23,7 @@ export function UseCaseCtaRow({ children }: UseCaseCtaRowProps) {
 
 interface UseCaseCtaLinkProps {
   href: string
-  icon: ComponentType<{ className?: string }>
+  icon: IconType
   variant?: 'primary' | 'default'
   children: ReactNode
 }
@@ -35,7 +46,7 @@ export function UseCaseCtaLink({
           : 'border-foreground/15 bg-background/50 text-foreground hover:border-brand/40 hover:bg-brand/8',
       )}
     >
-      <Icon className="size-4" />
+      <Icon sx={stylexStyles.rule1} />
       <span>{children}</span>
     </a>
   )

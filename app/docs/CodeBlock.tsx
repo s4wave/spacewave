@@ -6,6 +6,20 @@ import { cn } from '@s4wave/web/style/utils.js'
 import { codeFenceKey, readCodeFence, type CodeFence } from './code-fence.js'
 import highlights from './code-highlight.generated.json'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+import { codeGroupMarker } from '../../web/style/relations.stylex.js'
+
+const stylexStyles2 = stylex.create({ rule1: { position: 'relative' } })
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 // highlightedHtml maps each docs code fence to its build-time Shiki HTML.
 // Regenerate with `bun run gen:docs-code` after editing docs code fences.
 const highlightedHtml = new Map(
@@ -35,7 +49,7 @@ export function CodeBlock({ fence }: { fence: CodeFence }) {
 
   const html = getHighlightedHtml(fence)
   return (
-    <div className="group/code relative">
+    <div sx={[stylexStyles2.rule1, codeGroupMarker]}>
       <button
         type="button"
         onClick={handleCopy}
@@ -49,9 +63,9 @@ export function CodeBlock({ fence }: { fence: CodeFence }) {
         title="Copy code"
       >
         {copied ? (
-          <LuCheck className="size-3.5" />
+          <LuCheck sx={stylexStyles.rule1} />
         ) : (
-          <LuCopy className="size-3.5" />
+          <LuCopy sx={stylexStyles.rule1} />
         )}
       </button>
       {html ? (

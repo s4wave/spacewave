@@ -8,6 +8,16 @@ import { AddStorageDialog } from './AddStorageDialog.js'
 import { StorageBackendRow } from './StorageBackendRow.js'
 import { useStorageBackends } from './useStorageBackends.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 // StorageBackendsSection lists the buckets the account stores Spaces in and
 // adds new ones. Sessions that cannot hold storage backends see nothing.
 export function StorageBackendsSection() {
@@ -44,7 +54,7 @@ export function StorageBackendsSection() {
           </p>
         </div>
         <DashboardButton
-          icon={<LuPlus className="size-3.5" />}
+          icon={<LuPlus sx={stylexStyles.rule1} />}
           onClick={() => setAdding(true)}
         >
           Add storage

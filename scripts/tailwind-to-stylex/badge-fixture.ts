@@ -38,8 +38,8 @@ export function BadgeSamples(){return <main id="badge-fixtures"><IconContext.Pro
 <Badge variant={variant} asChild><a href="#badge-target" aria-invalid="true"><LuPlus/>Invalid {index}</a></Badge>
 </section>)}
 <Badge ${version === 'before' ? 'className="px-3"' : 'sx={styles.override}'}>Caller padding</Badge>
-<Badge><LuPlus ${version === 'before' ? 'className="size-7"' : '{...stylex.props(styles.large)}'}/>Direct icon</Badge>
-<Badge><span><LuPlus ${version === 'before' ? 'className="size-7"' : '{...stylex.props(styles.large)}'}/></span>Nested icon</Badge>
+<Badge><LuPlus ${version === 'before' ? 'className="size-7"' : 'sx={styles.large}'}/>Direct icon</Badge>
+<Badge><span><LuPlus ${version === 'before' ? 'className="size-7"' : 'sx={styles.large}'}/></span>Nested icon</Badge>
 <span ${version === 'before' ? 'className={badgeVariants({variant:"outline"})}' : 'sx={badgeVariants({variant:"outline"})}'}>Public recipe</span>
 <a href="#badge-target" aria-label="Focus badge">Outside link</a>
 </IconContext.Provider></main>}

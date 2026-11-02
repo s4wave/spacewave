@@ -333,9 +333,9 @@ function ObjectLinkSecondaryActions({
             ]}
           >
             {actions.copied ? (
-              <LuCheck {...stylex.props(stylexStyles.rule13)} />
+              <LuCheck sx={stylexStyles.rule13} />
             ) : (
-              <LuCopy {...stylex.props(stylexStyles.rule14)} />
+              <LuCopy sx={stylexStyles.rule14} />
             )}
           </button>
         </TooltipTrigger>
@@ -355,7 +355,7 @@ function ObjectLinkSecondaryActions({
               compact ? stylexStyles.rule11 : stylexStyles.rule12,
             ]}
           >
-            <LuExternalLink {...stylex.props(stylexStyles.rule14)} />
+            <LuExternalLink sx={stylexStyles.rule14} />
           </button>
         </TooltipTrigger>
         <TooltipContent side="bottom">Open in new tab</TooltipContent>

@@ -1,3 +1,6 @@
+import * as ownerStylex from '@stylexjs/stylex'
+import { cn as ownerClasses } from '@s4wave/web/style/utils.js'
+import { groupMarker as ownergroupMarker } from '@s4wave/web/style/relations.stylex.js'
 import { useCallback, useId, useState } from 'react'
 import { LuTrash2 } from '@s4wave/web/images/icons.js'
 
@@ -14,6 +17,34 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@s4wave/web/ui/dialog.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+import { groupMarker } from '../../web/style/relations.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: {
+      default: themeColors['--color-destructive'],
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker)]:
+          themeColors['--color-destructive-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+})
 
 export interface OrgActionsSectionProps {
   orgId: string
@@ -44,13 +75,18 @@ export function OrgActionsSection({
           type="button"
           onClick={() => setDialogOpen(true)}
           disabled={blocked}
-          className={cn(
-            'border-destructive/30 bg-destructive/5 hover:border-destructive hover:bg-destructive hover:text-destructive-foreground group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2.5 text-left transition-colors',
-            blocked && 'hover:bg-destructive/5 cursor-not-allowed opacity-50',
-          )}
+          className={
+            /* TODO(stylex): conditional property composition: backgroundColor */ cn(
+              ownerClasses(
+                'border-destructive/30 bg-destructive/5 hover:border-destructive hover:bg-destructive hover:text-destructive-foreground group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2.5 text-left transition-colors',
+                ownerStylex.props(ownergroupMarker).className,
+              ),
+              blocked && 'hover:bg-destructive/5 cursor-not-allowed opacity-50',
+            )
+          }
         >
           <div className="bg-destructive/20 group-hover:bg-destructive-foreground/20 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors">
-            <LuTrash2 className="text-destructive group-hover:text-destructive-foreground size-3.5 transition-colors" />
+            <LuTrash2 sx={stylexStyles.rule1} />
           </div>
           <div className="flex min-w-0 flex-1 flex-col">
             <h4 className="text-destructive group-hover:text-destructive-foreground text-xs font-medium transition-colors select-none">

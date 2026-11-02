@@ -519,7 +519,7 @@ function GraphNode({
     >
       <div sx={stylexStyles.rule4}>
         <div sx={stylexStyles.rule5}>
-          <LuGitBranch {...stylex.props(stylexStyles.rule6)} />
+          <LuGitBranch sx={stylexStyles.rule6} />
         </div>
         <span sx={stylexStyles.rule7}>{label}</span>
       </div>
@@ -548,7 +548,7 @@ function GraphLinkPillBadges({
       {fixture.truncated && <span sx={stylexStyles.rule11}>capped</span>}
       {fixture.policy === 'protected' && (
         <span sx={stylexStyles.rule12}>
-          <LuLock {...stylex.props(stylexStyles.rule13)} />
+          <LuLock sx={stylexStyles.rule13} />
           protected
         </span>
       )}
@@ -576,9 +576,9 @@ function GraphLinkPillActions({
         disabled={hidden}
       >
         {loaded ? (
-          <LuLocateFixed {...stylex.props(stylexStyles.rule15)} />
+          <LuLocateFixed sx={stylexStyles.rule15} />
         ) : (
-          <LuPlus {...stylex.props(stylexStyles.rule15)} />
+          <LuPlus sx={stylexStyles.rule15} />
         )}
         {!compact && (loaded ? 'Focus' : 'Load')}
       </button>
@@ -588,7 +588,7 @@ function GraphLinkPillActions({
         aria-label={`Hide ${fixture.predicate} link`}
         disabled={hidden}
       >
-        <LuEyeOff {...stylex.props(stylexStyles.rule15)} />
+        <LuEyeOff sx={stylexStyles.rule15} />
       </button>
       {fixture.policy === 'deletable' && (
         <button
@@ -596,7 +596,7 @@ function GraphLinkPillActions({
           sx={stylexStyles.rule17}
           aria-label={`Delete ${fixture.predicate} link`}
         >
-          <LuTrash2 {...stylex.props(stylexStyles.rule15)} />
+          <LuTrash2 sx={stylexStyles.rule15} />
         </button>
       )}
     </>
@@ -796,7 +796,7 @@ export function CanvasGraphLinksDebug() {
           aria-label="Go back"
           sx={stylexStyles.rule44}
         >
-          <LuArrowLeft {...stylex.props(stylexStyles.rule45)} />
+          <LuArrowLeft sx={stylexStyles.rule45} />
         </button>
         <span sx={stylexStyles.rule46}>Canvas Graph Links</span>
       </div>

@@ -309,15 +309,13 @@ export function LoadingCard({ view, sx }: LoadingCardProps) {
 
 function LoadingCardIcon({ state }: { state: LoadingState }) {
   if (state === 'error') {
-    return (
-      <LuCircleAlert {...stylex.props(styles.errorIcon)} aria-hidden="true" />
-    )
+    return <LuCircleAlert sx={styles.errorIcon} aria-hidden="true" />
   }
   if (state === 'synced') {
     return (
       <span sx={styles.syncedIcon} aria-hidden="true">
-        <LuCloud {...stylex.props(styles.cloudIcon)} />
-        <LuCircleCheck {...stylex.props(styles.checkIcon)} />
+        <LuCloud sx={styles.cloudIcon} />
+        <LuCircleCheck sx={styles.checkIcon} />
       </span>
     )
   }

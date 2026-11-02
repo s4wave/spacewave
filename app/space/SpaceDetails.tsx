@@ -9,6 +9,29 @@ import { SpacePlugins } from './SpacePlugins.js'
 import { SpaceSettingsEditor } from './SpaceSettingsEditor.js'
 import { SpaceDataSection } from './SpaceTransformSection.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 2.5)`,
+    height: `calc(${themeLayout['--spacing']} * 2.5)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    flexShrink: 0,
+    color: themeColors['--color-brand'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 // SpaceDetailsProps are the Space actions the details panel offers.
 export interface SpaceDetailsProps {
   spaceName: string
@@ -59,7 +82,7 @@ export function SpaceDetails({
             onClick={onOrgClick}
             className="bg-brand/10 text-brand hover:bg-brand/20 flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium transition-colors"
           >
-            <LuBuilding2 className="size-2.5" />
+            <LuBuilding2 sx={stylexStyles.rule1} />
             <span className="max-w-20 truncate">
               {org?.displayName || 'Org'}
             </span>
@@ -73,7 +96,7 @@ export function SpaceDetails({
               Organization
             </div>
             <div className="text-foreground flex items-center gap-1.5 text-xs">
-              <LuBuilding2 className="text-brand size-3 shrink-0" />
+              <LuBuilding2 sx={stylexStyles.rule2} />
               <span className="truncate">{org.displayName || orgId}</span>
               <span className="text-foreground-alt/50 text-xs">
                 {org.role === 'org:owner' ? 'Owner' : 'Member'}
@@ -97,7 +120,7 @@ export function SpaceDetails({
           aria-label="Create object"
           title="Create object"
         >
-          <LuPlus className="size-3.5" />
+          <LuPlus sx={stylexStyles.rule3} />
         </button>
       }
       objectsSection={<SpaceObjectBrowser embedded={true} />}

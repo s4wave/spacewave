@@ -1,10 +1,11 @@
+import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
+import type { SpinnerSize } from '@s4wave/web/ui/loading/Spinner.js'
 import { useCallback, useEffect, useState } from 'react'
 import {
   LuArrowLeft,
   LuCircleAlert,
   LuCircleCheck,
   LuCloud,
-  LuLoader,
 } from '@s4wave/web/images/icons.js'
 
 import { useNavigate } from '@s4wave/web/router/router.js'
@@ -480,7 +481,7 @@ export function LoadingDebug() {
           sx={stylexStyles.rule3}
           aria-label="Back"
         >
-          <LuArrowLeft {...stylex.props(stylexStyles.rule4)} />
+          <LuArrowLeft sx={stylexStyles.rule4} />
         </button>
         <span sx={stylexStyles.rule5}>Loading UI Prototype</span>
       </div>
@@ -557,50 +558,7 @@ function Label({ children }: { children: React.ReactNode }) {
 // 1. Spinner
 // -----------------------------------------------------------------------
 
-type SpinnerSize = 'sm' | 'md' | 'lg' | 'xl'
-
-const spinnerSizes: Record<SpinnerSize, string> = {
-  sm: 'size-3.5',
-  md: 'size-4',
-  lg: 'size-6',
-  xl: 'size-8',
-}
-
-// Spinner inherits text color from parent so container state colors apply.
-function Spinner({
-  size = 'md',
-  variant = 'default',
-  className,
-}: {
-  size?: SpinnerSize
-  variant?: 'default' | 'brand' | 'muted' | 'destructive' | 'success'
-  className?: string
-}) {
-  const variantCls =
-    variant === 'brand'
-      ? 'text-brand'
-      : variant === 'destructive'
-        ? 'text-destructive'
-        : variant === 'muted'
-          ? 'text-foreground-alt'
-          : variant === 'success'
-            ? 'text-success'
-            : ''
-  return (
-    <LuLoader
-      className={
-        /* TODO(stylex): dynamic class or forwarded className */ cn(
-          'animate-spin',
-          spinnerSizes[size],
-          variantCls,
-          className,
-        )
-      }
-      aria-hidden="true"
-    />
-  )
-}
-
+// Spinner uses the shared SVG owner for the loading gallery's size and tone controls.
 function SpinnerSection() {
   return (
     <Section
@@ -846,15 +804,13 @@ function LoadingCard({ view }: { view: LoadingView }) {
 
 function LoadingCardIcon({ state }: { state: LoadingState }) {
   if (state === 'error') {
-    return (
-      <LuCircleAlert {...stylex.props(stylexStyles.rule4)} aria-hidden="true" />
-    )
+    return <LuCircleAlert sx={stylexStyles.rule4} aria-hidden="true" />
   }
   if (state === 'synced') {
     return (
       <span sx={stylexStyles.rule33} aria-hidden="true">
-        <LuCloud {...stylex.props(stylexStyles.rule34)} />
-        <LuCircleCheck {...stylex.props(stylexStyles.rule35)} />
+        <LuCloud sx={stylexStyles.rule34} />
+        <LuCircleCheck sx={stylexStyles.rule35} />
       </span>
     )
   }

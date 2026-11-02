@@ -12,6 +12,15 @@ import { formatV86ImageLabel, type V86ImageEntry } from '../vm/v86-images.js'
 
 import * as stylex from '@stylexjs/stylex'
 
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 const stylexStyles = stylex.create({ rule1: { justifyContent: 'flex-start' } })
 
 // memoryOptions lists the memory sizes, in MB, a new VM can choose.
@@ -44,7 +53,7 @@ export function V86ConfigStep({
     <div className="border-foreground/6 bg-background-card/30 flex flex-col gap-3 rounded-lg border p-3.5">
       <section>
         <h3 className="text-foreground mb-2 flex items-center gap-1.5 text-xs font-medium select-none">
-          <LuCpu className="size-3.5" />
+          <LuCpu sx={stylexStyles2.rule1} />
           Memory
         </h3>
         <div
@@ -69,7 +78,7 @@ export function V86ConfigStep({
       </section>
       <section className="border-foreground/8 border-t pt-3">
         <h3 className="text-foreground mb-2 flex items-center gap-1.5 text-xs font-medium select-none">
-          <LuHardDrive className="size-3.5" />
+          <LuHardDrive sx={stylexStyles2.rule1} />
           Image
         </h3>
         <div className="text-foreground text-sm font-medium">

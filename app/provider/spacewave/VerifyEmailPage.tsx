@@ -19,6 +19,84 @@ import { useEmailManagement } from '@s4wave/web/hooks/useEmailManagement.js'
 import { SpacewaveOnboardingContext } from '@s4wave/web/contexts/SpacewaveOnboardingContext.js'
 import type { EmailInfo } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+  motion as themeMotion,
+} from '../../../web/style/tokens.stylex.js'
+
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../../../web/style/tokens.stylex.js'
+import { groupMarker } from '../../../web/style/relations.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: themeColors['--color-foreground-alt'],
+    transitionProperty: 'transform, translate, scale, rotate',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.2s',
+    '--tw-duration': '.2s',
+  },
+  rule4: { rotate: '180deg' },
+  rule5: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground'],
+  },
+  rule6: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-brand'],
+  },
+  rule7: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 interface EmailVisibility {
   hasVerified: boolean
   hasUnverified: boolean
@@ -59,7 +137,7 @@ function ContinueButton() {
       )}
     >
       Continue
-      <LuArrowRight className="size-4" />
+      <LuArrowRight sx={stylexStyles.rule1} />
     </button>
   )
 }
@@ -94,7 +172,7 @@ function AddEmailCard({
         className="flex w-full items-center gap-3 p-4"
       >
         <div className="bg-foreground/5 flex size-8 shrink-0 items-center justify-center rounded-lg">
-          <LuPlus className="text-foreground-alt size-4" />
+          <LuPlus sx={stylexStyles.rule2} />
         </div>
         <div className="flex-1 text-left">
           <h3 className="text-foreground text-sm font-medium">
@@ -105,10 +183,7 @@ function AddEmailCard({
           </p>
         </div>
         <LuChevronDown
-          className={cn(
-            'text-foreground-alt size-4 shrink-0 transition-transform duration-200',
-            expanded && 'rotate-180',
-          )}
+          sx={[stylexStyles.rule3, !!expanded && stylexStyles.rule4]}
         />
       </button>
       {expanded && (
@@ -132,14 +207,9 @@ function AddEmailCard({
             type="button"
             onClick={() => void handleAdd()}
             disabled={busy || !newEmail}
-            className={cn(
-              'group w-full rounded-md border transition-all duration-300',
-              'border-brand/30 bg-brand/10 hover:bg-brand/20',
-              'disabled:cursor-not-allowed disabled:opacity-50',
-              'flex h-10 items-center justify-center gap-2',
-            )}
+            sx={[[stylexStyles2.rule1, groupMarker]]}
           >
-            <LuSend className="text-foreground size-4" />
+            <LuSend sx={stylexStyles.rule5} />
             <span className="text-foreground text-sm">
               {busy ? 'Adding…' : 'Add & send code'}
             </span>
@@ -249,7 +319,7 @@ function VerifiedEmailCard() {
   return (
     <div className="border-foreground/20 bg-background-get-started flex items-center gap-3 overflow-hidden rounded-lg border p-4 shadow-lg backdrop-blur-sm">
       <div className="bg-brand/20 flex size-8 shrink-0 items-center justify-center rounded-lg">
-        <LuCheck className="text-brand size-4" />
+        <LuCheck sx={stylexStyles.rule6} />
       </div>
       <div className="min-w-0 flex-1">
         <h3 className="text-foreground truncate text-sm font-medium">
@@ -332,17 +402,12 @@ function EmailCodeEntry({
         type="button"
         onClick={() => void onVerifyCode()}
         disabled={busy || code.length !== 6}
-        className={cn(
-          'group w-full rounded-md border transition-all duration-300',
-          'border-brand/30 bg-brand/10 hover:bg-brand/20',
-          'disabled:cursor-not-allowed disabled:opacity-50',
-          'flex h-10 items-center justify-center gap-2',
-        )}
+        sx={[[stylexStyles2.rule1, groupMarker]]}
       >
         <span className="text-foreground text-sm">
           {busy ? 'Verifying…' : 'Verify email'}
         </span>
-        {!busy && <LuArrowRight className="text-foreground-alt size-4" />}
+        {!busy && <LuArrowRight sx={stylexStyles.rule2} />}
       </button>
       <button
         type="button"
@@ -395,9 +460,9 @@ function EmailCard({
           )}
         >
           {verified ? (
-            <LuCheck className="text-brand size-4" />
+            <LuCheck sx={stylexStyles.rule6} />
           ) : (
-            <LuMail className="text-brand size-4" />
+            <LuMail sx={stylexStyles.rule6} />
           )}
         </div>
         <div className="min-w-0 flex-1">
@@ -435,7 +500,7 @@ function EmailCard({
               className="text-foreground-alt/50 hover:text-destructive rounded p-1.5 transition-colors disabled:opacity-50"
               title="Remove"
             >
-              <LuTrash2 className="size-3.5" />
+              <LuTrash2 sx={stylexStyles.rule7} />
             </button>
           )}
         </div>

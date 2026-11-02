@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import { LuCheck, LuLink, LuX } from '@s4wave/web/images/icons.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { SpacewaveOrgListContext } from '@s4wave/web/contexts/SpacewaveOrgListContext.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
@@ -26,6 +25,21 @@ import {
   DetachAssignmentDialog,
   type DetachAssignmentTarget,
 } from './DetachAssignmentDialog.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule2: { color: themeColors['--color-brand'] },
+  rule3: { color: '#0000' },
+})
 
 interface AssignTarget {
   ownerType: 'account' | 'organization'
@@ -176,7 +190,7 @@ export function BillingAssignmentsSection({
                   aria-label={`Detach ${label}`}
                   className="hover:text-destructive cursor-pointer transition-colors"
                 >
-                  <LuX className="size-3" />
+                  <LuX sx={stylexStyles.rule1} />
                 </button>
               </span>
             )
@@ -186,7 +200,7 @@ export function BillingAssignmentsSection({
       <div className="flex items-center gap-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild disabled={menuDisabled}>
-            <DropdownTriggerButton icon={<LuLink className="size-3" />}>
+            <DropdownTriggerButton icon={<LuLink sx={stylexStyles.rule1} />}>
               {assigning ? 'Assigning…' : 'Assign to…'}
             </DropdownTriggerButton>
           </DropdownMenuTrigger>
@@ -203,10 +217,10 @@ export function BillingAssignmentsSection({
                   onSelect={() => void handleAssign(t)}
                 >
                   <LuCheck
-                    className={cn(
-                      'size-3',
-                      isSelected ? 'text-brand' : 'text-transparent',
-                    )}
+                    sx={[
+                      stylexStyles.rule1,
+                      isSelected ? stylexStyles.rule2 : stylexStyles.rule3,
+                    ]}
                   />
                   <span>{t.label}</span>
                 </DropdownMenuItem>

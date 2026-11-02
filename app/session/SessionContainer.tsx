@@ -101,6 +101,29 @@ import {
   SessionUploadIndicator,
 } from './SessionUploadManagerContext.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 const LazyPairCodePage = lazy(async () => {
   const { PairCodePage } = await import('@s4wave/app/pair/PairCodePage.js')
   return { default: PairCodePage }
@@ -549,7 +572,7 @@ export function SessionContainer(props: SessionContainerProps) {
                           <div className="border-foreground/6 bg-background-card/30 flex w-full max-w-md flex-col items-center gap-3 rounded-lg border p-6">
                             <div className="bg-foreground/5 flex size-10 items-center justify-center rounded-full">
                               <LuCompass
-                                className="text-foreground-alt/60 size-5"
+                                sx={stylexStyles.rule1}
                                 aria-hidden="true"
                               />
                             </div>
@@ -563,7 +586,7 @@ export function SessionContainer(props: SessionContainerProps) {
                               </code>
                             </p>
                             <DashboardButton
-                              icon={<LuArrowLeft className="size-3.5" />}
+                              icon={<LuArrowLeft sx={stylexStyles.rule2} />}
                               onClick={handleGoHome}
                             >
                               Back to dashboard
@@ -685,7 +708,7 @@ function TargetedInvitationInbox(props: {
     <div className="pointer-events-none fixed right-4 bottom-16 z-40 w-(--width-session-overlay)">
       <div className="border-foreground/10 bg-background-card/95 pointer-events-auto rounded-lg border p-3 shadow-lg backdrop-blur">
         <div className="mb-2 flex items-center gap-2">
-          <LuInbox className="text-foreground-alt size-4" />
+          <LuInbox sx={stylexStyles.rule3} />
           <div className="text-foreground text-sm font-medium">
             Pending Invites
           </div>
@@ -713,7 +736,7 @@ function TargetedInvitationInbox(props: {
                     'disabled:cursor-not-allowed disabled:opacity-50',
                   )}
                 >
-                  <LuCheck className="size-3.5" />
+                  <LuCheck sx={stylexStyles.rule2} />
                   Accept
                 </button>
                 <button
@@ -726,7 +749,7 @@ function TargetedInvitationInbox(props: {
                     'disabled:cursor-not-allowed disabled:opacity-50',
                   )}
                 >
-                  <LuX className="size-3.5" />
+                  <LuX sx={stylexStyles.rule2} />
                   Decline
                 </button>
               </div>

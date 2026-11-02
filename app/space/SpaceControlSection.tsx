@@ -26,6 +26,20 @@ import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { RadioOption } from '@s4wave/web/ui/RadioOption.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 // SpaceControlSection shows who controls the Space, the owner or the group,
 // and the changes waiting for the group to agree. An owner hands control to
 // the group; under group control each voter asks for changes and agrees to
@@ -100,7 +114,7 @@ export function SpaceControlSection() {
               selected={!group}
               onSelect={() => void choose(SpaceControl.SpaceControl_OWNER)}
               disabled={!canSet || !group}
-              icon={<LuCrown className="size-3.5" />}
+              icon={<LuCrown sx={stylexStyles.rule1} />}
               label="The owner"
               description="The owner changes members and settings."
             />
@@ -108,7 +122,7 @@ export function SpaceControlSection() {
               selected={group}
               onSelect={() => setConfirmGroup(true)}
               disabled={!canSet || group}
-              icon={<LuUsers className="size-3.5" />}
+              icon={<LuUsers sx={stylexStyles.rule1} />}
               label="The group"
               description="No one changes members or settings alone, including the owner."
             />
@@ -203,14 +217,14 @@ function GroupChanges({
             </div>
             {change.viewerAgreed ? (
               <span className="text-foreground-alt flex items-center gap-1 text-xs">
-                <LuCheck className="size-3" />
+                <LuCheck sx={stylexStyles.rule2} />
                 You agreed
               </span>
             ) : (
               canAgree &&
               change.hash && (
                 <DashboardButton
-                  icon={<LuCheck className="size-3" />}
+                  icon={<LuCheck sx={stylexStyles.rule2} />}
                   onClick={() => change.hash && onAgree(change.hash)}
                 >
                   Agree

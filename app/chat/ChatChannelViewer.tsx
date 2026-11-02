@@ -12,6 +12,29 @@ import type { ChatMessageInfo } from '@s4wave/sdk/chat/rpc/rpc.pb.js'
 import { MessageInput } from './MessageInput.js'
 import { MessageList } from './MessageList.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    marginInline: 'auto',
+    width: `calc(${themeLayout['--spacing']} * 6)`,
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+    color: themeColors['--color-error-text'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 export { ChatChannelTypeID }
 
 // ChatChannelViewer displays live channel history and its composer.
@@ -85,7 +108,7 @@ function ChatChannelContent({
     >
       <header className="border-foreground/10 bg-background-secondary/60 flex min-h-14 shrink-0 items-center gap-3 border-b px-3 sm:px-5">
         <div className="bg-background-tertiary text-brand flex size-8 shrink-0 items-center justify-center rounded-sm">
-          <LuHash className="size-4" aria-hidden="true" />
+          <LuHash sx={stylexStyles.rule1} aria-hidden="true" />
         </div>
         <div className="min-w-0">
           <h1 className="text-foreground truncate text-sm font-semibold">
@@ -120,10 +143,7 @@ function ChatChannelContent({
           role="alert"
         >
           <div className="border-error/30 bg-background-card max-w-sm rounded-md border p-5 text-center">
-            <LuCircleAlert
-              className="text-error-text mx-auto size-6"
-              aria-hidden="true"
-            />
+            <LuCircleAlert sx={stylexStyles.rule2} aria-hidden="true" />
             <h2 className="text-foreground mt-3 text-sm font-semibold">
               Messages unavailable
             </h2>
@@ -136,7 +156,7 @@ function ChatChannelContent({
               onClick={messagesResource.retry}
               className="border-foreground/15 bg-background-tertiary text-foreground hover:bg-background-panel focus-visible:ring-primary mx-auto mt-4 flex items-center gap-2 rounded-sm border px-3 py-2 text-xs font-semibold focus-visible:ring-2"
             >
-              <LuRefreshCw className="size-3.5" aria-hidden="true" />
+              <LuRefreshCw sx={stylexStyles.rule3} aria-hidden="true" />
               Try again
             </button>
           </div>

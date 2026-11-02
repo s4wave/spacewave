@@ -43,6 +43,28 @@ import { mountSpace } from '@s4wave/app/space/space.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+import { colors as themeColors } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    marginInline: 'auto',
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-success'],
+  },
+  rule2: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 const dialogStyles = stylex.create({
   description: { marginTop: `calc(${themeLayout['--spacing']} * 1.5)` },
 })
@@ -203,7 +225,7 @@ function JoinNoticePanel({
 function JoinEnrolledPanel({ onOpen }: { onOpen: () => void }) {
   return (
     <div className="border-success/20 bg-success/5 rounded-lg border p-4 text-center">
-      <LuCheck className="text-success mx-auto mb-2 size-5" />
+      <LuCheck sx={stylexStyles.rule1} />
       <p className="text-foreground text-sm font-medium">
         Joined successfully!
       </p>
@@ -357,7 +379,7 @@ function JoinInviteField({
         id={`${inputId}-guidance`}
         className="text-foreground-alt/50 mt-2 flex items-start gap-1.5 text-xs leading-relaxed"
       >
-        <LuShieldCheck className="mt-0.5 size-3.5 shrink-0" />
+        <LuShieldCheck sx={stylexStyles.rule2} />
         The invite determines which Space you can access. It does not link
         devices or accounts.
       </p>
@@ -417,7 +439,7 @@ function JoinError({ id, message }: { id: string; message: string }) {
       role="alert"
       className="border-destructive/20 bg-destructive/5 text-destructive flex items-start gap-2 rounded-md border px-3 py-2.5 text-xs leading-relaxed"
     >
-      <LuTriangleAlert className="mt-0.5 size-3.5 shrink-0" />
+      <LuTriangleAlert sx={stylexStyles.rule2} />
       <span>{message}</span>
     </div>
   )
@@ -505,7 +527,7 @@ export function JoinSpaceDialog({
         <DialogHeader variant="panel">
           <div className="flex items-start gap-3">
             <div className="bg-brand/10 text-brand flex size-10 shrink-0 items-center justify-center rounded-lg">
-              <LuLogIn className="size-4" />
+              <LuLogIn sx={stylexStyles.rule3} />
             </div>
             <div className="min-w-0">
               <DialogTitle>Join Space</DialogTitle>

@@ -10,6 +10,16 @@ import { formatStorageRate } from '../provider/spacewave/pricing.js'
 import { useBillingStateContext } from './BillingStateProvider.js'
 import { useSpendingLimit } from './useSpendingLimit.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 const SOFT_USAGE_ALERT_RATIO = 0.8
 
 // formatCount abbreviates an operation count.
@@ -121,7 +131,7 @@ function ExtraStoragePanel({ usage }: { usage: BillingUsageInfo }) {
         </div>
         {billingState.selfServiceAllowed && (
           <DashboardButton
-            icon={<LuGauge className="size-3" />}
+            icon={<LuGauge sx={stylexStyles.rule1} />}
             disabled={spending.saving || !spending.canChange}
             onClick={() => void spending.changeLimit()}
           >

@@ -1,7 +1,6 @@
 import { useCallback, useState } from 'react'
 import { LuCheck, LuCreditCard, LuX } from '@s4wave/web/images/icons.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import {
   SessionContext,
   useSessionNavigate,
@@ -37,6 +36,25 @@ import {
 } from '../billing/BillingStateProvider.js'
 import { isStatusActive } from '../billing/billing-utils.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule3: { color: themeColors['--color-brand'] },
+  rule4: { color: '#0000' },
+})
+
 export interface OrgBillingSectionProps {
   orgId: string
   billingAccountId?: string
@@ -58,7 +76,7 @@ export function OrgBillingSection({
     <BillingStateProvider billingAccountId={billingAccountId}>
       <CollapsibleSection
         title="Billing"
-        icon={<LuCreditCard className="size-3.5" />}
+        icon={<LuCreditCard sx={stylexStyles.rule1} />}
         open={open}
         onOpenChange={onOpenChange}
         badge={<OrgBillingBadge />}
@@ -209,10 +227,10 @@ function OrgBillingAccountPicker({
                 onSelect={() => void handleAssign(baId)}
               >
                 <LuCheck
-                  className={cn(
-                    'size-3',
-                    isSelected ? 'text-brand' : 'text-transparent',
-                  )}
+                  sx={[
+                    stylexStyles.rule2,
+                    isSelected ? stylexStyles.rule3 : stylexStyles.rule4,
+                  ]}
                 />
                 <span className="text-xs">{label}</span>
               </DropdownMenuItem>
@@ -260,7 +278,7 @@ function OrgBillingDetachAction({ orgId }: { orgId: string }) {
         disabled={!session}
         className="text-foreground-alt hover:text-destructive flex cursor-pointer items-center gap-1 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-50"
       >
-        <LuX className="size-3" />
+        <LuX sx={stylexStyles.rule2} />
         <span>Detach billing</span>
       </button>
       {error && <span className="text-destructive text-xs">{error}</span>}
@@ -295,7 +313,7 @@ function OrgBillingDetachAction({ orgId }: { orgId: string }) {
               disabled={detaching}
               className="border-destructive/30 bg-destructive/10 hover:bg-destructive/20 text-destructive flex cursor-pointer items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <LuX className="size-3" />
+              <LuX sx={stylexStyles.rule2} />
               <span>{detaching ? 'Detaching…' : 'Detach'}</span>
             </button>
           </DialogFooter>

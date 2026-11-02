@@ -12,6 +12,34 @@ import {
   type IntroWizardCallout,
 } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: themeColors['--color-brand'],
+  },
+  rule2: {
+    marginRight: `calc(${themeLayout['--spacing']} * 8)`,
+    width: `calc(${themeLayout['--spacing']} * 6)`,
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+    flexShrink: 0,
+    color: themeColors['--color-brand'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 6)`,
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+    flexShrink: 0,
+    color: themeColors['--color-brand'],
+  },
+})
+
 export interface IntroWizardOverlayProps {
   headline: string
   subhead: string
@@ -63,7 +91,7 @@ export function IntroWizardOverlay({
       {currentCallout && <IntroCallout callout={currentCallout} />}
       <div className="border-brand/30 bg-background-card/95 pointer-events-auto absolute bottom-8 left-1/2 z-40 flex max-w-sm -translate-x-1/2 flex-col gap-2 rounded-xl border p-4 shadow-lg backdrop-blur">
         <div className="flex items-center gap-2">
-          <LuSparkles className="text-brand size-4 shrink-0" />
+          <LuSparkles sx={stylexStyles.rule1} />
           <h2 className="text-foreground text-sm font-semibold">{headline}</h2>
         </div>
         {subhead && (
@@ -154,26 +182,25 @@ function IntroCallout({ callout }: { callout: IntroWizardCallout }) {
 // the active callout above the scrim and any target-frame chrome it overlaps so
 // its label is never clipped behind a card in the introduced object.
 function calloutLayout(region: IntroWizardRegion | undefined): CalloutLayout {
-  const arrowClass = 'text-brand size-6 shrink-0'
   switch (region) {
     case IntroWizardRegion.TOP:
       return {
         container: 'absolute right-4 top-12 z-30 flex flex-col items-end gap-1',
-        arrow: <LuArrowUp className="text-brand mr-8 size-6 shrink-0" />,
+        arrow: <LuArrowUp sx={stylexStyles.rule2} />,
         arrowPosition: 'before',
       }
     case IntroWizardRegion.LEFT:
       return {
         container:
           'absolute left-8 top-[42%] z-30 flex -translate-y-1/2 flex-row items-center gap-1',
-        arrow: <LuArrowLeft className={arrowClass} />,
+        arrow: <LuArrowLeft sx={stylexStyles.rule3} />,
         arrowPosition: 'before',
       }
     case IntroWizardRegion.BOTTOM_RIGHT:
       return {
         container:
           'absolute right-12 bottom-24 z-30 flex flex-col items-end gap-1',
-        arrow: <LuArrowDownRight className={arrowClass} />,
+        arrow: <LuArrowDownRight sx={stylexStyles.rule3} />,
         arrowPosition: 'after',
       }
     default:

@@ -5,6 +5,16 @@ import { cn } from '@s4wave/web/style/utils.js'
 
 import type { DownloadEntry } from './manifest.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+  },
+})
+
 interface PrimaryDownloadButtonProps {
   entry: DownloadEntry | null
   releaseLabel?: string
@@ -35,7 +45,7 @@ export function PrimaryDownloadButton({
         'transition-all duration-300 hover:-translate-y-0.5 @lg:text-lg',
       )}
     >
-      <LuDownload className="size-5" />
+      <LuDownload sx={stylexStyles.rule1} />
       <span>
         Download{releaseLabel ? ` ${releaseLabel}` : ''} for {entry.osLabel} (
         {entry.archLabel}) · {entry.ext}

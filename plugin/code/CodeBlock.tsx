@@ -1,3 +1,6 @@
+import * as ownerStylex from '@stylexjs/stylex'
+import { cn as ownerClasses } from '@s4wave/web/style/utils.js'
+import { codeGroupMarker as ownercodeGroupMarker } from '@s4wave/web/style/relations.stylex.js'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { LuCheck, LuCopy } from '@s4wave/web/images/icons.js'
 
@@ -5,6 +8,16 @@ import { usePromise } from '@s4wave/web/hooks/usePromise.js'
 import { cn } from '@s4wave/web/style/utils.js'
 
 import { highlightCode } from './highlight.js'
+
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
 
 // CodeBlockProps are the props for CodeBlock.
 export interface CodeBlockProps {
@@ -39,7 +52,17 @@ export function CodeBlock({ code, language, className }: CodeBlockProps) {
   }, [code])
 
   return (
-    <div className={cn('group/code relative', className)}>
+    <div
+      className={
+        /* TODO(stylex): dynamic class or forwarded className */ cn(
+          ownerClasses(
+            'group/code relative',
+            ownerStylex.props(ownercodeGroupMarker).className,
+          ),
+          className,
+        )
+      }
+    >
       <button
         type="button"
         onClick={handleCopy}
@@ -53,9 +76,9 @@ export function CodeBlock({ code, language, className }: CodeBlockProps) {
         title="Copy code"
       >
         {copied ? (
-          <LuCheck className="size-3.5" />
+          <LuCheck sx={stylexStyles.rule1} />
         ) : (
-          <LuCopy className="size-3.5" />
+          <LuCopy sx={stylexStyles.rule1} />
         )}
       </button>
 

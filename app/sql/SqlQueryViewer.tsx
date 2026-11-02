@@ -37,6 +37,27 @@ import { SqlWorkbenchTargetDbContext } from './sql-workbench-context.js'
 
 import * as stylex from '@stylexjs/stylex'
 
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 const stylexStyles = stylex.create({ rule1: { flexShrink: 0 } })
 
 export { SqlQueryTypeID }
@@ -143,7 +164,7 @@ export function SqlQueryViewer({
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
       <div className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-4">
-        <LuFileText className="text-foreground-alt size-3.5" aria-hidden />
+        <LuFileText sx={stylexStyles2.rule1} aria-hidden />
         <span className="text-foreground text-sm font-semibold tracking-tight select-none">
           SQL Query
         </span>
@@ -465,7 +486,7 @@ function QueryToolbar({
         disabled={!canRun}
         size="toolbar"
       >
-        <LuPlay className="size-3.5" />
+        <LuPlay sx={stylexStyles2.rule2} />
         Run
       </Button>
       <Button
@@ -474,7 +495,7 @@ function QueryToolbar({
         disabled={!canSave}
         size="toolbar"
       >
-        <LuSave className="size-3.5" />
+        <LuSave sx={stylexStyles2.rule2} />
         Save
       </Button>
       <Button
@@ -483,7 +504,7 @@ function QueryToolbar({
         disabled={!canDiscard}
         size="toolbar"
       >
-        <LuUndo2 className="size-3.5" />
+        <LuUndo2 sx={stylexStyles2.rule2} />
         Discard
       </Button>
       {busy ? <LoadingInline label="Running" tone="muted" /> : null}
@@ -574,7 +595,7 @@ function ParametersPanel({
       <div className="border-foreground/8 flex items-center justify-between border-b px-3 py-2">
         <span className="text-foreground text-xs font-medium">Parameters</span>
         <Button variant="ghost" onClick={onAdd} disabled={busy} size="xs">
-          <LuPlus className="size-3" />
+          <LuPlus sx={stylexStyles2.rule3} />
           Add
         </Button>
       </div>
@@ -723,7 +744,7 @@ function ParamEditorRow({
         size="iconXs"
         sx={stylexStyles.rule1}
       >
-        <LuTrash2 className="size-3.5" />
+        <LuTrash2 sx={stylexStyles2.rule2} />
       </Button>
     </div>
   )

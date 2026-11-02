@@ -10,6 +10,16 @@ import { isStatusActive } from './billing-utils.js'
 import { useBillingPortal } from './useBillingPortal.js'
 import { usePlanReactivation } from './usePlanReactivation.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 // PlanControls renders the Plan section: the Stripe billing portal, and the
 // cancel and reactivate actions when the viewer may manage the subscription.
 export function PlanControls(props: {
@@ -43,7 +53,7 @@ export function PlanControls(props: {
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <DashboardButton
-          icon={<LuExternalLink className="size-3" />}
+          icon={<LuExternalLink sx={stylexStyles.rule1} />}
           onClick={() => void portal.open()}
           disabled={!portal.ready || portal.opening}
         >
@@ -91,7 +101,7 @@ function SubscriptionActions(props: {
   if (props.isCancelScheduled) {
     return (
       <DashboardButton
-        icon={<LuRefreshCw className="size-3" />}
+        icon={<LuRefreshCw sx={stylexStyles.rule1} />}
         onClick={props.onReactivate}
         disabled={props.reactivateBusy}
       >
@@ -102,7 +112,7 @@ function SubscriptionActions(props: {
   if (props.isActive) {
     return (
       <DashboardButton
-        icon={<LuX className="size-3" />}
+        icon={<LuX sx={stylexStyles.rule1} />}
         onClick={props.onCancel}
         variant="destructive"
       >
@@ -113,7 +123,7 @@ function SubscriptionActions(props: {
   if (props.isCanceled) {
     return (
       <DashboardButton
-        icon={<LuRefreshCw className="size-3" />}
+        icon={<LuRefreshCw sx={stylexStyles.rule1} />}
         onClick={props.onReactivate}
         disabled={props.reactivateBusy}
       >

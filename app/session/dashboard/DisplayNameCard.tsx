@@ -7,6 +7,20 @@ import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { Input } from '@s4wave/web/ui/input.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 // useDisplayNameEditor edits the local account's display name. The draft
 // resets whenever the saved name changes.
 function useDisplayNameEditor(
@@ -103,7 +117,7 @@ export function DisplayNameCard({
   return (
     <CollapsibleSection
       title="Account"
-      icon={<LuUserCog className="size-3.5" />}
+      icon={<LuUserCog sx={stylexStyles.rule1} />}
       open={open}
       onOpenChange={onOpenChange}
     >
@@ -128,7 +142,7 @@ export function DisplayNameCard({
                   {currentDisplayName || 'Unnamed account'}
                 </button>
                 <DashboardButton
-                  icon={<LuPencil className="size-3" />}
+                  icon={<LuPencil sx={stylexStyles.rule2} />}
                   onClick={editor.start}
                 >
                   Edit
@@ -174,14 +188,14 @@ function DisplayNameForm({
           variant="displayName"
         />
         <DashboardButton
-          icon={<LuSave className="size-3" />}
+          icon={<LuSave sx={stylexStyles.rule2} />}
           onClick={() => void editor.save()}
           disabled={!editor.changed || editor.saving}
         >
           {editor.saving ? 'Saving…' : 'Save'}
         </DashboardButton>
         <DashboardButton
-          icon={<LuX className="size-3" />}
+          icon={<LuX sx={stylexStyles.rule2} />}
           onClick={editor.cancel}
           disabled={editor.saving}
         >

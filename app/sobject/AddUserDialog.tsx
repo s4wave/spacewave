@@ -48,6 +48,36 @@ import { base58Encode } from '@s4wave/app/provider/spacewave/keypair-utils.js'
 import { buildInviteLink } from '@s4wave/app/urls.js'
 import { useCloudProviderConfig } from '@s4wave/app/provider/spacewave/useSpacewaveAuth.js'
 
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule2: {
+    position: 'absolute',
+    top: `calc(${themeLayout['--spacing']} * 2.5)`,
+    left: `calc(${themeLayout['--spacing']} * 2.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: themeColors['--color-success'],
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+})
+
 export // Keep the native item class beside these callers until their utility styles convert.
 const tabItemClass = stylex.props(tabsContentItemStyles.item).className
 
@@ -302,12 +332,12 @@ function InviteCopyButton({
     >
       {copied ? (
         <>
-          <LuCheck className="size-3.5" />
+          <LuCheck sx={stylexStyles.rule1} />
           Copied
         </>
       ) : (
         <>
-          <LuCopy className="size-3.5" />
+          <LuCopy sx={stylexStyles.rule1} />
           {label}
         </>
       )}
@@ -395,12 +425,12 @@ function InviteUsernameTab({ flow }: { flow: InviteFlow }) {
       >
         {flow.usernameSent ? (
           <>
-            <LuCheck className="size-3.5" />
+            <LuCheck sx={stylexStyles.rule1} />
             Sent
           </>
         ) : (
           <>
-            <LuUserPlus className="size-3.5" />
+            <LuUserPlus sx={stylexStyles.rule1} />
             {flow.creating ? 'Sending…' : 'Send Invite'}
           </>
         )}
@@ -481,22 +511,22 @@ function AddUserTabList({
     <TabsList>
       {hasOrgTab && (
         <TabsTrigger value="members">
-          <LuBuilding2 className="size-3.5" />
+          <LuBuilding2 sx={stylexStyles.rule1} />
           Org Members
         </TabsTrigger>
       )}
       {isCloudProvider && (
         <TabsTrigger value="username">
-          <LuUserPlus className="size-3.5" />
+          <LuUserPlus sx={stylexStyles.rule1} />
           Username
         </TabsTrigger>
       )}
       <TabsTrigger value="code">
-        <LuQrCode className="size-3.5" />
+        <LuQrCode sx={stylexStyles.rule1} />
         Code
       </TabsTrigger>
       <TabsTrigger value="link">
-        <LuLink className="size-3.5" />
+        <LuLink sx={stylexStyles.rule1} />
         Link
       </TabsTrigger>
     </TabsList>
@@ -670,7 +700,7 @@ function OrgMembersTab({
           : 'Choose someone already in this organization. Use Code or Link to share with anyone else.'}
       </p>
       <div className={cn(tabItemClass, 'relative')}>
-        <LuSearch className="text-foreground-alt/50 absolute top-2.5 left-2.5 size-3.5" />
+        <LuSearch sx={stylexStyles.rule2} />
         <input
           aria-label="Search org members"
           value={search}
@@ -727,11 +757,11 @@ function OrgMembersTab({
               </div>
               <div className="shrink-0">
                 {isEnrolled ? (
-                  <LuCheck className="text-success size-3.5" />
+                  <LuCheck sx={stylexStyles.rule3} />
                 ) : isEnrolling ? (
                   <span className="text-foreground-alt text-xs">Adding…</span>
                 ) : (
-                  <LuUserPlus className="text-foreground-alt/50 size-3.5" />
+                  <LuUserPlus sx={stylexStyles.rule4} />
                 )}
               </div>
             </button>

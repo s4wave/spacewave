@@ -11,6 +11,31 @@ import {
 } from './keybindings-model.js'
 import type { KeybindingVariantProps } from './variant-types.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-brand'],
+  },
+  rule2: {
+    pointerEvents: 'none',
+    position: 'absolute',
+    top: '50%',
+    left: `calc(${themeLayout['--spacing']} * 3)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    '--tw-translate-y': 'calc(calc(1 / 2 * 100%) * -1)',
+    translate: 'var(--tw-translate-x) var(--tw-translate-y)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+})
+
 export function GroupedPanelsVariant(props: KeybindingVariantProps) {
   const { commands } = props
   const [query, setQuery] = useState('')
@@ -56,7 +81,7 @@ export function GroupedPanelsVariant(props: KeybindingVariantProps) {
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <LuBoxes className="text-brand size-4" />
+            <LuBoxes sx={stylexStyles.rule1} />
             <h2 className="text-sm font-semibold">Collections</h2>
           </div>
           <p className="text-foreground-alt/55 mt-1 max-w-xl text-xs">
@@ -65,7 +90,7 @@ export function GroupedPanelsVariant(props: KeybindingVariantProps) {
           </p>
         </div>
         <label className="relative block w-full sm:max-w-72">
-          <LuSearch className="text-foreground-alt/40 pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+          <LuSearch sx={stylexStyles.rule2} />
           <Input
             value={query}
             onChange={handleQueryChange}

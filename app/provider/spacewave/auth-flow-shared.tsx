@@ -22,13 +22,13 @@ export function getProviderLabel(provider: string): string {
 
 export function ProviderIcon({
   provider,
-  className,
+  sx,
 }: {
   provider: string
-  className?: string
+  sx?: import('@stylexjs/stylex').StyleXStyles
 }) {
-  if (provider === 'google') return <FcGoogle className={className} />
-  if (provider === 'github') return <LuGithub className={className} />
+  if (provider === 'google') return <FcGoogle sx={sx} />
+  if (provider === 'github') return <LuGithub sx={sx} />
   return null
 }
 

@@ -313,7 +313,7 @@ function BottomBarContextMenuActionItem({
         })
       }}
     >
-      {Icon ? <Icon {...stylex.props(stylexStyles.rule6)} /> : null}
+      {Icon ? <Icon sx={stylexStyles.rule6} /> : null}
       <span sx={stylexStyles.rule4}>{action.label}</span>
       {action.shortcut ? (
         <DropdownMenuShortcut>{action.shortcut}</DropdownMenuShortcut>

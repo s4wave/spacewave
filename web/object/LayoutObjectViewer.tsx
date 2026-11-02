@@ -274,7 +274,7 @@ function useObjectLayoutController({
             model.doAction(Actions.deleteTab(tabId))
           }}
         >
-          <LuX {...stylex.props(stylexStyles2.rule2)} />
+          <LuX sx={stylexStyles2.rule2} />
         </button>,
       )
     },
@@ -382,27 +382,27 @@ function useObjectLayoutController({
       {
         id: 'rename-tab',
         label: 'Rename Tab',
-        icon: <LuPencil {...stylex.props(stylexStyles2.rule3)} />,
+        icon: <LuPencil sx={stylexStyles2.rule3} />,
         onSelect: setRenamingTabId,
       },
       {
         id: 'duplicate-tab',
         label: 'Duplicate Tab',
-        icon: <LuCopy {...stylex.props(stylexStyles2.rule3)} />,
+        icon: <LuCopy sx={stylexStyles2.rule3} />,
         onSelect: handleDuplicateTab,
       },
       { id: 'close-separator', type: 'separator' },
       {
         id: 'close-other-tabs',
         label: 'Close Other Tabs',
-        icon: <LuCircleX {...stylex.props(stylexStyles2.rule3)} />,
+        icon: <LuCircleX sx={stylexStyles2.rule3} />,
         disabled: !canCloseContextTabs,
         onSelect: handleCloseOtherTabs,
       },
       {
         id: 'close-tab',
         label: 'Close Tab',
-        icon: <LuX {...stylex.props(stylexStyles2.rule3)} />,
+        icon: <LuX sx={stylexStyles2.rule3} />,
         disabled: !canCloseContextTabs,
         variant: 'destructive',
         onSelect: handleCloseTab,
@@ -419,7 +419,7 @@ function useObjectLayoutController({
   // Keep the layout library's close icon stable between renders.
   const icons = useMemo(
     () => ({
-      close: <LuX {...stylex.props(stylexStyles2.rule2)} />,
+      close: <LuX sx={stylexStyles2.rule2} />,
     }),
     [],
   )

@@ -7,6 +7,20 @@ import type { TerminalFrame } from '@s4wave/sdk/terminal/terminal.pb.js'
 
 import * as stylex from '@stylexjs/stylex'
 
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: { WebkitUserSelect: 'none', userSelect: 'none' },
 })
@@ -29,7 +43,7 @@ export function TerminalSshTrustPanel({
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0 space-y-2">
           <div className="text-warning flex items-center gap-1.5 text-xs font-semibold select-none">
-            <LuShieldQuestion className="size-3.5 shrink-0" />
+            <LuShieldQuestion sx={stylexStyles2.rule1} />
             Confirm SSH host key
           </div>
           <div className="md:grid-cols-form grid gap-1 text-xs">
@@ -63,11 +77,11 @@ export function TerminalSshTrustPanel({
             onClick={() => onRespond(true)}
             type="button"
           >
-            <LuCheck className="size-3.5" />
+            <LuCheck sx={stylexStyles2.rule2} />
             Trust
           </Button>
           <DashboardButton
-            icon={<LuX className="size-3.5" />}
+            icon={<LuX sx={stylexStyles2.rule2} />}
             onClick={() => onRespond(false)}
           >
             Reject

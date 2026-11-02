@@ -26,6 +26,66 @@ import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
 import { useBillingAccountCheckout } from '../provider/spacewave/useBillingAccountCheckout.js'
 import { useBillingStateContext } from './BillingStateProvider.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-brand'],
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-brand'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-destructive'],
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule5: {
+    animationName: 'spin',
+    animationDuration: '1s',
+    animationTimingFunction: 'linear',
+    animationIterationCount: 'infinite',
+    animationDirection: 'normal',
+    animationPlayState: 'running',
+    animationDelay: '0s',
+    animationFillMode: 'none',
+    animationTimeline: 'auto',
+  },
+  rule6: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    animationName: 'spin',
+    animationDuration: '1s',
+    animationTimingFunction: 'linear',
+    animationIterationCount: 'infinite',
+    animationDirection: 'normal',
+    animationPlayState: 'running',
+    animationDelay: '0s',
+    animationFillMode: 'none',
+    animationTimeline: 'auto',
+    color: themeColors['--color-brand'],
+  },
+})
+
 type CheckoutState = ReturnType<typeof useBillingAccountCheckout>
 
 const CANCEL_FAQ = [
@@ -195,7 +255,7 @@ function CancelHeader({ stage, endLabel }: CancelHeaderProps) {
     <div className="flex flex-col items-center gap-2">
       <AnimatedLogo followMouse={false} />
       <div className="border-brand/25 bg-brand/8 text-brand text-metadata mt-2 inline-flex items-center gap-2 rounded-full border px-3 py-1 font-medium tracking-wide uppercase">
-        <LuCalendarX className="size-3.5" />
+        <LuCalendarX sx={stylexStyles.rule1} />
         {cancelBadgeLabel(stage)}
       </div>
       <h1 className="mt-2 text-center text-xl font-semibold tracking-wide">
@@ -242,7 +302,7 @@ function CancelNextSection({ stage, endLabel }: CancelHeaderProps) {
   return (
     <div className="mb-6 flex items-start gap-3">
       <div className="bg-brand/10 flex size-10 shrink-0 items-center justify-center rounded-lg">
-        <LuCalendarX className="text-brand size-5" />
+        <LuCalendarX sx={stylexStyles.rule2} />
       </div>
       <div className="space-y-2">
         <h2 className="text-foreground text-lg font-semibold">
@@ -268,7 +328,7 @@ function CancelInfoCard({ icon: Icon, title, children }: CancelInfoCardProps) {
     <div className="border-foreground/10 bg-background/45 rounded-lg border p-4">
       <div className="mb-2 flex items-center gap-2">
         <div className="bg-brand/10 flex size-8 items-center justify-center rounded-md">
-          <Icon className="text-brand size-4" />
+          <Icon sx={stylexStyles2.rule1} />
         </div>
         <h3 className="text-foreground text-sm font-semibold">{title}</h3>
       </div>
@@ -306,7 +366,7 @@ function CancelDeletionNote() {
     <div className="border-foreground/10 bg-background/45 mt-6 rounded-lg border p-4">
       <div className="flex items-start gap-3">
         <div className="bg-destructive/10 flex size-8 shrink-0 items-center justify-center rounded-md">
-          <LuTriangleAlert className="text-destructive size-4" />
+          <LuTriangleAlert sx={stylexStyles.rule3} />
         </div>
         <div className="space-y-1">
           <h3 className="text-foreground text-sm font-semibold">
@@ -317,7 +377,7 @@ function CancelDeletionNote() {
             differently from standard end-of-period cancellation.
           </p>
           <div className="text-foreground-alt/80 flex items-center gap-2 pt-1 text-sm">
-            <LuTrash2 className="size-3.5" />
+            <LuTrash2 sx={stylexStyles.rule1} />
             Go to account settings and choose{' '}
             <span className="text-foreground font-medium">
               Delete account
@@ -364,10 +424,10 @@ function CancelActions({
           )}
         >
           <LuRefreshCw
-            className={cn(
-              'size-4',
-              action === 'reactivating' && 'animate-spin',
-            )}
+            sx={[
+              stylexStyles.rule4,
+              action === 'reactivating' && stylexStyles.rule5,
+            ]}
           />
           {action === 'reactivating'
             ? 'Keeping subscription…'
@@ -384,7 +444,7 @@ function CancelActions({
             'disabled:cursor-not-allowed disabled:opacity-50',
           )}
         >
-          <LuCalendarX className="size-4" />
+          <LuCalendarX sx={stylexStyles.rule4} />
           {action === 'canceling' ? 'Canceling…' : 'Cancel at period end'}
         </button>
       )}
@@ -404,7 +464,7 @@ function CancelCheckoutNotice({ checkout }: { checkout: CheckoutState }) {
   return (
     <div className="border-brand/20 bg-brand/5 mt-4 rounded-lg border p-3 text-sm">
       <div className="flex items-center gap-2">
-        <LuRefreshCw className="text-brand size-4 animate-spin" />
+        <LuRefreshCw sx={stylexStyles.rule6} />
         <span className="text-foreground">
           Reactivation is in progress. You will return to billing details when
           Stripe confirms the checkout.
@@ -416,7 +476,7 @@ function CancelCheckoutNotice({ checkout }: { checkout: CheckoutState }) {
           onClick={checkout.continueCheckout}
           className="border-brand/30 bg-brand/10 hover:bg-brand/20 text-foreground mt-3 inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors"
         >
-          <LuRefreshCw className="size-3.5" />
+          <LuRefreshCw sx={stylexStyles.rule1} />
           <span>Continue with Stripe</span>
         </button>
       )}
@@ -513,7 +573,7 @@ export function BillingCancelPage() {
           onClick={handleBack}
           className="text-foreground-alt hover:text-brand flex cursor-pointer items-center gap-2 text-sm transition-colors"
         >
-          <LuArrowLeft className="size-4" />
+          <LuArrowLeft sx={stylexStyles.rule4} />
           Back to billing
         </button>
       }

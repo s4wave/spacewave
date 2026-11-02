@@ -28,6 +28,25 @@ import {
   type WasiVmPaneSize,
 } from './WasiVmDisplay.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 // WasiVmWindowRoute names one window of one run of a VM.
 export interface WasiVmWindowRoute {
   run: bigint
@@ -184,7 +203,7 @@ export function WasiVmWindowPicker({
         {/* Identity */}
         <div className="flex items-center gap-3">
           <div className="bg-foreground/5 text-foreground-alt flex size-10 shrink-0 items-center justify-center rounded-lg">
-            <LuAppWindow className="size-5" />
+            <LuAppWindow sx={stylexStyles.rule1} />
           </div>
           <div className="min-w-0 flex-1">
             <h2 className="text-foreground truncate text-base font-medium">
@@ -219,7 +238,7 @@ export function WasiVmWindowPicker({
                     onClick={() => onShowWindow(w.id ?? 0)}
                     className="hover:bg-foreground/5 text-foreground flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition duration-150"
                   >
-                    <LuAppWindow className="text-foreground-alt size-4 shrink-0" />
+                    <LuAppWindow sx={stylexStyles.rule2} />
                     <span className="min-w-0 flex-1 truncate">
                       {windowLabel(w)}
                     </span>

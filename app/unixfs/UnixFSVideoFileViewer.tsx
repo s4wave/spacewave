@@ -15,6 +15,16 @@ import { cn } from '@s4wave/web/style/utils.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+  },
+})
+
 // UnixFSVideoFileViewerProps are the props passed to the UnixFSVideoFileViewer.
 export interface UnixFSVideoFileViewerProps {
   // title is the accessible label for the media element.
@@ -184,7 +194,7 @@ function UnixFSVideoPlayerSurface({
           className="bg-background/82 absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 p-6 text-center backdrop-blur-sm"
         >
           <div className="bg-destructive/10 text-destructive flex size-10 items-center justify-center rounded-full">
-            <LuTriangleAlert className="size-5" />
+            <LuTriangleAlert sx={stylexStyles.rule1} />
           </div>
           <div className="text-foreground text-sm font-semibold">
             {state.unsupported

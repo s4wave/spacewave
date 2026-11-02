@@ -10,6 +10,20 @@ import {
   getStoredHandoffRequest,
 } from './handoff-state.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 // HandoffSessionEnd is how a handoff's auth session ended before completion.
 type HandoffSessionEnd = 'expired' | 'canceled'
 
@@ -117,7 +131,7 @@ function HandoffEnded({
     <div className="bg-background-landing relative flex flex-1 flex-col items-center justify-center gap-6 p-6">
       <div className="relative z-10 flex max-w-sm flex-col items-center gap-4 text-center">
         <div className="bg-foreground/5 border-foreground/10 flex size-16 items-center justify-center rounded-full border">
-          <Icon className="text-foreground-alt size-8" />
+          <Icon sx={stylexStyles.rule1} />
         </div>
         <h1 className="text-xl font-semibold tracking-wide">
           {end === 'expired' ? 'Sign-in link expired' : 'Sign-in canceled'}

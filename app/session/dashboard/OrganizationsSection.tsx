@@ -15,6 +15,20 @@ import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 import { useStateNamespace, useStateAtom } from '@s4wave/web/state/persist.js'
 import { cn } from '@s4wave/web/style/utils.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 export interface OrganizationsSectionProps {
   open?: boolean
   onOpenChange?: (open: boolean) => void
@@ -59,7 +73,7 @@ export function OrganizationsSection({
   return (
     <CollapsibleSection
       title="Organizations"
-      icon={<LuBuilding2 className="size-3.5" />}
+      icon={<LuBuilding2 sx={stylexStyles.rule1} />}
       open={sectionOpen}
       onOpenChange={handleOpenChange}
       badge={
@@ -101,7 +115,7 @@ export function OrganizationsSection({
             onClick={() => setShowCreate(true)}
             className="text-brand/60 hover:text-brand flex items-center gap-1 text-xs transition-colors"
           >
-            <LuPlus className="size-3" />
+            <LuPlus sx={stylexStyles.rule2} />
             Create Organization
           </button>
         )}

@@ -7,6 +7,16 @@ import { ReleaseCard } from './ReleaseCard.js'
 import { ChangelogReleaseDownloads } from './ChangelogReleaseDownloads.js'
 import { useLandingBackNavigation } from './useLandingBackNavigation.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 // ChangelogReleasePage renders a single release's notes plus the desktop-app
 // download options for that version.
 export function ChangelogReleasePage({ release }: { release: Release }) {
@@ -21,7 +31,7 @@ export function ChangelogReleasePage({ release }: { release: Release }) {
           onClick={goBack}
           className="text-foreground-alt hover:text-foreground flex cursor-pointer items-center gap-2 text-sm transition-colors"
         >
-          <LuArrowLeft className="size-4" />
+          <LuArrowLeft sx={stylexStyles.rule1} />
           Back
         </button>
       </div>

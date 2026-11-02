@@ -14,6 +14,16 @@ import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useSpacewaveAuth } from '@s4wave/app/provider/spacewave/useSpacewaveAuth.js'
 import { cn } from '@s4wave/web/style/utils.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 interface AppLoginProps {
   initialUsername?: string
   launchUsername?: string
@@ -157,7 +167,7 @@ export function AppLogin({
             onClick={() => navigate({ path: '/pair' })}
             className="text-foreground-alt hover:text-brand flex items-center gap-1.5 text-xs transition-colors"
           >
-            <LuLink className="size-3" />
+            <LuLink sx={stylexStyles.rule1} />
             <span className="select-none">Link to existing device</span>
           </button>
         </div>
@@ -182,7 +192,7 @@ export function AppLogin({
             disabled={!addRootAlias.canAdd}
             className="text-foreground-alt hover:text-brand flex items-center gap-1.5 text-xs transition-colors disabled:pointer-events-none disabled:opacity-50"
           >
-            <LuFolderOpen className="size-3" />
+            <LuFolderOpen sx={stylexStyles.rule1} />
             <span className="select-none">Open local state root</span>
           </button>
         </div>

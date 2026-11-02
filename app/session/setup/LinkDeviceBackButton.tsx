@@ -2,6 +2,20 @@ import { LuArrowLeft } from '@s4wave/web/images/icons.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 export interface LinkDeviceBackButtonProps {
   onClick: () => void
 }
@@ -20,7 +34,7 @@ export function LinkDeviceBackButton({ onClick }: LinkDeviceBackButtonProps) {
         'flex size-10 shrink-0 items-center justify-center',
       )}
     >
-      <LuArrowLeft className="text-foreground-alt size-4" />
+      <LuArrowLeft sx={stylexStyles.rule1} />
     </button>
   )
 }

@@ -38,6 +38,25 @@ import { applySpaceIndexPath } from './space-settings.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+import { colors as themeColors } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    color: themeColors['--color-brand'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    flexShrink: 0,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: { maxHeight: `calc(${themeLayout['--spacing']} * 75)` },
 })
@@ -124,10 +143,10 @@ function useSpaceObjectBrowserController() {
             {
               icon: (
                 <LuFolderOpen
-                  {...stylex.props(
+                  sx={[
                     treeRowActionIconStyles.icon,
                     isCurrentObject && treeActionStyles.dimmed,
-                  )}
+                  ]}
                 />
               ),
               tooltip: isCurrentObject ? 'Already open' : 'Open',
@@ -136,10 +155,10 @@ function useSpaceObjectBrowserController() {
             {
               icon: (
                 <LuHouse
-                  {...stylex.props(
+                  sx={[
                     treeRowActionIconStyles.icon,
                     isIndex && treeActionStyles.dimmed,
-                  )}
+                  ]}
                 />
               ),
               tooltip: isIndex
@@ -426,7 +445,7 @@ function SpaceObjectBrowserView({
               onSelect={(e) => e.preventDefault()}
               onClick={handleDeleteConfirmClick}
             >
-              <LuTrash2 className="size-3.5" />
+              <LuTrash2 sx={stylexStyles2.rule1} />
               Confirm Delete
             </DropdownMenuItem>
           </>
@@ -440,7 +459,7 @@ function SpaceObjectBrowserView({
               onSelect={(e) => e.preventDefault()}
               onClick={handleIndexConfirmClick}
             >
-              <LuHouse className="size-3.5" />
+              <LuHouse sx={stylexStyles2.rule1} />
               Confirm
             </DropdownMenuItem>
           </>
@@ -449,7 +468,7 @@ function SpaceObjectBrowserView({
             <div className="border-foreground/6 bg-background-card/30 overflow-hidden rounded-lg border">
               <div className="border-foreground/8 flex h-9 items-center gap-2 border-b px-3">
                 <span className="bg-brand/10 flex size-5 shrink-0 items-center justify-center rounded-md">
-                  <LuPencil className="text-brand size-3" />
+                  <LuPencil sx={stylexStyles2.rule2} />
                 </span>
                 <div className="text-foreground text-xs font-medium tracking-tight select-none">
                   Rename object key
@@ -460,7 +479,7 @@ function SpaceObjectBrowserView({
                   <span className="border-foreground/6 bg-background/20 min-w-0 truncate rounded-md border px-2 py-1 font-mono">
                     {pendingRename}
                   </span>
-                  <LuArrowRight className="size-3 shrink-0" />
+                  <LuArrowRight sx={stylexStyles2.rule3} />
                   <span className="text-foreground-alt/40 shrink-0">
                     new key
                   </span>
@@ -493,7 +512,7 @@ function SpaceObjectBrowserView({
               <div className="border-foreground/8 flex items-center justify-end gap-2 border-t px-3 py-2.5">
                 <DashboardButton
                   type="button"
-                  icon={<LuX className="size-3.5" />}
+                  icon={<LuX sx={stylexStyles2.rule1} />}
                   onClick={handleRenameCancel}
                   disabled={renameSaving}
                 >
@@ -501,7 +520,7 @@ function SpaceObjectBrowserView({
                 </DashboardButton>
                 <DashboardButton
                   type="button"
-                  icon={<LuCheck className="size-3.5" />}
+                  icon={<LuCheck sx={stylexStyles2.rule1} />}
                   onClick={handleRenameConfirmClick}
                   disabled={!renameValue.trim() || renameSaving}
                   variant="primary"
@@ -514,22 +533,22 @@ function SpaceObjectBrowserView({
         ) : (
           <>
             <DropdownMenuItem onClick={handleMenuOpen}>
-              <LuFolderOpen className="size-3.5" />
+              <LuFolderOpen sx={stylexStyles2.rule1} />
               Open
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleSetAsIndex}>
-              <LuHouse className="size-3.5" />
+              <LuHouse sx={stylexStyles2.rule1} />
               Set as Index
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleCopyKey}>
-              <LuCopy className="size-3.5" />
+              <LuCopy sx={stylexStyles2.rule1} />
               Copy Object Key
             </DropdownMenuItem>
             <DropdownMenuItem
               onSelect={(e) => e.preventDefault()}
               onClick={handleRenameClick}
             >
-              <LuPencil className="size-3.5" />
+              <LuPencil sx={stylexStyles2.rule1} />
               Rename Object Key
             </DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -539,7 +558,7 @@ function SpaceObjectBrowserView({
                 openCommand('spacewave.create-object')
               }}
             >
-              <LuPlus className="size-3.5" />
+              <LuPlus sx={stylexStyles2.rule1} />
               New Object
             </DropdownMenuItem>
             {canDeleteObjects && (
@@ -548,7 +567,7 @@ function SpaceObjectBrowserView({
                 onSelect={(e) => e.preventDefault()}
                 onClick={handleDeleteClick}
               >
-                <LuTrash2 className="size-3.5" />
+                <LuTrash2 sx={stylexStyles2.rule1} />
                 Delete
               </DropdownMenuItem>
             )}
@@ -571,11 +590,11 @@ function SpaceObjectBrowserView({
     <section>
       <div className="mb-2 flex items-center justify-between">
         <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-          <LuBox className="size-3.5" />
+          <LuBox sx={stylexStyles2.rule1} />
           Objects
         </h2>
         <DashboardButton
-          icon={<LuPlus className="size-3.5" />}
+          icon={<LuPlus sx={stylexStyles2.rule1} />}
           onClick={handleCreateObject}
         />
       </div>

@@ -1,5 +1,6 @@
 import { act, useState } from 'react'
 import { createRoot } from 'react-dom/client'
+import { createPortal } from 'react-dom'
 import * as stylex from '@stylexjs/stylex'
 import { expect, it, onTestFinished } from 'vitest'
 import { page, userEvent } from 'vitest/browser'
@@ -33,7 +34,7 @@ import {
 import { Button, buttonVariants } from '../ui/button.js'
 import { DashboardButton } from '../ui/DashboardButton.js'
 import { DropdownTriggerButton } from '../ui/DropdownTriggerButton.js'
-import { IconContext, LuPlus } from '../images/icons.js'
+import { IconContext, IconStylesProvider, LuPlus } from '../images/icons.js'
 import { PanelHeader, PanelHeaderButton } from '../ui/PanelHeader.js'
 import {
   Sheet,
@@ -66,9 +67,41 @@ const styles = stylex.create({
   firstRule: { color: 'rgb(17, 34, 51)' },
   secondRule: { color: 'rgb(68, 85, 102)' },
   largeIcon: { width: 32, height: 32 },
+  iconDefaults: { width: 20, height: 20, color: 'rgb(68, 85, 102)' },
   minimumWidth: (minWidth: number) => ({ minWidth }),
   pathOverride: { marginTop: 19 },
 })
+
+// IconScopeSamples covers default composition and a control's portal boundary.
+function IconScopeSamples() {
+  const [host, setHost] = useState<HTMLDivElement | null>(null)
+  return (
+    <>
+      <IconStylesProvider sx={styles.iconDefaults}>
+        <LuPlus aria-label="Default native icon" />
+        <LuPlus
+          aria-label="Overridden native icon"
+          sx={[styles.largeIcon, styles.firstRule]}
+          style={{ '--native-icon-test': 'retained' }}
+        />
+      </IconStylesProvider>
+      <div ref={setHost} aria-label="Portal icon host" />
+      <IconContext.Provider value={{ color: 'rgb(17, 34, 51)' }}>
+        <Button>
+          Portal icon owner
+          {host &&
+            createPortal(
+              <LuPlus
+                aria-label="Portaled native icon"
+                sx={styles.largeIcon}
+              />,
+              host,
+            )}
+        </Button>
+      </IconContext.Provider>
+    </>
+  )
+}
 
 // PilotJourney exercises shared composition together with real app and plugin consumers.
 function PilotJourney() {
@@ -116,7 +149,7 @@ function PilotJourney() {
           style={{ '--native-button-test': 'retained' }}
           onClick={() => setButtonActions((value) => value + 1)}
         >
-          <LuPlus {...stylex.props(styles.largeIcon)} />
+          <LuPlus sx={styles.largeIcon} />
           Native action
         </Button>
         <Button asChild>
@@ -132,6 +165,7 @@ function PilotJourney() {
           Native dropdown action
         </DropdownTriggerButton>
       </IconContext.Provider>
+      <IconScopeSamples />
       <button
         type="button"
         sx={buttonVariants({ variant: 'outline', size: 'sm' })}
@@ -635,6 +669,25 @@ it('composes shared, app and plugin styles through the browser build', async () 
     expect(getComputedStyle(icon).pointerEvents).toBe('none')
     expect(getComputedStyle(icon).color).toBe('rgb(17, 34, 51)')
   }
+
+  // Defaults yield to caller styles, while a portaled icon keeps its size outside the control DOM.
+  const defaultIcon = page.getByLabelText('Default native icon').element()
+  expect(getComputedStyle(defaultIcon).width).toBe('20px')
+  expect(getComputedStyle(defaultIcon).color).toBe('rgb(68, 85, 102)')
+
+  // Caller styles replace the default dimensions and color, keeping native variables.
+  const overriddenIcon = page.getByLabelText('Overridden native icon').element()
+  expect(getComputedStyle(overriddenIcon).width).toBe('32px')
+  expect(getComputedStyle(overriddenIcon).color).toBe('rgb(17, 34, 51)')
+  expect(
+    getComputedStyle(overriddenIcon).getPropertyValue('--native-icon-test'),
+  ).toBe('retained')
+
+  // A portal retains React context while leaving the control's DOM selector.
+  const portalIcon = page.getByLabelText('Portaled native icon').element()
+  expect(getComputedStyle(portalIcon).width).toBe('32px')
+  expect(getComputedStyle(portalIcon).pointerEvents).toBe('auto')
+  expect(getComputedStyle(portalIcon).color).toBe('rgb(17, 34, 51)')
 
   // Slot composition preserves the native link target.
   await expect

@@ -63,6 +63,23 @@ import { buildCreateSshHostTerminalOpData } from './terminal-action.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule3: {
+    marginRight: `calc(${themeLayout['--spacing']} * 2)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: { marginTop: `calc(${themeLayout['--spacing']} * 3)` },
 })
@@ -490,14 +507,14 @@ function AddDeviceWizardSteps({
         <section className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <ModeButton
             active={mode === 'spacelink'}
-            icon={<LuHardDrive className="size-3.5" />}
+            icon={<LuHardDrive sx={stylexStyles2.rule1} />}
             label="Managed Device"
             detail="Install Spacewave for persistent status, policy, and capabilities. 3 steps"
             onClick={() => handleModeChange('spacelink')}
           />
           <ModeButton
             active={mode === 'ssh'}
-            icon={<LuServer className="size-3.5" />}
+            icon={<LuServer sx={stylexStyles2.rule1} />}
             label="SSH Host"
             detail="Connect on demand over SSH without installing an agent. 2 steps"
             onClick={() => handleModeChange('ssh')}
@@ -558,7 +575,7 @@ function AddDeviceWizardSteps({
         <section className="space-y-3">
           <div className="border-brand/20 bg-brand/5 rounded-lg border p-3.5">
             <div className="text-foreground flex items-center gap-2 text-sm font-medium">
-              <LuCircleCheck className="size-4" />
+              <LuCircleCheck sx={stylexStyles2.rule2} />
               Approval ready
             </div>
             <p className="text-foreground-alt/70 mt-1 text-xs leading-relaxed">
@@ -569,7 +586,7 @@ function AddDeviceWizardSteps({
           <CommandPanel
             title="Complete setup"
             command={completeCommand}
-            icon={<LuTerminal className="size-3.5" />}
+            icon={<LuTerminal sx={stylexStyles2.rule1} />}
           />
           {deviceKeys.length > 0 && (
             <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
@@ -695,7 +712,7 @@ function AddDeviceWizardContent({
     <WizardShell
       title={
         <>
-          <LuHardDrive className="mr-2 size-4 shrink-0" />
+          <LuHardDrive sx={stylexStyles2.rule3} />
           Add Device
         </>
       }
@@ -841,7 +858,7 @@ function SshEndpointCard({
   return (
     <div className={sshCardClassName}>
       <div className="text-foreground mb-2 flex items-center gap-1.5 text-xs font-medium">
-        <LuServer className="size-3.5" />
+        <LuServer sx={stylexStyles2.rule1} />
         SSH Endpoint
       </div>
       <div className="sm:grid-cols-device grid gap-2">
@@ -896,7 +913,7 @@ function SshCredentialCard({
   return (
     <div className={sshCardClassName}>
       <div className="text-foreground mb-2 flex items-center gap-1.5 text-xs font-medium">
-        <LuKeyRound className="size-3.5" />
+        <LuKeyRound sx={stylexStyles2.rule1} />
         SSH Credential
       </div>
       <div className="mb-3 grid grid-cols-2 gap-2">
@@ -1188,7 +1205,7 @@ function SpaceLinkApprovalPanel({
           onClick={onSignIn}
           sx={stylexStyles.rule1}
         >
-          <LuLogIn className="size-3.5" />
+          <LuLogIn sx={stylexStyles2.rule1} />
           Sign in or create account
         </Button>
       </div>
@@ -1211,12 +1228,12 @@ function SpaceLinkApprovalPanel({
             <CommandPanel
               title="Spacewave already installed"
               command={setupCommand}
-              icon={<LuTerminal className="size-3.5" />}
+              icon={<LuTerminal sx={stylexStyles2.rule1} />}
             />
             <CommandPanel
               title="Install and run"
               command={installSetupCommand}
-              icon={<LuTerminal className="size-3.5" />}
+              icon={<LuTerminal sx={stylexStyles2.rule1} />}
             />
           </div>
         </div>
@@ -1274,7 +1291,7 @@ function SpaceLinkApprovalPanel({
             size="toolbarWide"
             sx={stylexStyles.rule1}
           >
-            <LuClipboardCheck className="size-3.5" />
+            <LuClipboardCheck sx={stylexStyles2.rule1} />
             {busy ? 'Checking ticket…' : 'Approve'}
           </Button>
         )}

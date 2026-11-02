@@ -6,6 +6,21 @@ import { Button } from '@s4wave/web/ui/button.js'
 
 import { alarmStatus, holdText, type AlarmTone } from './alarm-view.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule2: { color: themeColors['--color-destructive'] },
+  rule3: { color: themeColors['--color-foreground-alt'] },
+})
+
 export interface AlarmViewProps {
   alarm: Alarm
   nowMs: number
@@ -35,12 +50,10 @@ export function AlarmView({
     <div className="bg-background-primary flex h-full w-full flex-col">
       <header className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-4">
         <LuSiren
-          className={cn(
-            'size-3.5',
-            status.tone === 'alert'
-              ? 'text-destructive'
-              : 'text-foreground-alt',
-          )}
+          sx={[
+            stylexStyles.rule1,
+            status.tone === 'alert' ? stylexStyles.rule2 : stylexStyles.rule3,
+          ]}
           aria-hidden
         />
         <span

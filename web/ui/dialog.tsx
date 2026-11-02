@@ -468,7 +468,7 @@ function DialogContent({
             data-slot="dialog-close"
             {...stylex.props(styles.close)}
           >
-            <LuX {...stylex.props(styles.closeIcon)} />
+            <LuX sx={styles.closeIcon} />
             <span sx={styles.closeLabel}>Close</span>
           </DialogPrimitive.Close>
         )}

@@ -24,6 +24,25 @@ import { base64ToBytes, unwrapPemWithPin } from './keypair-utils.js'
 import { getErrorMessage, withSpacewaveProvider } from './auth-flow-shared.js'
 import { SSOUnlockCard } from './SSOUnlockCard.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 12)`,
+    height: `calc(${themeLayout['--spacing']} * 12)`,
+    color: themeColors['--color-destructive'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 6)`,
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+    color: themeColors['--color-brand'],
+  },
+})
+
 // SSOFinishState tracks the page lifecycle.
 type SSOFinishState =
   | { step: 'exchanging' }
@@ -256,7 +275,7 @@ export function SSOFinishPage() {
     return (
       <div className="bg-background-landing relative flex flex-1 flex-col items-center justify-center p-6">
         <div className="relative z-10 flex flex-col items-center gap-4 text-center">
-          <LuCircleAlert className="text-destructive size-12" />
+          <LuCircleAlert sx={stylexStyles.rule1} />
           <h2 className="text-foreground text-lg font-semibold">
             Sign-in failed
           </h2>
@@ -319,7 +338,7 @@ export function SSOFinishPage() {
       <div className="relative z-10 flex flex-col items-center gap-4 text-center">
         <AnimatedLogo followMouse={false} />
         {state.step === 'complete' ? (
-          <LuCheck className="text-brand size-6" />
+          <LuCheck sx={stylexStyles.rule2} />
         ) : (
           <Spinner size="md" variant="muted" />
         )}

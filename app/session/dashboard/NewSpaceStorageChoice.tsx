@@ -4,6 +4,17 @@ import { LuDatabase } from '@s4wave/web/images/icons.js'
 import { accountStorageChoice } from '@s4wave/app/session/storage/storage-backend.js'
 import { useStorageBackends } from '@s4wave/app/session/storage/useStorageBackends.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+  },
+})
+
 interface NewSpaceStorageChoiceProps {
   // value is a storage backend id, accountStorageChoice, or empty for the
   // account's default.
@@ -31,7 +42,7 @@ export function NewSpaceStorageChoice({
 
   return (
     <div className="text-foreground-alt/70 mt-3 flex items-center justify-center gap-2 text-xs">
-      <LuDatabase className="size-3.5 shrink-0" aria-hidden="true" />
+      <LuDatabase sx={stylexStyles.rule1} aria-hidden="true" />
       <label htmlFor={id} className="select-none">
         New Spaces store data in
       </label>

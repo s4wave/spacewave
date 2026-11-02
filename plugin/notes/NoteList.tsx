@@ -43,6 +43,38 @@ import {
   type NoteFileFormat,
 } from './note-files.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    flexShrink: 0,
+    color: themeColors['--color-muted-foreground'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 2.5)`,
+    height: `calc(${themeLayout['--spacing']} * 2.5)`,
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    flexShrink: 0,
+  },
+  rule5: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 const defaultNoteFormats: NoteFileFormat[] = ['markdown', 'org']
 
 interface NoteListEntry {
@@ -397,7 +429,7 @@ function NoteListToolbar({
   return (
     <div className="border-border flex min-w-0 items-center gap-1 border-b px-2 py-1.5">
       <label className="bg-muted flex min-w-0 flex-1 items-center gap-1.5 rounded px-2 md:pointer-fine:py-1">
-        <LuSearch className="text-muted-foreground size-3 shrink-0" />
+        <LuSearch sx={stylexStyles.rule1} />
         <input
           type="text"
           aria-label="Search notes"
@@ -413,7 +445,7 @@ function NoteListToolbar({
         onClick={() => handleCreateFolder()}
         title="New folder"
       >
-        <LuFolderPlus className="size-3.5" />
+        <LuFolderPlus sx={stylexStyles.rule2} />
       </button>
       <button
         type="button"
@@ -421,7 +453,7 @@ function NoteListToolbar({
         onClick={() => void handleCreateNote()}
         title="New note"
       >
-        <LuPlus className="size-3.5" />
+        <LuPlus sx={stylexStyles.rule2} />
       </button>
       {canCreateOrg && (
         <button
@@ -460,7 +492,7 @@ function NoteListFilters({
           title="Clear tag filter"
         >
           {filterTag}
-          <LuX className="size-2.5" />
+          <LuX sx={stylexStyles.rule3} />
         </button>
       )}
       {filterStatus && (
@@ -471,7 +503,7 @@ function NoteListFilters({
           title="Clear status filter"
         >
           {filterStatus}
-          <LuX className="size-2.5" />
+          <LuX sx={stylexStyles.rule3} />
         </button>
       )}
     </div>
@@ -539,7 +571,7 @@ function NoteListNoteRow({
         className="hover:bg-list-hover-background flex min-h-11 min-w-0 flex-1 items-center gap-2 px-3 text-left text-xs md:pointer-fine:min-h-0 md:pointer-fine:py-1.5"
         onClick={() => onSelect(notePath)}
       >
-        <LuFile className="size-3 shrink-0" />
+        <LuFile sx={stylexStyles.rule4} />
         <span className="min-w-0 flex-1 truncate">{entry.title}</span>
         {extra}
       </button>
@@ -549,7 +581,7 @@ function NoteListNoteRow({
         onClick={() => onRename(entry.name)}
         title="Rename note"
       >
-        <LuPenLine className="size-3" />
+        <LuPenLine sx={stylexStyles.rule5} />
       </button>
       <button
         type="button"
@@ -557,7 +589,7 @@ function NoteListNoteRow({
         onClick={() => onDelete(entry.name)}
         title="Delete note"
       >
-        <LuTrash2 className="size-3" />
+        <LuTrash2 sx={stylexStyles.rule5} />
       </button>
     </div>
   )
@@ -601,7 +633,7 @@ function NoteListEntries({
           className="hover:bg-list-hover-background flex min-h-11 w-full items-center gap-2 px-3 text-left text-xs md:pointer-fine:min-h-0 md:pointer-fine:py-1.5"
           onClick={() => onChangePath?.(joinNotePath(currentPath, entry.name))}
         >
-          <LuFolder className="size-3 shrink-0" />
+          <LuFolder sx={stylexStyles.rule4} />
           <span className="min-w-0 flex-1 truncate">{entry.name}</span>
         </button>
       ))}
@@ -727,7 +759,7 @@ function NoteListView({ controller }: { controller: NoteListController }) {
               onClick={() => onChangePath?.(getParentPath(currentPath))}
               title="Up one level"
             >
-              <LuChevronLeft className="size-3" />
+              <LuChevronLeft sx={stylexStyles.rule5} />
             </button>
             <span className="text-muted-foreground truncate">
               /{currentPath}

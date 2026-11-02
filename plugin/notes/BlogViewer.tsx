@@ -27,6 +27,16 @@ import { createTextFile } from './write-file.js'
 import NoteList from './NoteList.js'
 import NoteContentView from './NoteContentView.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 // BlogViewer is the viewer for Notes Blog objects.
 // Supports reading mode (blog reading view) and editing mode (NoteList + NoteContentView).
 function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
@@ -220,7 +230,7 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
               )}
               title="Reading mode"
             >
-              <LuBookOpen className="size-3" />
+              <LuBookOpen sx={stylexStyles.rule1} />
               Read
             </button>
             <button
@@ -233,7 +243,7 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
               )}
               title="Editing mode"
             >
-              <LuPenLine className="size-3" />
+              <LuPenLine sx={stylexStyles.rule1} />
               Edit
             </button>
           </div>

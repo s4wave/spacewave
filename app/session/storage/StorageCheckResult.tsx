@@ -4,6 +4,27 @@ import { CopyButton } from '@s4wave/web/ui/CopyButton.js'
 
 import type { StorageCheckView, StorageCorsRule } from './storage-backend.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+  },
+  rule2: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: themeColors['--color-warning'],
+  },
+})
+
 interface StorageCheckResultProps {
   check: StorageCheckView
   // corsRule is shown when the check suggests the bucket lacks it.
@@ -22,7 +43,7 @@ export function StorageCheckResult({
         className="text-success flex items-center gap-1.5 text-xs"
         role="status"
       >
-        <LuCircleCheck className="size-3.5 shrink-0" aria-hidden="true" />
+        <LuCircleCheck sx={stylexStyles.rule1} aria-hidden="true" />
         Connected. A test object was written, read, and deleted.
         <span className="text-foreground-alt/70">Holds {check.usage}.</span>
       </p>
@@ -35,10 +56,7 @@ export function StorageCheckResult({
       role="alert"
     >
       <div className="flex items-start gap-2">
-        <LuTriangleAlert
-          className="text-warning mt-0.5 size-3.5 shrink-0"
-          aria-hidden="true"
-        />
+        <LuTriangleAlert sx={stylexStyles.rule2} aria-hidden="true" />
         <div className="min-w-0 flex-1">
           <h3 className="text-foreground text-xs font-medium">{check.title}</h3>
           <p className="text-foreground-alt/70 mt-1 text-xs leading-relaxed">

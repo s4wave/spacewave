@@ -9,6 +9,22 @@ import {
 import { useStorageBackends } from '@s4wave/app/session/storage/useStorageBackends.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 // SpaceStorageCard shows where the Space stores its data and moves it to
 // another storage. It shows only for accounts with storage backends.
 export function SpaceStorageCard() {
@@ -24,10 +40,7 @@ export function SpaceStorageCard() {
   )?.backend
   return (
     <div className="flex items-start gap-2 text-xs" data-testid="space-storage">
-      <LuDatabase
-        className="text-foreground-alt mt-0.5 size-3.5 shrink-0"
-        aria-hidden="true"
-      />
+      <LuDatabase sx={stylexStyles.rule1} aria-hidden="true" />
       <div className="min-w-0 space-y-1.5">
         <div className="text-foreground">
           {placed

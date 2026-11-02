@@ -47,6 +47,20 @@ import {
 
 import { TextInputDialog } from '../NoteDialogs.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 type BlockType =
   | 'paragraph'
   | 'h1'
@@ -251,7 +265,7 @@ function ToolbarPlugin() {
           disabled={!canUndo}
           title="Undo"
         >
-          <LuUndo2 className="size-3.5" />
+          <LuUndo2 sx={stylexStyles.rule1} />
         </button>
         <button
           type="button"
@@ -260,7 +274,7 @@ function ToolbarPlugin() {
           disabled={!canRedo}
           title="Redo"
         >
-          <LuRedo2 className="size-3.5" />
+          <LuRedo2 sx={stylexStyles.rule1} />
         </button>
 
         <div className="bg-border mx-1 h-4 w-px" />
@@ -275,7 +289,7 @@ function ToolbarPlugin() {
             <span className="text-foreground-alt/50 text-xs">
               {BLOCK_TYPE_LABELS[blockType]}
             </span>
-            <LuChevronDown className="size-3" />
+            <LuChevronDown sx={stylexStyles.rule2} />
           </button>
           {showBlockMenu && (
             <div className="bg-popover border-border absolute top-full left-0 z-50 mt-1 min-w-35 rounded-lg border py-1 shadow-lg pointer-coarse:max-h-24 pointer-coarse:overflow-y-auto">
@@ -304,7 +318,7 @@ function ToolbarPlugin() {
           onClick={() => formatText('bold')}
           title="Bold (Ctrl+B)"
         >
-          <LuBold className="size-3.5" />
+          <LuBold sx={stylexStyles.rule1} />
         </button>
         <button
           type="button"
@@ -312,7 +326,7 @@ function ToolbarPlugin() {
           onClick={() => formatText('italic')}
           title="Italic (Ctrl+I)"
         >
-          <LuItalic className="size-3.5" />
+          <LuItalic sx={stylexStyles.rule1} />
         </button>
         <button
           type="button"
@@ -320,7 +334,7 @@ function ToolbarPlugin() {
           onClick={() => formatText('strikethrough')}
           title="Strikethrough"
         >
-          <LuStrikethrough className="size-3.5" />
+          <LuStrikethrough sx={stylexStyles.rule1} />
         </button>
         <button
           type="button"
@@ -328,7 +342,7 @@ function ToolbarPlugin() {
           onClick={() => formatText('code')}
           title="Inline Code"
         >
-          <LuCode className="size-3.5" />
+          <LuCode sx={stylexStyles.rule1} />
         </button>
 
         <div className="bg-border mx-1 h-4 w-px" />
@@ -339,7 +353,7 @@ function ToolbarPlugin() {
           onClick={() => formatBlock('bullet')}
           title="Bullet List"
         >
-          <LuList className="size-3.5" />
+          <LuList sx={stylexStyles.rule1} />
         </button>
         <button
           type="button"
@@ -347,7 +361,7 @@ function ToolbarPlugin() {
           onClick={() => formatBlock('number')}
           title="Numbered List"
         >
-          <LuListOrdered className="size-3.5" />
+          <LuListOrdered sx={stylexStyles.rule1} />
         </button>
         <button
           type="button"
@@ -355,7 +369,7 @@ function ToolbarPlugin() {
           onClick={() => formatBlock('check')}
           title="Check List"
         >
-          <LuListChecks className="size-3.5" />
+          <LuListChecks sx={stylexStyles.rule1} />
         </button>
 
         <div className="bg-border mx-1 h-4 w-px" />
@@ -366,7 +380,7 @@ function ToolbarPlugin() {
           onClick={insertLink}
           title="Insert Link"
         >
-          <LuLink className="size-3.5" />
+          <LuLink sx={stylexStyles.rule1} />
         </button>
       </div>
       <TextInputDialog

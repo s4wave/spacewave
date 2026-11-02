@@ -2,6 +2,25 @@ import { LuCheck, LuX } from '@s4wave/web/images/icons.js'
 
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    color: themeColors['--color-brand'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    color: themeColors['--color-destructive'],
+  },
+})
+
 // CheckoutResultPage renders a static checkout result for desktop app users.
 // When the desktop app opens Stripe in an external browser, Stripe redirects
 // here after completion. The desktop app receives status via streaming RPC.
@@ -13,7 +32,7 @@ export function CheckoutResultPage({ success }: { success?: boolean }) {
         {success ? (
           <>
             <div className="bg-brand/10 flex size-16 items-center justify-center rounded-full">
-              <LuCheck className="text-brand size-8" />
+              <LuCheck sx={stylexStyles.rule1} />
             </div>
             <h1 className="text-foreground text-xl font-semibold">
               Subscription activated!
@@ -25,7 +44,7 @@ export function CheckoutResultPage({ success }: { success?: boolean }) {
         ) : (
           <>
             <div className="bg-destructive/10 flex size-16 items-center justify-center rounded-full">
-              <LuX className="text-destructive size-8" />
+              <LuX sx={stylexStyles.rule2} />
             </div>
             <h1 className="text-foreground text-xl font-semibold">
               Checkout canceled

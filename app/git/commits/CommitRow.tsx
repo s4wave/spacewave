@@ -6,6 +6,20 @@ import type { CommitInfo, DiffFileStat } from '@s4wave/sdk/git/repo.pb.js'
 import { formatRelativeTime } from '../util.js'
 import { DiffStatSection } from './DiffStatSection.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 // CommitRowProps are props for the CommitRow component.
 export interface CommitRowProps {
   commit: CommitInfo
@@ -57,9 +71,9 @@ export function CommitRow({
           onClick={handleCommitExpand}
         >
           {expanded ? (
-            <LuChevronDown className="text-foreground-alt size-3" />
+            <LuChevronDown sx={stylexStyles.rule1} />
           ) : (
-            <LuChevronRight className="text-foreground-alt size-3" />
+            <LuChevronRight sx={stylexStyles.rule1} />
           )}
         </button>
         <button

@@ -1,6 +1,20 @@
 import type { DragEvent, MouseEvent, ReactNode } from 'react'
 import { LuUpload } from '@s4wave/web/images/icons.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    color: themeColors['--color-brand'],
+  },
+})
+
 interface UnixFSBrowserDropSurfaceProps {
   children: ReactNode
   isDragging: boolean
@@ -38,7 +52,7 @@ export function UnixFSBrowserDropSurface({
       {isDragging && (
         <div className="border-brand/50 bg-brand/5 pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-md border-2 border-dashed">
           <div className="flex flex-col items-center gap-2">
-            <LuUpload className="text-brand size-8" />
+            <LuUpload sx={stylexStyles.rule1} />
             <span className="text-brand text-sm font-medium">
               Drop files to upload
             </span>

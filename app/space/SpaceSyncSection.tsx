@@ -40,6 +40,20 @@ import { toast } from '@s4wave/web/ui/toaster.js'
 import { deviceName } from './device-name.js'
 import { SyncPeerList } from './SyncPeerList.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 // TakeOver is the wording of one way to make this device the main device.
 interface TakeOver {
   title: string
@@ -132,13 +146,13 @@ export function SpaceSyncSection() {
           {canTakeOver && (
             <div className="flex flex-wrap gap-2">
               <DashboardButton
-                icon={<LuMonitor className="size-3" />}
+                icon={<LuMonitor sx={stylexStyles.rule1} />}
                 onClick={() => setTakeOver(MAKE_MAIN)}
               >
                 Make this the main device
               </DashboardButton>
               <DashboardButton
-                icon={<LuCircleAlert className="size-3" />}
+                icon={<LuCircleAlert sx={stylexStyles.rule1} />}
                 onClick={() => setTakeOver(MAIN_LOST)}
               >
                 The main device is lost
@@ -260,7 +274,7 @@ function SyncChoice({
         selected={merged}
         onSelect={() => onChoose(SpaceSequencer.SpaceSequencer_MERGE)}
         disabled={disabled || merged}
-        icon={<LuGitMerge className="size-3.5" />}
+        icon={<LuGitMerge sx={stylexStyles.rule2} />}
         label="Merge"
         description="Everyone keeps working and edits combine."
       />
@@ -268,7 +282,7 @@ function SyncChoice({
         selected={!merged}
         onSelect={() => oneOrder && onChoose(oneOrder)}
         disabled={disabled || !merged || !oneOrder}
-        icon={<LuListOrdered className="size-3.5" />}
+        icon={<LuListOrdered sx={stylexStyles.rule2} />}
         label="One order"
         description={oneOrderDescription(merged ? oneOrder : sequencer)}
       />

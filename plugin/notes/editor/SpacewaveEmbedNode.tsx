@@ -10,6 +10,16 @@ import type { JSX } from 'react'
 import { DecoratorNode } from 'lexical'
 import { LuLayers } from '@s4wave/web/images/icons.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+  },
+})
+
 type SerializedSpacewaveEmbedNode = Spread<
   { path: string; type: 'spacewave-embed'; version: 1 },
   SerializedLexicalNode
@@ -70,7 +80,7 @@ export class SpacewaveEmbedNode extends DecoratorNode<JSX.Element> {
     return (
       <div className="bg-card border-border flex items-center gap-3 rounded-lg border p-3">
         <div className="text-brand flex items-center">
-          <LuLayers className="size-5" />
+          <LuLayers sx={stylexStyles.rule1} />
         </div>
         <div className="min-w-0 flex-1">
           <div className="text-foreground truncate text-xs font-medium">

@@ -13,6 +13,21 @@ import {
   LuArrowDown,
 } from '@s4wave/web/images/icons.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    flexShrink: 0,
+  },
+})
+
 interface NotebookSidebarProps {
   sources: NotebookSource[]
   selectedSource: number
@@ -73,7 +88,7 @@ function NotebookSidebar({
             title="Add source"
             onClick={onAddSource}
           >
-            <LuPlus className="size-3" />
+            <LuPlus sx={stylexStyles.rule1} />
           </button>
         </div>
       </div>
@@ -100,11 +115,11 @@ function NotebookSidebar({
                   }}
                 >
                   {expanded ? (
-                    <LuChevronDown className="size-3 shrink-0" />
+                    <LuChevronDown sx={stylexStyles.rule2} />
                   ) : (
-                    <LuChevronRight className="size-3 shrink-0" />
+                    <LuChevronRight sx={stylexStyles.rule2} />
                   )}
-                  <LuFolder className="size-3 shrink-0" />
+                  <LuFolder sx={stylexStyles.rule2} />
                   <span className="truncate">
                     {source.name || `Source ${index + 1}`}
                   </span>
@@ -120,7 +135,7 @@ function NotebookSidebar({
                       onMoveSource?.(index, -1)
                     }}
                   >
-                    <LuArrowUp className="size-3" />
+                    <LuArrowUp sx={stylexStyles.rule1} />
                   </button>
                   <button
                     type="button"
@@ -132,7 +147,7 @@ function NotebookSidebar({
                       onMoveSource?.(index, 1)
                     }}
                   >
-                    <LuArrowDown className="size-3" />
+                    <LuArrowDown sx={stylexStyles.rule1} />
                   </button>
                   <button
                     type="button"
@@ -143,7 +158,7 @@ function NotebookSidebar({
                       onRemoveSource?.(index)
                     }}
                   >
-                    <LuTrash2 className="size-3" />
+                    <LuTrash2 sx={stylexStyles.rule1} />
                   </button>
                 </span>
               </div>

@@ -13,6 +13,15 @@ import { cn } from '@s4wave/web/style/utils.js'
 
 import * as stylex from '@stylexjs/stylex'
 
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 const dialogStyles = stylex.create({
   description: { overflowWrap: 'break-word' },
 })
@@ -115,7 +124,7 @@ export function RenameSpaceDialog({
           onClick={() => handleOpenChange(false)}
           className="text-foreground-alt hover:text-foreground focus-visible:ring-brand fine-pointer:size-4 absolute top-2 right-2 flex size-11 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none sm:top-4 sm:right-4"
         >
-          <LuX className="size-4" />
+          <LuX sx={stylexStyles.rule1} />
           <span className="sr-only">Close</span>
         </button>
 

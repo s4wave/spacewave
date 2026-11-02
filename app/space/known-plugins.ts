@@ -1,4 +1,4 @@
-import React from 'react'
+import type { IconType } from '@s4wave/web/images/icons.js'
 import { LuMonitor, LuNotebookPen, LuPuzzle } from '@s4wave/web/images/icons.js'
 
 // KnownSpacePlugin describes a plugin the app can suggest installing into a
@@ -11,7 +11,7 @@ export interface KnownSpacePlugin {
   // Description is a short summary of what the plugin adds.
   description: string
   // Icon renders beside the plugin name in the picker.
-  icon: React.ComponentType<{ className?: string }>
+  icon: IconType
 }
 
 // KNOWN_SPACE_PLUGINS is the curated presentation metadata (name, icon, fallback

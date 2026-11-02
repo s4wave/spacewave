@@ -8,6 +8,15 @@ import type { KvSortDirection } from './kv-viewer.js'
 
 import * as stylex from '@stylexjs/stylex'
 
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 const stylexStyles = stylex.create({ rule1: { flex: 1 } })
 
 interface KvKeyListToolbarProps {
@@ -45,9 +54,9 @@ export function KvKeyListToolbar({
       <DashboardButton
         icon={
           sortDirection === 'asc' ? (
-            <LuArrowDownAZ className="size-3.5" />
+            <LuArrowDownAZ sx={stylexStyles2.rule1} />
           ) : (
-            <LuArrowUpAZ className="size-3.5" />
+            <LuArrowUpAZ sx={stylexStyles2.rule1} />
           )
         }
         onClick={onToggleSortDirection}

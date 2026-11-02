@@ -494,7 +494,7 @@ function ResultsDisplay({ results }: { results: BenchmarkResults }) {
             /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary hover:text-text-primary flex cursor-pointer items-center gap-1.5 text-xs transition-colors'
           }
         >
-          <LuDownload {...stylex.props(stylexStyles.rule15)} />
+          <LuDownload sx={stylexStyles.rule15} />
           Download JSON
         </button>
       </div>
@@ -644,7 +644,7 @@ function BenchmarkPanel({ debugDb }: { debugDb: Resource<DebugDb> }) {
               running ? stylexStyles.rule31 : stylexStyles.rule32,
             ]}
           >
-            <LuPlay {...stylex.props(stylexStyles.rule15)} />
+            <LuPlay sx={stylexStyles.rule15} />
             {running ? 'Running…' : 'Run Benchmark'}
           </button>
         </div>
@@ -701,7 +701,7 @@ export function DebugDbBench() {
     <div sx={stylexStyles.rule34}>
       <div sx={stylexStyles.rule35}>
         <button type="button" onClick={goBack} sx={stylexStyles.rule36}>
-          <LuArrowLeft {...stylex.props(stylexStyles.rule37)} />
+          <LuArrowLeft sx={stylexStyles.rule37} />
           Back to home
         </button>
 

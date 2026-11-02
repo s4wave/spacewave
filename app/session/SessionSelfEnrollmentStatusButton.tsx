@@ -24,6 +24,16 @@ import {
   useSessionSelfEnrollmentStatus,
 } from './SessionSelfEnrollmentStatusContext.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 // SessionSelfEnrollmentStatusButton registers the self-enrollment bottom-bar item.
 export function SessionSelfEnrollmentStatusButton() {
   const status = useSessionSelfEnrollmentStatus()
@@ -83,15 +93,15 @@ function SessionSelfEnrollmentStatusGlyph({
     return <Spinner size="sm" />
   }
   if (status.failed) {
-    return <LuCircleAlert className="size-3.5" aria-hidden="true" />
+    return <LuCircleAlert sx={stylexStyles.rule1} aria-hidden="true" />
   }
   if (status.credentialRequired) {
-    return <LuKeyRound className="size-3.5" aria-hidden="true" />
+    return <LuKeyRound sx={stylexStyles.rule1} aria-hidden="true" />
   }
   if (status.skipped) {
-    return <LuSkipForward className="size-3.5" aria-hidden="true" />
+    return <LuSkipForward sx={stylexStyles.rule1} aria-hidden="true" />
   }
-  return <LuCircleCheck className="size-3.5" aria-hidden="true" />
+  return <LuCircleCheck sx={stylexStyles.rule1} aria-hidden="true" />
 }
 
 // useSelfEnrollmentActions runs the start and skip actions of the status
@@ -188,7 +198,7 @@ function SessionSelfEnrollmentStatusPopover({
             {busy ? (
               <Spinner size="sm" />
             ) : (
-              <LuRotateCw className="size-3.5" aria-hidden="true" />
+              <LuRotateCw sx={stylexStyles.rule1} aria-hidden="true" />
             )}
             {status.startLabel}
           </Button>
@@ -200,7 +210,7 @@ function SessionSelfEnrollmentStatusPopover({
               disabled={!status.resource || busy || status.running}
               onClick={skip}
             >
-              <LuSkipForward className="size-3.5" aria-hidden="true" />
+              <LuSkipForward sx={stylexStyles.rule1} aria-hidden="true" />
               Skip
             </Button>
           )}

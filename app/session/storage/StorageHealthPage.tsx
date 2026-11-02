@@ -7,6 +7,21 @@ import { BackButton } from '@s4wave/web/ui/BackButton.js'
 import { StorageBackendsSection } from './StorageBackendsSection.js'
 import { StorageHealth } from './StorageHealth.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    flexShrink: 0,
+    color: themeColors['--color-foreground'],
+  },
+})
+
 interface StorageHealthPageProps {
   recovery?: boolean
   storageIncident?: boolean
@@ -39,10 +54,7 @@ export function StorageHealthPage({
           Back
         </BackButton>
         <div className="mb-6 flex items-center gap-2">
-          <Icon
-            className="text-foreground size-5 shrink-0"
-            aria-hidden="true"
-          />
+          <Icon sx={stylexStyles.rule1} aria-hidden="true" />
           <div>
             <h1 className="text-foreground text-lg font-semibold tracking-tight">
               {recovery ? 'Storage recovery' : 'Storage health'}

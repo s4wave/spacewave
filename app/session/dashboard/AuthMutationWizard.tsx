@@ -43,6 +43,66 @@ import { useEntityKeypairs } from './useEntityKeypairs.js'
 
 import * as stylex from '@stylexjs/stylex'
 
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule2: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: themeColors['--color-brand'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: themeColors['--color-brand'],
+  },
+  rule4: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule5: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    flexShrink: 0,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule6: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: themeColors['--color-brand'],
+  },
+  rule7: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: themeColors['--color-yellow-500'],
+  },
+  rule8: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    flexShrink: 0,
+    color: themeColors['--color-brand'],
+  },
+  rule9: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-brand'],
+  },
+})
+
 const dialogStyles = stylex.create({
   content: {
     maxWidth: {
@@ -436,7 +496,7 @@ function MutationNav({
           disabled={executing}
           className="text-foreground-alt hover:text-foreground flex items-center gap-1 rounded-md px-3 py-2 text-sm transition-colors"
         >
-          <LuArrowLeft className="size-3" />
+          <LuArrowLeft sx={stylexStyles.rule1} />
           Back
         </button>
       )}
@@ -461,7 +521,7 @@ function MutationNav({
           )}
         >
           Next
-          <LuArrowRight className="size-3" />
+          <LuArrowRight sx={stylexStyles.rule1} />
         </button>
       ) : (
         <button
@@ -502,14 +562,14 @@ function ExecuteLabel({
   if (mode === 'remove') {
     return (
       <>
-        <LuTrash2 className="size-3" />
+        <LuTrash2 sx={stylexStyles.rule1} />
         Remove
       </>
     )
   }
   return (
     <>
-      <LuDownload className="size-3" />
+      <LuDownload sx={stylexStyles.rule1} />
       Generate and download
     </>
   )
@@ -602,7 +662,7 @@ function Step0Content({
     <div className="space-y-3">
       {addMethodType === 'pem' && (
         <div className="border-brand/20 bg-brand/5 flex items-start gap-2 rounded-md border p-3">
-          <LuKey className="text-brand mt-0.5 size-4 shrink-0" />
+          <LuKey sx={stylexStyles.rule2} />
           <div>
             <p className="text-foreground text-sm font-medium">
               Backup key (.pem)
@@ -752,7 +812,7 @@ function UnlockRow({
     return (
       <div className="border-foreground/10 flex items-center justify-between gap-2 rounded-md border px-3 py-2">
         <div className="flex min-w-0 items-center gap-2">
-          <LuLockOpen className="text-brand size-3.5 shrink-0" />
+          <LuLockOpen sx={stylexStyles.rule3} />
           <div className="min-w-0">
             <p className="text-foreground text-sm font-medium">
               {methodLabel(method)}
@@ -776,7 +836,7 @@ function UnlockRow({
   return (
     <div className="border-foreground/10 space-y-2 rounded-md border px-3 py-2">
       <div className="flex items-center gap-2">
-        <LuLock className="text-foreground-alt size-3.5 shrink-0" />
+        <LuLock sx={stylexStyles.rule4} />
         <div className="min-w-0 flex-1">
           <p className="text-foreground text-sm font-medium">
             {methodLabel(method)}
@@ -814,7 +874,7 @@ function UnlockRow({
                 'flex items-center gap-1.5',
               )}
             >
-              <LuUpload className="text-foreground-alt size-3 shrink-0" />
+              <LuUpload sx={stylexStyles.rule5} />
               <span
                 className={cn(!cred.pemFileName && 'text-foreground-alt/50')}
               >
@@ -878,9 +938,9 @@ function Step2Confirm({
       >
         <div className="flex items-center gap-2">
           {ready ? (
-            <LuShieldCheck className="text-brand size-4 shrink-0" />
+            <LuShieldCheck sx={stylexStyles.rule6} />
           ) : (
-            <LuLock className="size-4 shrink-0 text-yellow-500" />
+            <LuLock sx={stylexStyles.rule7} />
           )}
           <p className="text-foreground text-sm font-medium">
             {ready
@@ -920,7 +980,7 @@ function Step2Confirm({
               const truncated = truncatePeerId(pid)
               return (
                 <div key={pid} className="flex items-center gap-2 text-xs">
-                  <LuCheck className="text-brand size-3 shrink-0" />
+                  <LuCheck sx={stylexStyles.rule8} />
                   <span className="text-foreground">
                     {methodLabel(kp.keypair?.authMethod ?? '')}
                   </span>
@@ -948,7 +1008,7 @@ function CompleteView({
   return (
     <div className="flex flex-col items-center gap-3 py-4">
       <div className="bg-brand/10 flex size-10 items-center justify-center rounded-full">
-        <LuCheck className="text-brand size-5" />
+        <LuCheck sx={stylexStyles.rule9} />
       </div>
       <p className="text-foreground text-sm font-medium">
         {mode === 'add'

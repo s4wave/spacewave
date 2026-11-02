@@ -9,6 +9,16 @@ import { cn } from '@s4wave/web/style/utils.js'
 
 import type { EphemeralEdge } from './types.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 interface GraphLinkPillProps {
   edge: EphemeralEdge
   loaded: boolean
@@ -79,9 +89,9 @@ export function GraphLinkPill({
         <GraphLinkBadges edge={edge} />
         <span className="ml-auto flex items-center gap-1">
           {loaded ? (
-            <LuLocateFixed className="size-3" />
+            <LuLocateFixed sx={stylexStyles.rule1} />
           ) : (
-            <LuPlus className="size-3" />
+            <LuPlus sx={stylexStyles.rule1} />
           )}
           {loaded ? 'Focus' : 'Load'}
         </span>
@@ -96,7 +106,7 @@ export function GraphLinkPill({
           onClick={onHide}
           title={`Hide ${edge.predicate} link`}
         >
-          <LuEyeOff className="size-3" />
+          <LuEyeOff sx={stylexStyles.rule1} />
         </button>
       )}
       {edge.userRemovable && onDelete && (
@@ -106,7 +116,7 @@ export function GraphLinkPill({
           onClick={onDelete}
           title={`Delete ${edge.predicate} link`}
         >
-          <LuTrash2 className="size-3" />
+          <LuTrash2 sx={stylexStyles.rule1} />
         </button>
       )}
     </div>

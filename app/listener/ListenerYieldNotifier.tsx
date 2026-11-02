@@ -31,6 +31,32 @@ import { toast } from '@s4wave/web/ui/toaster.js'
 
 import { RuntimeHandoffProvider } from '@s4wave/app/listener/RuntimeHandoffContext.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    flexShrink: 0,
+    color: themeColors['--color-warning'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    color: themeColors['--color-warning'],
+  },
+})
+
 // ListenerYieldNotifier watches for daemon-control takeover prompts
 // emitted by the native resource listener's yield broker. When a
 // prompt arrives it surfaces a modal so the user can allow or deny
@@ -134,7 +160,7 @@ function ListenerYieldNotifierInner({
         <DialogContent showCloseButton={false}>
           <DialogHeader>
             <DialogTitle variant="withIcon">
-              <LuTriangleAlert className="text-warning size-5 shrink-0" />
+              <LuTriangleAlert sx={stylexStyles.rule1} />
               Allow command-line takeover?
             </DialogTitle>
             <DialogDescription>
@@ -148,7 +174,7 @@ function ListenerYieldNotifierInner({
           <div className="border-foreground/10 bg-background/30 rounded-lg border p-4">
             <div className="flex items-start gap-3">
               <div className="border-foreground/10 bg-background/60 flex size-10 shrink-0 items-center justify-center rounded-full border">
-                <LuTerminal className="text-foreground-alt size-5" />
+                <LuTerminal sx={stylexStyles.rule2} />
               </div>
               <div className="min-w-0 flex-1 space-y-2">
                 <div className="space-y-0.5">
@@ -251,7 +277,7 @@ function RuntimeHandoffBanner({
       className="border-warning/20 bg-warning/5 flex w-full flex-wrap items-center justify-between gap-3 border-b px-3 py-1.5"
     >
       <div className="flex min-w-0 flex-1 items-start gap-2">
-        <LuTriangleAlert className="text-warning size-3.5 shrink-0" />
+        <LuTriangleAlert sx={stylexStyles.rule3} />
         <div className="min-w-0">
           <p className="text-foreground/80 text-xs font-medium select-none">
             Runtime handed off

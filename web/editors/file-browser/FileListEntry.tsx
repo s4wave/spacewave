@@ -1,3 +1,6 @@
+import * as ownerStylex from '@stylexjs/stylex'
+import { cn as ownerClasses } from '@s4wave/web/style/utils.js'
+import { groupMarker as ownergroupMarker } from '@s4wave/web/style/relations.stylex.js'
 import {
   type ReactNode,
   useCallback,
@@ -37,6 +40,29 @@ import {
   colors as themeColors,
   fonts as themeFonts,
 } from '../../style/tokens.stylex.js'
+
+import { motion as themeMotion } from '../../style/tokens.stylex.js'
+import { groupMarker } from '../../style/relations.stylex.js'
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground-alt'],
+    opacity: {
+      default: 0,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker)]: 1,
+      },
+      '@media (pointer: coarse)': 1,
+    },
+    transitionProperty: 'opacity',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+})
 
 const stylexStyles3 = stylex.create({
   rule1: {
@@ -357,20 +383,20 @@ function FileEntryName({
 }) {
   let icon = (
     <LuFile
-      {...stylex.props([
+      sx={[
         stylexStyles3.rule1,
         selected ? stylexStyles3.rule2 : stylexStyles3.rule3,
-      ])}
+      ]}
       style={{ '--file-entry-color': entry.color }}
     />
   )
   if (entry.isDir) {
     icon = (
       <LuFolder
-        {...stylex.props([
+        sx={[
           stylexStyles3.rule1,
           selected ? stylexStyles3.rule4 : stylexStyles3.rule5,
-        ])}
+        ]}
         style={{ '--file-entry-color': entry.color }}
       />
     )
@@ -462,7 +488,10 @@ function FileEntryRow({
       style={style}
       className={
         /* TODO(stylex): global or unknown class: group */ cn(
-          'group relative flex items-center px-3 py-1.5 text-xs [@media(pointer:coarse)]:py-0',
+          ownerClasses(
+            'group relative flex items-center px-3 py-1.5 text-xs [@media(pointer:coarse)]:py-0',
+            ownerStylex.props(ownergroupMarker).className,
+          ),
           'cursor-pointer transition-colors select-none',
           selected
             ? 'bg-brand/10 text-foreground'
@@ -508,11 +537,7 @@ function FileEntryRow({
         }}
         onContextMenu={row.dotsClick}
       >
-        <LuEllipsis
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: group-hover:opacity-100 */ 'text-foreground-alt size-4 opacity-0 transition-opacity group-hover:opacity-100 [@media(pointer:coarse)]:opacity-100'
-          }
-        />
+        <LuEllipsis sx={stylexStyles4.rule1} />
       </button>
     </div>
   )

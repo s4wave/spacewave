@@ -3,6 +3,33 @@ import { LuCheck, LuCopy } from '@s4wave/web/images/icons.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: themeColors['--color-success'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule3: {
+    marginRight: themeLayout['--spacing'],
+    display: 'inline',
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 interface PairingCodeChipProps {
   code: string
   className?: string
@@ -39,15 +66,9 @@ export function PairingCodeChip({ code, className }: PairingCodeChipProps) {
       >
         <span>{formatted}</span>
         {copied ? (
-          <LuCheck
-            className="text-success size-4 shrink-0"
-            aria-hidden="true"
-          />
+          <LuCheck sx={stylexStyles.rule1} aria-hidden="true" />
         ) : (
-          <LuCopy
-            className="text-foreground-alt size-4 shrink-0"
-            aria-hidden="true"
-          />
+          <LuCopy sx={stylexStyles.rule2} aria-hidden="true" />
         )}
       </button>
       <span
@@ -59,7 +80,7 @@ export function PairingCodeChip({ code, className }: PairingCodeChipProps) {
       >
         {copied ? (
           <>
-            <LuCheck className="mr-1 inline size-3" aria-hidden="true" />
+            <LuCheck sx={stylexStyles.rule3} aria-hidden="true" />
             Copied
           </>
         ) : (

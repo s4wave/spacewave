@@ -9,6 +9,59 @@ import {
 import { useSessionStorageStats } from '@s4wave/app/session/SessionStorageStatsContext.js'
 import { useLocalSessionOnboardingContext } from '@s4wave/app/session/setup/LocalSessionOnboardingContext.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+import { groupMarker } from '../../web/style/relations.stylex.js'
+
+import { groupMarker as groupMarker2 } from '../../web/style/relations.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    minWidth: 0,
+    flex: 1,
+    cursor: 'pointer',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    flexShrink: 0,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker)]:
+          themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 // SetupBanner renders a persistent inline banner while local session onboarding
 // is incomplete. It stays hidden when the onboarding state cannot be read, as on
 // a bound web listener, where setup is not available.
@@ -63,12 +116,12 @@ export function SetupBanner() {
       <button
         type="button"
         onClick={handleSetupClick}
-        className="group flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 px-3 py-1.5 transition-colors"
+        sx={[stylexStyles2.rule1, groupMarker2]}
       >
         <p className="text-foreground/80 group-hover:text-foreground text-xs font-medium transition-colors select-none">
           Finish setting up your account
         </p>
-        <LuArrowRight className="text-foreground-alt group-hover:text-foreground size-3 shrink-0 transition-colors" />
+        <LuArrowRight sx={stylexStyles.rule1} />
       </button>
       <button
         type="button"
@@ -76,7 +129,7 @@ export function SetupBanner() {
         className="text-foreground-alt hover:text-foreground shrink-0 px-2 py-1.5 transition-colors"
         aria-label="Dismiss setup banner"
       >
-        <LuX className="size-3" />
+        <LuX sx={stylexStyles.rule2} />
       </button>
     </div>
   )

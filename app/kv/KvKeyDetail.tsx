@@ -20,6 +20,16 @@ import {
 } from './kv-encoding.js'
 import type { KvKeyRow } from './kv-viewer.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 interface KvKeyDetailProps {
   handle: Resource<KvStore>
   row: KvKeyRow
@@ -179,7 +189,7 @@ function KvKeyEditorPane({
           disabled={!dirty || busy || parseError != null}
           size="toolbar"
         >
-          <LuSave className="size-3.5" />
+          <LuSave sx={stylexStyles.rule1} />
           Save
         </Button>
         <Button
@@ -188,7 +198,7 @@ function KvKeyEditorPane({
           disabled={!dirty || busy}
           size="toolbar"
         >
-          <LuUndo2 className="size-3.5" />
+          <LuUndo2 sx={stylexStyles.rule1} />
           Discard
         </Button>
         <div className="flex-1" />
@@ -201,7 +211,7 @@ function KvKeyEditorPane({
               disabled={busy}
               size="toolbar"
             >
-              <LuTrash2 className="size-3.5" />
+              <LuTrash2 sx={stylexStyles.rule1} />
               Confirm
             </Button>
             <Button
@@ -220,7 +230,7 @@ function KvKeyEditorPane({
             variant="dangerGhost"
             size="toolbar"
           >
-            <LuTrash2 className="size-3.5" />
+            <LuTrash2 sx={stylexStyles.rule1} />
             Delete
           </Button>
         )}

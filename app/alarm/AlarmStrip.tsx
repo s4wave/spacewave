@@ -9,6 +9,16 @@ import { cn } from '@s4wave/web/style/utils.js'
 import { loadDashboardAlarms, type KeyedAlarm } from './alarm-query.js'
 import { alarmStatus, chipText } from './alarm-view.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 // clockPeriodMs is how often the strip ages its chips.
 const clockPeriodMs = 15_000
 
@@ -64,7 +74,7 @@ export function AlarmChips({
                   'bg-warning/15 text-warning hover:bg-warning/25',
               )}
             >
-              <LuSiren className="size-3" aria-hidden />
+              <LuSiren sx={stylexStyles.rule1} aria-hidden />
               <span className="font-medium">{alarm.title || 'Alarm'}</span>
               <span className="tabular-nums">{chipText(alarm, nowMs)}</span>
             </button>
