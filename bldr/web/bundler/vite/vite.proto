@@ -215,6 +215,9 @@ message BuildWebPkgRequest {
   bool js_minification = 10;
   // JsSourcemaps controls JavaScript sourcemap output for this build.
   bool js_sourcemaps = 11;
+  // PackageRoots maps shared package IDs to source roots for compiler metadata.
+  // These imports stay external in JavaScript; StyleX reads their static exports.
+  map<string, string> package_roots = 12;
 }
 
 // BuildWebPkgResponse is the response from building a single web package.

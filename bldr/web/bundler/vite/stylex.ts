@@ -33,6 +33,10 @@ interface CompiledModule {
 export function stylexCss(
   distRoot?: string,
   cssDelivery: 'stylesheet' | 'module' = 'stylesheet',
+  metadata: {
+    packageRoots?: Readonly<Record<string, string>>
+    resolveImport?: (specifier: string) => string | null
+  } = {},
 ): Plugin & { api: { sources(): IterableIterator<string> } } {
   // Bundled compiler services resolve their shipped sources independently of the host script.
   const runtimeFile = distRoot
@@ -49,6 +53,14 @@ export function stylexCss(
     { source: string; promise: Promise<CompiledModule> } | null
   >()
   const owner = { sources: () => modules.keys() }
+
+  // Compiler metadata resolves against the same package sources the build owner selected.
+  const packageRoots = metadata.packageRoots ?? {}
+  const packages = Object.keys(packageRoots).sort(
+    (left, right) => right.length - left.length,
+  )
+
+  // Vite installs its current configuration before any source transforms.
   let enabled = true
   let config: ResolvedConfig
   let resolveTheme: ReturnType<ResolvedConfig['createResolver']>
@@ -82,7 +94,11 @@ export function stylexCss(
         )
       )
         continue
-      const resolved = await resolveTheme(specifier, file)
+      const pkg = packages.find((pkg) => specifier.startsWith(pkg + '/'))
+      const metadataSource = pkg
+        ? resolve(packageRoots[pkg]!, specifier.slice(pkg.length + 1))
+        : (metadata.resolveImport?.(specifier) ?? specifier)
+      const resolved = await resolveTheme(metadataSource, file)
       if (!resolved)
         throw new Error(`Cannot resolve StyleX theme ${specifier} from ${file}`)
       aliases[specifier] = [resolved.split('?')[0]!]

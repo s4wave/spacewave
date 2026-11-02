@@ -20,7 +20,11 @@ it('attaches application and shared UI sources to one canonical graph', async ()
   const probe = join(directory, 'Probe.tsx')
   await writeFile(
     probe,
-    `export { Button } from '@s4wave/web/ui/button.js'
+    `import * as stylex from '@stylexjs/stylex'
+import {buttonMarker} from '@s4wave/web/style/button-icons.stylex.js'
+const styles=stylex.create({consumer:{paddingTop:{default:0,[stylex.when.ancestor(':is(*)',buttonMarker)]:13}}})
+export const consumer=stylex.props(styles.consumer)
+export { Button } from '@s4wave/web/ui/button.js'
 export { Button as SameButton } from '../../web/ui/button.js'
 export { useBldrContext } from '@aptre/bldr-react'
 export { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
@@ -66,6 +70,11 @@ export { createRoot } from 'react-dom/client'
     expect(code).toContain('from "@aptre/bldr-react"')
     expect(code).toContain('from "@aptre/bldr-sdk/hooks/useResource.js"')
     expect(code).toContain('from "react-dom/client"')
+    const css = await fetch(
+      prefix + probe.slice(repoRoot.length + 1) + '.bldr-stylex.css',
+    )
+    expect(css.status).toBe(200)
+    expect(await css.text()).toContain('padding-top:13px')
     const button = await fetch(prefix + 'web/ui/button.tsx')
     expect(button.status).toBe(200)
     expect(await button.text()).not.toContain('/b/pkg/@s4wave/web/')
