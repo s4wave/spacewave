@@ -38,6 +38,10 @@ func main() {
 		finish(prepareBootstrap())
 		println("SPACEWAVE_OS_PID1 gomaxprocs=" + strconv.Itoa(runtime.GOMAXPROCS(0)))
 	} else {
+		// Mount namespaces are per-thread. Keep this goroutine on its private
+		// namespace through helper exec, workload wait and all deferred unmounts.
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
 		finish(unix.Unshare(unix.CLONE_NEWNS))
 		finish(unix.Mount("", "/", "", unix.MS_REC|unix.MS_PRIVATE, ""))
 	}

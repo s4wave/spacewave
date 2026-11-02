@@ -36,6 +36,8 @@ func TestRootPinsRevision(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer writable.Release()
+
+	// Commit a replacement through the live writer without changing the snapshot.
 	file, err := writable.Lookup(ctx, "workload")
 	if err != nil {
 		t.Fatal(err)
