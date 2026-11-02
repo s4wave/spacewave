@@ -142,11 +142,7 @@ function CollapsedBottomBarItems({
           ...
         </BottomBarButton>
       </DropdownMenuTrigger>
-      <DropdownMenuContent
-        side="top"
-        align="start"
-        {...stylex.props(stylexStyles.rule3)}
-      >
+      <DropdownMenuContent side="top" align="start" sx={stylexStyles.rule3}>
         {items.map((item) => {
           const itemSelected = openMenu === item.id
           const hasContextMenu = (item.contextMenuItems?.length ?? 0) > 0
@@ -225,7 +221,7 @@ function BottomBarContextMenu({
       <DropdownMenuContent
         side="top"
         align="center"
-        {...stylex.props(stylexStyles.rule5)}
+        sx={stylexStyles.rule5}
         aria-label={item?.contextMenuLabel ?? `${item?.id ?? ''} actions`}
         onCloseAutoFocus={(event) => {
           const trigger = returnFocusRef.current

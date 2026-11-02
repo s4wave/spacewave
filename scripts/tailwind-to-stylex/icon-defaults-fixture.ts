@@ -27,6 +27,12 @@ export async function writeIconDefaultsFixture(
     version === 'before'
       ? 'className="size-7 text-[#112233] group-data-[selected=true]:opacity-50"'
       : 'sx={styles.caller}'
+  const checkboxWidth =
+    version === 'before' ? 'className="w-[180px]"' : 'sx={styles.width(180)}'
+  const submenuSize =
+    version === 'before'
+      ? 'className="pointer-coarse:min-h-11"'
+      : 'sx={styles.coarseSubmenu}'
   await writeFile(
     join(root, 'IconDefaultsSamples.tsx'),
     `
@@ -39,7 +45,7 @@ import{Command,CommandList,CommandItem}from'./command';
 import{CodeBlockTitle}from'./code-block-icons';
 import{ButtonGroupText}from'./button-group';
 import{TraceIcon}from'./trace';
-const styles=stylex.create({caller:{width:28,height:28,color:'rgb(17,34,51)',opacity:{default:null,[stylex.when.ancestor(':is([data-selected="true"])',groupMarker)]:.5}}});
+const styles=stylex.create({width:(width:number)=>({width}),coarseSubmenu:{minHeight:{default:null,'@media (pointer: coarse)':44}},caller:{width:28,height:28,color:'rgb(17,34,51)',opacity:{default:null,[stylex.when.ancestor(':is([data-selected="true"])',groupMarker)]:.5}}});
 function InlineSamples(){return <>
 <Command value="caller"><CommandList><CommandItem variant="dashboard" value="default"><LuPlus/>Default command</CommandItem><CommandItem variant="dashboard" value="caller"><LuPlus ${caller}/>Caller command</CommandItem></CommandList></Command>
 <CodeBlockTitle><LuPlus/>Default code title</CodeBlockTitle><CodeBlockTitle><LuPlus ${caller}/>Caller code title</CodeBlockTitle>
@@ -47,16 +53,16 @@ function InlineSamples(){return <>
 <TraceIcon><LuPlus/></TraceIcon><TraceIcon><LuPlus ${caller}/></TraceIcon>
 </>}
 function DropdownSamples(){return <DropdownMenu open modal={false}><DropdownMenuTrigger>Icon dropdown</DropdownMenuTrigger><DropdownMenuContent>
-<DropdownMenuItem><LuPlus/>Default item</DropdownMenuItem><DropdownMenuItem><LuPlus ${caller}/>Caller item</DropdownMenuItem><DropdownMenuItem variant="destructive"><LuPlus ${caller}/>Destructive item</DropdownMenuItem><DropdownMenuItem disabled><LuPlus/>Disabled item</DropdownMenuItem>
-<DropdownMenuCheckboxItem checked><LuPlus ${caller}/>Checked item</DropdownMenuCheckboxItem>
+<DropdownMenuItem><LuPlus/>Default item</DropdownMenuItem><DropdownMenuItem><LuPlus ${caller}/>Caller item</DropdownMenuItem><DropdownMenuItem variant="destructive"><LuPlus ${caller}/>Destructive item</DropdownMenuItem><DropdownMenuItem inset><LuPlus/>Inset item</DropdownMenuItem><DropdownMenuItem variant="selected"><LuPlus/>Selected item</DropdownMenuItem><DropdownMenuItem disabled><LuPlus/>Disabled item</DropdownMenuItem>
+<DropdownMenuCheckboxItem checked ${checkboxWidth} style={{opacity:.9,'--checkbox-caller':'retained'}}><LuPlus ${caller}/>Checked item</DropdownMenuCheckboxItem>
 <DropdownMenuRadioGroup value="chosen"><DropdownMenuRadioItem value="chosen"><LuPlus ${caller}/>Radio item</DropdownMenuRadioItem></DropdownMenuRadioGroup>
-<DropdownMenuSub><DropdownMenuSubTrigger><LuPlus ${caller}/>Submenu item</DropdownMenuSubTrigger></DropdownMenuSub>
+<DropdownMenuSub><DropdownMenuSubTrigger ${submenuSize}><LuPlus ${caller}/>Submenu item</DropdownMenuSubTrigger></DropdownMenuSub>
 </DropdownMenuContent></DropdownMenu>}
 function MenubarSamples(){return <Menubar value="icons"><MenubarMenu value="icons"><MenubarTrigger>Icon menubar</MenubarTrigger><MenubarContent>
-<MenubarItem><LuPlus/>Default item</MenubarItem><MenubarItem><LuPlus ${caller}/>Caller item</MenubarItem><MenubarItem variant="destructive"><LuPlus ${caller}/>Destructive item</MenubarItem><MenubarItem disabled><LuPlus/>Disabled item</MenubarItem>
-<MenubarCheckboxItem checked><LuPlus ${caller}/>Checked item</MenubarCheckboxItem>
+<MenubarItem><LuPlus/>Default item</MenubarItem><MenubarItem><LuPlus ${caller}/>Caller item</MenubarItem><MenubarItem variant="destructive"><LuPlus ${caller}/>Destructive item</MenubarItem><MenubarItem inset><LuPlus/>Inset item</MenubarItem><MenubarItem variant="dimmed"><LuPlus/>Dimmed item</MenubarItem><MenubarItem disabled><LuPlus/>Disabled item</MenubarItem>
+<MenubarCheckboxItem checked ${checkboxWidth} style={{opacity:.9,'--checkbox-caller':'retained'}}><LuPlus ${caller}/>Checked item</MenubarCheckboxItem>
 <MenubarRadioGroup value="chosen"><MenubarRadioItem value="chosen"><LuPlus ${caller}/>Radio item</MenubarRadioItem></MenubarRadioGroup>
-<MenubarSub><MenubarSubTrigger><LuPlus ${caller}/>Submenu item</MenubarSubTrigger></MenubarSub>
+<MenubarSub><MenubarSubTrigger ${submenuSize}><LuPlus ${caller}/>Submenu item</MenubarSubTrigger></MenubarSub>
 </MenubarContent></MenubarMenu></Menubar>}
 export function IconDefaultsSamples(){const mode=new URLSearchParams(location.search).get('icon-defaults');return <main id="icon-defaults-fixture">{mode==='dropdown'?<DropdownSamples/>:mode==='menubar'?<MenubarSamples/>:<InlineSamples/>}</main>}
 `,

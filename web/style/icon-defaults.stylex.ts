@@ -79,3 +79,26 @@ export const iconDefaults = stylex.create({
     },
   },
 })
+
+/** iconRequired retains menu interaction rules independently of explicit caller defaults. */
+export const iconRequired = stylex.create({
+  menu: {
+    pointerEvents: {
+      default: null,
+      [stylex.when.ancestor(':is(*)', menuIconMarker)]: 'none',
+    },
+    flexShrink: {
+      default: null,
+      [stylex.when.ancestor(':is(*)', menuIconMarker)]: 0,
+    },
+  },
+  menuDestructive: {
+    color: {
+      default: null,
+      [stylex.when.ancestor(
+        ':is([data-variant="destructive"]) >',
+        menuIconMarker,
+      )]: `${colors['--color-destructive']} !important`,
+    },
+  },
+})

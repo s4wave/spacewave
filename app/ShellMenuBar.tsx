@@ -32,6 +32,16 @@ import { useKeybindingGraph } from '@s4wave/web/command/useKeybindingGraph.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../web/style/tokens.stylex.js'
 
+const stylexStyles2 = stylex.create({
+  rule1: { height: '100%' },
+  rule2: {
+    minHeight: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 5)`,
@@ -254,7 +264,7 @@ export function ShellMenuBar() {
         <AppLogo className="size-7" />
       </button>
       <div className="shell-menu-mobile hidden h-full items-center">
-        <Menubar variant="shell" className="h-full">
+        <Menubar variant="shell" sx={stylexStyles2.rule1}>
           <MenubarMenu>
             <MenubarTrigger asChild>
               <button
@@ -271,7 +281,7 @@ export function ShellMenuBar() {
                 const items = node ? sortedGroupedChildren(node.children) : []
                 return (
                   <MenubarSub key={name}>
-                    <MenubarSubTrigger className="pointer-coarse:min-h-11">
+                    <MenubarSubTrigger sx={stylexStyles2.rule2}>
                       {name}
                     </MenubarSubTrigger>
                     <MenubarSubContent data-phone-menu>
@@ -304,7 +314,7 @@ export function ShellMenuBar() {
           'narrow:w-0 narrow:opacity-0',
         )}
       >
-        <Menubar variant="shell" className="h-full">
+        <Menubar variant="shell" sx={stylexStyles2.rule1}>
           {topLevelMenus.map((name) => {
             const node = menuTree.get(name)
             const items = node ? sortedGroupedChildren(node.children) : []

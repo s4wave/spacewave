@@ -30,6 +30,17 @@ const propertyName = (name: string) =>
     ? name
     : name.replace(/-([a-z])/g, (_, letter: string) => letter.toUpperCase())
 
+// conditionTarget gives each state its own StyleX priority instead of hiding it in one selector.
+function conditionTarget(style: StyleRule, condition: string): StyleRule {
+  const parts = condition.match(/:{1,2}[\w-]+(?:\([^)]*\))?|\[[^\]]+\]/g)!
+  let target = style
+  for (const part of parts) {
+    const key = part.startsWith('[') ? `:is(${part})` : part
+    target = (target[key] ??= {}) as StyleRule
+  }
+  return target
+}
+
 // readRule accepts only selectors that style the element carrying the class.
 function readRule(container: Container, selector: string): StyleRule {
   // Preserve each CSS condition around the declarations it actually controls.
@@ -38,7 +49,16 @@ function readRule(container: Container, selector: string): StyleRule {
     if (node.type === 'decl') {
       const declaration = node as Declaration
       if (declaration.important) throw new Error('important declaration')
-      style[propertyName(declaration.prop)] = declaration.value
+      // Keep the forced-color outline's style in the same property as its normal default.
+      if (declaration.prop === 'outline') {
+        if (declaration.value !== '2px solid #0000')
+          throw new Error('outline shorthand')
+        Object.assign(style, {
+          outlineWidth: '2px',
+          outlineStyle: 'solid',
+          outlineColor: '#0000',
+        })
+      } else style[propertyName(declaration.prop)] = declaration.value
     } else if (node.type === 'atrule') {
       if (!['media', 'container', 'supports'].includes(node.name))
         throw new Error(`@${node.name} rule`)
@@ -54,11 +74,13 @@ function readRule(container: Container, selector: string): StyleRule {
       else if (
         /^:{1,2}(?:[\w-]+(?:\([^)]*\))?)(?::[\w-]+(?:\([^)]*\))?)*$/.test(
           condition,
-        )
+        ) ||
+        /^(?::[\w-]+(?:\([^)]*\))?|\[[^\]]+\])+$/.test(condition)
       )
-        style[condition] = readRule(node, selector)
-      else if (/^(?::[\w-]+(?:\([^)]*\))?|\[[^\]]+\])+$/.test(condition))
-        style[`:is(${condition})`] = readRule(node, selector)
+        Object.assign(
+          conditionTarget(style, condition),
+          readRule(node, selector),
+        )
       else {
         const relation = relationCondition(condition)
         if (!relation)

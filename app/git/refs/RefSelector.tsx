@@ -19,6 +19,14 @@ import {
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
 
+const stylexStyles2 = stylex.create({
+  rule1: {
+    maxHeight: `calc(${themeLayout['--spacing']} * 75)`,
+    minWidth: `calc(${themeLayout['--spacing']} * 45)`,
+    overflowY: 'auto',
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -76,7 +84,7 @@ export function RefSelector({
       <DropdownMenuContent
         align="start"
         variant="compact"
-        className="max-h-75 min-w-45 overflow-y-auto"
+        sx={stylexStyles2.rule1}
       >
         {branches.length > 0 && (
           <DropdownMenuGroup>

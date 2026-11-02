@@ -493,12 +493,9 @@ function OverflowMenu({
       <DropdownMenuContent
         align="end"
         variant="compact"
-        {...stylex.props(stylexStyles2.rule8)}
+        sx={stylexStyles2.rule8}
       >
-        <DropdownMenuItem
-          {...stylex.props(stylexStyles2.rule9)}
-          onClick={onSearchClick}
-        >
+        <DropdownMenuItem sx={stylexStyles2.rule9} onClick={onSearchClick}>
           <LuSearch sx={stylexStyles2.rule10} />
           Search
         </DropdownMenuItem>
@@ -506,7 +503,7 @@ function OverflowMenu({
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              {...stylex.props(stylexStyles2.rule9)}
+              sx={stylexStyles2.rule9}
               onClick={onBack}
               disabled={!canGoBack}
             >
@@ -514,7 +511,7 @@ function OverflowMenu({
               Back
             </DropdownMenuItem>
             <DropdownMenuItem
-              {...stylex.props(stylexStyles2.rule9)}
+              sx={stylexStyles2.rule9}
               onClick={onForward}
               disabled={!canGoForward}
             >
@@ -522,7 +519,7 @@ function OverflowMenu({
               Forward
             </DropdownMenuItem>
             <DropdownMenuItem
-              {...stylex.props(stylexStyles2.rule9)}
+              sx={stylexStyles2.rule9}
               onClick={onUp}
               disabled={!canGoUp}
               {...upDropHandlers(
@@ -540,10 +537,7 @@ function OverflowMenu({
         {showNewFolderItem && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              {...stylex.props(stylexStyles2.rule9)}
-              onClick={onNewFolder}
-            >
+            <DropdownMenuItem sx={stylexStyles2.rule9} onClick={onNewFolder}>
               <LuFolderPlus sx={stylexStyles2.rule10} />
               New folder
             </DropdownMenuItem>

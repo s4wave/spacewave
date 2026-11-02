@@ -34,6 +34,9 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+
+const stylexStyles2 = stylex.create({"rule1":{"minWidth":`calc(${themeLayout["--spacing"]} * 45)`}})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 5)`,
@@ -156,7 +159,7 @@ export function WasiVmWindowsMenu({ windows, onOpen }: WasiVmWindowsMenuProps) {
           <span className="hidden @md:inline">Windows</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" variant="compact" className="min-w-45">
+      <DropdownMenuContent align="end" variant="compact" sx={stylexStyles2.rule1}>
         <DropdownMenuLabel>Open in tab</DropdownMenuLabel>
         {windows.length === 0 ? (
           <DropdownMenuItem disabled>No windows are open</DropdownMenuItem>

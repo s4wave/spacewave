@@ -104,7 +104,7 @@ export function ComponentSelector({
       <DropdownMenuContent
         side={placement === 'below' ? 'bottom' : 'top'}
         align={placement === 'below' ? 'start' : 'end'}
-        {...stylex.props(stylexStyles.rule2)}
+        sx={stylexStyles.rule2}
       >
         <DropdownMenuLabel>Available Components</DropdownMenuLabel>
         {groups.map((group, index) => (

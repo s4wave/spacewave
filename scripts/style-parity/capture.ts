@@ -13,6 +13,7 @@ export interface ParityState {
   id: string
   path: string
   hasTouch?: boolean
+  forcedColors?: 'active' | 'none'
   ready: string | ((page: Page) => Promise<void>)
   setup?: (page: Page) => Promise<void>
 }
@@ -88,6 +89,7 @@ export async function capture(
                 viewport,
                 deviceScaleFactor: 1,
                 hasTouch: state.hasTouch,
+                forcedColors: state.forcedColors,
                 colorScheme: 'dark',
                 locale: 'en-US',
                 timezoneId: 'UTC',

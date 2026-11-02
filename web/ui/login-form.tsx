@@ -81,7 +81,10 @@ const actionStyles = stylex.create({
       '@media (hover: hover)': {
         default: null,
         ':hover': `color-mix(in oklab, ${themeColors2['--color-brand']} 20%, transparent)`,
-        ':disabled:hover': `color-mix(in oklab, ${themeColors2['--color-foreground']} 5%, transparent)`,
+        ':disabled': {
+          default: null,
+          ':hover': `color-mix(in oklab, ${themeColors2['--color-foreground']} 5%, transparent)`,
+        },
       },
       ':disabled': `color-mix(in oklab, ${themeColors2['--color-foreground']} 5%, transparent)`,
     },

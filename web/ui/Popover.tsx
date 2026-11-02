@@ -35,12 +35,13 @@ const styles = stylex.create({
     boxShadow:
       'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     '--tw-outline-style': 'none',
-    outlineStyle: 'none',
-    outlineOffset: { default: null, '@media (forced-colors: active)': '2px' },
-    outline: {
-      default: null,
-      '@media (forced-colors: active)': '2px solid #0000',
+    outlineStyle: {
+      default: 'none',
+      '@media (forced-colors: active)': 'solid',
     },
+    outlineOffset: { default: null, '@media (forced-colors: active)': '2px' },
+    outlineWidth: { default: null, '@media (forced-colors: active)': '2px' },
+    outlineColor: { default: null, '@media (forced-colors: active)': '#0000' },
     '--tw-enter-translate-y': {
       default: null,
       ':is([data-side="bottom"])': '-.5rem',
