@@ -14,6 +14,176 @@ import {
   radii as themeRadii,
 } from '../style/tokens.stylex.js'
 
+const stylexStyles2 = stylex.create({
+  rule1: {
+    dynamicRangeLimit: 'var(--hdr-dynamic-range)',
+    borderColor: 'var(--hdr-border-color)',
+    boxShadow: 'var(--hdr-box-shadow)',
+    backgroundColor: themeColors['--color-background-deep'],
+    backgroundImage: 'none',
+    backgroundPositionX: '0%',
+    backgroundPositionY: '0%',
+    backgroundSize: 'auto',
+    backgroundRepeat: 'repeat',
+    backgroundAttachment: 'scroll',
+    backgroundOrigin: 'padding-box',
+    backgroundClip: 'border-box',
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 20)`,
+    width: `calc(${themeLayout['--spacing']} * 36)`,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    textAlign: 'center',
+  },
+  rule2: {
+    dynamicRangeLimit: 'no-limit',
+    backgroundColor: 'var(--hdr-sample-color)',
+    filter: 'var(--hdr-sample-filter)',
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    width: `calc(${themeLayout['--spacing']} * 12)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '.25rem',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: '9px',
+    lineHeight: 1.5,
+  },
+  rule3: {
+    backgroundColor: 'var(--hdr-text-background)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-lg'],
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule4: {
+    color: 'white',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule5: {
+    color: 'white',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+  },
+  rule6: {
+    color: 'white',
+    textShadow: '0 0 3px rgb(0 0 0 / 80%)',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule7: {
+    dynamicRangeLimit: 'no-limit',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule8: {
+    dynamicRangeLimit: 'no-limit',
+    display: 'flex',
+    gap: themeLayout['--spacing'],
+  },
+  rule9: {
+    dynamicRangeLimit: 'no-limit',
+    backgroundColor:
+      'oklch( var(--hdr-ramp-lightness) var(--hdr-ramp-chroma) var(--hdr-ramp-hue) )',
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 12)`,
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    borderRadius: '.25rem',
+    paddingBottom: themeLayout['--spacing'],
+    fontSize: '8px',
+    lineHeight: 1.5,
+  },
+  rule10: { color: 'var(--color-black)' },
+  rule11: { color: themeColors['--color-white'] },
+  rule12: {
+    dynamicRangeLimit: 'no-limit',
+    borderColor: `var(--hdr-glow-active-border, ${themeColors['--color-ui-outline-active']})`,
+    boxShadow: '0 0 10px 2px var(--hdr-glow-active-shadow, transparent)',
+    backgroundColor: themeColors['--color-background-primary'],
+    backgroundImage: 'none',
+    backgroundPositionX: '0%',
+    backgroundPositionY: '0%',
+    backgroundSize: 'auto',
+    backgroundRepeat: 'repeat',
+    backgroundAttachment: 'scroll',
+    backgroundOrigin: 'padding-box',
+    backgroundClip: 'border-box',
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 32)`,
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+  },
+  rule13: {
+    dynamicRangeLimit: 'standard',
+    borderColor: themeColors['--color-window-border'],
+    boxShadow: '0 2px 8px var(--hdr-shadow-recede, rgb(0 0 0 / 30%))',
+    backgroundColor: themeColors['--color-background-primary'],
+    backgroundImage: 'none',
+    backgroundPositionX: '0%',
+    backgroundPositionY: '0%',
+    backgroundSize: 'auto',
+    backgroundRepeat: 'repeat',
+    backgroundAttachment: 'scroll',
+    backgroundOrigin: 'padding-box',
+    backgroundClip: 'border-box',
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 32)`,
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+  },
+  rule14: {
+    dynamicRangeLimit: 'standard',
+    borderColor: themeColors['--color-window-border'],
+    backgroundColor: themeColors['--color-background-primary'],
+    backgroundImage: 'none',
+    backgroundPositionX: '0%',
+    backgroundPositionY: '0%',
+    backgroundSize: 'auto',
+    backgroundRepeat: 'repeat',
+    backgroundAttachment: 'scroll',
+    backgroundOrigin: 'padding-box',
+    backgroundClip: 'border-box',
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 32)`,
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+  },
+  rule15: {
+    backgroundColor: 'var(--hdr-token-color)',
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+    width: `calc(${themeLayout['--spacing']} * 12)`,
+    borderRadius: '.25rem',
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     display: 'flex',
@@ -296,9 +466,7 @@ function GlowBox({
 }) {
   return (
     <div
-      className={
-        /* TODO(stylex): global or unknown class: hdr-glow-box */ 'hdr-glow-box flex h-20 w-36 flex-col items-center justify-center rounded-lg border text-center'
-      }
+      sx={stylexStyles2.rule1}
       style={{
         '--hdr-dynamic-range': dynamicRange,
         '--hdr-border-color': color,
@@ -321,9 +489,7 @@ function BrightnessStrip({ color, label }: { color: string; label: string }) {
         {levels.map((b) => (
           <div
             key={b}
-            className={
-              /* TODO(stylex): global or unknown class: hdr-brightness-sample */ 'hdr-brightness-sample micro-nine flex h-8 w-12 items-center justify-center rounded font-mono'
-            }
+            sx={stylexStyles2.rule2}
             style={{
               '--hdr-sample-color': color,
               '--hdr-sample-filter': `brightness(${b})`,
@@ -340,39 +506,18 @@ function BrightnessStrip({ color, label }: { color: string; label: string }) {
 // TextContrast tests text on various backgrounds at different sizes.
 function TextContrast({ bg, bgLabel }: { bg: string; bgLabel: string }) {
   return (
-    <div
-      className={
-        /* TODO(stylex): global or unknown class: hdr-text-background */ 'hdr-text-background flex flex-col gap-2 rounded-lg p-3'
-      }
-      style={{ '--hdr-text-background': bg }}
-    >
+    <div sx={stylexStyles2.rule3} style={{ '--hdr-text-background': bg }}>
       <span sx={stylexStyles.rule8}>{bgLabel}</span>
-      <span
-        className={
-          /* TODO(stylex): global or unknown class: hdr-white-text */ 'hdr-white-text text-xs'
-        }
-      >
+      <span sx={stylexStyles2.rule4}>
         White 10px: The quick brown fox jumps over the lazy dog
       </span>
-      <span
-        className={
-          /* TODO(stylex): global or unknown class: hdr-white-text */ 'hdr-white-text text-xs'
-        }
-      >
+      <span sx={stylexStyles2.rule4}>
         White 12px: The quick brown fox jumps over the lazy dog
       </span>
-      <span
-        className={
-          /* TODO(stylex): global or unknown class: hdr-white-text */ 'hdr-white-text text-sm'
-        }
-      >
+      <span sx={stylexStyles2.rule5}>
         White 14px: The quick brown fox jumps over the lazy dog
       </span>
-      <span
-        className={
-          /* TODO(stylex): global or unknown class: hdr-white-text-shadow */ 'hdr-white-text-shadow text-xs'
-        }
-      >
+      <span sx={stylexStyles2.rule6}>
         White 12px + shadow: The quick brown fox jumps over the lazy dog
       </span>
     </div>
@@ -788,11 +933,7 @@ export function HDRDebug() {
               no-limit. On HDR displays, values above 1.0 should produce visibly
               brighter output.
             </p>
-            <div
-              className={
-                /* TODO(stylex): global or unknown class: hdr-no-limit */ 'hdr-no-limit flex flex-col gap-3'
-              }
-            >
+            <div sx={stylexStyles2.rule7}>
               <BrightnessStrip color="var(--color-brand)" label="brand" />
               <BrightnessStrip
                 color="var(--color-primary)"
@@ -813,23 +954,17 @@ export function HDRDebug() {
               Tests oklch lightness values beyond 1.0 under no-limit. On HDR
               displays, L &gt; 1.0 should be brighter than standard white.
             </p>
-            <div
-              className={
-                /* TODO(stylex): global or unknown class: hdr-no-limit */ 'hdr-no-limit flex gap-1'
-              }
-            >
+            <div sx={stylexStyles2.rule8}>
               {[
                 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2,
                 1.3, 1.4, 1.5,
               ].map((l) => (
                 <div
                   key={l}
-                  className={
-                    /* TODO(stylex): global or unknown class: hdr-ramp-sample */ cn(
-                      'hdr-ramp-sample flex h-12 w-10 items-end justify-center rounded pb-1 micro-eight',
-                      l > 0.6 ? 'text-black' : 'text-white',
-                    )
-                  }
+                  sx={[
+                    stylexStyles2.rule9,
+                    l > 0.6 ? stylexStyles2.rule10 : stylexStyles2.rule11,
+                  ]}
                   style={{
                     '--hdr-ramp-lightness': l,
                     '--hdr-ramp-chroma': 0,
@@ -843,23 +978,17 @@ export function HDRDebug() {
             <p sx={stylexStyles.rule19}>
               Same with chroma (hue 10, brand red):
             </p>
-            <div
-              className={
-                /* TODO(stylex): global or unknown class: hdr-no-limit */ 'hdr-no-limit flex gap-1'
-              }
-            >
+            <div sx={stylexStyles2.rule8}>
               {[
                 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2,
                 1.3, 1.4, 1.5,
               ].map((l) => (
                 <div
                   key={l}
-                  className={
-                    /* TODO(stylex): global or unknown class: hdr-ramp-sample */ cn(
-                      'hdr-ramp-sample flex h-12 w-10 items-end justify-center rounded pb-1 micro-eight',
-                      l > 0.6 ? 'text-black' : 'text-white',
-                    )
-                  }
+                  sx={[
+                    stylexStyles2.rule9,
+                    l > 0.6 ? stylexStyles2.rule10 : stylexStyles2.rule11,
+                  ]}
                   style={{
                     '--hdr-ramp-lightness': l,
                     '--hdr-ramp-chroma': 0.15,
@@ -873,23 +1002,17 @@ export function HDRDebug() {
             <p sx={stylexStyles.rule19}>
               Same with chroma (hue 153, success green):
             </p>
-            <div
-              className={
-                /* TODO(stylex): global or unknown class: hdr-no-limit */ 'hdr-no-limit flex gap-1'
-              }
-            >
+            <div sx={stylexStyles2.rule8}>
               {[
                 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2,
                 1.3, 1.4, 1.5,
               ].map((l) => (
                 <div
                   key={l}
-                  className={
-                    /* TODO(stylex): global or unknown class: hdr-ramp-sample */ cn(
-                      'hdr-ramp-sample flex h-12 w-10 items-end justify-center rounded pb-1 micro-eight',
-                      l > 0.6 ? 'text-black' : 'text-white',
-                    )
-                  }
+                  sx={[
+                    stylexStyles2.rule9,
+                    l > 0.6 ? stylexStyles2.rule10 : stylexStyles2.rule11,
+                  ]}
                   style={{
                     '--hdr-ramp-lightness': l,
                     '--hdr-ramp-chroma': 0.22,
@@ -911,19 +1034,11 @@ export function HDRDebug() {
               dynamic-range-limit: standard with a receding shadow.
             </p>
             <div sx={stylexStyles.rule23}>
-              <div
-                className={
-                  /* TODO(stylex): global or unknown class: hdr-panel-active */ 'hdr-panel-active flex h-32 flex-1 flex-col items-center justify-center rounded-lg border'
-                }
-              >
+              <div sx={stylexStyles2.rule12}>
                 <span sx={stylexStyles.rule24}>Active Panel</span>
                 <span sx={stylexStyles.rule25}>no-limit + glow</span>
               </div>
-              <div
-                className={
-                  /* TODO(stylex): global or unknown class: hdr-panel-inactive */ 'hdr-panel-inactive flex h-32 flex-1 flex-col items-center justify-center rounded-lg border'
-                }
-              >
+              <div sx={stylexStyles2.rule13}>
                 <span
                   className={
                     /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary text-sm'
@@ -933,11 +1048,7 @@ export function HDRDebug() {
                 </span>
                 <span sx={stylexStyles.rule25}>standard + recede</span>
               </div>
-              <div
-                className={
-                  /* TODO(stylex): global or unknown class: hdr-panel-flat */ 'hdr-panel-flat flex h-32 flex-1 flex-col items-center justify-center rounded-lg border'
-                }
-              >
+              <div sx={stylexStyles2.rule14}>
                 <span
                   className={
                     /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary text-sm'
@@ -1028,9 +1139,7 @@ export function HDRDebug() {
                   ].map(([name, color]) => (
                     <div key={name} sx={stylexStyles.rule28}>
                       <div
-                        className={
-                          /* TODO(stylex): global or unknown class: hdr-token-swatch */ 'hdr-token-swatch h-6 w-12 rounded'
-                        }
+                        sx={stylexStyles2.rule15}
                         style={{ '--hdr-token-color': color }}
                       />
                       <span sx={stylexStyles.rule6}>{name}</span>
@@ -1052,9 +1161,7 @@ export function HDRDebug() {
                   ].map(([name, color]) => (
                     <div key={name} sx={stylexStyles.rule28}>
                       <div
-                        className={
-                          /* TODO(stylex): global or unknown class: hdr-token-swatch */ 'hdr-token-swatch h-6 w-12 rounded'
-                        }
+                        sx={stylexStyles2.rule15}
                         style={{ '--hdr-token-color': color }}
                       />
                       <span sx={stylexStyles.rule6}>{name}</span>

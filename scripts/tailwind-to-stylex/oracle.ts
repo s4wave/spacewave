@@ -1,11 +1,16 @@
 import { readFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
-import { __unstable__loadDesignSystem, optimize } from '@tailwindcss/node'
+import {
+  __unstable__loadDesignSystem,
+  compile,
+  optimize,
+} from '@tailwindcss/node'
 import postcss, { type Container, type Declaration } from 'postcss'
 import { parseSync } from '@babel/core'
 import { join } from 'node:path'
 import { cn } from 'cnfast'
 import { expandAnimation } from './animation.js'
+import { expandBackground } from './background.js'
 import { relationMarkers, relationCondition } from './relations.js'
 
 /** StyleRule is a StyleX declaration object with nested conditions. */
@@ -65,12 +70,100 @@ function readRule(container: Container, selector: string): StyleRule {
   return style
 }
 
+// readComponentClasses accepts one plain rule below the utility layer and rejects related selectors.
+function readComponentClasses(
+  css: string,
+  tokens: ReadonlyMap<string, string>,
+): Map<string, { style: StyleRule; order: number }> {
+  // Any second selector or conditional occurrence keeps the whole class manual.
+  const rules = new Map<string, { style: StyleRule; order: number }>()
+  const seen = new Set<string>()
+  const blocked = new Set<string>()
+  postcss.parse(css).walkRules((rule) => {
+    // Related or repeated selectors keep every part of their class in the hand pass.
+    const classes = [...rule.selector.matchAll(/\.([\w-]+)/g)].map(
+      (match) => match[1]!,
+    )
+    for (const name of classes) {
+      if (seen.has(name)) blocked.add(name)
+      seen.add(name)
+    }
+    const plain = rule.selector.match(/^\.([\w-]+)$/)?.[1]
+    if (!plain) {
+      for (const name of classes) blocked.add(name)
+      return
+    }
+
+    // Component helpers are lower than every utility; other layers need their own cascade decision.
+    let parent = rule.parent
+    let component = false
+    let supported = true
+    while (parent && parent.type !== 'root') {
+      if (
+        parent.type !== 'atrule' ||
+        parent.name !== 'layer' ||
+        parent.params !== 'components'
+      )
+        supported = false
+      else component = true
+      parent = parent.parent
+    }
+    if (
+      !component ||
+      !supported ||
+      rule.nodes.some(
+        (node) =>
+          node.type !== 'decl' || node.important || node.prop === 'animation',
+      )
+    ) {
+      blocked.add(plain)
+      return
+    }
+
+    // Native shorthand expansion preserves resets; unresolved variable shorthands remain manual.
+    try {
+      const expanded = rule.clone()
+      expanded.walkDecls('background', (declaration) => {
+        // Expand parsed resets while retaining runtime references to known color tokens.
+        const variable = declaration.value.match(/^var\((--[\w-]+)\)$/)?.[1]
+        const css = postcss.parse(
+          expandBackground(
+            declaration.value,
+            !!variable && tokens.get(variable) === 'colors',
+          ),
+        )
+        const values: Declaration[] = []
+        css.walkDecls((value) => {
+          values.push(value.clone())
+        })
+        declaration.replaceWith(...values)
+      })
+      rules.set(plain, {
+        style: readRule(expanded, rule.selector),
+        order: rules.size,
+      })
+    } catch {
+      blocked.add(plain)
+    }
+  })
+
+  // A declaration shared with a descendant, pseudo or responsive rule cannot leave that rule behind.
+  for (const name of blocked) rules.delete(name)
+  return rules
+}
+
 /** createOracle translates utilities using the repository's actual Tailwind theme. */
 export async function createOracle(theme: string) {
   // Load imports, custom utilities and variants through Tailwind's own Node resolver.
   const themeSource = await readFile(theme, 'utf8')
   const design = await __unstable__loadDesignSystem(themeSource, {
     base: dirname(theme),
+  })
+
+  // Compile application helper declarations once, including imports and @apply expansion.
+  const application = await compile(themeSource, {
+    base: dirname(theme),
+    onDependency() {},
   })
 
   // Global aliases can add typography to a utility name; retain those whole for their hand pass.
@@ -122,6 +215,11 @@ export async function createOracle(theme: string) {
       }
     }
   }
+
+  // The token inventory distinguishes runtime color variables from unresolved background recipes.
+  const componentClasses = readComponentClasses(application.build([]), tokens)
+
+  // Cache utility translations and their required property registrations for this one conversion.
   const cache = new Map<string, Translation>()
   const globalRules = new Set<string>()
 
@@ -142,7 +240,9 @@ export async function createOracle(theme: string) {
         reason: 'global class adds declarations outside the utility compiler',
       }
     else if (!css)
-      result = { kind: 'manual', reason: 'global or unknown class' }
+      result = componentClasses.has(candidate)
+        ? { kind: 'style', style: componentClasses.get(candidate)!.style }
+        : { kind: 'manual', reason: 'global or unknown class' }
     else {
       try {
         const declarations = postcss.parse(css)
@@ -196,7 +296,8 @@ export async function createOracle(theme: string) {
       .getClassOrder(candidates)
       .sort((left, right) =>
         left[1] === right[1]
-          ? 0
+          ? (componentClasses.get(left[0])?.order ?? 0) -
+            (componentClasses.get(right[0])?.order ?? 0)
           : left[1] === null
             ? -1
             : right[1] === null
