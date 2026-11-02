@@ -25,6 +25,10 @@ type worldStore struct {
 	conf   *Config
 }
 
+// SupportsAtomicCommit reports that one World root publishes the KV tree's
+// blocks and metadata together, and Commit fences the enclosing engine.
+func (*worldStore) SupportsAtomicCommit() bool { return true }
+
 // NewTransaction opens the current object root while retaining its World writer.
 func (s *worldStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	// Acquire the World transaction and retain it until the KV operation ends.
@@ -32,7 +36,7 @@ func (s *worldStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, e
 	if err != nil {
 		return nil, err
 	}
-	t := &worldTransaction{worldTx: wtx, key: s.conf.GetObjectKey()}
+	t := &worldTransaction{worldTx: wtx, engine: s.engine, key: s.conf.GetObjectKey()}
 	var success bool
 	defer func() {
 		if !success {
@@ -90,7 +94,9 @@ func (s *worldStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, e
 // Like kvtx.Tx, its methods must be called serially.
 type worldTransaction struct {
 	kvtx.Tx
-	worldTx   world.Tx
+	worldTx world.Tx
+	// engine supplies the durability fence even when World commits are deferred.
+	engine    world.Engine
 	object    world.ObjectState
 	key       string
 	cursor    *bucket_lookup.Cursor
@@ -126,7 +132,14 @@ func (t *worldTransaction) Commit(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	return t.worldTx.Commit(ctx)
+	if err := t.worldTx.Commit(ctx); err != nil {
+		return err
+	}
+
+	// Fence the enclosing World before reporting the KV commit durable. All KV
+	// bytes and metadata share its object root; discard never publishes that root.
+	_, err = t.engine.Sync(ctx)
+	return err
 }
 
 // Discard releases all resources, including the World's writer coordination.
@@ -146,4 +159,7 @@ func (t *worldTransaction) Discard() {
 	t.worldTx.Discard()
 }
 
-var _ kvtx.Store = (*worldStore)(nil)
+var (
+	_ kvtx.Store             = (*worldStore)(nil)
+	_ kvtx.AtomicCommitStore = (*worldStore)(nil)
+)
