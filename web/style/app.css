@@ -1,8 +1,9 @@
 /* Tailwind CSS */
 @import './sonner.css';
-@import 'tailwindcss';
+@import 'tailwindcss' source(none);
 @source '../../app';
 @source '../../web';
+@source '../../plugin';
 
 /* Custom variants for height-based responsive design */
 @custom-variant tall (@media (min-height: 800px));

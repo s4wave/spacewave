@@ -7,16 +7,26 @@ import { readFile } from 'node:fs/promises'
 type Edit = { start: number; end: number; text: string }
 
 const sharedApis = new Map<string, Promise<ReadonlySet<string>>>()
+const sharedDependents = new Map<string, Set<string>>()
 
 /** invalidateSharedStyleApis refreshes aliases of a component after its API changes on disk. */
 export function invalidateSharedStyleApis(filename: string): void {
+  // Invalidate the edited module's aliases and every barrel that forwards them.
+  const visited = new Set<string>()
+  const invalidate = (path: string) => {
+    if (visited.has(path)) return
+    visited.add(path)
+    sharedApis.delete(path)
+    for (const dependent of sharedDependents.get(path) ?? [])
+      invalidate(dependent)
+  }
   const base = resolve(filename).replace(/\.[cm]?[jt]sx?$/, '')
   for (const target of [
     base,
     ...(base.endsWith('/index') ? [dirname(base)] : []),
   ]) {
     for (const extension of ['', '.js', '.ts', '.tsx'])
-      sharedApis.delete(target + extension)
+      invalidate(target + extension)
   }
 }
 
@@ -38,8 +48,124 @@ function sharedPath(target: string, filename: string): string | undefined {
   if (roots.some((root) => path!.startsWith(resolve(root) + sep))) return path
 }
 
+// readSharedStyleApi follows value reexports through the module that owns each sx input.
+async function readSharedStyleApi(
+  path: string,
+  ancestors: ReadonlySet<string> = new Set(),
+): Promise<ReadonlySet<string>> {
+  // A reexport cycle stops at the module already being resolved.
+  if (ancestors.has(path)) return new Set()
+  const cached = sharedApis.get(path)
+  if (cached) return cached
+
+  // Cache module work while its direct and forwarded exports are resolved.
+  const pending = (async () => {
+    // Resolve one source module, including directory entrypoints, without scanning the tree.
+    const base = path.replace(/\.js$/, '')
+    let contents: string | undefined
+    let resolved = path
+    for (const candidate of [
+      base + '.tsx',
+      base + '.ts',
+      path,
+      resolve(base, 'index.tsx'),
+      resolve(base, 'index.ts'),
+    ]) {
+      try {
+        contents = await readFile(candidate, 'utf8')
+        resolved = candidate
+        break
+      } catch (error) {
+        if (
+          !['ENOENT', 'EISDIR', 'ENOTDIR'].includes(
+            (error as NodeJS.ErrnoException).code ?? '',
+          )
+        )
+          throw error
+      }
+    }
+    if (contents === undefined)
+      throw new Error(`Missing shared UI module: ${path}`)
+
+    // Read owned sx inputs and their public export names from the same source snapshot.
+    const { components } = prepareComponentStyles(contents, resolved, {
+      convertProps: false,
+    })
+    const api = new Set(components)
+    const parsed = parseSync(contents, {
+      filename: resolved,
+      configFile: false,
+      babelrc: false,
+      parserOpts: {
+        plugins: /\.[cm]?ts$/.test(resolved)
+          ? ['typescript']
+          : ['typescript', 'jsx'],
+      },
+    })!
+    for (const item of parsed.program.body) {
+      if (item.type === 'ExportDefaultDeclaration') {
+        const declaration = item.declaration
+        const name =
+          declaration.type === 'Identifier'
+            ? declaration.name
+            : declaration.type === 'FunctionDeclaration'
+              ? declaration.id?.name
+              : undefined
+        if (name && components.has(name)) api.add('default')
+      } else if (
+        (item.type === 'ExportNamedDeclaration' ||
+          item.type === 'ExportAllDeclaration') &&
+        item.source &&
+        item.exportKind !== 'type'
+      ) {
+        const child = sharedPath(item.source.value, resolved)
+        if (!child) continue
+        const dependents = sharedDependents.get(child) ?? new Set<string>()
+        dependents.add(path)
+        sharedDependents.set(child, dependents)
+        const forwarded = await readSharedStyleApi(
+          child,
+          new Set([...ancestors, path]),
+        )
+        if (item.type === 'ExportAllDeclaration') {
+          for (const name of forwarded) if (name !== 'default') api.add(name)
+        } else
+          for (const specifier of item.specifiers) {
+            if (
+              specifier.type !== 'ExportSpecifier' ||
+              specifier.exportKind === 'type'
+            )
+              continue
+            if (forwarded.has(specifier.local.name))
+              api.add(
+                specifier.exported.type === 'Identifier'
+                  ? specifier.exported.name
+                  : specifier.exported.value,
+              )
+          }
+      } else if (item.type === 'ExportNamedDeclaration' && !item.source) {
+        for (const specifier of item.specifiers) {
+          if (
+            specifier.type === 'ExportSpecifier' &&
+            components.has(specifier.local.name)
+          )
+            api.add(
+              specifier.exported.type === 'Identifier'
+                ? specifier.exported.name
+                : specifier.exported.value,
+            )
+        }
+      }
+    }
+    return api
+  })()
+  sharedApis.set(path, pending)
+  return pending
+}
+
 /** readSharedStyleApis reads existing sx exports instead of assuming every shared API has migrated. */
 export async function readSharedStyleApis(source: string, filename: string) {
+  // Parse imports without executing the modules whose public style APIs they use.
   const ast = parseSync(source, {
     filename,
     configFile: false,
@@ -52,84 +178,14 @@ export async function readSharedStyleApis(source: string, filename: string) {
   })!
   const imports = new Map<string, ReadonlySet<string>>()
   for (const statement of ast.program.body) {
-    if (statement.type !== 'ImportDeclaration') continue
+    if (
+      statement.type !== 'ImportDeclaration' ||
+      statement.importKind === 'type'
+    )
+      continue
     const target = statement.source.value
     const path = sharedPath(target, filename)
-    if (!path) continue
-    let pending = sharedApis.get(path)
-    if (!pending) {
-      pending = (async () => {
-        // Resolve one source module, including directory entrypoints, without scanning the tree.
-        const base = path.replace(/\.js$/, '')
-        let contents: string | undefined
-        let resolved = path
-        for (const candidate of [
-          base + '.tsx',
-          base + '.ts',
-          path,
-          resolve(base, 'index.tsx'),
-          resolve(base, 'index.ts'),
-        ]) {
-          try {
-            contents = await readFile(candidate, 'utf8')
-            resolved = candidate
-            break
-          } catch (error) {
-            if (
-              !['ENOENT', 'EISDIR', 'ENOTDIR'].includes(
-                (error as NodeJS.ErrnoException).code ?? '',
-              )
-            )
-              throw error
-          }
-        }
-        if (contents === undefined)
-          throw new Error(`Missing shared UI module: ${path}`)
-
-        // Read owned sx inputs and their public export names from the same source snapshot.
-        const { components } = prepareComponentStyles(contents, resolved, {
-          convertProps: false,
-        })
-        const api = new Set(components)
-        const parsed = parseSync(contents, {
-          filename: resolved,
-          configFile: false,
-          babelrc: false,
-          parserOpts: {
-            plugins: /\.[cm]?ts$/.test(resolved)
-              ? ['typescript']
-              : ['typescript', 'jsx'],
-          },
-        })!
-        for (const item of parsed.program.body) {
-          if (item.type === 'ExportDefaultDeclaration') {
-            const declaration = item.declaration
-            const name =
-              declaration.type === 'Identifier'
-                ? declaration.name
-                : declaration.type === 'FunctionDeclaration'
-                  ? declaration.id?.name
-                  : undefined
-            if (name && components.has(name)) api.add('default')
-          } else if (item.type === 'ExportNamedDeclaration' && !item.source) {
-            for (const specifier of item.specifiers) {
-              if (
-                specifier.type === 'ExportSpecifier' &&
-                components.has(specifier.local.name)
-              )
-                api.add(
-                  specifier.exported.type === 'Identifier'
-                    ? specifier.exported.name
-                    : specifier.exported.value,
-                )
-            }
-          }
-        }
-        return api
-      })()
-      sharedApis.set(path, pending)
-    }
-    imports.set(target, await pending)
+    if (path) imports.set(target, await readSharedStyleApi(path))
   }
   return imports
 }
