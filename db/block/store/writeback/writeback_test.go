@@ -9,9 +9,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
+	block_rpc "github.com/s4wave/spacewave/db/block/rpc"
+	block_rpc_client "github.com/s4wave/spacewave/db/block/rpc/client"
+	block_rpc_server "github.com/s4wave/spacewave/db/block/rpc/server"
 	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
 	block_store_testing "github.com/s4wave/spacewave/db/block/store/test"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -616,4 +620,65 @@ func TestUploadFillsBatches(t *testing.T) {
 	}
 	cancel()
 	<-done
+}
+
+// TestRPCWritesRetainUploadMarkers checks that writes through the real block
+// RPC persist their markers before success and drain after the store reopens.
+func TestRPCWritesRetainUploadMarkers(t *testing.T) {
+	// Serve blocks over RPC under an independent server connection context.
+	ctx := t.Context()
+	env := newTestEnv(t)
+	mux := srpc.NewMux()
+	if err := mux.Register(block_rpc.NewSRPCBlockStoreHandler(
+		block_rpc_server.NewBlockStore(ownedStore{env.vol}), "")); err != nil {
+		t.Fatal(err)
+	}
+
+	// Connect the client without carrying its write contexts into the server.
+	open := srpc.NewServerPipe(srpc.NewServer(mux))
+	client := srpc.NewClient(func(_ context.Context, handler srpc.PacketDataHandler, closed srpc.CloseHandler) (srpc.PacketWriter, error) {
+		return open(ctx, handler, closed)
+	})
+	local := block_rpc_client.NewBlockStore(block_rpc.NewSRPCBlockStoreClient(client), 0, false)
+
+	// Open the upload queue over the remote block store.
+	s, err := NewStore(ctx, local, env.vol, env.markers(t), testMarkersID, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Queue both unary and batch writes through the proxy.
+	first, _, err := s.PutBlock(ctx, []byte("unary proxy block"), leafOpts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data := []byte("batch proxy block")
+	second, err := block.BuildBlockRef(data, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: second, Data: data, RefsKnown: true}}); err != nil {
+		t.Fatal(err)
+	}
+	for _, ref := range []*block.BlockRef{first, second} {
+		if !env.isMarked(t, ref) {
+			t.Fatalf("acknowledged block %s has no marker", ref.MarshalString())
+		}
+	}
+
+	// Reopen from durable markers and upload both values through the proxy.
+	s, err = NewStore(ctx, local, env.vol, env.markers(t), testMarkersID, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status, _ := s.GetStatus(); status.Pending != 2 {
+		t.Fatalf("reopened pending=%d, want both proxy writes", status.Pending)
+	}
+	remote := newInmemBlockStore()
+	drain(t, s, remote)
+	for _, ref := range []*block.BlockRef{first, second} {
+		if found, err := remote.GetBlockExists(ctx, ref); err != nil || !found {
+			t.Fatalf("uploaded block %s exists=%v err=%v", ref.MarshalString(), found, err)
+		}
+	}
 }

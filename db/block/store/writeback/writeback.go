@@ -2,10 +2,11 @@
 // uploads it to a remote store in the background.
 //
 // A write is acknowledged once the local store holds the block and a durable
-// marker names it. The marker lives in the same key-value store as the block
-// and commits in the same transaction (see kvtx.BlockMarker), so a crash
-// leaves either both or neither, and a publication of many blocks marks them
-// all in its own transaction. Upload drains the markers to the remote store
+// marker records it. Atomic local stores commit the marker in the same
+// transaction (see kvtx.BlockMarker). Other stores, including RPC proxies,
+// persist the block before its marker; a marker failure leaves an unacknowledged
+// block that a repeated write queues again. Upload drains the markers to the
+// remote store
 // and clears each marker only after the remote store holds its block, so
 // writes made while the remote is unreachable upload after it returns, across
 // restarts. Backfill queues the blocks stored before a remote was chosen.
@@ -83,9 +84,9 @@ func (s *Store) GetStoreParts() []block.StorePart {
 // holds the same blocks as local without its ownership tracking.
 //
 // markers is the object store with ID markersID in the key-value store that
-// holds the blocks of local. Writes through the Store mark their blocks in the
-// transaction that stores them, so local must store its blocks in that
-// key-value store with kvtx.BlockMarker support (see the kvtx Volume).
+// holds the blocks of local. Atomic local stores must support kvtx.BlockMarker
+// in their writing transactions. Other stores queue markers after their block
+// writes succeed, before acknowledging the write.
 //
 // When enabled is false, writes are not queued until SetEnabled enables them.
 func NewStore(
@@ -97,7 +98,11 @@ func NewStore(
 ) (*Store, error) {
 	// Connect local block writes to the durable upload markers.
 	s := &Store{local: local, values: values, markers: markers, markersID: markersID, reads: newReadGate()}
-	s.MarkingStore = NewTxMarkingStore(local, s)
+	if publisher, ok := local.(block.AtomicPublisher); ok && publisher.SupportsAtomicPublication() {
+		s.MarkingStore = NewTxMarkingStore(local, s)
+	} else {
+		s.MarkingStore = NewMarkingStore(local, s.queue)
+	}
 
 	// Restore the pending upload counts, eviction queue size and completed
 	// backfill target.
