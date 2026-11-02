@@ -241,7 +241,9 @@ func openSeedStorage(ctx context.Context, le *logrus.Entry, dir string) (_ *Root
 		if errors.Is(err, context.Canceled) {
 			err = nil
 		}
-		return errors.Join(err, ctrl.Close())
+
+		// Execute performed the physical close; collect its cached result.
+		return errors.Join(err, ctrl.Close(), vol.Close())
 	}
 	if _, err := ctrl.GetVolume(ctx); err != nil {
 		return nil, err
