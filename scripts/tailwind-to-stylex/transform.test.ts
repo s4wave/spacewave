@@ -21,6 +21,7 @@ import { writePathFixture } from './path-fixture.js'
 import { writeTabsFixture } from './tabs-fixture.js'
 import { writeTraceFixture } from './trace-fixture.js'
 import { writeTreeFixture } from './tree-fixture.js'
+import { writeBadgeFixture } from './badge-fixture.js'
 import { stylexCss } from '../../bldr/web/bundler/vite/stylex.js'
 import { capture } from '../style-parity/capture.js'
 import { compareCaptures } from '../style-parity/compare.js'
@@ -157,6 +158,7 @@ test(
         let main = `import React from 'react';import{createRoot}from'react-dom/client';import{VmErrorBanner}from'./VmErrorBanner';import{TagChip}from'./TagChip';import{InfoCard}from'./InfoCard';import{Separator}from'./separator';import{EmptyState}from'./EmptyState';import{ErrorState}from'./ErrorState';import{ExpressionCases}from'./ExpressionCases';import{OwnedStyles}from'./OwnedStyles';import${JSON.stringify(join(root, 'fixture.css'))};createRoot(document.getElementById('root')!).render(<main><VmErrorBanner title="VM unavailable" message="Choose an available image to continue."/><TagChip tag="example"/><InfoCard title="Status" icon={<span>!</span>}>Ready</InfoCard><InfoCard compact title="Compact">Ready</InfoCard><InfoCard icon={<span>!</span>}>Untitled</InfoCard><ExpressionCases/><OwnedStyles/><Separator/><EmptyState title="Empty"/><EmptyState title="Compact" variant="compact" action={{label:'Create',onClick:()=>{}}}/><EmptyState title="Panel" variant="panel" className="p-6"/><ErrorState message="Try again" onRetry={()=>{}}/><ErrorState message="Inline" variant="inline"/><ErrorState message="Fullscreen" variant="fullscreen" className="p-6"/></main>);`
         await writeTraceFixture(root, version)
         await writeTreeFixture(root, version)
+        await writeBadgeFixture(root, version)
         main = main.replace(
           "import React from 'react';",
           "import React from 'react';import{TraceSamples}from'./TraceSamples';",
@@ -625,6 +627,7 @@ test(
         await writeDialogFixture(root, version)
         await writePathFixture(root, version)
         await writeTabsFixture(root, version)
+        main = "import{BadgeSamples}from'./BadgeSamples';" + main
         main = "import{TabsSamples}from'./TabsSamples';" + main
         main = "import{PathSamples}from'./PathSamples';" + main
         main = "import{DialogSamples}from'./DialogSamples';" + main
@@ -633,7 +636,7 @@ test(
         main = "import{SheetSamples}from'./SheetSamples';" + main
         main = main.replace(
           "createRoot(document.getElementById('root')!).render",
-          "if(new URLSearchParams(location.search).has('tree'))createRoot(document.getElementById('root')!).render(<TreeSamples/>);else if(new URLSearchParams(location.search).has('tabs'))createRoot(document.getElementById('root')!).render(<TabsSamples/>);else if(new URLSearchParams(location.search).has('path'))createRoot(document.getElementById('root')!).render(<PathSamples/>);else if(new URLSearchParams(location.search).has('dialog'))createRoot(document.getElementById('root')!).render(<DialogSamples/>);else if(new URLSearchParams(location.search).has('buttons'))createRoot(document.getElementById('root')!).render(<ButtonSamples/>);else if(new URLSearchParams(location.search).has('input'))createRoot(document.getElementById('root')!).render(<InputSamples/>);else if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
+          "if(new URLSearchParams(location.search).has('badge'))createRoot(document.getElementById('root')!).render(<BadgeSamples/>);else if(new URLSearchParams(location.search).has('tree'))createRoot(document.getElementById('root')!).render(<TreeSamples/>);else if(new URLSearchParams(location.search).has('tabs'))createRoot(document.getElementById('root')!).render(<TabsSamples/>);else if(new URLSearchParams(location.search).has('path'))createRoot(document.getElementById('root')!).render(<PathSamples/>);else if(new URLSearchParams(location.search).has('dialog'))createRoot(document.getElementById('root')!).render(<DialogSamples/>);else if(new URLSearchParams(location.search).has('buttons'))createRoot(document.getElementById('root')!).render(<ButtonSamples/>);else if(new URLSearchParams(location.search).has('input'))createRoot(document.getElementById('root')!).render(<InputSamples/>);else if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
         )
         // Discover the actual tree API through its public barrel before converting the caller.
         const treeImports = await readSharedStyleApis(
@@ -810,6 +813,24 @@ void invalidNativeDelegate;
       // Compare default and hovered controls in both engines at every accepted size.
       const manifest = {
         states: [
+          ...['default', 'hovered', 'focused'].map((mode) => ({
+            id: `badge-${mode}`,
+            path: `/?badge=${mode}`,
+            ready: async (page: import('playwright').Page) => {
+              await page.locator('#badge-fixtures').waitFor()
+              await page.evaluate(() => document.fonts.ready)
+            },
+            setup: async (page: import('playwright').Page) => {
+              if (mode === 'hovered')
+                await page
+                  .getByRole('link', { name: 'Link 2', exact: true })
+                  .hover()
+              if (mode === 'focused')
+                await page
+                  .getByRole('link', { name: 'Invalid 4', exact: true })
+                  .focus()
+            },
+          })),
           { id: 'components', path: '/', ready },
           {
             id: 'reduced-motion',
@@ -993,6 +1014,10 @@ void invalidNativeDelegate;
             'sheet-modal',
             'sheet-modal-absolute',
           ],
+        },
+        {
+          name: 'badges',
+          ids: ['badge-default', 'badge-hovered', 'badge-focused'],
         },
         {
           name: 'tree rows',

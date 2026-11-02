@@ -18,12 +18,6 @@ describe('Badge', () => {
     expect(badge.getAttribute('data-slot')).toBe('badge')
   })
 
-  it('applies custom className', () => {
-    render(<Badge className="mt-1">Custom</Badge>)
-    const badge = screen.getByText('Custom')
-    expect(badge.className).toContain('mt-1')
-  })
-
   it('renders as span by default', () => {
     render(<Badge>Span</Badge>)
     const badge = screen.getByText('Span')

@@ -12,6 +12,13 @@ import type {
 import { ExternalLink } from './ExternalLink.js'
 import { useStaticHref } from '../prerender/StaticContext.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: { marginBottom: `calc(${themeLayout['--spacing']} * 2)` },
+})
+
 const markdownOptions = {
   forceInline: true,
   overrides: {
@@ -46,7 +53,7 @@ function CategorySection({
 
   return (
     <div className="mt-4">
-      <Badge variant="release" className="mb-2">
+      <Badge variant="release" sx={stylexStyles.rule1}>
         {label}
       </Badge>
       <ul className="flex flex-col gap-2">
