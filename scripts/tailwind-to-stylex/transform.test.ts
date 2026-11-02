@@ -300,8 +300,9 @@ test(
               .replace('@s4wave/web/ui/loading/Spinner.js', './Spinner')
               .replace('@s4wave/web/ui/loading/ProgressBar.js', './ProgressBar')
               .replace(
-                /(['"])(?:\.\.\/)+(?:web\/)?style\/tokens\.stylex\.js\1/g,
-                JSON.stringify(resolve('web/style/tokens.stylex.ts')),
+                /(['"])(?:\.\.\/)+(?:web\/)?style\/(tokens|relations)\.stylex\.js\1/g,
+                (_match, _quote, module) =>
+                  JSON.stringify(resolve(`web/style/${module}.stylex.ts`)),
               ),
           )
         }
@@ -469,8 +470,9 @@ test(
             input
               .replace('../style/utils.js', '@s4wave/web/style/utils.js')
               .replace(
-                /(['"])(?:\.\.\/)+(?:web\/)?style\/tokens\.stylex\.js\1/g,
-                JSON.stringify(resolve('web/style/tokens.stylex.ts')),
+                /(['"])(?:\.\.\/)+(?:web\/)?style\/(tokens|relations)\.stylex\.js\1/g,
+                (_match, _quote, module) =>
+                  JSON.stringify(resolve(`web/style/${module}.stylex.ts`)),
               ),
           )
         }
@@ -684,8 +686,9 @@ void invalidNativeDelegate;
                 : output
             )
               .replace(
-                /(['"])(?:\.\.\/)+(?:web\/)?style\/tokens\.stylex\.js\1/g,
-                JSON.stringify(resolve('web/style/tokens.stylex.ts')),
+                /(['"])(?:\.\.\/)+(?:web\/)?style\/(tokens|relations)\.stylex\.js\1/g,
+                (_match, _quote, module) =>
+                  JSON.stringify(resolve(`web/style/${module}.stylex.ts`)),
               )
               .replace(
                 /(['"])\.\/button\.js\1/g,
@@ -766,6 +769,16 @@ void invalidNativeDelegate;
             setup: async (page: import('playwright').Page) => {
               await page
                 .getByRole('button', { name: 'Unselected branch', exact: true })
+                .hover()
+            },
+          },
+          {
+            id: 'relations-hovered',
+            path: '/',
+            ready,
+            setup: async (page: import('playwright').Page) => {
+              await page
+                .getByRole('button', { name: 'Code hover', exact: true })
                 .hover()
             },
           },
@@ -892,7 +905,7 @@ void invalidNativeDelegate;
       const groups = [
         {
           name: 'shared components',
-          ids: ['components', 'reduced-motion', 'hovered'],
+          ids: ['components', 'reduced-motion', 'hovered', 'relations-hovered'],
         },
         {
           name: 'sheets and fields',

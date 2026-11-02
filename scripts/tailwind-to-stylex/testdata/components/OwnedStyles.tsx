@@ -36,6 +36,49 @@ const passedProps: React.ComponentProps<typeof PassThrough> = {
 export function OwnedStyles({ optional = false }: { optional?: boolean } = {}) {
   return (
     <section data-existing={ComponentStyles}>
+      {[false, true].map((disabled) => (
+        <div
+          key={String(disabled)}
+          className="group flex gap-2"
+          data-disabled={disabled}
+        >
+          <span className="group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50">
+            Ancestor {String(disabled)}
+          </span>
+          <input
+            aria-label={'Peer ' + disabled}
+            type="checkbox"
+            className="peer"
+            disabled={disabled}
+          />
+          <span className="peer-disabled:cursor-not-allowed peer-disabled:opacity-50">
+            Following peer
+          </span>
+          <span>Independent sibling</span>
+        </div>
+      ))}
+      <div className="group/code flex gap-2">
+        <button type="button" aria-label="Code hover">
+          Hover code
+        </button>
+        <span className="group-hover/code:text-brand">Code action</span>
+        <div className="group/code-block">
+          <span className="group-hover/code-block:opacity-50">
+            Nested code action
+          </span>
+        </div>
+      </div>
+      {[false, true].map((expanded) => (
+        <div
+          key={String(expanded)}
+          className="group/trace-collapsible-trigger"
+          aria-expanded={expanded}
+        >
+          <span className="inline-flex group-aria-expanded/trace-collapsible-trigger:rotate-90">
+            Expansion indicator
+          </span>
+        </div>
+      ))}
       <Box label="Default box">Default</Box>
       <Box
         label="Dynamic native caller"

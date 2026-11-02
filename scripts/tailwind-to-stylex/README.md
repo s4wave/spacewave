@@ -26,8 +26,14 @@ pseudo-classes and media/container conditions. Known theme variables become
 named imports from `tokens.stylex.ts`. Compiler bindings avoid existing names.
 Unused consumed class constants and single-purpose imports are removed.
 
-An unsupported attribute remains whole, with a `TODO(stylex)` reason. Descendant,
-group and peer selectors need styles on the affected child or explicit markers.
+The existing generic group and peer classes, plus the named code, code-block,
+header and trace trigger groups, become stable exports from `relations.stylex.ts`.
+Ancestor and preceding-peer predicates compile to the official `stylex.when`
+conditions on the affected child. Named groups retain their separate scopes.
+Convert both sides of each relationship together before accepting its area.
+
+An unsupported attribute remains whole, with a `TODO(stylex)` reason. Descendant
+selectors need styles on the affected child or an explicit marker.
 Global classes and computed class helpers also need a hand pass. Mixed logical axes and physical sides with responsive or pseudo conditions stay
 manual, because StyleX atomic priorities can change their cascade. Shared-component
 API conversion and replacing forwarded `className` with `sx` are coordinated
