@@ -5,10 +5,13 @@ export default defineConfig({
   ...base,
   optimizeDeps: {
     ...base.optimizeDeps,
-    // Prebundle the fixture's renderer and Radix together without the unused Bldr entrypoints.
+    // Prebundle the renderer, controls and SDK used by the real app environment together.
     include: [
       'react',
       'react-dom/client',
+      '@aptre/bldr',
+      '@aptre/bldr-react',
+      '@radix-ui/react-tabs',
       '@radix-ui/react-collapsible',
       '@radix-ui/react-dropdown-menu',
       '@radix-ui/react-dialog',
@@ -21,6 +24,8 @@ export default defineConfig({
   test: {
     ...base.test,
     include: ['web/style/stylex-pilots.e2e.test.tsx'],
+    // The measured cold CSS and renderer preparation takes about 75 seconds on the shared host.
+    env: { ...base.test?.env, VITEST_BROWSER_IFRAME_TIMEOUT: '120000' },
     browser: {
       ...base.test.browser,
       connectTimeout: 30000,

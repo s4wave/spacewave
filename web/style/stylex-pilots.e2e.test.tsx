@@ -13,6 +13,13 @@ import { RadioOption } from '../ui/RadioOption.js'
 import { Window } from '../ui/Window.js'
 import { Input } from '../ui/input.js'
 import { PathInput } from '../ui/path/PathInput.js'
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+  tabsContentItemStyles,
+} from '../ui/tabs.js'
 import { Button, buttonVariants } from '../ui/button.js'
 import { DashboardButton } from '../ui/DashboardButton.js'
 import { DropdownTriggerButton } from '../ui/DropdownTriggerButton.js'
@@ -96,6 +103,27 @@ function PilotJourney() {
         Recipe action
       </button>
       <output aria-label="Native button actions">{buttonActions}</output>
+      <Tabs defaultValue="first" variant="debug">
+        <TabsList variant="debug">
+          <TabsTrigger value="first" variant="debug" sx={styles.headerOverride}>
+            Native first tab
+          </TabsTrigger>
+          <TabsTrigger value="disabled" variant="debug" disabled>
+            Native disabled tab
+          </TabsTrigger>
+          <TabsTrigger value="second" variant="debug">
+            Native second tab
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="first" variant="form">
+          <p sx={tabsContentItemStyles.item}>First native panel</p>
+          <div>Panel details</div>
+        </TabsContent>
+        <TabsContent value="second" variant="formTight">
+          <p sx={tabsContentItemStyles.item}>Second native panel</p>
+          <div>Panel details</div>
+        </TabsContent>
+      </Tabs>
       <PathInput
         path={path}
         onPathChange={setPath}
@@ -393,6 +421,40 @@ it('composes shared, app and plugin styles through the browser build', async () 
       page.getByRole('textbox', { name: 'Disabled native input', exact: true }),
     )
     .toBeDisabled()
+
+  // Keyboard tab activation skips disabled triggers and retains panel layout.
+  const firstTab = page.getByRole('tab', {
+    name: 'Native first tab',
+    exact: true,
+  })
+  const secondTab = page.getByRole('tab', {
+    name: 'Native second tab',
+    exact: true,
+  })
+  await expect.element(firstTab).toHaveAttribute('aria-selected', 'true')
+  expect(getComputedStyle(firstTab.element()).padding).toBe('19px')
+  await expect
+    .element(
+      page.getByRole('tab', { name: 'Native disabled tab', exact: true }),
+    )
+    .toBeDisabled()
+
+  // Moving right skips the disabled tab and reveals its associated form panel.
+  await firstTab.click()
+  await userEvent.keyboard('{ArrowRight}')
+  await expect.element(secondTab).toHaveAttribute('aria-selected', 'true')
+  await expect
+    .element(
+      page.getByRole('tabpanel', { name: 'Native second tab', exact: true }),
+    )
+    .toBeVisible()
+  expect(
+    getComputedStyle(
+      page
+        .getByRole('tabpanel', { name: 'Native second tab', exact: true })
+        .element().firstElementChild!,
+    ).marginBlockEnd,
+  ).toBe('12px')
 
   // Breadcrumb edits commit with Enter, discard with Escape and navigate through their owner.
   await page.getByRole('button', { name: 'Edit path', exact: true }).click()
