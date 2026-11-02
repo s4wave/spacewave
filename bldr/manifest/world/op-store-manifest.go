@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/s4wave/spacewave/net/peer"
@@ -194,5 +195,10 @@ func (o *StoreManifestOp) resolveManifestRef(ctx context.Context, ws world.World
 	return kept, nil
 }
 
+// GetPayloadRefs retains the manifest bundle for replay after the World unmounts.
+func (o *StoreManifestOp) GetPayloadRefs() []*block.BlockRef {
+	return []*block.BlockRef{o.GetManifestRef().GetManifestRef().GetRootRef()}
+}
+
 // _ is a type assertion
-var _ world.Operation = (*StoreManifestOp)(nil)
+var _ world.PayloadOperation = (*StoreManifestOp)(nil)
