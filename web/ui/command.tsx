@@ -19,6 +19,38 @@ import {
   fonts as themeFonts,
 } from '../style/tokens.stylex.js'
 
+const commandDialogStyles = stylex.create({
+  palette: {
+    top: 'auto',
+    bottom: `calc(${themeLayout['--spacing']} * 4)`,
+    maxHeight: themeLayout['--max-height-command-palette'],
+    width: themeLayout['--width-command-editor'],
+    '--tw-translate-y': '0px',
+    translate: 'var(--tw-translate-x) var(--tw-translate-y)',
+    overflow: 'hidden',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 95%, transparent)`,
+    padding: 0,
+    '--tw-shadow': '0 0 #0000',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    maxWidth: {
+      default: 'calc(100% - 2rem)',
+      '@media (min-width: 40rem)': 'none',
+    },
+  },
+  default: {
+    top: '38%',
+    maxHeight: 'min(28rem, 100vh - 6rem)',
+    overflow: 'hidden',
+    padding: 0,
+    maxWidth: {
+      default: 'calc(100% - 2rem)',
+      '@media (min-width: 40rem)': 'var(--container-xl)',
+    },
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     clipPath: 'inset(50%)',
@@ -190,36 +222,36 @@ function Command({
   )
 }
 
+/** CommandDialog renders the command surface in a modal dialog. */
 function CommandDialog({
   title = 'Command Palette',
   description = 'Search for a command to run...',
   children,
-  className,
+  sx,
   showCloseButton = true,
   variant,
   ...props
 }: React.ComponentProps<typeof Dialog> & {
   title?: string
   description?: string
-  className?: string
+  sx?: stylex.StyleXStyles
+  className?: never
   showCloseButton?: boolean
   variant?: 'default' | 'palette'
 }) {
   return (
     <Dialog {...props}>
-      <DialogHeader {...stylex.props(stylexStyles.rule1)}>
+      <DialogHeader sx={stylexStyles.rule1}>
         <DialogTitle>{title}</DialogTitle>
         <DialogDescription>{description}</DialogDescription>
       </DialogHeader>
       <DialogContent
-        className={
-          /* TODO(stylex): dynamic class or forwarded className */ cn(
-            'top-[38%] max-h-[min(28rem,calc(100vh-6rem))] overflow-hidden p-0 sm:max-w-xl',
-            variant === 'palette' &&
-              'border-foreground/10 bg-background-card/95 bottom-4 top-auto max-h-(--max-height-command-palette) w-(--width-command-editor) translate-y-0 shadow-none sm:max-w-none',
-            className,
-          )
-        }
+        sx={[
+          variant === 'palette'
+            ? commandDialogStyles.palette
+            : commandDialogStyles.default,
+          sx,
+        ]}
         showCloseButton={showCloseButton}
       >
         <Command

@@ -1,14 +1,23 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { LuX } from '@s4wave/web/images/icons.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import { useAppEnvironment } from '@s4wave/web/sdk/app/environment.js'
 
 import * as stylex from '@stylexjs/stylex'
 
-const stylexStyles = stylex.create({
-  rule1: {
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  layout as themeLayout,
+  motion as themeMotion,
+  fonts as themeFonts,
+} from '../style/tokens.stylex.js'
+
+const styles = stylex.create({
+  closeLabel: {
     clipPath: 'inset(50%)',
     whiteSpace: 'nowrap',
     borderWidth: 0,
@@ -19,60 +28,420 @@ const stylexStyles = stylex.create({
     position: 'absolute',
     overflow: 'hidden',
   },
+  closeIcon: { width: 16, height: 16, pointerEvents: 'none', flexShrink: 0 },
+  contentBase: {
+    position: 'fixed',
+    top: '50%',
+    left: '50%',
+    zIndex: 50,
+    '--tw-translate-x': '-50%',
+    translate: 'var(--tw-translate-x) var(--tw-translate-y)',
+    '--tw-translate-y': '-50%',
+    '--tw-shadow':
+      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    '--tw-duration': '.2s',
+    transitionDuration: '.2s',
+    animationName: {
+      default: null,
+      ':is([data-state="closed"])': 'shadcn-exit',
+      ':is([data-state="open"])': 'shadcn-enter',
+    },
+    animationDuration: {
+      default: null,
+      ':is([data-state="closed"])': '.15s',
+      ':is([data-state="open"])': '.15s',
+    },
+    animationTimingFunction: {
+      default: null,
+      ':is([data-state="closed"])': 'ease-in',
+      ':is([data-state="open"])': 'ease-out',
+    },
+    animationIterationCount: {
+      default: null,
+      ':is([data-state="closed"])': 1,
+      ':is([data-state="open"])': 1,
+    },
+    animationDirection: {
+      default: null,
+      ':is([data-state="closed"])': 'normal',
+      ':is([data-state="open"])': 'normal',
+    },
+    animationPlayState: {
+      default: null,
+      ':is([data-state="closed"])': 'running',
+      ':is([data-state="open"])': 'running',
+    },
+    animationDelay: {
+      default: null,
+      ':is([data-state="closed"])': '0s',
+      ':is([data-state="open"])': '0s',
+    },
+    animationFillMode: {
+      default: null,
+      ':is([data-state="closed"])': 'both',
+      ':is([data-state="open"])': 'both',
+    },
+    animationTimeline: {
+      default: null,
+      ':is([data-state="closed"])': 'auto',
+      ':is([data-state="open"])': 'auto',
+    },
+    '--tw-exit-opacity': { default: null, ':is([data-state="closed"])': '0' },
+    '--tw-exit-scale': { default: null, ':is([data-state="closed"])': '.95' },
+    '--tw-enter-opacity': { default: null, ':is([data-state="open"])': '0' },
+    '--tw-enter-scale': { default: null, ':is([data-state="open"])': '.95' },
+  },
+  headerBase: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  overlay: {
+    position: 'fixed',
+    inset: 0,
+    zIndex: 50,
+    backgroundColor: 'color-mix(in oklab, var(--color-black) 50%, transparent)',
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    animationName: {
+      default: null,
+      ':is([data-state="closed"])': 'shadcn-exit',
+      ':is([data-state="open"])': 'shadcn-enter',
+    },
+    animationDuration: {
+      default: null,
+      ':is([data-state="closed"])': '.15s',
+      ':is([data-state="open"])': '.15s',
+    },
+    animationTimingFunction: {
+      default: null,
+      ':is([data-state="closed"])': 'ease-in',
+      ':is([data-state="open"])': 'ease-out',
+    },
+    animationIterationCount: {
+      default: null,
+      ':is([data-state="closed"])': 1,
+      ':is([data-state="open"])': 1,
+    },
+    animationDirection: {
+      default: null,
+      ':is([data-state="closed"])': 'normal',
+      ':is([data-state="open"])': 'normal',
+    },
+    animationPlayState: {
+      default: null,
+      ':is([data-state="closed"])': 'running',
+      ':is([data-state="open"])': 'running',
+    },
+    animationDelay: {
+      default: null,
+      ':is([data-state="closed"])': '0s',
+      ':is([data-state="open"])': '0s',
+    },
+    animationFillMode: {
+      default: null,
+      ':is([data-state="closed"])': 'both',
+      ':is([data-state="open"])': 'both',
+    },
+    animationTimeline: {
+      default: null,
+      ':is([data-state="closed"])': 'auto',
+      ':is([data-state="open"])': 'auto',
+    },
+    '--tw-exit-opacity': { default: null, ':is([data-state="closed"])': '0' },
+    '--tw-enter-opacity': { default: null, ':is([data-state="open"])': '0' },
+  },
+  contentCompact: {
+    display: 'grid',
+    width: '100%',
+    maxWidth: {
+      default: 'calc(100% - 2rem)',
+      '@media (min-width: 40rem)': 'var(--container-lg)',
+    },
+    gap: 0,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    backgroundColor: themeColors['--color-background'],
+    padding: 0,
+  },
+  contentEditor: {
+    display: 'flex',
+    height: {
+      default: '100dvh',
+      '@media (min-width: 40rem)': themeLayout['--height-keybinding-editor'],
+    },
+    width: {
+      default: '100vw',
+      '@media (min-width: 40rem)': themeLayout['--width-command-editor'],
+    },
+    maxWidth: {
+      default: 'none',
+      '@media (min-width: 40rem)': 'var(--container-5xl)',
+    },
+    flexDirection: 'column',
+    gap: 0,
+    overflow: 'hidden',
+    borderRadius: {
+      default: 0,
+      '@media (min-width: 40rem)': themeRadii['--radius-lg'],
+    },
+    borderStyle: {
+      default: themeUtilityState['--tw-border-style'],
+      '@media (min-width: 40rem)': themeUtilityState['--tw-border-style'],
+    },
+    borderWidth: { default: 0, '@media (min-width: 40rem)': '1px' },
+    backgroundColor: themeColors['--color-background-card'],
+    padding: 0,
+  },
+  contentPanel: {
+    display: 'grid',
+    width: '100%',
+    maxWidth: {
+      default: 'var(--container-md)',
+      '@media (min-width: 40rem)': 'var(--container-lg)',
+    },
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: themeColors['--color-background-get-started'],
+    padding: 0,
+  },
+  contentDefault: {
+    display: 'grid',
+    width: '100%',
+    maxWidth: {
+      default: 'calc(100% - 2rem)',
+      '@media (min-width: 40rem)': 'var(--container-lg)',
+    },
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    backgroundColor: themeColors['--color-background'],
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  close: {
+    position: 'absolute',
+    top: `calc(${themeLayout['--spacing']} * 4)`,
+    right: `calc(${themeLayout['--spacing']} * 4)`,
+    borderRadius: 'var(--radius-xs)',
+    opacity: {
+      default: 0.7,
+      '@media (hover: hover)': { default: null, ':hover': 1 },
+    },
+    '--tw-ring-offset-color': themeColors['--color-background'],
+    transitionProperty: 'opacity',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus':
+        'var(--tw-ring-inset, ) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    boxShadow: {
+      default: null,
+      ':focus':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    '--tw-ring-color': { default: null, ':focus': themeColors['--color-ring'] },
+    '--tw-ring-offset-width': { default: null, ':focus': '2px' },
+    '--tw-ring-offset-shadow': {
+      default: null,
+      ':focus':
+        'var(--tw-ring-inset, ) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color)',
+    },
+    '--tw-outline-style': { default: null, ':focus': 'none' },
+    outlineStyle: { default: null, ':focus': 'none' },
+    outlineOffset: {
+      default: null,
+      '@media (forced-colors: active)': { default: null, ':focus': '2px' },
+    },
+    outline: {
+      default: null,
+      '@media (forced-colors: active)': {
+        default: null,
+        ':focus': '2px solid #0000',
+      },
+    },
+    pointerEvents: { default: null, ':disabled': 'none' },
+    backgroundColor: {
+      default: null,
+      ':is([data-state="open"])': themeColors['--color-accent'],
+    },
+    color: {
+      default: null,
+      ':is([data-state="open"])': themeColors['--color-muted-foreground'],
+    },
+  },
+  headerEditor: {
+    flexShrink: 0,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: {
+      default: `calc(${themeLayout['--spacing']} * 4)`,
+      '@media (min-width: 40rem)': `calc(${themeLayout['--spacing']} * 5)`,
+    },
+    paddingBlock: {
+      default: `calc(${themeLayout['--spacing']} * 3)`,
+      '@media (min-width: 40rem)': `calc(${themeLayout['--spacing']} * 4)`,
+    },
+    paddingRight: {
+      default: `calc(${themeLayout['--spacing']} * 12)`,
+      '@media (min-width: 40rem)': `calc(${themeLayout['--spacing']} * 5)`,
+    },
+    textAlign: { default: 'left', '@media (min-width: 40rem)': 'left' },
+  },
+  headerPanel: {
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 6)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 5)`,
+    textAlign: { default: 'left', '@media (min-width: 40rem)': 'left' },
+  },
+  headerDefault: {
+    textAlign: { default: 'center', '@media (min-width: 40rem)': 'left' },
+  },
+  footer: {
+    display: 'flex',
+    flexDirection: {
+      default: 'column-reverse',
+      '@media (min-width: 40rem)': 'row',
+    },
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    justifyContent: { default: null, '@media (min-width: 40rem)': 'flex-end' },
+  },
+  title: {
+    fontSize: 'var(--text-lg)',
+    lineHeight: 1,
+    '--tw-leading': '1',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+  },
+  withIcon: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  editorTitle: {
+    // The complete editor recipe removes the default title's leading-none variable.
+    '--tw-leading': null,
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: 'var(--text-base)',
+    lineHeight: 'var(--tw-leading, var(--text-base--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+  },
+  description: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-muted-foreground'],
+  },
+  editorDescription: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  relaxedDescription: {
+    '--tw-leading': 'var(--leading-relaxed)',
+    lineHeight: 'var(--leading-relaxed)',
+  },
 })
 
+/** Dialog provides the open state shared by its dialog controls. */
 function Dialog({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Root>) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />
 }
 
+/** DialogTrigger opens its dialog. */
 function DialogTrigger({
+  sx,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Trigger>) {
-  return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />
+}: Omit<React.ComponentProps<typeof DialogPrimitive.Trigger>, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
+  return (
+    <DialogPrimitive.Trigger
+      data-slot="dialog-trigger"
+      {...stylex.props(sx)}
+      {...props}
+    />
+  )
 }
 
+/** DialogPortal renders dialog content outside clipped ancestors. */
 function DialogPortal({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Portal>) {
   return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />
 }
 
+/** DialogClose closes its dialog. */
 function DialogClose({
+  sx,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Close>) {
-  return <DialogPrimitive.Close data-slot="dialog-close" {...props} />
-}
-
-function DialogOverlay({
-  className,
-  ...props
-}: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
+}: Omit<React.ComponentProps<typeof DialogPrimitive.Close>, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
   return (
-    <DialogPrimitive.Overlay
-      data-slot="dialog-overlay"
-      className={
-        /* TODO(stylex): dynamic class or forwarded className */ cn(
-          'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50 backdrop-blur-sm',
-          className,
-        )
-      }
+    <DialogPrimitive.Close
+      data-slot="dialog-close"
+      {...stylex.props(sx)}
       {...props}
     />
   )
 }
 
+/** DialogOverlay dims the area behind a modal dialog. */
+function DialogOverlay({
+  sx,
+  ...props
+}: Omit<React.ComponentProps<typeof DialogPrimitive.Overlay>, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
+  return (
+    <DialogPrimitive.Overlay
+      data-slot="dialog-overlay"
+      {...stylex.props([styles.overlay, sx])}
+      {...props}
+    />
+  )
+}
+
+/** DialogContent renders a responsive dialog panel with an optional close control. */
 function DialogContent({
-  className,
+  sx,
   children,
   showCloseButton = true,
   variant,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Content> & {
-  showCloseButton?: boolean
-  variant?: 'default' | 'compact' | 'editor' | 'panel'
-}) {
+}: Omit<
+  React.ComponentProps<typeof DialogPrimitive.Content> & {
+    showCloseButton?: boolean
+    variant?: 'default' | 'compact' | 'editor' | 'panel'
+  },
+  'className'
+> & { sx?: ComponentStyles; className?: never }) {
   const environment = useAppEnvironment()
   return (
     <DialogPortal data-slot="dialog-portal">
@@ -80,29 +449,27 @@ function DialogContent({
       <DialogPrimitive.Content
         data-spacewave-app={environment.id || undefined}
         data-slot="dialog-content"
-        className={
-          /* TODO(stylex): important declaration: sm:!max-w-5xl */ cn(
-            'bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg',
-            variant === 'compact' && 'gap-0 p-0',
-            variant === 'editor' &&
-              'bg-background-card flex h-dvh w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 p-0 sm:h-(--height-keybinding-editor) sm:w-(--width-command-editor) sm:!max-w-5xl sm:rounded-lg sm:border',
-            variant === 'panel' &&
-              'border-foreground/10 bg-background-get-started max-w-md overflow-hidden border p-0',
-            className,
-          )
-        }
+        {...stylex.props([
+          styles.contentBase,
+          variant === 'compact'
+            ? styles.contentCompact
+            : variant === 'editor'
+              ? styles.contentEditor
+              : variant === 'panel'
+                ? styles.contentPanel
+                : styles.contentDefault,
+          sx,
+        ])}
         {...props}
       >
         {children}
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
-            className={
-              /* TODO(stylex): a descendant, group, peer or compound selector: [&_svg]:pointer-events-none */ "ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
-            }
+            {...stylex.props(styles.close)}
           >
-            <LuX />
-            <span sx={stylexStyles.rule1}>Close</span>
+            <LuX {...stylex.props(styles.closeIcon)} />
+            <span sx={styles.closeLabel}>Close</span>
           </DialogPrimitive.Close>
         )}
       </DialogPrimitive.Content>
@@ -110,88 +477,90 @@ function DialogContent({
   )
 }
 
+/** DialogHeader lays out the dialog heading. */
 function DialogHeader({
-  className,
+  sx,
   variant,
   ...props
-}: React.ComponentProps<'div'> & {
-  variant?: 'default' | 'editor' | 'panel'
-}) {
+}: Omit<
+  React.ComponentProps<'div'> & {
+    variant?: 'default' | 'editor' | 'panel'
+  },
+  'className'
+> & { sx?: ComponentStyles; className?: never }) {
   return (
     <div
       data-slot="dialog-header"
-      className={
-        /* TODO(stylex): dynamic class or forwarded className */ cn(
-          'flex flex-col gap-2 text-center sm:text-left',
-          variant === 'editor' &&
-            'border-foreground/8 shrink-0 border-b px-4 py-3 pr-12 text-left sm:px-5 sm:py-4',
-          variant === 'panel' &&
-            'border-foreground/8 border-b px-6 py-5 text-left',
-          className,
-        )
-      }
+      sx={[
+        styles.headerBase,
+        variant === 'editor'
+          ? styles.headerEditor
+          : variant === 'panel'
+            ? styles.headerPanel
+            : styles.headerDefault,
+        sx,
+      ]}
       {...props}
     />
   )
 }
 
-function DialogFooter({ className, ...props }: React.ComponentProps<'div'>) {
-  return (
-    <div
-      data-slot="dialog-footer"
-      className={
-        /* TODO(stylex): dynamic class or forwarded className */ cn(
-          'flex flex-col-reverse gap-2 sm:flex-row sm:justify-end',
-          className,
-        )
-      }
-      {...props}
-    />
-  )
+/** DialogFooter lays out the dialog actions. */
+function DialogFooter({
+  sx,
+  ...props
+}: Omit<React.ComponentProps<'div'>, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
+  return <div data-slot="dialog-footer" sx={[styles.footer, sx]} {...props} />
 }
 
+/** DialogTitle names the dialog for assistive technology. */
 function DialogTitle({
-  className,
+  sx,
   variant,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Title> & {
-  variant?: 'default' | 'withIcon' | 'editor'
-}) {
+}: Omit<
+  React.ComponentProps<typeof DialogPrimitive.Title> & {
+    variant?: 'default' | 'withIcon' | 'editor'
+  },
+  'className'
+> & { sx?: ComponentStyles; className?: never }) {
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={
-        /* TODO(stylex): dynamic class or forwarded className */ cn(
-          'text-lg leading-none font-semibold',
-          variant === 'withIcon' && 'flex items-center gap-2',
-          variant === 'editor' &&
-            'flex items-center gap-2 text-base font-semibold tracking-tight',
-          className,
-        )
-      }
+      {...stylex.props([
+        styles.title,
+        variant === 'withIcon' && styles.withIcon,
+        variant === 'editor' && styles.editorTitle,
+        sx,
+      ])}
       {...props}
     />
   )
 }
 
+/** DialogDescription describes the dialog for assistive technology. */
 function DialogDescription({
-  className,
+  sx,
   variant,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Description> & {
-  variant?: 'default' | 'editor' | 'relaxed'
-}) {
+}: Omit<
+  React.ComponentProps<typeof DialogPrimitive.Description> & {
+    variant?: 'default' | 'editor' | 'relaxed'
+  },
+  'className'
+> & { sx?: ComponentStyles; className?: never }) {
   return (
     <DialogPrimitive.Description
       data-slot="dialog-description"
-      className={
-        /* TODO(stylex): dynamic class or forwarded className */ cn(
-          'text-muted-foreground text-sm',
-          variant === 'editor' && 'text-foreground-alt/70 text-xs',
-          variant === 'relaxed' && 'leading-relaxed',
-          className,
-        )
-      }
+      {...stylex.props([
+        styles.description,
+        variant === 'editor' && styles.editorDescription,
+        variant === 'relaxed' && styles.relaxedDescription,
+        sx,
+      ])}
       {...props}
     />
   )

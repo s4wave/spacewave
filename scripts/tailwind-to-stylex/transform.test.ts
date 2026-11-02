@@ -16,6 +16,8 @@ import { prepareComponentStyles } from './component-api.js'
 import { writeSheetFixture } from './sheet-fixture.js'
 import { writeInputFixture } from './input-fixture.js'
 import { writeButtonFixture } from './button-fixture.js'
+import { writeDialogFixture } from './dialog-fixture.js'
+import { writePathFixture } from './path-fixture.js'
 import { stylexCss } from '../../bldr/web/bundler/vite/stylex.js'
 import { capture } from '../style-parity/capture.js'
 import { compareCaptures } from '../style-parity/compare.js'
@@ -88,6 +90,18 @@ test(
     assert.match(
       overlapping.remaining[0]!.reason,
       /conditional property composition/,
+    )
+
+    // Physical sides cannot silently outrank a later logical breakpoint rule.
+    const directional = transform(
+      '<div className="px-4 pr-12 sm:px-5"/>',
+      'directional.tsx',
+      oracle,
+    )
+    assert.equal(directional.converted, 0)
+    assert.match(
+      directional.remaining[0]!.reason,
+      /conditional direction composition/,
     )
 
     // Dead class constants and mixed recipe imports leave no unused runtime helpers.
@@ -584,12 +598,16 @@ test(
         await writeSheetFixture(root, version)
         await writeInputFixture(root, version)
         await writeButtonFixture(root, version)
+        await writeDialogFixture(root, version)
+        await writePathFixture(root, version)
+        main = "import{PathSamples}from'./PathSamples';" + main
+        main = "import{DialogSamples}from'./DialogSamples';" + main
         main = "import{ButtonSamples}from'./ButtonSamples';" + main
         main = "import{InputSamples}from'./InputSamples';" + main
         main = "import{SheetSamples}from'./SheetSamples';" + main
         main = main.replace(
           "createRoot(document.getElementById('root')!).render",
-          "if(new URLSearchParams(location.search).has('buttons'))createRoot(document.getElementById('root')!).render(<ButtonSamples/>);else if(new URLSearchParams(location.search).has('input'))createRoot(document.getElementById('root')!).render(<InputSamples/>);else if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
+          "if(new URLSearchParams(location.search).has('path'))createRoot(document.getElementById('root')!).render(<PathSamples/>);else if(new URLSearchParams(location.search).has('dialog'))createRoot(document.getElementById('root')!).render(<DialogSamples/>);else if(new URLSearchParams(location.search).has('buttons'))createRoot(document.getElementById('root')!).render(<ButtonSamples/>);else if(new URLSearchParams(location.search).has('input'))createRoot(document.getElementById('root')!).render(<InputSamples/>);else if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
         )
         await writeFile(
           join(root, 'main.tsx'),
@@ -728,6 +746,39 @@ test(
                 .hover()
             },
           },
+          ...['default', 'editing', 'touch-default', 'touch-editing'].map(
+            (mode) => ({
+              id: `path-${mode}`,
+              path: `/?path=${mode}`,
+              hasTouch: mode.startsWith('touch'),
+              ready: async (page: import('playwright').Page) => {
+                await page.locator('#path-fixtures').waitFor()
+              },
+              setup: async (page: import('playwright').Page) => {
+                if (mode.endsWith('editing'))
+                  await page
+                    .getByRole('button', { name: 'Edit path', exact: true })
+                    .nth(1)
+                    .click({ timeout: 5000 })
+              },
+            }),
+          ),
+          ...[
+            'default',
+            'compact',
+            'editor',
+            'panel',
+            'caller-md',
+            'caller-sm',
+            'command-default',
+            'command-palette',
+          ].map((mode) => ({
+            id: `dialog-${mode}`,
+            path: `/?dialog=${mode}`,
+            ready: async (page: import('playwright').Page) => {
+              await page.getByRole('dialog').waitFor()
+            },
+          })),
           ...['default', 'focused', 'hovered'].map((mode) => ({
             id: `buttons-${mode}`,
             path: `/?buttons=${mode}`,
@@ -813,6 +864,33 @@ test(
             'sheet-inline',
             'sheet-modal',
             'sheet-modal-absolute',
+          ],
+        },
+        {
+          name: 'path navigation',
+          ids: [
+            'path-default',
+            'path-editing',
+            'path-touch-default',
+            'path-touch-editing',
+          ],
+        },
+        {
+          name: 'dialog variants',
+          ids: [
+            'dialog-default',
+            'dialog-compact',
+            'dialog-editor',
+            'dialog-panel',
+          ],
+        },
+        {
+          name: 'dialog callers',
+          ids: [
+            'dialog-caller-md',
+            'dialog-caller-sm',
+            'dialog-command-default',
+            'dialog-command-palette',
           ],
         },
         {

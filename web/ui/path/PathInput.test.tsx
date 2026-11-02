@@ -168,27 +168,6 @@ describe('PathInput', () => {
     expect(onPathChange).not.toHaveBeenCalled()
   })
 
-  it('highlights last segment', () => {
-    render(<PathInput path="/Users/testuser/Documents" />)
-
-    const documentsButton = screen.getByText('Documents').closest('button')
-    expect(documentsButton?.className).toContain('text-text-highlight')
-  })
-
-  it('highlights root when path is root', () => {
-    render(<PathInput path="/" />)
-
-    const rootButton = screen.getByLabelText('Navigate to root')
-    expect(rootButton.className).toContain('text-text-highlight')
-  })
-
-  it('applies custom className', () => {
-    render(<PathInput path="/Users/testuser" className="mt-1" />)
-
-    const container = screen.getByRole('group', { name: 'File path' })
-    expect(container.className).toContain('mt-1')
-  })
-
   it('stops propagation when segment button is clicked', async () => {
     const user = userEvent.setup()
     const onNavigate = vi.fn()
