@@ -84,8 +84,10 @@ export function SSOFinishPage() {
   // Route the provider-owned exchange result into the page flow.
   useEffect(() => {
     if (state.step !== 'exchanging') return
-    if (exchangeResult.error) {
-      queueMicrotask(() => {
+    let cancelled = false
+    queueMicrotask(() => {
+      if (cancelled) return
+      if (exchangeResult.error) {
         setState({
           step: 'error',
           message: `${getErrorMessage(
@@ -93,30 +95,31 @@ export function SSOFinishPage() {
             'SSO nonce expired, consumed, or invalid',
           )}. Start sign-in again; a successful response cannot be replayed.`,
         })
+        return
+      }
+      const result = exchangeResult.data
+      if (!result) return
+      if (result.linked) {
+        setState({ step: 'linked', result })
+        return
+      }
+      const provider = result.ssoProvider
+      if (!provider) {
+        setState({ step: 'error', message: 'SSO provider is missing' })
+        return
+      }
+      setPendingSSOState({
+        provider,
+        email: result.email ?? '',
+        nonce,
+        isDesktop: false,
       })
-      return
-    }
-    const result = exchangeResult.data
-    if (!result) return
-    if (result.linked) {
-      queueMicrotask(() => setState({ step: 'linked', result }))
-      return
-    }
-    const provider = result.ssoProvider
-    if (!provider) {
-      queueMicrotask(() =>
-        setState({ step: 'error', message: 'SSO provider is missing' }),
-      )
-      return
-    }
-    setPendingSSOState({
-      provider,
-      email: result.email ?? '',
-      nonce,
-      isDesktop: false,
+      clearSSOBrowserBinding()
+      navigate({ path: `/auth/sso/${provider}/confirm` })
     })
-    clearSSOBrowserBinding()
-    navigate({ path: `/auth/sso/${provider}/confirm` })
+    return () => {
+      cancelled = true
+    }
   }, [exchangeResult.data, exchangeResult.error, nonce, navigate, state.step])
 
   // Existing user: decrypt blob and login with entity key.

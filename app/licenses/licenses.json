@@ -25,7 +25,7 @@
     },
     {
       "name": "@aptre/protobuf-es-lite",
-      "version": "1.2.4",
+      "version": "1.2.6",
       "spdx": "Apache-2.0",
       "source": "js",
       "repo": "https://github.com/aperturerobotics/protobuf-es-lite",
@@ -822,7 +822,7 @@
     },
     {
       "name": "github.com/aperturerobotics/common",
-      "version": "v0.38.0",
+      "version": "v0.38.1",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/common",
@@ -1130,7 +1130,7 @@
     },
     {
       "name": "github.com/goccy/go-json",
-      "version": "v0.11.2",
+      "version": "v0.12.0",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/goccy/go-json",
@@ -1146,7 +1146,7 @@
     },
     {
       "name": "github.com/google/pprof",
-      "version": "v0.0.0-20261016150608-1facf8f91b50",
+      "version": "v0.0.0-20261026192309-dbd0ed30aa88",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/google/pprof"
@@ -1350,7 +1350,7 @@
     },
     {
       "name": "github.com/ncruces/go-sqlite3",
-      "version": "v0.35.6",
+      "version": "v0.36.0",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/ncruces/go-sqlite3",
@@ -1358,7 +1358,7 @@
     },
     {
       "name": "github.com/ncruces/go-sqlite3-wasm/v6",
-      "version": "v6.3.35304",
+      "version": "v6.4.35401",
       "spdx": "MIT-0",
       "source": "go",
       "repo": "https://github.com/ncruces/go-sqlite3-wasm",
@@ -1371,6 +1371,14 @@
       "source": "go",
       "repo": "https://github.com/ncruces/julianday",
       "copyrightNotice": "Copyright (c) 2022 Nuno Cruces"
+    },
+    {
+      "name": "github.com/pandatix/go-abnf",
+      "version": "v0.5.3",
+      "spdx": "MIT",
+      "source": "go",
+      "repo": "https://github.com/pandatix/go-abnf",
+      "copyrightNotice": "Copyright (c) 2024 Lucas TESSON - PandatiX <lucastesson@protonmail.com>"
     },
     {
       "name": "github.com/petermattis/goid",
@@ -1494,7 +1502,7 @@
     },
     {
       "name": "github.com/pion/transport/v5",
-      "version": "v5.1.1",
+      "version": "v5.1.4",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/pion/transport",
@@ -1564,7 +1572,7 @@
     },
     {
       "name": "github.com/prometheus/common",
-      "version": "v0.72.1",
+      "version": "v0.73.1",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/prometheus/common"
@@ -1816,7 +1824,7 @@
     },
     {
       "name": "golang.org/x/time",
-      "version": "v0.15.0",
+      "version": "v0.16.0",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/time",

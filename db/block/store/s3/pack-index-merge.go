@@ -167,6 +167,7 @@ func MergePackIndex(ctx context.Context, dst kvtx.Store, src ReadFunc, progress 
 // snapshot, and writes each row that names a pack of numbers to dst with the
 // pack's dst number.
 func copyHashRows(ctx context.Context, dst kvtx.Store, src ReadFunc, numbers map[uint32]packRow, p *MergeProgress, progress func(MergeProgress)) error {
+	// Track the source cursor and the destination pack number for each row.
 	type hashRow struct {
 		key []byte
 		num uint32
@@ -177,7 +178,7 @@ func copyHashRows(ctx context.Context, dst kvtx.Store, src ReadFunc, numbers map
 		// Read the next rows from one snapshot, starting again from after when
 		// the reader retries a torn snapshot.
 		var batch []hashRow
-		var scanned int
+		var scanned uint64
 		var next []byte
 		err := src(ctx, func(tx kvtx.Tx) error {
 			// Seek past the last row the previous batch read.
@@ -212,11 +213,13 @@ func copyHashRows(ctx context.Context, dst kvtx.Store, src ReadFunc, numbers map
 		if err != nil {
 			return errors.Wrap(err, "read the source h rows")
 		}
+
+		// Record the scanned rows and stop when the source is exhausted.
 		after = next
 		if scanned == 0 {
 			return nil
 		}
-		p.Scanned += uint64(scanned)
+		p.Scanned += scanned
 
 		// Write the mapped rows in one transaction.
 		if len(batch) != 0 {
@@ -237,6 +240,8 @@ func copyHashRows(ctx context.Context, dst kvtx.Store, src ReadFunc, numbers map
 			}
 			p.Keys += uint64(len(batch))
 		}
+
+		// Report the completed batch.
 		if progress != nil {
 			progress(*p)
 		}

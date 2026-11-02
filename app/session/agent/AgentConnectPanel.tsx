@@ -389,7 +389,10 @@ function useSecondsUntil(deadline: number): number {
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
     if (!deadline) return
-    queueMicrotask(() => setNow(Date.now()))
+    let cancelled = false
+    queueMicrotask(() => {
+      if (!cancelled) setNow(Date.now())
+    })
     const interval = window.setInterval(() => {
       const current = Date.now()
       setNow(current)
@@ -397,7 +400,10 @@ function useSecondsUntil(deadline: number): number {
         window.clearInterval(interval)
       }
     }, 1000)
-    return () => window.clearInterval(interval)
+    return () => {
+      cancelled = true
+      window.clearInterval(interval)
+    }
   }, [deadline])
   return Math.max(0, Math.ceil((deadline - now) / 1000))
 }

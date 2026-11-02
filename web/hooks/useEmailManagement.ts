@@ -75,10 +75,15 @@ export function useEmailManagement(): EmailManagement {
     if (!verifyingEmail || !emails) return
     const row = emails.find((e) => e.email === verifyingEmail)
     if (!row?.verified) return
+    let cancelled = false
     queueMicrotask(() => {
+      if (cancelled) return
       setVerifyingEmail(null)
       setCode('')
     })
+    return () => {
+      cancelled = true
+    }
   }, [emails, verifyingEmail])
 
   const sendCode = useCallback(

@@ -53,20 +53,29 @@ export function useBillingAccountCheckout(
 
   const checkoutStatus = checkoutStatusResource.value?.status
   useEffect(() => {
+    let cancelled = false
     if (checkoutStatus === CheckoutStatus.CheckoutStatus_COMPLETED) {
-      queueMicrotask(handleCompleted)
-      return
+      queueMicrotask(() => {
+        if (!cancelled) handleCompleted()
+      })
+      return () => {
+        cancelled = true
+      }
     }
     if (
       checkoutStatus === CheckoutStatus.CheckoutStatus_CANCELED ||
       checkoutStatus === CheckoutStatus.CheckoutStatus_EXPIRED
     ) {
       queueMicrotask(() => {
+        if (cancelled) return
         setPolling(false)
         setShowRetry(false)
         setCheckoutUrl('')
         setError('Checkout was not completed. You can try again.')
       })
+    }
+    return () => {
+      cancelled = true
     }
   }, [checkoutStatus, handleCompleted])
 

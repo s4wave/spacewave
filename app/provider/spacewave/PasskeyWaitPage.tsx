@@ -62,6 +62,7 @@ export function PasskeyWaitPage() {
     const controller = new AbortController()
     let cancelled = false
     queueMicrotask(() => {
+      if (cancelled) return
       setState({ step: 'waiting' })
       setPin('')
       setPinError('')

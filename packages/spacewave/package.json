@@ -11,7 +11,7 @@
   "bugs": "https://github.com/s4wave/spacewave/issues",
   "type": "module",
   "engines": {
-    "node": ">=24.15.0 <25"
+    "node": ">=24.15.0 <27"
   },
   "exports": {
     ".": {
@@ -34,7 +34,7 @@
   "peerDependencies": {
     "react": ">=19.2.0 <20",
     "@types/react": ">=19.2.0 <20",
-    "@types/node": ">=24 <25"
+    "@types/node": ">=24 <27"
   },
   "peerDependenciesMeta": {
     "react": {

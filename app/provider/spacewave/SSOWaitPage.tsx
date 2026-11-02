@@ -63,7 +63,9 @@ export function SSOWaitPage() {
     if (!isDesktop || !root || !provider) return
     const controller = new AbortController()
     let cancelled = false
-    queueMicrotask(() => setState({ step: 'waiting' }))
+    queueMicrotask(() => {
+      if (!cancelled) setState({ step: 'waiting' })
+    })
 
     const run = async () => {
       try {
@@ -175,7 +177,9 @@ export function SSOWaitPage() {
           devicePublicKey,
           devicePrivateKey,
         })
-        queueMicrotask(() => setState({ step: 'redirecting' }))
+        queueMicrotask(() => {
+          if (!cancelled) setState({ step: 'redirecting' })
+        })
         const authorizeUrl = new URL(`${ssoBaseUrl}/${provider}`)
         authorizeUrl.searchParams.set('origin', window.location.origin)
         authorizeUrl.searchParams.set('verifier_hash', verifierHash)
@@ -293,14 +297,7 @@ export function SSOWaitPage() {
     )
   }
 
-  const detail =
-    state.step === 'logging_in'
-      ? 'Signing in with your entity key.'
-      : state.step === 'redirecting'
-        ? `Redirecting to ${providerLabel}.`
-        : isDesktop
-          ? 'Finish sign-in in your browser, then return here.'
-          : `Connecting to ${providerLabel}.`
+  const detail = ssoWaitDetail(state.step, providerLabel)
 
   return (
     <AuthScreenLayout
@@ -392,4 +389,18 @@ function SSOWaitError({
       </div>
     </AuthScreenLayout>
   )
+}
+
+// ssoWaitDetail describes the current sign-in step.
+function ssoWaitDetail(
+  step: SSOWaitState['step'],
+  providerLabel: string,
+): string {
+  return step === 'logging_in'
+    ? 'Signing in with your entity key.'
+    : step === 'redirecting'
+      ? `Redirecting to ${providerLabel}.`
+      : isDesktop
+        ? 'Finish sign-in in your browser, then return here.'
+        : `Connecting to ${providerLabel}.`
 }
