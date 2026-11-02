@@ -1,3 +1,4 @@
+import * as stylex from '@stylexjs/stylex'
 import {
   useCallback,
   useEffect,
@@ -38,6 +39,7 @@ import {
 import {
   Tabs,
   TabsContent,
+  tabsContentItemStyles,
   TabsList,
   TabsTrigger,
 } from '@s4wave/web/ui/tabs.js'
@@ -46,7 +48,10 @@ import { base58Encode } from '@s4wave/app/provider/spacewave/keypair-utils.js'
 import { buildInviteLink } from '@s4wave/app/urls.js'
 import { useCloudProviderConfig } from '@s4wave/app/provider/spacewave/useSpacewaveAuth.js'
 
-export interface AddUserDialogProps {
+export // Keep the native item class beside these callers until their utility styles convert.
+const tabItemClass = stylex.props(tabsContentItemStyles.item).className
+
+interface AddUserDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   spaceName: string
@@ -410,7 +415,12 @@ function InviteLinkTab({ flow }: { flow: InviteFlow }) {
 
   return (
     <>
-      <div className="border-foreground/8 bg-background-card/20 rounded-lg border p-3">
+      <div
+        className={cn(
+          tabItemClass,
+          'border-foreground/8 bg-background-card/20 rounded-lg border p-3',
+        )}
+      >
         <div className="text-foreground text-sm font-medium">
           Share a Space invite
         </div>
@@ -420,7 +430,7 @@ function InviteLinkTab({ flow }: { flow: InviteFlow }) {
         </p>
       </div>
       {flow.inviteResp?.inviteMessage ? (
-        <div className="space-y-2">
+        <div className={cn(tabItemClass, 'space-y-2')}>
           <div className="flex items-center justify-between">
             <label
               htmlFor={inviteLinkId}
@@ -450,7 +460,7 @@ function InviteLinkTab({ flow }: { flow: InviteFlow }) {
           type="button"
           onClick={() => void flow.createInvite()}
           disabled={flow.creating || !flow.hasSession}
-          className={actionButtonClass}
+          className={cn(tabItemClass, actionButtonClass)}
         >
           {flow.creating ? 'Creating secure link…' : 'Create Invite Link'}
         </button>
@@ -588,11 +598,13 @@ function OrgMembersTab({
   loading,
   isCloudProvider,
 }: OrgMembersTabProps) {
+  // Keep search and enrollment feedback within the current member picker.
   const [search, setSearch] = useState('')
   const [enrolling, setEnrolling] = useState<string | null>(null)
   const [enrolled, setEnrolled] = useState<Set<string>>(new Set())
   const [enrollError, setEnrollError] = useState<string | null>(null)
 
+  // Filter the supplied member snapshot by its visible identifiers.
   const filtered = useMemo(() => {
     if (!search) return members
     const q = search.toLowerCase()
@@ -604,6 +616,7 @@ function OrgMembersTab({
     )
   }, [members, search])
 
+  // Enroll the selected account and retain each result in the member picker.
   const handleEnroll = useCallback(
     async (accountId: string) => {
       if (!session || enrolling) return
@@ -651,12 +664,12 @@ function OrgMembersTab({
 
   return (
     <>
-      <p className="text-foreground-alt/60 text-xs">
+      <p className={cn(tabItemClass, 'text-foreground-alt/60 text-xs')}>
         {isCloudProvider
           ? 'Choose someone already in this organization. Use Username, Code, or Link to share with anyone else.'
           : 'Choose someone already in this organization. Use Code or Link to share with anyone else.'}
       </p>
-      <div className="relative">
+      <div className={cn(tabItemClass, 'relative')}>
         <LuSearch className="text-foreground-alt/50 absolute top-2.5 left-2.5 size-3.5" />
         <input
           aria-label="Search org members"
@@ -669,7 +682,7 @@ function OrgMembersTab({
           )}
         />
       </div>
-      <div className="max-h-48 space-y-0.5 overflow-y-auto">
+      <div className={cn(tabItemClass, 'max-h-48 space-y-0.5 overflow-y-auto')}>
         {loading && filtered.length === 0 && (
           <p className="text-foreground-alt/50 py-2 text-center text-xs">
             Loading org members…
@@ -681,6 +694,7 @@ function OrgMembersTab({
           </p>
         )}
         {filtered.map((member) => {
+          // Derive the row label and action from this member's enrollment state.
           const accountId = member.subjectId ?? ''
           const primaryLabel = getOrgMemberPrimaryLabel(member)
           const secondaryLabel = getOrgMemberSecondaryLabel(member)

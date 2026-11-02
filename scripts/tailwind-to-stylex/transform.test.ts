@@ -18,6 +18,7 @@ import { writeInputFixture } from './input-fixture.js'
 import { writeButtonFixture } from './button-fixture.js'
 import { writeDialogFixture } from './dialog-fixture.js'
 import { writePathFixture } from './path-fixture.js'
+import { writeTabsFixture } from './tabs-fixture.js'
 import { stylexCss } from '../../bldr/web/bundler/vite/stylex.js'
 import { capture } from '../style-parity/capture.js'
 import { compareCaptures } from '../style-parity/compare.js'
@@ -600,6 +601,8 @@ test(
         await writeButtonFixture(root, version)
         await writeDialogFixture(root, version)
         await writePathFixture(root, version)
+        await writeTabsFixture(root, version)
+        main = "import{TabsSamples}from'./TabsSamples';" + main
         main = "import{PathSamples}from'./PathSamples';" + main
         main = "import{DialogSamples}from'./DialogSamples';" + main
         main = "import{ButtonSamples}from'./ButtonSamples';" + main
@@ -607,7 +610,7 @@ test(
         main = "import{SheetSamples}from'./SheetSamples';" + main
         main = main.replace(
           "createRoot(document.getElementById('root')!).render",
-          "if(new URLSearchParams(location.search).has('path'))createRoot(document.getElementById('root')!).render(<PathSamples/>);else if(new URLSearchParams(location.search).has('dialog'))createRoot(document.getElementById('root')!).render(<DialogSamples/>);else if(new URLSearchParams(location.search).has('buttons'))createRoot(document.getElementById('root')!).render(<ButtonSamples/>);else if(new URLSearchParams(location.search).has('input'))createRoot(document.getElementById('root')!).render(<InputSamples/>);else if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
+          "if(new URLSearchParams(location.search).has('tabs'))createRoot(document.getElementById('root')!).render(<TabsSamples/>);else if(new URLSearchParams(location.search).has('path'))createRoot(document.getElementById('root')!).render(<PathSamples/>);else if(new URLSearchParams(location.search).has('dialog'))createRoot(document.getElementById('root')!).render(<DialogSamples/>);else if(new URLSearchParams(location.search).has('buttons'))createRoot(document.getElementById('root')!).render(<ButtonSamples/>);else if(new URLSearchParams(location.search).has('input'))createRoot(document.getElementById('root')!).render(<InputSamples/>);else if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
         )
         await writeFile(
           join(root, 'main.tsx'),
@@ -746,6 +749,21 @@ test(
                 .hover()
             },
           },
+          ...['default', 'selected'].map((mode) => ({
+            id: `tabs-${mode}`,
+            path: `/?tabs=${mode}`,
+            ready: async (page: import('playwright').Page) => {
+              await page
+                .getByRole('tab', { name: 'First 0', exact: true })
+                .waitFor()
+            },
+            setup: async (page: import('playwright').Page) => {
+              if (mode === 'selected')
+                await page
+                  .getByRole('tab', { name: 'Second 0', exact: true })
+                  .click()
+            },
+          })),
           ...['default', 'editing', 'touch-default', 'touch-editing'].map(
             (mode) => ({
               id: `path-${mode}`,
@@ -865,6 +883,10 @@ test(
             'sheet-modal',
             'sheet-modal-absolute',
           ],
+        },
+        {
+          name: 'tabs',
+          ids: ['tabs-default', 'tabs-selected'],
         },
         {
           name: 'path navigation',
