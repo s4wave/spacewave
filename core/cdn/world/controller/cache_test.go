@@ -558,19 +558,6 @@ func (c *retryingWorldController) Execute(ctx context.Context) error {
 	return c.Controller.Execute(ctx)
 }
 
-// observedContext closes done the first time a caller waits on Done.
-type observedContext struct {
-	context.Context
-	done chan struct{}
-	once sync.Once
-}
-
-// Done reports the wait and returns the wrapped context's channel.
-func (c *observedContext) Done() <-chan struct{} {
-	c.once.Do(func() { close(c.done) })
-	return c.Context.Done()
-}
-
 // TestReleaseWorldSharesTransportAndDurableCacheAcrossRpcBridge proves host
 // and plugin reads share one CDN transport and one durable cache across the
 // RPC bridge, and that the RPC authority follows each controller lifetime.
@@ -599,14 +586,15 @@ func TestReleaseWorldSharesTransportAndDurableCacheAcrossRpcBridge(t *testing.T)
 		Packs:      []*packfile.PackfileEntry{packEntry},
 	})
 
-	// Serve the invalid root first and hold the first Range request until
-	// released.
+	// Serve the invalid root first and hold the first payload Range request
+	// until released, after the pack index has loaded.
 	firstRoot := make(chan struct{})
 	releaseFirstRoot := make(chan struct{})
 	rangeStarted := make(chan struct{})
 	releaseRange := make(chan struct{})
 	var rootRequests atomic.Int32
 	var rangeRequests atomic.Int32
+	var readingPayload atomic.Bool
 	cdnURL := serveTestCDN(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/"+spaceID+"/root.packedmsg" {
 			if rootRequests.Add(1) == 1 {
@@ -622,7 +610,7 @@ func TestReleaseWorldSharesTransportAndDurableCacheAcrossRpcBridge(t *testing.T)
 			http.NotFound(w, r)
 			return
 		}
-		if rangeRequests.Add(1) == 1 {
+		if readingPayload.Load() && rangeRequests.Add(1) == 1 {
 			close(rangeStarted)
 			<-releaseRange
 		}
@@ -770,38 +758,47 @@ func TestReleaseWorldSharesTransportAndDurableCacheAcrossRpcBridge(t *testing.T)
 		t.Fatal("RPC server retained its first authority across Execute retry")
 	}
 
-	// Start a plugin read and hold it in the first Range request.
+	// Resolve the pack index before counting payload requests. Index-tail
+	// reads use their own transport requests and do not warm payload spans.
 	hostStore, _, hostStoreRef, err := block_store.ExLookupFirstBlockStore(ctx, host.Bus, ReleaseBlockStoreID, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	ref := &block.BlockRef{Hash: blockHash}
-	pluginCtx, cancelPlugin := context.WithCancel(ctx)
+	if found, err := pluginStore.GetBlockExists(ctx, ref); err != nil || !found {
+		t.Fatalf("warm pack index found=%v err=%v", found, err)
+	}
+	readingPayload.Store(true)
+
+	// Start a plugin read and hold its payload request.
 	pluginDone := make(chan error, 1)
+	var pluginData []byte
+	var pluginFound bool
 	go func() {
-		_, _, err := pluginStore.GetBlock(pluginCtx, ref)
+		var err error
+		pluginData, pluginFound, err = pluginStore.GetBlock(ctx, ref)
 		pluginDone <- err
 	}()
 	<-rangeStarted
 
-	// Join a host read to it, then cancel the plugin read.
-	hostCtx := &observedContext{Context: ctx, done: make(chan struct{})}
+	// Read the same block from the host while the plugin request is pending.
 	hostDone := make(chan error, 1)
 	var hostData []byte
 	var hostFound bool
 	go func() {
 		var err error
-		hostData, hostFound, err = hostStore.GetBlock(hostCtx, ref)
+		hostData, hostFound, err = hostStore.GetBlock(ctx, ref)
 		hostDone <- err
 	}()
-	<-hostCtx.done
-	cancelPlugin()
-	if err := <-pluginDone; err == nil {
-		t.Fatal("canceled plugin RPC read returned no error")
-	}
 
-	// The host read completes from the one shared Range request.
+	// Both reads complete from the one shared Range request.
 	close(releaseRange)
+	if err := <-pluginDone; err != nil {
+		t.Fatal(err)
+	}
+	if !pluginFound || !bytes.Equal(pluginData, data) {
+		t.Fatalf("plugin read found=%v data=%q, want %q", pluginFound, pluginData, data)
+	}
 	if err := <-hostDone; err != nil {
 		t.Fatal(err)
 	}

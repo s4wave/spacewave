@@ -517,7 +517,7 @@ func TestEngineReplacedWithAdmissions(t *testing.T) {
 // makes MinCheckpointOperations operations stable. The engine does not
 // checkpoint, or hold the writer lock, while it waits for the receipt, and
 // adopts nothing when the publication fails. It then writes so that each
-// publication is admitted before the one before it lands, as a busy server
+// publication starts before the one before it lands, as a busy server
 // does, and the engine still checkpoints. The World keeps every committed
 // write and none of the failed one.
 func TestCheckpointUnderOverlappingWrites(t *testing.T) {
@@ -571,9 +571,9 @@ func TestCheckpointUnderOverlappingWrites(t *testing.T) {
 	w.create(t, "checkpoint/"+strconv.Itoa(n))
 	checkHeight("on a failed publication")
 
-	// Overlap the writes: admit each before releasing the one before it. A
-	// write the checkpoint's state write blocks is not admitted, so the
-	// previous one is released after a pause.
+	// Start each write before releasing the preceding publication. Opening
+	// its transaction may wait for checkpoint replay, so queue the whole
+	// write before waiting for its publication gate.
 	trimmed := make(chan struct{})
 	go func() {
 		_, err := durable.WaitValueWithValidator(t.Context(), func(snap sobject.SharedObjectStateSnapshot) (bool, error) {
@@ -594,7 +594,12 @@ func TestCheckpointUnderOverlappingWrites(t *testing.T) {
 			}
 			n++
 			applying, release := so.hold(nil)
-			commits = append(commits, commitAsync(t, w.newWrite(t, "checkpoint/"+strconv.Itoa(n))))
+			key := "checkpoint/" + strconv.Itoa(n)
+			done := make(chan error, 1)
+			go func() {
+				done <- w.newWrite(t, key).Commit(t.Context())
+			}()
+			commits = append(commits, done)
 			select {
 			case <-applying:
 			case <-time.After(200 * time.Millisecond):

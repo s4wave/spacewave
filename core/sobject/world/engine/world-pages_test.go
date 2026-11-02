@@ -20,6 +20,9 @@ type pinCountStore struct {
 
 func (s *pinCountStore) SupportsRootRetention() bool { return true }
 
+// KeepsHoldCounts reports that the test store does not count shared holds.
+func (s *pinCountStore) KeepsHoldCounts() bool { return false }
+
 func (s *pinCountStore) SetRetainedRoots(context.Context, []*block.PutBatchEntry, []block.NamedRoot) error {
 	return nil
 }
@@ -218,3 +221,6 @@ func TestWorldPagesKeepsUntilStored(t *testing.T) {
 		t.Fatalf("stored leaf after its rewrite left: %q found=%v err=%v", data, found, err)
 	}
 }
+
+// _ checks that the test store implements the complete retention contract.
+var _ block.RootRetainer = (*pinCountStore)(nil)
