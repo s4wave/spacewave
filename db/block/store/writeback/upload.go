@@ -230,8 +230,9 @@ func (s *Store) scanHead(ctx context.Context, limits block.BatchLimits) (*queueH
 			// overflowed the queue.
 			if !ended {
 				settledEntry := !entry.at.After(settled)
-				if settledEntry || policy.overLimit(pendingBytes-dueBytes) {
-					head.forced = head.forced || !settledEntry
+				forcedEntry := policy.overLimit(pendingBytes - dueBytes)
+				if settledEntry || forcedEntry {
+					head.forced = head.forced || forcedEntry
 					dueBytes += entry.size
 				} else {
 					ended = true

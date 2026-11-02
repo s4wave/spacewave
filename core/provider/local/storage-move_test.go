@@ -356,11 +356,11 @@ func TestPlacedStoreSettleAndLiveness(t *testing.T) {
 		t.Fatalf("live = %v, want every swept block dead", live)
 	}
 
-	// Upload at once: the swept block's marker clears without an upload, and
-	// re-placing with other cache settings releases nothing.
-	p.place(ctx, t, nil)
+	// Force the short batch past the backend's pack linger: the swept block's
+	// marker clears without an upload.
+	p.place(ctx, t, &account_settings.BlockStoreCache{MaxPendingBytes: 1})
 	p.waitUpload(ctx, t, func(status UploadStatus) bool {
-		return status.Policy.Settle == 0 && status.Pending == 0
+		return status.Policy.Settle == 0 && status.Policy.MaxPendingBytes == 1 && status.Pending == 0
 	})
 	if n := p.bucket.count(); n != 2 {
 		t.Fatalf("bucket holds %d objects, want the 2 from setup", n)
