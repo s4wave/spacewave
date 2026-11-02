@@ -1,3 +1,4 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { List, useListRef, type RowComponentProps } from 'react-window'
 import {
@@ -17,13 +18,25 @@ import {
   TreeDispatchContext,
 } from './TreeState.js'
 import { TreeRow, type TreeRowProps } from './TreeRow.js'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import * as stylex from '@stylexjs/stylex'
 import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../style/tokens.stylex.js'
+
+import { groupMarker } from '../../style/relations.stylex.js'
+
+const containerStyles = stylex.create({
+  container: {
+    display: 'flex',
+    minHeight: 0,
+    flex: 1,
+    flexDirection: 'column',
+    '--tw-outline-style': { default: 'none', ':focus': 'none' },
+    outlineStyle: { default: 'none', ':focus': 'none' },
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -49,12 +62,13 @@ const stylexStyles = stylex.create({
 })
 
 export interface TreeProps<T = void> {
+  className?: never
   nodes: TreeNode<T>[]
   // state is the expansion, selection, and focus the Tree shows and changes,
   // from useTreeState.
   state: TreeStateHandle
   placeholder?: React.ReactNode
-  className?: string
+  sx?: ComponentStyles
   onRowDefaultAction?: (nodes: TreeNode<T>[]) => void
   onRowContextMenu?: (node: TreeNode<T>, event: React.MouseEvent) => void
 }
@@ -140,10 +154,13 @@ export function Tree<T>({
   nodes,
   state: [storedState, update],
   placeholder,
-  className,
+  sx,
   onRowDefaultAction,
   onRowContextMenu,
-}: TreeProps<T>) {
+}: Omit<TreeProps<T>, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
   // Resolve initial focus from the stored tree state and first root node.
   const firstNodeID = nodes[0]?.id
   const state = useMemo(
@@ -368,12 +385,7 @@ export function Tree<T>({
     <TreeStateContext.Provider value={state}>
       <TreeDispatchContext.Provider value={dispatch}>
         <div
-          className={
-            /* TODO(stylex): global or unknown class: group */ cn(
-              'group flex min-h-0 flex-1 flex-col outline-none focus:outline-none',
-              className,
-            )
-          }
+          sx={[[containerStyles.container, groupMarker], sx]}
           role="tree"
           tabIndex={state.focusedId != null ? -1 : 0}
           aria-label="Tree navigation"

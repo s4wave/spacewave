@@ -1,3 +1,4 @@
+import { stylexProps } from '@s4wave/web/style/props.js'
 import * as React from 'react'
 import { LuChevronRight } from '@s4wave/web/images/icons.js'
 
@@ -7,6 +8,75 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@s4wave/web/ui/collapsible.js'
+
+import * as stylex from '@stylexjs/stylex'
+
+import {
+  layout as themeLayout,
+  radii as themeRadii,
+  colors as themeColors,
+  motion as themeMotion,
+} from '../style/tokens.stylex.js'
+import { traceTriggerGroupMarker } from '../style/relations.stylex.js'
+
+const triggerStyles = stylex.create({
+  trigger: {
+    display: 'flex',
+    width: 'fit-content',
+    maxWidth: '100%',
+    minWidth: 0,
+    cursor: 'pointer',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderRadius: themeRadii['--radius-md'],
+    textAlign: 'left',
+    color: {
+      default: themeColors['--color-muted-foreground'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+      ':has([data-status="error"])': themeColors['--color-destructive'],
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
+    },
+  },
+})
+
+const indicatorStyles = stylex.create({
+  indicator: {
+    transitionProperty: 'transform, translate, scale, rotate',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    rotate: {
+      default: null,
+      [stylex.when.ancestor(
+        ':is([aria-expanded="true"])',
+        traceTriggerGroupMarker,
+      )]: '90deg',
+    },
+  },
+})
 
 /** TraceStatus is the live state of one trace line. Done is the settled state. */
 export type TraceStatus = 'running' | 'done' | 'error' | 'pending'
@@ -132,27 +202,23 @@ function TraceCollapsible({
 
 /** TraceCollapsibleTrigger toggles the nested steps and shows the disclosure icon. */
 function TraceCollapsibleTrigger({
-  className,
+  sx,
   children,
   ...props
-}: Omit<React.ComponentProps<typeof CollapsibleTrigger>, 'asChild'>) {
+}: Omit<
+  React.ComponentProps<typeof CollapsibleTrigger>,
+  'asChild' | 'className'
+> & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
     <CollapsibleTrigger
       data-slot="trace-collapsible-trigger"
-      className={
-        /* TODO(stylex): global or unknown class: group/trace-collapsible-trigger */ cn(
-          'group/trace-collapsible-trigger flex w-fit max-w-full min-w-0 cursor-pointer items-center gap-1 rounded-md text-left text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 has-[[data-status=error]]:text-destructive',
-          className,
-        )
-      }
-      {...props}
+      {...stylexProps(
+        [[triggerStyles.trigger, traceTriggerGroupMarker], sx],
+        props,
+      )}
     >
       {children}
-      <TraceIcon
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: group-aria-expanded/trace-collapsible-trigger:rotate-90 */ 'transition-transform group-aria-expanded/trace-collapsible-trigger:rotate-90'
-        }
-      >
+      <TraceIcon {...stylex.props(indicatorStyles.indicator)}>
         <LuChevronRight />
       </TraceIcon>
     </CollapsibleTrigger>

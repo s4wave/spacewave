@@ -125,7 +125,7 @@ export function ResourceTreeTab() {
         nodes={nodes}
         state={[treeState, updateTree]}
         placeholder="No resources tracked"
-        {...stylex.props(stylexStyles.rule4)}
+        sx={stylexStyles.rule4}
       />
     </div>
   )

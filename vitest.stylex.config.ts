@@ -12,6 +12,7 @@ export default defineConfig({
       '@aptre/bldr',
       '@aptre/bldr-react',
       '@radix-ui/react-tabs',
+      '@radix-ui/react-label',
       '@radix-ui/react-collapsible',
       '@radix-ui/react-dropdown-menu',
       '@radix-ui/react-dialog',
