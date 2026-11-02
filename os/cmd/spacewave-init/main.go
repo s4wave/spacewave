@@ -8,6 +8,8 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
+	"strconv"
 	"syscall"
 
 	"github.com/s4wave/spacewave/os/boot"
@@ -21,6 +23,10 @@ func main() {
 		finish(boot.RunMountHelper(os.Args[1:]))
 		return
 	}
+	if len(os.Args) == 4 && os.Args[1] == "enter" {
+		finish(boot.EnterRoot(os.Args[2], os.Args[3]))
+		return
+	}
 	if len(os.Args) == 2 && (os.Args[1] == "workload" || os.Args[1] == "workload-fail") {
 		finish(boot.RunWorkload(os.Args[1] == "workload-fail"))
 		return
@@ -30,7 +36,7 @@ func main() {
 	pid1 := os.Getpid() == 1
 	if pid1 {
 		finish(prepareBootstrap())
-		println("SPACEWAVE_OS_PID1")
+		println("SPACEWAVE_OS_PID1 gomaxprocs=" + strconv.Itoa(runtime.GOMAXPROCS(0)))
 	} else {
 		finish(unix.Unshare(unix.CLONE_NEWNS))
 		finish(unix.Mount("", "/", "", unix.MS_REC|unix.MS_PRIVATE, ""))
