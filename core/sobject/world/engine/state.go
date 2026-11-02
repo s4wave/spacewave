@@ -17,13 +17,18 @@ func (c *Controller) executeWatchSOState(
 	soStateCtr ccontainer.Watchable[sobject.SharedObjectStateSnapshot],
 	soEngine *soEngine,
 ) error {
+	// Retain the inputs captured under the writer after each replay pass.
 	var snap sobject.SharedObjectStateSnapshot
 	var gap replayGap
 	var settled <-chan struct{}
+	var encoded <-chan struct{}
+
+	// Follow every state, receipt and encoding notification.
 	for {
 		// Wait for the state to change, the input replay stopped for to
-		// arrive, or the oldest pending receipt to resolve.
-		_, err := c.waitReplayInput(ctx, soEngine.so, soStateCtr, snap, gap, settled)
+		// arrive, the oldest pending receipt to resolve, or a deadlist encoding
+		// to finish after the previous pass.
+		_, err := c.waitReplayInput(ctx, soEngine.so, soStateCtr, snap, gap, settled, encoded)
 		if err != nil {
 			return err
 		}
@@ -51,6 +56,7 @@ func (c *Controller) executeWatchSOState(
 		}
 		gap = soEngine.replay.gap
 		settled = soEngine.settled()
+		encoded = soEngine.replay.ledger.encoded
 
 		// Be sure to unlock the writeMtx right away.
 		holdTask.End()
@@ -65,8 +71,8 @@ func (c *Controller) executeWatchSOState(
 
 // waitReplayInput waits for the state to change from snap and returns the new
 // state. When gap is set, it also returns the current state once the input it
-// names arrives, since replay stopped for it. When settled is set, it also
-// returns the current state once settled closes.
+// names arrives, since replay stopped for it. It also returns the current
+// state once settled closes or encoded receives a completed deadlist encoding.
 func (c *Controller) waitReplayInput(
 	ctx context.Context,
 	so sobject.SharedObject,
@@ -74,23 +80,30 @@ func (c *Controller) waitReplayInput(
 	snap sobject.SharedObjectStateSnapshot,
 	gap replayGap,
 	settled <-chan struct{},
+	encoded <-chan struct{},
 ) (sobject.SharedObjectStateSnapshot, error) {
 	// Without another input only a state change resumes replay.
-	if gap.empty() && settled == nil {
+	if gap.empty() && settled == nil && encoded == nil {
 		return soStateCtr.WaitValueChange(ctx, snap, nil)
 	}
 
-	// End the state wait once settled closes.
+	// End the state wait once a receipt settles or an encoding completes.
 	waitCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	if settled != nil {
+	notified := make(chan struct{})
+	if settled != nil || encoded != nil {
 		go func() {
+			defer close(notified)
 			select {
 			case <-settled:
+				cancel()
+			case <-encoded:
 				cancel()
 			case <-waitCtx.Done():
 			}
 		}()
+	} else {
+		close(notified)
 	}
 
 	// Wait for the input replay stopped for, ending the state wait once it
@@ -113,10 +126,12 @@ func (c *Controller) waitReplayInput(
 		}
 	}()
 
-	// Wait for a state change, then stop the fetch.
+	// Join both waits before inspecting the next snapshot. An old notifier
+	// must not consume an encoding edge after the next pass checked its state.
 	next, err := soStateCtr.WaitValueChange(waitCtx, snap, nil)
 	cancel()
 	<-fetched
+	<-notified
 
 	// Another input ends the wait with the current state.
 	if err != nil && ctx.Err() == nil && errors.Is(err, context.Canceled) {

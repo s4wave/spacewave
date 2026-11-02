@@ -33,7 +33,7 @@ func (c *Controller) waitWorldInit(
 			return nil, err
 		}
 		if stale {
-			snap, err = c.waitReplayInput(ctx, so, soStateCtr, snap, replayGap{}, nil)
+			snap, err = c.waitReplayInput(ctx, so, soStateCtr, snap, replayGap{}, nil, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -77,7 +77,7 @@ func (c *Controller) waitWorldInit(
 
 		// Wait for the state to change or the input replay stopped for to
 		// arrive.
-		snap, err = c.waitReplayInput(ctx, so, soStateCtr, snap, replay.gap, nil)
+		snap, err = c.waitReplayInput(ctx, so, soStateCtr, snap, replay.gap, nil, nil)
 		if err != nil {
 			return nil, err
 		}

@@ -3,6 +3,7 @@
 package sobject_world_engine_test
 
 import (
+	"context"
 	"slices"
 	"strconv"
 	"strings"
@@ -229,12 +230,11 @@ func TestLocalWorldCommitPhysicalCommits(t *testing.T) {
 	}
 }
 
-// TestCheckpointInstallPhysicalCommits checks that a checkpoint and its
-// install are four database commits: the publication storing the checkpoint
-// World, the SharedObject state, the reader pin the engine took on a kept page
-// moving to the store, then the hold of the checkpoint World, the replay span
-// and the replay save together, and that the checkpoint composes what the writes
-// replaced.
+// TestCheckpointInstallPhysicalCommits bounds the checkpoint and install to
+// four database commits, plus its triggering write and up to two saves for
+// an encoded record and its move to due. Encoding may finish during installation
+// or later, so the saves can join another publication. Its named record agrees
+// with the reported deaths and excludes pages the checkpoint still reaches.
 func TestCheckpointInstallPhysicalCommits(t *testing.T) {
 	// Write one operation short of a checkpoint, the first with a payload, and
 	// let the engine settle.
@@ -247,9 +247,10 @@ func TestCheckpointInstallPhysicalCommits(t *testing.T) {
 	}
 	waitSeqIdle(t, w)
 
-	// Write the operation that reaches it, and wait for the checkpoint.
-	w.create(t, "checkpoint/"+strconv.Itoa(n))
+	// Measure before the triggering write, so a fast background publication
+	// cannot fall before the sample. Then wait for the checkpoint.
 	written := w.seq()
+	w.create(t, "checkpoint/"+strconv.Itoa(n))
 	durable, relDurable, err := so.AccessSharedObjectState(t.Context(), nil)
 	if err != nil {
 		t.Fatal(err)
@@ -262,9 +263,11 @@ func TestCheckpointInstallPhysicalCommits(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The checkpoint and its install commit four times.
-	if got := waitSeqIdle(t, w) - written; got != 4 {
-		t.Fatalf("checkpoint and install made %d physical commits, want 4", got)
+	// Wait for the record itself, then bound the physical writes including
+	// its pending and due saves. Encoding never delays the triggering write.
+	records := w.waitDeadlists(t, so.GetBlockStore())
+	if got := waitSeqIdle(t, w) - written; got > 7 {
+		t.Fatalf("trigger, checkpoint and install made %d physical commits, want at most 7", got)
 	}
 
 	// The metrics count every commit, each kind of byte, and the checkpoint.
@@ -285,10 +288,14 @@ func TestCheckpointInstallPhysicalCommits(t *testing.T) {
 		t.Fatal("no checkpoint skip series")
 	}
 
-	// The checkpoint composed the pages the writes replaced, without a
-	// forfeit: the change log is off.
-	if after["spacewave_world_deaths_total"] <= flows["spacewave_world_deaths_total"] {
-		t.Fatalf("composed no deaths, forfeited %v", after["spacewave_world_death_forfeits_total"]-flows["spacewave_world_death_forfeits_total"])
+	// A bootstrap interval can have no durable deaths: its earlier World
+	// pages stayed in memory. The counter must cover every encoded death.
+	var deaths int
+	for _, rec := range records {
+		deaths += len(rec.dead.Replaced) + len(rec.dead.Removed) + len(rec.dead.Dropped)
+	}
+	if got := after["spacewave_world_deaths_total"] - flows["spacewave_world_deaths_total"]; got < float64(deaths) {
+		t.Fatalf("counted %v deaths, named records report %d", got, deaths)
 	}
 	if got := after["spacewave_world_death_forfeits_total"] - flows["spacewave_world_death_forfeits_total"]; got != 0 {
 		t.Fatalf("forfeited %v intervals", got)
@@ -316,10 +323,6 @@ func TestCheckpointInstallPhysicalCommits(t *testing.T) {
 	}
 
 	// Check every named record against them.
-	records := w.deadlists(t, so.GetBlockStore())
-	if len(records) == 0 {
-		t.Fatal("named no deadlist record")
-	}
 	for _, rec := range records {
 		for _, ref := range slices.Concat(rec.dead.Replaced, rec.dead.Removed) {
 			if _, ok := live[ref.MarshalString()]; ok {
@@ -380,6 +383,26 @@ func (w *localWorld) deadlists(t *testing.T, store block.StoreOps) []deadlistRec
 		out = append(out, deadlistRecord{name: name, head: head, dead: dead})
 	}
 	return out
+}
+
+// waitDeadlists waits for the durable record naming an encoded interval.
+func (w *localWorld) waitDeadlists(t *testing.T, store block.StoreOps) []deadlistRecord {
+	// Bound the wait while encoding runs independently of the database writer.
+	t.Helper()
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+
+	// Capture the revision before reading the indexed names so a publication
+	// between the read and wait remains visible to WaitSeq.
+	for {
+		seq := w.seq()
+		if records := w.deadlists(t, store); len(records) != 0 {
+			return records
+		}
+		if err := w.db.WaitSeq(ctx, seq+1); err != nil {
+			t.Fatalf("wait for encoded deadlist record: %v", err)
+		}
+	}
 }
 
 // scrapeWriteFlows gathers the process metrics and returns the World write

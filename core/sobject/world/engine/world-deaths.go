@@ -153,7 +153,7 @@ func (n *pendingNet) ready() bool {
 // A record whose from the store's counts may not hold as a holder nets from
 // the puts alone, as one without steps does: it kills nothing before the
 // interval and takes nothing from from, which leaks the tree at from.
-func (n *pendingNet) poll(seq uint64, from, to *block.BlockRef, recounts uint64, recounting bool) bool {
+func (n *pendingNet) poll(seq uint64, from, to *block.BlockRef, recounts uint64, recounting bool, notify chan<- struct{}) bool {
 	// Start the encoding once every put, and the lineage's, resolved.
 	if n.encoded == nil {
 		if !n.ready() || (n.lineage != nil && !n.lineage.ready()) {
@@ -169,9 +169,16 @@ func (n *pendingNet) poll(seq uint64, from, to *block.BlockRef, recounts uint64,
 			from = nil
 		}
 		go func() {
-			defer close(n.encoded)
+			// Publish the completed record before waking the state watcher.
 			n.dead = n.net(to)
 			n.blocks, n.record, n.err = block.EncodeDeadlist(seq, from, to, n.dead)
+			close(n.encoded)
+
+			// Coalesce notifications without waiting for the watcher or writer.
+			select {
+			case notify <- struct{}{}:
+			default:
+			}
 		}()
 		return false
 	}

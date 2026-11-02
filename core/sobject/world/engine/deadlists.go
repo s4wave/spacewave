@@ -74,6 +74,9 @@ func (e *deadlistEntry) forfeited() bool {
 // them to be carried again. Every name a save sets carries the record's blocks
 // unless a durable save stored them, so no save names a missing block.
 type deadlistLedger struct {
+	// encoded coalesces completed encodings for the state watcher. It is
+	// created by resolve and captured by each worker before the ledger changes.
+	encoded chan struct{}
 	// entries are the records in sequence order: pending ones, and due and
 	// orphaned ones until a durable save carries them.
 	entries []deadlistEntry
@@ -142,10 +145,16 @@ func (l *deadlistLedger) name(from, to *block.BlockRef, net *pendingNet) {
 // starting the encoding of each whose puts resolved, and reports whether it
 // took any, so a save carries it.
 func (l *deadlistLedger) resolve() (bool, error) {
+	// Give encoding workers one nonblocking wake for the state watcher.
+	if l.encoded == nil {
+		l.encoded = make(chan struct{}, 1)
+	}
+
+	// Consume completed records and start the encodings whose receipts settled.
 	resolved := false
 	for i := range l.entries {
 		e := &l.entries[i]
-		if e.net == nil || !e.net.poll(e.seq, e.from, e.to, l.recounts, l.recount) {
+		if e.net == nil || !e.net.poll(e.seq, e.from, e.to, l.recounts, l.recount, l.encoded) {
 			continue
 		}
 		if e.net.err != nil {
