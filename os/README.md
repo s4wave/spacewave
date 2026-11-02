@@ -1,53 +1,137 @@
-# Immutable UnixFS boot experiment
+# Retained UnixFS boot experiment
 
-Linux boots one static executable as PID1 from an independent initramfs. It
-constructs a real in-memory Volume, World and UnixFS image, pins a read transaction,
-and serves that revision through `db/unixfs/fuse`. It first starts an independent
-bootstrap copy of the same executable, which chroots and execs `/workload`.
-That child hashes a lazy shared mmap of a 3 MiB file and checks
-that five mutations return `EROFS`. The child exits before unmount, server join,
-snapshot release and poweroff. The same executable implements bazil's privileged
-mount-helper FD handshake. A temporary bootstrap symlink satisfies bazil's
-`fusermount3` lookup; a distro helper is not included.
+Linux boots one static executable as PID1 from an independent initramfs. The
+executable opens a real s4db Volume on a Btrfs virtual disk, pins its selected
+World revision, and serves that immutable UnixFS image through `db/unixfs/fuse`.
+It first starts an independent bootstrap copy of itself, which chroots and execs
+`/workload`. The child hashes a lazy shared 3 MiB mmap and requires five mutations
+to return `EROFS`. It exits before FUSE unmount, server join, snapshot release,
+Volume close, backing-filesystem unmount and poweroff.
 
-## Run on Linux
+The same executable implements bazil's privileged mount-helper FD handshake. A
+private bootstrap symlink satisfies its `fusermount3` lookup. The initramfs holds
+exactly one userspace ELF; matching kernel modules are kernel content. It contains
+neither a distro mount helper nor a shell. Never install the executable setuid.
 
-Use the project's remote-build SOP. Run from the repository root:
+## Build and focused checks
+
+Use the project's remote-build SOP, at most four workers, with one heavy job at a
+time. From the repository root on the Linux build host:
 
 ```sh
-make -f os/Makefile build check test model
-sudo /home/core/build-artifacts/spacewave-os/init probe
-sudo /home/core/build-artifacts/spacewave-os/init probe-fail # expected exit 1
-sudo sh os/make-initramfs.sh /home/core/build-artifacts/spacewave-os/init /tmp/os.cpio.gz /path/to/fuse.ko
-sh os/boot-qemu.sh /path/to/vmlinuz /tmp/os.cpio.gz /tmp/os-serial.log
+make -f os/Makefile OUT=/path/to/artifacts GOSTYLE=/path/to/gostyle build check test model
 ```
 
-Use the uncompressed `fuse.ko` from the exact kernel build, or omit it if FUSE is
-built in. The kernel needs initramfs, procfs, devtmpfs, FUSE, ELF and serial console
-support. Nested QEMU defaults to KVM; `ACCEL=tcg` selects software emulation. It
-attaches neither a disk nor a network. The probe unshares its mount namespace.
-Both modes require root; the helper must never be installed setuid.
+`test` runs only `TestRootPinsRevision` and `TestPersistentRootReopen`. The latter
+seeds real storage, verifies two closes/reopens with identical Volume ID, root and
+bytes, attempts an atomic publication with an absent root, and checks its rejected
+publication leaves the earlier head intact. It then deliberately bypasses
+publication to poison that disposable head: opening refuses it without changing
+the file's bytes. This is an incomplete-root falsification check, not a power-loss
+proof. Run that same compiled case with a fresh `TMPDIR` on the test Btrfs image
+when checking the complete physical stack.
 
-`boot-qemu.sh` is the retained real regression: it uses one virtual CPU, passes
-`GOMAXPROCS=1` to PID1 and checks its actual value before accepting exec through
-poweroff. `make model` checks the bootstrap design and requires the retained
-direct-exec mutant to fail `EventuallyStopped` with an unavailable server.
+`model` keeps the one-processor direct-exec regression and adds the persistent
+seed/fence/publication/reopen lifecycle. Head-before-block and missing-retention
+mutants must fail. Backend flush behavior remains the existing
+`db/s4db/Durability.tla` contract; `db/volume/block/RootPublication.tla` covers the
+blocks-before-head boundary separately.
 
-## What this proves and what remains
+## Seed once, boot twice
 
-This is a bootstrap and kernel-adapter experiment, not a general distribution.
-The root contains just the executable and payload. Workload chroot is not a
-security sandbox: it inherits serial descriptors and root credentials. PID1
-supervises one bounded foreground child; it is not a general init or service
-supervisor. Direct vfork exec from the server's own FUSE mount can starve its
-server with one Go processor; the independent bootstrap exec avoids that cycle.
-Startup errors stop on serial for recovery; workload failures clean
-up and power off with a failure marker. `Boot.tla` models these bounded phases
-and the ordering of child, mount and snapshot release.
+Use only new disposable paths on an isolated development VM, after any other
+QEMU/storage experiment ends. Leave its ordinary boot disk, bootloader and SSH
+unchanged. These host commands use distro tools; none enter the initramfs.
+Choose new unique `BOOT` and `STORAGE` directories and place the built `init`,
+these two scripts and the matching `vmlinuz` in `BOOT` first.
 
-The server executable, its runtime pages and physical Volume never reside on the
-filesystem they serve. Bootstrap `/proc`, `/dev` and `/tmp` remain outside UnixFS;
-the workload's root is the immutable FUSE tree, while PID1 retains bootstrap root.
-The Volume is rebuilt in memory on each boot. Persistence, authenticated image
-selection, ordinary applications, writable state, recovery UI, boot-disk install
-and production service management remain unproved and intentionally absent.
+```sh
+# STORAGE must be a newly created private directory, never an existing image.
+fallocate -l 1G "$STORAGE/btrfs.img"
+mkfs.btrfs -q "$STORAGE/btrfs.img"
+mkdir "$STORAGE/mount"
+mount -t btrfs -o loop,noatime "$STORAGE/btrfs.img" "$STORAGE/mount"
+GOMAXPROCS=1 "$BOOT/init" seed "$STORAGE/mount/image" > "$BOOT/seed.log" 2>&1
+umount "$STORAGE/mount"
+```
+
+`seed DIR` creates an absent directory and refuses an existing one, including a
+partial seed. It streams this executable and the payload through ordinary durable
+World commits, fences the engine, then publishes exactly one generated
+`world_block_engine.HeadState` through the tracked bucket's
+`block.AtomicPublisher.PublishAtomic`. The `world-head` ObjectStore key uses the
+controller's existing encoding and retained-root name. The atomic publication
+also retains `selected-image`, so later unrelated head changes cannot reclaim it.
+The publication waits for durability and releases its receipt pin. There is no
+parallel manifest, JSON schema or boot-time fixture regeneration.
+
+Before opening the Volume, boot inspects the database read-only. Missing files,
+unknown key layouts, missing heads/roots and missing retention are refused without
+migration or reset. Before serving, it streams and compares every required file
+against bootstrap inputs. Each boot prints the retained Volume ID, exact World
+reference, byte counts and SHA-256 hashes. The script compares these with the
+seed's independent close/reopen readback, rather than accepting an equivalent
+new fixture.
+
+Package matching uncompressed `.ko` files in dependency order. For Debian, obtain
+the paths with `/usr/sbin/modprobe --show-depends virtio_blk` and
+`/usr/sbin/modprobe --show-depends btrfs`, deduplicate while preserving order, and
+decompress their `.xz` files on the outer host. Pass any modular FUSE dependency
+as well. `make-initramfs.sh` prefixes the supplied module filenames by order; PID1
+loads at most sixteen using `finit_module`, without `modprobe` or another binary.
+The tested Debian kernel has built-in FUSE and virtio PCI, with eight supplied
+modules for virtio block and Btrfs. This is bounded experiment wiring, not general
+hardware discovery or provisioning.
+
+```sh
+# MODULES below is an explicit dependency-ordered list of matching .ko paths.
+sh "$BOOT/make-initramfs.sh" "$BOOT/init" "$BOOT/initramfs.cpio.gz" $MODULES
+sh "$BOOT/boot-qemu.sh" "$BOOT/vmlinuz" "$BOOT/initramfs.cpio.gz"   "$BOOT/boot1.log" "$STORAGE/btrfs.img" "$BOOT/seed.log"
+sh "$BOOT/boot-qemu.sh" "$BOOT/vmlinuz" "$BOOT/initramfs.cpio.gz"   "$BOOT/boot2.log" "$STORAGE/btrfs.img" "$BOOT/seed.log"
+```
+
+Run packaging as root for `/dev/console`; use root for host mount/seed commands.
+Unmount and detach any host loop device before QEMU opens the same image. QEMU
+attaches only this regular file through virtio block with `cache=none`; networking,
+graphics and host-directory sharing stay absent. PID1 mounts `/dev/vda` as Btrfs at
+bootstrap `/store` and opens `/store/image`. It never mounts the outer Debian disk.
+The guest needs initramfs, procfs, devtmpfs, FUSE, ELF and serial support.
+
+`boot-qemu.sh` uses one vCPU, 768 MiB RAM and `GOMAXPROCS=1` for PID1 and workload.
+It asserts PID1's actual value, exact retained identity/content and every marker
+through clean kernel poweroff. KVM is the default; `ACCEL=tcg` selects emulation.
+
+## Baseline and hosted failure cleanup
+
+The diskless three-argument QEMU command remains supported. Without
+`SPACEWAVE_OS_STORE`, PID1 builds the earlier in-memory image. A hosted process
+unshares its mount namespace while locked to its OS thread through all cleanup:
+
+```sh
+sudo env GOMAXPROCS=1 "$BOOT/init" probe
+sudo env GOMAXPROCS=1 "$BOOT/init" probe-fail # must fail and still unmount
+sudo env GOMAXPROCS=1 "$BOOT/init" probe /path/to/retained/image
+```
+
+Keep bootstrap executable/runtime pages and physical storage outside the served
+tree. Direct vfork exec through the server's own FUSE tree can retain its sole Go
+processor while the kernel needs that server. The independent bootstrap exec is
+required, even though the workload executable has the same bytes.
+
+## Limits
+
+This is a bounded immutable-image experiment, not a distribution or service
+registry. Chroot is not a security sandbox: the child inherits serial descriptors
+and root credentials. PID1 supervises one foreground workload; Flowgraph remains
+the authority for future managed work. PID1 retains bootstrap `/`, with `/proc`,
+`/dev`, `/tmp` and physical storage outside the workload's UnixFS root.
+
+Two clean nested boots and an incomplete-root rejection do not prove provider
+power-loss durability. Linux barriers pass through nested virtio, QEMU, a regular
+file on the outer ext4 filesystem, virtualization and provider caches. Guest cache
+loss does not evict every host/provider cache. Validation warms database data;
+lazy workload mmap proves page-fault service, not a cold-media benchmark. The small
+image fits RAM. There is no Btrfs speed, general crash-safety or large-data claim.
+Authenticated image selection/enrollment, writable roots, ordinary application
+compatibility, provider-native boot installation and production supervision remain
+outside this experiment.

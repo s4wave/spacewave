@@ -15,12 +15,13 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// Run builds, freezes and mounts the image, runs a bounded chroot workload,
-// then unmounts and joins the server before releasing its pinned storage.
+// Run opens a retained image, or builds the in-memory baseline when store is
+// empty, then mounts the image and runs a bounded chroot workload. It unmounts
+// and joins the server before releasing its pinned storage.
 // It requires root in a private mount namespace, or an isolated guest.
 // The filesystem server must never enter a blocking exec or mmap through its
 // own served tree: its runtime and every bootstrap exec use independent pages.
-func Run(ctx context.Context, fail bool) (retErr error) {
+func Run(ctx context.Context, fail bool, store string) (retErr error) {
 	// Keep every bootstrap path outside the mounted tree.
 	base, err := os.MkdirTemp("", "spacewave-os-")
 	if err != nil {
@@ -47,13 +48,26 @@ func Run(ctx context.Context, fail bool) (retErr error) {
 	}
 	defer func() { retErr = errors.Join(retErr, os.Setenv("PATH", oldPath)) }()
 
-	// Import and freeze the ordinary World before exposing it to the kernel.
+	// Open never regenerates retained content; the empty store keeps the baseline.
 	le := logrus.NewEntry(logrus.New())
-	root, err := NewRoot(ctx, le, file)
+	var root *Root
+	if store == "" {
+		root, err = NewRoot(ctx, le, file)
+	} else {
+		root, err = OpenRoot(ctx, le, store)
+	}
 	if err != nil {
 		return err
 	}
 	defer func() { retErr = errors.Join(retErr, root.Close()) }()
+
+	// Read all required blocks before reporting ready, including on reopen.
+	if _, err := file.Seek(0, 0); err != nil {
+		return err
+	}
+	if err := root.VerifyImage(ctx, file); err != nil {
+		return err
+	}
 	println("SPACEWAVE_OS_FROZEN")
 
 	// Start the existing kernel adapter only after the image is complete.
@@ -108,7 +122,7 @@ func Run(ctx context.Context, fail bool) (retErr error) {
 	// Launch with inherited serial descriptors but without bootstrap paths.
 	cmd := exec.CommandContext(workCtx, executable, "enter", mountPath, arg)
 	cmd.Dir = "/"
-	cmd.Env = []string{"GOMAXPROCS=4"}
+	cmd.Env = []string{"GOMAXPROCS=1"}
 	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
 	if err := cmd.Run(); err != nil {
 		return err

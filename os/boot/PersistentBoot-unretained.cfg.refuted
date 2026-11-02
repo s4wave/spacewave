@@ -1,0 +1,4 @@
+CONSTANTS BlocksBeforeHead = TRUE AtomicRetention = FALSE
+SPECIFICATION Spec
+INVARIANT SelectedRootRetained
+CHECK_DEADLOCK FALSE

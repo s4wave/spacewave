@@ -1,8 +1,8 @@
 #!/bin/sh
-# Package only the static executable and an optional matching FUSE module.
+# Package one static userspace ELF and dependency-ordered matching kernel modules.
 set -eu
-if [ "$#" -lt 2 ] || [ "$#" -gt 3 ]; then
-	echo "usage: $0 STATIC_INIT OUTPUT.cpio.gz [UNCOMPRESSED_FUSE.ko]" >&2
+if [ "$#" -lt 2 ] || [ "$#" -gt 18 ]; then
+	echo "usage: $0 STATIC_INIT OUTPUT.cpio.gz [UNCOMPRESSED_MODULE.ko ...]" >&2
 	exit 2
 fi
 if [ "$(id -u)" != 0 ]; then
@@ -19,9 +19,17 @@ chmod 755 "$stage/root/init"
 mkdir "$stage/root/proc" "$stage/root/dev" "$stage/root/tmp"
 mknod "$stage/root/dev/console" c 5 1
 chmod 600 "$stage/root/dev/console"
-if [ "$#" = 3 ]; then
-	cp "$3" "$stage/root/fuse.ko"
-fi
+shift 2
+mkdir "$stage/root/modules"
+i=0
+for module do
+	case "$module" in
+		*.ko) ;;
+		*) echo "expected an uncompressed .ko: $module" >&2; exit 2 ;;
+	esac
+	cp "$module" "$stage/root/modules/$(printf '%02d' "$i")-$(basename "$module")"
+	i=$((i + 1))
+done
 if command -v cpio >/dev/null 2>&1; then
 	(cd "$stage/root" && find . -print0 | cpio --null --create --format=newc --owner=0:0 > "$stage/archive.cpio")
 else
