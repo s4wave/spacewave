@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"net/http/httptest"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -582,6 +583,8 @@ func TestReadFallbackFillRacesEviction(t *testing.T) {
 				return
 			default:
 				_, _ = f.wb.Evict(f.ctx, f.packs, 1<<30, nil, nil)
+				// Let reads and cache fills progress between eviction passes.
+				runtime.Gosched()
 			}
 		}
 	})
