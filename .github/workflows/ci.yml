@@ -85,12 +85,12 @@ jobs:
             ;;
           esac
 
-  # specs checks every TLA+ spec in the tree against its configs; each model
-  # checks in milliseconds, so it runs on every event.
+  # Check every TLA+ spec on every event. Larger bounded state spaces take
+  # several minutes, so the job allows the full model set to finish.
   specs:
     name: TLA+ specs
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
