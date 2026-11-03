@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -29,15 +30,16 @@ type attempt struct {
 // records how long this caller waited.
 func (s *attempt) checkout(ctx context.Context, registry *registry, fetch Fetch, what, directory string, parts []*block.BlockRef, check func(staging string) error) error {
 	// Name the immutable content before joining its shared worker.
-	key := directory
+	var key strings.Builder
+	key.WriteString(directory)
 	for _, root := range parts {
 		if root.GetEmpty() {
 			return errors.Errorf("%s has no stored files", what)
 		}
-		key += "\x00" + root.MarshalString()
+		key.WriteString("\x00" + root.MarshalString())
 	}
 	started := time.Now()
-	err := registry.run(ctx, key, fetch, func(ctx context.Context, report func(Progress), yield func(context.Context) error) error {
+	err := registry.run(ctx, key.String(), fetch, func(ctx context.Context, report func(Progress), yield func(context.Context) error) error {
 		return s.prepare(ctx, fetch.Remotes, what, directory, parts, check, report, yield)
 	})
 	s.le.WithError(err).
