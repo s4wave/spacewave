@@ -18,8 +18,10 @@ const appSource = (color: string) => `import React,{useState} from 'react';
 import * as stylex from '@stylexjs/stylex';
 import {metrics} from '@fixture/tokens.stylex.js';
 import {ImportedStyle} from './ImportedStyle';
-const styles=stylex.create({button:{color:'${color}',marginTop:metrics.space},balanced:{textWrap:'balance'},geometry:(z:number)=>({position:'absolute',zIndex:z,minHeight:{default:null,'@media (pointer: coarse)':'48px','@media (width < 40rem)':'48px'}})});
-export function App(){ const [count,setCount]=useState(0);return <><button sx={styles.button} onClick={()=>setCount(count+1)}>{count}<ImportedStyle/></button><div data-geometry className="theme-only" style={{left:31,width:47,height:53}} sx={styles.geometry(7)}/><div data-geometry sx={styles.geometry(8)} className="theme-only" style={{left:37,width:59,height:61}}/><aside className="theme-only">Theme</aside><div className="landing-finish"><p data-balanced sx={styles.balanced}>Balanced public copy</p><p data-pretty>Default public copy</p></div></> }`
+import {ExternalLink} from ${JSON.stringify(resolve('app/landing/ExternalLink.tsx'))};
+import {MarkdownLink} from ${JSON.stringify(resolve('app/docs/MarkdownLink.tsx'))};
+const styles=stylex.create({button:{color:'${color}',marginTop:metrics.space},balanced:{textWrap:'balance'},link:{textDecoration:'underline'},responsive:{paddingTop:{default:24,'@container (min-width: 32rem)':'calc(4px * 8)','@container (min-width: 42rem)':'2.84rem'}},geometry:(z:number)=>({position:'absolute',zIndex:z,minHeight:{default:null,'@media (pointer: coarse)':'48px','@media (width < 40rem)':'48px'}})});
+export function App(){ const [count,setCount]=useState(0);return <><button sx={styles.button} onClick={()=>setCount(count+1)}>{count}<ImportedStyle/></button><div data-geometry className="theme-only" style={{left:31,width:47,height:53}} sx={styles.geometry(7)}/><div data-geometry sx={styles.geometry(8)} className="theme-only" style={{left:37,width:59,height:61}}/><aside className="theme-only">Theme</aside><ExternalLink data-native-link href="https://example.test" sx={styles.link} {...{className:undefined}}>External</ExternalLink><MarkdownLink data-native-link href="/docs" sx={styles.link} {...{className:undefined}}>Internal</MarkdownLink><section style={{containerType:"inline-size",width:1000}}><div data-responsive sx={styles.responsive}/></section><div className="landing-finish"><p data-balanced sx={styles.balanced}>Balanced public copy</p><p data-pretty>Default public copy</p></div></> }`
 
 test('native CSS ships in the manifest and updates without losing component state', async () => {
   // Use real React, compiler, Vite assets and browsers rather than emulating CSS delivery.
@@ -188,6 +190,27 @@ export const metrics=stylex.defineConsts({space:'17px'});`,
               ['37px', '59px', '61px', '8', 'rgb(2, 3, 4)'],
             ],
             `${engine}: intrinsic sx must retain inline lengths, dynamic stacking and opaque skins in either attribute order`,
+          )
+          assert.deepEqual(
+            await staticPage
+              .locator('[data-native-link]')
+              .evaluateAll((elements) =>
+                elements.map(
+                  (element) => getComputedStyle(element).textDecorationLine,
+                ),
+              ),
+            ['underline', 'underline'],
+            `${engine}: Markdown and external link owners retain sx through undefined native classes`,
+          )
+          assert(
+            Math.abs(
+              parseFloat(
+                await staticPage
+                  .locator('[data-responsive]')
+                  .evaluate((element) => getComputedStyle(element).paddingTop),
+              ) - 45.44,
+            ) < 0.001,
+            `${engine}: rem container breakpoints keep their numeric order`,
           )
           await staticContext.close()
           const page = await browser.newPage()

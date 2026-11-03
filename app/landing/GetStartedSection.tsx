@@ -26,14 +26,14 @@ const stylexStyles3 = stylex.create({
     cursor: 'pointer',
     display: 'flex',
     flexDirection: 'column',
-    justifyContent: { default: null, '@media (pointer: coarse)': 'center' },
+    justifyContent: 'center',
     transitionDuration: '.3s',
     transitionProperty: 'opacity',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
     marginBottom: `calc(${themeLayout['--spacing']} * 3)`,
     marginTop: `calc(${themeLayout['--spacing']} * 2)`,
     minHeight: {
-      default: null,
+      default: 24,
       '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
     },
     minWidth: {
@@ -164,7 +164,7 @@ const stylexStyles2 = stylex.create({
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
   },
   rule11: {
-    alignItems: { default: null, '@media (pointer: coarse)': 'center' },
+    alignItems: 'center',
     color: {
       default: null,
       '@media (hover: hover)': {
@@ -173,8 +173,8 @@ const stylexStyles2 = stylex.create({
       },
     },
     cursor: 'pointer',
-    display: { default: null, '@media (pointer: coarse)': 'inline-flex' },
-    justifyContent: { default: null, '@media (pointer: coarse)': 'center' },
+    display: 'inline-flex',
+    justifyContent: 'center',
     textDecorationLine: 'underline',
     transitionDuration:
       'var(--tw-duration, var(--default-transition-duration))',
@@ -182,7 +182,7 @@ const stylexStyles2 = stylex.create({
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
     minHeight: {
-      default: null,
+      default: 24,
       '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
     },
     minWidth: {
@@ -211,7 +211,7 @@ const stylexStyles2 = stylex.create({
 
 const stylexStyles = stylex.create({
   rule1: {
-    alignItems: { default: null, '@media (pointer: coarse)': 'center' },
+    alignItems: 'center',
     color: {
       default: null,
       '@media (hover: hover)': {
@@ -219,8 +219,8 @@ const stylexStyles = stylex.create({
         ':hover': themeColors['--color-brand'],
       },
     },
-    display: { default: null, '@media (pointer: coarse)': 'inline-flex' },
-    justifyContent: { default: null, '@media (pointer: coarse)': 'center' },
+    display: 'inline-flex',
+    justifyContent: 'center',
     textDecorationLine: 'underline',
     transitionDuration:
       'var(--tw-duration, var(--default-transition-duration))',
@@ -228,7 +228,7 @@ const stylexStyles = stylex.create({
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
     minHeight: {
-      default: null,
+      default: 24,
       '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
     },
     minWidth: {

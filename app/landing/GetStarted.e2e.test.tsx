@@ -208,6 +208,18 @@ describe('GetStarted browser layout', () => {
     await userEvent.keyboard('{Enter}')
 
     await expect.poll(() => control.tabIndex).toBe(-1)
+
+    await page.viewport(390, 844)
+    // Compact public navigation retains usable targets before the keyboard journey.
+    await expect
+      .poll(
+        () =>
+          page
+            .getByRole('button', { name: '[ Docs ]' })
+            .element()
+            .getBoundingClientRect().height,
+      )
+      .toBeGreaterThanOrEqual(24)
   })
 
   it('keeps the attribution footer visually secondary to the product value', async () => {

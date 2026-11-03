@@ -1,5 +1,5 @@
 diff --git a/lib/index.browser.js b/lib/index.browser.js
-index cc164deb2a944dfdaca233a630fa3687e37f7d43..c5b78c0345f99f725a32d7356952edabd96fba31 100644
+index cc164deb2a944dfdaca233a630fa3687e37f7d43..92d470d7d239aefd01fbf808878fd3b7b5b0ba80 100644
 --- a/lib/index.browser.js
 +++ b/lib/index.browser.js
 @@ -5,4 +5,5 @@ import parser from 'postcss-value-parser';
@@ -42,7 +42,56 @@ index cc164deb2a944dfdaca233a630fa3687e37f7d43..c5b78c0345f99f725a32d7356952edab
            break;
          }
        },
-@@ -10818,7 +10844,7 @@ function processStylexRules(rules, config) {
+@@ -10618,10 +10644,11 @@ function collectWidthBounds(rule) {
+         value: 0
+       }];
+     }
+-    if (v != null && typeof v === 'object' && !Array.isArray(v) && typeof v.value === 'number' && (v.value === 0 || String(v.unit).toLowerCase() === 'px')) {
++    if (v != null && typeof v === 'object' && !Array.isArray(v) && typeof v.value === 'number' && ['px', 'em', 'rem'].includes(String(v.unit).toLowerCase())) {
+       return [{
+         kind,
+-        value: v.value
++        value: v.value,
++        unit: String(v.unit).toLowerCase()
+       }];
+     }
+     return null;
+@@ -10669,23 +10696,19 @@ function atRulePreludes(rule) {
+   return preludes;
+ }
+ function widthSortKeyForChain(preludes) {
+-  const mediaIndexes = [];
+-  preludes.forEach((prelude, i) => {
+-    if (prelude.startsWith('@media ')) {
+-      mediaIndexes.push(i);
+-    }
++  // Compare like units and container names without assuming a browser's initial font size.
++  const bounds = [];
++  preludes.forEach((prelude, index) => {
++    const container = /^@container(?:\s+([\w-]+))?\s*(?=\()/.exec(prelude);
++    if (!container && !prelude.startsWith('@media ')) return;
++    const query = container ? prelude.replace(container[0], '@media ') : prelude;
++    const bound = mediaQueryWidthSortKey(query);
++    if (bound) bounds.push({ index, bound, context: container ? `@container ${container[1] ?? ''}` : '@media' });
+   });
+-  if (mediaIndexes.length !== 1) {
+-    return null;
+-  }
+-  const mediaIndex = mediaIndexes[0];
+-  const bound = mediaQueryWidthSortKey(preludes[mediaIndex]);
+-  if (bound == null) {
+-    return null;
+-  }
+-  const context = preludes.map((p, i) => i === mediaIndex ? '@media' : p).join('{');
++  if (bounds.length !== 1) return null;
++  const { index, bound, context } = bounds[0];
+   return {
+-    context,
++    context: preludes.map((prelude, i) => i === index ? `${context}:${bound.unit ?? 'px'}` : prelude).join('{'),
+     bound
+   };
+ }
+@@ -10818,7 +10841,7 @@ function processStylexRules(rules, config) {
    let lastKPri = -1;
    const grouped = sortedRules.reduce((acc, rule) => {
      const [key, styleObj, priority] = rule;
@@ -51,7 +100,7 @@ index cc164deb2a944dfdaca233a630fa3687e37f7d43..c5b78c0345f99f725a32d7356952edab
      if (priorityLevel === lastKPri) {
        acc[acc.length - 1].push([key, styleObj, priority]);
        return acc;
-@@ -10828,7 +10854,11 @@ function processStylexRules(rules, config) {
+@@ -10828,7 +10851,11 @@ function processStylexRules(rules, config) {
      return acc;
    }, []);
    const logicalFloatVars = getLogicalFloatVars(sortedRules);
@@ -65,7 +114,7 @@ index cc164deb2a944dfdaca233a630fa3687e37f7d43..c5b78c0345f99f725a32d7356952edab
    const collectedCSS = grouped.map((group, index) => {
      const pri = group[0][2];
 diff --git a/lib/index.js b/lib/index.js
-index f22b4c7bd8d084b6f5c624c10a986d8005a08d00..45272eb9bea1ec4983946addfe77ad3b12973eaf 100644
+index f22b4c7bd8d084b6f5c624c10a986d8005a08d00..80e7e02f2fad1c1209843d351b507a8ec37d8b11 100644
 --- a/lib/index.js
 +++ b/lib/index.js
 @@ -9409,7 +9409,32 @@ function styleXTransform() {
@@ -102,7 +151,56 @@ index f22b4c7bd8d084b6f5c624c10a986d8005a08d00..45272eb9bea1ec4983946addfe77ad3b
            break;
          }
        },
-@@ -9699,7 +9724,7 @@ function processStylexRules(rules, config) {
+@@ -9499,10 +9524,11 @@ function collectWidthBounds(rule) {
+         value: 0
+       }];
+     }
+-    if (v != null && typeof v === 'object' && !Array.isArray(v) && typeof v.value === 'number' && (v.value === 0 || String(v.unit).toLowerCase() === 'px')) {
++    if (v != null && typeof v === 'object' && !Array.isArray(v) && typeof v.value === 'number' && ['px', 'em', 'rem'].includes(String(v.unit).toLowerCase())) {
+       return [{
+         kind,
+-        value: v.value
++        value: v.value,
++        unit: String(v.unit).toLowerCase()
+       }];
+     }
+     return null;
+@@ -9550,23 +9576,19 @@ function atRulePreludes(rule) {
+   return preludes;
+ }
+ function widthSortKeyForChain(preludes) {
+-  const mediaIndexes = [];
+-  preludes.forEach((prelude, i) => {
+-    if (prelude.startsWith('@media ')) {
+-      mediaIndexes.push(i);
+-    }
++  // Compare like units and container names without assuming a browser's initial font size.
++  const bounds = [];
++  preludes.forEach((prelude, index) => {
++    const container = /^@container(?:\s+([\w-]+))?\s*(?=\()/.exec(prelude);
++    if (!container && !prelude.startsWith('@media ')) return;
++    const query = container ? prelude.replace(container[0], '@media ') : prelude;
++    const bound = mediaQueryWidthSortKey(query);
++    if (bound) bounds.push({ index, bound, context: container ? `@container ${container[1] ?? ''}` : '@media' });
+   });
+-  if (mediaIndexes.length !== 1) {
+-    return null;
+-  }
+-  const mediaIndex = mediaIndexes[0];
+-  const bound = mediaQueryWidthSortKey(preludes[mediaIndex]);
+-  if (bound == null) {
+-    return null;
+-  }
+-  const context = preludes.map((p, i) => i === mediaIndex ? '@media' : p).join('{');
++  if (bounds.length !== 1) return null;
++  const { index, bound, context } = bounds[0];
+   return {
+-    context,
++    context: preludes.map((prelude, i) => i === index ? `${context}:${bound.unit ?? 'px'}` : prelude).join('{'),
+     bound
+   };
+ }
+@@ -9699,7 +9721,7 @@ function processStylexRules(rules, config) {
    let lastKPri = -1;
    const grouped = sortedRules.reduce((acc, rule) => {
      const [key, styleObj, priority] = rule;
@@ -111,7 +209,7 @@ index f22b4c7bd8d084b6f5c624c10a986d8005a08d00..45272eb9bea1ec4983946addfe77ad3b
      if (priorityLevel === lastKPri) {
        acc[acc.length - 1].push([key, styleObj, priority]);
        return acc;
-@@ -9709,7 +9734,11 @@ function processStylexRules(rules, config) {
+@@ -9709,7 +9731,11 @@ function processStylexRules(rules, config) {
      return acc;
    }, []);
    const logicalFloatVars = getLogicalFloatVars(sortedRules);

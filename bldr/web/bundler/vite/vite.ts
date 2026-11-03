@@ -247,7 +247,9 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
     // helper assumes a document and fails before worker dynamic imports run.
     mergedConfig.build.modulePreload = {
       polyfill: false,
-      resolveDependencies: () => [],
+      // Keep native CSS preloads when a plugin export mounts inside another WebView.
+      resolveDependencies: (_file, dependencies) =>
+        dependencies.filter((dependency) => dependency.endsWith('.css')),
     }
     mergedConfig.customLogger = createSilentViteLogger()
     mergedConfig.build.outDir = outDir
@@ -354,7 +356,10 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
         alias: buildGoAliases(projectRoot, distDir),
       }
     }
-    mergedConfig.plugins.unshift(stylexCss(distDir))
+    // Plugin exports can render inside another WebView, so their modules await native CSS.
+    mergedConfig.plugins.unshift(
+      stylexCss(distDir, mergedConfig.build.ssr ? 'stylesheet' : 'module'),
+    )
     mergedConfig.plugins.push(
       createWorkerSafeModulePreloadPlugin(),
       ...(allExternal.length > 0
@@ -655,7 +660,9 @@ async function buildWebPkg(
         emptyOutDir: true,
         modulePreload: {
           polyfill: false,
-          resolveDependencies: () => [],
+          // Keep native CSS preloads when a plugin export mounts inside another WebView.
+          resolveDependencies: (_file, dependencies) =>
+            dependencies.filter((dependency) => dependency.endsWith('.css')),
         },
         manifest: true,
         cssCodeSplit: true,

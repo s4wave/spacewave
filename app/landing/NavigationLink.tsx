@@ -42,6 +42,7 @@ const stylexStyles2 = ownerStylex.create({
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
     whiteSpace: 'nowrap',
+    minHeight: { default: 24, '@media (pointer: coarse)': 44 },
   },
   rule2: {
     color: {

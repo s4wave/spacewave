@@ -1,6 +1,8 @@
 import * as stylex from '@stylexjs/stylex'
 import type { ComponentPropsWithoutRef } from 'react'
 
+import { stylexProps } from '@s4wave/web/style/props.js'
+
 import { ExternalLink } from '@s4wave/app/landing/ExternalLink.js'
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
 
@@ -28,5 +30,5 @@ export function MarkdownLink({
     return <ExternalLink sx={sx} {...props} href={resolvedHref} />
   }
 
-  return <a sx={sx} {...props} href={resolvedHref} />
+  return <a {...stylexProps([sx], props)} href={resolvedHref} />
 }

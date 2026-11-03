@@ -20,6 +20,7 @@ const stylexStyles2 = stylex.create({
     containerType: 'inline-size',
     display: 'flex',
     flexDirection: 'column',
+    textWrap: 'balance',
     overflowY: 'auto',
     width: '100%',
   },
@@ -51,6 +52,7 @@ const stylexStyles2 = stylex.create({
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    minHeight: 24,
   },
   rule4: {
     marginInline: 'auto',

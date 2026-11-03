@@ -38,11 +38,15 @@ const stylexStyles2 = stylex.create({
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
   },
   rule4: {
-    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    columnGap: `calc(${themeLayout['--spacing']} * 4)`,
     display: 'flex',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    rowGap: `calc(${themeLayout['--spacing']} * 2)`,
     marginLeft: { default: null, '@media (min-width: 40rem)': 'auto' },
   },
   rule5: {
+    alignItems: 'center',
     color: {
       default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
       '@media (hover: hover)': {
@@ -50,6 +54,7 @@ const stylexStyles2 = stylex.create({
         ':hover': themeColors['--color-foreground-alt'],
       },
     },
+    display: 'inline-flex',
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     transitionDuration:
@@ -57,6 +62,7 @@ const stylexStyles2 = stylex.create({
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    minHeight: 24,
   },
 })
 
@@ -102,7 +108,7 @@ export function LegalFooter() {
           </ExternalLink>
           , LLC. and contributors
         </p>
-        <nav sx={stylexStyles2.rule4}>
+        <nav aria-label="Legal and site links" sx={stylexStyles2.rule4}>
           <a href={tosHref} sx={stylexStyles2.rule5}>
             Terms
           </a>
