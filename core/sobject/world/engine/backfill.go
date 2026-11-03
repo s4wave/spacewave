@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/sirupsen/logrus"
 )
@@ -167,54 +168,67 @@ func writeBackfill(ctx context.Context, so sobject.SharedObject, enabled bool) e
 // each copy. Completion proofs make each copy skip the subtrees an earlier copy
 // finished.
 func (e *soEngine) executeBackfill(ctx context.Context, _ bool) error {
-	le := e.c.le
+	// A recheck ignores every prior completion proof until one copy finishes.
 	recheck := e.backfillRecheck.Load()
+
+	// Repeat only after a World notification, with no read held while idle.
 	for {
-		// Take the wait before the targets, so a change during the copy is
-		// not missed.
+		// Subscribe before capture, so a changed head schedules another copy.
 		var waitCh <-chan struct{}
 		e.c.writeBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			waitCh = getWaitCh()
 		})
-		head, roots, seqno, err := e.backfillRoots(ctx)
-		if err != nil {
+		if err := e.copyBackfill(ctx, recheck); err != nil {
 			return err
 		}
+		recheck = false
 
-		// Copy them, logging each block no peer holds and continuing past it.
-		start := time.Now()
-		var holes uint32
-		missing := func(ref *block.BlockRef) {
-			holes++
-			le.WithField("block", ref.MarshalString()).Warn("backfill found a block no peer holds")
-		}
-		opts := &RetainOptions{Missing: missing, Recheck: recheck}
-		if recheck {
-			opts.Visited = recheckProgress(le, start)
-		}
-		if err := copyWorlds(ctx, e.so, backfillProofStoreID, roots, opts); err != nil {
-			return err
-		}
-		fields := logrus.Fields{"dur": time.Since(start).String(), "holes": holes}
-		if recheck {
-			// Later copies trust the proofs this one recorded.
-			e.backfillRecheck.Store(false)
-			recheck = false
-			le.WithFields(fields).Info("rechecked the backfilled World")
-		} else {
-			le.WithFields(fields).Debug("backfilled the World")
-		}
-		if err := e.publishBackfill(ctx, &BackfillState{Root: head, Holes: holes, Seqno: seqno}); err != nil {
-			return err
-		}
-
-		// Wait for the next change.
+		// The completed copy released its read before waiting or retiring.
 		select {
 		case <-ctx.Done():
 			return context.Cause(ctx)
 		case <-waitCh:
 		}
 	}
+}
+
+// copyBackfill pins one durable World until its copy and outcome publication
+// return. The engine's read reference also keeps controller teardown from
+// closing the block engine while this copy is using its page view.
+func (e *soEngine) copyBackfill(ctx context.Context, recheck bool) error {
+	// Keep the captured read through copying and publication, including errors.
+	head, roots, seqno, release, err := e.backfillRoots(ctx)
+	if err != nil {
+		return err
+	}
+	defer release()
+
+	// Copy outside the controller writer, reporting unavailable peer blocks.
+	le := e.c.le
+	start := time.Now()
+	var holes uint32
+	missing := func(ref *block.BlockRef) {
+		holes++
+		le.WithField("block", ref.MarshalString()).Warn("backfill found a block no peer holds")
+	}
+	opts := &RetainOptions{Missing: missing, Recheck: recheck}
+	if recheck {
+		opts.Visited = recheckProgress(le, start)
+	}
+	if err := copyWorlds(ctx, e.so, backfillProofStoreID, roots, opts); err != nil {
+		return err
+	}
+
+	// Rechecks clear only after their complete walk; stale lifetimes cannot
+	// publish a completion even if the last block arrived during cancellation.
+	fields := logrus.Fields{"dur": time.Since(start).String(), "holes": holes}
+	if recheck {
+		e.backfillRecheck.Store(false)
+		le.WithFields(fields).Info("rechecked the backfilled World")
+	} else {
+		le.WithFields(fields).Debug("backfilled the World")
+	}
+	return e.publishBackfill(ctx, &BackfillState{Root: head, Holes: holes, Seqno: seqno})
 }
 
 // recheckProgressInterval is how often a recheck logs its progress.
@@ -256,40 +270,79 @@ func (e *soEngine) publishBackfill(ctx context.Context, state *BackfillState) er
 	return nil
 }
 
-// backfillRoots returns the installed World root, the roots a copy of it and
-// the retained roots starts from, and the World seqno of the installed root.
-// The copy starts below the kept World pages, which this device holds in
-// memory until a checkpoint stores them.
-func (e *soEngine) backfillRoots(ctx context.Context) (*block.BlockRef, []*block.BlockRef, uint64, error) {
-	// Read them under the writer lock once the installed World is durable,
-	// since the copy reads only the store.
-	unlockWriteMtx, err := e.c.lockSettled(ctx, "backfill")
-	if err != nil {
-		return nil, nil, 0, err
-	}
-	defer unlockWriteMtx()
-	seqno, err := e.admitted.GetSeqno(ctx)
-	if err != nil {
-		return nil, nil, 0, err
-	}
+// backfillRoots captures the durable read's root and seqno together, plus
+// the physical-store frontier of that World and the retained roots. The caller
+// releases the read after copying and publishing, before waiting for more work.
+// Retained-root metadata keeps its existing separate named-root semantics.
+func (e *soEngine) backfillRoots(ctx context.Context) (*block.BlockRef, []*block.BlockRef, uint64, func(), error) {
+	for {
+		// Opening and reading a snapshot can do storage I/O. Its existing head
+		// pin protects kept pages and stored bytes without taking a new root pin.
+		if err := ctx.Err(); err != nil {
+			return nil, nil, 0, nil, context.Cause(ctx)
+		}
+		read, err := e.NewTransaction(ctx, false)
+		if err != nil {
+			return nil, nil, 0, nil, err
+		}
 
-	// Collect the head, then the retained roots.
-	head := e.retained.GetRootRef()
-	roots := []*block.BlockRef{head}
-	for _, root := range e.retainedRoots {
-		roots = append(roots, root.GetRootRef())
+		// Read both values from this one immutable World revision.
+		var head *block.BlockRef
+		err = read.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
+			head = cursor.GetRef().GetRootRef().CloneVT()
+			return nil
+		})
+		var seqno uint64
+		if err == nil {
+			seqno, err = read.GetSeqno(ctx)
+		}
+		if err != nil {
+			read.Discard()
+			return nil, nil, 0, nil, err
+		}
+
+		// Validate cached durable-head metadata under the controller writer.
+		// Receipt settlement alone can precede the durable head's installation.
+		unlock, err := e.c.lockSettled(ctx, "backfill")
+		if err != nil {
+			read.Discard()
+			return nil, nil, 0, nil, err
+		}
+		last := e.lastDurable()
+		var installed bool
+		e.durable.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			installed = last == nil || e.durable.done >= last.pos
+		})
+		if !installed || !head.EqualsRef(e.bengine.GetRootRef().GetRootRef()) {
+			unlock()
+			read.Discard()
+			if _, _, err := e.waitDurable(ctx, last); err != nil {
+				return nil, nil, 0, nil, err
+			}
+			continue
+		}
+
+		// Capture retained-root metadata under the writer; the read pins the
+		// captured user head. Copying and storage work start after unlock.
+		roots := []*block.BlockRef{head}
+		for _, root := range e.retainedRoots {
+			roots = append(roots, root.GetRootRef())
+		}
+		unlock()
+		return head, e.replay.pages.frontier(roots), seqno, read.Discard, nil
 	}
-	return head, e.replay.pages.frontier(roots), seqno, nil
 }
 
-// GetHead returns the installed World root and its seqno.
+// GetHead returns one durable read's root and seqno, independently of the
+// engine's background retained ownership. It releases that read before return.
 func (e *soEngine) GetHead(ctx context.Context) (*block.BlockRef, uint64, error) {
-	head, _, seqno, err := e.backfillRoots(ctx)
-	return head, seqno, err
+	head, _, seqno, release, err := e.backfillRoots(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer release()
+	return head, seqno, nil
 }
-
-// _ is a type assertion
-var _ BackfillEngine = (*soEngine)(nil)
 
 // ReplayWorldsEngine lists the World roots this device still names.
 type ReplayWorldsEngine interface {
@@ -327,9 +380,6 @@ func (e *soEngine) ReplayWorlds(ctx context.Context) ([]*block.BlockRef, error) 
 	}
 	return roots, nil
 }
-
-// _ is a type assertion
-var _ ReplayWorldsEngine = (*soEngine)(nil)
 
 // ReplayFromEngine is a World engine that can replay its operations again
 // from one of the Worlds its replay passed through.
@@ -411,5 +461,9 @@ func (e *soEngine) ReplayFrom(ctx context.Context, root *block.BlockRef, apply b
 	return report, nil
 }
 
-// _ is a type assertion
-var _ ReplayFromEngine = (*soEngine)(nil)
+// _ proves the served engine implements its copy and replay capabilities.
+var (
+	_ BackfillEngine     = (*soEngine)(nil)
+	_ ReplayWorldsEngine = (*soEngine)(nil)
+	_ ReplayFromEngine   = (*soEngine)(nil)
+)

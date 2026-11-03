@@ -7,6 +7,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/s4wave/spacewave/bldr/storage"
 	storage_native "github.com/s4wave/spacewave/bldr/storage/native"
 	bstore "github.com/s4wave/spacewave/core/bstore"
@@ -26,6 +27,10 @@ type gatedSharedObject struct {
 	ctrl *sobject_world_engine.Controller
 	// stopServe stops the engine serve started.
 	stopServe func()
+	// waitReplay can delay state following after the restored World is served.
+	waitReplay func(context.Context) error
+	// waitCopy can hold graph reads until copying is released or canceled.
+	waitCopy func(context.Context) error
 
 	// mtx guards the fields below.
 	mtx sync.Mutex
@@ -259,3 +264,32 @@ var (
 	_ sobject.SharedObject  = (*gatedSharedObject)(nil)
 	_ block.AtomicPublisher = (*gatedBlockStore)(nil)
 )
+
+// AccessAdmittedState forwards the real state, optionally delaying its watcher.
+func (s *gatedSharedObject) AccessAdmittedState(ctx context.Context, released func()) (ccontainer.Watchable[sobject.SharedObjectStateSnapshot], func(), error) {
+	// Keep all provider state and ownership; gate only the watch's delivery.
+	state, release, err := s.SharedObject.AccessAdmittedState(ctx, released)
+	if err != nil {
+		return nil, nil, err
+	}
+	s.mtx.Lock()
+	wait := s.waitReplay
+	s.mtx.Unlock()
+	if wait != nil {
+		state = &backfillWatch{Watchable: state, wait: wait}
+	}
+	return state, release, nil
+}
+
+// GetCopySource forwards the actual copy source with an optional read gate.
+func (g *gatedBlockStore) GetCopySource() block.StoreOps {
+	// Ordinary World reads and publications never pass through this gate.
+	source := g.BlockStore.GetCopySource()
+	g.s.mtx.Lock()
+	wait := g.s.waitCopy
+	g.s.mtx.Unlock()
+	if wait != nil {
+		return &backfillReadStore{StoreOps: source, wait: wait}
+	}
+	return source
+}
