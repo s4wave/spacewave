@@ -1449,6 +1449,8 @@ SealCheckpoint ==
             K == {p \in E : IsOriginal(chain, p) /\ p # chain[1].from}
         IN /\ WrapperAvailable(checkpointRoots, E)
            /\ \E N \in IF early THEN {{}} ELSE SUBSET (checkpointInput.kept \cap kept) :
+                 \* Receipt and layout choices leave this physical count map unchanged.
+                 \E checkpointCounts \in {TLCEval(ClassCounts(E, N, K, checkpointRoots))} :
                  \E certified \in IF early THEN {TRUE} ELSE BOOLEAN :
                  \E refills \in IF Shadow THEN SUBSET (E \cap stored) ELSE {{}},
                     cached \in IF Shadow THEN SUBSET (E \ stored) ELSE {{}} :
@@ -1481,7 +1483,7 @@ SealCheckpoint ==
                           held |-> IF netted THEN net.held ELSE fallback,
                           found |-> [p \in Pages |-> foundHolds(p)]])
               IN \E material \in {[record |-> raw, fallback |-> fallback,
-                                    saved |-> TLCEval(ClassCounts(E, N, K, checkpointRoots))]} :
+                                    saved |-> checkpointCounts]} :
                  \E layout \in IF Shadow THEN Layouts(ListData(material.record, material.fallback))
                                ELSE {[large |-> FALSE, parts |-> {}]} :
                  LET current == (receiptSeen \/ ~early) /\ basisCurrent /\ Ready
