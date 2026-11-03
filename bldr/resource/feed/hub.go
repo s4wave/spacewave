@@ -240,14 +240,13 @@ func (r *feedRun[S, T]) latest() *Publication[T] {
 // the stream joins a feed that acts for no actor, whose view is public;
 // session renewal ends the connection of an actor whose access ends later.
 func WatchFeed[S, T any](ctx context.Context, hub *Hub[S], s S, feed *Feed[S, T], key string, deliver func(*Publication[T]) error) error {
-	// Check access before joining a public feed.
-	if !feed.Bound {
-		if err := hub.options.Admit(ctx, s); err != nil {
-			return err
-		}
+	// Join through the same admission boundary as manually combined subscriptions.
+	sub, err := Subscribe(ctx, hub, s, feed, key)
+	if err != nil {
+		return err
 	}
-	run, leave := joinFeed(ctx, hub, s, feed, key)
-	defer leave()
+	defer sub.Close()
+	run := sub.run
 
 	// A bound feed's own watch passes its actor's writes; an unbound one
 	// needs a poke from the watcher whose actor wrote.
