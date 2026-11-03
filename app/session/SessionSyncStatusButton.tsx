@@ -1,3 +1,4 @@
+import type { StyleXStyles as BottomBarStyles } from '@stylexjs/stylex'
 import { useCallback } from 'react'
 import {
   LuCircleAlert,
@@ -22,11 +23,17 @@ import {
   useSessionSyncSummary,
 } from './SessionSyncStatusContext.js'
 
-import * as stylex from '@stylexjs/stylex'
 import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
+
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles3 = stylex.create({
+  rule1: { color: themeColors['--color-brand'] },
+  rule2: { color: themeColors['--color-destructive'] },
+})
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -56,17 +63,17 @@ const stylexStyles = stylex.create({
 export function SessionSyncStatusButton() {
   const status = useSessionSyncSummary()
   const buttonRender = useCallback(
-    (selected: boolean, onClick: () => void, className?: string) => (
+    (selected: boolean, onClick: () => void, sx?: BottomBarStyles) => (
       <Popover open={selected}>
         <PopoverAnchor asChild>
           <BottomBarItem
             selected={selected}
             onClick={onClick}
-            className={cn(
-              className,
-              status.active && 'text-brand',
-              status.error && 'text-destructive',
-            )}
+            sx={[
+              sx,
+              !!status.active && stylexStyles3.rule1,
+              !!status.error && stylexStyles3.rule2,
+            ]}
             aria-label={status.ariaLabel}
             data-testid="session-sync-status-button"
           >

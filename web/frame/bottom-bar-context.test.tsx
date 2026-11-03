@@ -5,7 +5,6 @@ import { useBottomBarItems, BottomBarItem } from './bottom-bar-context.js'
 import { BottomBarLevel } from './bottom-bar-level.js'
 import { BottomBarRoot } from './bottom-bar-root.js'
 import { ViewerFrame } from './ViewerFrame.js'
-
 function TestContextMenuIcon({
   sx,
 }: {
@@ -27,19 +26,16 @@ function SelectableItemButton(selected: boolean, onClick: () => void) {
     </button>
   )
 }
-
 describe('BottomBarContext', () => {
   beforeEach(() => {
     cleanup()
   })
-
   describe('BottomBarLevel', () => {
     it('registers a single item', () => {
       const TestComponent = () => {
         const items = useBottomBarItems()
         return <div data-testid="items">{JSON.stringify(items.length)}</div>
       }
-
       const { getByTestId } = render(
         <BottomBarRoot>
           <BottomBarLevel
@@ -52,10 +48,8 @@ describe('BottomBarContext', () => {
           </BottomBarLevel>
         </BottomBarRoot>,
       )
-
       expect(getByTestId('items').textContent).toBe('1')
     })
-
     it('maintains item order from shallow to deep', () => {
       const TestComponent = () => {
         const items = useBottomBarItems()
@@ -65,7 +59,6 @@ describe('BottomBarContext', () => {
           </div>
         )
       }
-
       const { getByTestId } = render(
         <BottomBarRoot>
           <BottomBarLevel
@@ -86,26 +79,25 @@ describe('BottomBarContext', () => {
           </BottomBarLevel>
         </BottomBarRoot>,
       )
-
       expect(JSON.parse(getByTestId('ids').textContent ?? '')).toEqual([
         'outer',
         'middle',
         'inner',
       ])
     })
-
     it('preserves button render functions', () => {
       const TestComponent = () => {
         const items = useBottomBarItems()
         const button = items[0]?.button
         return (
           <div>
-            <div data-testid="unselected">{button?.(false, () => {}, '')}</div>
-            <div data-testid="selected">{button?.(true, () => {}, '')}</div>
+            <div data-testid="unselected">
+              {button?.(false, () => {}, null)}
+            </div>
+            <div data-testid="selected">{button?.(true, () => {}, null)}</div>
           </div>
         )
       }
-
       const { getByTestId } = render(
         <BottomBarRoot>
           <BottomBarLevel
@@ -118,11 +110,9 @@ describe('BottomBarContext', () => {
           </BottomBarLevel>
         </BottomBarRoot>,
       )
-
       expect(getByTestId('unselected').textContent).toBe('Unselected')
       expect(getByTestId('selected').textContent).toBe('Selected')
     })
-
     it('registers that a level has an overlay', () => {
       const TestComponent = () => {
         const items = useBottomBarItems()
@@ -132,7 +122,6 @@ describe('BottomBarContext', () => {
           </div>
         )
       }
-
       const { getByTestId } = render(
         <BottomBarRoot>
           <BottomBarLevel
@@ -144,10 +133,8 @@ describe('BottomBarContext', () => {
           </BottomBarLevel>
         </BottomBarRoot>,
       )
-
       expect(getByTestId('has-overlay').textContent).toBe('yes')
     })
-
     it('registers typed context menu actions for nested items', () => {
       const TestComponent = () => {
         const item = useBottomBarItems().find((entry) => entry.id === 'inner')
@@ -155,7 +142,6 @@ describe('BottomBarContext', () => {
         const separator = item?.contextMenuItems?.[1]
         const group = item?.contextMenuItems?.[2]
         const child = group?.type === 'group' ? group.items[0] : undefined
-
         return (
           <div>
             <div data-testid="menu-label">{item?.contextMenuLabel}</div>
@@ -180,7 +166,6 @@ describe('BottomBarContext', () => {
           </div>
         )
       }
-
       render(
         <BottomBarRoot>
           <BottomBarLevel
@@ -200,7 +185,10 @@ describe('BottomBarContext', () => {
                   shortcut: 'Enter',
                   onSelect: () => {},
                 },
-                { type: 'separator', id: 'divider' },
+                {
+                  type: 'separator',
+                  id: 'divider',
+                },
                 {
                   type: 'group',
                   id: 'browse',
@@ -224,7 +212,6 @@ describe('BottomBarContext', () => {
           </BottomBarLevel>
         </BottomBarRoot>,
       )
-
       expect(screen.getByTestId('menu-label').textContent).toBe('Inner actions')
       expect(screen.getByTestId('action-type').textContent).toBe('action')
       expect(screen.getByTestId('action-label').textContent).toBe(
@@ -237,7 +224,6 @@ describe('BottomBarContext', () => {
         'true|destructive|B',
       )
     })
-
     it('keeps the open overlay live with level state without remounting it', () => {
       let mounts = 0
 
@@ -255,7 +241,6 @@ describe('BottomBarContext', () => {
           />
         )
       }
-
       function TestRoot() {
         const [openMenu, setOpenMenu] = useState('')
         return (
@@ -266,7 +251,6 @@ describe('BottomBarContext', () => {
           </BottomBarRoot>
         )
       }
-
       function TestComponent() {
         const [count, setCount] = useState(0)
         return (
@@ -286,15 +270,14 @@ describe('BottomBarContext', () => {
           </BottomBarLevel>
         )
       }
-
       render(<TestRoot />)
-
       fireEvent.click(screen.getByText('Item idle'))
       expect(screen.getByText('Overlay 0')).toBeDefined()
       fireEvent.change(screen.getByLabelText('Draft'), {
-        target: { value: 'kept' },
+        target: {
+          value: 'kept',
+        },
       })
-
       fireEvent.click(screen.getByText('Increment'))
       expect(screen.getByText('Overlay 1')).toBeDefined()
       expect((screen.getByLabelText('Draft') as HTMLInputElement).value).toBe(
@@ -302,7 +285,6 @@ describe('BottomBarContext', () => {
       )
       expect(mounts).toBe(1)
     })
-
     it('closes a portaled overlay on Escape', () => {
       function TestRoot() {
         const [openMenu, setOpenMenu] = useState('')
@@ -320,16 +302,13 @@ describe('BottomBarContext', () => {
           </BottomBarRoot>
         )
       }
-
       render(<TestRoot />)
-
       fireEvent.click(screen.getByText('Item idle'))
       fireEvent.keyDown(screen.getByLabelText('Overlay input'), {
         key: 'Escape',
       })
       expect(screen.queryByLabelText('Overlay input')).toBeNull()
     })
-
     it('keeps the overlay open when a layer inside it handled Escape', () => {
       function TestRoot() {
         const [openMenu, setOpenMenu] = useState('')
@@ -347,34 +326,30 @@ describe('BottomBarContext', () => {
           </BottomBarRoot>
         )
       }
-
       render(<TestRoot />)
-
       fireEvent.click(screen.getByText('Item idle'))
       // A native listener, as a Radix layer uses, consumes the key first.
       const input = screen.getByLabelText('Overlay input')
       input.addEventListener('keydown', (e) => e.preventDefault())
-      fireEvent.keyDown(input, { key: 'Escape' })
+      fireEvent.keyDown(input, {
+        key: 'Escape',
+      })
       expect(screen.queryByLabelText('Overlay input')).not.toBeNull()
     })
-
     it('updates button content without unregistering between item revisions', () => {
       const lengths: number[] = []
-
       function RegistryProbe() {
         lengths.push(useBottomBarItems().length)
         return null
       }
-
       function RegisteredContentProbe() {
         const item = useBottomBarItems()[0]
         return (
           <div data-testid="registered-button">
-            {item?.button(false, () => {}, '')}
+            {item?.button(false, () => {}, null)}
           </div>
         )
       }
-
       function TestItem() {
         const [count, setCount] = useState(0)
         const button = useCallback(
@@ -385,7 +360,6 @@ describe('BottomBarContext', () => {
           ),
           [count],
         )
-
         return (
           <BottomBarLevel id="item" button={button}>
             <button type="button" onClick={() => setCount((n) => n + 1)}>
@@ -394,7 +368,6 @@ describe('BottomBarContext', () => {
           </BottomBarLevel>
         )
       }
-
       function TestRoot() {
         const [openMenu, setOpenMenu] = useState('')
         return (
@@ -407,25 +380,19 @@ describe('BottomBarContext', () => {
           </BottomBarRoot>
         )
       }
-
       render(<TestRoot />)
-
       expect(screen.getByTestId('registered-button').textContent).toBe('Item 0')
       lengths.length = 0
-
       fireEvent.click(screen.getByText('Update'))
       expect(screen.getByTestId('registered-button').textContent).toBe('Item 1')
       expect(lengths).not.toContain(0)
     })
-
     it('updates context menu actions without unregistering between item revisions', () => {
       const lengths: number[] = []
-
       function RegistryProbe() {
         lengths.push(useBottomBarItems().length)
         return null
       }
-
       function RegisteredContentProbe() {
         const item = useBottomBarItems()[0]
         const action = item?.contextMenuItems?.[0]
@@ -435,7 +402,6 @@ describe('BottomBarContext', () => {
           </div>
         )
       }
-
       function TestItem() {
         const [count, setCount] = useState(0)
         const actions = useMemo(
@@ -449,7 +415,6 @@ describe('BottomBarContext', () => {
           ],
           [count],
         )
-
         return (
           <BottomBarLevel
             id="item"
@@ -462,7 +427,6 @@ describe('BottomBarContext', () => {
           </BottomBarLevel>
         )
       }
-
       render(
         <BottomBarRoot>
           <RegistryProbe />
@@ -472,19 +436,16 @@ describe('BottomBarContext', () => {
           </ViewerFrame>
         </BottomBarRoot>,
       )
-
       expect(screen.getByTestId('registered-action').textContent).toBe(
         'Action 0',
       )
       lengths.length = 0
-
       fireEvent.click(screen.getByText('Update'))
       expect(screen.getByTestId('registered-action').textContent).toBe(
         'Action 1',
       )
       expect(lengths).not.toContain(0)
     })
-
     it('removes context menu actions from registered items', () => {
       function RegisteredContentProbe() {
         const item = useBottomBarItems()[0]
@@ -494,7 +455,6 @@ describe('BottomBarContext', () => {
           </div>
         )
       }
-
       function TestItem() {
         const [enabled, setEnabled] = useState(true)
         const actions = useMemo(
@@ -508,7 +468,6 @@ describe('BottomBarContext', () => {
           ],
           [],
         )
-
         return (
           <BottomBarLevel
             id="item"
@@ -521,7 +480,6 @@ describe('BottomBarContext', () => {
           </BottomBarLevel>
         )
       }
-
       render(
         <BottomBarRoot>
           <RegisteredContentProbe />
@@ -530,22 +488,20 @@ describe('BottomBarContext', () => {
           </ViewerFrame>
         </BottomBarRoot>,
       )
-
       expect(screen.getByTestId('has-context-menu').textContent).toBe('yes')
       fireEvent.click(screen.getByText('Disable actions'))
       expect(screen.getByTestId('has-context-menu').textContent).toBe('no')
     })
-
     it('does not update the registry for unchanged inline overlay content', () => {
-      const renders = { count: 0 }
-
+      const renders = {
+        count: 0,
+      }
       function TestItem() {
         const items = useBottomBarItems()
         renders.count += 1
         if (renders.count > 10) {
           throw new Error('bottom bar registry update loop')
         }
-
         return (
           <>
             <div data-testid="item-count">{items.length}</div>
@@ -559,17 +515,14 @@ describe('BottomBarContext', () => {
           </>
         )
       }
-
       render(
         <BottomBarRoot>
           <TestItem />
         </BottomBarRoot>,
       )
-
       expect(screen.getByTestId('item-count').textContent).toBe('1')
       expect(renders.count).toBeLessThan(10)
     })
-
     it('handles missing overlay', () => {
       const TestComponent = () => {
         const items = useBottomBarItems()
@@ -579,7 +532,6 @@ describe('BottomBarContext', () => {
           </div>
         )
       }
-
       const { getByTestId } = render(
         <BottomBarRoot>
           <BottomBarLevel
@@ -590,14 +542,11 @@ describe('BottomBarContext', () => {
           </BottomBarLevel>
         </BottomBarRoot>,
       )
-
       expect(getByTestId('has-overlay').textContent).toBe('no')
     })
-
     it('handles onBreadcrumbClick handler', () => {
       const clicks: string[] = []
       const handler = () => clicks.push('clicked')
-
       const TestComponent = () => {
         const items = useBottomBarItems()
         const onBreadcrumbClick = items[0]?.onBreadcrumbClick
@@ -616,7 +565,6 @@ describe('BottomBarContext', () => {
           </div>
         )
       }
-
       const { getByTestId } = render(
         <BottomBarRoot>
           <BottomBarLevel
@@ -628,12 +576,10 @@ describe('BottomBarContext', () => {
           </BottomBarLevel>
         </BottomBarRoot>,
       )
-
       expect(getByTestId('has-handler').textContent).toBe('yes')
       getByTestId('trigger').click()
       expect(clicks).toEqual(['clicked'])
     })
-
     it('handles missing onBreadcrumbClick handler', () => {
       const TestComponent = () => {
         const items = useBottomBarItems()
@@ -644,7 +590,6 @@ describe('BottomBarContext', () => {
           </div>
         )
       }
-
       const { getByTestId } = render(
         <BottomBarRoot>
           <BottomBarLevel
@@ -655,21 +600,16 @@ describe('BottomBarContext', () => {
           </BottomBarLevel>
         </BottomBarRoot>,
       )
-
       expect(getByTestId('has-handler').textContent).toBe('no')
     })
-
     it('returns empty array when used outside BottomBarRoot', () => {
       const TestComponent = () => {
         const items = useBottomBarItems()
         return <div data-testid="count">{items.length}</div>
       }
-
       const { getByTestId } = render(<TestComponent />)
-
       expect(getByTestId('count').textContent).toBe('0')
     })
-
     it('creates independent context trees', () => {
       const TestComponent = ({ testId }: { testId: string }) => {
         const items = useBottomBarItems()
@@ -679,7 +619,6 @@ describe('BottomBarContext', () => {
           </div>
         )
       }
-
       const { getByTestId } = render(
         <div>
           <BottomBarRoot>
@@ -700,7 +639,6 @@ describe('BottomBarContext', () => {
           </BottomBarRoot>
         </div>,
       )
-
       expect(JSON.parse(getByTestId('tree1-result').textContent ?? '')).toEqual(
         ['tree1'],
       )
@@ -708,21 +646,16 @@ describe('BottomBarContext', () => {
         ['tree2'],
       )
     })
-
     it('button render function receives correct selected state', () => {
       const states: boolean[] = []
-
       const TestComponent = () => {
         const items = useBottomBarItems()
         const button = items[0]?.button
-
-        const _node1 = button?.(false, () => {}, '')
-        const _node2 = button?.(true, () => {}, '')
-        const _node3 = button?.(false, () => {}, '')
-
+        const _node1 = button?.(false, () => {}, null)
+        const _node2 = button?.(true, () => {}, null)
+        const _node3 = button?.(false, () => {}, null)
         return null
       }
-
       render(
         <BottomBarRoot>
           <BottomBarLevel
@@ -736,10 +669,8 @@ describe('BottomBarContext', () => {
           </BottomBarLevel>
         </BottomBarRoot>,
       )
-
       expect(states).toEqual([false, true, false])
     })
-
     it('handles complex nested structures', () => {
       const TestComponent = ({ level }: { level: string }) => {
         const items = useBottomBarItems()
@@ -752,7 +683,6 @@ describe('BottomBarContext', () => {
           </div>
         )
       }
-
       const { getByTestId } = render(
         <BottomBarRoot>
           <BottomBarLevel
@@ -788,7 +718,6 @@ describe('BottomBarContext', () => {
         count: 4,
         ids: ['root', 'child1', 'child2', 'grandchild'],
       }
-
       expect(JSON.parse(getByTestId('level-root').textContent ?? '')).toEqual(
         expectedItems,
       )
@@ -803,17 +732,14 @@ describe('BottomBarContext', () => {
       )
     })
   })
-
   describe('Context Memoization', () => {
     it('context value changes when items change', () => {
       const TestComponent = () => {
         const items = useBottomBarItems()
         return <div data-testid="item-id">{items[0]?.id}</div>
       }
-
       const buttonFn = () => <button type="button">Item</button>
       const overlayContent = <div>Overlay</div>
-
       const { getByTestId, rerender } = render(
         <BottomBarRoot>
           <BottomBarLevel id="item" button={buttonFn} overlay={overlayContent}>
@@ -821,9 +747,7 @@ describe('BottomBarContext', () => {
           </BottomBarLevel>
         </BottomBarRoot>,
       )
-
       expect(getByTestId('item-id').textContent).toBe('item')
-
       rerender(
         <BottomBarRoot>
           <BottomBarLevel id="item" button={buttonFn} overlay={overlayContent}>
@@ -831,18 +755,14 @@ describe('BottomBarContext', () => {
           </BottomBarLevel>
         </BottomBarRoot>,
       )
-
       expect(getByTestId('item-id').textContent).toBe('item')
     })
-
     it('creates new items array when id changes', () => {
       const TestComponent = () => {
         const items = useBottomBarItems()
         return <div data-testid="item-id">{items[0]?.id}</div>
       }
-
       const buttonFn = () => <button type="button">Item</button>
-
       const { getByTestId, rerender } = render(
         <BottomBarRoot>
           <BottomBarLevel id="item1" button={buttonFn}>
@@ -850,9 +770,7 @@ describe('BottomBarContext', () => {
           </BottomBarLevel>
         </BottomBarRoot>,
       )
-
       expect(getByTestId('item-id').textContent).toBe('item1')
-
       rerender(
         <BottomBarRoot>
           <BottomBarLevel id="item2" button={buttonFn}>
@@ -860,19 +778,15 @@ describe('BottomBarContext', () => {
           </BottomBarLevel>
         </BottomBarRoot>,
       )
-
       expect(getByTestId('item-id').textContent).toBe('item2')
     })
-
     it('creates new items array when button changes', () => {
       const TestComponent = () => {
         const items = useBottomBarItems()
         return <div data-testid="has-item">{items[0] ? 'yes' : 'no'}</div>
       }
-
       const buttonFn1 = () => <button type="button">Item 1</button>
       const buttonFn2 = () => <button type="button">Item 2</button>
-
       const { getByTestId, rerender } = render(
         <BottomBarRoot>
           <BottomBarLevel id="item" button={buttonFn1}>
@@ -880,9 +794,7 @@ describe('BottomBarContext', () => {
           </BottomBarLevel>
         </BottomBarRoot>,
       )
-
       expect(getByTestId('has-item').textContent).toBe('yes')
-
       rerender(
         <BottomBarRoot>
           <BottomBarLevel id="item" button={buttonFn2}>
@@ -890,7 +802,6 @@ describe('BottomBarContext', () => {
           </BottomBarLevel>
         </BottomBarRoot>,
       )
-
       expect(getByTestId('has-item').textContent).toBe('yes')
     })
   })

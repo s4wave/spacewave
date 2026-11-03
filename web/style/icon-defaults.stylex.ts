@@ -1,4 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
+import { viewerBarMarker } from './viewer-bar.stylex.js'
 import { commandDialogMarker } from './relations.stylex.js'
 import { colors } from './tokens.stylex.js'
 
@@ -14,6 +15,9 @@ export const buttonGroupIconMarker = stylex.defineMarker()
 export const traceIconMarker = stylex.defineMarker()
 /** codeTitleIconMarker gates the code title's compact SVG dimensions. */
 export const codeTitleIconMarker = stylex.defineMarker()
+
+/** bottomBarIconMarker scopes direct-child bar icon requirements. */
+export const bottomBarIconMarker = stylex.defineMarker()
 
 /** iconDefaults composes DOM-scoped defaults before an icon's explicit caller styles. */
 export const iconDefaults = stylex.create({
@@ -83,6 +87,44 @@ export const iconDefaults = stylex.create({
 
 /** iconRequired retains menu interaction rules independently of explicit caller defaults. */
 export const iconRequired = stylex.create({
+  bottomBar: {
+    width: {
+      default: null,
+      [stylex.when.ancestor(':is(*) >', bottomBarIconMarker)]: '12px',
+    },
+    height: {
+      default: null,
+      [stylex.when.ancestor(':is(*) >', bottomBarIconMarker)]: '12px',
+    },
+    marginRight: {
+      default: null,
+      [stylex.when.ancestor(':is(*) >', bottomBarIconMarker)]: {
+        default: null,
+        ':not(:only-child)': '4px',
+      },
+    },
+  },
+  viewerBar: {
+    width: {
+      default: null,
+      '@media (max-width: 640px) and (pointer: coarse), (max-height: 470px) and (hover: none) and (pointer: coarse)':
+        {
+          default: null,
+          [stylex.when.ancestor(':is(*) [role="button"] >', viewerBarMarker)]:
+            '16px',
+        },
+    },
+    height: {
+      default: null,
+      '@media (max-width: 640px) and (pointer: coarse), (max-height: 470px) and (hover: none) and (pointer: coarse)':
+        {
+          default: null,
+          [stylex.when.ancestor(':is(*) [role="button"] >', viewerBarMarker)]:
+            '16px',
+        },
+    },
+  },
+
   command: {
     pointerEvents: {
       default: null,

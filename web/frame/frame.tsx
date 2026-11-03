@@ -1,22 +1,74 @@
+import { cn } from '@s4wave/web/style/utils.js'
+import { stylexProps } from '@s4wave/web/style/props.js'
+import * as stylex from '@stylexjs/stylex'
 import React, { CSSProperties, useEffect, useRef } from 'react'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import { IBarProps, Bar } from './bar.js'
+
+import {
+  colors as themeColors,
+  utilityState as themeUtilityState,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    position: 'relative',
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    flexWrap: 'nowrap',
+    gap: 0,
+    overflow: 'hidden',
+  },
+  rule2: {
+    position: 'relative',
+    margin: 0,
+    display: 'flex',
+    maxHeight: 'none',
+    width: '100%',
+    maxWidth: 'none',
+    flex: 1,
+    overflow: 'hidden',
+    borderWidth: '.21rem',
+    borderColor: themeColors['--color-frame-overlay'],
+    '--tw-border-style': 'solid',
+    borderStyle: 'solid',
+    backgroundColor: themeColors['--color-frame-overlay'],
+    overflowWrap: 'break-word',
+    color: 'inherit',
+  },
+  rule3: {
+    position: 'relative',
+    display: 'flex',
+    flex: 1,
+    overflow: 'hidden',
+    borderRightStyle: themeUtilityState['--tw-border-style'],
+    borderRightWidth: 0,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: 0,
+    borderLeftStyle: themeUtilityState['--tw-border-style'],
+    borderLeftWidth: 0,
+  },
+  rule4: { display: 'none' },
+})
 
 // IFrameProps are properties for Frame.
 export interface IFrameProps {
+  // dark marks descendants that still use the shared dark theme variant.
+  dark?: boolean
   // children are children elements for the body
   children?: React.ReactNode
   // style are styles to apply to the outer flex
   style?: CSSProperties
-  // className is a class name to apply to the outer flex.
-  className?: string
+  // sx adds styles to the outer flex.
+  sx?: stylex.StyleXStyles
+  className?: never
   // overlay is content to show in an overlay dialog
   overlay?: React.ReactNode
-  // innerClassName is additional className for the children container
-  innerClassName?: string
-  // overlayClassName is additional className for the overlay container
-  overlayClassName?: string
+  // innerSx adds styles to the children container.
+  innerSx?: stylex.StyleXStyles
+  // overlaySx adds styles to the overlay container.
+  overlaySx?: stylex.StyleXStyles
   // overlayLabel is the accessible name of the overlay dialog.
   overlayLabel?: string
   // bottomBar are props for the bottom bar.
@@ -31,7 +83,8 @@ export interface IFrameProps {
 }
 
 // Frame is a body with horizontal bars above and/or below it.
-export function Frame(props: IFrameProps) {
+export function Frame({ sx, innerSx, overlaySx, ...props }: IFrameProps) {
+  // Select the visible body and bars from this frame's overlay state.
   const groupRef = useRef<HTMLDivElement>(null)
   const overlayRef = useRef<HTMLDialogElement>(null)
   const hasOverlay = !!props.overlay
@@ -40,12 +93,14 @@ export function Frame(props: IFrameProps) {
     <Bar hideTopBorder={hasOverlay} {...props.bottomBar} />
   ) : undefined
 
+  // A top bar without either slot has no visible content.
   const topBar =
     !props.topBar?.hidden &&
     (props.topBar?.left !== undefined || props.topBar?.right !== undefined) ? (
       <Bar {...props.topBar} />
     ) : undefined
 
+  // Move focus into the overlay when its content becomes visible.
   useEffect(() => {
     if (hasOverlay) overlayRef.current?.focus()
   }, [hasOverlay])
@@ -54,8 +109,11 @@ export function Frame(props: IFrameProps) {
   // key. The listener is on the DOM because overlay content may be a portal
   // whose React parents sit outside this frame.
   useEffect(() => {
+    // Listen only while this frame owns a closable overlay.
     const group = groupRef.current
     if (!group || !hasOverlay || !onCloseOverlay) return
+
+    // Handle Escape at the physical frame boundary, including portal events.
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !e.defaultPrevented) onCloseOverlay()
     }
@@ -63,19 +121,13 @@ export function Frame(props: IFrameProps) {
     return () => group.removeEventListener('keydown', handleKeyDown)
   }, [hasOverlay, onCloseOverlay])
 
+  // Preserve native caller styles beside compiled variables and the theme marker.
+  const attributes = stylexProps([stylexStyles.rule1, sx], {
+    style: props.style,
+  })
+  attributes.className = cn(attributes.className, props.dark && 'dark')
   return (
-    <div
-      ref={groupRef}
-      role="group"
-      className={
-        /* TODO(stylex): dynamic class or forwarded className */ cn(
-          'relative flex-1 overflow-hidden',
-          'flex flex-col flex-nowrap gap-0',
-          props.className,
-        )
-      }
-      style={props.style}
-    >
+    <div ref={groupRef} role="group" {...attributes}>
       {topBar}
 
       {hasOverlay ? (
@@ -83,12 +135,7 @@ export function Frame(props: IFrameProps) {
           ref={overlayRef}
           open
           aria-label={props.overlayLabel ?? 'Overlay'}
-          className={
-            /* TODO(stylex): dynamic class or forwarded className */ cn(
-              'border-frame-overlay-border bg-frame-overlay relative m-0 flex max-h-none w-full max-w-none flex-1 overflow-hidden border-frame-overlay border-solid text-inherit break-words',
-              props.overlayClassName,
-            )
-          }
+          sx={[[stylexStyles.rule2], overlaySx]}
           tabIndex={-1}
         >
           {props.overlay}
@@ -96,13 +143,7 @@ export function Frame(props: IFrameProps) {
       ) : null}
 
       <div
-        className={
-          /* TODO(stylex): dynamic class or forwarded className */ cn(
-            'relative flex flex-1 overflow-hidden border-r-0 border-b-0 border-l-0',
-            hasOverlay && 'hidden',
-            props.innerClassName,
-          )
-        }
+        sx={[[stylexStyles.rule3, !!hasOverlay && stylexStyles.rule4], innerSx]}
         aria-hidden={hasOverlay}
         hidden={hasOverlay}
       >

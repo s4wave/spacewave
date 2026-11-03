@@ -1,3 +1,4 @@
+import type { StyleXStyles as BottomBarStyles } from '@stylexjs/stylex'
 import { useMemo, useCallback, useEffect, useState } from 'react'
 import type React from 'react'
 import { useCommand } from '@s4wave/web/command/useCommand.js'
@@ -36,12 +37,13 @@ import {
   switchObjectAtViewerPosition,
 } from './object-viewer-space-actions.js'
 
-import * as stylex from '@stylexjs/stylex'
 import {
   layout as themeLayout,
   colors as themeColors,
   fonts as themeFonts,
 } from '../style/tokens.stylex.js'
+
+import * as stylex from '@stylexjs/stylex'
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -92,7 +94,7 @@ export interface UseObjectViewerResult {
   buttonRender: (
     selected: boolean,
     onClick: () => void,
-    className?: string,
+    sx?: BottomBarStyles,
   ) => React.ReactNode
   overlayContent: React.ReactNode | undefined
   contextMenuItems: readonly BottomBarContextMenuItem[] | undefined
@@ -423,7 +425,7 @@ function useViewerButton({
   const isLastItem = useIsLastBottomBarItem(barId)
   const [selectorOpen, setSelectorOpen] = useState(false)
   const buttonRender = useCallback(
-    (selected: boolean, onClick: () => void, className?: string) => {
+    (selected: boolean, onClick: () => void, sx?: BottomBarStyles) => {
       const label =
         selected || isLastItem
           ? barComponentLabel(selectedComponent, typeID)
@@ -450,9 +452,7 @@ function useViewerButton({
         <BottomBarItem
           selected={selected}
           onClick={onClick}
-          className={
-            /* TODO(stylex): dynamic class or forwarded className */ className
-          }
+          sx={sx}
           trailing={selector}
         >
           <div sx={stylexStyles.rule4}>{displayKey}</div>

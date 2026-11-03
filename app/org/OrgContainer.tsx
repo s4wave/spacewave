@@ -1,3 +1,4 @@
+import type { StyleXStyles as BottomBarStyles } from '@stylexjs/stylex'
 import { createContext, useCallback, use, useMemo } from 'react'
 import { LuArrowUp, LuBuilding2 } from '@s4wave/web/images/icons.js'
 import { useWatchStateRpc } from '@aptre/bldr-react'
@@ -35,6 +36,7 @@ import { OrganizationDashboard } from './OrganizationDashboard.js'
 import { OrganizationDetails } from './OrganizationDetails.js'
 
 // OrgContainerState holds the watched organization state provided to children.
+
 export interface OrgContainerState {
   orgId: string
   orgState: WatchOrganizationStateResponse | null
@@ -135,11 +137,11 @@ export function OrgContainer() {
     : 'bg-foreground/10 text-foreground-alt/70'
 
   const orgButton = useCallback(
-    (selected: boolean, onClick: () => void, className?: string) => (
+    (selected: boolean, onClick: () => void, sx?: BottomBarStyles) => (
       <BottomBarItem
         selected={selected}
         onClick={onClick}
-        className={className}
+        sx={sx}
         aria-label={
           selected ? 'Close organization menu' : 'Open organization menu'
         }

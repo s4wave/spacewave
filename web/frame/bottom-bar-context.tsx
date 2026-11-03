@@ -1,3 +1,4 @@
+import type { StyleXStyles as BottomBarStyles } from '@stylexjs/stylex'
 import type { IconType } from '@s4wave/web/images/icons.js'
 import React, { createContext, use, useSyncExternalStore } from 'react'
 
@@ -56,7 +57,7 @@ export interface BottomBarItem {
   button: (
     selected: boolean,
     onClick: () => void,
-    className: string,
+    sx: BottomBarStyles,
   ) => React.ReactNode
   /** Set when the item's level renders an overlay while its menu is open */
   hasOverlay?: boolean

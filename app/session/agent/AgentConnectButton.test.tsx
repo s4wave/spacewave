@@ -46,7 +46,7 @@ vi.mock('@s4wave/web/router/router.js', () => ({
 function BarProbe() {
   const [selected, setSelected] = useState(false)
   const item = useBottomBarItems()[0]
-  return <>{item?.button(selected, () => setSelected((s) => !s), '')}</>
+  return <>{item?.button(selected, () => setSelected((s) => !s), null)}</>
 }
 
 describe('AgentConnectButton', () => {

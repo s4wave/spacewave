@@ -1,7 +1,10 @@
+import {
+  viewerBarMarker,
+  viewerBarStyles,
+} from '@s4wave/web/style/viewer-bar.stylex.js'
 import React, { useCallback, useMemo, useRef, useState } from 'react'
 
 import { usePhoneShell } from '@s4wave/web/hooks/usePhoneShell.js'
-import { cn } from '@s4wave/web/style/utils.js'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -59,7 +62,8 @@ const stylexStyles = stylex.create({
 // ViewerFrameProps are properties for ViewerFrame.
 export interface ViewerFrameProps {
   right?: React.ReactNode
-  className?: string
+  sx?: stylex.StyleXStyles
+  className?: never
   children?: React.ReactNode
 }
 
@@ -79,7 +83,8 @@ interface BottomBarButtonSlotProps {
     activation: BottomBarSecondaryActivation,
   ) => void
   contextMenuOpen?: boolean
-  className?: string
+  sx?: stylex.StyleXStyles
+  className?: never
 }
 
 function BottomBarButtonSlot({
@@ -88,13 +93,13 @@ function BottomBarButtonSlot({
   setOpenMenu,
   openContextMenu,
   contextMenuOpen,
-  className,
+  sx,
 }: BottomBarButtonSlotProps) {
   const selected = openMenu === item.id
   const button = item.button(
     selected,
     () => setOpenMenu(selected ? '' : item.id),
-    cn(selected && 'bg-bar-item-selected', className),
+    [selected && stylexStyles.rule2, sx],
   )
   const hasContextMenu = (item.contextMenuItems?.length ?? 0) > 0
   if (!hasContextMenu || !openContextMenu || !React.isValidElement(button)) {
@@ -133,10 +138,7 @@ function CollapsedBottomBarItems({
       <DropdownMenuTrigger asChild>
         <BottomBarButton
           selected={selected}
-          {...stylex.props([
-            stylexStyles.rule1,
-            !!selected && stylexStyles.rule2,
-          ])}
+          sx={[stylexStyles.rule1, !!selected && stylexStyles.rule2]}
           aria-label="Open hidden bottom bar items"
         >
           ...
@@ -320,7 +322,7 @@ function BottomBarContextMenuActionItem({
 
 // ViewerFrame renders bottom bar items with breadcrumb separators and an overlay.
 // Extracted from SessionFrame for reuse in standalone ObjectViewer contexts.
-export function ViewerFrame(props: ViewerFrameProps) {
+export function ViewerFrame({ sx, ...props }: ViewerFrameProps) {
   const items = useBottomBarItems()
   const phoneShell = usePhoneShell()
   const openMenu = useBottomBarOpenMenu() ?? ''
@@ -401,7 +403,7 @@ export function ViewerFrame(props: ViewerFrameProps) {
               setOpenMenu={setOpenMenu}
               openContextMenu={openContextMenu}
               contextMenuOpen={contextMenuState?.itemId === last.id}
-              {...stylex.props(phoneShell ? stylexStyles.rule7 : undefined)}
+              sx={phoneShell ? stylexStyles.rule7 : undefined}
             />
           </>
         )
@@ -422,13 +424,13 @@ export function ViewerFrame(props: ViewerFrameProps) {
                 setOpenMenu={setOpenMenu}
                 openContextMenu={openContextMenu}
                 contextMenuOpen={contextMenuState?.itemId === item.id}
-                {...stylex.props(
+                sx={
                   index === leftItems.length - 1
                     ? phoneShell
                       ? stylexStyles.rule7
                       : undefined
-                    : undefined,
-                )}
+                    : undefined
+                }
               />
             </React.Fragment>
           )
@@ -467,11 +469,9 @@ export function ViewerFrame(props: ViewerFrameProps) {
   return (
     <>
       <Frame
-        className={
-          /* TODO(stylex): dynamic class or forwarded className */ props.className
-        }
+        sx={sx}
         bottomBar={{
-          className: 'viewer-bottom-bar px-1',
+          sx: [viewerBarMarker, viewerBarStyles.root],
           left,
           right,
         }}

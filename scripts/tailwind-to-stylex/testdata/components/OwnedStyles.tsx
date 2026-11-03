@@ -10,11 +10,15 @@ const compiledStyles = compiled.create({
 })
 
 interface BoxProps extends React.ComponentProps<'div'> {
-  label: string
+  label?: string
 }
 
 // Box owns its default style while callers provide the final override.
-function Box({ className = '', label, ...props }: BoxProps) {
+function Box({
+  className = '',
+  label = 'Default box',
+  ...props
+}: BoxProps = {}) {
   return (
     <div
       aria-label={label}
@@ -76,6 +80,7 @@ export function OwnedStyles({ optional = false }: { optional?: boolean } = {}) {
           </span>
         </div>
       ))}
+      <Box />
       <Box label="Default box">Default</Box>
       <Box
         label="Dynamic native caller"

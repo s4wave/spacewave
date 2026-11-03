@@ -1,3 +1,4 @@
+import type { StyleXStyles as BottomBarStyles } from '@stylexjs/stylex'
 import { useCallback, useState } from 'react'
 import { LuActivity } from '@s4wave/web/images/icons.js'
 
@@ -20,8 +21,15 @@ import {
   useBackgroundPlugins,
 } from './useBackgroundPlugins.js'
 
-import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+import * as stylex from '@stylexjs/stylex'
+
+import { colors as themeColors } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: { color: themeColors['--color-brand'] },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -72,13 +80,13 @@ export function SessionBackgroundPluginsButton() {
       ? 'Background plugins: all suspended'
       : `Background plugins: ${running} running`
   const buttonRender = useCallback(
-    (selected: boolean, onClick: () => void, className?: string) => (
+    (selected: boolean, onClick: () => void, sx?: BottomBarStyles) => (
       <Popover open={selected}>
         <PopoverAnchor asChild>
           <BottomBarItem
             selected={selected}
             onClick={onClick}
-            className={cn(className, running !== 0 && 'text-brand')}
+            sx={[sx, running !== 0 && stylexStyles2.rule1]}
             aria-label={ariaLabel}
             data-testid="session-background-plugins-button"
           >

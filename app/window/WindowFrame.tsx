@@ -1,3 +1,4 @@
+import * as frameStyles from '@stylexjs/stylex'
 import React, { CSSProperties } from 'react'
 
 import { Frame } from '@s4wave/web/frame/frame.js'
@@ -5,11 +6,18 @@ import { IBarProps } from '@s4wave/web/frame/bar.js'
 import { AppLogo } from '@s4wave/web/images/AppLogo.js'
 import { cn } from '@s4wave/web/style/utils.js'
 
+const frameBodyStyles = frameStyles.create({
+  column: { flexDirection: 'column' },
+  topBar: { backgroundColor: 'var(--color-window-bar)', marginBottom: '1px' },
+})
+
 // IWindowFrameProps are properties for the window frame.
 export interface IWindowFrameProps {
+  dark?: boolean
   title?: string
   style?: CSSProperties
-  className?: string
+  sx?: frameStyles.StyleXStyles
+  className?: never
   topBarHeight?: number
 
   onMinimize?: (e: React.MouseEvent) => void
@@ -28,7 +36,9 @@ export interface IWindowFrameProps {
   centerTopBar?: boolean
 }
 
-export function WindowFrame(props: IWindowFrameProps) {
+// WindowFrame composes the application window header and body.
+export function WindowFrame({ sx, ...props }: IWindowFrameProps) {
+  // Compose the title and logo before applying optional centering.
   let header: React.ReactNode = (
     <>
       <AppLogo
@@ -46,6 +56,7 @@ export function WindowFrame(props: IWindowFrameProps) {
     header = <div className="mx-auto flex items-center text-xs">{header}</div>
   }
 
+  // Show only the window actions supplied by this platform.
   const buttons: React.JSX.Element[] = []
   if (props.onClose) {
     buttons.push(
@@ -64,15 +75,13 @@ export function WindowFrame(props: IWindowFrameProps) {
   return (
     <Frame
       style={props.style}
-      className={props.className}
+      sx={sx}
+      dark={props.dark}
       bottomBar={{ hidden: true, ...props.bottomBar }}
-      innerClassName="flex-col"
+      innerSx={frameBodyStyles.column}
       topBar={{
-        className: cn(
-          'dark bg-window-bar mb-px',
-          !props.topBarHeight && 'h-bar',
-          props.topBar?.className,
-        ),
+        dark: true,
+        sx: [frameBodyStyles.topBar, props.topBar?.sx],
         style: {
           ...(props.topBarHeight && { height: `${props.topBarHeight}px` }),
           ...props.topBar?.style,

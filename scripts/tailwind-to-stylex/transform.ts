@@ -1,3 +1,4 @@
+import { isDefaultObjectParameter } from './parameters.js'
 import { parseSync, traverse } from '@babel/core'
 import type { Node, CallExpression } from '@babel/types'
 import { dirname, relative, resolve } from 'node:path'
@@ -627,11 +628,23 @@ export function transform(
       // A renamed component input stays a StyleX value instead of becoming a class-string leaf.
       isStyleInput = (name) => {
         const binding = path.scope.getBinding(name)
+        if (
+          binding?.kind === 'param' &&
+          binding.path.isIdentifier() &&
+          binding.path.node.name === 'sx'
+        )
+          return true
+        const pattern =
+          binding?.path.isAssignmentPattern() &&
+          isDefaultObjectParameter(binding.path.node)
+            ? binding.path.get('left')
+            : binding?.path
         return (
           !!binding &&
           binding.kind === 'param' &&
-          binding.path.isObjectPattern() &&
-          binding.path.node.properties.some((property) => {
+          !!pattern &&
+          pattern.isObjectPattern() &&
+          pattern.node.properties.some((property) => {
             if (
               property.type !== 'ObjectProperty' ||
               property.key.type !== 'Identifier' ||

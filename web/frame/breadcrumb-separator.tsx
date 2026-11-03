@@ -22,7 +22,7 @@ export function BottomBarBreadcrumbSeparator({
 }) {
   if (onClick) {
     return (
-      <BottomBarItem onClick={onClick} {...stylex.props(stylexStyles.rule1)}>
+      <BottomBarItem onClick={onClick} sx={stylexStyles.rule1}>
         <RxChevronRight aria-hidden="true" />
       </BottomBarItem>
     )

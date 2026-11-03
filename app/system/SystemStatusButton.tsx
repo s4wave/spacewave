@@ -1,3 +1,4 @@
+import type { StyleXStyles as BottomBarStyles } from '@stylexjs/stylex'
 import { useCallback, useRef } from 'react'
 import { LuActivity } from '@s4wave/web/images/icons.js'
 
@@ -8,11 +9,12 @@ import { SystemStatusDashboard } from './SystemStatusDashboard.js'
 // SystemStatusButton registers a system status dashboard button in the bottom
 // bar using BottomBarLevel. Clicking the button toggles a full-page overlay
 // showing the SystemStatusDashboard.
+
 export function SystemStatusButton() {
   const closeRef = useRef<(() => void) | null>(null)
 
   const buttonRender = useCallback(
-    (selected: boolean, onClick: () => void, className?: string) => {
+    (selected: boolean, onClick: () => void, sx?: BottomBarStyles) => {
       if (selected) {
         closeRef.current = onClick
       }
@@ -20,7 +22,7 @@ export function SystemStatusButton() {
         <BottomBarItem
           selected={selected}
           onClick={onClick}
-          className={className}
+          sx={sx}
           aria-label={
             selected ? 'Close system status view' : 'Open system status view'
           }
