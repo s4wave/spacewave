@@ -1,6 +1,12 @@
+import * as stylex from '@stylexjs/stylex'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import { NavigationLink } from './NavigationLink.js'
+
+const overrides = stylex.create({
+  button: { marginTop: 4 },
+  text: { color: 'rgb(150, 30, 60)' },
+})
 
 describe('NavigationLink', () => {
   afterEach(() => {
@@ -21,16 +27,26 @@ describe('NavigationLink', () => {
     expect(handleNavigationSelect).toHaveBeenCalledOnce()
   })
 
-  it('applies custom className to the button', () => {
-    render(<NavigationLink text="Styled" className="mt-1" />)
+  it('applies native styles to the button', () => {
+    render(<NavigationLink text="Styled" sx={overrides.button} />)
     const button = screen.getByRole('button')
-    expect(button.classList.contains('mt-1')).toBe(true)
+    expect(
+      stylex
+        .props(overrides.button)
+        .className!.split(' ')
+        .every((name) => button.classList.contains(name)),
+    ).toBe(true)
   })
 
-  it('applies custom textClassName to the text span', () => {
-    render(<NavigationLink text="Colored" textClassName="text-brand" />)
+  it('applies native text styles to the text span', () => {
+    render(<NavigationLink text="Colored" textSx={overrides.text} />)
     const textSpan = screen.getByText('Colored')
-    expect(textSpan.classList.contains('text-brand')).toBe(true)
+    expect(
+      stylex
+        .props(overrides.text)
+        .className!.split(' ')
+        .every((name) => textSpan.classList.contains(name)),
+    ).toBe(true)
   })
 
   it('does not fire onClick on unrelated keydown', () => {

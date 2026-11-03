@@ -5,7 +5,7 @@ import { LuFolderOpen, LuUser } from '@s4wave/web/images/icons.js'
 import type { SessionListEntry } from '@s4wave/core/session/session.pb.js'
 import { useAddSpaceRootAlias } from '@s4wave/app/hooks/useAddSpaceRootAlias.js'
 import { useSessionMetadata } from '@s4wave/app/hooks/useSessionMetadata.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { useNavigate } from '@s4wave/web/router/router.js'
 import {
   getVisibleQuickstartOptions,
@@ -26,6 +26,181 @@ import { useIsStaticMode } from '../prerender/StaticContext.js'
 
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+import {
+  radii as themeRadii,
+  colors as themeColors,
+  motion as themeMotion,
+  fonts as themeFonts,
+  utilityState as themeUtilityState,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles5 = stylex.create({
+  rule1: {
+    position: 'relative',
+    display: 'flex',
+    minHeight: `calc(${themeLayout['--spacing']} * 50)`,
+    flexDirection: 'column',
+    borderRadius: themeRadii['--radius-landing-launcher'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 11%, transparent)`,
+    backgroundColor: themeColors['--color-background-get-started'],
+    '--tw-shadow': `inset 0 1px 0 var(--tw-shadow-color, color-mix(in oklab, ${themeColors['--color-foreground']} 7%, transparent)), 0 0 0 1px var(--tw-shadow-color, oklch(0% 0 0 / .35)), 0 48px 96px -40px var(--tw-shadow-color, oklch(0% 0 0 / .8)), 0 14px 32px -18px var(--tw-shadow-color, oklch(0% 0 0 / .55))`,
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    maxHeight: {
+      default: null,
+      '@container (min-width: 32rem)': themeLayout['--max-height-get-started'],
+      '@container (min-width: 42rem)':
+        themeLayout['--max-height-get-started-wide'],
+    },
+    flex: { default: null, '@container (min-width: 32rem)': '0 auto' },
+    overflow: { default: null, '@container (min-width: 32rem)': 'hidden' },
+  },
+})
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 9)`,
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-landing-control'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    color: themeColors['--color-foreground'],
+    '--tw-shadow': `inset 0 1px 0 var(--tw-shadow-color, color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)), inset 0 0 0 1px var(--tw-shadow-color, color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent))`,
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule2: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  rule3: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    opacity: 0.6,
+  },
+  rule4: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 7%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3.25)`,
+  },
+  rule5: {
+    fontSize: themeLayout['--text-landing-prompt'],
+    color: `color-mix(in oklab, ${themeColors['--color-foreground']} 70%, transparent)`,
+  },
+  rule6: { whiteSpace: 'nowrap' },
+  rule7: {
+    display: { default: 'none', '@media (min-width: 40rem)': 'inline' },
+  },
+  rule8: {
+    flex: 1,
+    backgroundColor: themeColors['--color-background-get-started'],
+    paddingBottom: `calc(${themeLayout['--spacing']} * 2.5)`,
+    minHeight: { default: null, '@container (min-width: 32rem)': 0 },
+    overflowY: { default: null, '@container (min-width: 32rem)': 'auto' },
+    display: {
+      default: null,
+      '@media (max-height: 470px)': {
+        default: null,
+        '@container (min-width: 32rem)': 'grid',
+      },
+    },
+    gridTemplateColumns: {
+      default: null,
+      '@media (max-height: 470px)': {
+        default: null,
+        '@container (min-width: 32rem)': 'repeat(2, minmax(0, 1fr))',
+      },
+    },
+    alignContent: {
+      default: null,
+      '@media (max-height: 470px)': {
+        default: null,
+        '@container (min-width: 32rem)': 'flex-start',
+      },
+    },
+  },
+  rule9: {
+    order: {
+      default: null,
+      '@media (max-height: 470px)': {
+        default: null,
+        '@container (min-width: 32rem)': -9999,
+      },
+    },
+  },
+  rule10: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 5)`,
+    paddingTop: `calc(${themeLayout['--spacing']} * 2.5)`,
+    paddingBottom: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-wide)',
+    letterSpacing: 'var(--tracking-wide)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground']} 50%, transparent)`,
+  },
+  rule11: {
+    marginInline: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-lg'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    color: themeColors['--color-foreground-alt'],
+    textDecorationLine: 'none',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.2s',
+    '--tw-duration': '.2s',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+  },
+  rule12: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 9)`,
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-landing-control'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    color: themeColors['--color-foreground'],
+    '--tw-shadow': `inset 0 1px 0 var(--tw-shadow-color, color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)), inset 0 0 0 1px var(--tw-shadow-color, color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent))`,
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+  },
+})
 
 const stylexStyles3 = stylex.create({
   rule1: {
@@ -106,12 +281,12 @@ const GetStartedItem = ({ item }: { item: QuickstartOption }) => {
 
   return (
     <CommandItem key={item.id} variant="landing" onSelect={handleClick}>
-      <div className="bg-foreground/10 text-foreground rounded-landing-control shadow-landing-tile flex size-9 shrink-0 items-center justify-center transition-colors">
+      <div sx={stylexStyles4.rule1}>
         <item.icon sx={stylexStyles2.rule1} />
       </div>
       <div>
-        <div className="text-sm font-medium">{item.name}</div>
-        <div className="text-xs opacity-60">{item.description}</div>
+        <div sx={stylexStyles4.rule2}>{item.name}</div>
+        <div sx={stylexStyles4.rule3}>{item.description}</div>
       </div>
     </CommandItem>
   )
@@ -130,14 +305,12 @@ function AddStateRootItem() {
       disabled={!canAddRootAlias}
       onSelect={handleClick}
     >
-      <div className="bg-foreground/10 text-foreground rounded-landing-control shadow-landing-tile flex size-9 shrink-0 items-center justify-center transition-colors">
+      <div sx={stylexStyles4.rule1}>
         <LuFolderOpen sx={stylexStyles.rule1} />
       </div>
       <div>
-        <div className="text-sm font-medium">Open a local state root</div>
-        <div className="text-xs opacity-60">
-          Add an existing .spacewave directory
-        </div>
+        <div sx={stylexStyles4.rule2}>Open a local state root</div>
+        <div sx={stylexStyles4.rule3}>Add an existing .spacewave directory</div>
       </div>
     </CommandItem>
   )
@@ -174,12 +347,12 @@ function SessionItem({ session }: { session: SessionListEntry }) {
       variant="landing"
       onSelect={handleClick}
     >
-      <div className="bg-foreground/10 text-foreground rounded-landing-control shadow-landing-tile flex size-9 shrink-0 items-center justify-center transition-colors">
+      <div sx={stylexStyles4.rule1}>
         <LuUser sx={stylexStyles.rule1} />
       </div>
       <div>
-        <div className="text-sm font-medium">Account: {accountName}</div>
-        <div className="text-xs opacity-60">{subtitle}</div>
+        <div sx={stylexStyles4.rule2}>Account: {accountName}</div>
+        <div sx={stylexStyles4.rule3}>{subtitle}</div>
       </div>
     </CommandItem>
   )
@@ -205,50 +378,38 @@ function StaticGetStarted({ sx }: Pick<GetStartedProps, 'sx'>) {
     }))
   }, [])
 
-  const attributes = stylex.props(sx)
   return (
-    <div
-      {...attributes}
-      className={cn(
-        'border-foreground/11 bg-background-get-started rounded-landing-launcher shadow-landing-launcher relative flex min-h-50 flex-col border backdrop-blur-sm @lg:flex-1 @lg:overflow-hidden',
-        '@lg:max-h-(--max-height-get-started) @lg:flex-initial @2xl:max-h-(--max-height-get-started-wide)',
-        attributes.className,
-      )}
-    >
-      <div className="border-foreground/7 flex items-center gap-2 border-b px-4.5 py-3.25">
-        <span className="text-foreground/70 text-landing-prompt">
-          <span className="whitespace-nowrap">
-            Where would you like to start?
-          </span>
-          <span className="hidden sm:inline">
+    <div sx={[[stylexStyles5.rule1], sx]}>
+      <div sx={stylexStyles4.rule4}>
+        <span sx={stylexStyles4.rule5}>
+          <span sx={stylexStyles4.rule6}>Where would you like to start?</span>
+          <span sx={stylexStyles4.rule7}>
             {' '}
             Type here to get started instantly.
           </span>
         </span>
       </div>
-      <div className="bg-background-get-started very-short:@lg:grid very-short:@lg:grid-cols-2 very-short:@lg:content-start flex-1 pb-2.5 @lg:min-h-0 @lg:overflow-y-auto">
+      <div sx={stylexStyles4.rule8}>
         {itemsByCategory.map(({ category, items }) => (
           <div
             key={category}
-            className={cn(
-              category === 'storage' && 'very-short:@lg:order-first',
-            )}
+            sx={[category === 'storage' && stylexStyles4.rule9]}
           >
-            <div className="text-foreground/50 px-5 pt-2.5 pb-1 text-xs font-medium tracking-wide">
+            <div sx={stylexStyles4.rule10}>
               {category.charAt(0).toUpperCase() + category.slice(1)}
             </div>
             {items.map((item) => (
               <a
                 key={item.id}
                 href={getStaticQuickstartHref(item, useHandoffLinks)}
-                className="text-foreground-alt hover:bg-foreground/5 mx-2 flex items-center gap-3 rounded-lg px-3 py-1.5 no-underline transition-colors duration-200"
+                sx={stylexStyles4.rule11}
               >
-                <div className="bg-foreground/10 text-foreground rounded-landing-control shadow-landing-tile flex size-9 shrink-0 items-center justify-center">
+                <div sx={stylexStyles4.rule12}>
                   <item.icon sx={stylexStyles2.rule1} />
                 </div>
                 <div>
-                  <div className="text-sm font-medium">{item.name}</div>
-                  <div className="text-xs opacity-60">{item.description}</div>
+                  <div sx={stylexStyles4.rule2}>{item.name}</div>
+                  <div sx={stylexStyles4.rule3}>{item.description}</div>
                 </div>
               </a>
             ))}

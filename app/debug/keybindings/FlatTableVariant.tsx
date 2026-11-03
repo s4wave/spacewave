@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState, type ChangeEvent } from 'react'
 import { LuSearch, LuSlidersHorizontal } from '@s4wave/web/images/icons.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import { Input } from '@s4wave/web/ui/input.js'
 
 import { CommandTableRow } from './CommandTableRow.js'
@@ -13,6 +12,110 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
+
+import {
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    overflow: 'hidden',
+    borderRadius: 'var(--radius-xl)',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    '--tw-shadow':
+      '0 1px 3px 0 var(--tw-shadow-color, #0000001a), 0 1px 2px -1px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+  },
+  rule2: {
+    display: 'flex',
+    flexDirection: { default: 'column', '@media (min-width: 40rem)': 'row' },
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    alignItems: { default: null, '@media (min-width: 40rem)': 'center' },
+    justifyContent: {
+      default: null,
+      '@media (min-width: 40rem)': 'space-between',
+    },
+  },
+  rule3: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule4: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+  },
+  rule5: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 55%, transparent)`,
+  },
+  rule6: {
+    position: 'relative',
+    display: 'block',
+    width: '100%',
+    maxWidth: {
+      default: null,
+      '@media (min-width: 40rem)': `calc(${themeLayout['--spacing']} * 80)`,
+    },
+  },
+  rule7: { overflowX: 'auto' },
+  rule8: {
+    width: '100%',
+    minWidth: `calc(${themeLayout['--spacing']} * 200)`,
+    borderCollapse: 'collapse',
+  },
+  rule9: {
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 30%, transparent)`,
+    textAlign: 'left',
+    fontSize: '10px',
+    lineHeight: 1.5,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-wider)',
+    letterSpacing: 'var(--tracking-wider)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    textTransform: 'uppercase',
+  },
+  rule10: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+  },
+  rule11: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+    textAlign: 'right',
+  },
+  rule12: {
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 55%, transparent)`,
+  },
+  rule13: {
+    paddingBlock: `calc(${themeLayout['--spacing']} * 10)`,
+    textAlign: 'center',
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -53,18 +156,18 @@ export function FlatTableVariant({
   )
 
   return (
-    <section className="border-foreground/8 bg-background-card/30 overflow-hidden rounded-xl border shadow-sm">
-      <div className="border-foreground/8 flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-center sm:justify-between">
+    <section sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>
         <div>
-          <div className="flex items-center gap-2">
+          <div sx={stylexStyles2.rule3}>
             <LuSlidersHorizontal sx={stylexStyles.rule1} />
-            <h2 className="text-sm font-semibold">Shortcut inventory</h2>
+            <h2 sx={stylexStyles2.rule4}>Shortcut inventory</h2>
           </div>
-          <p className="text-foreground-alt/55 mt-1 text-xs">
+          <p sx={stylexStyles2.rule5}>
             Scan every command and record a replacement directly in its row.
           </p>
         </div>
-        <label className="relative block w-full sm:max-w-80">
+        <label sx={stylexStyles2.rule6}>
           <LuSearch sx={stylexStyles.rule2} />
           <Input
             value={query}
@@ -76,13 +179,13 @@ export function FlatTableVariant({
         </label>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-200 border-collapse">
+      <div sx={stylexStyles2.rule7}>
+        <table sx={stylexStyles2.rule8}>
           <thead>
-            <tr className="border-foreground/8 bg-background/30 text-foreground-alt/50 micro-ten border-b text-left font-semibold tracking-wider uppercase">
-              <th className="px-4 py-2.5">Command</th>
-              <th className="px-4 py-2.5">Category &amp; context</th>
-              <th className="px-4 py-2.5 text-right">Binding</th>
+            <tr sx={stylexStyles2.rule9}>
+              <th sx={stylexStyles2.rule10}>Command</th>
+              <th sx={stylexStyles2.rule10}>Category &amp; context</th>
+              <th sx={stylexStyles2.rule11}>Binding</th>
             </tr>
           </thead>
           <tbody>
@@ -101,10 +204,10 @@ export function FlatTableVariant({
       </div>
 
       <div
-        className={cn(
-          'border-foreground/8 text-foreground-alt/55 border-t px-4 py-3 text-xs',
-          filteredCommands.length === 0 && 'text-center py-10',
-        )}
+        sx={[
+          stylexStyles2.rule12,
+          filteredCommands.length === 0 && stylexStyles2.rule13,
+        ]}
       >
         {filteredCommands.length === 0
           ? `No commands match “${query}”.`

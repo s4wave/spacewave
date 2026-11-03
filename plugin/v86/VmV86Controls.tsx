@@ -9,6 +9,21 @@ import { VmStopButton } from '@s4wave/app/vm/VmHeader.js'
 import { VmViewSwitch } from '@s4wave/app/vm/VmViewSwitch.js'
 import { Button } from '@s4wave/web/ui/button.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+  },
+  rule2: {
+    display: { default: 'none', '@container (min-width: 42rem)': 'inline' },
+  },
+})
+
 // VmView is the panel the running view shows.
 export type VmView = 'screen' | 'console'
 
@@ -46,7 +61,7 @@ export function VmV86Controls({
         view={view}
         onViewChange={onViewChange}
       />
-      <div className="flex shrink-0 items-center gap-1">
+      <div sx={stylexStyles.rule1}>
         <Button
           variant="ghost"
           size="xs"
@@ -55,7 +70,7 @@ export function VmV86Controls({
           onClick={onCtrlAltDel}
         >
           <LuKeyboard />
-          <span className="hidden @2xl:inline">Ctrl+Alt+Del</span>
+          <span sx={stylexStyles.rule2}>Ctrl+Alt+Del</span>
         </Button>
         <Button
           variant="ghost"

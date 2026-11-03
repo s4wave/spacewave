@@ -16,7 +16,7 @@ import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { localNavigation } from '@s4wave/web/router/HistoryRouter.js'
 import { useNavigate, usePath } from '@s4wave/web/router/router.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { EmptyState } from '@s4wave/web/ui/EmptyState.js'
 import { ErrorState } from '@s4wave/web/ui/ErrorState.js'
@@ -40,6 +40,119 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
+
+import {
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+  },
+  rule2: { minHeight: 0, flex: 1 },
+  rule3: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: themeColors['--color-background-primary'],
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule4: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    backgroundColor: themeColors['--color-background-primary'],
+  },
+  rule5: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule6: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule7: {
+    marginLeft: 'auto',
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * .5)`,
+  },
+  rule8: {
+    borderRadius: '.25rem',
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-numeric-spacing': 'tabular-nums',
+    fontVariantNumeric:
+      'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+  },
+  rule9: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    color: themeColors['--color-foreground'],
+  },
+  rule10: {
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+  },
+  rule11: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingTop: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule12: {
+    minHeight: 0,
+    flex: 1,
+    overflow: 'auto',
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule13: { containerType: 'inline-size' },
+  rule14: {
+    display: 'grid',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    gridTemplateColumns: {
+      default: null,
+      '@container (min-width: 72rem)': 'repeat(3, minmax(0, 1fr))',
+      '@container (min-width: 48rem)': 'repeat(2, minmax(0, 1fr))',
+    },
+  },
+  rule15: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    '--tw-numeric-spacing': 'tabular-nums',
+    fontVariantNumeric:
+      'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -72,13 +185,13 @@ export function PromDashboardViewer(props: ObjectViewerComponentProps) {
     [container],
   )
   return (
-    <div className="flex h-full w-full flex-col">
+    <div sx={stylexStyles2.rule1}>
       <AlarmStrip
         worldState={props.worldState}
         dashboardKey={objectKey}
         onOpen={openAlarm}
       />
-      <div className="min-h-0 flex-1">
+      <div sx={stylexStyles2.rule2}>
         <DashboardHandle {...props} />
       </div>
     </div>
@@ -149,11 +262,7 @@ function DashboardHandle({
 
 // Frame centers a viewer-wide message.
 function Frame({ children }: { children: ReactNode }) {
-  return (
-    <div className="bg-background-primary flex h-full w-full items-center justify-center p-6">
-      {children}
-    </div>
-  )
+  return <div sx={stylexStyles2.rule3}>{children}</div>
 }
 
 // View is the Dashboard's local state: what the writer is editing, the
@@ -265,30 +374,24 @@ function DashboardBody({ dashboard }: { dashboard: PromDashboard }) {
   const editingPanelId = editing.state === 'panel' ? editing.panelId : undefined
   const body = renderBody()
   return (
-    <div className="bg-background-primary flex h-full w-full flex-col">
-      <header className="border-foreground/8 flex h-9 shrink-0 items-center gap-3 border-b px-4">
-        <div className="text-foreground flex items-center gap-2 text-sm font-semibold tracking-tight select-none">
+    <div sx={stylexStyles2.rule4}>
+      <header sx={stylexStyles2.rule5}>
+        <div sx={stylexStyles2.rule6}>
           <LuChartLine sx={stylexStyles.rule2} aria-hidden />
           Dashboard
         </div>
         <UpdatedAt targets={targets.value} />
-        <div
-          className="ml-auto flex items-center gap-0.5"
-          role="group"
-          aria-label="Time range"
-        >
+        <div sx={stylexStyles2.rule7} role="group" aria-label="Time range">
           {timeRanges.map((r) => (
             <button
               key={r.id}
               type="button"
               aria-pressed={r.id === range.id}
               onClick={() => setRange(r)}
-              className={cn(
-                'rounded px-1.5 py-0.5 text-xs tabular-nums',
-                r.id === range.id
-                  ? 'bg-foreground/10 text-foreground'
-                  : 'text-foreground-alt hover:text-foreground',
-              )}
+              sx={[
+                stylexStyles2.rule8,
+                r.id === range.id ? stylexStyles2.rule9 : stylexStyles2.rule10,
+              ]}
             >
               {r.id}
             </button>
@@ -304,7 +407,7 @@ function DashboardBody({ dashboard }: { dashboard: PromDashboard }) {
         ) : null}
       </header>
       {view.actionError ? (
-        <div className="px-4 pt-3">
+        <div sx={stylexStyles2.rule11}>
           <ErrorState
             variant="inline"
             title="Could not save the Dashboard"
@@ -312,7 +415,7 @@ function DashboardBody({ dashboard }: { dashboard: PromDashboard }) {
           />
         </div>
       ) : null}
-      <div className="min-h-0 flex-1 overflow-auto p-3">{body}</div>
+      <div sx={stylexStyles2.rule12}>{body}</div>
     </div>
   )
 
@@ -380,8 +483,8 @@ function DashboardBody({ dashboard }: { dashboard: PromDashboard }) {
       typeof editingPanelId === 'string' &&
       !panels.some((p) => p.id === editingPanelId)
     return (
-      <div className="@container">
-        <div className="grid gap-3 @3xl:grid-cols-2 @6xl:grid-cols-3">
+      <div sx={stylexStyles2.rule13}>
+        <div sx={stylexStyles2.rule14}>
           {panels.map((panel, i) =>
             panel.id === editingPanelId ? (
               <PromPanelEditor
@@ -451,11 +554,7 @@ function UpdatedAt({ targets }: { targets: PromTargets | null }) {
     latest = Math.max(latest, Number(info.status?.lastScrapeMs ?? 0n))
   }
   if (latest === 0) return null
-  return (
-    <span className="text-foreground-alt text-xs tabular-nums">
-      Updated {formatClock(latest)}
-    </span>
-  )
+  return <span sx={stylexStyles2.rule15}>Updated {formatClock(latest)}</span>
 }
 
 // noop is the retry of a resource that cannot fail.

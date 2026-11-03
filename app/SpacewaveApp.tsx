@@ -71,10 +71,11 @@ interface RunningApp {
 // SpacewaveApp mounts the ordinary app on supplied storage. Its attachment
 // owns startup, seeded resources, and teardown; the caller owns persistent data.
 export function SpacewaveApp({
+  sx,
   appId,
   suppliedStorage,
   setup,
-}: SpacewaveAppProps) {
+}: SpacewaveAppProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const parentRoot = useRootResource().value
   const parentClient = useResourcesClient()
   const [generation, setGeneration] = useState(0)
@@ -263,7 +264,7 @@ export function SpacewaveApp({
     <div
       data-spacewave-app={appId}
       data-app-status={error ? 'error' : current ? 'ready' : 'loading'}
-      sx={stylexStyles.rule1}
+      sx={[stylexStyles.rule1, sx]}
       tabIndex={-1}
     >
       {error ? (

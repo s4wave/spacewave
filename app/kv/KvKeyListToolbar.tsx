@@ -10,6 +10,25 @@ import * as stylex from '@stylexjs/stylex'
 
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+import {
+  utilityState as themeUtilityState,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'flex',
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -42,7 +61,7 @@ export function KvKeyListToolbar({
   )
 
   return (
-    <div className="border-foreground/8 flex shrink-0 items-center gap-2 border-b px-2 py-1.5">
+    <div sx={stylexStyles3.rule1}>
       <Input
         value={prefix}
         onChange={handlePrefixChange}

@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { LuChevronDown, LuChevronRight } from '@s4wave/web/images/icons.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import type { StatusEntry } from '@s4wave/sdk/git/worktree.pb.js'
 import { FileStatusCode } from '@s4wave/sdk/git/worktree.pb.js'
 
@@ -9,6 +9,100 @@ import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
 
 import { colors as themeColors } from '../../../web/style/tokens.stylex.js'
 import { groupMarker } from '../../../web/style/relations.stylex.js'
+
+import {
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+  motion as themeMotion,
+} from '../../../web/style/tokens.stylex.js'
+import { groupMarker as groupMarker2 } from '../../../web/style/relations.stylex.js'
+
+const stylexStyles5 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    textAlign: 'center',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+  },
+})
+
+const stylexStyles4 = stylex.create({
+  rule1: { color: themeColors['--color-green-400'] },
+  rule2: { color: themeColors['--color-yellow-400'] },
+  rule3: { color: themeColors['--color-red-400'] },
+  rule4: { color: themeColors['--color-blue-400'] },
+  rule5: { color: themeColors['--color-foreground-alt'] },
+  rule6: { color: 'var(--color-orange-400)' },
+})
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+  },
+  rule2: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-white']} 3%, transparent)`,
+      },
+    },
+  },
+  rule3: { paddingBottom: themeLayout['--spacing'] },
+  rule4: {
+    minWidth: 0,
+    flex: 1,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textAlign: 'left',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule5: {
+    flexShrink: 0,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-brand'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 80%, transparent)`,
+      },
+    },
+    opacity: {
+      default: 0,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker2)]: 1,
+      },
+    },
+    transitionProperty: 'opacity',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+})
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -57,25 +151,25 @@ function statusCodeToLetter(code: FileStatusCode): string {
   }
 }
 
-// statusCodeToColor maps a FileStatusCode to a tailwind text color class.
-function statusCodeToColor(code: FileStatusCode): string {
+// statusCodeStyles selects the native text tone for a FileStatusCode.
+function statusCodeStyles(code: FileStatusCode): stylex.StyleXStyles {
   switch (code) {
     case FileStatusCode.ADDED:
-      return 'text-green-400'
+      return stylexStyles4.rule1
     case FileStatusCode.MODIFIED:
-      return 'text-yellow-400'
+      return stylexStyles4.rule2
     case FileStatusCode.DELETED:
-      return 'text-red-400'
+      return stylexStyles4.rule3
     case FileStatusCode.RENAMED:
-      return 'text-blue-400'
+      return stylexStyles4.rule4
     case FileStatusCode.COPIED:
-      return 'text-blue-400'
+      return stylexStyles4.rule4
     case FileStatusCode.UNTRACKED:
-      return 'text-foreground-alt'
+      return stylexStyles4.rule5
     case FileStatusCode.UPDATED_BUT_UNMERGED:
-      return 'text-orange-400'
+      return stylexStyles4.rule6
     default:
-      return 'text-foreground-alt'
+      return stylexStyles4.rule5
   }
 }
 
@@ -107,12 +201,8 @@ export function StatusSection({
   if (entries.length === 0) return null
 
   return (
-    <div className="border-foreground/8 border-b">
-      <button
-        type="button"
-        className="text-foreground flex w-full items-center gap-1 px-3 py-1.5 text-xs font-medium select-none hover:bg-white/[0.03]"
-        onClick={toggle}
-      >
+    <div sx={stylexStyles3.rule1}>
+      <button type="button" sx={stylexStyles3.rule2} onClick={toggle}>
         {collapsed ? (
           <LuChevronRight sx={stylexStyles.rule1} />
         ) : (
@@ -123,7 +213,7 @@ export function StatusSection({
         </span>
       </button>
       {!collapsed && (
-        <div className="pb-1">
+        <div sx={stylexStyles3.rule3}>
           {entries.map((entry) => {
             const path = entry.filePath ?? ''
             const code =
@@ -131,25 +221,21 @@ export function StatusSection({
                 ? (entry.stagingStatus ?? FileStatusCode.UNMODIFIED)
                 : (entry.worktreeStatus ?? FileStatusCode.UNMODIFIED)
             const letter = statusCodeToLetter(code)
-            const color = statusCodeToColor(code)
+            const color = statusCodeStyles(code)
 
             return (
               <div key={path} sx={[stylexStyles2.rule1, groupMarker]}>
-                <span
-                  className={cn('w-4 shrink-0 text-center font-mono', color)}
-                >
-                  {letter}
-                </span>
+                <span sx={[[stylexStyles5.rule1], [color]]}>{letter}</span>
                 <button
                   type="button"
-                  className="text-foreground min-w-0 flex-1 truncate text-left text-xs"
+                  sx={stylexStyles3.rule4}
                   onClick={() => onFileClick?.(path)}
                 >
                   {path}
                 </button>
                 <button
                   type="button"
-                  className="text-brand hover:text-brand/80 shrink-0 text-xs opacity-0 transition-opacity group-hover:opacity-100"
+                  sx={stylexStyles3.rule5}
                   onClick={() => onAction([path])}
                 >
                   {actionLabel}
@@ -163,4 +249,4 @@ export function StatusSection({
   )
 }
 
-export { statusCodeToLetter, statusCodeToColor }
+export { statusCodeToLetter, statusCodeStyles }

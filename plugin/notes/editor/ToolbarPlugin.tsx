@@ -30,7 +30,7 @@ import {
 } from '@lexical/list'
 import { $isLinkNode, TOGGLE_LINK_COMMAND } from '@lexical/link'
 import { $findMatchingParent } from '@lexical/utils'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import {
   LuUndo2,
   LuRedo2,
@@ -49,6 +49,208 @@ import { TextInputDialog } from '../NoteDialogs.js'
 
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+import {
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+  radii as themeRadii,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    minWidth: 0,
+    flexWrap: {
+      default: 'wrap',
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 'nowrap',
+      },
+    },
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * .5)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: themeColors['--color-border'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+  },
+  rule2: {
+    display: 'flex',
+    minHeight: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
+    minWidth: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '.25rem',
+    padding: themeLayout['--spacing'],
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    opacity: { default: 0.3, ':disabled': 0.3 },
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-list-hover-background'],
+      },
+    },
+  },
+  rule3: {
+    display: 'flex',
+    minHeight: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
+    minWidth: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '.25rem',
+    padding: themeLayout['--spacing'],
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-list-hover-background'],
+      },
+    },
+    opacity: { default: null, ':disabled': 0.3 },
+  },
+  rule4: {
+    marginInline: themeLayout['--spacing'],
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    width: '1px',
+    backgroundColor: themeColors['--color-border'],
+  },
+  rule5: { position: 'relative' },
+  rule6: {
+    gap: themeLayout['--spacing'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule7: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule8: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    zIndex: 50,
+    marginTop: themeLayout['--spacing'],
+    minWidth: `calc(${themeLayout['--spacing']} * 35)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: themeColors['--color-border'],
+    backgroundColor: themeColors['--color-popover'],
+    paddingBlock: themeLayout['--spacing'],
+    '--tw-shadow':
+      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    maxHeight: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 24)`,
+    },
+    overflowY: { default: null, '@media (pointer: coarse)': 'auto' },
+  },
+  rule9: {
+    minHeight: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
+    width: '100%',
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: themeLayout['--spacing'],
+    textAlign: 'left',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-list-hover-background'],
+      },
+    },
+  },
+  rule10: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-brand'],
+  },
+  rule11: {
+    display: 'flex',
+    minHeight: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
+    minWidth: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '.25rem',
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-list-hover-background'],
+      },
+    },
+    padding: themeLayout['--spacing'],
+    color: {
+      default: themeColors['--color-brand'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    opacity: { default: null, ':disabled': 0.3 },
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -251,16 +453,12 @@ function ToolbarPlugin() {
     [],
   )
 
-  const btnClass =
-    'flex min-h-11 min-w-11 items-center justify-center rounded p-1 text-foreground-alt hover:bg-list-hover-background hover:text-foreground disabled:opacity-30 md:pointer-fine:min-h-0 md:pointer-fine:min-w-0'
-  const activeClass = 'text-brand bg-brand/10'
-
   return (
     <>
-      <div className="border-border flex min-w-0 flex-wrap items-center gap-0.5 border-b px-2 py-1 md:pointer-fine:flex-nowrap">
+      <div sx={stylexStyles2.rule1}>
         <button
           type="button"
-          className={cn(btnClass, !canUndo && 'opacity-30')}
+          sx={!canUndo ? stylexStyles2.rule2 : stylexStyles2.rule3}
           onClick={() => editor.dispatchCommand(UNDO_COMMAND, undefined)}
           disabled={!canUndo}
           title="Undo"
@@ -269,7 +467,7 @@ function ToolbarPlugin() {
         </button>
         <button
           type="button"
-          className={cn(btnClass, !canRedo && 'opacity-30')}
+          sx={!canRedo ? stylexStyles2.rule2 : stylexStyles2.rule3}
           onClick={() => editor.dispatchCommand(REDO_COMMAND, undefined)}
           disabled={!canRedo}
           title="Redo"
@@ -277,30 +475,28 @@ function ToolbarPlugin() {
           <LuRedo2 sx={stylexStyles.rule1} />
         </button>
 
-        <div className="bg-border mx-1 h-4 w-px" />
+        <div sx={stylexStyles2.rule4} />
 
-        <div className="relative">
+        <div sx={stylexStyles2.rule5}>
           <button
             type="button"
-            className={cn(btnClass, 'gap-1 px-2')}
+            sx={[stylexStyles2.rule3, stylexStyles2.rule6]}
             onClick={() => setShowBlockMenu(!showBlockMenu)}
             title="Block type"
           >
-            <span className="text-foreground-alt/50 text-xs">
-              {BLOCK_TYPE_LABELS[blockType]}
-            </span>
+            <span sx={stylexStyles2.rule7}>{BLOCK_TYPE_LABELS[blockType]}</span>
             <LuChevronDown sx={stylexStyles.rule2} />
           </button>
           {showBlockMenu && (
-            <div className="bg-popover border-border absolute top-full left-0 z-50 mt-1 min-w-35 rounded-lg border py-1 shadow-lg pointer-coarse:max-h-24 pointer-coarse:overflow-y-auto">
+            <div sx={stylexStyles2.rule8}>
               {blockTypeOptions.map((type) => (
                 <button
                   key={type}
                   type="button"
-                  className={cn(
-                    'min-h-11 w-full px-3 py-1 text-left text-xs hover:bg-list-hover-background md:pointer-fine:min-h-0',
-                    blockType === type && 'text-brand font-medium',
-                  )}
+                  sx={[
+                    stylexStyles2.rule9,
+                    blockType === type && stylexStyles2.rule10,
+                  ]}
                   onClick={() => formatBlock(type)}
                 >
                   {BLOCK_TYPE_LABELS[type]}
@@ -310,11 +506,11 @@ function ToolbarPlugin() {
           )}
         </div>
 
-        <div className="bg-border mx-1 h-4 w-px" />
+        <div sx={stylexStyles2.rule4} />
 
         <button
           type="button"
-          className={cn(btnClass, isBold && activeClass)}
+          sx={isBold ? stylexStyles2.rule11 : stylexStyles2.rule3}
           onClick={() => formatText('bold')}
           title="Bold (Ctrl+B)"
         >
@@ -322,7 +518,7 @@ function ToolbarPlugin() {
         </button>
         <button
           type="button"
-          className={cn(btnClass, isItalic && activeClass)}
+          sx={isItalic ? stylexStyles2.rule11 : stylexStyles2.rule3}
           onClick={() => formatText('italic')}
           title="Italic (Ctrl+I)"
         >
@@ -330,7 +526,7 @@ function ToolbarPlugin() {
         </button>
         <button
           type="button"
-          className={cn(btnClass, isStrikethrough && activeClass)}
+          sx={isStrikethrough ? stylexStyles2.rule11 : stylexStyles2.rule3}
           onClick={() => formatText('strikethrough')}
           title="Strikethrough"
         >
@@ -338,18 +534,20 @@ function ToolbarPlugin() {
         </button>
         <button
           type="button"
-          className={cn(btnClass, isCode && activeClass)}
+          sx={isCode ? stylexStyles2.rule11 : stylexStyles2.rule3}
           onClick={() => formatText('code')}
           title="Inline Code"
         >
           <LuCode sx={stylexStyles.rule1} />
         </button>
 
-        <div className="bg-border mx-1 h-4 w-px" />
+        <div sx={stylexStyles2.rule4} />
 
         <button
           type="button"
-          className={cn(btnClass, blockType === 'bullet' && activeClass)}
+          sx={
+            blockType === 'bullet' ? stylexStyles2.rule11 : stylexStyles2.rule3
+          }
           onClick={() => formatBlock('bullet')}
           title="Bullet List"
         >
@@ -357,7 +555,9 @@ function ToolbarPlugin() {
         </button>
         <button
           type="button"
-          className={cn(btnClass, blockType === 'number' && activeClass)}
+          sx={
+            blockType === 'number' ? stylexStyles2.rule11 : stylexStyles2.rule3
+          }
           onClick={() => formatBlock('number')}
           title="Numbered List"
         >
@@ -365,18 +565,20 @@ function ToolbarPlugin() {
         </button>
         <button
           type="button"
-          className={cn(btnClass, blockType === 'check' && activeClass)}
+          sx={
+            blockType === 'check' ? stylexStyles2.rule11 : stylexStyles2.rule3
+          }
           onClick={() => formatBlock('check')}
           title="Check List"
         >
           <LuListChecks sx={stylexStyles.rule1} />
         </button>
 
-        <div className="bg-border mx-1 h-4 w-px" />
+        <div sx={stylexStyles2.rule4} />
 
         <button
           type="button"
-          className={cn(btnClass, isLink && activeClass)}
+          sx={isLink ? stylexStyles2.rule11 : stylexStyles2.rule3}
           onClick={insertLink}
           title="Insert Link"
         >

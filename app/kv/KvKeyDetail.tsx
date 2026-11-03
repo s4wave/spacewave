@@ -23,6 +23,67 @@ import type { KvKeyRow } from './kv-viewer.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+import {
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: { display: 'flex', height: '100%', flexDirection: 'column' },
+  rule2: {
+    display: 'flex',
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule3: {
+    minWidth: 0,
+    flex: 1,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule4: {
+    flexShrink: 0,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    '--tw-numeric-spacing': 'tabular-nums',
+    fontVariantNumeric:
+      'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+  },
+  rule5: {
+    flex: 1,
+    overflow: 'auto',
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule6: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule7: { flex: 1 },
+  rule8: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-destructive']} 80%, transparent)`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -59,16 +120,12 @@ export function KvKeyDetail({
   const loadedValue = valueResource.value?.data ?? null
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="border-foreground/8 flex shrink-0 items-center gap-2 border-b px-3 py-2">
-        <span className="text-foreground min-w-0 flex-1 truncate font-mono text-xs">
-          {row.label}
-        </span>
-        <span className="text-foreground-alt/50 shrink-0 text-xs tabular-nums">
-          {row.byteLength} B
-        </span>
+    <div sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>
+        <span sx={stylexStyles2.rule3}>{row.label}</span>
+        <span sx={stylexStyles2.rule4}>{row.byteLength} B</span>
       </div>
-      <div className="flex-1 overflow-auto p-3">
+      <div sx={stylexStyles2.rule5}>
         {valueResource.loading && !loadedValue ? (
           <LoadingInline label="Loading value" tone="muted" />
         ) : null}
@@ -164,8 +221,9 @@ function KvKeyEditorPane({
   }, [onDelete])
 
   return (
-    <div className="space-y-3">
+    <div sx={false}>
       <KvValueEditor
+        sx={nativeChildSpacing.s3}
         label="Value"
         ariaLabel="Key value"
         draft={draft}
@@ -178,11 +236,12 @@ function KvKeyEditorPane({
       />
       {mutationError ? (
         <ErrorState
+          sx={nativeChildSpacing.s3}
           variant="inline"
           message={`Save failed: ${mutationError}`}
         />
       ) : null}
-      <div className="flex items-center gap-2">
+      <div sx={[nativeChildSpacing.s3, stylexStyles2.rule6]}>
         <Button
           variant="outline"
           onClick={() => void handleSave()}
@@ -201,10 +260,10 @@ function KvKeyEditorPane({
           <LuUndo2 sx={stylexStyles.rule1} />
           Discard
         </Button>
-        <div className="flex-1" />
+        <div sx={stylexStyles2.rule7} />
         {confirmingDelete ? (
-          <div className="flex items-center gap-2">
-            <span className="text-destructive/80 text-xs">Delete key?</span>
+          <div sx={stylexStyles2.rule6}>
+            <span sx={stylexStyles2.rule8}>Delete key?</span>
             <Button
               variant="destructive"
               onClick={() => void handleConfirmDelete()}
@@ -238,3 +297,18 @@ function KvKeyEditorPane({
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

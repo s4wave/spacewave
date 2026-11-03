@@ -1,3 +1,4 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 /* eslint-disable react-doctor/no-giant-component */
 import {
   useState,
@@ -12,7 +13,6 @@ import {
   type SubItemsCallback,
   useOpenCommand,
 } from '@s4wave/web/command/CommandContext.js'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import type {
   CanvasStateData,
@@ -51,6 +51,81 @@ import { CanvasSelectionOverlay } from './CanvasSelectionOverlay.js'
 import { CanvasScaleIndicator } from './CanvasScaleIndicator.js'
 import { CanvasSyncStatus } from './CanvasSyncStatus.js'
 import { DEFAULT_CANVAS_COLOR, type CanvasGeometryKind } from './geometry.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  radii as themeRadii,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    position: 'absolute',
+    left: 'var(--canvas-pending-left)',
+    top: 'var(--canvas-pending-top)',
+    width: 'var(--canvas-pending-width)',
+    minHeight: 'var(--canvas-pending-min-height)',
+    touchAction: 'none',
+    pointerEvents: 'auto',
+    borderRadius: themeRadii['--radius-lg'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    color: themeColors['--color-card-foreground'],
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+  },
+  rule2: {
+    left: 'var(--canvas-drag-left)',
+    top: 'var(--canvas-drag-top)',
+    width: 'var(--canvas-drag-width)',
+    height: 'var(--canvas-drag-height)',
+    pointerEvents: 'none',
+    position: 'absolute',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: 'dashed',
+    borderWidth: '1px',
+    '--tw-border-style': 'dashed',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+  },
+  rule3: {
+    backgroundColor: 'var(--canvas-grid-color)',
+    backgroundImage: 'var(--canvas-grid-image)',
+    backgroundSize: 'var(--canvas-grid-size)',
+    backgroundPosition: 'var(--canvas-grid-position)',
+    opacity: 'var(--canvas-grid-opacity)',
+    pointerEvents: 'none',
+    position: 'absolute',
+    inset: 0,
+  },
+  rule4: {
+    position: 'relative',
+    flex: 1,
+    touchAction: 'none',
+    overflow: 'hidden',
+    backgroundColor: themeColors['--color-background-canvas'],
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+  },
+  rule5: { cursor: 'crosshair' },
+  rule6: { position: 'absolute', inset: 0, touchAction: 'none' },
+  rule7: {
+    transform: 'var(--canvas-transform)',
+    transformOrigin: 'var(--canvas-transform-origin)',
+    pointerEvents: 'none',
+  },
+})
 
 // XL_BREAKPOINT is the container width threshold for the xl tailwind breakpoint.
 const XL_BREAKPOINT = 1280
@@ -669,7 +744,7 @@ function CanvasPendingText({
         '--canvas-pending-width': `${DEFAULT_TEXT_NODE_WIDTH}px`,
         '--canvas-pending-min-height': `${MIN_TEXT_NODE_HEIGHT}px`,
       }}
-      className="canvas-pending-text bg-background-card/30 text-card-foreground pointer-events-auto rounded-lg backdrop-blur-sm"
+      sx={stylexStyles.rule1}
       onPointerDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
@@ -692,7 +767,7 @@ interface CanvasObjectDragRectProps {
 function CanvasObjectDragRect({ rect, viewport }: CanvasObjectDragRectProps) {
   return (
     <div
-      className="canvas-drag-rectangle border-brand/30 bg-brand/5 pointer-events-none absolute rounded-lg border border-dashed"
+      sx={stylexStyles.rule2}
       style={{
         '--canvas-drag-left': `${rect.x * viewport.scale + viewport.x}px`,
         '--canvas-drag-top': `${rect.y * viewport.scale + viewport.y}px`,
@@ -719,7 +794,7 @@ function CanvasGridLayer({
   return (
     <div
       ref={layerRef}
-      className="canvas-grid pointer-events-none absolute inset-0"
+      sx={stylexStyles.rule3}
       style={{
         '--canvas-grid-color': gridStyle.backgroundColor,
         '--canvas-grid-image': gridStyle.backgroundImage,
@@ -761,6 +836,7 @@ function CanvasMinimapPanel({
 
 // CanvasProps are the props for the Canvas component.
 interface CanvasProps {
+  className?: never
   state: CanvasStateData
   ephemeralEdges?: EphemeralEdge[]
   tool?: CanvasTool
@@ -770,7 +846,7 @@ interface CanvasProps {
   imageObjectKey?: string
   imageSubItems?: SubItemsCallback
   focusNodeId?: string | null
-  className?: string
+  sx?: ComponentStyles
 }
 
 // Canvas is the main canvas container that composes all canvas sub-components.
@@ -784,8 +860,11 @@ export function Canvas({
   imageObjectKey,
   imageSubItems,
   focusNodeId,
-  className,
-}: CanvasProps) {
+  sx,
+}: Omit<CanvasProps, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
   const [toolInternal, setToolInternal] = useState<CanvasTool>('select')
   const [drawingColor, setDrawingColor] = useState(DEFAULT_CANVAS_COLOR)
   const tool = toolProp ?? toolInternal
@@ -975,7 +1054,7 @@ export function Canvas({
   const drawingKind = drawingKindFor(tool)
 
   return (
-    <div className={cn('flex h-full outline-none', className)}>
+    <div sx={[stylexStyles2.rule1, sx]}>
       <CanvasToolbar
         tool={tool}
         color={drawingColor}
@@ -990,10 +1069,10 @@ export function Canvas({
         data-testid="canvas-viewport"
         role="application"
         aria-label="Canvas"
-        className={cn(
-          'relative flex-1 touch-none overflow-hidden bg-background-canvas outline-none',
-          (tool === 'text' || tool === 'object') && 'cursor-crosshair',
-        )}
+        sx={[
+          stylexStyles.rule4,
+          !!(tool === 'text' || tool === 'object') && stylexStyles.rule5,
+        ]}
         onClick={handleBackgroundClick}
         onContextMenu={handleBackgroundContextMenu}
         onPointerDown={handleBackgroundPointerDown}
@@ -1006,10 +1085,10 @@ export function Canvas({
         {/* Gesture layer for viewport pan/drag-select. Sits below the
             transform layer so canvas nodes receive pointer events directly
             without viewport gesture interference. */}
-        <div ref={gestureLayerRef} className="absolute inset-0 touch-none" />
+        <div ref={gestureLayerRef} sx={stylexStyles.rule6} />
         <div
           ref={transformLayerRef}
-          className="canvas-transform pointer-events-none"
+          sx={stylexStyles.rule7}
           style={{
             '--canvas-transform': `translate3d(${viewport.x}px, ${viewport.y}px, 0) scale(${viewport.scale})`,
             '--canvas-transform-origin': '0 0',

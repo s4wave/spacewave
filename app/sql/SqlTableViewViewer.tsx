@@ -31,6 +31,84 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+import {
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    backgroundColor: themeColors['--color-background-primary'],
+  },
+  rule2: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule3: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule4: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule5: { flex: 1 },
+  rule6: { minHeight: 0, flex: 1 },
+  rule7: {
+    display: 'flex',
+    flexShrink: 0,
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    columnGap: `calc(${themeLayout['--spacing']} * 4)`,
+    rowGap: themeLayout['--spacing'],
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule8: {
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    color: themeColors['--color-foreground'],
+  },
+  rule9: { color: themeColors['--color-foreground'] },
+  rule10: { padding: `calc(${themeLayout['--spacing']} * 4)` },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -90,18 +168,14 @@ export function SqlTableViewViewer({
     : null
 
   return (
-    <div className="bg-background-primary flex h-full w-full flex-col">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-4">
+    <div sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>
         <LuListFilter sx={stylexStyles.rule1} aria-hidden />
-        <span className="text-foreground text-sm font-semibold tracking-tight select-none">
-          Table View
-        </span>
+        <span sx={stylexStyles2.rule3}>Table View</span>
         {view?.targetTableName ? (
-          <span className="text-foreground-alt/50 truncate font-mono text-xs">
-            {view.targetTableName}
-          </span>
+          <span sx={stylexStyles2.rule4}>{view.targetTableName}</span>
         ) : null}
-        <div className="flex-1" />
+        <div sx={stylexStyles2.rule5} />
         <Button
           variant="ghost"
           onClick={rowsResource.retry}
@@ -115,7 +189,7 @@ export function SqlTableViewViewer({
 
       {view ? <TableViewFilterBar view={view} /> : null}
 
-      <div className="min-h-0 flex-1">
+      <div sx={stylexStyles2.rule6}>
         <TableViewBody
           metaResource={metaResource}
           rowsResource={rowsResource}
@@ -131,24 +205,21 @@ export function SqlTableViewViewer({
 function TableViewFilterBar({ view }: { view: TableView }) {
   const projected = view.projectedColumns ?? []
   return (
-    <div className="border-foreground/8 text-foreground-alt/70 flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 border-b px-4 py-1.5 text-xs">
+    <div sx={stylexStyles2.rule7}>
       <span>
         columns:{' '}
-        <span className="text-foreground font-mono">
+        <span sx={stylexStyles2.rule8}>
           {projected.length ? projected.join(', ') : '*'}
         </span>
       </span>
       {view.whereExpression ? (
         <span>
-          where:{' '}
-          <span className="text-foreground font-mono">
-            {view.whereExpression}
-          </span>
+          where: <span sx={stylexStyles2.rule8}>{view.whereExpression}</span>
         </span>
       ) : null}
       {view.rowLimit ? (
         <span>
-          limit: <span className="text-foreground">{view.rowLimit}</span>
+          limit: <span sx={stylexStyles2.rule9}>{view.rowLimit}</span>
         </span>
       ) : null}
     </div>
@@ -172,7 +243,7 @@ function TableViewBody({
   return (
     <>
       {metaResource.error ? (
-        <div className="p-4">
+        <div sx={stylexStyles2.rule10}>
           <ErrorState
             title="Table view unavailable"
             message={String(metaResource.error)}
@@ -181,12 +252,12 @@ function TableViewBody({
         </div>
       ) : null}
       {(metaResource.loading || rowsResource.loading) && data == null ? (
-        <div className="p-4">
+        <div sx={stylexStyles2.rule10}>
           <LoadingInline label="Loading rows" tone="muted" />
         </div>
       ) : null}
       {rowsResource.error ? (
-        <div className="p-4">
+        <div sx={stylexStyles2.rule10}>
           <ErrorState
             variant="inline"
             title="Could not fetch rows"

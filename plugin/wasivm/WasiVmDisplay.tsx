@@ -6,7 +6,7 @@ import type {
   WasiVmDisplayInput,
   WasiVmScene,
 } from '@s4wave/sdk/vm/wasivm.pb.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import type { LoadingView } from '@s4wave/web/ui/loading/types.js'
 
@@ -17,6 +17,27 @@ import { keysymOf, xButtons } from './display-input.js'
 import { Scene, type SceneRenderer, type SceneScreen } from './display-scene.js'
 
 import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    position: 'relative',
+    display: 'flex',
+    minHeight: 0,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    backgroundColor: 'var(--color-black)',
+  },
+  rule2: {
+    maxHeight: '100%',
+    maxWidth: '100%',
+    touchAction: 'none',
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+  },
+  rule3: { visibility: 'hidden' },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -381,19 +402,16 @@ export function WasiVmDisplay({
   }
 
   return (
-    <div
-      ref={paneRef}
-      className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-black"
-    >
+    <div ref={paneRef} sx={stylexStyles2.rule1}>
       <canvas
         key={attempt}
         ref={canvasRef}
         tabIndex={0}
         aria-label="VM display"
-        className={cn(
-          'max-h-full max-w-full touch-none outline-none',
-          status.kind !== 'ready' && 'invisible',
-        )}
+        sx={[
+          stylexStyles2.rule2,
+          status.kind !== 'ready' && stylexStyles2.rule3,
+        ]}
         onContextMenu={(e) => e.preventDefault()}
         onPointerDown={(e) => {
           e.currentTarget.setPointerCapture(e.pointerId)

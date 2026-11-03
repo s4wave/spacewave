@@ -8,6 +8,105 @@ import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { formatRelativeTime } from '../util.js'
 import { GitDiffPatchFiles } from './GitDiffPatch.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 16)`,
+    flexShrink: 0,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule3: {
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule4: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule5: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 3)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    whiteSpace: 'pre-wrap',
+    color: themeColors['--color-foreground'],
+  },
+  rule6: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule7: {
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    color: themeColors['--color-foreground'],
+  },
+  rule8: { display: 'flex', gap: `calc(${themeLayout['--spacing']} * 1.5)` },
+  rule9: {
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    color: themeColors['--color-brand'],
+    textDecorationLine: {
+      default: null,
+      '@media (hover: hover)': { default: null, ':hover': 'underline' },
+    },
+  },
+  rule10: { color: themeColors['--color-foreground'] },
+  rule11: {
+    marginLeft: themeLayout['--spacing'],
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule12: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule13: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule14: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule15: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule16: { minHeight: 0, flex: 1, overflow: 'auto' },
+  rule17: { padding: `calc(${themeLayout['--spacing']} * 3)` },
+})
+
 // CommitDetailProps are props for the CommitDetail component.
 export interface CommitDetailProps {
   handle: GitRepoHandle
@@ -23,8 +122,8 @@ interface CommitFieldProps {
 /** CommitField renders one labeled row of commit metadata. */
 function CommitField({ label, children }: CommitFieldProps) {
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-foreground-alt w-16 shrink-0">{label}</span>
+    <div sx={stylexStyles.rule1}>
+      <span sx={stylexStyles.rule2}>{label}</span>
       {children}
     </div>
   )
@@ -47,25 +146,21 @@ function CommitHeader({ commit, onNavigateCommit }: CommitHeaderProps) {
     : null
 
   return (
-    <div className="border-foreground/8 border-b p-3">
-      <div className="text-foreground mb-2 text-xs font-medium">{subject}</div>
-      {body && (
-        <pre className="text-foreground mb-3 font-mono text-xs whitespace-pre-wrap">
-          {body}
-        </pre>
-      )}
-      <div className="flex flex-col gap-1 text-xs">
+    <div sx={stylexStyles.rule3}>
+      <div sx={stylexStyles.rule4}>{subject}</div>
+      {body && <pre sx={stylexStyles.rule5}>{body}</pre>}
+      <div sx={stylexStyles.rule6}>
         <CommitField label="Commit">
-          <span className="text-foreground font-mono">{commit.hash ?? ''}</span>
+          <span sx={stylexStyles.rule7}>{commit.hash ?? ''}</span>
         </CommitField>
         {parentHashes.length > 0 && (
           <CommitField label={parentHashes.length > 1 ? 'Parents' : 'Parent'}>
-            <span className="flex gap-1.5">
+            <span sx={stylexStyles.rule8}>
               {parentHashes.map((ph) => (
                 <button
                   type="button"
                   key={ph}
-                  className="text-brand font-mono hover:underline"
+                  sx={stylexStyles.rule9}
                   onClick={() => onNavigateCommit?.(ph)}
                 >
                   {ph.slice(0, 7)}
@@ -75,10 +170,10 @@ function CommitHeader({ commit, onNavigateCommit }: CommitHeaderProps) {
           </CommitField>
         )}
         <CommitField label="Author">
-          <span className="text-foreground">
+          <span sx={stylexStyles.rule10}>
             {commit.authorName}
             {commit.authorEmail && (
-              <span className="text-foreground-alt ml-1">
+              <span sx={stylexStyles.rule11}>
                 {'<'}
                 {commit.authorEmail}
                 {'>'}
@@ -88,10 +183,8 @@ function CommitHeader({ commit, onNavigateCommit }: CommitHeaderProps) {
         </CommitField>
         {authorDate && (
           <CommitField label="Date">
-            <span className="text-foreground">
-              {authorDate.toLocaleString()}
-            </span>
-            <span className="text-foreground-alt/70">
+            <span sx={stylexStyles.rule10}>{authorDate.toLocaleString()}</span>
+            <span sx={stylexStyles.rule12}>
               ({formatRelativeTime(authorTimestamp)})
             </span>
           </CommitField>
@@ -138,16 +231,16 @@ export function CommitDetail({
 
   if (commitResource.loading) {
     return (
-      <div className="px-3 py-4">
-        <div className="text-foreground-alt text-xs">Loading commit…</div>
+      <div sx={stylexStyles.rule13}>
+        <div sx={stylexStyles.rule14}>Loading commit…</div>
       </div>
     )
   }
 
   if (commitResource.error) {
     return (
-      <div className="px-3 py-4">
-        <div className="text-destructive text-xs">
+      <div sx={stylexStyles.rule13}>
+        <div sx={stylexStyles.rule15}>
           Failed to load commit: {commitResource.error.message}
         </div>
       </div>
@@ -156,16 +249,16 @@ export function CommitDetail({
 
   if (!commit) {
     return (
-      <div className="px-3 py-4">
-        <div className="text-foreground-alt text-xs">Commit not found</div>
+      <div sx={stylexStyles.rule13}>
+        <div sx={stylexStyles.rule14}>Commit not found</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-0 flex-1 overflow-auto">
+    <div sx={stylexStyles.rule16}>
       <CommitHeader commit={commit} onNavigateCommit={onNavigateCommit} />
-      <div className="p-3">
+      <div sx={stylexStyles.rule17}>
         <GitDiffPatchFiles
           files={diffStatResource.value?.files}
           patch={diffPatchResource.value?.patch}

@@ -5,12 +5,73 @@ import {
 } from '@s4wave/web/images/icons.js'
 
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import { UseCasePage } from './use-case/UseCasePage.js'
 
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+import {
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    position: 'relative',
+    zIndex: 10,
+    marginInline: 'auto',
+    display: 'grid',
+    width: '100%',
+    maxWidth: 'var(--container-6xl)',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingInline: {
+      default: `calc(${themeLayout['--spacing']} * 4)`,
+      '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 8)`,
+    },
+    gridTemplateColumns: {
+      default: null,
+      '@container (min-width: 32rem)': 'repeat(2, minmax(0, 1fr))',
+    },
+  },
+  rule2: {
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+    borderRadius: 'var(--radius-xl)',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: themeColors['--color-background'],
+  },
+  rule3: {
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule4: {
+    overflowX: 'auto',
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+  },
+  rule5: { color: themeColors['--color-foreground'] },
+  rule6: { color: themeColors['--color-foreground-alt'] },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -105,23 +166,18 @@ export function LandingCli() {
         icon: LuLayoutGrid,
       }}
     >
-      <section className="relative z-10 mx-auto grid w-full max-w-6xl gap-4 px-4 @lg:grid-cols-2 @lg:px-8">
+      <section sx={stylexStyles2.rule1}>
         {CLI_STEPS.map((step) => (
-          <div
-            key={step.title}
-            className="border-foreground/10 bg-background flex flex-col overflow-hidden rounded-xl border"
-          >
-            <h2 className="border-foreground/10 text-foreground border-b px-4 py-2.5 text-sm font-semibold">
-              {step.title}
-            </h2>
-            <pre className="overflow-x-auto p-4 font-mono text-xs leading-relaxed">
+          <div key={step.title} sx={stylexStyles2.rule2}>
+            <h2 sx={stylexStyles2.rule3}>{step.title}</h2>
+            <pre sx={stylexStyles2.rule4}>
               {step.lines.map((line) => (
                 <div
                   key={line}
-                  className={cn(
-                    'text-foreground',
-                    line.startsWith('#') && 'text-foreground-alt',
-                  )}
+                  sx={[
+                    stylexStyles2.rule5,
+                    !!line.startsWith('#') && stylexStyles2.rule6,
+                  ]}
                 >
                   {line}
                 </div>

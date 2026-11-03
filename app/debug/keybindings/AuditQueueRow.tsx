@@ -5,13 +5,73 @@ import {
   LuTriangleAlert,
 } from '@s4wave/web/images/icons.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import { Button } from '@s4wave/web/ui/button.js'
 
 import { Keycap } from './Keycap.js'
 import type { KeybindingCommand } from './keybindings-model.js'
 
 import * as stylex from '@stylexjs/stylex'
+
+import {
+  layout as themeLayout,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'inline-flex',
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '3.40282e38px',
+  },
+  rule2: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 12%, transparent)`,
+    color: themeColors['--color-destructive'],
+  },
+  rule3: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    color: themeColors['--color-brand'],
+  },
+  rule4: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 45%, transparent)`,
+  },
+  rule5: { minWidth: 0, flex: 1 },
+  rule6: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule7: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  rule8: {
+    width: `calc(${themeLayout['--spacing']} * 1.5)`,
+    height: `calc(${themeLayout['--spacing']} * 1.5)`,
+    flexShrink: 0,
+    borderRadius: '3.40282e38px',
+    backgroundColor: themeColors['--color-brand'],
+  },
+  rule9: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    display: 'block',
+    fontSize: '10px',
+    lineHeight: 1.5,
+    '--tw-font-weight': 'var(--font-weight-normal)',
+    fontWeight: 'var(--font-weight-normal)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 45%, transparent)`,
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: { width: '100%', justifyContent: 'flex-start', textAlign: 'left' },
@@ -26,12 +86,13 @@ interface AuditQueueRowProps {
 }
 
 export function AuditQueueRow({
+  sx,
   command,
   selected,
   hasConflict,
   isCustomized,
   onSelect,
-}: AuditQueueRowProps) {
+}: AuditQueueRowProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const select = useCallback(() => onSelect(command.id), [command.id, onSelect])
 
   return (
@@ -40,18 +101,18 @@ export function AuditQueueRow({
       aria-pressed={selected}
       variant={selected ? 'selectedRow' : 'unselectedRow'}
       size="row"
-      sx={stylexStyles.rule1}
+      sx={[stylexStyles.rule1, sx]}
       onClick={select}
     >
       <span
-        className={cn(
-          'inline-flex size-8 shrink-0 items-center justify-center rounded-full',
+        sx={[
+          stylexStyles2.rule1,
           hasConflict
-            ? 'bg-destructive/12 text-destructive'
+            ? stylexStyles2.rule2
             : command.binding
-              ? 'bg-brand/10 text-brand'
-              : 'bg-foreground/5 text-foreground-alt/45',
-        )}
+              ? stylexStyles2.rule3
+              : stylexStyles2.rule4,
+        ]}
       >
         {hasConflict ? (
           <LuTriangleAlert />
@@ -61,14 +122,12 @@ export function AuditQueueRow({
           <LuCircleOff />
         )}
       </span>
-      <span className="min-w-0 flex-1">
-        <span className="flex items-center gap-2">
-          <span className="truncate text-sm font-medium">{command.label}</span>
-          {isCustomized ? (
-            <span className="bg-brand size-1.5 shrink-0 rounded-full" />
-          ) : null}
+      <span sx={stylexStyles2.rule5}>
+        <span sx={stylexStyles2.rule6}>
+          <span sx={stylexStyles2.rule7}>{command.label}</span>
+          {isCustomized ? <span sx={stylexStyles2.rule8} /> : null}
         </span>
-        <span className="text-foreground-alt/45 micro-ten mt-0.5 block font-normal">
+        <span sx={stylexStyles2.rule9}>
           {hasConflict
             ? 'Conflicting assignment'
             : command.binding

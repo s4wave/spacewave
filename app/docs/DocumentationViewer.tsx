@@ -35,7 +35,7 @@ import {
   useUnixFSHandleTextContent,
 } from '@s4wave/web/hooks/useUnixFSHandle.js'
 import { useStateAtom, useStateNamespace } from '@s4wave/web/state/index.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
 
@@ -45,6 +45,402 @@ import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
 import { colors as themeColors } from '../../web/style/tokens.stylex.js'
+
+import {
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+  radii as themeRadii,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    backgroundColor: themeColors['--color-background-primary'],
+  },
+  rule2: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule3: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule4: {
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+  },
+  rule5: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: themeColors['--color-border'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule6: {
+    display: 'flex',
+    flex: 1,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: '.25rem',
+    backgroundColor: themeColors['--color-muted'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+  },
+  rule7: {
+    width: '100%',
+    '--tw-border-style': 'none',
+    borderStyle: 'none',
+    backgroundColor: '#0000',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+    '::placeholder': { color: themeColors['--color-muted-foreground'] },
+  },
+  rule8: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '.25rem',
+    padding: `calc(${themeLayout['--spacing']} * 1.5)`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-list-hover-background'],
+      },
+    },
+  },
+  rule9: { flex: 1, overflowY: 'auto' },
+  rule10: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+    textAlign: 'center',
+    color: themeColors['--color-muted-foreground'],
+  },
+  rule11: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule12: {
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: themeColors['--color-brand'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-brand-foreground'],
+    opacity: {
+      default: null,
+      '@media (hover: hover)': { default: null, ':hover': 0.9 },
+    },
+  },
+  rule13: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    backgroundColor: {
+      default: themeColors['--color-list-active-selection-background'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-list-hover-background'],
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    textAlign: 'left',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-list-active-selection-foreground'],
+  },
+  rule14: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    textAlign: 'left',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-list-hover-background'],
+      },
+    },
+  },
+  rule15: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+  },
+  rule16: {
+    display: { default: 'flex', '@container (min-width: 32rem)': 'none' },
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule17: {
+    marginLeft: `calc(${themeLayout['--spacing']} * -1)`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '.25rem',
+    padding: `calc(${themeLayout['--spacing']} * 1.5)`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-list-hover-background'],
+      },
+    },
+  },
+  rule18: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+  },
+  rule19: { display: 'flex', minHeight: 0, flex: 1, flexDirection: 'column' },
+  rule20: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+  },
+  rule21: {
+    borderRadius: themeRadii['--radius-md'],
+    padding: `calc(${themeLayout['--spacing']} * 1.5)`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule22: {
+    display: 'flex',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule23: {
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule24: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule25: { flex: 1, overflow: 'auto' },
+  rule26: {
+    height: '100%',
+    width: '100%',
+    resize: 'none',
+    '--tw-border-style': 'none',
+    borderStyle: 'none',
+    backgroundColor: themeColors['--color-background-primary'],
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-editor-foreground'],
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+  },
+  rule27: {
+    flex: 1,
+    overflow: 'auto',
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule28: {
+    display: 'flex',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-muted-foreground'],
+  },
+  rule29: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: themeColors['--color-border'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule30: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  rule31: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+  },
+  rule32: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderRadius: '.25rem',
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-list-hover-background'],
+      },
+    },
+  },
+  rule33: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderRadius: '.25rem',
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-list-hover-background'],
+      },
+    },
+  },
+  rule34: { color: themeColors['--color-brand'] },
+  rule35: { color: themeColors['--color-foreground-alt'] },
+  rule36: {
+    display: 'flex',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule37: { width: '100%', maxWidth: 'var(--container-sm)' },
+  rule38: {
+    containerType: 'inline-size',
+    position: 'relative',
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    overflow: 'hidden',
+    backgroundColor: themeColors['--color-background-primary'],
+  },
+  rule39: { display: 'flex', minHeight: 0, flex: 1, overflow: 'hidden' },
+  rule40: {
+    display: { default: 'none', '@container (min-width: 32rem)': 'flex' },
+    width: `calc(${themeLayout['--spacing']} * 55)`,
+    flexShrink: 0,
+    flexDirection: 'column',
+    borderRightStyle: themeUtilityState['--tw-border-style'],
+    borderRightWidth: '1px',
+    borderColor: themeColors['--color-border'],
+  },
+  rule41: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule42: { display: 'flex', minWidth: 0, flex: 1, flexDirection: 'column' },
+})
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -240,11 +636,11 @@ function DocPlaceholder({
   children: ReactNode
 }) {
   return (
-    <div className="bg-background-primary flex h-full w-full flex-col">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center border-b px-4">
-        <div className="text-foreground flex items-center gap-2 text-sm font-semibold select-none">
+    <div sx={stylexStyles3.rule1}>
+      <div sx={stylexStyles3.rule2}>
+        <div sx={stylexStyles3.rule3}>
           <LuBookOpen sx={stylexStyles2.rule1} />
-          <span className="tracking-tight">{title}</span>
+          <span sx={stylexStyles3.rule4}>{title}</span>
         </div>
       </div>
       {children}
@@ -278,8 +674,8 @@ function DocSidebarBody({
   return (
     <>
       {/* Search and create */}
-      <div className="border-border flex items-center gap-1 border-b px-2 py-1.5">
-        <div className="bg-muted flex flex-1 items-center gap-1.5 rounded px-2 py-1">
+      <div sx={stylexStyles3.rule5}>
+        <div sx={stylexStyles3.rule6}>
           <LuSearch sx={stylexStyles2.rule2} />
           <input
             aria-label="Search pages"
@@ -287,12 +683,12 @@ function DocSidebarBody({
             placeholder="Search pages…"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="text-foreground placeholder:text-muted-foreground w-full border-none bg-transparent text-xs outline-none"
+            sx={stylexStyles3.rule7}
           />
         </div>
         <button
           type="button"
-          className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex items-center justify-center rounded p-1.5"
+          sx={stylexStyles3.rule8}
           onClick={onCreatePage}
           title="New page"
         >
@@ -301,22 +697,22 @@ function DocSidebarBody({
       </div>
 
       {/* File listing */}
-      <div className="flex-1 overflow-y-auto">
+      <div sx={stylexStyles3.rule9}>
         {filteredEntries.length === 0 ? (
-          <div className="text-muted-foreground flex flex-col items-center justify-center gap-3 p-6 text-center">
+          <div sx={stylexStyles3.rule10}>
             {mdEntries.length === 0 ? (
               <>
-                <span className="text-xs">No pages yet</span>
+                <span sx={stylexStyles3.rule11}>No pages yet</span>
                 <button
                   type="button"
-                  className="bg-brand text-brand-foreground rounded-md px-3 py-1.5 text-xs font-medium hover:opacity-90"
+                  sx={stylexStyles3.rule12}
                   onClick={onCreatePage}
                 >
                   Create first page
                 </button>
               </>
             ) : (
-              <span className="text-xs">No matching pages</span>
+              <span sx={stylexStyles3.rule11}>No matching pages</span>
             )}
           </div>
         ) : (
@@ -324,16 +720,15 @@ function DocSidebarBody({
             <button
               key={entry.name}
               type="button"
-              className={cn(
-                'flex w-full items-center gap-2 px-3 py-2 text-left text-xs',
-                'hover:bg-list-hover-background',
-                selectedPage === entry.name &&
-                  'bg-list-active-selection-background text-list-active-selection-foreground',
-              )}
+              sx={
+                selectedPage === entry.name
+                  ? stylexStyles3.rule13
+                  : stylexStyles3.rule14
+              }
               onClick={() => onSelectPage(entry.name)}
             >
               <LuFile sx={stylexStyles2.rule4} />
-              <span className="truncate">
+              <span sx={stylexStyles3.rule15}>
                 {entry.name.replace(/\.md$/, '')}
               </span>
             </button>
@@ -362,20 +757,18 @@ function DocNavDrawer({
 }: DocNavDrawerProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-3 @lg:hidden">
+      <div sx={stylexStyles3.rule16}>
         <SheetTrigger asChild>
           <button
             type="button"
             aria-label="Open documentation pages"
-            className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground -ml-1 flex items-center justify-center rounded p-1.5"
+            sx={stylexStyles3.rule17}
           >
             <LuMenu sx={stylexStyles2.rule1} />
           </button>
         </SheetTrigger>
         <LuBookOpen sx={stylexStyles2.rule5} />
-        <span className="text-foreground truncate text-sm font-semibold tracking-tight">
-          {title}
-        </span>
+        <span sx={stylexStyles3.rule18}>{title}</span>
       </div>
       <SheetContent
         side="left"
@@ -385,8 +778,8 @@ function DocNavDrawer({
         variant="docs"
         sx={stylexStyles.rule1}
       >
-        <div className="flex min-h-0 flex-1 flex-col">
-          <div className="border-foreground/8 flex items-center justify-between border-b px-3 py-2.5">
+        <div sx={stylexStyles3.rule19}>
+          <div sx={stylexStyles3.rule20}>
             <SheetTitle variant="docs">
               <LuBookOpen sx={stylexStyles2.rule6} />
               {title}
@@ -395,7 +788,7 @@ function DocNavDrawer({
               <button
                 type="button"
                 aria-label="Close documentation pages"
-                className="text-foreground-alt hover:text-foreground rounded-md p-1.5 transition-colors"
+                sx={stylexStyles3.rule21}
               >
                 <LuX sx={stylexStyles2.rule1} />
               </button>
@@ -424,27 +817,25 @@ function DocPageBody({
 }: DocPageBodyProps) {
   if (textResource.loading) {
     return (
-      <div className="flex flex-1 items-center justify-center p-4">
+      <div sx={stylexStyles3.rule22}>
         <LoadingInline label="Loading page" tone="muted" size="sm" />
       </div>
     )
   }
   if (textResource.error) {
     return (
-      <div className="text-destructive flex flex-1 flex-col items-center justify-center gap-2 p-4 text-xs">
+      <div sx={stylexStyles3.rule23}>
         <span>Failed to load page</span>
-        <span className="text-foreground-alt/50 text-xs">
-          {textResource.error.message}
-        </span>
+        <span sx={stylexStyles3.rule24}>{textResource.error.message}</span>
       </div>
     )
   }
   if (editing) {
     return (
-      <div className="flex-1 overflow-auto">
+      <div sx={stylexStyles3.rule25}>
         <textarea
           aria-label="Document content"
-          className="bg-background-primary text-editor-foreground h-full w-full resize-none border-none p-4 font-mono text-xs outline-none"
+          sx={stylexStyles3.rule26}
           value={editContent ?? textResource.value ?? ''}
           onChange={(e) => onEditContentChange(e.target.value)}
         />
@@ -452,8 +843,12 @@ function DocPageBody({
     )
   }
   return (
-    <div className="flex-1 overflow-auto p-4">
-      <div className="docs-prose">
+    <div sx={stylexStyles3.rule27}>
+      <div
+        className={
+          /* TODO(stylex): global or unknown class: docs-prose */ 'docs-prose'
+        }
+      >
         <Markdown options={docsMarkdownOverrides}>
           {textResource.value ?? ''}
         </Markdown>
@@ -477,25 +872,21 @@ function DocContent({
 }: DocContentProps) {
   const { editing } = body
   if (!selectedPage) {
-    return (
-      <div className="text-muted-foreground flex flex-1 items-center justify-center text-xs">
-        Select a page to view
-      </div>
-    )
+    return <div sx={stylexStyles3.rule28}>Select a page to view</div>
   }
 
   return (
     <>
       {/* Content header */}
-      <div className="border-border flex items-center justify-between border-b px-3 py-1.5">
-        <span className="text-xs font-medium">
+      <div sx={stylexStyles3.rule29}>
+        <span sx={stylexStyles3.rule30}>
           {selectedPage.replace(/\.md$/, '')}
         </span>
-        <div className="flex items-center gap-1">
+        <div sx={stylexStyles3.rule31}>
           {editing && (
             <button
               type="button"
-              className="text-foreground-alt hover:bg-list-hover-background flex items-center gap-1 rounded px-2 py-0.5 text-xs"
+              sx={stylexStyles3.rule32}
               onClick={onCancelEdit}
               title="Cancel editing"
             >
@@ -505,11 +896,10 @@ function DocContent({
           )}
           <button
             type="button"
-            className={cn(
-              'flex items-center gap-1 rounded px-2 py-0.5 text-xs',
-              'hover:bg-list-hover-background',
-              editing ? 'text-brand' : 'text-foreground-alt',
-            )}
+            sx={[
+              stylexStyles3.rule33,
+              editing ? stylexStyles3.rule34 : stylexStyles3.rule35,
+            ]}
             onClick={onToggleEdit}
             title={editing ? 'Save and preview' : 'Edit page'}
           >
@@ -593,8 +983,8 @@ export function DocumentationViewer({
   if (sourceLoading || (!!sourceKey && entries.loading && !entries.value)) {
     return (
       <DocPlaceholder title={title}>
-        <div className="flex flex-1 items-center justify-center p-6">
-          <div className="w-full max-w-sm">
+        <div sx={stylexStyles3.rule36}>
+          <div sx={stylexStyles3.rule37}>
             <LoadingCard
               view={{
                 state: 'active',
@@ -612,9 +1002,7 @@ export function DocumentationViewer({
   if (!sourceKey) {
     return (
       <DocPlaceholder title={title}>
-        <div className="text-muted-foreground flex flex-1 items-center justify-center text-xs">
-          No documentation source linked
-        </div>
+        <div sx={stylexStyles3.rule28}>No documentation source linked</div>
       </DocPlaceholder>
     )
   }
@@ -632,10 +1020,7 @@ export function DocumentationViewer({
   )
 
   return (
-    <div
-      ref={setPortalContainer}
-      className="bg-background-primary @container relative flex h-full w-full flex-col overflow-hidden"
-    >
+    <div ref={setPortalContainer} sx={stylexStyles3.rule38}>
       <DocNavDrawer
         title={title}
         open={navOpen}
@@ -645,21 +1030,19 @@ export function DocumentationViewer({
         {sidebarBody}
       </DocNavDrawer>
 
-      <div className="flex min-h-0 flex-1 overflow-hidden">
+      <div sx={stylexStyles3.rule39}>
         {/* Sidebar - wide widths only */}
-        <div className="border-border hidden w-55 shrink-0 flex-col border-r @lg:flex">
+        <div sx={stylexStyles3.rule40}>
           {/* Header */}
-          <div className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-3">
+          <div sx={stylexStyles3.rule41}>
             <LuBookOpen sx={stylexStyles2.rule5} />
-            <span className="text-foreground truncate text-sm font-semibold tracking-tight">
-              {title}
-            </span>
+            <span sx={stylexStyles3.rule18}>{title}</span>
           </div>
           {sidebarBody}
         </div>
 
         {/* Content area */}
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div sx={stylexStyles3.rule42}>
           <DocContent
             selectedPage={page.selectedPage}
             editing={page.editing}

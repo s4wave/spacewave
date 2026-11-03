@@ -18,6 +18,174 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+import {
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+  radii as themeRadii,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    minHeight: 0,
+    width: '100%',
+    flexDirection: 'column',
+    backgroundColor: themeColors['--color-background-primary'],
+  },
+  rule2: {
+    display: 'flex',
+    minHeight: `calc(${themeLayout['--spacing']} * 14)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-secondary']} 60%, transparent)`,
+    paddingInline: {
+      default: `calc(${themeLayout['--spacing']} * 3)`,
+      '@media (min-width: 40rem)': `calc(${themeLayout['--spacing']} * 5)`,
+    },
+  },
+  rule3: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 'var(--radius-sm)',
+    backgroundColor: themeColors['--color-background-tertiary'],
+    color: themeColors['--color-brand'],
+  },
+  rule4: { minWidth: 0 },
+  rule5: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule6: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-muted-foreground'],
+  },
+  rule7: {
+    display: 'flex',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule8: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+  },
+  rule9: {
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    animationName: 'spin',
+    animationDuration: '1s',
+    animationTimingFunction: 'linear',
+    animationIterationCount: 'infinite',
+    animationDirection: 'normal',
+    animationPlayState: 'running',
+    animationDelay: '0s',
+    animationFillMode: 'none',
+    animationTimeline: 'auto',
+    borderRadius: '3.40282e38px',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '2px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    borderTopColor: themeColors['--color-brand'],
+  },
+  rule10: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule11: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-muted-foreground'],
+  },
+  rule12: {
+    maxWidth: 'var(--container-sm)',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-error']} 30%, transparent)`,
+    backgroundColor: themeColors['--color-background-card'],
+    padding: `calc(${themeLayout['--spacing']} * 5)`,
+    textAlign: 'center',
+  },
+  rule13: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule14: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `calc(${themeLayout['--spacing']} * 5)`,
+    '--tw-leading': `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-muted-foreground'],
+  },
+  rule15: {
+    marginInline: 'auto',
+    marginTop: `calc(${themeLayout['--spacing']} * 4)`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: 'var(--radius-sm)',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 15%, transparent)`,
+    backgroundColor: {
+      default: themeColors['--color-background-tertiary'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-background-panel'],
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': themeColors['--color-primary'],
+    },
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 4)`,
@@ -102,59 +270,40 @@ function ChatChannelContent({
   const error = messagesResource.error
 
   return (
-    <section
-      className="bg-background-primary flex h-full min-h-0 w-full flex-col"
-      aria-label="Chat channel"
-    >
-      <header className="border-foreground/10 bg-background-secondary/60 flex min-h-14 shrink-0 items-center gap-3 border-b px-3 sm:px-5">
-        <div className="bg-background-tertiary text-brand flex size-8 shrink-0 items-center justify-center rounded-sm">
+    <section sx={stylexStyles2.rule1} aria-label="Chat channel">
+      <header sx={stylexStyles2.rule2}>
+        <div sx={stylexStyles2.rule3}>
           <LuHash sx={stylexStyles.rule1} aria-hidden="true" />
         </div>
-        <div className="min-w-0">
-          <h1 className="text-foreground truncate text-sm font-semibold">
-            Chat channel
-          </h1>
-          <p className="text-muted-foreground truncate text-xs">
-            {objectKey || 'Conversation'}
-          </p>
+        <div sx={stylexStyles2.rule4}>
+          <h1 sx={stylexStyles2.rule5}>Chat channel</h1>
+          <p sx={stylexStyles2.rule6}>{objectKey || 'Conversation'}</p>
         </div>
       </header>
 
       {loading ? (
-        <div
-          className="flex flex-1 items-center justify-center p-6"
-          role="status"
-        >
-          <div className="flex items-center gap-3 text-sm">
-            <div className="border-brand/30 border-t-brand size-5 animate-spin rounded-full border-2" />
+        <div sx={stylexStyles2.rule7} role="status">
+          <div sx={stylexStyles2.rule8}>
+            <div sx={stylexStyles2.rule9} />
             <div>
-              <div className="text-foreground font-medium">
-                Loading messages
-              </div>
-              <div className="text-muted-foreground text-xs">
-                Reading conversation history…
-              </div>
+              <div sx={stylexStyles2.rule10}>Loading messages</div>
+              <div sx={stylexStyles2.rule11}>Reading conversation history…</div>
             </div>
           </div>
         </div>
       ) : error ? (
-        <div
-          className="flex flex-1 items-center justify-center p-6"
-          role="alert"
-        >
-          <div className="border-error/30 bg-background-card max-w-sm rounded-md border p-5 text-center">
+        <div sx={stylexStyles2.rule7} role="alert">
+          <div sx={stylexStyles2.rule12}>
             <LuCircleAlert sx={stylexStyles.rule2} aria-hidden="true" />
-            <h2 className="text-foreground mt-3 text-sm font-semibold">
-              Messages unavailable
-            </h2>
-            <p className="text-muted-foreground mt-1 text-sm leading-5">
+            <h2 sx={stylexStyles2.rule13}>Messages unavailable</h2>
+            <p sx={stylexStyles2.rule14}>
               The channel history could not be read. Check the connection and
               try again.
             </p>
             <button
               type="button"
               onClick={messagesResource.retry}
-              className="border-foreground/15 bg-background-tertiary text-foreground hover:bg-background-panel focus-visible:ring-primary mx-auto mt-4 flex items-center gap-2 rounded-sm border px-3 py-2 text-xs font-semibold focus-visible:ring-2"
+              sx={stylexStyles2.rule15}
             >
               <LuRefreshCw sx={stylexStyles.rule3} aria-hidden="true" />
               Try again

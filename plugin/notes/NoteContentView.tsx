@@ -9,7 +9,6 @@ import {
   useUnixFSHandle,
   useUnixFSHandleTextContent,
 } from '@s4wave/web/hooks/useUnixFSHandle.js'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import FrontmatterDisplay from './FrontmatterDisplay.js'
 import LexicalEditor from './LexicalEditor.js'
@@ -19,6 +18,261 @@ import type { parseNote } from './frontmatter.js'
 
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+import {
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    minWidth: 0,
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule2: { minWidth: 0, flex: 1, overflowWrap: 'break-word' },
+  rule3: {
+    minHeight: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
+    minWidth: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
+    flexShrink: 0,
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  rule4: {
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: themeColors['--color-border'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule5: { color: themeColors['--color-success'] },
+  rule6: { color: themeColors['--color-muted-foreground'] },
+  rule7: {
+    display: 'flex',
+    height: '100%',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule8: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    wordBreak: 'break-all',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule9: {
+    minHeight: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
+    minWidth: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: themeColors['--color-border'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule10: { flex: 1, overflow: 'auto' },
+  rule11: {
+    height: '100%',
+    width: '100%',
+    resize: 'none',
+    '--tw-border-style': 'none',
+    borderStyle: 'none',
+    backgroundColor: themeColors['--color-background-primary'],
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-editor-foreground'],
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': themeColors['--color-brand'],
+    },
+    '--tw-ring-inset': { default: null, ':focus-visible': 'inset' },
+  },
+  rule12: {
+    display: 'flex',
+    minHeight: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
+    minWidth: 0,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: themeColors['--color-border'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule13: {
+    minWidth: 0,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  rule14: {
+    display: 'flex',
+    minHeight: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderRadius: '.25rem',
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-list-hover-background'],
+      },
+    },
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': themeColors['--color-brand'],
+    },
+    paddingBlock: {
+      default: null,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * .5)`,
+      },
+    },
+  },
+  rule15: { color: themeColors['--color-brand'] },
+  rule16: { color: themeColors['--color-foreground-alt'] },
+  rule17: {
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    overflow: 'hidden',
+  },
+  rule18: { display: 'flex', height: '100%', flexDirection: 'column' },
+  rule19: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: themeColors['--color-border'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  rule20: {
+    display: 'flex',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule21: {
+    display: 'flex',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-muted-foreground'],
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -49,18 +303,11 @@ function SaveStatus({ state, error, onRetry }: SaveStatusProps) {
   if (state === 'idle') return null
   if (state === 'failed') {
     return (
-      <div
-        className="border-destructive/30 text-destructive flex min-w-0 flex-wrap items-center gap-2 border-b px-3 py-1 text-xs"
-        role="alert"
-      >
-        <span className="min-w-0 flex-1 break-words">
+      <div sx={stylexStyles2.rule1} role="alert">
+        <span sx={stylexStyles2.rule2}>
           Failed to save note: {error?.message}
         </span>
-        <button
-          type="button"
-          className="border-destructive/40 min-h-11 min-w-11 shrink-0 rounded border px-2 py-0.5 font-medium md:pointer-fine:min-h-0 md:pointer-fine:min-w-0"
-          onClick={onRetry}
-        >
+        <button type="button" sx={stylexStyles2.rule3} onClick={onRetry}>
           Retry
         </button>
       </div>
@@ -68,10 +315,10 @@ function SaveStatus({ state, error, onRetry }: SaveStatusProps) {
   }
   return (
     <div
-      className={cn(
-        'border-border border-b px-3 py-1 text-xs',
-        state === 'saved' ? 'text-success' : 'text-muted-foreground',
-      )}
+      sx={[
+        stylexStyles2.rule4,
+        state === 'saved' ? stylexStyles2.rule5 : stylexStyles2.rule6,
+      ]}
       role="status"
       aria-live="polite"
     >
@@ -88,19 +335,10 @@ interface NoteReadErrorProps {
 // NoteReadError presents a failed note read and its Resource retry action.
 function NoteReadError({ error, onRetry }: NoteReadErrorProps) {
   return (
-    <div
-      className="text-destructive flex h-full flex-col items-center justify-center gap-2 p-4 text-xs"
-      role="alert"
-    >
+    <div sx={stylexStyles2.rule7} role="alert">
       <span>Failed to load note</span>
-      <span className="text-foreground-alt/50 text-xs break-all">
-        {error.message}
-      </span>
-      <button
-        type="button"
-        className="border-border text-foreground min-h-11 min-w-11 rounded border px-2 py-1 font-medium md:pointer-fine:min-h-0 md:pointer-fine:min-w-0"
-        onClick={onRetry}
-      >
+      <span sx={stylexStyles2.rule8}>{error.message}</span>
+      <button type="button" sx={stylexStyles2.rule9} onClick={onRetry}>
         Retry
       </button>
     </div>
@@ -116,10 +354,10 @@ interface SourceEditorProps {
 // SourceEditor presents the raw note body with an explicit accessible name.
 function SourceEditor({ value, onChange, onBlur }: SourceEditorProps) {
   return (
-    <div className="flex-1 overflow-auto">
+    <div sx={stylexStyles2.rule10}>
       <textarea
         aria-label="Note source"
-        className="bg-background-primary text-editor-foreground focus-visible:ring-brand h-full w-full resize-none border-none p-4 font-mono text-xs outline-none focus-visible:ring-2 focus-visible:ring-inset"
+        sx={stylexStyles2.rule11}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         onBlur={onBlur}
@@ -145,17 +383,16 @@ function NoteHeader({
   onTogglePointerDown,
 }: NoteHeaderProps) {
   return (
-    <div className="border-border flex min-h-11 min-w-0 items-center justify-between gap-2 border-b px-3 py-1.5 md:pointer-fine:min-h-0">
-      <span className="min-w-0 truncate text-xs font-medium">
+    <div sx={stylexStyles2.rule12}>
+      <span sx={stylexStyles2.rule13}>
         {stripNoteFileExtension(noteName.split('/').pop() ?? noteName)}
       </span>
       <button
         type="button"
-        className={cn(
-          'flex min-h-11 shrink-0 items-center gap-1 rounded px-2 text-xs md:pointer-fine:min-h-0 md:pointer-fine:py-0.5',
-          'hover:bg-list-hover-background focus-visible:ring-brand focus-visible:ring-2',
-          editing ? 'text-brand' : 'text-foreground-alt',
-        )}
+        sx={[
+          stylexStyles2.rule14,
+          editing ? stylexStyles2.rule15 : stylexStyles2.rule16,
+        ]}
         onClick={onToggle}
         onPointerDown={onTogglePointerDown}
         disabled={disabled}
@@ -226,7 +463,7 @@ function NoteBody({
           onStatusClick={onFilterStatus}
         />
       )}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div sx={stylexStyles2.rule17}>
         <LexicalEditor
           content={editorContent}
           format={noteFormat ?? 'markdown'}
@@ -272,16 +509,13 @@ class NoteErrorBoundary extends Component<
       return this.props.children
     }
     return (
-      <div className="flex h-full flex-col" data-testid="notes-content-view">
-        <div className="border-border truncate border-b px-3 py-1.5 text-xs font-medium">
+      <div sx={stylexStyles2.rule18} data-testid="notes-content-view">
+        <div sx={stylexStyles2.rule19}>
           {stripNoteFileExtension(
             this.props.noteName.split('/').pop() ?? this.props.noteName,
           )}
         </div>
-        <div
-          className="text-destructive flex h-full items-center justify-center p-4 text-xs"
-          role="alert"
-        >
+        <div sx={stylexStyles2.rule20} role="alert">
           Could not open this note. Select another note.
         </div>
       </div>
@@ -322,20 +556,12 @@ function NoteFileView({
 
   // Keep an empty selection separate from file loading.
   if (!noteName) {
-    return (
-      <div className="text-muted-foreground flex h-full items-center justify-center text-xs">
-        Select a note to view
-      </div>
-    )
+    return <div sx={stylexStyles2.rule21}>Select a note to view</div>
   }
 
   // Show the selected file's pending read.
   if (textResource.loading) {
-    return (
-      <div className="text-muted-foreground flex h-full items-center justify-center text-xs">
-        Loading…
-      </div>
-    )
+    return <div sx={stylexStyles2.rule21}>Loading…</div>
   }
 
   // Keep a failed read retryable through its resource.
@@ -346,7 +572,7 @@ function NoteFileView({
   }
 
   return (
-    <div className="flex h-full flex-col" data-testid="notes-content-view">
+    <div sx={stylexStyles2.rule18} data-testid="notes-content-view">
       <NoteHeader
         noteName={noteName}
         editing={editing}

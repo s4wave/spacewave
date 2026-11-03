@@ -10,6 +10,158 @@ import {
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: { marginTop: `calc(${themeLayout['--spacing']} * 4)` },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    marginTop: `calc(${themeLayout['--spacing']} * 4)`,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule2: {
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: themeColors['--color-border'],
+      ':focus': themeColors['--color-brand'],
+    },
+    backgroundColor: themeColors['--color-background'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+  },
+  rule3: {
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    borderRadius: themeRadii['--radius-md'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule4: {
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+  },
+  rule5: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule6: {
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: themeColors['--color-border'],
+      ':focus': themeColors['--color-brand'],
+    },
+    backgroundColor: themeColors['--color-background'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+  },
+  rule7: {
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 50%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 15%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+  },
+})
+
 const dialogStyles = stylex.create({
   footer: { marginTop: `calc(${themeLayout['--spacing']} * 4)` },
 })
@@ -64,7 +216,7 @@ export function TextInputDialog({
               <DialogDescription>{description}</DialogDescription>
             ) : null}
           </DialogHeader>
-          <label className="text-foreground mt-4 flex flex-col gap-1 text-xs">
+          <label sx={stylexStyles.rule1}>
             {label}
             <input
               key={`${open ? 'open' : 'closed'}:${defaultValue}`}
@@ -72,21 +224,18 @@ export function TextInputDialog({
               defaultValue={defaultValue}
               placeholder={placeholder}
               required={requireValue}
-              className="border-border bg-background text-foreground focus:border-brand h-8 rounded-md border px-2 text-sm outline-none"
+              sx={stylexStyles.rule2}
             />
           </label>
           <DialogFooter sx={dialogStyles.footer}>
             <button
               type="button"
               onClick={() => onOpenChange(false)}
-              className="text-foreground-alt hover:text-foreground h-7 rounded-md px-3 text-xs transition-colors"
+              sx={stylexStyles.rule3}
             >
               Cancel
             </button>
-            <button
-              type="submit"
-              className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground h-7 rounded-md border px-3 text-xs font-medium transition duration-150"
-            >
+            <button type="submit" sx={stylexStyles.rule4}>
               {confirmLabel}
             </button>
           </DialogFooter>
@@ -128,24 +277,24 @@ export function SourceInputDialog({
               Connect this notebook to a folder or document source.
             </DialogDescription>
           </DialogHeader>
-          <div className="mt-4 space-y-3">
-            <label className="text-foreground flex flex-col gap-1 text-xs">
+          <div sx={stylexStyles2.rule1}>
+            <label sx={[nativeChildSpacing.s3, stylexStyles.rule5]}>
               Source name
               <input
                 key={open ? 'source-name-open' : 'source-name-closed'}
                 name="name"
                 placeholder="Docs"
-                className="border-border bg-background text-foreground focus:border-brand h-8 rounded-md border px-2 text-sm outline-none"
+                sx={stylexStyles.rule2}
               />
             </label>
-            <label className="text-foreground flex flex-col gap-1 text-xs">
+            <label sx={[nativeChildSpacing.s3, stylexStyles.rule5]}>
               Source ref
               <input
                 key={open ? 'source-ref-open' : 'source-ref-closed'}
                 name="ref"
                 placeholder="object-key/-/path"
                 required
-                className="border-border bg-background text-foreground focus:border-brand h-8 rounded-md border px-2 font-mono text-sm outline-none"
+                sx={stylexStyles.rule6}
               />
             </label>
           </div>
@@ -153,14 +302,11 @@ export function SourceInputDialog({
             <button
               type="button"
               onClick={() => onOpenChange(false)}
-              className="text-foreground-alt hover:text-foreground h-7 rounded-md px-3 text-xs transition-colors"
+              sx={stylexStyles.rule3}
             >
               Cancel
             </button>
-            <button
-              type="submit"
-              className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground h-7 rounded-md border px-3 text-xs font-medium transition duration-150"
-            >
+            <button type="submit" sx={stylexStyles.rule4}>
               Add source
             </button>
           </DialogFooter>
@@ -198,15 +344,11 @@ export function ConfirmActionDialog({
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="text-foreground-alt hover:text-foreground h-7 rounded-md px-3 text-xs transition-colors"
+            sx={stylexStyles.rule3}
           >
             Cancel
           </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            className="border-destructive/30 bg-destructive/10 hover:border-destructive/50 hover:bg-destructive/15 text-foreground h-7 rounded-md border px-3 text-xs font-medium transition duration-150"
-          >
+          <button type="button" onClick={onConfirm} sx={stylexStyles.rule7}>
             {confirmLabel}
           </button>
         </DialogFooter>
@@ -214,3 +356,18 @@ export function ConfirmActionDialog({
     </Dialog>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

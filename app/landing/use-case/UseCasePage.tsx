@@ -4,6 +4,92 @@ import type { ReactElement, ReactNode } from 'react'
 import { LegalPageLayout } from '../LegalPageLayout.js'
 import { UseCaseCtaLink, UseCaseCtaRow } from '../UseCaseCtaRow.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    position: 'relative',
+    zIndex: 10,
+    marginInline: 'auto',
+    display: 'grid',
+    width: '100%',
+    maxWidth: 'var(--container-6xl)',
+    gap: `calc(${themeLayout['--spacing']} * 8)`,
+    paddingInline: {
+      default: `calc(${themeLayout['--spacing']} * 4)`,
+      '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 8)`,
+    },
+    paddingTop: `calc(${themeLayout['--spacing']} * 20)`,
+    gridTemplateColumns: {
+      default: null,
+      '@container (min-width: 32rem)': 'repeat(3, minmax(0, 1fr))',
+    },
+  },
+  rule2: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule3: {
+    fontSize: 'var(--text-base)',
+    lineHeight: 'var(--tw-leading, var(--text-base--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule4: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule5: {
+    position: 'relative',
+    zIndex: 10,
+    marginInline: 'auto',
+    display: 'flex',
+    width: '100%',
+    maxWidth: 'var(--container-2xl)',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 5)`,
+    paddingInline: {
+      default: `calc(${themeLayout['--spacing']} * 4)`,
+      '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 8)`,
+    },
+    paddingTop: `calc(${themeLayout['--spacing']} * 20)`,
+    paddingBottom: `calc(${themeLayout['--spacing']} * 24)`,
+    textAlign: 'center',
+  },
+  rule6: {
+    fontSize: 'var(--text-2xl)',
+    lineHeight: 'var(--tw-leading, var(--text-2xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+  },
+  rule7: {
+    fontSize: {
+      default: themeFonts['--text-sm'],
+      '@container (min-width: 32rem)': 'var(--text-base)',
+    },
+    lineHeight: {
+      default: 'var(--leading-relaxed)',
+      '@container (min-width: 32rem)':
+        'var(--tw-leading, var(--text-base--line-height))',
+    },
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 // UseCasePoint is one short statement about what the demo showed.
 export interface UseCasePoint {
   title: string
@@ -47,26 +133,18 @@ export function UseCasePage({
     <LegalPageLayout icon={icon} title={title} subtitle={subtitle}>
       {children}
 
-      <section className="relative z-10 mx-auto grid w-full max-w-6xl gap-8 px-4 pt-20 @lg:grid-cols-3 @lg:px-8">
+      <section sx={stylexStyles.rule1}>
         {points.map((point) => (
-          <div key={point.title} className="flex flex-col gap-2">
-            <h3 className="text-foreground text-base font-semibold">
-              {point.title}
-            </h3>
-            <p className="text-foreground-alt text-sm leading-relaxed">
-              {point.body}
-            </p>
+          <div key={point.title} sx={stylexStyles.rule2}>
+            <h3 sx={stylexStyles.rule3}>{point.title}</h3>
+            <p sx={stylexStyles.rule4}>{point.body}</p>
           </div>
         ))}
       </section>
 
-      <section className="relative z-10 mx-auto flex w-full max-w-2xl flex-col items-center gap-5 px-4 pt-20 pb-24 text-center @lg:px-8">
-        <h2 className="text-foreground text-2xl font-semibold tracking-tight">
-          {keepTitle}
-        </h2>
-        <p className="text-foreground-alt text-sm leading-relaxed @lg:text-base">
-          {keepBody}
-        </p>
+      <section sx={stylexStyles.rule5}>
+        <h2 sx={stylexStyles.rule6}>{keepTitle}</h2>
+        <p sx={stylexStyles.rule7}>{keepBody}</p>
         <UseCaseCtaRow>
           <UseCaseCtaLink
             href={primary.href}

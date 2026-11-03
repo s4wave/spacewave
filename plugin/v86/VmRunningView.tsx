@@ -9,6 +9,20 @@ import { VmScreen } from './VmScreen.js'
 import { VmSerialConsole } from './VmSerialConsole.js'
 import { VmV86Controls, type VmView } from './VmV86Controls.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: { flexShrink: 0, padding: `calc(${themeLayout['--spacing']} * 3)` },
+  rule2: {
+    display: 'flex',
+    minHeight: 0,
+    flex: 1,
+    flexDirection: 'column',
+    backgroundColor: 'var(--color-black)',
+  },
+})
+
 // VmRunningViewProps describes a VM that is running or about to.
 export interface VmRunningViewProps {
   objectKey: string
@@ -51,11 +65,11 @@ export function VmRunningView({
         />
       </VmHeader>
       {operationError && (
-        <div className="shrink-0 p-3">
+        <div sx={stylexStyles.rule1}>
           <VmErrorBanner title="Operation error" message={operationError} />
         </div>
       )}
-      <div ref={panelRef} className="flex min-h-0 flex-1 flex-col bg-black">
+      <div ref={panelRef} sx={stylexStyles.rule2}>
         <VmScreen objectKey={objectKey} hidden={view !== 'screen'} />
         <VmSerialConsole
           objectKey={objectKey}

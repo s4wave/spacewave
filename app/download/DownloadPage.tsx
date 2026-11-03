@@ -17,6 +17,46 @@ import { WindowsBypassNotice } from './WindowsBypassNotice.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+const stylexStyles2 = stylex.create({
+  rule1: {
+    position: 'relative',
+    zIndex: 10,
+    marginInline: 'auto',
+    display: 'flex',
+    width: '100%',
+    maxWidth: 'var(--container-4xl)',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 14)`,
+    paddingInline: {
+      default: `calc(${themeLayout['--spacing']} * 4)`,
+      '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 8)`,
+    },
+    paddingBottom: {
+      default: `calc(${themeLayout['--spacing']} * 14)`,
+      '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 16)`,
+    },
+  },
+  rule2: {
+    display: 'flex',
+    width: '100%',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 10)`,
+  },
+  rule3: {
+    display: 'flex',
+    width: '100%',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 10)`,
+  },
+  rule4: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 6)`,
@@ -105,14 +145,14 @@ export function DownloadPage({ cliOnly = false }: { cliOnly?: boolean }) {
           : 'Self-hosted in your browser. Available for macOS, Windows, and Linux.'
       }
     >
-      <section className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center gap-14 px-4 pb-14 @lg:px-8 @lg:pb-16">
+      <section sx={stylexStyles2.rule1}>
         {!cliOnly && (
-          <section className="flex w-full flex-col items-center gap-10">
+          <section sx={stylexStyles2.rule2}>
             <PrimaryDownloadButton entry={installerPrimary} />
 
-            <div className="flex w-full flex-col gap-10">
+            <div sx={stylexStyles2.rule3}>
               {installerGroups.map(({ os, entries }) => (
-                <div key={os} className="flex flex-col gap-4">
+                <div key={os} sx={stylexStyles2.rule4}>
                   <PlatformSection os={os} entries={entries} />
                   {os === 'windows' && entries.some((e) => e.unsigned) && (
                     <WindowsBypassNotice />

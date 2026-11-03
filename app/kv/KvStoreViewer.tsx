@@ -24,6 +24,77 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+import {
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    backgroundColor: themeColors['--color-background-primary'],
+  },
+  rule2: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule3: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule4: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule5: { padding: `calc(${themeLayout['--spacing']} * 4)` },
+  rule6: { display: 'flex', minHeight: 0, flex: 1 },
+  rule7: {
+    display: 'flex',
+    width: '33.3333%',
+    minWidth: `calc(${themeLayout['--spacing']} * 48)`,
+    flexDirection: 'column',
+    borderRightStyle: themeUtilityState['--tw-border-style'],
+    borderRightWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+  },
+  rule8: { padding: `calc(${themeLayout['--spacing']} * 3)` },
+  rule9: { minWidth: 0, flex: 1 },
+  rule10: {
+    overflow: 'auto',
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule11: {
+    display: 'flex',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -166,12 +237,12 @@ export function KvStoreViewer({
   }, [runMutation, selectedRow])
 
   return (
-    <div className="bg-background-primary flex h-full w-full flex-col">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center justify-between border-b px-4">
-        <div className="text-foreground flex items-center gap-2 text-sm font-semibold tracking-tight select-none">
+    <div sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>
+        <div sx={stylexStyles2.rule3}>
           <LuDatabase sx={stylexStyles.rule1} aria-hidden />
           Key/Value Store
-          <span className="text-foreground-alt/50 text-xs">
+          <span sx={stylexStyles2.rule4}>
             {rows.length} {rows.length === 1 ? 'key' : 'keys'}
           </span>
         </div>
@@ -184,7 +255,7 @@ export function KvStoreViewer({
       </div>
 
       {keysResource.error ? (
-        <div className="p-4">
+        <div sx={stylexStyles2.rule5}>
           <ErrorState
             title="KV store unavailable"
             message={String(keysResource.error)}
@@ -192,8 +263,8 @@ export function KvStoreViewer({
           />
         </div>
       ) : (
-        <div className="flex min-h-0 flex-1">
-          <div className="border-foreground/8 flex w-1/3 min-w-48 flex-col border-r">
+        <div sx={stylexStyles2.rule6}>
+          <div sx={stylexStyles2.rule7}>
             <KvKeyListToolbar
               prefix={prefix}
               onPrefixChange={setPrefix}
@@ -201,7 +272,7 @@ export function KvStoreViewer({
               onToggleSortDirection={toggleSortDirection}
             />
             {keysResource.loading && rows.length === 0 ? (
-              <div className="p-3">
+              <div sx={stylexStyles2.rule8}>
                 <LoadingInline label="Loading keys" tone="muted" />
               </div>
             ) : (
@@ -214,9 +285,9 @@ export function KvStoreViewer({
             )}
           </div>
 
-          <div className="min-w-0 flex-1">
+          <div sx={stylexStyles2.rule9}>
             {creating ? (
-              <div className="overflow-auto p-3">
+              <div sx={stylexStyles2.rule10}>
                 <KvCreateKeyForm
                   onCreate={handleCreate}
                   onCancel={() => setCreating(false)}
@@ -232,7 +303,7 @@ export function KvStoreViewer({
                 mutationError={mutationError}
               />
             ) : (
-              <div className="text-foreground-alt/40 flex h-full items-center justify-center text-xs">
+              <div sx={stylexStyles2.rule11}>
                 Select a key to view its value.
               </div>
             )}

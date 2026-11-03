@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { LuCheck, LuCopy } from '@s4wave/web/images/icons.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
-
 import { codeFenceKey, readCodeFence, type CodeFence } from './code-fence.js'
 import highlights from './code-highlight.generated.json'
 
@@ -10,6 +8,59 @@ import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
 import { codeGroupMarker } from '../../web/style/relations.stylex.js'
+
+import {
+  radii as themeRadii,
+  motion as themeMotion,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+import { codeGroupMarker as codeGroupMarker2 } from '../../web/style/relations.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    position: 'absolute',
+    top: `calc(${themeLayout['--spacing']} * 2.5)`,
+    right: `calc(${themeLayout['--spacing']} * 2.5)`,
+    zIndex: 10,
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 7)`,
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    opacity: {
+      default: 0,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', codeGroupMarker2)]: 1,
+      },
+    },
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule2: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+    color: themeColors['--color-brand'],
+  },
+  rule3: {
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      },
+    },
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground-alt'],
+      },
+    },
+  },
+})
 
 const stylexStyles2 = stylex.create({ rule1: { position: 'relative' } })
 
@@ -53,13 +104,10 @@ export function CodeBlock({ fence }: { fence: CodeFence }) {
       <button
         type="button"
         onClick={handleCopy}
-        className={cn(
-          'absolute top-2.5 right-2.5 z-10 flex size-7 items-center justify-center rounded-md transition-all',
-          'opacity-0 group-hover/code:opacity-100',
-          copied
-            ? 'bg-brand/20 text-brand'
-            : 'bg-foreground/5 text-foreground-alt/40 hover:bg-foreground/10 hover:text-foreground-alt',
-        )}
+        sx={[
+          stylexStyles3.rule1,
+          copied ? stylexStyles3.rule2 : stylexStyles3.rule3,
+        ]}
         title="Copy code"
       >
         {copied ? (

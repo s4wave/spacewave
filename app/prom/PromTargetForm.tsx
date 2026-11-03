@@ -2,9 +2,49 @@ import { useCallback, useReducer } from 'react'
 
 import type { PromDashboard } from '@s4wave/sdk/prom/prom.js'
 import type { TargetMeta } from '@s4wave/sdk/prom/prom.pb.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { Button } from '@s4wave/web/ui/button.js'
 import { Input } from '@s4wave/web/ui/input.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    marginInline: 'auto',
+    display: 'grid',
+    width: '100%',
+    maxWidth: 'var(--container-md)',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule2: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule3: { display: 'flex', gap: `calc(${themeLayout['--spacing']} * 2)` },
+  rule4: { flex: 1 },
+  rule5: { width: `calc(${themeLayout['--spacing']} * 28)` },
+  rule6: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+})
 
 // targetKeyPrefix is the World key prefix of Scrape targets.
 const targetKeyPrefix = 'prom/target/'
@@ -94,17 +134,16 @@ export function PromTargetForm({
     }
   }, [dashboard, name, form.job, form.url, interval, onCreated])
 
-  const label = 'text-foreground-alt flex flex-col gap-1 text-xs'
   return (
     <form
       aria-label="Add Scrape target"
-      className="border-foreground/8 mx-auto grid w-full max-w-md gap-2 rounded-md border p-3"
+      sx={stylexStyles.rule1}
       onSubmit={(e) => {
         e.preventDefault()
         if (valid) void create()
       }}
     >
-      <label className={label}>
+      <label sx={stylexStyles.rule2}>
         Name
         <Input
           variant="wizard"
@@ -115,7 +154,7 @@ export function PromTargetForm({
           }
         />
       </label>
-      <label className={label}>
+      <label sx={stylexStyles.rule2}>
         Exporter URL
         <Input
           variant="wizardMono"
@@ -125,8 +164,8 @@ export function PromTargetForm({
           }
         />
       </label>
-      <div className="flex gap-2">
-        <label className={cn(label, 'flex-1')}>
+      <div sx={stylexStyles.rule3}>
+        <label sx={[stylexStyles.rule2, stylexStyles.rule4]}>
           Job
           <Input
             variant="wizard"
@@ -136,7 +175,7 @@ export function PromTargetForm({
             }
           />
         </label>
-        <label className={cn(label, 'w-28')}>
+        <label sx={[stylexStyles.rule2, stylexStyles.rule5]}>
           Every (seconds)
           <Input
             variant="wizard"
@@ -149,11 +188,9 @@ export function PromTargetForm({
         </label>
       </div>
       {form.save.state === 'failed' ? (
-        <p className="text-destructive text-xs">
-          Could not save: {form.save.reason}.
-        </p>
+        <p sx={stylexStyles.rule6}>Could not save: {form.save.reason}.</p>
       ) : null}
-      <div className="flex gap-2">
+      <div sx={stylexStyles.rule3}>
         <Button
           type="submit"
           size="sm"

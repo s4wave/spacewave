@@ -40,6 +40,136 @@ import {
 } from '../../web/style/tokens.stylex.js'
 import { groupMarker } from '../../web/style/relations.stylex.js'
 
+import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
+import { groupMarker as groupMarker2 } from '../../web/style/relations.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    maxHeight: { default: null, '@media (max-height: 470px)': '50%' },
+    overflowY: { default: null, '@media (max-height: 470px)': 'auto' },
+  },
+  rule2: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule3: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule4: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 9)`,
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+  },
+  rule5: { minWidth: 0, flex: 1 },
+  rule6: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule7: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule8: {
+    display: 'flex',
+    width: {
+      default: `calc(${themeLayout['--spacing']} * 6)`,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+    height: {
+      default: `calc(${themeLayout['--spacing']} * 6)`,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule9: {
+    display: 'grid',
+    gridTemplateColumns: {
+      default: 'repeat(1, minmax(0, 1fr))',
+      '@media (min-width: 40rem)': 'repeat(2, minmax(0, 1fr))',
+      '@media (min-width: 80rem)': 'repeat(4, minmax(0, 1fr))',
+    },
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule10: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker2)]:
+          `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule11: { display: 'flex', minWidth: 0, flexDirection: 'column' },
+  rule12: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule13: {
+    fontSize: '.65rem',
+    lineHeight: 'var(--leading-snug)',
+    '--tw-leading': 'var(--leading-snug)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 55%, transparent)`,
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     display: 'flex',
@@ -150,20 +280,15 @@ function DriveGettingStartedHeader(props: UnixFSBrowserDirectoryHeaderProps) {
     return null
 
   return (
-    <section
-      data-testid="drive-welcome"
-      className="border-foreground/8 bg-background/30 very-short:max-h-1/2 very-short:overflow-y-auto border-b p-3"
-    >
-      <div className="flex flex-col gap-3">
-        <div className="flex items-start gap-3">
-          <div className="bg-brand/10 flex size-9 shrink-0 items-center justify-center rounded-md">
+    <section data-testid="drive-welcome" sx={stylexStyles3.rule1}>
+      <div sx={stylexStyles3.rule2}>
+        <div sx={stylexStyles3.rule3}>
+          <div sx={stylexStyles3.rule4}>
             <LuHardDrive sx={stylexStyles.rule1} />
           </div>
-          <div className="min-w-0 flex-1">
-            <h2 className="text-foreground text-sm font-semibold tracking-tight select-none">
-              Welcome to your Drive
-            </h2>
-            <p className="text-foreground-alt/60 mt-1 text-xs leading-relaxed">
+          <div sx={stylexStyles3.rule5}>
+            <h2 sx={stylexStyles3.rule6}>Welcome to your Drive</h2>
+            <p sx={stylexStyles3.rule7}>
               Add files, organize folders, invite people, or open the starter
               guide.
             </p>
@@ -171,13 +296,13 @@ function DriveGettingStartedHeader(props: UnixFSBrowserDirectoryHeaderProps) {
           <button
             type="button"
             aria-label="Dismiss getting started"
-            className="text-foreground-alt hover:text-foreground flex size-6 shrink-0 items-center justify-center rounded-md transition-colors [@media(pointer:coarse)]:size-11"
+            sx={stylexStyles3.rule8}
             onClick={() => setDismissed(true)}
           >
             <LuX sx={stylexStyles.rule2} />
           </button>
         </div>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        <div sx={stylexStyles3.rule9}>
           <DriveGettingStartedAction
             testId="drive-upload-cta"
             icon={<LuUpload sx={stylexStyles.rule3} />}
@@ -237,16 +362,10 @@ function DriveGettingStartedAction({
       onClick={onClick}
       sx={[[stylexStyles2.rule1, groupMarker]]}
     >
-      <span className="bg-brand/10 group-hover:bg-brand/15 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors">
-        {icon}
-      </span>
-      <span className="flex min-w-0 flex-col">
-        <span className="text-foreground text-xs font-medium select-none">
-          {label}
-        </span>
-        <span className="text-foreground-alt/55 micro-label leading-snug select-none">
-          {description}
-        </span>
+      <span sx={stylexStyles3.rule10}>{icon}</span>
+      <span sx={stylexStyles3.rule11}>
+        <span sx={stylexStyles3.rule12}>{label}</span>
+        <span sx={stylexStyles3.rule13}>{description}</span>
       </span>
     </button>
   )

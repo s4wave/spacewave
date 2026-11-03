@@ -26,6 +26,191 @@ import {
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+import {
+  colors as themeColors,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+  radii as themeRadii,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    backgroundColor: themeColors['--color-background-primary'],
+  },
+  rule2: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule3: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule4: {
+    minHeight: 0,
+    flex: 1,
+    overflow: 'auto',
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule5: {
+    marginInline: 'auto',
+    display: 'flex',
+    width: '100%',
+    maxWidth: 'var(--container-4xl)',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 5)`,
+  },
+  rule6: {
+    display: 'grid',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    gridTemplateColumns: {
+      default: null,
+      '@media (min-width: 40rem)': 'repeat(2, minmax(0, 1fr))',
+      '@media (min-width: 64rem)': 'repeat(4, minmax(0, 1fr))',
+    },
+  },
+  rule7: {
+    display: 'grid',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    gridTemplateColumns: {
+      default: null,
+      '@media (min-width: 64rem)': 'repeat(2, minmax(0, 1fr))',
+    },
+  },
+  rule8: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: themeColors['--color-background-secondary'],
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule9: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-muted-foreground'],
+    textTransform: 'uppercase',
+  },
+  rule10: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    wordBreak: 'break-all',
+    color: themeColors['--color-foreground'],
+  },
+  rule11: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-muted-foreground'],
+  },
+  rule12: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-muted-foreground'],
+  },
+  rule13: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule14: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule15: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-muted-foreground'],
+    textTransform: 'uppercase',
+  },
+  rule16: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-muted-foreground'],
+  },
+  rule17: {
+    display: 'grid',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    backgroundColor: themeColors['--color-background-secondary'],
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    gridTemplateColumns: {
+      default: null,
+      '@media (min-width: 40rem)': 'auto minmax(0, 1fr)',
+    },
+  },
+  rule18: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule19: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-muted-foreground'],
+  },
+  rule20: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-muted-foreground'],
+  },
+  rule21: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-muted-foreground'],
+    gridColumn: {
+      default: null,
+      '@media (min-width: 40rem)': 'span 2 / span 2',
+    },
+  },
+  rule22: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -83,11 +268,9 @@ export function DeviceViewer({
   }
 
   return (
-    <div className="bg-background-primary flex h-full w-full flex-col">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center justify-between border-b px-4">
-        <span className="text-foreground text-sm font-semibold select-none">
-          Device
-        </span>
+    <div sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>
+        <span sx={stylexStyles2.rule3}>Device</span>
         {terminalCapability && (
           <DashboardButton
             icon={<LuTerminal sx={stylexStyles.rule1} />}
@@ -97,7 +280,7 @@ export function DeviceViewer({
           </DashboardButton>
         )}
       </div>
-      <div className="min-h-0 flex-1 overflow-auto p-4">
+      <div sx={stylexStyles2.rule4}>
         {stateResource.loading && !state && (
           <LoadingCard
             view={{
@@ -108,8 +291,8 @@ export function DeviceViewer({
           />
         )}
         {state && (
-          <div className="mx-auto flex w-full max-w-4xl flex-col gap-5">
-            <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div sx={stylexStyles2.rule5}>
+            <section sx={stylexStyles2.rule6}>
               <DeviceField label="Name" value={state.label || 'Device'} />
               <DeviceField
                 label="Liveness"
@@ -125,71 +308,59 @@ export function DeviceViewer({
               />
             </section>
 
-            <section className="grid gap-3 lg:grid-cols-2">
-              <div className="border-foreground/10 bg-background-secondary rounded-md border p-3">
-                <div className="text-muted-foreground text-xs font-medium uppercase">
-                  Identity
-                </div>
-                <div className="text-foreground mt-2 font-mono text-xs break-all">
-                  {state.peerId || 'unknown'}
-                </div>
-                <div className="text-muted-foreground mt-3 text-sm">
+            <section sx={stylexStyles2.rule7}>
+              <div sx={stylexStyles2.rule8}>
+                <div sx={stylexStyles2.rule9}>Identity</div>
+                <div sx={stylexStyles2.rule10}>{state.peerId || 'unknown'}</div>
+                <div sx={stylexStyles2.rule11}>
                   {[state.platform?.os, state.platform?.arch]
                     .filter(Boolean)
                     .join(' / ') || 'unknown platform'}
                 </div>
                 {state.daemonVersion && (
-                  <div className="text-muted-foreground mt-1 text-sm">
-                    {state.daemonVersion}
-                  </div>
+                  <div sx={stylexStyles2.rule12}>{state.daemonVersion}</div>
                 )}
               </div>
 
-              <div className="border-foreground/10 bg-background-secondary rounded-md border p-3">
-                <div className="text-muted-foreground text-xs font-medium uppercase">
-                  Last Status
-                </div>
-                <div className="text-foreground mt-2 text-sm">
+              <div sx={stylexStyles2.rule8}>
+                <div sx={stylexStyles2.rule9}>Last Status</div>
+                <div sx={stylexStyles2.rule13}>
                   {state.lastStatus?.message || 'No status reported'}
                 </div>
                 {state.lastStatus?.error && (
-                  <div className="text-destructive mt-2 text-sm">
-                    {state.lastStatus.error}
-                  </div>
+                  <div sx={stylexStyles2.rule14}>{state.lastStatus.error}</div>
                 )}
               </div>
             </section>
 
             <section>
-              <div className="text-muted-foreground mb-2 text-xs font-medium uppercase">
-                Capabilities
-              </div>
+              <div sx={stylexStyles2.rule15}>Capabilities</div>
               {capabilities.length === 0 ? (
-                <div className="border-foreground/10 text-muted-foreground rounded-md border px-3 py-2 text-sm">
-                  No capabilities declared
-                </div>
+                <div sx={stylexStyles2.rule16}>No capabilities declared</div>
               ) : (
-                <div className="divide-foreground/8 border-foreground/10 overflow-hidden rounded-md border">
+                <div
+                  className={
+                    /* TODO(stylex): a descendant, group, peer or compound selector: */ 'border-foreground/10 overflow-hidden rounded-md border'
+                  }
+                >
                   {capabilities.map((capability) => (
                     <div
                       key={capability.id}
-                      className="bg-background-secondary sm:grid-cols-auto grid gap-2 p-3"
+                      sx={[stylexStyles2.rule17, capabilityRowStyles.color]}
                     >
                       <div>
-                        <div className="text-foreground text-sm font-medium">
+                        <div sx={stylexStyles2.rule18}>
                           {capability.label || capability.id}
                         </div>
-                        <div className="text-muted-foreground mt-1 text-xs">
+                        <div sx={stylexStyles2.rule19}>
                           {capability.kind || capability.id}
                         </div>
                       </div>
-                      <div className="text-muted-foreground text-sm">
+                      <div sx={stylexStyles2.rule20}>
                         {formatCapabilityState(capability.state)}
                       </div>
                       {capability.detail && (
-                        <div className="text-muted-foreground text-sm sm:col-span-2">
-                          {capability.detail}
-                        </div>
+                        <div sx={stylexStyles2.rule21}>{capability.detail}</div>
                       )}
                     </div>
                   ))}
@@ -205,11 +376,9 @@ export function DeviceViewer({
 
 function DeviceField({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border-foreground/10 bg-background-secondary rounded-md border p-3">
-      <div className="text-muted-foreground text-xs font-medium uppercase">
-        {label}
-      </div>
-      <div className="text-foreground mt-2 text-sm font-medium">{value}</div>
+    <div sx={stylexStyles2.rule8}>
+      <div sx={stylexStyles2.rule9}>{label}</div>
+      <div sx={stylexStyles2.rule22}>{value}</div>
     </div>
   )
 }
@@ -277,3 +446,14 @@ function formatCapabilityState(state?: DeviceCapabilityState): string {
       return 'Unknown'
   }
 }
+
+// capabilityRowStyles retains the list's border tone on each nonfinal row.
+const capabilityRowStyles = stylex.create({
+  color: {
+    borderColor: {
+      default: null,
+      ':not(:last-child)':
+        'color-mix(in oklab, var(--color-foreground) 8%, transparent)',
+    },
+  },
+})

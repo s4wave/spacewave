@@ -23,6 +23,49 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  utilityState as themeUtilityState,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    flexDirection: 'column',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+  },
+  rule2: {
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule3: { display: 'flex', flexDirection: 'column' },
+  rule4: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+  },
+  rule5: { color: themeColors['--color-foreground'] },
+  rule6: {
+    marginLeft: 'auto',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 8)`,
@@ -114,25 +157,18 @@ function DrivePoster() {
   ]
 
   return (
-    <div className="flex h-full flex-col text-sm">
-      <div className="border-foreground/10 text-foreground-alt border-b px-4 py-2 text-xs">
-        Drive /
-      </div>
-      <ul className="flex flex-col">
+    <div sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>Drive /</div>
+      <ul sx={stylexStyles2.rule3}>
         {rows.map((row) => (
-          <li
-            key={row.name}
-            className="border-foreground/5 flex items-center gap-3 border-b px-4 py-2.5"
-          >
+          <li key={row.name} sx={stylexStyles2.rule4}>
             {row.folder ? (
               <LuFolder sx={stylexStyles.rule2} />
             ) : (
               <LuFileText sx={stylexStyles.rule3} />
             )}
-            <span className="text-foreground">{row.name}</span>
-            <span className="text-foreground-alt ml-auto text-xs">
-              {row.detail}
-            </span>
+            <span sx={stylexStyles2.rule5}>{row.name}</span>
+            <span sx={stylexStyles2.rule6}>{row.detail}</span>
           </li>
         ))}
       </ul>

@@ -4,13 +4,88 @@ import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import { useClock } from '@s4wave/web/hooks/useClock.js'
 import { useWorldQuery } from '@s4wave/web/hooks/useWorldQuery.js'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import { loadDashboardAlarms, type KeyedAlarm } from './alarm-query.js'
 import { alarmStatus, chipText } from './alarm-view.js'
 
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+import {
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    flexShrink: 0,
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: '.25rem',
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-warning']} 15%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-warning']} 25%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-warning'],
+  },
+  rule3: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: '.25rem',
+    backgroundColor: {
+      default: themeColors['--color-destructive'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 85%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive-foreground'],
+  },
+  rule4: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: '.25rem',
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule5: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  rule6: {
+    '--tw-numeric-spacing': 'tabular-nums',
+    fontVariantNumeric:
+      'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -55,10 +130,7 @@ export function AlarmChips({
   onOpen: (key: string) => void
 }) {
   return (
-    <ul
-      className="border-foreground/8 flex shrink-0 flex-wrap items-center gap-1.5 border-b px-4 py-1.5"
-      aria-label="Alarms"
-    >
+    <ul sx={stylexStyles2.rule1} aria-label="Alarms">
       {alarms.map(({ key, alarm }) => {
         const tone = alarmStatus(alarm, nowMs, String).tone
         return (
@@ -66,17 +138,11 @@ export function AlarmChips({
             <button
               type="button"
               onClick={() => onOpen(key)}
-              className={cn(
-                'flex items-center gap-1.5 rounded px-2 py-0.5 text-xs',
-                tone === 'alert' &&
-                  'bg-destructive text-destructive-foreground hover:bg-destructive/85',
-                tone !== 'alert' &&
-                  'bg-warning/15 text-warning hover:bg-warning/25',
-              )}
+              sx={tone === 'alert' ? stylexStyles2.rule3 : stylexStyles2.rule2}
             >
               <LuSiren sx={stylexStyles.rule1} aria-hidden />
-              <span className="font-medium">{alarm.title || 'Alarm'}</span>
-              <span className="tabular-nums">{chipText(alarm, nowMs)}</span>
+              <span sx={stylexStyles2.rule5}>{alarm.title || 'Alarm'}</span>
+              <span sx={stylexStyles2.rule6}>{chipText(alarm, nowMs)}</span>
             </button>
           </li>
         )

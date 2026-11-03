@@ -33,6 +33,96 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../../web/style/tokens.stylex.js'
+
+import { motion as themeMotion } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 12%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+  },
+})
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule2: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule3: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule4: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    padding: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule5: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule6: { minWidth: 0 },
+  rule7: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule8: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     textOverflow: 'ellipsis',
@@ -165,16 +255,25 @@ export function ForgeWorkerViewer({
         id: 'overview',
         label: 'Overview',
         content: (
-          <div className="space-y-3">
-            <InfoCard>
-              <div className="space-y-2">
+          <div sx={false}>
+            <InfoCard sx={nativeChildSpacing.s3}>
+              <div sx={false}>
                 {worker?.name && (
-                  <CopyableField label="Name" value={worker.name} />
+                  <CopyableField
+                    sx={nativeChildSpacing.s2}
+                    label="Name"
+                    value={worker.name}
+                  />
                 )}
-                <CopyableField label="Object Key" value={objectKey} />
+                <CopyableField
+                  sx={nativeChildSpacing.s2}
+                  label="Object Key"
+                  value={objectKey}
+                />
               </div>
             </InfoCard>
             <FigureStrip
+              sx={nativeChildSpacing.s3}
               figures={[
                 {
                   label: 'Clusters',
@@ -188,21 +287,20 @@ export function ForgeWorkerViewer({
                 },
               ]}
             />
-            <InfoCard title="Peer IDs">
+            <InfoCard sx={nativeChildSpacing.s3} title="Peer IDs">
               {snapshotLoading && (
-                <div className="text-foreground-alt/50 text-xs">
-                  Loading worker identities…
-                </div>
+                <div sx={stylexStyles3.rule1}>Loading worker identities…</div>
               )}
               {!snapshotLoading && peerIds.length === 0 && (
-                <div className="text-foreground-alt/50 text-xs">
+                <div sx={stylexStyles3.rule1}>
                   No keypairs linked to this worker
                 </div>
               )}
               {!snapshotLoading && peerIds.length > 0 && (
-                <div className="space-y-2">
+                <div sx={false}>
                   {peerIds.map((peerId) => (
                     <CopyableField
+                      sx={nativeChildSpacing.s2}
                       key={peerId}
                       label="Peer ID"
                       value={peerId}
@@ -211,7 +309,7 @@ export function ForgeWorkerViewer({
                 </div>
               )}
               {binding && (
-                <div className="text-foreground-alt/50 mt-3 text-xs">
+                <div sx={stylexStyles3.rule2}>
                   Process binding:{' '}
                   {(binding.approved ?? false) ? 'approved' : 'unapproved'}
                 </div>
@@ -224,10 +322,10 @@ export function ForgeWorkerViewer({
         id: 'assignments',
         label: 'Assignments',
         content: (
-          <div className="space-y-2">
+          <div sx={false}>
             {activeExecutions.length === 0 && (
-              <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-                <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
+              <div sx={[nativeChildSpacingNext.s2, stylexStyles3.rule3]}>
+                <div sx={stylexStyles3.rule4}>
                   <LuActivity sx={stylexStyles.rule2} />
                   <span>No active executions assigned to this worker</span>
                 </div>
@@ -236,15 +334,15 @@ export function ForgeWorkerViewer({
             {activeExecutions.map((execution) => (
               <div
                 key={execution.objectKey}
-                className="border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 space-y-2 rounded-lg border px-3.5 py-2.5 transition duration-150"
+                sx={[nativeChildSpacingNext.s2, stylexStyles4.rule1]}
               >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
+                <div sx={[nativeChildSpacing.s2, stylexStyles3.rule5]}>
+                  <div sx={stylexStyles3.rule6}>
                     <ForgeEntityLink
                       objectKey={execution.objectKey}
                       sx={stylexStyles2.rule1}
                     />
-                    <div className="text-foreground-alt/50 truncate text-xs">
+                    <div sx={stylexStyles3.rule7}>
                       {execution.jobKey} / {execution.taskKey}
                     </div>
                   </div>
@@ -253,7 +351,7 @@ export function ForgeWorkerViewer({
                     labels={executionStateLabels}
                   />
                 </div>
-                <div className="text-foreground-alt/50 flex flex-wrap gap-3 text-xs">
+                <div sx={[nativeChildSpacing.s2, stylexStyles3.rule8]}>
                   <span>{execution.passKey}</span>
                   <span>
                     {execution.data.timestamp?.toISOString() ?? 'No timestamp'}
@@ -268,10 +366,10 @@ export function ForgeWorkerViewer({
         id: 'history',
         label: 'History',
         content: (
-          <div className="space-y-2">
+          <div sx={false}>
             {completeExecutions.length === 0 && (
-              <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-                <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
+              <div sx={[nativeChildSpacingNext.s2, stylexStyles3.rule3]}>
+                <div sx={stylexStyles3.rule4}>
                   <LuActivity sx={stylexStyles.rule2} />
                   <span>No completed executions recorded yet</span>
                 </div>
@@ -280,15 +378,15 @@ export function ForgeWorkerViewer({
             {completeExecutions.map((execution) => (
               <div
                 key={execution.objectKey}
-                className="border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 space-y-2 rounded-lg border px-3.5 py-2.5 transition duration-150"
+                sx={[nativeChildSpacingNext.s2, stylexStyles4.rule1]}
               >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
+                <div sx={[nativeChildSpacing.s2, stylexStyles3.rule5]}>
+                  <div sx={stylexStyles3.rule6}>
                     <ForgeEntityLink
                       objectKey={execution.objectKey}
                       sx={stylexStyles2.rule1}
                     />
-                    <div className="text-foreground-alt/50 truncate text-xs">
+                    <div sx={stylexStyles3.rule7}>
                       {execution.jobKey} / {execution.taskKey}
                     </div>
                   </div>
@@ -297,7 +395,7 @@ export function ForgeWorkerViewer({
                     labels={executionStateLabels}
                   />
                 </div>
-                <div className="text-foreground-alt/50 flex flex-wrap gap-3 text-xs">
+                <div sx={[nativeChildSpacing.s2, stylexStyles3.rule8]}>
                   <span>
                     {(execution.data.result?.success ?? false)
                       ? 'Success'
@@ -336,3 +434,44 @@ export function ForgeWorkerViewer({
     />
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

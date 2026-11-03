@@ -16,6 +16,60 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+import {
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    position: 'relative',
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 6)`,
+    backgroundColor: themeColors['--color-background-landing'],
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule2: {
+    position: 'relative',
+    zIndex: 10,
+    display: 'flex',
+    maxWidth: 'var(--container-sm)',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    textAlign: 'center',
+  },
+  rule3: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 16)`,
+    height: `calc(${themeLayout['--spacing']} * 16)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '3.40282e38px',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+  },
+  rule4: {
+    fontSize: 'var(--text-xl)',
+    lineHeight: 'var(--tw-leading, var(--text-xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-wide)',
+    letterSpacing: 'var(--tracking-wide)',
+  },
+  rule5: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 8)`,
@@ -128,15 +182,15 @@ function HandoffEnded({
 }) {
   const Icon = end === 'expired' ? LuTimerOff : LuCircleX
   return (
-    <div className="bg-background-landing relative flex flex-1 flex-col items-center justify-center gap-6 p-6">
-      <div className="relative z-10 flex max-w-sm flex-col items-center gap-4 text-center">
-        <div className="bg-foreground/5 border-foreground/10 flex size-16 items-center justify-center rounded-full border">
+    <div sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>
+        <div sx={stylexStyles2.rule3}>
           <Icon sx={stylexStyles.rule1} />
         </div>
-        <h1 className="text-xl font-semibold tracking-wide">
+        <h1 sx={stylexStyles2.rule4}>
           {end === 'expired' ? 'Sign-in link expired' : 'Sign-in canceled'}
         </h1>
-        <p className="text-foreground-alt text-sm">
+        <p sx={stylexStyles2.rule5}>
           {end === 'expired'
             ? `This link is no longer valid. Start the sign-in again from Spacewave ${label} to get a new one.`
             : `Spacewave ${label} stopped waiting for this sign-in. Start it again to get a new link.`}

@@ -54,6 +54,121 @@ import {
 
 import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
 
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../../web/style/tokens.stylex.js'
+
+import { motion as themeMotion } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 12%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+  },
+})
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule2: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule3: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule4: {
+    fontSize: '.6rem',
+    lineHeight: 1.5,
+    '--tw-tracking': 'var(--tracking-widest)',
+    letterSpacing: 'var(--tracking-widest)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+    textTransform: 'uppercase',
+  },
+  rule5: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule6: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule7: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule8: { display: 'flex', justifyContent: 'flex-end' },
+  rule9: { minWidth: 0 },
+  rule10: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule11: {
+    height: `calc(${themeLayout['--spacing']} * 1.5)`,
+    width: '100%',
+    overflow: 'hidden',
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+  },
+  rule12: {
+    transition: 'width 200ms',
+    width: 'var(--forge-progress-width)',
+    height: '100%',
+    backgroundColor: themeColors['--color-brand'],
+  },
+  rule13: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     minWidth: 0,
@@ -225,20 +340,29 @@ export function ForgeClusterViewer({
         id: 'overview',
         label: 'Overview',
         content: (
-          <div className="space-y-3">
+          <div sx={false}>
             {(cluster?.name || cluster?.peerId) && (
-              <InfoCard title="Cluster identity">
-                <div className="space-y-2">
+              <InfoCard sx={nativeChildSpacing.s3} title="Cluster identity">
+                <div sx={false}>
                   {cluster.name && (
-                    <CopyableField label="Name" value={cluster.name} />
+                    <CopyableField
+                      sx={nativeChildSpacing.s2}
+                      label="Name"
+                      value={cluster.name}
+                    />
                   )}
                   {cluster.peerId && (
-                    <CopyableField label="Peer ID" value={cluster.peerId} />
+                    <CopyableField
+                      sx={nativeChildSpacing.s2}
+                      label="Peer ID"
+                      value={cluster.peerId}
+                    />
                   )}
                 </div>
               </InfoCard>
             )}
             <FigureStrip
+              sx={nativeChildSpacing.s3}
               figures={[
                 {
                   label: 'Workers',
@@ -248,6 +372,7 @@ export function ForgeClusterViewer({
               ]}
             />
             <InfoCard
+              sx={nativeChildSpacing.s3}
               icon={<LuListTodo sx={stylexStyles.rule1} />}
               title="Task States"
             >
@@ -262,24 +387,15 @@ export function ForgeClusterViewer({
                   }}
                 />
               ) : snapshotLoading ? (
-                <div className="text-foreground-alt/50 text-xs">
-                  Loading task breakdown…
-                </div>
+                <div sx={stylexStyles3.rule1}>Loading task breakdown…</div>
               ) : snapshot.tasks.length === 0 ? (
-                <div className="text-foreground-alt/50 text-xs">
-                  No tasks assigned yet
-                </div>
+                <div sx={stylexStyles3.rule1}>No tasks assigned yet</div>
               ) : (
-                <div className="grid grid-cols-2 gap-2">
+                <div sx={stylexStyles3.rule2}>
                   {Object.entries(taskStateLabels).map(([state, label]) => (
-                    <div
-                      key={state}
-                      className="border-foreground/6 bg-background-card/30 rounded-lg border px-3 py-2"
-                    >
-                      <div className="text-foreground-alt/60 micro-text tracking-widest uppercase">
-                        {label}
-                      </div>
-                      <div className="text-foreground mt-1 text-lg font-semibold">
+                    <div key={state} sx={stylexStyles3.rule3}>
+                      <div sx={stylexStyles3.rule4}>{label}</div>
+                      <div sx={stylexStyles3.rule5}>
                         {taskStateCounts[Number(state)] ?? 0}
                       </div>
                     </div>
@@ -312,24 +428,24 @@ export function ForgeClusterViewer({
             emptyLabel="No workers assigned"
           />
         ) : (
-          <div className="space-y-2">
+          <div sx={false}>
             {snapshot.workers.map((worker) => (
               <div
                 key={worker.objectKey}
-                className="border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 space-y-2 rounded-lg border px-3.5 py-2.5 transition duration-150"
+                sx={[nativeChildSpacingNext.s2, stylexStyles4.rule1]}
               >
-                <div className="flex items-center justify-between gap-3">
+                <div sx={[nativeChildSpacing.s2, stylexStyles3.rule6]}>
                   <ForgeEntityLink
                     objectKey={worker.objectKey}
                     sx={stylexStyles2.rule1}
                   >
                     {worker.data.name || worker.objectKey}
                   </ForgeEntityLink>
-                  <div className="text-foreground-alt/50 text-xs">
+                  <div sx={stylexStyles3.rule1}>
                     {workerExecutionCounts.get(worker.objectKey) ?? 0} active
                   </div>
                 </div>
-                <div className="text-foreground-alt/50 flex flex-wrap gap-3 text-xs">
+                <div sx={[nativeChildSpacing.s2, stylexStyles3.rule7]}>
                   <span>{worker.peerIds.length} peer IDs</span>
                   <span>{worker.clusterKeys.length} cluster links</span>
                 </div>
@@ -342,9 +458,9 @@ export function ForgeClusterViewer({
         id: 'jobs',
         label: 'Jobs',
         content: (
-          <div className="space-y-3">
+          <div sx={false}>
             {canCreateJob && (
-              <div className="flex justify-end">
+              <div sx={[nativeChildSpacingNextNext.s3, stylexStyles3.rule8]}>
                 <DashboardButton
                   icon={<LuPlus sx={stylexStyles.rule3} />}
                   onClick={() => {
@@ -358,6 +474,7 @@ export function ForgeClusterViewer({
             )}
             {snapshotError ? (
               <LoadingCard
+                sx={nativeChildSpacingNextNext.s3}
                 view={{
                   state: 'error',
                   title: 'Jobs unavailable',
@@ -368,6 +485,7 @@ export function ForgeClusterViewer({
               />
             ) : snapshot.jobs.length === 0 ? (
               <ForgeEntityList
+                sx={nativeChildSpacingNextNext.s3}
                 entities={jobs}
                 loading={jobsLoading || snapshotLoading}
                 icon={<LuBriefcase sx={stylexStyles.rule2} />}
@@ -375,7 +493,7 @@ export function ForgeClusterViewer({
                 emptyLabel="No jobs in cluster"
               />
             ) : (
-              <div className="space-y-2">
+              <div sx={[nativeChildSpacingNextNext.s3, false]}>
                 {snapshot.jobs.map((job) => {
                   const jobTasks = tasksByJobKey.get(job.objectKey) ?? []
                   const completeTasks = jobTasks.filter(
@@ -393,15 +511,15 @@ export function ForgeClusterViewer({
                   return (
                     <div
                       key={job.objectKey}
-                      className="border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 space-y-3 rounded-lg border px-3.5 py-2.5 transition duration-150"
+                      sx={[nativeChildSpacingNext.s2, stylexStyles4.rule1]}
                     >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="min-w-0">
+                      <div sx={[nativeChildSpacing.s3, stylexStyles3.rule6]}>
+                        <div sx={stylexStyles3.rule9}>
                           <ForgeEntityLink
                             objectKey={job.objectKey}
                             sx={stylexStyles2.rule2}
                           />
-                          <div className="text-foreground-alt/50 mt-1 text-xs">
+                          <div sx={stylexStyles3.rule10}>
                             {completeTasks}/{jobTasks.length} tasks complete
                           </div>
                         </div>
@@ -410,16 +528,16 @@ export function ForgeClusterViewer({
                           labels={jobStateLabels}
                         />
                       </div>
-                      <div className="bg-foreground/8 h-1.5 w-full overflow-hidden rounded-full">
+                      <div sx={[nativeChildSpacing.s3, stylexStyles3.rule11]}>
                         <div
-                          className="bg-brand forge-progress-width progress-width-transition h-full"
+                          sx={stylexStyles3.rule12}
                           style={{
                             '--forge-progress-width': `${progressPercent}%`,
                           }}
                         />
                       </div>
                       {startable && (
-                        <div className="flex justify-end">
+                        <div sx={[nativeChildSpacing.s3, stylexStyles3.rule8]}>
                           <DashboardButton
                             icon={<LuPlay sx={stylexStyles.rule3} />}
                             onClick={() => {
@@ -443,18 +561,30 @@ export function ForgeClusterViewer({
         label: 'Settings',
         content: (
           <InfoCard title="Cluster identity">
-            <div className="space-y-2">
-              <p className="text-foreground-alt/60 text-xs leading-relaxed">
+            <div sx={false}>
+              <p sx={[nativeChildSpacing.s2, stylexStyles3.rule13]}>
                 The object key identifies this Cluster in the Space graph.
               </p>
               {cluster?.name && (
-                <CopyableField label="Name" value={cluster.name} />
+                <CopyableField
+                  sx={nativeChildSpacing.s2}
+                  label="Name"
+                  value={cluster.name}
+                />
               )}
-              <CopyableField label="Object Key" value={objectKey} />
+              <CopyableField
+                sx={nativeChildSpacing.s2}
+                label="Object Key"
+                value={objectKey}
+              />
               {cluster?.peerId ? (
-                <CopyableField label="Peer ID" value={cluster.peerId} />
+                <CopyableField
+                  sx={nativeChildSpacing.s2}
+                  label="Peer ID"
+                  value={cluster.peerId}
+                />
               ) : (
-                <p className="text-foreground-alt/60 text-xs leading-relaxed">
+                <p sx={[nativeChildSpacing.s2, stylexStyles3.rule13]}>
                   No peer ID is assigned. Workers can join this Cluster without
                   a Cluster peer identity.
                 </p>
@@ -496,3 +626,59 @@ export function ForgeClusterViewer({
     />
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNextNext = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

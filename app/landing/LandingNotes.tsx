@@ -19,6 +19,86 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  utilityState as themeUtilityState,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+  },
+  rule2: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 48)`,
+    flexShrink: 0,
+    flexDirection: 'column',
+    gap: themeLayout['--spacing'],
+    borderRightStyle: themeUtilityState['--tw-border-style'],
+    borderRightWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule3: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBottom: themeLayout['--spacing'],
+    fontSize: themeLayout['--text-metadata'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-metadata--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-wide)',
+    letterSpacing: 'var(--tracking-wide)',
+    color: themeColors['--color-foreground-alt'],
+    textTransform: 'uppercase',
+  },
+  rule4: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+    color: themeColors['--color-foreground'],
+  },
+  rule5: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+    paddingLeft: `calc(${themeLayout['--spacing']} * 8)`,
+    color: themeColors['--color-foreground'],
+  },
+  rule6: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: '.25rem',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+    color: themeColors['--color-foreground'],
+  },
+  rule7: {
+    display: 'flex',
+    minWidth: 0,
+    flex: 1,
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule8: {
+    fontSize: 'var(--text-xl)',
+    lineHeight: 'var(--tw-leading, var(--text-xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule9: { color: themeColors['--color-foreground-alt'] },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 8)`,
@@ -102,27 +182,25 @@ export function LandingNotes({
 // note.
 function NotesPoster() {
   return (
-    <div className="flex h-full text-sm">
-      <div className="border-foreground/10 flex w-48 shrink-0 flex-col gap-1 border-r p-3">
-        <span className="text-foreground-alt text-metadata px-2 pb-1 font-semibold tracking-wide uppercase">
-          My Notes
-        </span>
-        <span className="text-foreground flex items-center gap-2 px-2 py-1">
+    <div sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>
+        <span sx={stylexStyles2.rule3}>My Notes</span>
+        <span sx={stylexStyles2.rule4}>
           <LuFolder sx={stylexStyles.rule2} />
           Org
         </span>
-        <span className="text-foreground flex items-center gap-2 px-2 py-1 pl-8">
+        <span sx={stylexStyles2.rule5}>
           <LuFileText sx={stylexStyles.rule3} />
           getting-started
         </span>
-        <span className="bg-foreground/5 text-foreground flex items-center gap-2 rounded px-2 py-1">
+        <span sx={stylexStyles2.rule6}>
           <LuFileText sx={stylexStyles.rule3} />
           welcome
         </span>
       </div>
-      <div className="flex min-w-0 flex-1 flex-col gap-3 p-6">
-        <h3 className="text-foreground text-xl font-semibold">Welcome</h3>
-        <p className="text-foreground-alt">
+      <div sx={stylexStyles2.rule7}>
+        <h3 sx={stylexStyles2.rule8}>Welcome</h3>
+        <p sx={stylexStyles2.rule9}>
           Start capturing notes in this Spacewave notebook.
         </p>
       </div>

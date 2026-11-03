@@ -14,6 +14,24 @@ import {
   motion as themeMotion,
 } from '../../web/style/tokens.stylex.js'
 
+const stylexStyles3 = stylex.create({
+  rule1: {
+    textAlign: 'center',
+    fontSize: {
+      default: 'var(--text-base)',
+      '@container (min-width: 32rem)': 'var(--text-lg)',
+    },
+    lineHeight: {
+      default: 'var(--tw-leading, var(--text-base--line-height))',
+      '@container (min-width: 32rem)':
+        'var(--tw-leading, var(--text-lg--line-height))',
+    },
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     display: 'inline-flex',
@@ -94,11 +112,7 @@ export function PrimaryDownloadButton({
   releaseLabel,
 }: PrimaryDownloadButtonProps) {
   if (!entry) {
-    return (
-      <p className="text-foreground-alt text-center text-base select-none @lg:text-lg">
-        Pick a build below.
-      </p>
-    )
+    return <p sx={stylexStyles3.rule1}>Pick a build below.</p>
   }
 
   return (

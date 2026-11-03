@@ -3,7 +3,6 @@ import * as stylex from '@stylexjs/stylex'
 
 import type { SessionListEntry } from '@s4wave/core/session/session.pb.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import AnimatedLogo from './AnimatedLogo.js'
 import { ExternalLink } from './ExternalLink.js'
@@ -15,6 +14,199 @@ import {
   colors as themeColors,
   layout as themeLayout,
 } from '../../web/style/tokens.stylex.js'
+
+import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    marginBottom: `calc(${themeLayout['--spacing']} * 3)`,
+    display: 'flex',
+    cursor: 'pointer',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * .5)`,
+    transitionProperty: 'opacity',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    minHeight: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+    minWidth: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+    justifyContent: { default: null, '@media (pointer: coarse)': 'center' },
+  },
+  rule2: { opacity: 1 },
+  rule3: {
+    pointerEvents: { default: 'none', '@media (max-height: 580px)': 'auto' },
+    opacity: { default: 0, '@media (max-height: 580px)': 1 },
+  },
+  rule4: {
+    animationName: 'pulse',
+    animationDuration: '8s',
+    animationTimingFunction: 'ease-in-out',
+    animationIterationCount: 'infinite',
+    animationDirection: 'normal',
+    animationPlayState: 'running',
+    animationDelay: '0s',
+    animationFillMode: 'none',
+    animationTimeline: 'auto',
+  },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    position: 'relative',
+    display: 'flex',
+    minHeight: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    paddingTop: {
+      default: `calc(${themeLayout['--spacing']} * 6)`,
+      '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 8)`,
+      '@container (min-width: 42rem)': '2.84rem',
+    },
+    flexShrink: { default: null, '@media (max-height: 580px)': 0 },
+  },
+  rule2: {
+    display: { default: 'none', '@media (min-height: 800px)': 'block' },
+    flex: { default: null, '@media (min-height: 800px)': 1 },
+  },
+  rule3: {
+    marginBottom: themeLayout['--spacing'],
+    display: 'flex',
+    minHeight: 0,
+    flex: {
+      default: 1,
+      '@media (min-height: 800px)': '0 auto',
+      '@media (max-height: 580px)': 'none',
+    },
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: {
+      default: `calc(${themeLayout['--spacing']} * 2)`,
+      '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 3)`,
+      '@container (min-width: 42rem)': `calc(${themeLayout['--spacing']} * 4)`,
+    },
+  },
+  rule4: {
+    fontSize: {
+      default: 'var(--text-2xl)',
+      '@container (min-width: 32rem)': 'var(--text-3xl)',
+    },
+    lineHeight: {
+      default: 'var(--tw-leading, var(--text-2xl--line-height))',
+      '@container (min-width: 32rem)':
+        'var(--tw-leading, var(--text-3xl--line-height))',
+    },
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    letterSpacing: {
+      default: '.1rem',
+      '@container (min-width: 32rem)': '.142rem',
+    },
+    whiteSpace: 'nowrap',
+    display: { default: null, '@media (max-height: 390px)': 'none' },
+  },
+  rule5: {
+    display: 'flex',
+    minHeight: 0,
+    width: '100%',
+    maxWidth: 'var(--container-2xl)',
+    flex: {
+      default: 1,
+      '@media (min-height: 800px)': '0 auto',
+      '@media (max-height: 580px)': 'none',
+    },
+    flexDirection: 'column',
+    gap: {
+      default: `calc(${themeLayout['--spacing']} * 4)`,
+      '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 6)`,
+    },
+    paddingInline: {
+      default: `calc(${themeLayout['--spacing']} * 4)`,
+      '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 8)`,
+    },
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+  },
+  rule6: { textAlign: 'center', color: themeColors['--color-foreground-alt'] },
+  rule7: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule8: { color: themeColors['--color-white'] },
+  rule9: {
+    marginTop: 'auto',
+    display: 'flex',
+    flexShrink: 0,
+    flexDirection: 'column',
+    alignItems: 'center',
+    paddingTop: {
+      default: `calc(${themeLayout['--spacing']} * 4)`,
+      '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 6)`,
+    },
+    textAlign: 'center',
+  },
+  rule10: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'center',
+    columnGap: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule11: {
+    cursor: 'pointer',
+    textDecorationLine: 'underline',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    color: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-brand'],
+      },
+    },
+    display: { default: null, '@media (pointer: coarse)': 'inline-flex' },
+    minHeight: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+    minWidth: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+    alignItems: { default: null, '@media (pointer: coarse)': 'center' },
+    justifyContent: { default: null, '@media (pointer: coarse)': 'center' },
+  },
+  rule12: {
+    fontSize: '10px',
+    lineHeight: 1.5,
+    '--tw-tracking': 'var(--tracking-wide)',
+    letterSpacing: 'var(--tracking-wide)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+    textTransform: 'uppercase',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule13: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-bold)',
+    fontWeight: 'var(--font-weight-bold)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -85,50 +277,45 @@ export function GetStartedSection({
     navigate({ path: '/community' })
   }, [navigate])
   return (
-    <div
-      ref={homeRef}
-      className="@2xl:pt-get-started-wide short:shrink-0 relative flex min-h-full w-full flex-col pt-6 @lg:pt-8"
-    >
+    <div ref={homeRef} sx={stylexStyles2.rule1}>
       {/* Spacer to center content on tall screens */}
-      <div className="tall:block tall:flex-1 hidden" />
+      <div sx={stylexStyles2.rule2} />
 
       {/* Logo and Navigation Section */}
-      <div className="tall:flex-initial short:flex-none mb-1 flex min-h-0 flex-1 flex-col items-center gap-2 @lg:gap-3 @2xl:gap-4">
+      <div sx={stylexStyles2.rule3}>
         <AnimatedLogo
           followMouse={true}
-          containerClassName="very-short:hidden"
+          containerSx={logoContainerStyles.root}
         />
-        <h1 className="ultra-short:hidden tracking-brand-tight @lg:tracking-brand-lg text-2xl font-semibold whitespace-nowrap @lg:text-3xl">
-          [SPACEWAVE]
-        </h1>
+        <h1 sx={stylexStyles2.rule4}>[SPACEWAVE]</h1>
 
         <NavigationLinks />
 
-        <div className="tall:flex-initial short:flex-none flex min-h-0 w-full max-w-2xl flex-1 flex-col gap-4 px-4 text-sm @lg:gap-6 @lg:px-8">
+        <div sx={stylexStyles2.rule5}>
           <GetStarted sx={styles.launcher} sessions={sessions} />
 
           {/* Description Section */}
-          <div className="text-foreground-alt text-center">
-            <p className="text-xs">
+          <div sx={stylexStyles2.rule6}>
+            <p sx={stylexStyles2.rule7}>
               local-first, end-to-end encrypted,{' '}
-              <span className="text-white">no account required</span>
+              <span sx={stylexStyles2.rule8}>no account required</span>
             </p>
           </div>
         </div>
       </div>
 
       {/* Bottom spacer to center content on tall screens */}
-      <div className="tall:block tall:flex-1 hidden" />
+      <div sx={stylexStyles2.rule2} />
 
       {/* Footer content follows the entry actions on short screens. */}
-      <div className="mt-auto flex flex-shrink-0 flex-col items-center pt-4 text-center @lg:pt-6">
-        <div className="text-foreground-alt/60 flex flex-wrap items-center justify-center gap-x-1 text-xs">
+      <div sx={stylexStyles2.rule9}>
+        <div sx={stylexStyles2.rule10}>
           <span>
             Made by{' '}
             <button
               type="button"
               onClick={goToCommunity}
-              className="hover:text-brand cursor-pointer underline transition-colors [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11 [@media(pointer:coarse)]:items-center [@media(pointer:coarse)]:justify-center"
+              sx={stylexStyles2.rule11}
             >
               the community
             </button>
@@ -146,23 +333,25 @@ export function GetStartedSection({
           type="button"
           tabIndex={showScrollIndicator || isShortHeight ? 0 : -1}
           aria-label="Scroll down to learn more"
-          className={cn(
-            'short:pointer-events-auto! short:opacity-100! mt-2 mb-3 flex cursor-pointer flex-col items-center gap-0.5 transition-opacity duration-300 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11 [@media(pointer:coarse)]:justify-center',
-            showScrollIndicator
-              ? 'opacity-100'
-              : 'pointer-events-none opacity-0',
-            showScrollIndicator &&
-              animateScrollIndicator &&
-              'animate-logo-medium',
-          )}
+          sx={[
+            [
+              stylexStyles3.rule1,
+              showScrollIndicator ? stylexStyles3.rule2 : stylexStyles3.rule3,
+              !!(showScrollIndicator && animateScrollIndicator) &&
+                stylexStyles3.rule4,
+            ],
+          ]}
           onClick={scrollDown}
         >
-          <span className="text-foreground-alt/60 micro-ten tracking-wide uppercase select-none">
-            Learn more
-          </span>
-          <span className="text-foreground-alt/60 text-xs font-bold">▼</span>
+          <span sx={stylexStyles2.rule12}>Learn more</span>
+          <span sx={stylexStyles2.rule13}>▼</span>
         </button>
       </div>
     </div>
   )
 }
+
+// logoContainerStyles preserves the caller's logo spacing and height threshold.
+const logoContainerStyles = stylex.create({
+  root: { display: { default: null, '@media (max-height: 470px)': 'none' } },
+})

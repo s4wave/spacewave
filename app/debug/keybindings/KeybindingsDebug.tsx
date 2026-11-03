@@ -1,3 +1,4 @@
+import { utilityState as dividerState } from '@s4wave/web/style/tokens.stylex.js'
 import { useCallback, useMemo, useState } from 'react'
 import {
   LuChartNoAxesColumnIncreasing,
@@ -10,7 +11,7 @@ import {
 } from '@s4wave/web/images/icons.js'
 
 import { useNavigate } from '@s4wave/web/router/router.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { BackButton } from '@s4wave/web/ui/BackButton.js'
 import { Badge } from '@s4wave/web/ui/badge.js'
 import { Button } from '@s4wave/web/ui/button.js'
@@ -27,6 +28,163 @@ import { GroupedPanelsVariant } from './GroupedPanelsVariant.js'
 import { KeyboardMapVariant } from './KeyboardMapVariant.js'
 import { ShortcutAuditVariant } from './ShortcutAuditVariant.js'
 import { useKeybindingsPrototype } from './useKeybindingsPrototype.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  colors as themeColors,
+  layout as themeLayout,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+  motion as themeMotion,
+} from '../../../web/style/tokens.stylex.js'
+
+import { radii as themeRadii } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    marginTop: `calc(${themeLayout['--spacing']} * -3)`,
+    display: { default: 'none', '@container (min-width: 56rem)': 'grid' },
+    gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 2%, transparent)`,
+  },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    marginInline: 'auto',
+    width: '100%',
+    maxWidth: 'var(--container-7xl)',
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    containerType: 'inline-size',
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    overflow: 'hidden',
+    backgroundColor: themeColors['--color-background'],
+  },
+  rule2: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule3: {
+    fontSize: '10px',
+    lineHeight: 1.5,
+    '--tw-tracking': 'var(--tracking-wider)',
+    letterSpacing: 'var(--tracking-wider)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+    textTransform: 'uppercase',
+  },
+  rule4: {
+    flex: 1,
+    overflow: 'auto',
+    paddingInline: {
+      default: `calc(${themeLayout['--spacing']} * 4)`,
+      '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 8)`,
+    },
+    paddingBlock: {
+      default: `calc(${themeLayout['--spacing']} * 3)`,
+      '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 6)`,
+    },
+  },
+  rule5: {
+    display: 'flex',
+    flexDirection: {
+      default: 'column',
+      '@container (min-width: 32rem)': 'row',
+    },
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    alignItems: { default: null, '@container (min-width: 32rem)': 'flex-end' },
+    justifyContent: {
+      default: null,
+      '@container (min-width: 32rem)': 'space-between',
+    },
+  },
+  rule6: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule7: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: 'var(--text-2xl)',
+    lineHeight: 'var(--tw-leading, var(--text-2xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+  },
+  rule8: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    maxWidth: 'var(--container-3xl)',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 55%, transparent)`,
+  },
+  rule9: { overflowX: 'auto', paddingBottom: themeLayout['--spacing'] },
+  rule10: {
+    display: { default: null, '@container not (min-width: 32rem)': 'none' },
+  },
+  rule11: {
+    display: { default: null, '@container (min-width: 32rem)': 'none' },
+  },
+  rule12: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+    textAlign: 'left',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule13: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+    color: themeColors['--color-foreground'],
+  },
+  rule14: {
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 45%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+      },
+    },
+  },
+  rule15: {
+    display: 'block',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  rule16: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    display: 'block',
+    fontSize: '10px',
+    lineHeight: 1.5,
+    '--tw-font-weight': 'var(--font-weight-normal)',
+    fontWeight: 'var(--font-weight-normal)',
+  },
+})
 
 type VariantId = 'table' | 'collections' | 'finder' | 'keyboard' | 'audit'
 
@@ -105,35 +263,33 @@ export function KeybindingsDebug() {
   )
 
   return (
-    <div className="bg-background @container flex h-full w-full flex-col overflow-hidden">
-      <header className="border-foreground/8 flex h-9 shrink-0 items-center justify-between border-b px-4">
+    <div sx={stylexStyles.rule1}>
+      <header sx={stylexStyles.rule2}>
         <BackButton onClick={goBack}>Debug gallery</BackButton>
-        <span className="text-foreground-alt/40 micro-ten tracking-wider uppercase">
+        <span sx={stylexStyles.rule3}>
           Local prototype · changes reset on reload
         </span>
       </header>
 
-      <main className="flex-1 overflow-auto px-4 py-3 @lg:px-8 @lg:py-6">
-        <div className="mx-auto w-full max-w-7xl space-y-6">
-          <section className="flex flex-col gap-4 @lg:flex-row @lg:items-end @lg:justify-between">
+      <main sx={stylexStyles.rule4}>
+        <div sx={stylexStyles2.rule1}>
+          <section sx={[nativeChildSpacing.s6, stylexStyles.rule5]}>
             <div>
-              <div className="flex flex-wrap items-center gap-2">
+              <div sx={stylexStyles.rule6}>
                 <Badge variant="brand">UI exploration</Badge>
-                <span className="text-foreground-alt/40 micro-ten tracking-wider uppercase">
-                  Keyboard shortcuts
-                </span>
+                <span sx={stylexStyles.rule3}>Keyboard shortcuts</span>
               </div>
-              <h1 className="mt-3 text-2xl font-semibold tracking-tight">
+              <h1 sx={stylexStyles.rule7}>
                 Five ways to make keybindings feel approachable
               </h1>
-              <p className="text-foreground-alt/55 mt-2 max-w-3xl text-sm leading-relaxed">
+              <p sx={stylexStyles.rule8}>
                 Each option uses the same live in-memory command set. Rebind a
                 command in one view, then switch variants to see conflicts and
                 customizations update everywhere.
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div sx={stylexStyles.rule6}>
               <Badge variant="subtle">
                 {prototype.commands.length} commands
               </Badge>
@@ -157,8 +313,13 @@ export function KeybindingsDebug() {
             </div>
           </section>
 
-          <Tabs value={variant} onValueChange={changeVariant} variant="debug">
-            <div className="overflow-x-auto pb-1">
+          <Tabs
+            sx={nativeChildSpacing.s6}
+            value={variant}
+            onValueChange={changeVariant}
+            variant="debug"
+          >
+            <div sx={stylexStyles.rule9}>
               <TabsList variant="debug">
                 {VARIANTS.map((option) => {
                   const Icon = option.icon
@@ -169,33 +330,32 @@ export function KeybindingsDebug() {
                       variant="debug"
                     >
                       <Icon />
-                      <span className="@max-lg:hidden">{option.label}</span>
-                      <span className="@lg:hidden">{option.shortLabel}</span>
+                      <span sx={stylexStyles.rule10}>{option.label}</span>
+                      <span sx={stylexStyles.rule11}>{option.shortLabel}</span>
                     </TabsTrigger>
                   )
                 })}
               </TabsList>
             </div>
 
-            <div className="border-foreground/8 bg-foreground/2 divide-foreground/8 -mt-3 hidden grid-cols-5 divide-x overflow-hidden rounded-lg border @4xl:grid">
+            <div sx={stylexStyles3.rule1}>
               {VARIANTS.map((option) => (
                 <button
                   key={option.id}
                   type="button"
-                  className={cn(
-                    'px-3 py-2.5 text-left transition-colors',
-                    variant === option.id
-                      ? 'bg-brand/5 text-foreground'
-                      : 'text-foreground-alt/45 hover:text-foreground-alt/70',
-                  )}
+                  sx={[
+                    [
+                      stylexStyles.rule12,
+                      variant === option.id
+                        ? stylexStyles.rule13
+                        : stylexStyles.rule14,
+                    ],
+                    nativeColumnDividers.t8,
+                  ]}
                   onClick={() => setVariant(option.id)}
                 >
-                  <span className="block text-xs font-medium">
-                    {option.label}
-                  </span>
-                  <span className="micro-ten mt-0.5 block font-normal">
-                    {option.description}
-                  </span>
+                  <span sx={stylexStyles.rule15}>{option.label}</span>
+                  <span sx={stylexStyles.rule16}>{option.description}</span>
                 </button>
               ))}
             </div>
@@ -221,3 +381,46 @@ export function KeybindingsDebug() {
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s6: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 6 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 6 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeColumnDividers applies the list border only to its nonfinal physical columns.
+const nativeColumnDividers = stylex.create({
+  t8: {
+    '--tw-divide-x-reverse': { default: null, ':not(:last-child)': 0 },
+    borderInlineEndStyle: {
+      default: null,
+      ':not(:last-child)': dividerState['--tw-border-style'],
+    },
+    borderInlineStartStyle: {
+      default: null,
+      ':not(:last-child)': dividerState['--tw-border-style'],
+    },
+    borderInlineStartWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * var(--tw-divide-x-reverse))',
+    },
+    borderInlineEndWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * calc(1 - var(--tw-divide-x-reverse)))',
+    },
+    borderColor: {
+      default: null,
+      ':not(:last-child)':
+        'color-mix(in oklab, var(--color-foreground) 8%, transparent)',
+    },
+  },
+})

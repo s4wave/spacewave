@@ -1,12 +1,72 @@
 import { useCallback, useMemo, useRef } from 'react'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import { LuList } from '@s4wave/web/images/icons.js'
 
 import type { NoteFileFormat } from '../note-files.js'
 
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+import {
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    flexDirection: 'column',
+    overflowY: 'auto',
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: themeColors['--color-border'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-wide)',
+    letterSpacing: 'var(--tracking-wide)',
+    color: themeColors['--color-foreground-alt'],
+    textTransform: 'uppercase',
+  },
+  rule3: { flex: 1, overflowY: 'auto', paddingBlock: themeLayout['--spacing'] },
+  rule4: {
+    paddingLeft: 'var(--docs-tree-padding-left)',
+    display: 'block',
+    width: '100%',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    paddingBlock: themeLayout['--spacing'],
+    paddingRight: `calc(${themeLayout['--spacing']} * 3)`,
+    textAlign: 'left',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-list-hover-background'],
+      },
+    },
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -89,22 +149,19 @@ function DocsToc({ content, format }: DocsTocProps) {
   const minLevel = Math.min(...headings.map((h) => h.level))
 
   return (
-    <div ref={containerRef} className="flex h-full flex-col overflow-y-auto">
-      <div className="text-foreground-alt border-border flex items-center gap-1.5 border-b px-3 py-2 text-xs font-medium tracking-wide uppercase">
+    <div ref={containerRef} sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>
         <LuList sx={stylexStyles.rule1} />
         On this page
       </div>
-      <nav className="flex-1 overflow-y-auto py-1">
+      <nav sx={stylexStyles2.rule3}>
         {headings.map((heading) => {
           const indent = (heading.level - minLevel) * 12
           return (
             <button
               key={heading.id}
               type="button"
-              className={cn(
-                'docs-tree-indent text-foreground-alt hover:text-foreground block w-full truncate py-1 pr-3 text-left text-xs',
-                'hover:bg-list-hover-background',
-              )}
+              sx={[stylexStyles2.rule4]}
               style={{ '--docs-tree-padding-left': `${12 + indent}px` }}
               onClick={() => handleClick(heading)}
             >

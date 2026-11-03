@@ -212,7 +212,11 @@ export function AppLogin({
         ref={refCallback}
         onKeyDown={handleKeyDown}
         tabIndex={-1}
-        topLeft={<BackButton onClick={handleBack}>Back to home</BackButton>}
+        renderTopLeft={(buttonSx) => (
+          <BackButton sx={buttonSx} onClick={handleBack}>
+            Back to home
+          </BackButton>
+        )}
         intro={
           <>
             <AnimatedLogo followMouse={false} />
@@ -235,20 +239,24 @@ export function AppLogin({
       ref={refCallback}
       onKeyDown={handleKeyDown}
       tabIndex={-1}
-      topLeft={<BackButton onClick={handleBack}>Back to home</BackButton>}
-      topRight={
+      renderTopLeft={(buttonSx) => (
+        <BackButton sx={buttonSx} onClick={handleBack}>
+          Back to home
+        </BackButton>
+      )}
+      renderTopRight={(buttonSx) => (
         <div sx={[stylexStyles2.rule4, !!authBusy && stylexStyles2.rule5]}>
           <button
             type="button"
             onClick={() => navigate({ path: '/pair' })}
-            sx={stylexStyles2.rule6}
+            sx={[stylexStyles2.rule6, buttonSx]}
           >
             <LuLink sx={stylexStyles.rule1} />
             <span sx={stylexStyles2.rule7}>Link to existing device</span>
           </button>
         </div>
-      }
-      bottomRight={
+      )}
+      renderBottomRight={(buttonSx) => (
         <div sx={[stylexStyles2.rule4, !!authBusy && stylexStyles2.rule5]}>
           <button
             type="button"
@@ -261,13 +269,13 @@ export function AppLogin({
                 .catch(() => {})
             }}
             disabled={!addRootAlias.canAdd}
-            sx={stylexStyles2.rule8}
+            sx={[stylexStyles2.rule8, buttonSx]}
           >
             <LuFolderOpen sx={stylexStyles.rule1} />
             <span sx={stylexStyles2.rule7}>Open local state root</span>
           </button>
         </div>
-      }
+      )}
       intro={
         <>
           <AnimatedLogo followMouse={false} />

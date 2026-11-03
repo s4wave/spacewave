@@ -584,12 +584,16 @@ export function RecoveryPage() {
       ref={refCallback}
       onKeyDown={handleKeyDown}
       tabIndex={-1}
-      topLeft={
-        <button type="button" onClick={handleBack} sx={stylexStyles3.rule1}>
+      renderTopLeft={(buttonSx) => (
+        <button
+          type="button"
+          onClick={handleBack}
+          sx={[stylexStyles3.rule1, buttonSx]}
+        >
           <LuArrowLeft sx={stylexStyles.rule1} />
           <span sx={stylexStyles3.rule2}>Back to home</span>
         </button>
-      }
+      )}
       intro={
         <>
           <AnimatedLogo followMouse={false} />

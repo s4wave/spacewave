@@ -15,6 +15,177 @@ import { VmErrorBanner } from '@s4wave/app/vm/VmErrorBanner.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    minHeight: 0,
+    flex: 1,
+    justifyContent: 'center',
+    overflowY: 'auto',
+    padding: {
+      default: `calc(${themeLayout['--spacing']} * 4)`,
+      '@media (min-width: 40rem)': `calc(${themeLayout['--spacing']} * 8)`,
+    },
+  },
+  rule2: {
+    display: 'flex',
+    width: '100%',
+    maxWidth: 'var(--container-md)',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule3: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+  },
+  rule4: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule5: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-lg'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule6: { minWidth: 0, flex: 1 },
+  rule7: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: 'var(--text-base)',
+    lineHeight: 'var(--tw-leading, var(--text-base--line-height))',
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule8: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule9: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule10: { display: 'flex', gap: `calc(${themeLayout['--spacing']} * 4)` },
+  rule11: {
+    width: `calc(${themeLayout['--spacing']} * 16)`,
+    flexShrink: 0,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule12: {
+    minWidth: 0,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    color: themeColors['--color-foreground'],
+  },
+  rule13: { color: themeColors['--color-foreground'] },
+  rule14: { minWidth: 0, color: themeColors['--color-foreground'] },
+  rule15: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * .5)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+  },
+  rule16: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+  },
+  rule17: { color: themeColors['--color-foreground-alt'] },
+  rule18: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-brand'],
+  },
+  rule19: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule20: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule21: {
+    width: `calc(${themeLayout['--spacing']} * 28)`,
+    flexShrink: 0,
+    color: themeColors['--color-foreground'],
+  },
+  rule22: {
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    minWidth: 0,
+    flex: 1,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 40%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': themeColors['--color-ring'],
+    },
+    '--tw-outline-style': { default: null, ':focus-visible': 'none' },
+    outlineStyle: { default: null, ':focus-visible': 'none' },
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 5)`,
@@ -87,21 +258,17 @@ export function VmMachineCard({
     : 0
 
   return (
-    <div className="flex min-h-0 flex-1 justify-center overflow-y-auto p-4 sm:p-8">
-      <div className="flex w-full max-w-md flex-col gap-3">
-        <section className="border-foreground/6 bg-background-card/30 flex flex-col gap-4 rounded-lg border p-4 backdrop-blur-sm">
+    <div sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>
+        <section sx={stylexStyles2.rule3}>
           {/* Identity */}
-          <div className="flex items-center gap-3">
-            <div className="bg-foreground/5 text-foreground-alt flex size-10 shrink-0 items-center justify-center rounded-lg">
+          <div sx={stylexStyles2.rule4}>
+            <div sx={stylexStyles2.rule5}>
               <LuTv sx={stylexStyles.rule1} />
             </div>
-            <div className="min-w-0 flex-1">
-              <h2 className="text-foreground truncate text-base font-medium">
-                {name}
-              </h2>
-              <div className="text-foreground-alt text-xs">
-                x86 virtual machine
-              </div>
+            <div sx={stylexStyles2.rule6}>
+              <h2 sx={stylexStyles2.rule7}>{name}</h2>
+              <div sx={stylexStyles2.rule8}>x86 virtual machine</div>
             </div>
           </div>
 
@@ -116,34 +283,34 @@ export function VmMachineCard({
           )}
 
           {/* Configuration */}
-          <dl className="flex flex-col gap-1.5 text-xs">
-            <div className="flex gap-4">
-              <dt className="text-foreground-alt w-16 shrink-0">Image</dt>
-              <dd className="text-foreground min-w-0 truncate" title={imageKey}>
+          <dl sx={stylexStyles2.rule9}>
+            <div sx={stylexStyles2.rule10}>
+              <dt sx={stylexStyles2.rule11}>Image</dt>
+              <dd sx={stylexStyles2.rule12} title={imageKey}>
                 {imageLabel || imageKey || 'None'}
               </dd>
             </div>
-            <div className="flex gap-4">
-              <dt className="text-foreground-alt w-16 shrink-0">Memory</dt>
-              <dd className="text-foreground">
+            <div sx={stylexStyles2.rule10}>
+              <dt sx={stylexStyles2.rule11}>Memory</dt>
+              <dd sx={stylexStyles2.rule13}>
                 {memoryMb ? `${memoryMb} MB` : 'Default'}
               </dd>
             </div>
-            <div className="flex gap-4">
-              <dt className="text-foreground-alt w-16 shrink-0">Mounts</dt>
-              <dd className="text-foreground min-w-0">
+            <div sx={stylexStyles2.rule10}>
+              <dt sx={stylexStyles2.rule11}>Mounts</dt>
+              <dd sx={stylexStyles2.rule14}>
                 {mounts.length === 0 ? (
                   'None'
                 ) : (
-                  <ul className="flex flex-col gap-0.5 font-mono">
+                  <ul sx={stylexStyles2.rule15}>
                     {mounts.map((m) => (
                       <li
                         key={`${m.path ?? ''}:${m.objectKey ?? ''}`}
-                        className="truncate"
+                        sx={stylexStyles2.rule16}
                         title={m.objectKey}
                       >
                         {m.path || '/'}{' '}
-                        <span className="text-foreground-alt">
+                        <span sx={stylexStyles2.rule17}>
                           {m.writable ? 'rw' : 'ro'}
                         </span>
                       </li>
@@ -175,26 +342,26 @@ export function VmMachineCard({
           onOpenChange={setOverridesOpen}
           badge={
             overrideCount > 0 && (
-              <span className="text-brand text-xs">{overrideCount} set</span>
+              <span sx={stylexStyles2.rule18}>{overrideCount} set</span>
             )
           }
         >
           {!overrides ? (
-            <div className="text-foreground-alt text-xs">Loading</div>
+            <div sx={stylexStyles2.rule8}>Loading</div>
           ) : (
-            <div className="flex flex-col gap-2">
-              <p className="text-foreground-alt text-xs">
+            <div sx={stylexStyles2.rule19}>
+              <p sx={stylexStyles2.rule8}>
                 Boot from a file in this Space instead of the image's asset.
               </p>
               {overrideSlots.map(({ slot, label }) => (
-                <label key={slot} className="flex items-center gap-2 text-xs">
-                  <span className="text-foreground w-28 shrink-0">{label}</span>
+                <label key={slot} sx={stylexStyles2.rule20}>
+                  <span sx={stylexStyles2.rule21}>{label}</span>
                   <select
                     value={overrides[slot]}
                     onChange={(e) =>
                       onOverrideChange(slot, overrides[slot], e.target.value)
                     }
-                    className="border-foreground/10 bg-background/40 text-foreground focus-visible:ring-ring h-7 min-w-0 flex-1 rounded-md border px-2 font-mono text-xs focus-visible:ring-1 focus-visible:outline-none"
+                    sx={stylexStyles2.rule22}
                   >
                     <option value="">From image</option>
                     {overrides[slot] &&

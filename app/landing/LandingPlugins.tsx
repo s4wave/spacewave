@@ -18,6 +18,123 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  utilityState as themeUtilityState,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+  },
+  rule2: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 48)`,
+    flexShrink: 0,
+    flexDirection: 'column',
+    gap: themeLayout['--spacing'],
+    borderRightStyle: themeUtilityState['--tw-border-style'],
+    borderRightWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule3: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBottom: themeLayout['--spacing'],
+    fontSize: themeLayout['--text-metadata'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-metadata--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-wide)',
+    letterSpacing: 'var(--tracking-wide)',
+    color: themeColors['--color-foreground-alt'],
+    textTransform: 'uppercase',
+  },
+  rule4: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+    color: themeColors['--color-foreground'],
+  },
+  rule5: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: '.25rem',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+    paddingLeft: `calc(${themeLayout['--spacing']} * 8)`,
+    color: themeColors['--color-foreground'],
+  },
+  rule6: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+    paddingLeft: `calc(${themeLayout['--spacing']} * 8)`,
+    color: themeColors['--color-foreground'],
+  },
+  rule7: {
+    display: 'flex',
+    minWidth: 0,
+    flex: 1,
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule8: {
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule9: {
+    width: '100%',
+    textAlign: 'left',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule10: { color: themeColors['--color-foreground-alt'] },
+  rule11: {
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+  },
+  rule12: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  rule13: { color: themeColors['--color-foreground'] },
+  rule14: {
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+  },
+  rule15: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 8)`,
@@ -110,44 +227,40 @@ function PluginsPoster() {
   ]
 
   return (
-    <div className="flex h-full text-sm">
-      <div className="border-foreground/10 flex w-48 shrink-0 flex-col gap-1 border-r p-3">
-        <span className="text-foreground-alt text-metadata px-2 pb-1 font-semibold tracking-wide uppercase">
-          My SQL Database
-        </span>
-        <span className="text-foreground flex items-center gap-2 px-2 py-1">
+    <div sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>
+        <span sx={stylexStyles2.rule3}>My SQL Database</span>
+        <span sx={stylexStyles2.rule4}>
           <LuDatabase sx={stylexStyles.rule2} />
           information_schema
         </span>
-        <span className="text-foreground flex items-center gap-2 px-2 py-1">
+        <span sx={stylexStyles2.rule4}>
           <LuDatabase sx={stylexStyles.rule3} />
           quickstart
         </span>
-        <span className="bg-foreground/5 text-foreground flex items-center gap-2 rounded px-2 py-1 pl-8">
+        <span sx={stylexStyles2.rule5}>
           <LuTable sx={stylexStyles.rule2} />
           people
         </span>
-        <span className="text-foreground flex items-center gap-2 px-2 py-1 pl-8">
+        <span sx={stylexStyles2.rule6}>
           <LuTable sx={stylexStyles.rule2} />
           projects
         </span>
       </div>
-      <div className="flex min-w-0 flex-1 flex-col gap-3 p-4">
-        <code className="border-foreground/10 text-foreground rounded border px-3 py-2 text-xs">
-          {PLUGINS_DEMO_QUERY}
-        </code>
-        <table className="w-full text-left font-mono text-xs">
-          <thead className="text-foreground-alt">
-            <tr className="border-foreground/10 border-b">
-              <th className="px-3 py-2 font-medium">name</th>
-              <th className="px-3 py-2 font-medium">role</th>
+      <div sx={stylexStyles2.rule7}>
+        <code sx={stylexStyles2.rule8}>{PLUGINS_DEMO_QUERY}</code>
+        <table sx={stylexStyles2.rule9}>
+          <thead sx={stylexStyles2.rule10}>
+            <tr sx={stylexStyles2.rule11}>
+              <th sx={stylexStyles2.rule12}>name</th>
+              <th sx={stylexStyles2.rule12}>role</th>
             </tr>
           </thead>
-          <tbody className="text-foreground">
+          <tbody sx={stylexStyles2.rule13}>
             {rows.map((row) => (
-              <tr key={row.name} className="border-foreground/5 border-b">
-                <td className="px-3 py-2">{row.name}</td>
-                <td className="px-3 py-2">{row.role}</td>
+              <tr key={row.name} sx={stylexStyles2.rule14}>
+                <td sx={stylexStyles2.rule15}>{row.name}</td>
+                <td sx={stylexStyles2.rule15}>{row.role}</td>
               </tr>
             ))}
           </tbody>

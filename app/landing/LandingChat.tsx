@@ -17,6 +17,105 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  utilityState as themeUtilityState,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+  },
+  rule2: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 44)`,
+    flexShrink: 0,
+    flexDirection: 'column',
+    gap: themeLayout['--spacing'],
+    borderRightStyle: themeUtilityState['--tw-border-style'],
+    borderRightWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule3: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBottom: themeLayout['--spacing'],
+    fontSize: themeLayout['--text-metadata'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-metadata--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-wide)',
+    letterSpacing: 'var(--tracking-wide)',
+    color: themeColors['--color-foreground-alt'],
+    textTransform: 'uppercase',
+  },
+  rule4: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: '.25rem',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+    color: themeColors['--color-foreground'],
+  },
+  rule5: { display: 'flex', minWidth: 0, flex: 1, flexDirection: 'column' },
+  rule6: {
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: themeLayout['--spacing'],
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+    textAlign: 'center',
+  },
+  rule7: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule8: {
+    maxWidth: 'var(--container-xs)',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule9: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule10: {
+    flex: 1,
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule11: {
+    borderRadius: '.25rem',
+    backgroundColor: themeColors['--color-brand'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-background'],
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 8)`,
@@ -94,33 +193,25 @@ export function LandingChat({
 // ChatPoster previews the Chat Quickstart: an empty general channel.
 function ChatPoster() {
   return (
-    <div className="flex h-full text-sm">
-      <div className="border-foreground/10 flex w-44 shrink-0 flex-col gap-1 border-r p-3">
-        <span className="text-foreground-alt text-metadata px-2 pb-1 font-semibold tracking-wide uppercase">
-          My Chat
-        </span>
-        <span className="bg-foreground/5 text-foreground flex items-center gap-2 rounded px-2 py-1">
+    <div sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>
+        <span sx={stylexStyles2.rule3}>My Chat</span>
+        <span sx={stylexStyles2.rule4}>
           <LuHash sx={stylexStyles.rule2} />
           general
         </span>
       </div>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex flex-1 flex-col items-center justify-center gap-1 p-6 text-center">
-          <span className="text-foreground font-medium">
-            Start the conversation
-          </span>
-          <span className="text-foreground-alt max-w-xs text-xs">
+      <div sx={stylexStyles2.rule5}>
+        <div sx={stylexStyles2.rule6}>
+          <span sx={stylexStyles2.rule7}>Start the conversation</span>
+          <span sx={stylexStyles2.rule8}>
             This channel is ready. Send the first message to everyone in the
             peer group.
           </span>
         </div>
-        <div className="border-foreground/10 flex items-center gap-2 border-t p-3">
-          <span className="border-foreground/10 text-foreground-alt flex-1 rounded border px-3 py-2">
-            Message this channel
-          </span>
-          <span className="bg-brand text-background rounded px-3 py-2 text-xs font-medium">
-            Send
-          </span>
+        <div sx={stylexStyles2.rule9}>
+          <span sx={stylexStyles2.rule10}>Message this channel</span>
+          <span sx={stylexStyles2.rule11}>Send</span>
         </div>
       </div>
     </div>

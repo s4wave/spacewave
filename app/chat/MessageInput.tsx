@@ -4,6 +4,155 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+import {
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  radii as themeRadii,
+  motion as themeMotion,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    flexShrink: 0,
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-secondary']} 70%, transparent)`,
+    paddingInline: {
+      default: `calc(${themeLayout['--spacing']} * 3)`,
+      '@media (min-width: 40rem)': `calc(${themeLayout['--spacing']} * 4)`,
+    },
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'flex-end',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 15%, transparent)`,
+      ':focus-within': `color-mix(in oklab, ${themeColors['--color-primary']} 60%, transparent)`,
+    },
+    backgroundColor: themeColors['--color-background-primary'],
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule3: {
+    maxHeight: `calc(${themeLayout['--spacing']} * 32)`,
+    minHeight: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 40rem)': {
+        default: null,
+        '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 9)`,
+      },
+    },
+    minWidth: 0,
+    flex: 1,
+    resize: 'none',
+    backgroundColor: '#0000',
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `calc(${themeLayout['--spacing']} * 5)`,
+    '--tw-leading': `calc(${themeLayout['--spacing']} * 5)`,
+    color: themeColors['--color-foreground'],
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+    '::placeholder': { color: themeColors['--color-muted-foreground'] },
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.6 },
+  },
+  rule4: {
+    display: 'flex',
+    width: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 40rem)': {
+        default: null,
+        '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 9)`,
+      },
+    },
+    height: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 40rem)': {
+        default: null,
+        '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 9)`,
+      },
+    },
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 'var(--radius-sm)',
+    backgroundColor: {
+      default: themeColors['--color-primary'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-primary']} 90%, transparent)`,
+      },
+    },
+    color: themeColors['--color-primary-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': themeColors['--color-primary'],
+    },
+    '--tw-ring-offset-width': { default: null, ':focus-visible': '2px' },
+    '--tw-ring-offset-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color)',
+    },
+    '--tw-ring-offset-color': {
+      default: null,
+      ':focus-visible': themeColors['--color-background'],
+    },
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.35 },
+  },
+  rule5: {
+    marginTop: `calc(${themeLayout['--spacing']} * 1.5)`,
+    display: 'flex',
+    minHeight: `calc(${themeLayout['--spacing']} * 4)`,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingInline: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule6: { color: themeColors['--color-error-text'] },
+  rule7: {
+    marginLeft: 'auto',
+    display: {
+      default: 'none',
+      '@media (min-width: 40rem)': {
+        default: null,
+        '@media (pointer: fine)': 'inline',
+      },
+    },
+    color: themeColors['--color-muted-foreground'],
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 4)`,
@@ -63,8 +212,8 @@ export function MessageInput({ disabled = false, onSend }: MessageInputProps) {
 
   // Keep the composer reachable by touch in either orientation.
   return (
-    <div className="border-foreground/10 bg-background-secondary/70 shrink-0 border-t px-3 py-3 sm:px-4">
-      <div className="border-foreground/15 bg-background-primary focus-within:border-primary/60 flex items-end gap-2 rounded-md border p-2 transition-colors">
+    <div sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>
         <textarea
           ref={ref}
           aria-label="Message"
@@ -80,23 +229,23 @@ export function MessageInput({ disabled = false, onSend }: MessageInputProps) {
           placeholder="Message this channel"
           rows={1}
           disabled={state.sending || disabled}
-          className="text-foreground placeholder:text-muted-foreground max-h-32 min-h-11 min-w-0 flex-1 resize-none bg-transparent p-2 text-sm leading-5 outline-none disabled:cursor-not-allowed disabled:opacity-60 sm:pointer-fine:min-h-9"
+          sx={stylexStyles2.rule3}
         />
         <button
           type="button"
           aria-label={state.sending ? 'Sending message' : 'Send message'}
           disabled={!canSend}
           onClick={() => void handleSubmit()}
-          className="bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-primary focus-visible:ring-offset-background flex size-11 shrink-0 items-center justify-center rounded-sm transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-35 sm:pointer-fine:size-9"
+          sx={stylexStyles2.rule4}
         >
           <LuSendHorizontal sx={stylexStyles.rule1} aria-hidden="true" />
         </button>
       </div>
-      <div className="mt-1.5 flex min-h-4 items-center justify-between gap-3 px-1 text-xs">
-        <span role="alert" className="text-error-text">
+      <div sx={stylexStyles2.rule5}>
+        <span role="alert" sx={stylexStyles2.rule6}>
           {state.error}
         </span>
-        <span className="text-muted-foreground ml-auto hidden sm:pointer-fine:inline">
+        <span sx={stylexStyles2.rule7}>
           Enter to send · Shift+Enter for a new line
         </span>
       </div>

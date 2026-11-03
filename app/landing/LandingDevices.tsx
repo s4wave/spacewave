@@ -16,6 +16,105 @@ import { UseCasePage } from './use-case/UseCasePage.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  radii as themeRadii,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    flexDirection: 'column',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule3: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule4: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule5: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule6: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule7: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule8: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule9: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: 'var(--text-xl)',
+    lineHeight: 'var(--tw-leading, var(--text-xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule10: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule11: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -109,39 +208,32 @@ function DevicesPoster() {
   ]
 
   return (
-    <div className="flex h-full flex-col text-sm">
-      <div className="border-foreground/10 flex items-center justify-between border-b px-4 py-2">
-        <span className="text-foreground flex items-center gap-2 font-semibold">
+    <div sx={stylexStyles3.rule1}>
+      <div sx={stylexStyles3.rule2}>
+        <span sx={stylexStyles3.rule3}>
           <LuMonitor sx={stylexStyles.rule2} />
           Computers
         </span>
-        <span className="border-foreground/10 text-foreground flex items-center gap-1.5 rounded border px-2 py-1 text-xs">
+        <span sx={stylexStyles3.rule4}>
           <LuPlus sx={stylexStyles.rule3} />
           Add Device
         </span>
       </div>
-      <div className="flex flex-col gap-4 p-4">
-        <div className="grid grid-cols-2 gap-3">
+      <div sx={stylexStyles3.rule5}>
+        <div sx={stylexStyles3.rule6}>
           {tiles.map((tile) => (
-            <div
-              key={tile.label}
-              className="border-foreground/10 rounded-lg border p-3.5"
-            >
-              <span className="text-foreground-alt flex items-center gap-1.5 text-xs font-medium">
+            <div key={tile.label} sx={stylexStyles3.rule7}>
+              <span sx={stylexStyles3.rule8}>
                 <tile.icon sx={stylexStyles2.rule1} />
                 {tile.label}
               </span>
-              <div className="text-foreground mt-2 text-xl font-semibold">
-                0
-              </div>
+              <div sx={stylexStyles3.rule9}>0</div>
             </div>
           ))}
         </div>
-        <div className="border-foreground/10 rounded-lg border p-3.5">
-          <span className="text-foreground text-xs font-medium">
-            No computers added
-          </span>
-          <p className="text-foreground-alt mt-1 text-xs leading-relaxed">
+        <div sx={stylexStyles3.rule7}>
+          <span sx={stylexStyles3.rule10}>No computers added</span>
+          <p sx={stylexStyles3.rule11}>
             Add a managed Device for persistent capabilities, or add an SSH Host
             for on-demand terminal access.
           </p>

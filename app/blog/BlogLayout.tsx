@@ -6,6 +6,58 @@ import { LegalFooter } from '@s4wave/app/landing/LegalFooter.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+import {
+  colors as themeColors,
+  fonts as themeFonts,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    containerType: 'inline-size',
+    display: 'flex',
+    width: '100%',
+    flex: 1,
+    flexDirection: 'column',
+    overflowY: 'auto',
+    backgroundColor: themeColors['--color-background-landing'],
+  },
+  rule2: {
+    position: 'relative',
+    zIndex: 10,
+    marginInline: 'auto',
+    width: '100%',
+    maxWidth: 'var(--container-3xl)',
+    paddingInline: {
+      default: `calc(${themeLayout['--spacing']} * 4)`,
+      '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 8)`,
+    },
+    paddingTop: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule3: {
+    display: 'flex',
+    cursor: 'pointer',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -28,14 +80,10 @@ export function BlogLayout({ children, showBack = true }: BlogLayoutProps) {
   }, [navigate])
 
   return (
-    <div className="bg-background-landing @container flex w-full flex-1 flex-col overflow-y-auto">
+    <div sx={stylexStyles2.rule1}>
       {showBack && (
-        <div className="relative z-10 mx-auto w-full max-w-3xl px-4 pt-4 @lg:px-8">
-          <button
-            type="button"
-            onClick={goBack}
-            className="text-foreground-alt/60 hover:text-foreground flex cursor-pointer items-center gap-2 text-xs font-medium transition-colors"
-          >
+        <div sx={stylexStyles2.rule2}>
+          <button type="button" onClick={goBack} sx={stylexStyles2.rule3}>
             <LuArrowLeft sx={stylexStyles.rule1} />
             All posts
           </button>

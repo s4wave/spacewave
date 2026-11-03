@@ -17,6 +17,93 @@ import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+import {
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule2: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule3: { display: 'flex', minHeight: 0, flex: 1, flexDirection: 'column' },
+  rule4: {
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule5: {
+    minHeight: 0,
+    minWidth: 0,
+    flex: 1,
+    overflow: 'auto',
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: {
+      default: themeFonts['--text-xs'],
+      '@media not all and (min-width: 40rem)': themeFonts['--text-sm'],
+    },
+    lineHeight: {
+      default: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+      '@media not all and (min-width: 40rem)': `calc(${themeLayout['--spacing']} * 6)`,
+    },
+    whiteSpace: 'pre-wrap',
+    color: themeColors['--color-foreground'],
+    '--tw-leading': {
+      default: null,
+      '@media not all and (min-width: 40rem)': `calc(${themeLayout['--spacing']} * 6)`,
+    },
+    overflowWrap: {
+      default: null,
+      '@media not all and (min-width: 40rem)': 'break-word',
+    },
+  },
+  rule6: {
+    minHeight: 0,
+    minWidth: 0,
+    flex: 1,
+    resize: 'none',
+    backgroundColor: themeColors['--color-background'],
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: {
+      default: themeFonts['--text-xs'],
+      '@media (pointer: coarse)': 'var(--text-base)',
+    },
+    lineHeight: {
+      default: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 6)`,
+    },
+    color: themeColors['--color-foreground'],
+    '--tw-outline-style': { default: null, ':focus-visible': 'none' },
+    outlineStyle: { default: null, ':focus-visible': 'none' },
+    '--tw-leading': {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 6)`,
+    },
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     minHeight: {
@@ -51,7 +138,7 @@ function TextFileToolbar({
   onCancel,
 }: TextFileToolbarProps) {
   return (
-    <div className="border-foreground/10 flex items-center gap-2 border-b p-2">
+    <div sx={stylexStyles2.rule1}>
       {draft === null ? (
         <Button
           size="default"
@@ -84,10 +171,12 @@ function TextFileToolbar({
         </>
       )}
       {!complete && (
-        <span className="text-xs">This preview is too large to edit here.</span>
+        <span sx={stylexStyles2.rule2}>
+          This preview is too large to edit here.
+        </span>
       )}
       {saved && !saving && (
-        <span role="status" className="text-xs">
+        <span role="status" sx={stylexStyles2.rule2}>
           File saved
         </span>
       )}
@@ -181,7 +270,7 @@ export function UnixFSTextFileViewer({
 
   // Saving replaces one file in one accepted transaction, preserving sibling files.
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div sx={stylexStyles2.rule3}>
       <TextFileToolbar
         draft={draft}
         text={text}
@@ -198,7 +287,7 @@ export function UnixFSTextFileViewer({
       />
 
       {error && (
-        <div role="alert" className="text-destructive p-2 text-sm">
+        <div role="alert" sx={stylexStyles2.rule4}>
           <p>{error}</p>
           <Button
             size="default"
@@ -212,9 +301,7 @@ export function UnixFSTextFileViewer({
         </div>
       )}
       {draft === null ? (
-        <pre className="text-foreground min-h-0 min-w-0 flex-1 overflow-auto p-4 font-mono text-xs whitespace-pre-wrap max-sm:text-sm max-sm:leading-6 max-sm:break-words">
-          {text}
-        </pre>
+        <pre sx={stylexStyles2.rule5}>{text}</pre>
       ) : (
         <textarea
           aria-label="File contents"
@@ -222,7 +309,7 @@ export function UnixFSTextFileViewer({
           disabled={saving}
           onChange={(event) => setDraft(event.target.value)}
           spellCheck={false}
-          className="bg-background text-foreground min-h-0 min-w-0 flex-1 resize-none p-4 font-mono text-xs focus-visible:outline-none pointer-coarse:text-base pointer-coarse:leading-6"
+          sx={stylexStyles2.rule6}
         />
       )}
     </div>

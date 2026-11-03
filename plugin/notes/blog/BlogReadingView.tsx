@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import { LuX } from '@s4wave/web/images/icons.js'
 
 import { HeroCard } from './HeroCard.js'
@@ -11,6 +10,111 @@ import type { AuthorRegistry } from './authors.js'
 
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+  motion as themeMotion,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: { height: '100%', overflowY: 'auto' },
+  rule2: {
+    marginInline: 'auto',
+    width: '100%',
+    maxWidth: 'var(--container-3xl)',
+    paddingInline: {
+      default: `calc(${themeLayout['--spacing']} * 4)`,
+      '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 8)`,
+    },
+    paddingBlock: {
+      default: `calc(${themeLayout['--spacing']} * 6)`,
+      '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 10)`,
+    },
+  },
+  rule3: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 6)`,
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule4: {
+    cursor: 'pointer',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.2s',
+    '--tw-duration': '.2s',
+  },
+  rule5: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 40%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    color: themeColors['--color-brand'],
+  },
+  rule6: {
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-white']} 8%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+      },
+    },
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-brand'],
+      },
+    },
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+      },
+    },
+  },
+  rule7: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule8: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingBlock: `calc(${themeLayout['--spacing']} * 20)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule9: { marginBottom: `calc(${themeLayout['--spacing']} * 8)` },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -88,7 +192,7 @@ export function BlogReadingView({
     const nextPost = idx > 0 ? publishedPosts[idx - 1] : undefined
 
     return (
-      <div className="h-full overflow-y-auto">
+      <div sx={stylexStyles2.rule1}>
         <BlogPostView
           post={selectedPublishedPost}
           prevPost={prevPost}
@@ -107,22 +211,20 @@ export function BlogReadingView({
   const remainingPosts = publishedPosts.slice(1)
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="mx-auto w-full max-w-3xl px-4 py-6 @lg:px-8 @lg:py-10">
+    <div sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>
         {/* Tag filter bar */}
         {allTags.length > 0 && (
-          <div className="mb-6 flex flex-wrap items-center gap-2">
+          <div sx={stylexStyles2.rule3}>
             {allTags.map((tag) => (
               <button
                 type="button"
                 key={tag}
                 onClick={() => handleSelectTag(tag)}
-                className={cn(
-                  'cursor-pointer rounded-md border px-2 py-0.5 text-xs font-medium transition-all duration-200',
-                  tagFilter === tag
-                    ? 'border-brand/40 bg-brand/10 text-brand'
-                    : 'text-foreground-alt/70 hover:text-brand hover:border-brand/30 hover:bg-brand/5 border-white/8',
-                )}
+                sx={[
+                  stylexStyles2.rule4,
+                  tagFilter === tag ? stylexStyles2.rule5 : stylexStyles2.rule6,
+                ]}
               >
                 {tag}
               </button>
@@ -131,7 +233,7 @@ export function BlogReadingView({
               <button
                 type="button"
                 onClick={handleClearFilter}
-                className="text-foreground-alt/50 hover:text-foreground flex items-center gap-1 text-xs transition-colors"
+                sx={stylexStyles2.rule7}
               >
                 <LuX sx={stylexStyles.rule1} />
                 Clear
@@ -141,14 +243,14 @@ export function BlogReadingView({
         )}
 
         {publishedPosts.length === 0 ? (
-          <div className="text-foreground-alt/50 flex items-center justify-center py-20 text-sm">
+          <div sx={stylexStyles2.rule8}>
             {tagFilter ? 'No posts match this tag' : 'No published posts yet'}
           </div>
         ) : (
           <>
             {/* Hero card for latest post */}
             {heroPost && (
-              <div className="mb-8">
+              <div sx={stylexStyles2.rule9}>
                 <HeroCard
                   post={heroPost}
                   onSelectPost={onSelectPost}

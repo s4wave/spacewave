@@ -13,6 +13,20 @@ import {
   createNotebookClientSide,
 } from './content-seed.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule2: { width: '100%', maxWidth: 'var(--container-sm)' },
+})
+
 export const NotesNotebookWizardTypeID = 'wizard/notes/notebook'
 export const NotesDocsWizardTypeID = 'wizard/notes/docs'
 export const NotesBlogWizardTypeID = 'wizard/notes/blog'
@@ -107,8 +121,8 @@ export function NotesWizardViewer(props: ObjectViewerComponentProps) {
 
   if (!state) {
     return (
-      <div className="flex flex-1 items-center justify-center p-6">
-        <div className="w-full max-w-sm">
+      <div sx={stylexStyles.rule1}>
+        <div sx={stylexStyles.rule2}>
           <LoadingCard
             view={{
               state: 'active',

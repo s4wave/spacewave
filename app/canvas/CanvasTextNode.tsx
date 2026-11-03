@@ -1,15 +1,49 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 /* eslint-disable react-doctor/rerender-state-only-in-handlers */
 import { useState, useCallback, useRef, useEffect } from 'react'
 
-import { cn } from '@s4wave/web/style/utils.js'
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    height: '100%',
+    width: '100%',
+    resize: 'none',
+    '--tw-border-style': 'none',
+    borderStyle: 'none',
+    backgroundColor: '#0000',
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
+    fontFamily: themeFonts['--font-display'],
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+  },
+  rule2: {
+    height: '100%',
+    width: '100%',
+    cursor: 'text',
+    overflow: 'auto',
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
+    fontFamily: themeFonts['--font-display'],
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    whiteSpace: 'pre-wrap',
+  },
+})
 
 // CanvasTextNodeProps are the props for CanvasTextNode.
 interface CanvasTextNodeProps {
+  className?: never
   content: string
   autoEdit?: boolean
   onChange?: (content: string) => void
   onCancel?: () => void
-  className?: string
+  sx?: ComponentStyles
 }
 
 // CanvasTextNode renders a text node with view/edit modes.
@@ -19,8 +53,11 @@ export function CanvasTextNode({
   autoEdit,
   onChange,
   onCancel,
-  className,
-}: CanvasTextNodeProps) {
+  sx,
+}: Omit<CanvasTextNodeProps, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
   const [editing, setEditing] = useState(autoEdit ?? false)
   const initialContentRef = useRef(content)
   const [draft, setDraft] = useState(() => initialContentRef.current)
@@ -87,11 +124,7 @@ export function CanvasTextNode({
       <textarea
         ref={textareaRef}
         aria-label="Node text"
-        className={cn(
-          'h-full w-full resize-none border-none bg-transparent p-2 text-sm outline-none',
-          'font-display',
-          className,
-        )}
+        sx={[stylexStyles.rule1, sx]}
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={commitEdit}
@@ -101,14 +134,7 @@ export function CanvasTextNode({
   }
 
   return (
-    <pre
-      className={cn(
-        'h-full w-full cursor-text overflow-auto p-2 text-sm whitespace-pre-wrap',
-        'font-display',
-        className,
-      )}
-      onDoubleClick={handleDoubleClick}
-    >
+    <pre sx={[stylexStyles.rule2, sx]} onDoubleClick={handleDoubleClick}>
       {content}
     </pre>
   )

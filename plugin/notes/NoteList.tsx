@@ -12,7 +12,7 @@ import {
   useUnixFSHandle,
   useUnixFSHandleEntries,
 } from '@s4wave/web/hooks/useUnixFSHandle.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import {
   LuChevronLeft,
   LuFile,
@@ -48,6 +48,465 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
+
+import {
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+  radii as themeRadii,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    minWidth: 0,
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: themeColors['--color-border'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule2: {
+    display: 'flex',
+    minWidth: 0,
+    flex: 1,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: '.25rem',
+    backgroundColor: themeColors['--color-muted'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: {
+      default: null,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': themeLayout['--spacing'],
+      },
+    },
+  },
+  rule3: {
+    minHeight: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
+    width: '100%',
+    minWidth: 0,
+    '--tw-border-style': 'none',
+    borderStyle: 'none',
+    backgroundColor: '#0000',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+    '::placeholder': { color: themeColors['--color-muted-foreground'] },
+  },
+  rule4: {
+    display: 'flex',
+    width: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 'auto',
+      },
+    },
+    height: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 'auto',
+      },
+    },
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '.25rem',
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-list-hover-background'],
+      },
+    },
+    padding: {
+      default: null,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 1.5)`,
+      },
+    },
+  },
+  rule5: {
+    display: 'flex',
+    width: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 'auto',
+      },
+    },
+    height: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 'auto',
+      },
+    },
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '.25rem',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-list-hover-background'],
+      },
+    },
+    paddingInline: {
+      default: null,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 1.5)`,
+      },
+    },
+    paddingBlock: {
+      default: null,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': themeLayout['--spacing'],
+      },
+    },
+  },
+  rule6: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: themeColors['--color-border'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule7: { color: themeColors['--color-muted-foreground'] },
+  rule8: {
+    display: 'inline-flex',
+    minHeight: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
+    minWidth: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: themeLayout['--spacing'],
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-brand'],
+  },
+  rule9: {
+    display: 'inline-flex',
+    minHeight: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
+    minWidth: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: themeLayout['--spacing'],
+    borderRadius: '3.40282e38px',
+    backgroundColor: themeColors['--color-muted'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule10: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+    textAlign: 'center',
+    color: themeColors['--color-muted-foreground'],
+  },
+  rule11: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule12: {
+    minHeight: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: themeColors['--color-brand'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-brand-foreground'],
+    opacity: {
+      default: null,
+      '@media (hover: hover)': { default: null, ':hover': 0.9 },
+    },
+  },
+  rule13: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    paddingRight: themeLayout['--spacing'],
+  },
+  rule14: {
+    backgroundColor: themeColors['--color-list-active-selection-background'],
+    color: themeColors['--color-list-active-selection-foreground'],
+  },
+  rule15: {
+    display: 'flex',
+    minHeight: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
+    minWidth: 0,
+    flex: 1,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    textAlign: 'left',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-list-hover-background'],
+      },
+    },
+    paddingBlock: {
+      default: null,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 1.5)`,
+      },
+    },
+  },
+  rule16: {
+    minWidth: 0,
+    flex: 1,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+  },
+  rule17: {
+    display: 'flex',
+    width: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 'auto',
+      },
+    },
+    height: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 'auto',
+      },
+    },
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '.25rem',
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-list-hover-background'],
+      },
+    },
+    padding: {
+      default: null,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': themeLayout['--spacing'],
+      },
+    },
+  },
+  rule18: {
+    display: 'flex',
+    width: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 'auto',
+      },
+    },
+    height: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 'auto',
+      },
+    },
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '.25rem',
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-destructive'],
+      },
+    },
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-list-hover-background'],
+      },
+    },
+    padding: {
+      default: null,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': themeLayout['--spacing'],
+      },
+    },
+  },
+  rule19: {
+    display: 'flex',
+    minHeight: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
+    width: '100%',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    textAlign: 'left',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-list-hover-background'],
+      },
+    },
+    paddingBlock: {
+      default: null,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 1.5)`,
+      },
+    },
+  },
+  rule20: {
+    display: 'flex',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule21: { color: themeColors['--color-destructive'] },
+  rule22: {
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    textAlign: 'center',
+  },
+  rule23: {
+    display: 'flex',
+    height: '100%',
+    flexDirection: 'column',
+    overflowY: 'auto',
+  },
+  rule24: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: themeColors['--color-border'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule25: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    color: themeColors['--color-muted-foreground'],
+  },
+  rule26: { flex: 1, overflowY: 'auto' },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -427,8 +886,8 @@ function NoteListToolbar({
   } = controller
 
   return (
-    <div className="border-border flex min-w-0 items-center gap-1 border-b px-2 py-1.5">
-      <label className="bg-muted flex min-w-0 flex-1 items-center gap-1.5 rounded px-2 md:pointer-fine:py-1">
+    <div sx={stylexStyles2.rule1}>
+      <label sx={stylexStyles2.rule2}>
         <LuSearch sx={stylexStyles.rule1} />
         <input
           type="text"
@@ -436,12 +895,12 @@ function NoteListToolbar({
           placeholder="Search notes…"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="text-foreground placeholder:text-muted-foreground min-h-11 w-full min-w-0 border-none bg-transparent text-xs outline-none md:pointer-fine:min-h-0"
+          sx={stylexStyles2.rule3}
         />
       </label>
       <button
         type="button"
-        className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex size-11 shrink-0 items-center justify-center rounded md:pointer-fine:size-auto md:pointer-fine:p-1.5"
+        sx={stylexStyles2.rule4}
         onClick={() => handleCreateFolder()}
         title="New folder"
       >
@@ -449,7 +908,7 @@ function NoteListToolbar({
       </button>
       <button
         type="button"
-        className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex size-11 shrink-0 items-center justify-center rounded md:pointer-fine:size-auto md:pointer-fine:p-1.5"
+        sx={stylexStyles2.rule4}
         onClick={() => void handleCreateNote()}
         title="New note"
       >
@@ -458,7 +917,7 @@ function NoteListToolbar({
       {canCreateOrg && (
         <button
           type="button"
-          className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex size-11 shrink-0 items-center justify-center rounded text-xs font-medium md:pointer-fine:size-auto md:pointer-fine:px-1.5 md:pointer-fine:py-1"
+          sx={stylexStyles2.rule5}
           onClick={() => void handleCreateNoteDefault('org')}
           title="New Org note"
         >
@@ -482,12 +941,12 @@ function NoteListFilters({
     controller
 
   return (
-    <div className="bg-brand/5 border-border flex flex-wrap items-center gap-2 border-b px-3 py-1 text-xs">
-      <span className="text-muted-foreground">Filtering:</span>
+    <div sx={stylexStyles2.rule6}>
+      <span sx={stylexStyles2.rule7}>Filtering:</span>
       {filterTag && (
         <button
           type="button"
-          className="bg-brand/10 text-brand inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-full px-2 py-0.5 font-medium md:pointer-fine:min-h-0 md:pointer-fine:min-w-0"
+          sx={stylexStyles2.rule8}
           onClick={() => onFilterTagChange?.(undefined)}
           title="Clear tag filter"
         >
@@ -498,7 +957,7 @@ function NoteListFilters({
       {filterStatus && (
         <button
           type="button"
-          className="bg-muted text-foreground-alt inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-full px-2 py-0.5 font-medium md:pointer-fine:min-h-0 md:pointer-fine:min-w-0"
+          sx={stylexStyles2.rule9}
           onClick={() => onFilterStatusChange?.(undefined)}
           title="Clear status filter"
         >
@@ -519,20 +978,20 @@ function NoteListEmptyState({
   onCreateNote: NoteListController['handleCreateNote']
 }) {
   return (
-    <div className="text-muted-foreground flex flex-col items-center justify-center gap-3 p-6 text-center">
+    <div sx={stylexStyles2.rule10}>
       {isEmptyDirectory ? (
         <>
-          <span className="text-xs">No notes yet</span>
+          <span sx={stylexStyles2.rule11}>No notes yet</span>
           <button
             type="button"
-            className="bg-brand text-brand-foreground min-h-11 rounded-md px-3 py-1.5 text-xs font-medium hover:opacity-90 md:pointer-fine:min-h-0"
+            sx={stylexStyles2.rule12}
             onClick={onCreateNote}
           >
             Create your first note
           </button>
         </>
       ) : (
-        <span className="text-xs">No matching notes</span>
+        <span sx={stylexStyles2.rule11}>No matching notes</span>
       )}
     </div>
   )
@@ -557,27 +1016,21 @@ function NoteListNoteRow({
   onDelete: (name: string) => void
 }) {
   return (
-    <div
-      className={cn(
-        'flex items-center gap-1 pr-1',
-        selected &&
-          'bg-list-active-selection-background text-list-active-selection-foreground',
-      )}
-    >
+    <div sx={[stylexStyles2.rule13, !!selected && stylexStyles2.rule14]}>
       <button
         type="button"
         data-testid="notes-note-row"
         data-note-path={notePath}
-        className="hover:bg-list-hover-background flex min-h-11 min-w-0 flex-1 items-center gap-2 px-3 text-left text-xs md:pointer-fine:min-h-0 md:pointer-fine:py-1.5"
+        sx={stylexStyles2.rule15}
         onClick={() => onSelect(notePath)}
       >
         <LuFile sx={stylexStyles.rule4} />
-        <span className="min-w-0 flex-1 truncate">{entry.title}</span>
+        <span sx={stylexStyles2.rule16}>{entry.title}</span>
         {extra}
       </button>
       <button
         type="button"
-        className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex size-11 shrink-0 items-center justify-center rounded md:pointer-fine:size-auto md:pointer-fine:p-1"
+        sx={stylexStyles2.rule17}
         onClick={() => onRename(entry.name)}
         title="Rename note"
       >
@@ -585,7 +1038,7 @@ function NoteListNoteRow({
       </button>
       <button
         type="button"
-        className="text-foreground-alt hover:bg-list-hover-background hover:text-destructive flex size-11 shrink-0 items-center justify-center rounded md:pointer-fine:size-auto md:pointer-fine:p-1"
+        sx={stylexStyles2.rule18}
         onClick={() => onDelete(entry.name)}
         title="Delete note"
       >
@@ -630,11 +1083,11 @@ function NoteListEntries({
         <button
           key={entry.name}
           type="button"
-          className="hover:bg-list-hover-background flex min-h-11 w-full items-center gap-2 px-3 text-left text-xs md:pointer-fine:min-h-0 md:pointer-fine:py-1.5"
+          sx={stylexStyles2.rule19}
           onClick={() => onChangePath?.(joinNotePath(currentPath, entry.name))}
         >
           <LuFolder sx={stylexStyles.rule4} />
-          <span className="min-w-0 flex-1 truncate">{entry.name}</span>
+          <span sx={stylexStyles2.rule16}>{entry.name}</span>
         </button>
       ))}
       {filteredNoteEntries.map((entry) => {
@@ -733,11 +1186,11 @@ function NoteListView({ controller }: { controller: NoteListController }) {
   if (notice) {
     return (
       <div
-        className={cn(
-          'flex h-full items-center justify-center text-xs',
-          notice.error ? 'text-destructive' : 'text-muted-foreground',
-          notice.padded && 'p-4 text-center',
-        )}
+        sx={[
+          stylexStyles2.rule20,
+          notice.error ? stylexStyles2.rule21 : stylexStyles2.rule7,
+          !!notice.padded && stylexStyles2.rule22,
+        ]}
       >
         {notice.text}
       </div>
@@ -746,28 +1199,23 @@ function NoteListView({ controller }: { controller: NoteListController }) {
 
   return (
     <>
-      <div
-        className="flex h-full flex-col overflow-y-auto"
-        data-testid="notes-note-list"
-      >
+      <div sx={stylexStyles2.rule23} data-testid="notes-note-list">
         <NoteListToolbar controller={controller} />
         {currentPath && (
-          <div className="border-border flex items-center gap-1 border-b px-2 py-1 text-xs">
+          <div sx={stylexStyles2.rule24}>
             <button
               type="button"
-              className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex size-11 shrink-0 items-center justify-center rounded md:pointer-fine:size-auto md:pointer-fine:p-1"
+              sx={stylexStyles2.rule17}
               onClick={() => onChangePath?.(getParentPath(currentPath))}
               title="Up one level"
             >
               <LuChevronLeft sx={stylexStyles.rule5} />
             </button>
-            <span className="text-muted-foreground truncate">
-              /{currentPath}
-            </span>
+            <span sx={stylexStyles2.rule25}>/{currentPath}</span>
           </div>
         )}
         {hasFilter && <NoteListFilters controller={controller} />}
-        <div className="flex-1 overflow-y-auto">
+        <div sx={stylexStyles2.rule26}>
           {controller.showEmptyState ? (
             <NoteListEmptyState
               isEmptyDirectory={isEmptyDirectory}

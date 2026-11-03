@@ -37,6 +37,162 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'flex',
+    minHeight: 0,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule2: {
+    width: '100%',
+    maxWidth: 'var(--container-xs)',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule3: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 2.5)`,
+  },
+  rule4: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+  },
+  rule5: { minWidth: 0 },
+  rule6: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule7: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule8: {
+    marginTop: themeLayout['--spacing'],
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule9: {
+    display: 'flex',
+    minHeight: 0,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'auto',
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule10: { maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' },
+  rule11: { minWidth: 0, flex: 1 },
+  rule12: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule13: {
+    marginTop: themeLayout['--spacing'],
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule14: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    display: 'flex',
+    justifyContent: 'flex-end',
+  },
+  rule15: {
+    display: 'inline-flex',
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 2.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+  },
+  rule16: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    overflow: 'hidden',
+  },
+  rule17: {
+    display: 'flex',
+    minHeight: 0,
+    flex: 1,
+    flexDirection: 'column',
+    overflow: 'hidden',
+    backgroundColor: themeColors['--color-file-back'],
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 4)`,
@@ -100,23 +256,19 @@ function FileIcon({
 // BinaryFileViewer displays a placeholder for binary files.
 function BinaryFileViewer({ mimeType }: { mimeType: string }) {
   return (
-    <div className="flex min-h-0 flex-1 items-center justify-center p-6">
-      <div className="border-foreground/6 bg-background-card/30 w-full max-w-xs rounded-lg border p-4">
-        <div className="flex items-start gap-2.5">
-          <span className="bg-foreground/5 flex size-8 shrink-0 items-center justify-center rounded-md">
+    <div sx={stylexStyles3.rule1}>
+      <div sx={stylexStyles3.rule2}>
+        <div sx={stylexStyles3.rule3}>
+          <span sx={stylexStyles3.rule4}>
             <FileIcon mimeType={mimeType} sx={stylexStyles2.rule1} />
           </span>
-          <div className="min-w-0">
-            <p className="text-foreground text-xs font-medium select-none">
-              Preview not available
-            </p>
-            <p className="text-foreground-alt/60 mt-0.5 text-xs leading-relaxed">
+          <div sx={stylexStyles3.rule5}>
+            <p sx={stylexStyles3.rule6}>Preview not available</p>
+            <p sx={stylexStyles3.rule7}>
               This file type can't be rendered inline. Download it to open in
               another app.
             </p>
-            <p className="text-foreground-alt/40 mt-1 font-mono text-xs">
-              {mimeType}
-            </p>
+            <p sx={stylexStyles3.rule8}>{mimeType}</p>
           </div>
         </div>
       </div>
@@ -132,12 +284,8 @@ function ImageFileViewer({
   inlineFileURL?: string
 }) {
   return (
-    <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-4">
-      <img
-        alt={alt}
-        className="max-h-full max-w-full object-contain"
-        src={inlineFileURL}
-      />
+    <div sx={stylexStyles3.rule9}>
+      <img alt={alt} sx={stylexStyles3.rule10} src={inlineFileURL} />
     </div>
   )
 }
@@ -153,33 +301,27 @@ function SymlinkViewer({
   onNavigate?: () => void
 }) {
   return (
-    <div className="flex min-h-0 flex-1 items-center justify-center p-6">
-      <div className="border-foreground/6 bg-background-card/30 w-full max-w-xs rounded-lg border p-4">
-        <div className="flex items-start gap-2.5">
-          <span className="bg-foreground/5 flex size-8 shrink-0 items-center justify-center rounded-md">
+    <div sx={stylexStyles3.rule1}>
+      <div sx={stylexStyles3.rule2}>
+        <div sx={stylexStyles3.rule3}>
+          <span sx={stylexStyles3.rule4}>
             <LuLink sx={stylexStyles.rule1} />
           </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-foreground text-xs font-medium select-none">
-              Symbolic link
-            </p>
+          <div sx={stylexStyles3.rule11}>
+            <p sx={stylexStyles3.rule6}>Symbolic link</p>
             {loading ? (
-              <p className="text-foreground-alt/60 mt-0.5 text-xs">
-                Reading target…
-              </p>
+              <p sx={stylexStyles3.rule12}>Reading target…</p>
             ) : (
-              <p className="text-foreground-alt/70 mt-1 truncate font-mono text-xs">
-                {target}
-              </p>
+              <p sx={stylexStyles3.rule13}>{target}</p>
             )}
           </div>
         </div>
         {!loading && onNavigate && (
-          <div className="mt-3 flex justify-end">
+          <div sx={stylexStyles3.rule14}>
             <button
               type="button"
               onClick={onNavigate}
-              className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition duration-150"
+              sx={stylexStyles3.rule15}
             >
               Go to target
               <LuArrowRight sx={stylexStyles.rule2} />
@@ -381,14 +523,11 @@ export function UnixFSFileViewer({
   inlineFileURL,
 }: UnixFSFileViewerProps) {
   return (
-    <div
-      data-testid="unixfs-browser"
-      className="flex h-full w-full flex-col overflow-hidden"
-    >
+    <div data-testid="unixfs-browser" sx={stylexStyles3.rule16}>
       {!hideToolbar && <FileToolbar path={path} />}
 
       {/* File content */}
-      <div className="bg-file-back flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div sx={stylexStyles3.rule17}>
         <FileBody
           path={path}
           stat={stat}

@@ -24,6 +24,147 @@ import {
 } from '../../web/style/tokens.stylex.js'
 import { groupMarker as groupMarker2 } from '../../web/style/relations.stylex.js'
 
+import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
+import { groupMarker as groupMarker3 } from '../../web/style/relations.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    position: 'relative',
+    zIndex: 10,
+    marginInline: 'auto',
+    width: '100%',
+    maxWidth: 'var(--container-3xl)',
+    paddingInline: {
+      default: `calc(${themeLayout['--spacing']} * 4)`,
+      '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 8)`,
+    },
+    paddingTop: {
+      default: `calc(${themeLayout['--spacing']} * 6)`,
+      '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 10)`,
+    },
+    paddingBottom: `calc(${themeLayout['--spacing']} * 20)`,
+  },
+  rule2: { marginBottom: `calc(${themeLayout['--spacing']} * 8)` },
+  rule3: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 3)`,
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    columnGap: `calc(${themeLayout['--spacing']} * 3)`,
+    rowGap: themeLayout['--spacing'],
+  },
+  rule4: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    '--tw-numeric-spacing': 'tabular-nums',
+    fontVariantNumeric:
+      'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+  },
+  rule5: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 20%, transparent)`,
+  },
+  rule6: {
+    marginLeft: 'auto',
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground-alt'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule7: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 4)`,
+    fontSize: {
+      default: 'var(--text-2xl)',
+      '@container (min-width: 32rem)': 'var(--text-3xl)',
+    },
+    lineHeight: {
+      default: 'var(--leading-snug)',
+      '@container (min-width: 32rem)': 'var(--leading-snug)',
+    },
+    '--tw-leading': {
+      default: 'var(--leading-snug)',
+      '@container (min-width: 32rem)': 'var(--leading-snug)',
+    },
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+  },
+  rule8: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule9: {
+    width: `calc(${themeLayout['--spacing']} * 7)`,
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    borderRadius: '3.40282e38px',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+  },
+  rule10: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+    textDecorationLine: {
+      default: null,
+      '@media (hover: hover)': { default: null, ':hover': 'underline' },
+    },
+  },
+  rule11: {
+    marginTop: `calc(${themeLayout['--spacing']} * 12)`,
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule12: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule13: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: {
+      default: themeColors['--color-foreground'],
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker3)]:
+          themeColors['--color-brand'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.2s',
+    '--tw-duration': '.2s',
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     display: 'flex',
@@ -191,14 +332,12 @@ export function BlogPostPage({ post, prevPost, nextPost }: BlogPostPageProps) {
 
   return (
     <BlogLayout>
-      <article className="relative z-10 mx-auto w-full max-w-3xl px-4 pt-6 pb-20 @lg:px-8 @lg:pt-10">
+      <article sx={stylexStyles3.rule1}>
         {/* Post header */}
-        <header className="mb-8">
-          <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
-            <time className="text-foreground-alt/50 text-xs tabular-nums">
-              {post.date}
-            </time>
-            <span className="text-foreground-alt/20 text-xs">/</span>
+        <header sx={stylexStyles3.rule2}>
+          <div sx={stylexStyles3.rule3}>
+            <time sx={stylexStyles3.rule4}>{post.date}</time>
+            <span sx={stylexStyles3.rule5}>/</span>
             {post.tags.map((tag) => (
               <TagChip key={tag} tag={tag} />
             ))}
@@ -206,29 +345,27 @@ export function BlogPostPage({ post, prevPost, nextPost }: BlogPostPageProps) {
               href={`${GITHUB_REPO_URL}/blob/master/app/blog/posts/${post.date.slice(0, 4)}-${post.date.slice(5, 7)}-${post.date.slice(8, 10)}-${post.slug}.md`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-foreground-alt/40 hover:text-foreground-alt ml-auto flex items-center gap-1.5 text-xs transition-colors"
+              sx={stylexStyles3.rule6}
               title="View source on GitHub"
             >
               <LuGithub sx={stylexStyles.rule1} />
             </a>
           </div>
 
-          <h1 className="text-foreground mb-4 text-2xl leading-snug font-semibold tracking-tight @lg:text-3xl @lg:leading-snug">
-            {post.title}
-          </h1>
+          <h1 sx={stylexStyles3.rule7}>{post.title}</h1>
 
-          <div className="flex items-center gap-3">
+          <div sx={stylexStyles3.rule8}>
             <img
               src={post.author.avatar}
               alt={post.author.name}
-              className="border-foreground/10 size-7 rounded-full border"
+              sx={stylexStyles3.rule9}
               loading="lazy"
             />
             <a
               href={safeHref(post.author.url)}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-foreground-alt/70 text-xs font-medium hover:underline"
+              sx={stylexStyles3.rule10}
             >
               {post.author.name}
             </a>
@@ -236,7 +373,11 @@ export function BlogPostPage({ post, prevPost, nextPost }: BlogPostPageProps) {
         </header>
 
         {/* Post body */}
-        <div className="blog-prose">
+        <div
+          className={
+            /* TODO(stylex): global or unknown class: blog-prose */ 'blog-prose'
+          }
+        >
           <BlogMarkdown>{post.body}</BlogMarkdown>
         </div>
 
@@ -244,20 +385,18 @@ export function BlogPostPage({ post, prevPost, nextPost }: BlogPostPageProps) {
 
         {/* Post navigation */}
         {(prevPost || nextPost) && (
-          <nav className="mt-12 grid grid-cols-2 gap-4">
+          <nav sx={stylexStyles3.rule11}>
             {prevPost ? (
               <button
                 type="button"
                 onClick={navigatePrev}
                 sx={[stylexStyles2.rule1, groupMarker2]}
               >
-                <span className="text-foreground-alt/50 flex items-center gap-1.5 text-xs">
+                <span sx={stylexStyles3.rule12}>
                   <LuArrowLeft sx={stylexStyles.rule2} />
                   Previous
                 </span>
-                <span className="text-foreground group-hover:text-brand text-sm font-medium transition-colors duration-200">
-                  {prevPost.title}
-                </span>
+                <span sx={stylexStyles3.rule13}>{prevPost.title}</span>
               </button>
             ) : (
               <div />
@@ -269,13 +408,11 @@ export function BlogPostPage({ post, prevPost, nextPost }: BlogPostPageProps) {
                 onClick={navigateNext}
                 sx={[stylexStyles2.rule2, groupMarker2]}
               >
-                <span className="text-foreground-alt/50 flex items-center gap-1.5 text-xs">
+                <span sx={stylexStyles3.rule12}>
                   Next
                   <LuArrowRight sx={stylexStyles.rule3} />
                 </span>
-                <span className="text-foreground group-hover:text-brand text-sm font-medium transition-colors duration-200">
-                  {nextPost.title}
-                </span>
+                <span sx={stylexStyles3.rule13}>{nextPost.title}</span>
               </button>
             ) : (
               <div />

@@ -19,6 +19,64 @@ import {
   type TargetStatus,
 } from '@s4wave/sdk/prom/prom.pb.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  colors as themeColors,
+  layout as themeLayout,
+  fonts as themeFonts,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    height: '100%',
+    width: '100%',
+    overflow: 'auto',
+    backgroundColor: themeColors['--color-background-primary'],
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 4)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule3: { height: `calc(${themeLayout['--spacing']} * 120)` },
+  rule4: { marginBottom: `calc(${themeLayout['--spacing']} * 8)` },
+  rule5: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-wide)',
+    letterSpacing: 'var(--tracking-wide)',
+    color: themeColors['--color-foreground-alt'],
+    textTransform: 'uppercase',
+  },
+  rule6: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule7: { width: `calc(${themeLayout['--spacing']} * 120)` },
+  rule8: {
+    marginBottom: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule9: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+  },
+})
+
 // nowMs is the fixture's fixed clock, so every render draws the same frames.
 const nowMs = Date.UTC(2026, 9, 24, 19, 30)
 const hourMs = 60 * 60_000
@@ -164,10 +222,8 @@ export function PromViewerDebug() {
     />
   )
   return (
-    <div className="bg-background-primary h-full w-full overflow-auto p-4">
-      <h1 className="text-foreground mb-4 text-sm font-semibold">
-        Metrics viewer states
-      </h1>
+    <div sx={stylexStyles.rule1}>
+      <h1 sx={stylexStyles.rule2}>Metrics viewer states</h1>
       <Section title="Panels">
         <Case title="Loading">{panel(chartPanel, { state: 'loading' })}</Case>
         <Case title="Error">
@@ -233,7 +289,7 @@ export function PromViewerDebug() {
       <Section title="Scrape targets">
         {targetCases.map((c) => (
           <Case key={c.title} title={c.title}>
-            <div className="h-120">
+            <div sx={stylexStyles.rule3}>
               <PromTargetView
                 objectKey="prom/target/forge-node"
                 info={c.state.state === 'unapproved' ? undefined : targetInfo}
@@ -256,11 +312,9 @@ export function PromViewerDebug() {
 // Section groups the cases of one view.
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="mb-8">
-      <h2 className="text-foreground-alt mb-2 text-xs font-medium tracking-wide uppercase">
-        {title}
-      </h2>
-      <div className="flex flex-wrap gap-4">{children}</div>
+    <section sx={stylexStyles.rule4}>
+      <h2 sx={stylexStyles.rule5}>{title}</h2>
+      <div sx={stylexStyles.rule6}>{children}</div>
     </section>
   )
 }
@@ -268,11 +322,9 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 // Case frames one state at the panel width.
 function Case({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <figure className="w-120">
-      <figcaption className="text-foreground-alt mb-1 text-xs">
-        {title}
-      </figcaption>
-      <div className="border-foreground/8 rounded-md border">{children}</div>
+    <figure sx={stylexStyles.rule7}>
+      <figcaption sx={stylexStyles.rule8}>{title}</figcaption>
+      <div sx={stylexStyles.rule9}>{children}</div>
     </figure>
   )
 }

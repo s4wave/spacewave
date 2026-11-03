@@ -6,6 +6,41 @@ import type { VmState } from '@s4wave/sdk/vm/v86.pb.js'
 
 import { VmStateBadge } from './VmStateBadge.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    containerType: 'inline-size',
+    position: 'relative',
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule2: {
+    display: 'flex',
+    minWidth: 0,
+    flex: 1,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule3: {
+    display: { default: 'none', '@container (min-width: 28rem)': 'inline' },
+  },
+})
+
 // VmHeaderProps configures the header strip of a VM.
 export interface VmHeaderProps {
   state: VmState
@@ -22,8 +57,8 @@ export interface VmHeaderProps {
 // positions the activity's progress line along its bottom edge.
 export function VmHeader({ state, activity, children }: VmHeaderProps) {
   return (
-    <div className="border-foreground/8 @container relative flex h-7 shrink-0 items-center gap-1.5 border-b px-2">
-      <div className="flex min-w-0 flex-1 items-center gap-1.5 select-none">
+    <div sx={stylexStyles.rule1}>
+      <div sx={stylexStyles.rule2}>
         <VmStateBadge state={state} />
         {activity}
       </div>
@@ -51,7 +86,7 @@ export function VmStopButton({ disabled, onStop }: VmStopButtonProps) {
       onClick={onStop}
     >
       <LuSquare />
-      <span className="hidden @md:inline">Stop</span>
+      <span sx={stylexStyles.rule3}>Stop</span>
     </Button>
   )
 }

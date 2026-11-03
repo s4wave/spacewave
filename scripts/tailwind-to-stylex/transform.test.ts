@@ -943,6 +943,8 @@ void invalidNativeDelegate;
             'lists',
             'workbench',
             'credentials',
+            'viewer-empty',
+            'viewer-clone',
           ].map((mode) => ({
             id: 'app-helper-' + mode,
             path: '/?app-helper=' + mode,
@@ -1934,6 +1936,8 @@ void invalidNativeDelegate;
             'app-helper-lists',
             'app-helper-workbench',
             'app-helper-credentials',
+            'app-helper-viewer-empty',
+            'app-helper-viewer-clone',
           ],
         },
         {

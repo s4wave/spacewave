@@ -11,6 +11,26 @@ import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { Landing } from './Landing.js'
 import type { SessionListEntry } from '@s4wave/core/session/session.pb.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  colors as themeColors,
+  layout as themeLayout,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: themeColors['--color-background-landing'],
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule2: { width: '100%', maxWidth: 'var(--container-sm)' },
+})
+
 // LandingOrRedirect checks for existing sessions and redirects accordingly.
 export function LandingOrRedirect() {
   const environment = useAppEnvironment()
@@ -62,8 +82,8 @@ function LandingWithSessionCheck() {
 
   if (resource.loading) {
     return (
-      <div className="bg-background-landing flex h-full w-full flex-1 items-center justify-center p-6">
-        <div className="w-full max-w-sm">
+      <div sx={stylexStyles.rule1}>
+        <div sx={stylexStyles.rule2}>
           <LoadingCard
             view={{
               state: 'loading',
@@ -78,8 +98,8 @@ function LandingWithSessionCheck() {
 
   if (resource.error) {
     return (
-      <div className="bg-background-landing flex h-full w-full flex-1 items-center justify-center p-6">
-        <div className="w-full max-w-sm">
+      <div sx={stylexStyles.rule1}>
+        <div sx={stylexStyles.rule2}>
           <LoadingCard
             view={{
               state: 'error',
@@ -113,8 +133,8 @@ function LandingWithSessionCheck() {
   // Still loading metadata for the preference check.
   if (metaResource.loading) {
     return (
-      <div className="bg-background-landing flex h-full w-full flex-1 items-center justify-center p-6">
-        <div className="w-full max-w-sm">
+      <div sx={stylexStyles.rule1}>
+        <div sx={stylexStyles.rule2}>
           <LoadingCard
             view={{
               state: 'active',

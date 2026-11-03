@@ -12,6 +12,104 @@ import {
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
 
+import {
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    borderBottomStyle: {
+      default: themeUtilityState['--tw-border-style'],
+      ':last-child': themeUtilityState['--tw-border-style'],
+    },
+    borderBottomWidth: { default: '1px', ':last-child': 0 },
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+  },
+  rule2: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-white']} 3%, transparent)`,
+      },
+    },
+  },
+  rule3: { flexShrink: 0, backgroundColor: '#0000', padding: 0 },
+  rule4: {
+    flexShrink: 0,
+    cursor: 'pointer',
+    backgroundColor: '#0000',
+    padding: 0,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    color: themeColors['--color-brand'],
+    textDecorationLine: {
+      default: null,
+      '@media (hover: hover)': { default: null, ':hover': 'underline' },
+    },
+  },
+  rule5: {
+    display: 'flex',
+    minWidth: 0,
+    flex: 1,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    backgroundColor: '#0000',
+    padding: 0,
+    textAlign: 'left',
+  },
+  rule6: {
+    minWidth: 0,
+    flex: 1,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    color: themeColors['--color-foreground'],
+  },
+  rule7: { flexShrink: 0, color: themeColors['--color-foreground-alt'] },
+  rule8: {
+    flexShrink: 0,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule9: {
+    backgroundColor: 'color-mix(in oklab, var(--color-black) 2%, transparent)',
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule10: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    whiteSpace: 'pre-wrap',
+    color: themeColors['--color-foreground'],
+  },
+  rule11: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3)`,
@@ -61,13 +159,13 @@ export function CommitRow({
   }, [hash, onCommitClick])
 
   return (
-    <div className="border-foreground/8 border-b last:border-b-0">
-      <div className="flex w-full items-center gap-2 px-3 py-1 text-xs select-none hover:bg-white/[0.03]">
+    <div sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>
         <button
           type="button"
           aria-label={expanded ? 'Collapse commit' : 'Expand commit'}
           aria-expanded={expanded}
-          className="shrink-0 bg-transparent p-0"
+          sx={stylexStyles2.rule3}
           onClick={handleCommitExpand}
         >
           {expanded ? (
@@ -78,7 +176,7 @@ export function CommitRow({
         </button>
         <button
           type="button"
-          className="text-brand shrink-0 cursor-pointer bg-transparent p-0 font-mono hover:underline"
+          sx={stylexStyles2.rule4}
           onClick={handleHashClick}
         >
           {shortHash}
@@ -86,29 +184,19 @@ export function CommitRow({
         <button
           type="button"
           aria-expanded={expanded}
-          className="flex min-w-0 flex-1 items-center gap-2 bg-transparent p-0 text-left"
+          sx={stylexStyles2.rule5}
           onClick={handleCommitExpand}
         >
-          <span className="text-foreground min-w-0 flex-1 truncate">
-            {subject}
-          </span>
-          {author && (
-            <span className="text-foreground-alt shrink-0">{author}</span>
-          )}
-          {timeAgo && (
-            <span className="text-foreground-alt/70 shrink-0">{timeAgo}</span>
-          )}
+          <span sx={stylexStyles2.rule6}>{subject}</span>
+          {author && <span sx={stylexStyles2.rule7}>{author}</span>}
+          {timeAgo && <span sx={stylexStyles2.rule8}>{timeAgo}</span>}
         </button>
       </div>
       {expanded && (
-        <div className="bg-black/[0.02] px-3 py-2">
-          {body && (
-            <pre className="text-foreground mb-2 font-mono text-xs whitespace-pre-wrap">
-              {body}
-            </pre>
-          )}
+        <div sx={stylexStyles2.rule9}>
+          {body && <pre sx={stylexStyles2.rule10}>{body}</pre>}
           {(commit.parentHashes?.length ?? 0) > 0 && (
-            <div className="text-foreground-alt mb-2 text-xs">
+            <div sx={stylexStyles2.rule11}>
               {(commit.parentHashes?.length ?? 0) > 1
                 ? 'Parents: '
                 : 'Parent: '}

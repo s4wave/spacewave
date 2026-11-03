@@ -13,6 +13,69 @@ import { LuLayers } from '@s4wave/web/images/icons.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
 
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: { marginBlock: `calc(${themeLayout['--spacing']} * 2)` },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: themeColors['--color-border'],
+    backgroundColor: themeColors['--color-card'],
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    color: themeColors['--color-brand'],
+  },
+  rule3: { minWidth: 0, flex: 1 },
+  rule4: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule5: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule6: {
+    borderRadius: '.25rem',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-brand'],
+  },
+  rule7: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-muted-foreground'],
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 5)`,
@@ -57,7 +120,7 @@ export class SpacewaveEmbedNode extends DecoratorNode<JSX.Element> {
 
   createDOM(_config: EditorConfig): HTMLElement {
     const div = document.createElement('div')
-    div.className = 'my-2'
+    div.className = stylex.props(stylexStyles3.rule1).className ?? ''
     return div
   }
 
@@ -78,21 +141,15 @@ export class SpacewaveEmbedNode extends DecoratorNode<JSX.Element> {
     const ext = filename.includes('.') ? (filename.split('.').pop() ?? '') : ''
 
     return (
-      <div className="bg-card border-border flex items-center gap-3 rounded-lg border p-3">
-        <div className="text-brand flex items-center">
+      <div sx={stylexStyles2.rule1}>
+        <div sx={stylexStyles2.rule2}>
           <LuLayers sx={stylexStyles.rule1} />
         </div>
-        <div className="min-w-0 flex-1">
-          <div className="text-foreground truncate text-xs font-medium">
-            {this.__path}
-          </div>
-          <div className="mt-0.5 flex items-center gap-2">
-            <span className="bg-brand/10 text-brand rounded px-1.5 py-0.5 text-xs font-medium">
-              spacewave
-            </span>
-            {ext && (
-              <span className="text-muted-foreground text-xs">{ext}</span>
-            )}
+        <div sx={stylexStyles2.rule3}>
+          <div sx={stylexStyles2.rule4}>{this.__path}</div>
+          <div sx={stylexStyles2.rule5}>
+            <span sx={stylexStyles2.rule6}>spacewave</span>
+            {ext && <span sx={stylexStyles2.rule7}>{ext}</span>}
           </div>
         </div>
       </div>

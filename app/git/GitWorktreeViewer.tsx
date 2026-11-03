@@ -27,14 +27,14 @@ import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { useHistory } from '@s4wave/web/router/HistoryRouter.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { PanelSizeGate } from '@s4wave/web/ui/PanelSizeGate.js'
 
 import { buildProjectedFileInlineURL } from '@s4wave/app/space/projected-url.js'
 
 import { ChangesView } from './changes/ChangesView.js'
 import {
-  statusCodeToColor,
+  statusCodeStyles,
   statusCodeToLetter,
 } from './changes/StatusSection.js'
 import { CommitDetail } from './commits/CommitDetail.js'
@@ -48,6 +48,83 @@ import type { ViewMode } from './layout/route.js'
 import { useGitBrowsingState } from './useGitBrowsingState.js'
 import { useGitFileEntries } from './useGitFileEntries.js'
 import { useGitNavigation } from './useGitNavigation.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  colors as themeColors,
+  fonts as themeFonts,
+  layout as themeLayout,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    marginRight: `calc(${themeLayout['--spacing']} * 2)`,
+    flexShrink: 0,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: { display: 'flex', width: '100%', alignItems: 'center' },
+  rule2: { minWidth: 0, flex: 1 },
+  rule3: {
+    display: 'flex',
+    minHeight: 0,
+    flex: 1,
+    flexDirection: 'column',
+    overflow: 'hidden',
+    backgroundColor: themeColors['--color-file-back'],
+  },
+  rule4: {
+    display: 'flex',
+    minHeight: 0,
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    backgroundColor: themeColors['--color-file-back'],
+  },
+  rule5: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule6: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule7: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule8: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-brand'],
+    textDecorationLine: 'underline',
+  },
+  rule9: {
+    display: 'flex',
+    minHeight: 0,
+    flex: 1,
+    flexDirection: 'column',
+    overflow: 'auto',
+    backgroundColor: themeColors['--color-file-back'],
+  },
+})
 
 type GitFileEntries = ReturnType<typeof useGitFileEntries>
 
@@ -225,14 +302,9 @@ function useStatusEntryRenderer(statusEntries: StatusEntry[]) {
       if (!code) return props.defaultNode
 
       return (
-        <div className="flex w-full items-center">
-          <div className="min-w-0 flex-1">{props.defaultNode}</div>
-          <span
-            className={cn(
-              'mr-2 shrink-0 font-mono text-xs font-medium',
-              statusCodeToColor(code),
-            )}
-          >
+        <div sx={stylexStyles.rule1}>
+          <div sx={stylexStyles.rule2}>{props.defaultNode}</div>
+          <span sx={[[stylexStyles2.rule1], [statusCodeStyles(code)]]}>
             {statusCodeToLetter(code)}
           </span>
         </div>
@@ -506,7 +578,7 @@ function WorktreeSourceStatus({
     return (
       <GitViewerFrame {...bareFrameProps}>
         {staleEntries.length > 0 ? (
-          <div className="bg-file-back flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div sx={stylexStyles.rule3}>
             <FileTree
               entries={staleEntries}
               onOpen={nav.handleOpen}
@@ -516,8 +588,8 @@ function WorktreeSourceStatus({
             />
           </div>
         ) : (
-          <div className="bg-file-back flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden">
-            <div className="text-foreground-alt text-xs">Loading files…</div>
+          <div sx={stylexStyles.rule4}>
+            <div sx={stylexStyles.rule5}>Loading files…</div>
           </div>
         )}
       </GitViewerFrame>
@@ -527,16 +599,10 @@ function WorktreeSourceStatus({
   const failed = sourceResources(source).find((resource) => resource.error)
   return (
     <GitViewerFrame {...bareFrameProps}>
-      <div className="bg-file-back flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden">
-        <div className="text-destructive text-xs">Error loading files</div>
-        <div className="text-foreground-alt/70 mt-1 text-xs">
-          {failed?.error?.message}
-        </div>
-        <button
-          type="button"
-          className="text-brand mt-2 text-xs underline"
-          onClick={failed?.retry}
-        >
+      <div sx={stylexStyles.rule4}>
+        <div sx={stylexStyles.rule6}>Error loading files</div>
+        <div sx={stylexStyles.rule7}>{failed?.error?.message}</div>
+        <button type="button" sx={stylexStyles.rule8} onClick={failed?.retry}>
           Retry
         </button>
       </div>
@@ -714,7 +780,7 @@ function GitWorktreeReadyContent({
 
   return (
     <GitViewerFrame {...frameProps}>
-      <div className="bg-file-back flex min-h-0 flex-1 flex-col overflow-auto">
+      <div sx={stylexStyles.rule9}>
         <WorktreeRouteBody controller={controller} />
       </div>
     </GitViewerFrame>
@@ -732,9 +798,7 @@ function GitWorktreeContent({
   if (worktreeResource.loading) {
     return (
       <GitViewerCenteredState
-        title={
-          <span className="text-foreground-alt text-xs">Loading worktree…</span>
-        }
+        title={<span sx={stylexStyles.rule5}>Loading worktree…</span>}
       />
     )
   }
@@ -742,16 +806,12 @@ function GitWorktreeContent({
   if (worktreeResource.error) {
     return (
       <GitViewerCenteredState
-        title={
-          <span className="text-destructive text-xs">
-            Error loading worktree
-          </span>
-        }
+        title={<span sx={stylexStyles.rule6}>Error loading worktree</span>}
         detail={worktreeResource.error.message}
         action={
           <button
             type="button"
-            className="text-brand mt-2 text-xs underline"
+            sx={stylexStyles.rule8}
             onClick={worktreeResource.retry}
           >
             Retry
@@ -764,11 +824,7 @@ function GitWorktreeContent({
   if (!worktreeResource.value) {
     return (
       <GitViewerCenteredState
-        title={
-          <span className="text-foreground-alt text-xs">
-            Git worktree not found
-          </span>
-        }
+        title={<span sx={stylexStyles.rule5}>Git worktree not found</span>}
         detail={`Object: ${objectKey || 'none'}`}
       />
     )

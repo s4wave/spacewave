@@ -23,6 +23,290 @@ import {
 
 import { motion as themeMotion } from '../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  utilityState as themeUtilityState,
+  radii as themeRadii,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles4 = stylex.create({
+  rule1: { marginBottom: `calc(${themeLayout['--spacing']} * 3)` },
+})
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    borderRadius: '.25rem',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground-alt'],
+    textTransform: 'uppercase',
+  },
+  rule2: {
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule3: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+  },
+  rule4: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule5: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule6: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule7: {
+    marginLeft: 'auto',
+    display: 'flex',
+    cursor: 'pointer',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground-alt'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule8: {
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule9: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    whiteSpace: 'pre-wrap',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule10: {
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+  },
+  rule11: {
+    borderBottomStyle: {
+      default: themeUtilityState['--tw-border-style'],
+      ':last-child': themeUtilityState['--tw-border-style'],
+    },
+    borderBottomWidth: { default: '1px', ':last-child': 0 },
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule12: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule13: {
+    cursor: 'pointer',
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground-alt'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule14: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule15: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule16: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingLeft: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule17: {
+    marginBottom: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule18: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    maxHeight: `calc(${themeLayout['--spacing']} * 64)`,
+    overflowY: 'auto',
+    fontSize: themeLayout['--text-metadata'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    whiteSpace: 'pre-wrap',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule19: {
+    marginTop: `calc(${themeLayout['--spacing']} * 10)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule20: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule21: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule22: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule23: {
+    marginTop: themeLayout['--spacing'],
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule24: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule25: {
+    position: 'relative',
+    zIndex: 10,
+    marginInline: 'auto',
+    width: '100%',
+    maxWidth: 'var(--container-4xl)',
+    paddingInline: {
+      default: `calc(${themeLayout['--spacing']} * 4)`,
+      '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 8)`,
+    },
+    paddingBottom: {
+      default: `calc(${themeLayout['--spacing']} * 14)`,
+      '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 16)`,
+    },
+  },
+  rule26: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 8)`,
+    display: 'flex',
+    flexDirection: {
+      default: 'column',
+      '@container (min-width: 28rem)': 'row',
+    },
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    alignItems: { default: null, '@container (min-width: 28rem)': 'center' },
+    justifyContent: {
+      default: null,
+      '@container (min-width: 28rem)': 'space-between',
+    },
+  },
+  rule27: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule28: { position: 'relative' },
+  rule29: {
+    width: {
+      default: '100%',
+      '@container (min-width: 28rem)': `calc(${themeLayout['--spacing']} * 64)`,
+    },
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingRight: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingLeft: `calc(${themeLayout['--spacing']} * 8)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+    '::placeholder': {
+      color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+    },
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus':
+        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    boxShadow: {
+      default: null,
+      ':focus':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    '--tw-ring-color': {
+      default: null,
+      ':focus': `color-mix(in oklab, ${themeColors['--color-white']} 20%, transparent)`,
+    },
+    '--tw-outline-style': { default: null, ':focus': 'none' },
+    outlineStyle: { default: null, ':focus': 'none' },
+  },
+  rule30: {
+    paddingBlock: `calc(${themeLayout['--spacing']} * 12)`,
+    textAlign: 'center',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     transitionProperty:
@@ -101,22 +385,15 @@ function getLicenseEntryKey(entry: AnnotatedLicenseEntry): string {
 
 function SourceBadge({ source }: { source: string }) {
   const label = source === 'both' ? 'JS + Go' : source === 'js' ? 'JS' : 'Go'
-  return (
-    <span className="bg-foreground/8 text-foreground-alt rounded px-1.5 py-0.5 text-xs font-medium uppercase">
-      {label}
-    </span>
-  )
+  return <span sx={stylexStyles3.rule1}>{label}</span>
 }
 
 function SpdxBadge({ spdx }: { spdx: string }) {
-  return (
-    <span className="border-foreground/10 text-foreground-alt rounded border px-1.5 py-0.5 text-xs font-medium">
-      {spdx}
-    </span>
-  )
+  return <span sx={stylexStyles3.rule2}>{spdx}</span>
 }
 
 function LicenseGroup({
+  sx,
   spdx,
   entries,
   baseText,
@@ -124,7 +401,7 @@ function LicenseGroup({
   spdx: string
   entries: AnnotatedLicenseEntry[]
   baseText?: string
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   const [expanded, setExpanded] = useState<string | null>(null)
   const [showBase, setShowBase] = useState(false)
 
@@ -135,19 +412,15 @@ function LicenseGroup({
   )
 
   return (
-    <div className="border-foreground/8 bg-background-card/50 rounded-lg border">
-      <div className="flex items-center gap-3 px-5 py-4">
+    <div sx={[stylexStyles3.rule3, sx]}>
+      <div sx={stylexStyles3.rule4}>
         <SpdxBadge spdx={spdx} />
-        <span className="text-foreground text-sm font-medium">{spdx}</span>
-        <span className="text-foreground-alt/60 text-xs">
+        <span sx={stylexStyles3.rule5}>{spdx}</span>
+        <span sx={stylexStyles3.rule6}>
           {entries.length} {entries.length === 1 ? 'package' : 'packages'}
         </span>
         {baseText && (
-          <button
-            type="button"
-            onClick={toggleBase}
-            className="text-foreground-alt/60 hover:text-foreground-alt ml-auto flex cursor-pointer items-center gap-1 text-xs transition-colors"
-          >
+          <button type="button" onClick={toggleBase} sx={stylexStyles3.rule7}>
             {showBase ? 'Hide' : 'Show'} license text
             {showBase ? (
               <LuChevronDown sx={stylexStyles.rule1} />
@@ -159,14 +432,12 @@ function LicenseGroup({
       </div>
 
       {showBase && baseText && (
-        <div className="border-foreground/8 border-t px-5 py-4">
-          <pre className="text-foreground-alt/70 text-xs leading-relaxed whitespace-pre-wrap">
-            {baseText}
-          </pre>
+        <div sx={stylexStyles3.rule8}>
+          <pre sx={stylexStyles3.rule9}>{baseText}</pre>
         </div>
       )}
 
-      <div className="border-foreground/8 border-t">
+      <div sx={stylexStyles3.rule10}>
         {entries.map((entry) => {
           const entryKey = getLicenseEntryKey(entry)
           const isExpanded = expanded === entryKey
@@ -175,18 +446,15 @@ function LicenseGroup({
           const buttonLabel = `${isExpanded ? 'Hide' : 'Show'} details for ${entry.name} ${entry.version}`
 
           return (
-            <div
-              key={entryKey}
-              className="border-foreground/5 border-b px-5 py-3 last:border-b-0"
-            >
-              <div className="flex items-center gap-2">
+            <div key={entryKey} sx={stylexStyles3.rule11}>
+              <div sx={stylexStyles3.rule12}>
                 {(hasCustomText || hasCopyright) && (
                   <button
                     type="button"
                     onClick={() => toggleEntry(entryKey)}
                     aria-expanded={isExpanded}
                     aria-label={buttonLabel}
-                    className="text-foreground-alt/60 hover:text-foreground-alt cursor-pointer transition-colors"
+                    sx={stylexStyles3.rule13}
                   >
                     {isExpanded ? (
                       <LuChevronDown sx={stylexStyles.rule2} />
@@ -195,7 +463,7 @@ function LicenseGroup({
                     )}
                   </button>
                 )}
-                <span className="text-foreground text-sm">
+                <span sx={stylexStyles3.rule14}>
                   {entry.repo ? (
                     <ExternalLink href={entry.repo} sx={stylexStyles2.rule1}>
                       {entry.name}
@@ -204,21 +472,17 @@ function LicenseGroup({
                     entry.name
                   )}
                 </span>
-                <span className="text-foreground-alt/50 text-xs">
-                  {entry.version}
-                </span>
+                <span sx={stylexStyles3.rule15}>{entry.version}</span>
                 <SourceBadge source={entry.source} />
               </div>
 
               {isExpanded && (
-                <div className="mt-2 pl-6">
+                <div sx={stylexStyles3.rule16}>
                   {hasCopyright && (
-                    <p className="text-foreground-alt/70 mb-1 text-xs">
-                      {entry.copyrightNotice}
-                    </p>
+                    <p sx={stylexStyles3.rule17}>{entry.copyrightNotice}</p>
                   )}
                   {hasCustomText && (
-                    <pre className="text-foreground-alt/60 text-metadata mt-2 max-h-64 overflow-y-auto leading-relaxed whitespace-pre-wrap">
+                    <pre sx={stylexStyles3.rule18}>
                       {reconstructText(entry)}
                     </pre>
                   )}
@@ -266,26 +530,24 @@ const vmComponents = [
 // their source code.
 function VmImageNotice() {
   return (
-    <div className="border-foreground/8 bg-background-card/50 mt-10 rounded-lg border px-5 py-4">
-      <h2 className="text-foreground mb-2 text-sm font-medium">
-        Virtual machine images
-      </h2>
-      <p className="text-foreground-alt/70 mb-3 text-xs leading-relaxed">
+    <div sx={stylexStyles3.rule19}>
+      <h2 sx={stylexStyles3.rule20}>Virtual machine images</h2>
+      <p sx={stylexStyles3.rule21}>
         Spacewave publishes images for its in-browser virtual machine. They
         contain these programs, each under its own license.
       </p>
-      <ul className="mb-3 space-y-2">
+      <ul sx={stylexStyles4.rule1}>
         {vmComponents.map((c) => (
-          <li key={c.name} className="text-xs">
+          <li key={c.name} sx={[nativeChildSpacing.s2, stylexStyles3.rule22]}>
             <ExternalLink href={c.href} sx={stylexStyles2.rule2}>
               {c.name}
             </ExternalLink>{' '}
             <SpdxBadge spdx={c.spdx} />
-            <p className="text-foreground-alt/60 mt-1">{c.note}</p>
+            <p sx={stylexStyles3.rule23}>{c.note}</p>
           </li>
         ))}
       </ul>
-      <p className="text-foreground-alt/70 text-xs leading-relaxed">
+      <p sx={stylexStyles3.rule24}>
         For at least three years after we last publish an image, we will give
         anyone the complete corresponding source code of its GPL and LGPL
         programs, including the Debian source packages, at no more than the cost
@@ -339,16 +601,16 @@ export function Licenses() {
       title="Open Source Licenses"
       subtitle="Spacewave is built with open source software. This page lists all third-party dependencies and their licenses."
     >
-      <section className="relative z-10 mx-auto w-full max-w-4xl px-4 pb-14 @lg:px-8 @lg:pb-16">
-        <div className="mb-8 flex flex-col gap-4 @md:flex-row @md:items-center @md:justify-between">
-          <div className="text-foreground-alt/60 flex flex-wrap gap-3 text-xs">
+      <section sx={stylexStyles3.rule25}>
+        <div sx={stylexStyles3.rule26}>
+          <div sx={stylexStyles3.rule27}>
             <span>{stats.total} packages</span>
             <span>{stats.jsCount} JavaScript</span>
             <span>{stats.goCount} Go</span>
             <span>{stats.uniqueLicenses} license types</span>
           </div>
 
-          <div className="relative">
+          <div sx={stylexStyles3.rule28}>
             <LuSearch sx={stylexStyles.rule4} />
             <input
               aria-label="Filter packages"
@@ -356,14 +618,15 @@ export function Licenses() {
               placeholder="Filter packages…"
               value={filter}
               onChange={onFilterChange}
-              className="border-foreground/10 bg-background-card/50 text-foreground placeholder:text-foreground-alt/40 w-full rounded-md border py-1.5 pr-3 pl-8 text-sm focus:ring-1 focus:ring-white/20 focus:outline-none @md:w-64"
+              sx={stylexStyles3.rule29}
             />
           </div>
         </div>
 
-        <div className="space-y-6">
+        <div sx={false}>
           {groups.map(({ spdx, entries }) => (
             <LicenseGroup
+              sx={nativeChildSpacingNext.s6}
               key={spdx}
               spdx={spdx}
               entries={entries}
@@ -373,7 +636,7 @@ export function Licenses() {
         </div>
 
         {filtered.length === 0 && (
-          <p className="text-foreground-alt/50 py-12 text-center text-sm">
+          <p sx={stylexStyles3.rule30}>
             No packages match &ldquo;{filter}&rdquo;
           </p>
         )}
@@ -383,3 +646,33 @@ export function Licenses() {
     </LegalPageLayout>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s6: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 6 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 6 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

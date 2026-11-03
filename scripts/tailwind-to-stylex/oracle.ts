@@ -50,7 +50,18 @@ function readRule(container: Container, selector: string): StyleRule {
       const declaration = node as Declaration
       if (declaration.important) throw new Error('important declaration')
       // Keep the forced-color outline's style in the same property as its normal default.
-      if (declaration.prop === 'outline') {
+      if (declaration.prop === 'background') {
+        // Custom utilities need the same longhand expansion as component recipes.
+        const expanded = postcss.parse(expandBackground(declaration.value))
+        expanded.walkDecls((value) => {
+          const repeated = value.value.split(',').map((part) => part.trim())
+          style[propertyName(value.prop)] = repeated.every(
+            (part) => part === repeated[0],
+          )
+            ? repeated[0]!
+            : value.value
+        })
+      } else if (declaration.prop === 'outline') {
         if (declaration.value !== '2px solid #0000')
           throw new Error('outline shorthand')
         Object.assign(style, {
@@ -64,9 +75,15 @@ function readRule(container: Container, selector: string): StyleRule {
           declaration.prop === 'z-index'
             ? declaration.value.match(/^calc\((\d+) \* -1\)$/)
             : null
+        const pixelPerspective =
+          declaration.prop === 'perspective'
+            ? declaration.value.match(/^(-?[\d.]+)px$/)
+            : null
         style[propertyName(declaration.prop)] = negativeInteger
           ? -Number(negativeInteger[1])
-          : declaration.value
+          : pixelPerspective
+            ? Number(pixelPerspective[1])
+            : declaration.value
       }
     } else if (node.type === 'atrule') {
       if (!['media', 'container', 'supports'].includes(node.name))

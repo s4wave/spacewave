@@ -22,6 +22,48 @@ import DocsToc from './docs/DocsToc.js'
 import { getNoteFileFormat } from './note-files.js'
 import NoteContentView from './NoteContentView.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  colors as themeColors,
+  layout as themeLayout,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    overflow: 'hidden',
+    backgroundColor: themeColors['--color-background-primary'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 55)`,
+    minWidth: `calc(${themeLayout['--spacing']} * 55)`,
+    borderRightStyle: themeUtilityState['--tw-border-style'],
+    borderRightWidth: '1px',
+    borderColor: themeColors['--color-border'],
+  },
+  rule3: { minWidth: 0, flex: 1 },
+  rule4: {
+    display: 'flex',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-muted-foreground'],
+  },
+  rule5: {
+    width: `calc(${themeLayout['--spacing']} * 45)`,
+    minWidth: `calc(${themeLayout['--spacing']} * 45)`,
+    borderLeftStyle: themeUtilityState['--tw-border-style'],
+    borderLeftWidth: '1px',
+    borderColor: themeColors['--color-border'],
+  },
+})
+
 // DocsViewer is the viewer for Notes Documentation objects.
 // Renders a tree sidebar, content area, and table of contents panel.
 function DocsViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
@@ -104,9 +146,9 @@ function DocsViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
       emptyText="No sources configured for this documentation"
       sources={sources}
     >
-      <div className="bg-background-primary flex h-full w-full overflow-hidden">
+      <div sx={stylexStyles.rule1}>
         {/* Tree sidebar */}
-        <div className="border-border w-55 min-w-55 border-r">
+        <div sx={stylexStyles.rule2}>
           <DocsSidebar
             source={firstSource}
             worldState={worldState}
@@ -117,7 +159,7 @@ function DocsViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
         </div>
 
         {/* Content area */}
-        <div className="min-w-0 flex-1">
+        <div sx={stylexStyles.rule3}>
           {firstSource?.ref && selectedPage ? (
             <NoteContentView
               worldState={worldState}
@@ -127,15 +169,13 @@ function DocsViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
               onToggleEdit={handleToggleEdit}
             />
           ) : (
-            <div className="text-muted-foreground flex h-full items-center justify-center text-xs">
-              Select a page to view
-            </div>
+            <div sx={stylexStyles.rule4}>Select a page to view</div>
           )}
         </div>
 
         {/* TOC panel (shown when viewing a page with headings, not editing) */}
         {selectedPage && !editing && tocContent && (
-          <div className="border-border w-45 min-w-45 border-l">
+          <div sx={stylexStyles.rule5}>
             <DocsToc content={tocContent} format={selectedPageFormat} />
           </div>
         )}

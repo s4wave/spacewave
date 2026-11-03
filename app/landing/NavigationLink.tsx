@@ -1,52 +1,113 @@
 import * as ownerStylex from '@stylexjs/stylex'
-import { cn as ownerClasses } from '@s4wave/web/style/utils.js'
+
 import { groupMarker as ownergroupMarker } from '@s4wave/web/style/relations.stylex.js'
 import { useCallback } from 'react'
-import { cn } from '@s4wave/web/style/utils.js'
+
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+import { groupMarker as groupMarker3 } from '../../web/style/relations.stylex.js'
+
+import {
+  fonts as themeFonts,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+import { groupMarker as groupMarker2 } from '../../web/style/relations.stylex.js'
+
+const stylexStyles2 = ownerStylex.create({
+  rule1: {
+    backgroundColor: {
+      default: '#0000',
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-navlink-selection'],
+      },
+      ':focus': themeColors['--color-navlink-selection'],
+    },
+    padding: 0,
+    fontFamily: themeFonts['--font-heading'],
+    fontSize: {
+      default: themeFonts['--text-sm'],
+      '@container (min-width: 32rem)': 'var(--text-base)',
+    },
+    lineHeight: {
+      default: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+      '@container (min-width: 32rem)':
+        'var(--tw-leading, var(--text-base--line-height))',
+    },
+    whiteSpace: 'nowrap',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule2: {
+    color: {
+      default: themeColors['--color-navlink-text'],
+      '@media (hover: hover)': {
+        default: null,
+        [ownerStylex.when.ancestor(':is(:hover)', groupMarker2)]:
+          themeColors['--color-navlink-text-hover'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+})
+
+const stylexStyles = ownerStylex.create({
+  rule1: {
+    paddingRight: themeLayout['--spacing-navlink-bracket'],
+    color: themeColors['--color-navlink-bracket'],
+    textDecorationLine: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        [ownerStylex.when.ancestor(':is(:hover)', groupMarker3)]: 'none',
+      },
+      [ownerStylex.when.ancestor(':is(:focus)', groupMarker3)]: 'none',
+    },
+  },
+  rule2: {
+    paddingLeft: themeLayout['--spacing-navlink-bracket'],
+    color: themeColors['--color-navlink-bracket'],
+    textDecorationLine: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        [ownerStylex.when.ancestor(':is(:hover)', groupMarker3)]: 'none',
+      },
+      [ownerStylex.when.ancestor(':is(:focus)', groupMarker3)]: 'none',
+    },
+  },
+})
 
 export interface NavigationItem {
   text: string
-  textClassName?: string
-  className?: string
+  textSx?: ownerStylex.StyleXStyles
+  sx?: ownerStylex.StyleXStyles
+  className?: never
   onClick?: () => void
 }
 
-export function NavigationLink({
-  text,
-  textClassName,
-  className,
-  onClick,
-}: NavigationItem) {
+export function NavigationLink({ text, textSx, sx, onClick }: NavigationItem) {
   const handleNavigationSelect = useCallback(() => onClick?.(), [onClick])
 
   return (
     <button
       type="button"
-      className={
-        /* TODO(stylex): dynamic class or forwarded className */ cn(
-          ownerClasses(
-            'hover:bg-navlink-selection focus:bg-navlink-selection group font-heading bg-transparent p-0 text-sm whitespace-nowrap transition-colors @lg:text-base',
-            ownerStylex.props(ownergroupMarker).className,
-          ),
-          className,
-        )
-      }
+
+      sx={[stylexStyles2.rule1, [ownergroupMarker, sx]]}
       onClick={handleNavigationSelect}
     >
-      <span className="text-navlink-bracket pr-navlink-bracket group-hover:no-underline group-focus:no-underline">
-        [
-      </span>
-      <span
-        className={cn(
-          'text-navlink-text group-hover:text-navlink-text-hover transition-colors',
-          textClassName,
-        )}
-      >
-        {text}
-      </span>
-      <span className="text-navlink-bracket pl-navlink-bracket group-hover:no-underline group-focus:no-underline">
-        ]
-      </span>
+      <span sx={stylexStyles.rule1}>[</span>
+      <span sx={[stylexStyles2.rule2, textSx]}>{text}</span>
+      <span sx={stylexStyles.rule2}>]</span>
     </button>
   )
 }

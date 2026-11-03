@@ -8,6 +8,36 @@ import type { JSX } from 'react'
 
 import { DecoratorNode } from 'lexical'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: { height: `calc(${themeLayout['--spacing']} * 3)` },
+  rule2: {
+    marginBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-border']} 60%, transparent)`,
+    backgroundColor: themeColors['--color-background-secondary'],
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    whiteSpace: 'pre-wrap',
+    color: themeColors['--color-muted-foreground'],
+  },
+})
+
 export type SerializedOrgPassthroughNode = Spread<
   { source: string; type: 'org-passthrough'; version: 1 },
   SerializedLexicalNode
@@ -44,13 +74,12 @@ export class OrgPassthroughNode extends DecoratorNode<JSX.Element> {
   createDOM(_config: EditorConfig): HTMLElement {
     if (this.__source.trim().length === 0) {
       const element = document.createElement('div')
-      element.className = 'h-3'
+      element.className = stylex.props(stylexStyles.rule1).className ?? ''
       return element
     }
 
     const element = document.createElement('pre')
-    element.className =
-      'border-border/60 bg-background-secondary text-muted-foreground my-2 whitespace-pre-wrap rounded border p-2 font-mono text-xs'
+    element.className = stylex.props(stylexStyles.rule2).className ?? ''
     return element
   }
 

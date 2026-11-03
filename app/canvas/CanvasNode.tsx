@@ -1,7 +1,208 @@
 import { useCallback, useRef, useState, useEffect, memo } from 'react'
 import { useDrag } from '@use-gesture/react'
 
-import { cn } from '@s4wave/web/style/utils.js'
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  fonts as themeFonts,
+  colors as themeColors,
+  radii as themeRadii,
+} from '../../web/style/tokens.stylex.js'
+
+import { utilityState as themeUtilityState } from '../../web/style/tokens.stylex.js'
+
+import { motion as themeMotion } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    transform: 'var(--canvas-node-transform)',
+    transformOrigin: 'var(--canvas-node-transform-origin)',
+    width: 'var(--canvas-node-width)',
+    height: 'var(--canvas-node-height)',
+    position: 'absolute',
+    left: 'var(--canvas-node-left)',
+    top: 'var(--canvas-node-top)',
+    touchAction: 'none',
+    pointerEvents: 'auto',
+    boxSizing: 'border-box',
+    cursor: 'grab',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    color: themeColors['--color-card-foreground'],
+    transitionProperty: 'box-shadow',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule2: {
+    '--tw-shadow':
+      '0 4px 6px -1px var(--tw-shadow-color, #0000001a), 0 2px 4px -2px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+  },
+  rule3: {
+    borderColor: '#0000',
+    backgroundColor: '#0000',
+    '--tw-shadow': '0 0 #0000',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+  },
+  rule4: { pointerEvents: 'none' },
+})
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    position: 'absolute',
+    height: `calc(${themeLayout['--spacing']} * 2.5)`,
+    width: `calc(${themeLayout['--spacing']} * 2.5)`,
+    touchAction: 'none',
+    borderRadius: '3.40282e38px',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 60%, transparent)`,
+    backgroundColor: themeColors['--color-background'],
+  },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    top: `calc(${themeLayout['--spacing']} * -1.5)`,
+    left: `calc(${themeLayout['--spacing']} * -1.5)`,
+    cursor: 'nwse-resize',
+  },
+  rule2: {
+    top: `calc(${themeLayout['--spacing']} * -1.5)`,
+    right: `calc(${themeLayout['--spacing']} * -1.5)`,
+    cursor: 'nesw-resize',
+  },
+  rule3: {
+    right: `calc(${themeLayout['--spacing']} * -1.5)`,
+    bottom: `calc(${themeLayout['--spacing']} * -1.5)`,
+    cursor: 'nwse-resize',
+  },
+  rule4: {
+    bottom: `calc(${themeLayout['--spacing']} * -1.5)`,
+    left: `calc(${themeLayout['--spacing']} * -1.5)`,
+    cursor: 'nesw-resize',
+  },
+  rule5: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+  },
+  rule6: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    '--tw-shadow':
+      '0 1px 3px 0 var(--tw-shadow-color, #0000001a), 0 1px 2px -1px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+  },
+  rule7: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 20%, transparent)`,
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    padding: themeLayout['--spacing'],
+  },
+  rule2: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule3: {
+    display: 'flex',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule4: {
+    top: 0,
+    right: `calc(${themeLayout['--spacing']} * 2)`,
+    left: `calc(${themeLayout['--spacing']} * 2)`,
+    height: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderTopLeftRadius: themeRadii['--radius-lg'],
+    borderTopRightRadius: themeRadii['--radius-lg'],
+  },
+  rule5: {
+    right: `calc(${themeLayout['--spacing']} * 2)`,
+    bottom: 0,
+    left: `calc(${themeLayout['--spacing']} * 2)`,
+    height: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderBottomRightRadius: themeRadii['--radius-lg'],
+    borderBottomLeftRadius: themeRadii['--radius-lg'],
+  },
+  rule6: {
+    top: `calc(${themeLayout['--spacing']} * 2)`,
+    bottom: `calc(${themeLayout['--spacing']} * 2)`,
+    left: 0,
+    width: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderTopLeftRadius: themeRadii['--radius-lg'],
+    borderBottomLeftRadius: themeRadii['--radius-lg'],
+  },
+  rule7: {
+    top: `calc(${themeLayout['--spacing']} * 2)`,
+    right: 0,
+    bottom: `calc(${themeLayout['--spacing']} * 2)`,
+    width: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderTopRightRadius: themeRadii['--radius-lg'],
+    borderBottomRightRadius: themeRadii['--radius-lg'],
+  },
+  rule8: {
+    pointerEvents: 'none',
+    position: 'absolute',
+    inset: 0,
+    borderRadius: themeRadii['--radius-lg'],
+    '--tw-ring-shadow':
+      'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+  },
+  rule9: {
+    '--tw-ring-color': `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+  },
+  rule10: {
+    '--tw-ring-color': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+  },
+  rule11: {
+    transform: 'var(--canvas-content-transform)',
+    transformOrigin: 'var(--canvas-content-transform-origin)',
+    width: '100%',
+    height: '100%',
+    touchAction: 'var(--canvas-content-touch-action)',
+    overflow: 'hidden',
+  },
+  rule12: { cursor: 'default', WebkitUserSelect: 'auto', userSelect: 'auto' },
+  rule13: {
+    pointerEvents: 'auto',
+    position: 'absolute',
+    inset: `calc(${themeLayout['--spacing']} * -1.5)`,
+    zIndex: -1,
+    borderRadius: themeRadii['--radius-lg'],
+  },
+})
 
 // MIN_NODE_WIDTH is the minimum width a node can be resized to.
 const MIN_NODE_WIDTH = 80
@@ -50,12 +251,12 @@ interface ResizeHandleProps {
 }
 
 // DragEdgeHandle renders a thin invisible border strip that can initiate node drag.
-function DragEdgeHandle({ className }: { className: string }) {
+function DragEdgeHandle({ sx }: { sx?: stylex.StyleXStyles }) {
   return (
     <div
       aria-hidden="true"
       data-drag-handle=""
-      className={cn('absolute z-10 bg-transparent', className)}
+      sx={[dragEdgeStyles.edge, sx]}
     />
   )
 }
@@ -70,11 +271,11 @@ function ResizeHandle({ direction, scale, onResizeDelta }: ResizeHandleProps) {
     { filterTaps: true, pointer: { touch: true } },
   )
 
-  const posClass = {
-    nw: '-left-1.5 -top-1.5 cursor-nwse-resize',
-    ne: '-right-1.5 -top-1.5 cursor-nesw-resize',
-    se: '-bottom-1.5 -right-1.5 cursor-nwse-resize',
-    sw: '-bottom-1.5 -left-1.5 cursor-nesw-resize',
+  const positionStyles = {
+    nw: stylexStyles2.rule1,
+    ne: stylexStyles2.rule2,
+    se: stylexStyles2.rule3,
+    sw: stylexStyles2.rule4,
   }[direction]
 
   const handlers = bind()
@@ -84,15 +285,7 @@ function ResizeHandle({ direction, scale, onResizeDelta }: ResizeHandleProps) {
     origPointerDown?.(e)
   }
 
-  return (
-    <div
-      {...handlers}
-      className={cn(
-        'border-brand/60 bg-background touch-none absolute h-2.5 w-2.5 rounded-full border',
-        posClass,
-      )}
-    />
-  )
+  return <div {...handlers} sx={[[stylexStyles3.rule1], [positionStyles]]} />
 }
 
 // useCanvasNodeController owns visibility debounce, drag selection, and resize
@@ -369,10 +562,8 @@ function CanvasNodeContent({
   if (isOutlineOnly) {
     // The short label shown in outline-only mode.
     return (
-      <div className="flex h-full items-center justify-center overflow-hidden p-1">
-        <span className="text-foreground-alt/60 truncate text-center text-xs font-medium">
-          {node.objectKey ?? node.type}
-        </span>
+      <div sx={stylexStyles.rule1}>
+        <span sx={stylexStyles.rule2}>{node.objectKey ?? node.type}</span>
       </div>
     )
   }
@@ -395,26 +586,22 @@ function CanvasNodeContent({
   }
 
   if (isCompact) {
-    return (
-      <div className="text-foreground-alt/40 flex h-full items-center justify-center text-xs">
-        {node.type}
-      </div>
-    )
+    return <div sx={stylexStyles.rule3}>{node.type}</div>
   }
 
   return null
 }
 
-/** nodeTypeBackgroundClass returns the card background for a node type. */
-function nodeTypeBackgroundClass(
+/** nodeTypeBackgroundStyles returns the card background for a node type. */
+function nodeTypeBackgroundStyles(
   type: CanvasNodeData['type'],
   isOutlineOnly: boolean,
-): string | null {
-  if (isOutlineOnly) return 'bg-background-card/50'
+): stylex.StyleXStyles {
+  if (isOutlineOnly) return stylexStyles2.rule5
   if (type === 'world_object') {
-    return 'bg-background-card/30 shadow-sm backdrop-blur-sm'
+    return stylexStyles2.rule6
   }
-  if (type === 'text') return 'bg-background-card/20'
+  if (type === 'text') return stylexStyles2.rule7
   return null
 }
 
@@ -423,32 +610,30 @@ function isInkNode(type: CanvasNodeData['type']): boolean {
   return type === 'drawing' || type === 'shape' || type === 'text'
 }
 
-/** nodeClassName returns the surface classes for a node. */
-function nodeClassName(
+/** nodeStyles composes the native node surface in its original override order. */
+function nodeStyles(
   node: CanvasNodeData,
   isOutlineOnly: boolean,
   selected: boolean,
-): string {
+): stylex.StyleXStyles {
   const unselectedInk = !isOutlineOnly && !selected
-  return cn(
-    'canvas-node-position canvas-node-transform canvas-node-size canvas-node-input text-card-foreground border-foreground/6 pointer-events-auto box-border cursor-grab rounded-lg border transition-shadow duration-150 select-none',
-    nodeTypeBackgroundClass(node.type, isOutlineOnly),
-    selected && 'shadow-md',
-    unselectedInk &&
-      isInkNode(node.type) &&
-      'border-transparent bg-transparent shadow-none',
-    unselectedInk && node.type === 'drawing' && 'pointer-events-none',
-  )
+  return [
+    stylexStyles4.rule1,
+    nodeTypeBackgroundStyles(node.type, isOutlineOnly),
+    selected && stylexStyles4.rule2,
+    unselectedInk && isInkNode(node.type) && stylexStyles4.rule3,
+    unselectedInk && node.type === 'drawing' && stylexStyles4.rule4,
+  ]
 }
 
 /** CanvasNodeBorderHandles renders the invisible edges that start a node drag. */
 function CanvasNodeBorderHandles() {
   return (
     <>
-      <DragEdgeHandle className="top-0 right-2 left-2 h-1.5 rounded-t-lg" />
-      <DragEdgeHandle className="right-2 bottom-0 left-2 h-1.5 rounded-b-lg" />
-      <DragEdgeHandle className="top-2 bottom-2 left-0 w-1.5 rounded-l-lg" />
-      <DragEdgeHandle className="top-2 right-0 bottom-2 w-1.5 rounded-r-lg" />
+      <DragEdgeHandle sx={stylexStyles.rule4} />
+      <DragEdgeHandle sx={stylexStyles.rule5} />
+      <DragEdgeHandle sx={stylexStyles.rule6} />
+      <DragEdgeHandle sx={stylexStyles.rule7} />
     </>
   )
 }
@@ -468,10 +653,10 @@ function CanvasNodeSelection({
   return (
     <>
       <div
-        className={cn(
-          'pointer-events-none absolute inset-0 rounded-lg ring-1',
-          isContentFocused ? 'ring-brand/30' : 'ring-brand/50',
-        )}
+        sx={[
+          stylexStyles.rule8,
+          isContentFocused ? stylexStyles.rule9 : stylexStyles.rule10,
+        ]}
       />
       {(['ne', 'se', 'sw', 'nw'] as const).map((direction) => (
         <ResizeHandle
@@ -513,10 +698,7 @@ function CanvasNodeContentFrame({
         '--canvas-content-height': contentSize,
         '--canvas-content-touch-action': isContentFocused ? 'auto' : 'none',
       }}
-      className={cn(
-        'canvas-content-transform h-full w-full overflow-hidden',
-        isContentFocused && 'cursor-default select-auto',
-      )}
+      sx={[stylexStyles.rule11, !!isContentFocused && stylexStyles.rule12]}
     >
       {children}
     </div>
@@ -572,13 +754,15 @@ export const CanvasNode = memo(function CanvasNode(props: CanvasNodeProps) {
         '--canvas-node-top': `${resizeOverride?.y ?? node.y}px`,
         '--canvas-node-width': `${resizeOverride?.w ?? node.width}px`,
         '--canvas-node-height': `${resizeOverride?.h ?? node.height}px`,
-        '--canvas-node-z-index': node.zIndex,
       }}
-      className={nodeClassName(node, isOutlineOnly, selected)}
+      sx={[
+        nodeStyles(node, isOutlineOnly, selected),
+        nodeLayerStyles.layer(node.zIndex),
+      ]}
     >
       {/* Invisible hit area extending outward from the border for easier clicking.
           z-[-1] keeps it behind node content so it doesn't steal clicks. */}
-      <div className="pointer-events-auto absolute -inset-1.5 -z-1 rounded-lg" />
+      <div sx={stylexStyles.rule13} />
       {showsBorderDragHandles && <CanvasNodeBorderHandles />}
       {isOutlineOnly ? (
         content
@@ -600,4 +784,14 @@ export const CanvasNode = memo(function CanvasNode(props: CanvasNodeProps) {
       )}
     </div>
   )
+})
+
+// dragEdgeStyles owns the drag target beneath each side-specific caller.
+const dragEdgeStyles = stylex.create({
+  edge: { position: 'absolute', zIndex: 10, backgroundColor: 'transparent' },
+})
+
+// nodeLayerStyles preserves each node's dynamic integer stacking order.
+const nodeLayerStyles = stylex.create({
+  layer: (zIndex: number) => ({ zIndex }),
 })

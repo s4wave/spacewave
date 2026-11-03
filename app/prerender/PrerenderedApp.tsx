@@ -13,7 +13,11 @@ export function PrerenderedApp() {
   return (
     <RouterProvider path="/" onNavigate={navigateFromStaticStartup}>
       <StaticProvider>
-        <div className={ROOT_LANDING_SHELL_CLASS}>
+        <div
+          className={
+            /* TODO(stylex): dynamic class or forwarded className */ ROOT_LANDING_SHELL_CLASS
+          }
+        >
           <Landing />
         </div>
       </StaticProvider>

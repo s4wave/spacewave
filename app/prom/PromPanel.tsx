@@ -18,6 +18,10 @@ import {
   type TimeRange,
 } from './prom-view.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({ rule1: { minWidth: 0 } })
+
 // widthBucket rounds the measured width so a resize reruns the query only
 // when the step would change noticeably.
 const widthBucket = 100
@@ -101,7 +105,7 @@ export function PromPanel({
   }, [targets, result.value, nowMs])
 
   return (
-    <div ref={ref} className="min-w-0">
+    <div ref={ref} sx={stylexStyles.rule1}>
       <PromPanelView
         panel={panel}
         answer={expr ? answer : { state: 'error', message: 'empty expression' }}

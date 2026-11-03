@@ -2,6 +2,18 @@ import type { DragEvent, KeyboardEvent, ReactNode } from 'react'
 
 import { Toolbar } from '@s4wave/web/editors/file-browser/Toolbar.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    overflow: 'hidden',
+  },
+})
+
 interface UnixFSBrowserShellProps {
   currentPath: string
   children: ReactNode
@@ -47,7 +59,7 @@ export function UnixFSBrowserShell({
       role={interactive ? 'region' : undefined}
       aria-label={interactive ? 'File browser' : undefined}
       data-testid="unixfs-browser"
-      className="flex h-full w-full flex-col overflow-hidden"
+      sx={stylexStyles.rule1}
       onKeyDown={onKeyDown}
     >
       <Toolbar

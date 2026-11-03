@@ -33,6 +33,74 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 12%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+  },
+})
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule3: { minWidth: 0 },
+  rule4: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule5: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     textOverflow: 'ellipsis',
@@ -107,26 +175,37 @@ export function ForgePassViewer({
         id: 'overview',
         label: 'Overview',
         content: (
-          <div className="space-y-3">
-            <InfoCard>
-              <div className="space-y-2">
+          <div sx={false}>
+            <InfoCard sx={nativeChildSpacing.s3}>
+              <div sx={false}>
                 {pass?.peerId && (
-                  <CopyableField label="Peer ID" value={pass.peerId} />
+                  <CopyableField
+                    sx={nativeChildSpacing.s2}
+                    label="Peer ID"
+                    value={pass.peerId}
+                  />
                 )}
                 {pass?.timestamp && (
                   <CopyableField
+                    sx={nativeChildSpacing.s2}
                     label="Created"
                     value={pass.timestamp.toISOString()}
                   />
                 )}
                 <CopyableField
+                  sx={nativeChildSpacing.s2}
                   label="Pass Nonce"
                   value={pass?.passNonce?.toString() ?? '0'}
                 />
-                <CopyableField label="Object Key" value={objectKey} />
+                <CopyableField
+                  sx={nativeChildSpacing.s2}
+                  label="Object Key"
+                  value={objectKey}
+                />
               </div>
             </InfoCard>
             <FigureStrip
+              sx={nativeChildSpacing.s3}
               figures={[
                 { label: 'Replicas', value: pass?.replicas ?? 0 },
                 {
@@ -137,10 +216,8 @@ export function ForgePassViewer({
                 },
               ]}
             />
-            <InfoCard title="Result">
-              <div className="text-foreground text-sm font-medium">
-                {describeResult(pass?.result)}
-              </div>
+            <InfoCard sx={nativeChildSpacing.s3} title="Result">
+              <div sx={stylexStyles3.rule1}>{describeResult(pass?.result)}</div>
             </InfoCard>
           </div>
         ),
@@ -158,19 +235,19 @@ export function ForgePassViewer({
               emptyLabel="No executions yet"
             />
           ) : (
-            <div className="space-y-2">
+            <div sx={false}>
               {decodedExecutions.map((execution) => (
                 <div
                   key={execution.entity.objectKey}
-                  className="border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 space-y-2 rounded-lg border px-3.5 py-2.5 transition duration-150"
+                  sx={[nativeChildSpacingNext.s2, stylexStyles4.rule1]}
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
+                  <div sx={[nativeChildSpacing.s2, stylexStyles3.rule2]}>
+                    <div sx={stylexStyles3.rule3}>
                       <ForgeEntityLink
                         objectKey={execution.entity.objectKey}
                         sx={stylexStyles2.rule1}
                       />
-                      <div className="text-foreground-alt/50 truncate text-xs">
+                      <div sx={stylexStyles3.rule4}>
                         {execution.data.peerId || 'Worker pending'}
                       </div>
                     </div>
@@ -179,7 +256,7 @@ export function ForgePassViewer({
                       labels={executionStateLabels}
                     />
                   </div>
-                  <div className="text-foreground-alt/50 flex flex-wrap gap-3 text-xs">
+                  <div sx={[nativeChildSpacing.s2, stylexStyles3.rule5]}>
                     <span>
                       {execution.data.timestamp?.toISOString() ??
                         'No timestamp'}
@@ -195,14 +272,15 @@ export function ForgePassViewer({
         id: 'details',
         label: 'Details',
         content: (
-          <div className="space-y-3">
+          <div sx={false}>
             <ForgeValueSetPanels
+              sx={nativeChildSpacingNext.s3}
               valueSet={pass?.valueSet}
               emptyInputsLabel="No pass inputs recorded"
               emptyOutputsLabel="No pass outputs recorded"
             />
-            <InfoCard title="Execution Snapshot">
-              <div className="text-foreground-alt/50 flex flex-wrap gap-3 text-xs">
+            <InfoCard sx={nativeChildSpacingNext.s3} title="Execution Snapshot">
+              <div sx={stylexStyles3.rule5}>
                 <span>{pass?.execStates?.length ?? 0} exec states</span>
                 <span>{describeResult(pass?.result)}</span>
               </div>
@@ -232,3 +310,55 @@ export function ForgePassViewer({
     />
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

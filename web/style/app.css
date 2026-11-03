@@ -2076,21 +2076,6 @@ body,
   scrollbar-color: var(--color-scrollbar-thumb) var(--color-scrollbar-track);
 }
 
-/* Hero Button Styles */
-.hero-button {
-  @apply border-foreground/20 bg-background/50 rounded-landing-control shadow-landing-button flex cursor-pointer items-center border px-6 py-2 no-underline transition-all duration-300;
-}
-
-.hero-button:hover {
-  @apply border-brand/50 bg-brand/10 -translate-y-[1px];
-}
-
-@media (pointer: coarse) {
-  .hero-button {
-    min-height: 2.75rem;
-  }
-}
-
 /* Button Glow on Hover */
 .glow-on-hover {
   &::before {
@@ -3635,4 +3620,32 @@ body,
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   padding: var(--border-width);
+}
+
+/* Vendor-created roots and VGA children have no React styling input. */
+.unixfs-photo-slider {
+  position: absolute !important;
+  inset: 0;
+  height: 100%;
+  width: 100%;
+}
+.v86-screen > canvas {
+  height: 100% !important;
+  width: 100% !important;
+  object-fit: contain;
+}
+.v86-screen > div {
+  display: none !important;
+}
+
+/* Shared by the raw prerender wrapper and its hydrated React root. */
+.sw-landing-shell {
+  background-color: var(--color-background);
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
 }

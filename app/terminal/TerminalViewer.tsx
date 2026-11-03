@@ -28,6 +28,92 @@ import { TerminalSshTrustPanel } from './TerminalSshTrustPanel.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+import {
+  colors as themeColors,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    backgroundColor: themeColors['--color-background-primary'],
+  },
+  rule2: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule3: {
+    display: 'flex',
+    minWidth: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule4: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-muted-foreground'],
+  },
+  rule5: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule6: {
+    minWidth: 0,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    color: themeColors['--color-muted-foreground'],
+  },
+  rule7: {
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    color: themeColors['--color-foreground'],
+  },
+  rule8: { color: themeColors['--color-foreground'] },
+  rule9: { padding: `calc(${themeLayout['--spacing']} * 4)` },
+  rule10: {
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 4)`,
@@ -75,31 +161,31 @@ export function TerminalViewer({
   )
 
   return (
-    <div className="bg-background-primary flex h-full w-full flex-col">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center justify-between border-b px-4">
-        <span className="text-foreground flex min-w-0 items-center gap-2 text-sm font-semibold select-none">
+    <div sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>
+        <span sx={stylexStyles2.rule3}>
           <LuTerminal sx={stylexStyles.rule1} />
           {state?.name || 'Terminal'}
         </span>
-        <span className="text-muted-foreground text-xs">
+        <span sx={stylexStyles2.rule4}>
           {formatTerminalState(state?.state)}
         </span>
       </div>
-      <div className="border-foreground/8 flex h-8 shrink-0 items-center gap-4 border-b px-4 text-xs">
-        <span className="text-muted-foreground min-w-0 truncate">
+      <div sx={stylexStyles2.rule5}>
+        <span sx={stylexStyles2.rule6}>
           {formatTerminalTargetLabel(state)}{' '}
-          <span className="text-foreground font-mono">
+          <span sx={stylexStyles2.rule7}>
             {formatTerminalTargetObjectKey(state, objectKey)}
           </span>
         </span>
         {state?.command && (
-          <span className="text-muted-foreground min-w-0 truncate">
-            command <span className="text-foreground">{state.command}</span>
+          <span sx={stylexStyles2.rule6}>
+            command <span sx={stylexStyles2.rule8}>{state.command}</span>
           </span>
         )}
       </div>
       {stateResource.loading && !state && (
-        <div className="p-4">
+        <div sx={stylexStyles2.rule9}>
           <LoadingCard
             view={{
               state: 'active',
@@ -110,7 +196,7 @@ export function TerminalViewer({
         </div>
       )}
       {state?.error && !connectTerminal && (
-        <div className="border-destructive/30 bg-destructive/10 text-destructive border-b px-4 py-2 text-sm">
+        <div sx={stylexStyles2.rule10}>
           {safeTerminalFailureDetail(state.error)}
         </div>
       )}

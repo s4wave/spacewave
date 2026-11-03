@@ -1,18 +1,44 @@
-import { cn } from '@s4wave/web/style/utils.js'
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 
 import type { DragRect } from './useCanvasSelection.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  utilityState as themeUtilityState,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    left: 'var(--canvas-selection-left)',
+    top: 'var(--canvas-selection-top)',
+    width: 'var(--canvas-selection-width)',
+    height: 'var(--canvas-selection-height)',
+    pointerEvents: 'none',
+    position: 'absolute',
+    borderRadius: 'var(--radius-sm)',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+  },
+})
+
 // CanvasSelectionOverlayProps are the props for CanvasSelectionOverlay.
 interface CanvasSelectionOverlayProps {
+  className?: never
   dragRect: DragRect | null
-  className?: string
+  sx?: ComponentStyles
 }
 
 // CanvasSelectionOverlay renders the drag-select rectangle overlay.
 export function CanvasSelectionOverlay({
   dragRect,
-  className,
-}: CanvasSelectionOverlayProps) {
+  sx,
+}: Omit<CanvasSelectionOverlayProps, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
   if (!dragRect) return null
 
   const left = Math.min(dragRect.startX, dragRect.endX)
@@ -22,10 +48,7 @@ export function CanvasSelectionOverlay({
 
   return (
     <div
-      className={cn(
-        'canvas-selection-box border-brand/30 bg-brand/5 pointer-events-none absolute rounded-sm border',
-        className,
-      )}
+      sx={[stylexStyles.rule1, sx]}
       style={{
         '--canvas-selection-left': left,
         '--canvas-selection-top': top,

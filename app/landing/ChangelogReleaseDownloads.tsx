@@ -9,7 +9,7 @@ import {
 } from '@s4wave/app/download/manifest.js'
 import { PlatformSection } from '@s4wave/app/download/PlatformSection.js'
 import { PrimaryDownloadButton } from '@s4wave/app/download/PrimaryDownloadButton.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { detectPlatform } from '@s4wave/web/platform/detect-platform.js'
 
 import * as stylex from '@stylexjs/stylex'
@@ -17,6 +17,187 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
+
+import {
+  fonts as themeFonts,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    width: '100%',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 8)`,
+  },
+  rule2: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule3: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule4: {
+    fontSize: {
+      default: 'var(--text-2xl)',
+      '@container (min-width: 32rem)': 'var(--text-3xl)',
+    },
+    lineHeight: {
+      default: 'var(--tw-leading, var(--text-2xl--line-height))',
+      '@container (min-width: 32rem)':
+        'var(--tw-leading, var(--text-3xl--line-height))',
+    },
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule5: {
+    fontSize: {
+      default: themeFonts['--text-sm'],
+      '@container (min-width: 32rem)': 'var(--text-base)',
+    },
+    lineHeight: {
+      default: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+      '@container (min-width: 32rem)':
+        'var(--tw-leading, var(--text-base--line-height))',
+    },
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule6: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule7: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule8: {
+    display: 'grid',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    gridTemplateColumns: {
+      default: null,
+      '@container (min-width: 28rem)': 'repeat(2, minmax(0, 1fr))',
+    },
+  },
+  rule9: {
+    display: 'flex',
+    cursor: 'pointer',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-within':
+        'var(--tw-ring-inset, ) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    boxShadow: {
+      default: null,
+      ':focus-within':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    '--tw-ring-color': {
+      default: null,
+      ':focus-within': `color-mix(in oklab, ${themeColors['--color-brand']} 70%, transparent)`,
+    },
+  },
+  rule10: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+  },
+  rule11: {
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      },
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+  },
+  rule12: {
+    marginTop: themeLayout['--spacing'],
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    cursor: 'pointer',
+    accentColor: themeColors['--color-brand'],
+  },
+  rule13: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: themeLayout['--spacing'],
+  },
+  rule14: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule15: {
+    display: 'flex',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-within':
+        'var(--tw-ring-inset, ) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    boxShadow: {
+      default: null,
+      ':focus-within':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    '--tw-ring-color': {
+      default: null,
+      ':focus-within': `color-mix(in oklab, ${themeColors['--color-brand']} 70%, transparent)`,
+    },
+  },
+  rule16: { cursor: 'pointer' },
+  rule17: { cursor: 'not-allowed', opacity: 0.5 },
+  rule18: {
+    marginTop: themeLayout['--spacing'],
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    cursor: { default: 'pointer', ':disabled': 'not-allowed' },
+    accentColor: themeColors['--color-brand'],
+  },
+  rule19: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-wider)',
+    letterSpacing: 'var(--tracking-wider)',
+    color: themeColors['--color-foreground-alt'],
+    textTransform: 'uppercase',
+  },
+  rule20: {
+    textAlign: 'center',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule21: {
+    display: 'flex',
+    width: '100%',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 10)`,
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -68,31 +249,27 @@ export function ChangelogReleaseDownloads({ version }: { version: string }) {
   const releaseLabel = exactVersion ? `v${version}` : 'Latest release'
 
   return (
-    <section className="flex w-full flex-col gap-8">
-      <header className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
+    <section sx={stylexStyles2.rule1}>
+      <header sx={stylexStyles2.rule2}>
+        <div sx={stylexStyles2.rule3}>
           <LuMonitorDown sx={stylexStyles.rule1} />
-          <h2 className="text-foreground text-2xl font-semibold @lg:text-3xl">
-            Download the desktop app
-          </h2>
+          <h2 sx={stylexStyles2.rule4}>Download the desktop app</h2>
         </div>
-        <p className="text-foreground-alt text-sm @lg:text-base">
+        <p sx={stylexStyles2.rule5}>
           Choose the newest Spacewave app or the build documented on this page.
         </p>
       </header>
 
-      <fieldset className="flex flex-col gap-3">
-        <legend className="text-foreground text-sm font-semibold">
-          Choose a release
-        </legend>
-        <div className="grid gap-3 @md:grid-cols-2">
+      <fieldset sx={stylexStyles2.rule6}>
+        <legend sx={stylexStyles2.rule7}>Choose a release</legend>
+        <div sx={stylexStyles2.rule8}>
           <label
-            className={cn(
-              'focus-within:ring-brand/70 flex cursor-pointer gap-3 rounded-lg border p-4 focus-within:ring-2',
+            sx={[
+              stylexStyles2.rule9,
               releaseChoice === 'latest'
-                ? 'border-brand/50 bg-brand/10'
-                : 'border-foreground/10 bg-background-card/30 hover:border-foreground/20',
-            )}
+                ? stylexStyles2.rule10
+                : stylexStyles2.rule11,
+            ]}
           >
             <input
               type="radio"
@@ -100,27 +277,23 @@ export function ChangelogReleaseDownloads({ version }: { version: string }) {
               value="latest"
               checked={releaseChoice === 'latest'}
               onChange={selectLatest}
-              className="accent-brand mt-1 size-4 shrink-0 cursor-pointer"
+              sx={stylexStyles2.rule12}
             />
-            <span className="flex flex-col gap-1">
-              <span className="text-foreground text-sm font-semibold">
-                Latest release
-              </span>
-              <span className="text-foreground-alt text-xs leading-relaxed">
+            <span sx={stylexStyles2.rule13}>
+              <span sx={stylexStyles2.rule7}>Latest release</span>
+              <span sx={stylexStyles2.rule14}>
                 Recommended. Downloads the newest published build.
               </span>
             </span>
           </label>
           <label
-            className={cn(
-              'focus-within:ring-brand/70 flex gap-3 rounded-lg border p-4 focus-within:ring-2',
-              hasReleaseVersion
-                ? 'cursor-pointer'
-                : 'cursor-not-allowed opacity-50',
+            sx={[
+              stylexStyles2.rule15,
+              hasReleaseVersion ? stylexStyles2.rule16 : stylexStyles2.rule17,
               releaseChoice === 'this-release'
-                ? 'border-brand/50 bg-brand/10'
-                : 'border-foreground/10 bg-background-card/30 hover:border-foreground/20',
-            )}
+                ? stylexStyles2.rule10
+                : stylexStyles2.rule11,
+            ]}
           >
             <input
               type="radio"
@@ -129,13 +302,13 @@ export function ChangelogReleaseDownloads({ version }: { version: string }) {
               checked={releaseChoice === 'this-release'}
               onChange={selectThisRelease}
               disabled={!hasReleaseVersion}
-              className="accent-brand mt-1 size-4 shrink-0 cursor-pointer disabled:cursor-not-allowed"
+              sx={stylexStyles2.rule18}
             />
-            <span className="flex flex-col gap-1">
-              <span className="text-foreground text-sm font-semibold">
+            <span sx={stylexStyles2.rule13}>
+              <span sx={stylexStyles2.rule7}>
                 This release{hasReleaseVersion ? ` · v${version}` : ''}
               </span>
-              <span className="text-foreground-alt text-xs leading-relaxed">
+              <span sx={stylexStyles2.rule14}>
                 Downloads the exact build described in these release notes.
               </span>
             </span>
@@ -143,23 +316,18 @@ export function ChangelogReleaseDownloads({ version }: { version: string }) {
         </div>
       </fieldset>
 
-      <div className="flex flex-col gap-2">
-        <p className="text-foreground-alt text-xs font-medium tracking-wider uppercase">
-          Selected: {releaseLabel}
-        </p>
+      <div sx={stylexStyles2.rule2}>
+        <p sx={stylexStyles2.rule19}>Selected: {releaseLabel}</p>
         <PrimaryDownloadButton entry={primary} releaseLabel={releaseLabel} />
         {!primary && (
-          <p className="text-foreground-alt text-center text-sm">
+          <p sx={stylexStyles2.rule20}>
             We could not detect a supported build for this device. Choose your
             platform and architecture below.
           </p>
         )}
       </div>
 
-      <div
-        className="flex w-full flex-col gap-10"
-        aria-label={`${releaseLabel} downloads`}
-      >
+      <div sx={stylexStyles2.rule21} aria-label={`${releaseLabel} downloads`}>
         {groups.map(({ os, entries }) => (
           <PlatformSection key={os} os={os} entries={entries} />
         ))}

@@ -57,6 +57,43 @@ import {
 
 import * as stylex from '@stylexjs/stylex'
 
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    minHeight: 0,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    display: { default: 'none', '@container (min-width: 28rem)': 'inline' },
+  },
+  rule3: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: themeColors['--color-background-primary'],
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule4: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    overflow: 'hidden',
+    backgroundColor: themeColors['--color-background-primary'],
+  },
+  rule5: { flexShrink: 0, padding: `calc(${themeLayout['--spacing']} * 3)` },
+})
+
 const stylexStyles = stylex.create({
   rule1: { width: '100%', maxWidth: 'var(--container-sm)' },
 })
@@ -229,7 +266,7 @@ interface WasiVmTransitionCardProps {
 // WasiVmTransitionCard shows a VM that is starting or stopping.
 function WasiVmTransitionCard({ title, detail }: WasiVmTransitionCardProps) {
   return (
-    <div className="flex min-h-0 flex-1 items-center justify-center p-4">
+    <div sx={stylexStyles2.rule1}>
       <LoadingCard
         view={{ state: 'active', title, detail }}
         sx={stylexStyles.rule1}
@@ -250,7 +287,7 @@ function WasiVmShowDesktopButton({ onClick }: { onClick: () => void }) {
       onClick={onClick}
     >
       <LuMonitor />
-      <span className="hidden @md:inline">Desktop</span>
+      <span sx={stylexStyles2.rule2}>Desktop</span>
     </Button>
   )
 }
@@ -259,7 +296,7 @@ function WasiVmShowDesktopButton({ onClick }: { onClick: () => void }) {
 // stands in for it.
 function WasiVmLoadingView({ loadError }: { loadError?: Error | null }) {
   return (
-    <div className="bg-background-primary flex h-full w-full items-center justify-center p-4">
+    <div sx={stylexStyles2.rule3}>
       {loadError ? (
         <VmErrorBanner
           title="Could not load this virtual machine"
@@ -471,7 +508,7 @@ export default function WasiVmViewer({
   const running = vm.state === VmState.VmState_RUNNING
   const active = running || vm.state === VmState.VmState_STARTING
   return (
-    <div className="bg-background-primary flex h-full w-full flex-col overflow-hidden">
+    <div sx={stylexStyles2.rule4}>
       <VmHeader
         state={vm.state}
         activity={running && <WasiVmDownloadChip downloads={downloads} />}
@@ -489,7 +526,7 @@ export default function WasiVmViewer({
         />
       </VmHeader>
       {operationError && active && (
-        <div className="shrink-0 p-3">
+        <div sx={stylexStyles2.rule5}>
           <VmErrorBanner title="Operation error" message={operationError} />
         </div>
       )}

@@ -24,6 +24,134 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+import {
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+import { radii as themeRadii } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+  },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    backgroundColor: themeColors['--color-background-primary'],
+  },
+  rule2: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule3: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule4: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule5: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule6: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingTop: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule7: {
+    minHeight: 0,
+    flex: 1,
+    overflow: 'auto',
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule8: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    textAlign: 'left',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+    cursor: { default: null, ':disabled': 'default' },
+  },
+  rule9: {
+    minWidth: 0,
+    flex: 1,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule10: {
+    fontSize: '.6rem',
+    lineHeight: 1.5,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule11: {
+    flexShrink: 0,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    '--tw-numeric-spacing': 'tabular-nums',
+    fontVariantNumeric:
+      'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -123,19 +251,13 @@ export function SqlSchemaViewer({
   const schemaName = schema?.metadata?.schemaName ?? ''
 
   return (
-    <div className="bg-background-primary flex h-full w-full flex-col">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-4">
+    <div sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>
         <LuTable sx={stylexStyles.rule1} aria-hidden />
-        <span className="text-foreground text-sm font-semibold tracking-tight select-none">
-          SQL Schema
-        </span>
-        {schemaName ? (
-          <span className="text-foreground-alt/50 truncate font-mono text-xs">
-            {schemaName}
-          </span>
-        ) : null}
+        <span sx={stylexStyles2.rule3}>SQL Schema</span>
+        {schemaName ? <span sx={stylexStyles2.rule4}>{schemaName}</span> : null}
         {schema ? (
-          <span className="text-foreground-alt/50 text-xs">
+          <span sx={stylexStyles2.rule5}>
             {schema.tables.length}{' '}
             {schema.tables.length === 1 ? 'table' : 'tables'}
           </span>
@@ -143,7 +265,7 @@ export function SqlSchemaViewer({
       </div>
 
       {openError ? (
-        <div className="px-4 pt-3">
+        <div sx={stylexStyles2.rule6}>
           <ErrorState
             variant="inline"
             title="Could not open table"
@@ -152,7 +274,7 @@ export function SqlSchemaViewer({
         </div>
       ) : null}
 
-      <div className="min-h-0 flex-1 overflow-auto p-3">
+      <div sx={stylexStyles2.rule7}>
         {schemaResource.loading && schema == null ? (
           <LoadingInline label="Loading schema" tone="muted" />
         ) : null}
@@ -172,9 +294,10 @@ export function SqlSchemaViewer({
           />
         ) : null}
         {schema && schema.tables.length > 0 ? (
-          <div className="border-foreground/8 divide-foreground/8 divide-y rounded-lg border">
+          <div sx={stylexStyles3.rule1}>
             {schema.tables.map((table) => (
               <TableRow
+                sx={nativeDividers.t8}
                 key={table.name ?? ''}
                 tableName={table.name ?? ''}
                 schemaName={schemaName}
@@ -201,12 +324,13 @@ interface TableRowProps {
 // TableRow renders one table with a row count queried from the target database
 // and an open action that materializes a sql/table-view.
 function TableRow({
+  sx,
   tableName,
   schemaName,
   dbHandle,
   canOpen,
   onOpen,
-}: TableRowProps) {
+}: TableRowProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const countResource = useResource(
     dbHandle,
     async (db, signal) => {
@@ -238,18 +362,14 @@ function TableRow({
       type="button"
       onClick={handleOpen}
       disabled={!canOpen}
-      className="hover:bg-foreground/5 flex w-full items-center gap-2 px-3 py-2 text-left transition-colors disabled:cursor-default"
+      sx={[stylexStyles2.rule8, sx]}
     >
       <LuTable sx={stylexStyles.rule3} />
-      <span className="text-foreground min-w-0 flex-1 truncate font-mono text-xs">
-        {tableName || 'Unnamed table'}
-      </span>
+      <span sx={stylexStyles2.rule9}>{tableName || 'Unnamed table'}</span>
       {countResource.loading && count == null ? (
-        <span className="text-foreground-alt/40 micro-text">…</span>
+        <span sx={stylexStyles2.rule10}>…</span>
       ) : count != null ? (
-        <span className="text-foreground-alt/50 shrink-0 text-xs tabular-nums">
-          {count.toString()} rows
-        </span>
+        <span sx={stylexStyles2.rule11}>{count.toString()} rows</span>
       ) : null}
     </button>
   )
@@ -258,3 +378,31 @@ function TableRow({
 function quote(identifier: string): string {
   return `\`${identifier.replaceAll('`', '``')}\``
 }
+
+// nativeDividers applies the list border only to its nonfinal physical rows.
+const nativeDividers = stylex.create({
+  t8: {
+    '--tw-divide-y-reverse': { default: null, ':not(:last-child)': 0 },
+    borderBottomStyle: {
+      default: null,
+      ':not(:last-child)': themeUtilityState['--tw-border-style'],
+    },
+    borderTopStyle: {
+      default: null,
+      ':not(:last-child)': themeUtilityState['--tw-border-style'],
+    },
+    borderTopWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * var(--tw-divide-y-reverse))',
+    },
+    borderBottomWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * calc(1 - var(--tw-divide-y-reverse)))',
+    },
+    borderColor: {
+      default: null,
+      ':not(:last-child)':
+        'color-mix(in oklab, var(--color-foreground) 8%, transparent)',
+    },
+  },
+})

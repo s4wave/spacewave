@@ -4,11 +4,37 @@ import { FitAddon } from '@xterm/addon-fit'
 
 import { terminalStatusToLoadingView } from '@s4wave/app/loading/status/terminal.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import { v86SerialChannelName, type SerialFrame } from './serial-channel.js'
 
 import * as stylex from '@stylexjs/stylex'
+
+import {
+  colors as themeColors,
+  layout as themeLayout,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    position: 'relative',
+    minHeight: 0,
+    flex: 1,
+    overflow: 'hidden',
+    backgroundColor: themeColors['--color-zinc-950'],
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule2: { display: 'none' },
+  rule3: { width: '100%', height: '100%', overflow: 'hidden' },
+  rule4: {
+    position: 'absolute',
+    inset: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-dark']} 95%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: { width: '100%', maxWidth: 'var(--container-sm)' },
@@ -75,19 +101,10 @@ export function VmSerialConsole({
   }, [objectKey])
 
   return (
-    <div
-      className={cn(
-        'relative min-h-0 flex-1 overflow-hidden bg-zinc-950 p-2',
-        hidden && 'hidden',
-      )}
-    >
-      <div ref={hostRef} className="size-full overflow-hidden" />
+    <div sx={[stylexStyles2.rule1, !!hidden && stylexStyles2.rule2]}>
+      <div ref={hostRef} sx={stylexStyles2.rule3} />
       {booting && !hasOutput && (
-        <div
-          className="bg-background-dark/95 absolute inset-0 flex items-center justify-center p-4"
-          role="status"
-          aria-live="polite"
-        >
+        <div sx={stylexStyles2.rule4} role="status" aria-live="polite">
           <LoadingCard
             view={terminalStatusToLoadingView(
               { kind: 'connecting' },

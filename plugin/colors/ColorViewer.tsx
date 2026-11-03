@@ -4,8 +4,84 @@ import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { useAppQuery, useAppMutation } from '@s4wave/web/sync/app-hooks.js'
 import { useAppAttachment } from '@s4wave/web/sync/useAppAttachment.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { colors, rankedColors } from './app.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: { padding: `calc(${themeLayout['--spacing']} * 4)` },
+  rule2: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule3: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: themeColors['--color-border'],
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    textAlign: 'left',
+  },
+  rule4: { backgroundColor: themeColors['--color-background-secondary'] },
+  rule5: {
+    width: `calc(${themeLayout['--spacing']} * 6)`,
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule6: { flex: 1 },
+  rule7: {
+    borderRadius: '.25rem',
+    backgroundColor: themeColors['--color-primary'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    color: themeColors['--color-primary-foreground'],
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule8: {
+    marginInline: 'auto',
+    display: 'flex',
+    maxWidth: 'var(--container-xl)',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule9: {
+    fontSize: 'var(--text-xl)',
+    lineHeight: 'var(--tw-leading, var(--text-xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+  },
+  rule10: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-muted-foreground'],
+  },
+  rule11: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+  },
+  rule12: {
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: themeColors['--color-border'],
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+})
 
 interface RankedColor {
   key: string
@@ -21,7 +97,7 @@ function ColorViewerFailure({
   onRetry: () => void
 }) {
   return (
-    <div role="alert" className="p-4">
+    <div role="alert" sx={stylexStyles.rule1}>
       <p>{error?.message}</p>
       <button type="button" onClick={onRetry}>
         Reopen color votes
@@ -41,22 +117,19 @@ function ColorChoices({
   onSelect: (key: string) => void
 }) {
   return (
-    <ul className="flex flex-col gap-2" aria-label="Colors ranked by votes">
+    <ul sx={stylexStyles.rule2} aria-label="Colors ranked by votes">
       {colors.map(({ key, value }) => (
         <li key={key}>
           <button
             type="button"
             aria-pressed={selected === key}
             onClick={() => onSelect(key)}
-            className={cn(
-              'border-border flex w-full items-center gap-3 rounded border p-3 text-left',
-              selected === key && 'bg-background-secondary',
-            )}
+            sx={[stylexStyles.rule3, selected === key && stylexStyles.rule4]}
           >
-            <svg aria-hidden="true" className="size-6" viewBox="0 0 24 24">
+            <svg aria-hidden="true" sx={stylexStyles.rule5} viewBox="0 0 24 24">
               <circle cx="12" cy="12" r="12" fill={value.hex} />
             </svg>
-            <span className="flex-1">{value.name}</span>
+            <span sx={stylexStyles.rule6}>{value.name}</span>
             <span>
               {value.likes} {value.likes === 1 ? 'vote' : 'votes'}
             </span>
@@ -85,7 +158,7 @@ function ColorVoteButton({
     <button
       type="button"
       disabled={!current || pending}
-      className="bg-primary text-primary-foreground rounded px-4 py-2 disabled:opacity-50"
+      sx={stylexStyles.rule7}
       onClick={() => current && onVote(current.key)}
     >
       {label}
@@ -133,7 +206,7 @@ export default function ColorViewer({
   }
   if (app.loading || result.status !== 'current') {
     return (
-      <p role="status" className="p-4">
+      <p role="status" sx={stylexStyles.rule1}>
         Loading colors…
       </p>
     )
@@ -142,17 +215,17 @@ export default function ColorViewer({
 
   // Shared values are rendered directly from the query; no optimistic copy is kept.
   return (
-    <section className="mx-auto flex max-w-xl flex-col gap-4 p-4">
+    <section sx={stylexStyles.rule8}>
       <header>
-        <h2 className="text-xl font-semibold">Color votes</h2>
-        <p className="text-muted-foreground text-sm">
+        <h2 sx={stylexStyles.rule9}>Color votes</h2>
+        <p sx={stylexStyles.rule10}>
           Pick a color. Every vote is shared with this Space.
         </p>
       </header>
-      <label className="flex flex-col gap-1 text-sm">
+      <label sx={stylexStyles.rule11}>
         Find a color
         <input
-          className="border-border rounded border p-2"
+          sx={stylexStyles.rule12}
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />

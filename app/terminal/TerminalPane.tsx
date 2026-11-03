@@ -19,12 +19,47 @@ import {
   TerminalFrameKind,
   type TerminalFrame,
 } from '@s4wave/sdk/terminal/terminal.pb.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 
 import { resolveTerminalTheme } from './terminalTheme.js'
 
 import * as stylex from '@stylexjs/stylex'
+
+import {
+  colors as themeColors,
+  layout as themeLayout,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    position: 'relative',
+    display: 'flex',
+    minHeight: 0,
+    minWidth: 0,
+    flex: 1,
+    overflow: 'hidden',
+    backgroundColor: themeColors['--color-background-dark'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule2: {
+    minHeight: 0,
+    width: '100%',
+    minWidth: 0,
+    flex: 1,
+    overflow: 'hidden',
+  },
+  rule3: {
+    position: 'absolute',
+    inset: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-dark']} 95%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: { width: '100%', maxWidth: 'var(--container-sm)' },
@@ -222,17 +257,8 @@ export function TerminalPane({
     <>
       {trustChallenge &&
         renderTrustChallenge?.(trustChallenge, respondToSshTrust)}
-      <div
-        className={cn(
-          'bg-background-dark relative flex min-h-0 min-w-0 flex-1 overflow-hidden',
-          'select-none',
-        )}
-        data-terminal-state={status.kind}
-      >
-        <div
-          ref={terminalHostRef}
-          className="min-h-0 w-full min-w-0 flex-1 overflow-hidden"
-        />
+      <div sx={[stylexStyles2.rule1]} data-terminal-state={status.kind}>
+        <div ref={terminalHostRef} sx={stylexStyles2.rule2} />
         {status.kind !== 'ready' ? (
           <TerminalPaneStatusLayer
             status={status}
@@ -261,7 +287,7 @@ function TerminalPaneStatusLayer({
 }) {
   return (
     <div
-      className="bg-background-dark/95 absolute inset-0 flex items-center justify-center p-4"
+      sx={stylexStyles2.rule3}
       data-terminal-status-layer={status.kind}
       role={status.kind === 'failed' ? 'alert' : 'status'}
       aria-live="polite"

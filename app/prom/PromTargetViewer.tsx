@@ -36,6 +36,10 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+const stylexStyles2 = stylex.create({
+  rule1: { maxWidth: 'var(--container-2xl)' },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 5)`,
@@ -237,9 +241,9 @@ function TargetBody({
       saving={approval.state === 'saving'}
       saveError={approval.state === 'failed' ? approval.reason : null}
       onAction={() => void onAction()}
-      chart={
+      renderChart={(sx) =>
         chartPanel && (state.state === 'up' || state.state === 'down') ? (
-          <div className="max-w-2xl">
+          <div sx={[stylexStyles2.rule1, sx]}>
             <PromPanel
               query={query}
               panel={chartPanel}
