@@ -7,9 +7,9 @@ import (
 	"testing"
 )
 
-// TestGoScriptOpfsStorage checks that a raw OPFS file survives a worker
-// restart. It also runs the store contract on the browser volume on OPFS and
-// IndexedDB and checks that both keep their blocks across the restart.
+// TestGoScriptOpfsStorage checks raw storage and an actual engine's advertised
+// filesystem graph across a worker restart on OPFS and IndexedDB. DEX's local-only
+// bucket lookup serves the graph with production protobuf message bindings.
 func TestGoScriptOpfsStorage(t *testing.T) {
 	for _, browser := range []string{"chromium", "webkit"} {
 		t.Run(browser, func(t *testing.T) {

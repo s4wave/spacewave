@@ -46,9 +46,12 @@ func writeVolumes() error {
 		return err
 	}
 
-	// Run the contract and store the restart block on each device.
+	// Run the contract and publish the restart block and graphs on each device.
 	for _, name := range []string{opfsVolume, idbVolume} {
 		if err := writeVolume(ctx, name); err != nil {
+			return errors.Wrap(err, name)
+		}
+		if err := checkEngineGraph(ctx, name, true); err != nil {
 			return errors.Wrap(err, name)
 		}
 	}
@@ -124,8 +127,16 @@ func readVolume(ctx context.Context, name string) error {
 		return errors.New("block did not survive the worker restart")
 	}
 
-	// Delete the volume and its device data.
-	return vol.Delete()
+	// Reopen the actual engine graph after releasing this volume handle.
+	if err := vol.Close(); err != nil {
+		return err
+	}
+	if err := checkEngineGraph(ctx, name, false); err != nil {
+		return err
+	}
+
+	// Delete the closed volume and its device data.
+	return volume_browser.Delete(name)
 }
 
 // checkDevices checks where the two volumes are: the first on OPFS only and

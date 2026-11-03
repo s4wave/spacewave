@@ -1,5 +1,6 @@
 import { detectWorkerCommsConfig } from '../../../web/bldr/worker-comms-detect.js'
 import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
+import { waitWorkerReady } from './wait-worker-ready.js'
 
 // WorkerMessage is a message a GoScript fixture worker posts.
 export type WorkerMessage = { type: string } & Record<string, unknown>
@@ -196,20 +197,4 @@ function connectWorkerRuntime(
     )
   })
   documentPort.start()
-}
-
-function waitWorkerReady(port: MessagePort): Promise<boolean> {
-  return new Promise((resolve) => {
-    const timer = setTimeout(() => resolve(false), 5000)
-    const handler = (ev: MessageEvent) => {
-      const data = ev.data
-      if (typeof data !== 'object' || !data?.ready) {
-        return
-      }
-      clearTimeout(timer)
-      port.removeEventListener('message', handler)
-      resolve(true)
-    }
-    port.addEventListener('message', handler)
-  })
 }

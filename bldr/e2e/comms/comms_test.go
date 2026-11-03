@@ -37,6 +37,8 @@ type testServerState struct {
 type goScriptFixtureWorker struct {
 	mainPackagePath string
 	outputName      string
+	// protobufBinding matches production's generated TypeScript message bindings.
+	protobufBinding bool
 	once            sync.Once
 	err             error
 }
@@ -49,6 +51,7 @@ var (
 	opfsStorageGoScriptFixtureWorker = goScriptFixtureWorker{
 		mainPackagePath: "github.com/s4wave/spacewave/bldr/e2e/comms/fixtures/go/goscript-opfs-storage",
 		outputName:      "goscript-opfs-storage-plugin.js",
+		protobufBinding: true,
 	}
 	volumeReplayGoScriptFixtureWorker = goScriptFixtureWorker{
 		mainPackagePath: "github.com/s4wave/spacewave/bldr/e2e/comms/fixtures/go/goscript-volume-replay",
@@ -139,7 +142,7 @@ func TestMain(m *testing.M) {
 
 // buildGoScriptFixtureWorker compiles one GoScript fixture worker plugin
 // into the comms dist directory.
-func buildGoScriptFixtureWorker(ctx context.Context, repoRoot, commsDir, distDir, mainPackagePath, outputName string) error {
+func buildGoScriptFixtureWorker(ctx context.Context, repoRoot, commsDir, distDir, mainPackagePath, outputName string, protobufBinding bool) error {
 	// Log the build and derive the output and work directories from the name.
 	le := logrus.NewEntry(logrus.New())
 	le.Infof("building GoScript fixture worker %s", outputName)
@@ -158,12 +161,24 @@ func buildGoScriptFixtureWorker(ctx context.Context, repoRoot, commsDir, distDir
 		return err
 	}
 
-	// Compile the worker's Go package to TypeScript with GoScript.
+	// Resolve production protobuf siblings only for fixtures that select them.
+	var bindingRoots []string
+	if protobufBinding {
+		var err error
+		bindingRoots, err = gocompiler.GoScriptBindingRoots(ctx, repoRoot)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Compile the worker's Go package to TypeScript with its selected bindings.
 	if err := gocompiler.ExecGoScriptCompile(ctx, le, gocompiler.GoScriptCompileOptions{
-		WorkDir:    repoRoot,
-		OutputPath: outputRoot,
-		Packages:   []string{mainPackagePath},
-		BuildFlags: []string{"-tags=goscript,skip_e2e,purego"},
+		WorkDir:                   repoRoot,
+		OutputPath:                outputRoot,
+		Packages:                  []string{mainPackagePath},
+		BuildFlags:                []string{"-tags=goscript,skip_e2e,purego"},
+		BindingRoots:              bindingRoots,
+		ProtobufTypeScriptBinding: protobufBinding,
 	}); err != nil {
 		return err
 	}
@@ -192,6 +207,7 @@ func ensureGoScriptFixtureWorker(t *testing.T, worker *goScriptFixtureWorker) {
 			distDir,
 			worker.mainPackagePath,
 			worker.outputName,
+			worker.protobufBinding,
 		)
 	})
 	if worker.err != nil {
