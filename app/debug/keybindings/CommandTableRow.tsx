@@ -19,11 +19,6 @@ import {
 const stylexStyles = stylex.create({
   rule1: {
     borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
-    borderStyle: {
-      default: null,
-      ':last-child': themeUtilityState['--tw-border-style'],
-    },
-    borderWidth: { default: null, ':last-child': 0 },
     backgroundColor: {
       default: null,
       '@media (hover: hover)': {
@@ -37,7 +32,7 @@ const stylexStyles = stylex.create({
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
     borderBottomStyle: themeUtilityState['--tw-border-style'],
-    borderBottomWidth: '1px',
+    borderBottomWidth: { default: '1px', ':last-child': 0 },
   },
   rule2: {
     paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
