@@ -249,10 +249,16 @@ func (db *DB) Shared() (bool, error) {
 	return false, nil
 }
 
+// superBufs holds the buffers readSuper reads both superblock pages into.
+var superBufs = sync.Pool{New: func() any { return new([2 * pageSize]byte) }}
+
 // readSuper returns the newer valid superblock.
 func (db *DB) readSuper() (superblock, error) {
-	// Read both superblocks.
-	b := make([]byte, 2*pageSize)
+	// Read both superblocks into a pooled buffer: the tail reads them on
+	// every wake, and decodeSuperblock keeps no reference to the bytes.
+	buf := superBufs.Get().(*[2 * pageSize]byte)
+	defer superBufs.Put(buf)
+	b := buf[:]
 	if _, err := db.s.ReadAt(b, superPage*pageSize); err != nil {
 		return superblock{}, err
 	}

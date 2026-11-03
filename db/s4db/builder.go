@@ -45,7 +45,7 @@ func (b *builder) build(root uint64, changes []change) (*child, error) {
 	// Rewrite the changed leaves and the pages above them.
 	var kids []child
 	if root == 0 {
-		kids = packLeaves(mergeLeaf(nil, changes))
+		kids = packLeaves(mergeLeaf(nil, nil, changes))
 	} else {
 		var err error
 		if kids, err = b.apply(root, nil, changes); err != nil {
@@ -88,7 +88,7 @@ func (b *builder) apply(page uint64, low []byte, changes []change) ([]child, err
 
 	// A leaf merges its changes directly.
 	if n.leaf {
-		kids := packLeaves(mergeLeaf(n, changes))
+		kids := packLeaves(mergeLeaf(nil, n, changes))
 		if len(kids) != 0 && low != nil {
 			kids[0].low = low
 		}
@@ -122,7 +122,9 @@ func (b *builder) apply(page uint64, low []byte, changes []change) ([]child, err
 			packed[0].low = leavesLow
 			kids = append(kids, packed...)
 		}
-		leaves, inRun = nil, false
+		// packLeaves copies the entries into its drafts, so the run's
+		// slice is reused for the next run.
+		leaves, inRun = leaves[:0], false
 	}
 	start := 0
 	for i, end := range ends {
@@ -147,7 +149,7 @@ func (b *builder) apply(page uint64, low []byte, changes []change) ([]child, err
 				leavesLow, inRun = k, true
 			}
 			b.freed = append(b.freed, page)
-			leaves = append(leaves, mergeLeaf(c, changes[start:end])...)
+			leaves = mergeLeaf(leaves, c, changes[start:end])
 		} else {
 			flush()
 			ra.wait(inner)
@@ -420,15 +422,15 @@ func (b *builder) merge(l, r child) ([]child, error) {
 	return out, nil
 }
 
-// mergeLeaf merges sorted changes into the entries of leaf n, which may be
-// nil for an empty tree.
-func mergeLeaf(n *node, changes []change) []change {
+// mergeLeaf appends to out the sorted changes merged into the entries of
+// leaf n, which may be nil for an empty tree.
+func mergeLeaf(out []change, n *node, changes []change) []change {
 	// Interleave existing entries with the changes, which win on equal keys.
 	count := 0
 	if n != nil {
 		count = n.count()
 	}
-	out := make([]change, 0, count+len(changes))
+	out = slices.Grow(out, count+len(changes))
 	i := 0
 	for _, c := range changes {
 		for ; i < count; i++ {

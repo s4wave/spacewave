@@ -97,10 +97,16 @@ func (t *Tx) findEntriesBatch(
 	values [][]byte,
 	found []bool,
 ) error {
-	level := []batchNode{{page: page, cursor: pageCursor, lookups: lookups}}
+	// A level holds at most one load and one child node per lookup, so the
+	// walk sizes its buffers once and reuses them on every level: loads and
+	// the next level refer only to the current level's nodes.
+	loads := make([]batchLoad, 0, len(lookups))
+	level := make([]batchNode, 1, len(lookups))
+	next := make([]batchNode, 0, len(lookups))
+	level[0] = batchNode{page: page, cursor: pageCursor, lookups: lookups}
 	for len(level) != 0 {
 		// Plan the level's loads in key order, then run them together.
-		var loads []batchLoad
+		loads = loads[:0]
 		for i := range level {
 			loads = appendBatchLoads(loads, &level[i])
 		}
@@ -109,7 +115,7 @@ func (t *Tx) findEntriesBatch(
 		}
 
 		// Place the leaf values and descend into the loaded child pages.
-		var next []batchNode
+		next = next[:0]
 		for i := range loads {
 			load := &loads[i]
 			if load.node.page.GetLevel() == 0 {
@@ -121,7 +127,7 @@ func (t *Tx) findEntriesBatch(
 				next = append(next, child)
 			}
 		}
-		level = next
+		level, next = next, level
 	}
 	return nil
 }
