@@ -265,6 +265,14 @@ export async function capture(
 async function settle(page: Page) {
   await page.evaluate(async () => {
     // Complete resource-driven layout before choosing the animation sample.
+    const fonts = new Set<string>()
+    for (const element of document.querySelectorAll('*')) {
+      const style = getComputedStyle(element)
+      fonts.add(
+        `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`,
+      )
+    }
+    await Promise.all([...fonts].map((font) => document.fonts.load(font)))
     await document.fonts.ready
     for (const image of document.images) {
       if (image.currentSrc) await image.decode()

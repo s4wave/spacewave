@@ -148,6 +148,7 @@ async function viewerReady(page: Page, id: string): Promise<void> {
       break
     case 'forge':
       await page.getByTestId('forge-viewer').waitFor()
+      await page.getByText('Entity health', { exact: true }).waitFor()
       break
     default:
       throw new Error(`Missing readiness contract for ${id}`)
@@ -209,9 +210,19 @@ const routesManifest: ParityManifest = {
       ['recover', 'h1:has-text("Recover Account")'],
       ['pair', 'input[placeholder="XXXX XXXX"]'],
       ['docs', 'h1:has-text("Documentation")'],
-      ['changelog', 'h1:has-text("Changelog")'],
       ['debug', 'h1:has-text("Debug tools")'],
     ].map(([id, ready]) => ({ id: id!, path: '/#/' + id, ready: ready! })),
+    {
+      id: 'changelog',
+      path: '/#/changelog',
+      ready: async (page) => {
+        // The resource's title appears before its embedded release list arrives.
+        await page
+          .getByRole('heading', { name: 'Changelog', exact: true })
+          .waitFor()
+        await page.locator('a[href*="/changelog/v"]').first().waitFor()
+      },
+    },
     {
       id: 'sessions-empty',
       path: '/#/sessions',

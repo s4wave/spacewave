@@ -38,6 +38,19 @@ test('separate sheets preserve compiler priority through WebView loading and inl
   const shared = compile('shared', '{base:{marginTop:17,marginLeft:19}}')
   const plugin = compile('plugin', '{override:{margin:0,marginInlineStart:0}}')
   const props = stylex.props(shared.styles.base, plugin.styles.override)
+
+  // Reproduce duplicate smaller breakpoints emitted by a later, independent CSS module.
+  const responsive = compile(
+    'responsive',
+    `{base:{paddingLeft:{default:0,'@media (min-width: 32rem)':32,'@media (min-width: 42rem)':48}}}`,
+  )
+  const subset = compile(
+    'subset',
+    `{base:{paddingLeft:{default:0,'@media (min-width: 32rem)':32}}}`,
+  )
+  const responsiveProps = stylex.props(responsive.styles.base)
+
+  // Emit each module separately as Vite does before concatenating native stylesheet assets.
   const css = (rules: typeof shared.rules) =>
     stylexPlugin.processStylexRules(rules, {
       useLayers: { before: ['reset'], prefix: 'stylex' },
@@ -46,6 +59,9 @@ test('separate sheets preserve compiler priority through WebView loading and inl
     shared: css(shared.rules),
     plugin: css(plugin.rules),
     combined: css([...shared.rules, ...plugin.rules]),
+    responsive: css(responsive.rules),
+    subset: css(subset.rules),
+    concatenated: css(responsive.rules) + css(subset.rules),
   }
   assert.match(sheets.shared, /stylex\.priority4000/)
 
@@ -63,7 +79,7 @@ test('separate sheets preserve compiler priority through WebView loading and inl
     response.end(
       name in sheets
         ? sheets[name]
-        : `<!doctype html><html><head></head><body><button class="${props.className}">Probe</button></body></html>`,
+        : `<!doctype html><html><head></head><body><button class="${props.className}">Probe</button><div id="responsive" class="${responsiveProps.className}">Responsive</div></body></html>`,
     )
   })
 
@@ -109,6 +125,41 @@ test('separate sheets preserve compiler priority through WebView loading and inl
           )
           await page.close()
         }
+        // Independently compiled modules must retain larger bounds after duplicate smaller rules arrive.
+        for (const order of [
+          ['responsive', 'subset'],
+          ['subset', 'responsive'],
+          ['concatenated'],
+        ] as const) {
+          const page = await browser.newPage({
+            viewport: { width: 1280, height: 800 },
+          })
+          await page.goto(base)
+          await page.evaluate(client)
+          for (const name of order)
+            await page.evaluate(
+              (href) => globalThis.mountStylexSheet(href),
+              `${base}/${name}`,
+            )
+          assert.equal(
+            await page
+              .locator('#responsive')
+              .evaluate((element) => getComputedStyle(element).paddingLeft),
+            '48px',
+            `${engine}: ${order}`,
+          )
+          await page.addStyleTag({ content: sheets.subset })
+          assert.equal(
+            await page
+              .locator('#responsive')
+              .evaluate((element) => getComputedStyle(element).paddingLeft),
+            '48px',
+            `${engine}: inline subset`,
+          )
+          await page.close()
+        }
+
+        // Inline replacement keeps the document owner ahead of newly inserted stylesheets.
         const page = await browser.newPage()
         await page.goto(base)
         await page.addStyleTag({ content: sheets.plugin })

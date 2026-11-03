@@ -9,7 +9,7 @@ type OrderedDocument = Document & { [orderKey]?: StylexOrder }
 // StylexOrder keeps one ordering declaration ahead of every managed stylesheet.
 class StylexOrder {
   // priorities retains encountered priorities so removing a sheet cannot reorder others.
-  private readonly priorities = new Set<number>()
+  private readonly priorities = new Set<string>()
   // style is the document's first layer-order declaration.
   private readonly style: HTMLStyleElement
   // observer watches Vite's inline stylesheet replacement during development.
@@ -107,13 +107,13 @@ class StylexOrder {
 }
 
 // layerPriorities handles qualified and nested layer names after CSS minification.
-function* layerPriorities(rules: CSSRuleList, prefix = ''): Generator<number> {
+function* layerPriorities(rules: CSSRuleList, prefix = ''): Generator<string> {
   for (const rule of rules) {
     // Layer ordering statements may declare priorities before any block is present.
     if ('nameList' in rule) {
       for (const name of (rule as CSSLayerStatementRule).nameList) {
         const priority = stylexPriority(prefix + name)
-        if (priority !== undefined) yield priority
+        if (priority !== undefined) yield prefix + name
       }
       continue
     }
@@ -125,7 +125,7 @@ function* layerPriorities(rules: CSSRuleList, prefix = ''): Generator<number> {
       const name = (rule as CSSLayerBlockRule).name
       if (name) {
         const priority = stylexPriority(prefix + name)
-        if (priority !== undefined) yield priority
+        if (priority !== undefined) yield prefix + name
         nestedPrefix += `${name}.`
       }
     }
