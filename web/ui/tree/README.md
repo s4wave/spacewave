@@ -40,7 +40,7 @@ function MyTree() {
 | `nodes`              | `TreeNode<T>[]`                  | Tree data structure                                 |
 | `state`              | `TreeStateHandle`                | The tree state and its updater, from `useTreeState` |
 | `placeholder`        | `ReactNode`                      | Shown when nodes is empty                           |
-| `className`          | `string`                         | Additional CSS classes                              |
+| `sx`                 | `StyleXStyles`                   | Native styles composed after the row defaults       |
 | `onRowDefaultAction` | `(nodes: TreeNode<T>[]) => void` | Called on double-click or Enter                     |
 
 ## TreeNode Interface

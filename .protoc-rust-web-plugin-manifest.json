@@ -9,9 +9,7 @@
         "bldr/web/plugin/plugin.pb.rs",
         "bldr/web/plugin/plugin_srpc.pb.rs"
       ],
-      "protoFiles": [
-        "bldr/web/plugin/plugin.proto"
-      ]
+      "protoFiles": ["bldr/web/plugin/plugin.proto"]
     }
   }
 }

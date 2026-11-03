@@ -5,6 +5,18 @@ import { cleanup, render } from 'vitest-browser-react'
 
 import { DisplayContainer } from './DisplayContainer.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { colors as themeColors } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    inset: 0,
+    backgroundColor: themeColors['--color-background-primary'],
+    color: themeColors['--color-foreground'],
+    position: 'fixed',
+  },
+})
+
 interface TestResource<T = unknown> {
   value?: T
   loading: boolean
@@ -367,7 +379,7 @@ function latestObjectViewerArgs(): ObjectViewerArgs {
 
 function DisplayBrowserSurface() {
   return (
-    <div className="bg-background-primary text-foreground fixed inset-0">
+    <div sx={stylexStyles.rule1}>
       <DisplayContainer />
     </div>
   )

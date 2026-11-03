@@ -6,6 +6,80 @@ import { cleanup, render } from 'vitest-browser-react'
 import { driveIntroConfig } from './intro.js'
 import { IntroWizardOverlay } from './IntroWizardOverlay.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  colors as themeColors,
+  layout as themeLayout,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    inset: 0,
+    backgroundColor: themeColors['--color-background'],
+    color: themeColors['--color-foreground'],
+    position: 'fixed',
+  },
+  rule2: { position: 'relative', height: '100%', width: '100%' },
+  rule3: {
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    alignContent: 'flex-start',
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+  },
+  rule4: {
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 40%, transparent)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    backgroundColor: themeColors['--color-background-card'],
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'flex-end',
+    height: `calc(${themeLayout['--spacing']} * 24)`,
+  },
+  rule5: {
+    color: themeColors['--color-foreground'],
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+  },
+  rule6: {
+    color: themeColors['--color-foreground-alt'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule7: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 40%, transparent)`,
+    borderRadius: '3.40282e38px',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    alignItems: 'center',
+    backgroundColor: themeColors['--color-background-card'],
+    display: 'flex',
+    position: 'absolute',
+    bottom: `calc(${themeLayout['--spacing']} * 4)`,
+    right: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule8: {
+    borderRadius: '3.40282e38px',
+    backgroundColor: themeColors['--color-brand'],
+    height: `calc(${themeLayout['--spacing']} * 2)`,
+    width: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule9: {
+    color: themeColors['--color-foreground'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+})
+
 // IntroWizardSurface renders the fixed-anchor intro overlay over a neutral
 // file-browser backdrop so the callouts, arrows, and control panel are captured
 // against realistic content. Callout placement is region-anchored, so the
@@ -15,9 +89,9 @@ function IntroWizardSurface({ finishing }: { finishing: boolean }) {
   const [finished, setFinished] = useState(false)
 
   return (
-    <div className="bg-background text-foreground fixed inset-0">
-      <div className="relative h-full w-full">
-        <div className="grid grid-cols-4 content-start gap-4 p-6">
+    <div sx={stylexStyles.rule1}>
+      <div sx={stylexStyles.rule2}>
+        <div sx={stylexStyles.rule3}>
           {[
             'Documents',
             'Photos',
@@ -28,20 +102,17 @@ function IntroWizardSurface({ finishing }: { finishing: boolean }) {
             'Invoices',
             'Trips',
           ].map((name) => (
-            <div
-              key={name}
-              className="border-brand/40 bg-background-card flex h-24 flex-col justify-end rounded-md border p-3"
-            >
-              <span className="text-foreground text-sm">{name}</span>
-              <span className="text-foreground-alt text-xs">Folder</span>
+            <div key={name} sx={stylexStyles.rule4}>
+              <span sx={stylexStyles.rule5}>{name}</span>
+              <span sx={stylexStyles.rule6}>Folder</span>
             </div>
           ))}
         </div>
         {/* Mock bottom-right upload indicator: the "Upload progress" callout
             teaches the user to watch it, so it must stay lit under the overlay. */}
-        <div className="border-brand/40 bg-background-card absolute right-4 bottom-4 flex items-center gap-2 rounded-full border px-3 py-1.5">
-          <span className="bg-brand size-2 rounded-full" />
-          <span className="text-foreground text-xs">Uploads</span>
+        <div sx={stylexStyles.rule7}>
+          <span sx={stylexStyles.rule8} />
+          <span sx={stylexStyles.rule9}>Uploads</span>
         </div>
         <IntroWizardOverlay
           headline={config.headline ?? ''}

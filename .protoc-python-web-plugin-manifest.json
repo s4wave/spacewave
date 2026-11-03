@@ -11,9 +11,7 @@
         "bldr/frontend/frontend_srpc.py",
         "bldr/frontend/frontend_srpc.pyi"
       ],
-      "protoFiles": [
-        "bldr/frontend/frontend.proto"
-      ]
+      "protoFiles": ["bldr/frontend/frontend.proto"]
     },
     "github.com/s4wave/spacewave/bldr/web/fetch": {
       "hash": "a6af469ad4130039cbaaec92d8e92cee37917f24bd8cc702eec6bee56e5b5ce6",
@@ -23,9 +21,7 @@
         "bldr/web/fetch/fetch_srpc.py",
         "bldr/web/fetch/fetch_srpc.pyi"
       ],
-      "protoFiles": [
-        "bldr/web/fetch/fetch.proto"
-      ]
+      "protoFiles": ["bldr/web/fetch/fetch.proto"]
     },
     "github.com/s4wave/spacewave/bldr/web/plugin": {
       "hash": "96cbc1676aa5cd27d0ab5c1ace19c4a90763401d9667bb481081aca9417d87ab",
@@ -35,9 +31,7 @@
         "bldr/web/plugin/plugin_srpc.py",
         "bldr/web/plugin/plugin_srpc.pyi"
       ],
-      "protoFiles": [
-        "bldr/web/plugin/plugin.proto"
-      ]
+      "protoFiles": ["bldr/web/plugin/plugin.proto"]
     },
     "github.com/s4wave/spacewave/bldr/web/view": {
       "hash": "eecd83233ff0533860eef13360ccf0e7a44c61fda86b9179a9ba1b4e80120e82",
@@ -47,9 +41,7 @@
         "bldr/web/view/view_srpc.py",
         "bldr/web/view/view_srpc.pyi"
       ],
-      "protoFiles": [
-        "bldr/web/view/view.proto"
-      ]
+      "protoFiles": ["bldr/web/view/view.proto"]
     },
     "github.com/s4wave/spacewave/bldr/web/view/handler": {
       "hash": "62cf018b7a37df8a454978a206d9d5f40b0e43e4bdefd2ef429569dc102c79c1",
@@ -57,9 +49,7 @@
         "bldr/web/view/handler/handler_pb2.py",
         "bldr/web/view/handler/handler_pb2.pyi"
       ],
-      "protoFiles": [
-        "bldr/web/view/handler/handler.proto"
-      ]
+      "protoFiles": ["bldr/web/view/handler/handler.proto"]
     }
   }
 }

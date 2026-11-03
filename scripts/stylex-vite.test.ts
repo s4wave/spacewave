@@ -18,8 +18,8 @@ const appSource = (color: string) => `import React,{useState} from 'react';
 import * as stylex from '@stylexjs/stylex';
 import {metrics} from './tokens.stylex';
 import {ImportedStyle} from './ImportedStyle';
-const styles=stylex.create({button:{color:'${color}',marginTop:metrics.space}});
-export function App(){ const [count,setCount]=useState(0);return <><button sx={styles.button} onClick={()=>setCount(count+1)}>{count}<ImportedStyle/></button><aside className="theme-only">Theme</aside></> }`
+const styles=stylex.create({button:{color:'${color}',marginTop:metrics.space},balanced:{textWrap:'balance'}});
+export function App(){ const [count,setCount]=useState(0);return <><button sx={styles.button} onClick={()=>setCount(count+1)}>{count}<ImportedStyle/></button><aside className="theme-only">Theme</aside><div className="landing-finish"><p data-balanced sx={styles.balanced}>Balanced public copy</p><p data-pretty>Default public copy</p></div></> }`
 
 test('native CSS ships in the manifest and updates without losing component state', async () => {
   // Use real React, compiler, Vite assets and browsers rather than emulating CSS delivery.
@@ -54,7 +54,7 @@ export const metrics=stylex.defineConsts({space:'17px'});`,
   )
   await writeFile(
     join(root, 'theme-entry.ts'),
-    "import './ThemeOnly.stylex';import './native.css';",
+    `import './ThemeOnly.stylex';import './native.css';import ${JSON.stringify(resolve('web/style/app.ts'))};`,
   )
   await writeFile(join(root, 'App.tsx'), appSource('red'))
 
@@ -154,6 +154,15 @@ export const metrics=stylex.defineConsts({space:'17px'});`,
               .evaluate((element) => getComputedStyle(element).color),
             'rgb(2, 3, 4)',
             `${engine}: bootstrap markup needs theme-only CSS before hydration`,
+          )
+          assert.deepEqual(
+            await staticPage
+              .locator('.landing-finish p')
+              .evaluateAll((elements) =>
+                elements.map((element) => getComputedStyle(element).textWrap),
+              ),
+            ['balance', 'pretty'],
+            `${engine}: native wrapping must override the landing skin's paragraph default`,
           )
           await staticContext.close()
           const page = await browser.newPage()

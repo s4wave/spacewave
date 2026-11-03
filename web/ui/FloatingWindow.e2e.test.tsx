@@ -16,6 +16,18 @@ import {
   type FloatingWindowState,
 } from './FloatingWindow.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: { padding: `calc(${themeLayout['--spacing']} * 4)` },
+  rule2: {
+    position: 'relative',
+    height: `calc(${themeLayout['--spacing']} * 150)`,
+    width: `calc(${themeLayout['--spacing']} * 200)`,
+  },
+})
+
 const DEFAULT_STATE: FloatingWindowState = {
   position: { x: 50, y: 50 },
   size: { width: 200, height: 150 },
@@ -54,7 +66,7 @@ function TestWindow({
       onStateChange={handleStateChange}
       testId={`window-${id}`}
     >
-      <div data-testid={`window-content-${id}`} className="p-4">
+      <div data-testid={`window-content-${id}`} sx={stylexStyles.rule1}>
         Content for {title}
       </div>
     </FloatingWindow>
@@ -64,7 +76,7 @@ function TestWindow({
 function TwoWindowsTest() {
   return (
     <FloatingWindowManagerProvider>
-      <div className="relative h-150 w-200">
+      <div sx={stylexStyles.rule2}>
         <TestWindow
           id="window-1"
           title="Window 1"

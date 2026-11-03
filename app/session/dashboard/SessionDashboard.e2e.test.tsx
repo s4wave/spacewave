@@ -2,6 +2,18 @@ import { beforeEach, describe, expect, inject, it, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import { cleanup, render } from 'vitest-browser-react'
 
+import * as stylex from '@stylexjs/stylex'
+import { colors as themeColors } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    inset: 0,
+    backgroundColor: themeColors['--color-background-landing'],
+    color: themeColors['--color-foreground'],
+    position: 'fixed',
+  },
+})
+
 const mockNavigate = vi.hoisted(() => vi.fn())
 const mockUseVisibleQuickstartOptions = vi.hoisted(() => vi.fn())
 const mockSetOpenMenu = vi.hoisted(() => vi.fn())
@@ -119,10 +131,7 @@ function SessionDashboardSurface({
   onSpaceClick?: (space: DashboardSpace) => void
 }) {
   return (
-    <div
-      data-testid="dashboard-surface"
-      className="bg-background-landing text-foreground fixed inset-0"
-    >
+    <div data-testid="dashboard-surface" sx={stylexStyles.rule1}>
       <SessionDashboard
         spaces={spaces}
         onSpaceClick={onSpaceClick}

@@ -95,6 +95,7 @@ const nativeClasses = {
   create(context) {
     // Check each literal once, even when a constant reaches several DOM elements.
     const reported = new Set()
+    const themeTypes = new Set()
     const check = (node) => {
       for (const literal of classLiterals(
         node,
@@ -113,7 +114,31 @@ const nativeClasses = {
         }
       }
     }
+    // Lexical owns its DOM classes through a nested theme instead of JSX props.
+    const checkTheme = (node) => {
+      if (node.type === 'ObjectExpression') {
+        for (const property of node.properties) {
+          if (property.type === 'Property') checkTheme(property.value)
+        }
+      } else check(node)
+    }
     return {
+      ImportDeclaration(node) {
+        if (node.source.value !== 'lexical') return
+        for (const specifier of node.specifiers) {
+          if (specifier.imported?.name === 'EditorThemeClasses')
+            themeTypes.add(specifier.local.name)
+        }
+      },
+      VariableDeclarator(node) {
+        const type = node.id.typeAnnotation?.typeAnnotation
+        if (
+          node.init &&
+          type?.type === 'TSTypeReference' &&
+          themeTypes.has(type.typeName.name)
+        )
+          checkTheme(node.init)
+      },
       JSXAttribute(node) {
         if (node.name.name === 'className' && node.value) check(node.value)
       },

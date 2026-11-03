@@ -15,13 +15,38 @@ import type { IJsonRowNode, IJsonTabSetNode } from '@aptre/flex-layout'
 
 import '@s4wave/web/style/app.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
+    position: 'relative',
+    height: `calc(${themeLayout['--spacing']} * 150)`,
+    width: `calc(${themeLayout['--spacing']} * 256)`,
+  },
+  rule2: {
+    flex: 1,
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  rule3: {
+    display: 'inline-block',
+    width: `calc(${themeLayout['--spacing']} * 45)`,
+  },
+})
+
 async function renderWithMenuShell(layout: IJsonRowNode) {
   const { OptimizedLayout, Model } = await import('@aptre/flex-layout')
   const model = Model.fromJson({ global: { tabEnableClose: false }, layout })
   await render(
-    <div className="relative flex h-150 w-256 flex-col overflow-hidden">
+    <div sx={stylexStyles.rule1}>
       <div
-        className="shell-flexlayout shell-flexlayout--with-menu flex flex-1 flex-col overflow-hidden"
+        sx={stylexStyles.rule2}
+        className="shell-flexlayout shell-flexlayout--with-menu"
         style={{ '--menu-bar-width': '233px' }}
         data-testid="shell-container"
       >
@@ -107,17 +132,17 @@ describe('Shell menu container collapse', () => {
 
   it('collapses the menu items when the overlay is marked narrow', async () => {
     await render(
-      <div className="shell-flexlayout">
+      <div className={'shell-flexlayout'}>
         <div
-          className="shell-menu-bar-overlay"
+          className={'shell-menu-bar-overlay'}
           data-menu-collapsed="false"
           data-testid="overlay"
         >
           <button type="button" aria-label="logo">
             L
           </button>
-          <div className="shell-menu-collapsible" data-testid="menu-items">
-            <span className="inline-block w-45">menus</span>
+          <div className={'shell-menu-collapsible'} data-testid="menu-items">
+            <span sx={stylexStyles.rule3}>menus</span>
           </div>
         </div>
       </div>,

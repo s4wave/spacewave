@@ -1,128 +1,128 @@
 ---
 version: alpha
 name: Spacewave-design-system
-description: "Spacewave is a dark, local-first application environment with a polished workbench feel: warm near-black surfaces, OKLCH brand reds, solid cards, glass only on floating panels, compact tab chrome, dense object viewers, and a small amount of responsive motion. The app should feel precise and technical without becoming generic developer-tool gray. Marketing and onboarding surfaces may be more expressive, but they still share the same dark canvas, solid low-contrast cards, Manrope typography, Lucide icons, and brand-tinted interaction states."
+description: 'Spacewave is a dark, local-first application environment with a polished workbench feel: warm near-black surfaces, OKLCH brand reds, solid cards, glass only on floating panels, compact tab chrome, dense object viewers, and a small amount of responsive motion. The app should feel precise and technical without becoming generic developer-tool gray. Marketing and onboarding surfaces may be more expressive, but they still share the same dark canvas, solid low-contrast cards, Manrope typography, Lucide icons, and brand-tinted interaction states.'
 
 colors:
-  brand: "#ff9ea5"
-  brand-highlight: "#ffa8ae"
-  primary: "#de3955"
-  primary-foreground: "#ffffff"
-  violet: "#948ae3"
-  link-hover: "{colors.violet}"
-  accent: "#f63d6e"
-  success: "#06ff8c"
-  warning: "#fdba8c"
-  error: "#ff8f8f"
-  error-text: "#ffb3b3"
-  error-bg: "#ff8f8f"
-  error-border: "#ff8f8f"
-  destructive: "{colors.error}"
-  destructive-foreground: "{colors.primary-foreground}"
-  foreground: "#ffffff"
-  foreground-alt: "#e1dddd"
-  text-primary: "#f7f1ff"
-  text-secondary: "#e8e3e3"
-  text-muted: "#bcb5b5"
-  background: "#1d1b1b"
-  background-dark: "#0c0b0b"
-  background-card: "#1a1818"
-  background-card-alt: "#161414"
-  background-landing: "#151313"
-  background-get-started: "#181717"
-  background-canvas: "#141212"
-  background-primary: "#1c1a1a"
-  background-secondary: "#211f1f"
-  background-tertiary: "#2a2828"
-  background-panel: "#262324"
-  topbar-back: "#121212"
-  shell-tab-active: "#2a2828"
-  shell-tab-inactive: "#171616"
-  shell-tab-text: "#bcb5b5"
-  shell-tab-text-active: "#ffffff"
-  border: "#464343"
-  window-border: "#ffffff"
-  foreground-border-subtle: "#ffffff"
-  foreground-border: "#ffffff"
-  foreground-border-strong: "#ffffff"
-  tooltip-bg: "#1a1a1a"
-  tooltip-text: "#e6e6e6"
-  tooltip-border: "#ffffff"
-  logo-base: "#030e31"
-  logo-blue: "#37b1dc"
-  logo-pink: "#c35aac"
-  logo-purple: "#83298c"
-  logo-dark: "#050b30"
+  brand: '#ff9ea5'
+  brand-highlight: '#ffa8ae'
+  primary: '#de3955'
+  primary-foreground: '#ffffff'
+  violet: '#948ae3'
+  link-hover: '{colors.violet}'
+  accent: '#f63d6e'
+  success: '#06ff8c'
+  warning: '#fdba8c'
+  error: '#ff8f8f'
+  error-text: '#ffb3b3'
+  error-bg: '#ff8f8f'
+  error-border: '#ff8f8f'
+  destructive: '{colors.error}'
+  destructive-foreground: '{colors.primary-foreground}'
+  foreground: '#ffffff'
+  foreground-alt: '#e1dddd'
+  text-primary: '#f7f1ff'
+  text-secondary: '#e8e3e3'
+  text-muted: '#bcb5b5'
+  background: '#1d1b1b'
+  background-dark: '#0c0b0b'
+  background-card: '#1a1818'
+  background-card-alt: '#161414'
+  background-landing: '#151313'
+  background-get-started: '#181717'
+  background-canvas: '#141212'
+  background-primary: '#1c1a1a'
+  background-secondary: '#211f1f'
+  background-tertiary: '#2a2828'
+  background-panel: '#262324'
+  topbar-back: '#121212'
+  shell-tab-active: '#2a2828'
+  shell-tab-inactive: '#171616'
+  shell-tab-text: '#bcb5b5'
+  shell-tab-text-active: '#ffffff'
+  border: '#464343'
+  window-border: '#ffffff'
+  foreground-border-subtle: '#ffffff'
+  foreground-border: '#ffffff'
+  foreground-border-strong: '#ffffff'
+  tooltip-bg: '#1a1a1a'
+  tooltip-text: '#e6e6e6'
+  tooltip-border: '#ffffff'
+  logo-base: '#030e31'
+  logo-blue: '#37b1dc'
+  logo-pink: '#c35aac'
+  logo-purple: '#83298c'
+  logo-dark: '#050b30'
 
 typography:
   display-xl:
-    fontFamily: "Manrope Variable, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
+    fontFamily: 'Manrope Variable, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'
     fontSize: 48px
     fontWeight: 700
     lineHeight: 1.12
     letterSpacing: 0
   display-lg:
-    fontFamily: "Manrope Variable, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
+    fontFamily: 'Manrope Variable, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'
     fontSize: 36px
     fontWeight: 700
     lineHeight: 1.16
     letterSpacing: 0
   page-title:
-    fontFamily: "Manrope Variable, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
+    fontFamily: 'Manrope Variable, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'
     fontSize: 18px
     fontWeight: 600
     lineHeight: 1.35
     letterSpacing: 0
   figure:
-    fontFamily: "Manrope Variable, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
+    fontFamily: 'Manrope Variable, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'
     fontSize: 24px
     fontWeight: 500
     lineHeight: 1.25
     letterSpacing: 0
   panel-title:
-    fontFamily: "Manrope Variable, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
+    fontFamily: 'Manrope Variable, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'
     fontSize: 14px
     fontWeight: 600
     lineHeight: 1.4
     letterSpacing: 0
   section-title:
-    fontFamily: "Manrope Variable, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
+    fontFamily: 'Manrope Variable, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'
     fontSize: 12px
     fontWeight: 500
     lineHeight: 1.4
     letterSpacing: 0
   body-md:
-    fontFamily: "Manrope Variable, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
+    fontFamily: 'Manrope Variable, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'
     fontSize: 14px
     fontWeight: 400
     lineHeight: 1.6
     letterSpacing: 0
   body-sm:
-    fontFamily: "Manrope Variable, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
+    fontFamily: 'Manrope Variable, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'
     fontSize: 12px
     fontWeight: 400
     lineHeight: 1.5
     letterSpacing: 0
   control-sm:
-    fontFamily: "Manrope Variable, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
+    fontFamily: 'Manrope Variable, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'
     fontSize: 12px
     fontWeight: 500
     lineHeight: 1
     letterSpacing: 0
   micro-cap:
-    fontFamily: "Manrope Variable, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
+    fontFamily: 'Manrope Variable, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'
     fontSize: 10px
     fontWeight: 600
     lineHeight: 1.4
     letterSpacing: 0.08em
   metadata:
-    fontFamily: "Manrope Variable, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
+    fontFamily: 'Manrope Variable, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'
     fontSize: 9.6px
     fontWeight: 500
     lineHeight: 1.5
     letterSpacing: 0
   mono:
-    fontFamily: "Pragmasevka, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace"
+    fontFamily: 'Pragmasevka, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace'
     fontSize: 12px
     fontWeight: 400
     lineHeight: 1.5
@@ -151,274 +151,274 @@ spacing:
 
 components:
   app-canvas:
-    backgroundColor: "{colors.background}"
-    textColor: "{colors.foreground}"
-    typography: "{typography.body-md}"
+    backgroundColor: '{colors.background}'
+    textColor: '{colors.foreground}'
+    typography: '{typography.body-md}'
     rounded: 0px
     padding: 0px
   landing-canvas:
-    backgroundColor: "{colors.background-landing}"
-    textColor: "{colors.foreground}"
-    typography: "{typography.body-md}"
+    backgroundColor: '{colors.background-landing}'
+    textColor: '{colors.foreground}'
+    typography: '{typography.body-md}'
     rounded: 0px
     padding: 0px
   glass-card:
-    backgroundColor: "{colors.background-card}"
-    textColor: "{colors.foreground}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.sm}"
+    backgroundColor: '{colors.background-card}'
+    textColor: '{colors.foreground}'
+    typography: '{typography.body-sm}'
+    rounded: '{rounded.sm}'
     padding: 14px
   info-card:
-    backgroundColor: "{colors.background-card}"
-    textColor: "{colors.foreground}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.sm}"
+    backgroundColor: '{colors.background-card}'
+    textColor: '{colors.foreground}'
+    typography: '{typography.body-sm}'
+    rounded: '{rounded.sm}'
     padding: 14px
   action-card:
-    backgroundColor: "{colors.background-card}"
-    textColor: "{colors.foreground}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.sm}"
+    backgroundColor: '{colors.background-card}'
+    textColor: '{colors.foreground}'
+    typography: '{typography.body-sm}'
+    rounded: '{rounded.sm}'
     padding: 12px
   dashboard-button:
-    backgroundColor: "{colors.background}"
-    textColor: "{colors.foreground-alt}"
-    typography: "{typography.control-sm}"
-    rounded: "{rounded.menu-button}"
+    backgroundColor: '{colors.background}'
+    textColor: '{colors.foreground-alt}'
+    typography: '{typography.control-sm}'
+    rounded: '{rounded.menu-button}'
     padding: 8px 8px
   primary-action:
-    backgroundColor: "{colors.background-card}"
-    textColor: "{colors.brand}"
-    typography: "{typography.control-sm}"
-    rounded: "{rounded.xs}"
+    backgroundColor: '{colors.background-card}'
+    textColor: '{colors.brand}'
+    typography: '{typography.control-sm}'
+    rounded: '{rounded.xs}'
     padding: 8px 12px
   text-input:
-    backgroundColor: "{colors.background}"
-    textColor: "{colors.foreground}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.xs}"
+    backgroundColor: '{colors.background}'
+    textColor: '{colors.foreground}'
+    typography: '{typography.body-sm}'
+    rounded: '{rounded.xs}'
     padding: 8px 12px
   shell-tab:
-    backgroundColor: "{colors.shell-tab-inactive}"
-    textColor: "{colors.shell-tab-text}"
-    typography: "{typography.control-sm}"
-    rounded: "{rounded.editor} {rounded.editor} 0 0"
+    backgroundColor: '{colors.shell-tab-inactive}'
+    textColor: '{colors.shell-tab-text}'
+    typography: '{typography.control-sm}'
+    rounded: '{rounded.editor} {rounded.editor} 0 0'
     padding: 0px 8px
   panel-header:
-    backgroundColor: "{colors.background-primary}"
-    textColor: "{colors.foreground}"
-    typography: "{typography.panel-title}"
+    backgroundColor: '{colors.background-primary}'
+    textColor: '{colors.foreground}'
+    typography: '{typography.panel-title}'
     rounded: 0px
     padding: 0px 16px
   wizard-shell:
-    backgroundColor: "{colors.background-card}"
-    textColor: "{colors.foreground}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.md}"
+    backgroundColor: '{colors.background-card}'
+    textColor: '{colors.foreground}'
+    typography: '{typography.body-sm}'
+    rounded: '{rounded.md}'
     padding: 0px
   loading-card:
-    backgroundColor: "{colors.background-card}"
-    textColor: "{colors.foreground}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.sm}"
+    backgroundColor: '{colors.background-card}'
+    textColor: '{colors.foreground}'
+    typography: '{typography.body-sm}'
+    rounded: '{rounded.sm}'
     padding: 14px
   badge:
-    backgroundColor: "{colors.background-card-alt}"
-    textColor: "{colors.foreground-alt}"
-    typography: "{typography.micro-cap}"
-    rounded: "{rounded.pill}"
+    backgroundColor: '{colors.background-card-alt}'
+    textColor: '{colors.foreground-alt}'
+    typography: '{typography.micro-cap}'
+    rounded: '{rounded.pill}'
     padding: 2px 8px
   tooltip:
-    backgroundColor: "{colors.tooltip-bg}"
-    textColor: "{colors.tooltip-text}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.xs}"
+    backgroundColor: '{colors.tooltip-bg}'
+    textColor: '{colors.tooltip-text}'
+    typography: '{typography.body-sm}'
+    rounded: '{rounded.xs}'
     padding: 6px 8px
   primary-hover:
-    backgroundColor: "{colors.background-card}"
-    textColor: "{colors.brand-highlight}"
-    typography: "{typography.control-sm}"
-    rounded: "{rounded.xs}"
+    backgroundColor: '{colors.background-card}'
+    textColor: '{colors.brand-highlight}'
+    typography: '{typography.control-sm}'
+    rounded: '{rounded.xs}'
     padding: 8px 12px
   primary-drag-affordance:
-    backgroundColor: "{colors.background-dark}"
-    textColor: "{colors.primary}"
-    typography: "{typography.control-sm}"
-    rounded: "{rounded.xs}"
+    backgroundColor: '{colors.background-dark}'
+    textColor: '{colors.primary}'
+    typography: '{typography.control-sm}'
+    rounded: '{rounded.xs}'
     padding: 4px 8px
   primary-foreground-reference:
-    backgroundColor: "{colors.background-dark}"
-    textColor: "{colors.primary-foreground}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.xs}"
+    backgroundColor: '{colors.background-dark}'
+    textColor: '{colors.primary-foreground}'
+    typography: '{typography.body-sm}'
+    rounded: '{rounded.xs}'
     padding: 4px 8px
   link-hover:
-    backgroundColor: "{colors.background}"
-    textColor: "{colors.link-hover}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.xs}"
+    backgroundColor: '{colors.background}'
+    textColor: '{colors.link-hover}'
+    typography: '{typography.body-sm}'
+    rounded: '{rounded.xs}'
     padding: 0px
   accent-tint:
-    backgroundColor: "{colors.background-dark}"
-    textColor: "{colors.accent}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.xs}"
+    backgroundColor: '{colors.background-dark}'
+    textColor: '{colors.accent}'
+    typography: '{typography.body-sm}'
+    rounded: '{rounded.xs}'
     padding: 4px 8px
   status-success:
-    backgroundColor: "{colors.success}"
-    textColor: "{colors.background-dark}"
-    typography: "{typography.micro-cap}"
-    rounded: "{rounded.pill}"
+    backgroundColor: '{colors.success}'
+    textColor: '{colors.background-dark}'
+    typography: '{typography.micro-cap}'
+    rounded: '{rounded.pill}'
     padding: 2px 8px
   status-warning:
-    backgroundColor: "{colors.warning}"
-    textColor: "{colors.background-dark}"
-    typography: "{typography.micro-cap}"
-    rounded: "{rounded.pill}"
+    backgroundColor: '{colors.warning}'
+    textColor: '{colors.background-dark}'
+    typography: '{typography.micro-cap}'
+    rounded: '{rounded.pill}'
     padding: 2px 8px
   destructive-callout:
-    backgroundColor: "{colors.background-dark}"
-    textColor: "{colors.error-text}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.xs}"
+    backgroundColor: '{colors.background-dark}'
+    textColor: '{colors.error-text}'
+    typography: '{typography.body-sm}'
+    rounded: '{rounded.xs}'
     padding: 8px 12px
   destructive-bg-reference:
-    backgroundColor: "{colors.background-dark}"
-    textColor: "{colors.error-bg}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.xs}"
+    backgroundColor: '{colors.background-dark}'
+    textColor: '{colors.error-bg}'
+    typography: '{typography.body-sm}'
+    rounded: '{rounded.xs}'
     padding: 4px 8px
   destructive-border-reference:
-    backgroundColor: "{colors.background-dark}"
-    textColor: "{colors.error-border}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.xs}"
+    backgroundColor: '{colors.background-dark}'
+    textColor: '{colors.error-border}'
+    typography: '{typography.body-sm}'
+    rounded: '{rounded.xs}'
     padding: 4px 8px
   text-primary-reference:
-    backgroundColor: "{colors.background}"
-    textColor: "{colors.text-primary}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.xs}"
+    backgroundColor: '{colors.background}'
+    textColor: '{colors.text-primary}'
+    typography: '{typography.body-sm}'
+    rounded: '{rounded.xs}'
     padding: 0px
   text-secondary-reference:
-    backgroundColor: "{colors.background}"
-    textColor: "{colors.text-secondary}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.xs}"
+    backgroundColor: '{colors.background}'
+    textColor: '{colors.text-secondary}'
+    typography: '{typography.body-sm}'
+    rounded: '{rounded.xs}'
     padding: 0px
   text-muted-reference:
-    backgroundColor: "{colors.background}"
-    textColor: "{colors.text-muted}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.xs}"
+    backgroundColor: '{colors.background}'
+    textColor: '{colors.text-muted}'
+    typography: '{typography.body-sm}'
+    rounded: '{rounded.xs}'
     padding: 0px
   onboarding-card:
-    backgroundColor: "{colors.background-get-started}"
-    textColor: "{colors.foreground}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.sm}"
+    backgroundColor: '{colors.background-get-started}'
+    textColor: '{colors.foreground}'
+    typography: '{typography.body-sm}'
+    rounded: '{rounded.sm}'
     padding: 16px
   destructive-status:
-    backgroundColor: "{colors.background-dark}"
-    textColor: "{colors.error}"
-    typography: "{typography.micro-cap}"
-    rounded: "{rounded.pill}"
+    backgroundColor: '{colors.background-dark}'
+    textColor: '{colors.error}'
+    typography: '{typography.micro-cap}'
+    rounded: '{rounded.pill}'
     padding: 2px 8px
   canvas-panel:
-    backgroundColor: "{colors.background-canvas}"
-    textColor: "{colors.foreground}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.sm}"
+    backgroundColor: '{colors.background-canvas}'
+    textColor: '{colors.foreground}'
+    typography: '{typography.body-sm}'
+    rounded: '{rounded.sm}'
     padding: 12px
   secondary-panel:
-    backgroundColor: "{colors.background-secondary}"
-    textColor: "{colors.foreground}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.sm}"
+    backgroundColor: '{colors.background-secondary}'
+    textColor: '{colors.foreground}'
+    typography: '{typography.body-sm}'
+    rounded: '{rounded.sm}'
     padding: 12px
   tertiary-surface:
-    backgroundColor: "{colors.background-tertiary}"
-    textColor: "{colors.foreground}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.sm}"
+    backgroundColor: '{colors.background-tertiary}'
+    textColor: '{colors.foreground}'
+    typography: '{typography.body-sm}'
+    rounded: '{rounded.sm}'
     padding: 12px
   editor-panel:
-    backgroundColor: "{colors.background-panel}"
-    textColor: "{colors.foreground}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.editor}"
+    backgroundColor: '{colors.background-panel}'
+    textColor: '{colors.foreground}'
+    typography: '{typography.body-sm}'
+    rounded: '{rounded.editor}'
     padding: 8px
   topbar-shell:
-    backgroundColor: "{colors.topbar-back}"
-    textColor: "{colors.foreground}"
-    typography: "{typography.control-sm}"
+    backgroundColor: '{colors.topbar-back}'
+    textColor: '{colors.foreground}'
+    typography: '{typography.control-sm}'
     rounded: 0px
     padding: 0px 8px
   shell-tab-active:
-    backgroundColor: "{colors.shell-tab-active}"
-    textColor: "{colors.shell-tab-text-active}"
-    typography: "{typography.control-sm}"
-    rounded: "{rounded.editor} {rounded.editor} 0 0"
+    backgroundColor: '{colors.shell-tab-active}'
+    textColor: '{colors.shell-tab-text-active}'
+    typography: '{typography.control-sm}'
+    rounded: '{rounded.editor} {rounded.editor} 0 0'
     padding: 0px 8px
   border-reference:
-    backgroundColor: "{colors.border}"
-    textColor: "{colors.foreground}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.xs}"
+    backgroundColor: '{colors.border}'
+    textColor: '{colors.foreground}'
+    typography: '{typography.body-sm}'
+    rounded: '{rounded.xs}'
     padding: 4px 8px
   window-border-reference:
-    backgroundColor: "{colors.window-border}"
-    textColor: "{colors.background}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.xs}"
+    backgroundColor: '{colors.window-border}'
+    textColor: '{colors.background}'
+    typography: '{typography.body-sm}'
+    rounded: '{rounded.xs}'
     padding: 4px 8px
   foreground-border-subtle-reference:
-    backgroundColor: "{colors.foreground-border-subtle}"
-    textColor: "{colors.background}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.xs}"
+    backgroundColor: '{colors.foreground-border-subtle}'
+    textColor: '{colors.background}'
+    typography: '{typography.body-sm}'
+    rounded: '{rounded.xs}'
     padding: 4px 8px
   foreground-border-reference:
-    backgroundColor: "{colors.foreground-border}"
-    textColor: "{colors.background}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.xs}"
+    backgroundColor: '{colors.foreground-border}'
+    textColor: '{colors.background}'
+    typography: '{typography.body-sm}'
+    rounded: '{rounded.xs}'
     padding: 4px 8px
   foreground-border-strong-reference:
-    backgroundColor: "{colors.foreground-border-strong}"
-    textColor: "{colors.background}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.xs}"
+    backgroundColor: '{colors.foreground-border-strong}'
+    textColor: '{colors.background}'
+    typography: '{typography.body-sm}'
+    rounded: '{rounded.xs}'
     padding: 4px 8px
   tooltip-border-reference:
-    backgroundColor: "{colors.tooltip-border}"
-    textColor: "{colors.tooltip-bg}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.xs}"
+    backgroundColor: '{colors.tooltip-border}'
+    textColor: '{colors.tooltip-bg}'
+    typography: '{typography.body-sm}'
+    rounded: '{rounded.xs}'
     padding: 4px 8px
   logo-base-reference:
-    backgroundColor: "{colors.logo-base}"
-    textColor: "{colors.logo-blue}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.xl}"
+    backgroundColor: '{colors.logo-base}'
+    textColor: '{colors.logo-blue}'
+    typography: '{typography.body-sm}'
+    rounded: '{rounded.xl}'
     padding: 8px
   logo-pink-reference:
-    backgroundColor: "{colors.logo-pink}"
-    textColor: "{colors.logo-dark}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.xl}"
+    backgroundColor: '{colors.logo-pink}'
+    textColor: '{colors.logo-dark}'
+    typography: '{typography.body-sm}'
+    rounded: '{rounded.xl}'
     padding: 8px
   logo-purple-reference:
-    backgroundColor: "{colors.logo-purple}"
-    textColor: "{colors.foreground}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.xl}"
+    backgroundColor: '{colors.logo-purple}'
+    textColor: '{colors.foreground}'
+    typography: '{typography.body-sm}'
+    rounded: '{rounded.xl}'
     padding: 8px
 allow:
   - rule: type.size
     uppercase: true
     minSize: 10
-    decision: "Typography: micro-cap labels, badges and figure labels at 10px tracked capitals"
+    decision: 'Typography: micro-cap labels, badges and figure labels at 10px tracked capitals'
 ---
 
 ## Overview
@@ -438,6 +438,7 @@ and animated logo treatments are allowed, but the same tokens and interaction
 rules still apply.
 
 **Key Characteristics:**
+
 - Warm near-black surfaces instead of neutral slate: `{colors.background}`,
   `{colors.background-card}`, and `{colors.background-primary}` define the base.
 - Brand red-pink as an interaction accent, not a full-page wash. Use
@@ -549,18 +550,18 @@ they are not class strings to paste into JSX.
 
 The design depends on opacity, not new colors. These are the common steps:
 
-| Use | Token Pattern |
-|---|---|
-| Subtle border | `border-foreground/6` |
-| Standard header divider | `border-foreground/8` |
-| Interactive border | `border-foreground/10` |
-| Hover border | `border-foreground/12` or `/15` |
-| Strong selected border | `border-brand/30` |
-| Standard card | `bg-background-card/30` |
-| Hover card | `bg-background-card/50` or `/60` |
-| Brand tint | `bg-brand/10`, hover `bg-brand/15` |
-| Muted text | `text-foreground-alt/50` |
-| Disabled or empty | `text-foreground-alt/40` |
+| Use                     | Token Pattern                      |
+| ----------------------- | ---------------------------------- |
+| Subtle border           | `border-foreground/6`              |
+| Standard header divider | `border-foreground/8`              |
+| Interactive border      | `border-foreground/10`             |
+| Hover border            | `border-foreground/12` or `/15`    |
+| Strong selected border  | `border-brand/30`                  |
+| Standard card           | `bg-background-card/30`            |
+| Hover card              | `bg-background-card/50` or `/60`   |
+| Brand tint              | `bg-brand/10`, hover `bg-brand/15` |
+| Muted text              | `text-foreground-alt/50`           |
+| Disabled or empty       | `text-foreground-alt/40`           |
 
 ## Typography
 
@@ -577,19 +578,19 @@ a brand decoration.
 
 ### Hierarchy
 
-| Token | Size | Weight | Line Height | Use |
-|---|---:|---:|---:|---|
-| `{typography.display-xl}` | 48px | 700 | 1.12 | Large landing title only |
-| `{typography.display-lg}` | 36px | 700 | 1.16 | Landing section title |
-| `{typography.page-title}` | 18px | 600 | 1.35 | Focused page title |
-| `{typography.figure}` | 24px | 500 | 1.25 | Figure strip values |
-| `{typography.panel-title}` | 14px | 600 | 1.4 | Panel header title |
-| `{typography.section-title}` | 12px | 500 | 1.4 | Section heading |
-| `{typography.body-md}` | 14px | 400 | 1.6 | Body copy and descriptions |
-| `{typography.body-sm}` | 12px | 400 | 1.5 | Dense UI body |
-| `{typography.control-sm}` | 12px | 500 | 1 | Buttons and compact controls |
-| `{typography.micro-cap}` | 10px | 600 | 1.4 | Step labels, badges, nav microcopy |
-| `{typography.mono}` | 12px | 400 | 1.5 | Code, refs, terminal, hashes |
+| Token                        | Size | Weight | Line Height | Use                                |
+| ---------------------------- | ---: | -----: | ----------: | ---------------------------------- |
+| `{typography.display-xl}`    | 48px |    700 |        1.12 | Large landing title only           |
+| `{typography.display-lg}`    | 36px |    700 |        1.16 | Landing section title              |
+| `{typography.page-title}`    | 18px |    600 |        1.35 | Focused page title                 |
+| `{typography.figure}`        | 24px |    500 |        1.25 | Figure strip values                |
+| `{typography.panel-title}`   | 14px |    600 |         1.4 | Panel header title                 |
+| `{typography.section-title}` | 12px |    500 |         1.4 | Section heading                    |
+| `{typography.body-md}`       | 14px |    400 |         1.6 | Body copy and descriptions         |
+| `{typography.body-sm}`       | 12px |    400 |         1.5 | Dense UI body                      |
+| `{typography.control-sm}`    | 12px |    500 |           1 | Buttons and compact controls       |
+| `{typography.micro-cap}`     | 10px |    600 |         1.4 | Step labels, badges, nav microcopy |
+| `{typography.mono}`          | 12px |    400 |         1.5 | Code, refs, terminal, hashes       |
 
 ### Principles
 
@@ -681,14 +682,14 @@ Spacewave uses low-opacity fills, borders, and subtle motion more than
 shadows. Backdrop blur marks a surface that floats over other content; a card
 in the page flow never takes it, because nothing moves behind it.
 
-| Level | Treatment | Use |
-|---|---|---|
-| 0 | Flat near-black surface | App canvas, editor interiors |
-| 1 | `bg-background-card/30`, `border-foreground/6` | Info cards, wizards, object panels |
-| 2 | Level 1 with a hover border and lift | Action cards, landing cards, clickable rows |
-| 2F | Glass with `backdrop-blur-sm` over content | Popovers, floating windows, toolbars, pills over media |
-| 3 | Menu shadow plus opaque card | Menus, dropdowns, toasts, overlays |
-| 4 | Shine border / animated logo glow | Boot and brand moments only |
+| Level | Treatment                                      | Use                                                    |
+| ----- | ---------------------------------------------- | ------------------------------------------------------ |
+| 0     | Flat near-black surface                        | App canvas, editor interiors                           |
+| 1     | `bg-background-card/30`, `border-foreground/6` | Info cards, wizards, object panels                     |
+| 2     | Level 1 with a hover border and lift           | Action cards, landing cards, clickable rows            |
+| 2F    | Glass with `backdrop-blur-sm` over content     | Popovers, floating windows, toolbars, pills over media |
+| 3     | Menu shadow plus opaque card                   | Menus, dropdowns, toasts, overlays                     |
+| 4     | Shine border / animated logo glow              | Boot and brand moments only                            |
 
 Avoid heavy drop shadows for ordinary cards. Use `shadow-menu` for menus and
 toasts, and use subtle `shadow-lg` only for modal or login-style overlays.
@@ -704,16 +705,16 @@ toasts, and use subtle `shadow-lg` only for modal or login-style overlays.
 
 ## Shapes
 
-| Token | Value | Use |
-|---|---:|---|
-| `{rounded.menu-button}` | 3px | Dense dashboard buttons |
-| `{rounded.xs}` | 4px | Compact inputs and small inline surfaces |
-| `{rounded.editor}` | 6px | Shell tabs and editor panel corners |
-| `{rounded.sm}` | 8px | Standard cards |
-| `{rounded.md}` | 12px | Wizard shell and route cards |
-| `{rounded.lg}` | 16px | Logo-adjacent large shells |
-| `{rounded.xl}` | 20px | Animated logo image corners |
-| `{rounded.pill}` | 9999px | Badges, pills, progress chips |
+| Token                   |  Value | Use                                      |
+| ----------------------- | -----: | ---------------------------------------- |
+| `{rounded.menu-button}` |    3px | Dense dashboard buttons                  |
+| `{rounded.xs}`          |    4px | Compact inputs and small inline surfaces |
+| `{rounded.editor}`      |    6px | Shell tabs and editor panel corners      |
+| `{rounded.sm}`          |    8px | Standard cards                           |
+| `{rounded.md}`          |   12px | Wizard shell and route cards             |
+| `{rounded.lg}`          |   16px | Logo-adjacent large shells               |
+| `{rounded.xl}`          |   20px | Animated logo image corners              |
+| `{rounded.pill}`        | 9999px | Badges, pills, progress chips            |
 
 Do not round dense app controls into large pills. Pills are for badges, status
 chips, floating bars, and compact overlays.
@@ -885,13 +886,13 @@ description.
 Use `react-icons/lu` Lucide icons for UI controls and sections. Keep icon sizes
 stable:
 
-| Size | Use |
-|---|---|
-| `h-2.5 w-2.5` | Tiny badges |
-| `h-3 w-3` | Secondary row glyphs |
-| `h-3.5 w-3.5` | Section headings and dense buttons |
-| `h-4 w-4` | Panel header actions and primary row icons |
-| `h-5 w-5` | Focused page leading icons |
+| Size          | Use                                        |
+| ------------- | ------------------------------------------ |
+| `h-2.5 w-2.5` | Tiny badges                                |
+| `h-3 w-3`     | Secondary row glyphs                       |
+| `h-3.5 w-3.5` | Section headings and dense buttons         |
+| `h-4 w-4`     | Panel header actions and primary row icons |
+| `h-5 w-5`     | Focused page leading icons                 |
 
 Icon containers:
 
@@ -908,27 +909,27 @@ Spacewave uses container queries and viewport-height variants heavily.
 
 ### Breakpoints And Variants
 
-| Variant | Trigger | Use |
-|---|---|---|
-| `narrow` | max-width 640px | Collapse dense landing/onboarding surfaces |
-| `wide` | min-width 1920px | Give large displays more room |
-| `ultrawide` | min-width 2560px | Avoid over-stretched content |
-| `tall` | min-height 800px | Center landing hero vertically |
-| `short` | max-height 580px | Hide or compress footer adornments |
-| `very-short` | max-height 470px | Hide logo when necessary |
-| `ultra-short` | max-height 390px | Hide hero wordmark when necessary |
-| `auth-short` | container max-height 740px | Compress auth/onboarding layout |
-| `auth-very-short` | container max-height 580px | Top-align compact auth content |
-| `auth-short-narrow` | container max-height 740px and max-width 950px | Hide secondary auth intro content |
-| `@xs` | container min-width 20rem | Fine-grained component scale-up |
-| `@sm` | container min-width 24rem | Fine-grained component scale-up |
-| `@md` | container min-width 28rem | Fine-grained component scale-up |
-| `@lg` | container min-width 32rem | Landing and component scale-up |
-| `@xl` | container min-width 36rem | Fine-grained component scale-up |
-| `@2xl` | container min-width 42rem | Larger landing spacing |
-| `@3xl` | container min-width 48rem | Fine-grained component scale-up |
-| `@4xl` | container min-width 56rem | Fine-grained component scale-up |
-| `@5xl` | container min-width 64rem | Fine-grained component scale-up |
+| Variant             | Trigger                                        | Use                                        |
+| ------------------- | ---------------------------------------------- | ------------------------------------------ |
+| `narrow`            | max-width 640px                                | Collapse dense landing/onboarding surfaces |
+| `wide`              | min-width 1920px                               | Give large displays more room              |
+| `ultrawide`         | min-width 2560px                               | Avoid over-stretched content               |
+| `tall`              | min-height 800px                               | Center landing hero vertically             |
+| `short`             | max-height 580px                               | Hide or compress footer adornments         |
+| `very-short`        | max-height 470px                               | Hide logo when necessary                   |
+| `ultra-short`       | max-height 390px                               | Hide hero wordmark when necessary          |
+| `auth-short`        | container max-height 740px                     | Compress auth/onboarding layout            |
+| `auth-very-short`   | container max-height 580px                     | Top-align compact auth content             |
+| `auth-short-narrow` | container max-height 740px and max-width 950px | Hide secondary auth intro content          |
+| `@xs`               | container min-width 20rem                      | Fine-grained component scale-up            |
+| `@sm`               | container min-width 24rem                      | Fine-grained component scale-up            |
+| `@md`               | container min-width 28rem                      | Fine-grained component scale-up            |
+| `@lg`               | container min-width 32rem                      | Landing and component scale-up             |
+| `@xl`               | container min-width 36rem                      | Fine-grained component scale-up            |
+| `@2xl`              | container min-width 42rem                      | Larger landing spacing                     |
+| `@3xl`              | container min-width 48rem                      | Fine-grained component scale-up            |
+| `@4xl`              | container min-width 56rem                      | Fine-grained component scale-up            |
+| `@5xl`              | container min-width 64rem                      | Fine-grained component scale-up            |
 
 ### Rules
 

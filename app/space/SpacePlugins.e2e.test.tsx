@@ -12,6 +12,20 @@ import {
 import type { BackgroundPlugin } from '@s4wave/core/session/session.pb.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    backgroundColor: themeColors['--color-background'],
+    width: `calc(${themeLayout['--spacing']} * 95)`,
+  },
+})
+
 const mocks = vi.hoisted(() => ({
   useResourceValue: vi.fn(),
   useWatchStateRpc: vi.fn(),
@@ -77,7 +91,7 @@ import { SpacePlugins } from './SpacePlugins.js'
 // PanelFrame uses the Space details panel layout.
 function PanelFrame() {
   return (
-    <div className="bg-background w-95 p-4">
+    <div sx={stylexStyles.rule1}>
       <InfoCard>
         <SpacePlugins />
       </InfoCard>

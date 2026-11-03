@@ -10,6 +10,22 @@ import {
 } from '@s4wave/sdk/terminal/terminal.pb.js'
 import { TerminalPane, type TerminalPaneConnector } from './TerminalPane.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    backgroundColor: themeColors['--color-background-dark'],
+    display: 'flex',
+    flexDirection: 'column',
+    height: `calc(${themeLayout['--spacing']} * 140)`,
+    width: `calc(${themeLayout['--spacing']} * 225)`,
+  },
+})
+
 const encoder = new TextEncoder()
 
 // SAMPLE exercises the full 16-color ANSI palette: SGR 30-37 drives the normal
@@ -115,7 +131,7 @@ describe('TerminalPane design-system visuals', () => {
 
   it('paints the console on the warm design tokens and mono font', async () => {
     await render(
-      <div className="bg-background-dark flex h-140 w-225 flex-col">
+      <div sx={stylexStyles.rule1}>
         <TerminalPane session="cli" connectTerminal={sampleConnector()} />
       </div>,
     )

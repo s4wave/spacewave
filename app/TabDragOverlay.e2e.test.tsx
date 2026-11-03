@@ -23,6 +23,43 @@ import '@s4wave/web/style/app.js'
 import { AppShell } from './AppShell.js'
 import { EditorShell } from './EditorShell.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: { position: 'relative', height: '100%', width: '100%' },
+  rule2: {
+    padding: themeLayout['--spacing'],
+    flex: 1,
+    gap: themeLayout['--spacing'],
+    overflow: 'hidden',
+    backgroundColor: themeColors['--color-editor-border'],
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  rule3: {
+    padding: themeLayout['--spacing'],
+    flex: 1,
+    gap: themeLayout['--spacing'],
+    overflow: 'hidden',
+    backgroundColor: themeColors['--color-editor-border'],
+    display: 'flex',
+    flexDirection: 'column',
+    position: 'relative',
+  },
+  rule4: {
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
+    position: 'relative',
+    height: `calc(${themeLayout['--spacing']} * 192)`,
+    width: `calc(${themeLayout['--spacing']} * 256)`,
+  },
+})
+
 /** nestedFactory renders the content of the nested layout's only tab. */
 function nestedFactory() {
   return <div>Nested content</div>
@@ -46,7 +83,7 @@ function NestedLayoutContent({ testId }: { testId: string }) {
   )
 
   return (
-    <div className="relative size-full" data-testid={testId}>
+    <div sx={stylexStyles.rule1} data-testid={testId}>
       <Layout model={nestedModel} factory={nestedFactory} />
     </div>
   )
@@ -867,7 +904,7 @@ describe('Grid Mode Visual Issues', () => {
     let clickedTabsetId: string | null = null
 
     await render(
-      <div className="shell-flexlayout bg-editor-border flex flex-1 flex-col gap-1 overflow-hidden p-1">
+      <div sx={stylexStyles.rule2} className="shell-flexlayout">
         <Layout
           model={gridModel}
           factory={(node) => (
@@ -875,7 +912,7 @@ describe('Grid Mode Visual Issues', () => {
               role="button"
               tabIndex={0}
               data-testid={`content-${node.getId()}`}
-              className="tab-drag-content"
+              className={'tab-drag-content'}
               onClick={() => {
                 // Find parent tabset
                 let parent = node.getParent()
@@ -1052,7 +1089,7 @@ describe('Grid Mode Visual Issues', () => {
     })
 
     await render(
-      <div className="shell-flexlayout bg-editor-border flex flex-1 flex-col gap-1 overflow-hidden p-1">
+      <div sx={stylexStyles.rule2} className="shell-flexlayout">
         <Layout
           model={model}
           factory={(node) => (
@@ -1182,13 +1219,13 @@ describe('Grid Mode Visual Issues', () => {
     model.doAction(Actions.setActiveTabset('left-tabset'))
 
     await render(
-      <div className="shell-flexlayout bg-editor-border relative flex flex-1 flex-col gap-1 overflow-hidden p-1">
+      <div sx={stylexStyles.rule3} className="shell-flexlayout">
         <OptimizedLayout
           model={model}
           renderTab={(node) => (
             <div
               data-testid={`optimized-content-${node.getId()}`}
-              className="tab-drag-content"
+              className={'tab-drag-content'}
               data-tab-id={node.getId()}
             >
               OptimizedLayout Content for {node.getName()}
@@ -1344,9 +1381,10 @@ describe('Grid Mode CSS Visual Issues', () => {
     })
 
     await render(
-      <div className="relative flex h-192 w-256 flex-col overflow-hidden">
+      <div sx={stylexStyles.rule4}>
         <div
-          className="shell-flexlayout bg-editor-border flex flex-1 flex-col gap-1 overflow-hidden p-1"
+          sx={stylexStyles.rule2}
+          className="shell-flexlayout"
           data-testid="shell-container"
         >
           <Layout
@@ -1466,9 +1504,10 @@ describe('Grid Mode CSS Visual Issues', () => {
     })
 
     await render(
-      <div className="relative flex h-192 w-256 flex-col overflow-hidden">
+      <div sx={stylexStyles.rule4}>
         <div
-          className="shell-flexlayout bg-editor-border flex flex-1 flex-col gap-1 overflow-hidden p-1"
+          sx={stylexStyles.rule2}
+          className="shell-flexlayout"
           data-testid="shell-container"
         >
           <Layout
@@ -1570,8 +1609,8 @@ describe('Grid Mode CSS Visual Issues', () => {
     })
 
     await render(
-      <div className="relative flex h-192 w-256 flex-col overflow-hidden">
-        <div className="shell-flexlayout bg-editor-border flex flex-1 flex-col gap-1 overflow-hidden p-1">
+      <div sx={stylexStyles.rule4}>
+        <div sx={stylexStyles.rule2} className="shell-flexlayout">
           <Layout
             model={gridModel}
             factory={(node) => (
@@ -1673,9 +1712,10 @@ describe('Grid Mode CSS Visual Issues', () => {
     })
 
     await render(
-      <div className="relative flex h-192 w-256 flex-col overflow-hidden">
+      <div sx={stylexStyles.rule4}>
         <div
-          className="shell-flexlayout bg-editor-border flex flex-1 flex-col gap-1 overflow-hidden p-1"
+          sx={stylexStyles.rule2}
+          className="shell-flexlayout"
           data-testid="shell-container"
         >
           <Layout
@@ -1756,9 +1796,10 @@ describe('Grid Mode CSS Visual Issues', () => {
     })
 
     await render(
-      <div className="relative flex h-192 w-256 flex-col overflow-hidden">
+      <div sx={stylexStyles.rule4}>
         <div
-          className="shell-flexlayout shell-flexlayout--with-menu bg-editor-border flex flex-1 flex-col gap-1 overflow-hidden p-1"
+          sx={stylexStyles.rule2}
+          className="shell-flexlayout shell-flexlayout--with-menu"
           style={{ '--menu-bar-width': '233px' }}
           data-testid="shell-container"
         >
@@ -1838,9 +1879,10 @@ describe('Grid Mode CSS Visual Issues', () => {
     })
 
     const { unmount } = await render(
-      <div className="relative flex h-192 w-256 flex-col overflow-hidden">
+      <div sx={stylexStyles.rule4}>
         <div
-          className="shell-flexlayout bg-editor-border flex flex-1 flex-col gap-1 overflow-hidden p-1"
+          sx={stylexStyles.rule2}
+          className="shell-flexlayout"
           data-testid="shell-container"
         >
           <OptimizedLayout
@@ -1893,9 +1935,10 @@ describe('Grid Mode CSS Visual Issues', () => {
     })
 
     await render(
-      <div className="relative flex h-192 w-256 flex-col overflow-hidden">
+      <div sx={stylexStyles.rule4}>
         <div
-          className="shell-flexlayout shell-flexlayout--with-menu bg-editor-border flex flex-1 flex-col gap-1 overflow-hidden p-1"
+          sx={stylexStyles.rule2}
+          className="shell-flexlayout shell-flexlayout--with-menu"
           data-testid="shell-container"
         >
           <OptimizedLayout
