@@ -132,6 +132,8 @@ const stylexStyles = stylex.create({
 const objectKeySelectorLimit = 500
 
 export interface ObjectKeySelectorProps {
+  sx?: stylex.StyleXStyles
+  className?: never
   world: Resource<IWorldState>
   metadataById?: ObjectTypeMetadataById
   value: string
@@ -149,6 +151,7 @@ export function ObjectKeySelector({
   onChange,
   disabled,
   placeholder,
+  sx,
 }: ObjectKeySelectorProps) {
   // Keep the open selector, drilled path and pending selection together.
   const [open, setOpen] = useState(false)
@@ -213,7 +216,7 @@ export function ObjectKeySelector({
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
-        <button type="button" disabled={disabled} sx={stylexStyles.rule1}>
+        <button type="button" disabled={disabled} sx={[stylexStyles.rule1, sx]}>
           {displayValue}
         </button>
       </PopoverTrigger>
