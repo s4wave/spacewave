@@ -1,6 +1,7 @@
 package keyedview
 
 import (
+	"maps"
 	"strconv"
 	"testing"
 )
@@ -40,9 +41,7 @@ func TestBuilderHashesChangedRecords(t *testing.T) {
 
 	// Replace one record and rebuild.
 	next := make(map[string]Record, len(records))
-	for key, record := range records {
-		next[key] = record
-	}
+	maps.Copy(next, records)
 	next["7"] = &countedRecord{data: "record 7 changed", encodes: &encodes}
 	encodes = 0
 	second, err := builder.Build("scope", next)
