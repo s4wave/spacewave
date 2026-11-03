@@ -16,7 +16,9 @@ import (
 // Locate does not place is in no pack, so the lookup ends without opening one.
 type Locator interface {
 	// Locate returns the id of the pack that holds key, and false when no
-	// indexed pack does. The pack may have left the manifest since.
+	// indexed pack does. The pack may have left the manifest since, and a
+	// found key may carry an empty id when the locator knows its pack is
+	// gone; either way the store tests every filter.
 	Locate(ctx context.Context, key []byte) (packID string, found bool, err error)
 	// Indexed reports whether Locate knows every key of the pack.
 	Indexed(packID string) bool

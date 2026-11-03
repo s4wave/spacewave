@@ -2,6 +2,7 @@ package block_store_s3
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"strings"
@@ -112,20 +113,58 @@ func TestPackStoreIndex(t *testing.T) {
 		t.Fatalf("warm start read %d entries, want only the new one", got)
 	}
 
-	// A pack removed from the listing leaves the index.
+	// A pack removed from the listing leaves the index; its rows still say the
+	// block was placed, with no pack.
 	oldID, _, _ := store.index.Locate(ctx, hashKey(refs[0]))
+	store.index.mtx.RLock()
+	oldNum := store.index.rows[oldID].num
+	store.index.mtx.RUnlock()
 	if err := client.DeleteObject(ctx, "bucket", "p/"+entryDir+oldID); err != nil {
 		t.Fatal(err)
 	}
 	waitFor(t, "removed pack leaves the index", func() bool {
 		id, found, _ := store.index.Locate(ctx, hashKey(refs[0]))
-		return !found && id == "" && !store.index.Indexed(oldID)
+		return found && id == "" && !store.index.Indexed(oldID)
 	})
 	if exists, err := store.GetBlockExists(ctx, refs[0]); err != nil || exists {
 		t.Fatalf("removed pack block exists = %v, %v", exists, err)
 	}
 	if got := rowCount(t, kv, indexEntryPrefix); got != 3 {
 		t.Fatalf("cache holds %d entries, want 3", got)
+	}
+
+	// A row that names the removed pack shadows a block a live, indexed pack
+	// holds, as when the indexer finished a pack a tail merge had replaced:
+	// the read still finds it through the filters.
+	shadowed := refs[len(refs)-1]
+	tx, err := kv.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Set(ctx, hashRowKey(hashKey(shadowed)), binary.BigEndian.AppendUint32(nil, oldNum)); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	tx.Discard()
+	if data, found, err := store.GetBlock(ctx, shadowed); err != nil || !found || string(data) != "pack 3 block 19" {
+		t.Fatalf("shadowed read = %q, %v, %v", data, found, err)
+	}
+
+	// The indexer does not replace a row that names another live pack.
+	live := packOf(t, store, refs[len(refs)-2])
+	other := packOf(t, store, refs[20])
+	if other == live || other == "" {
+		t.Fatalf("pack of refs[20] = %q, want a live pack other than %s", other, live)
+	}
+	if _, err := store.index.writeKeys(ctx, other, func(fn func([]byte) error) error {
+		return fn(hashKey(refs[len(refs)-2]))
+	}, func(context.Context) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+	if got := packOf(t, store, refs[len(refs)-2]); got != live {
+		t.Fatalf("indexer moved a live row from %s to %s", live, got)
 	}
 
 	// With every pack indexed, a miss reads no pack.
@@ -203,7 +242,7 @@ type gatedTx struct {
 
 func (g *gatedTx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 	if k := string(key); strings.HasPrefix(k, indexEntryPrefix) && k != indexEntryPrefix+g.kv.allow {
-		g.Tx.Discard()
+		g.Discard()
 		select {
 		case <-g.kv.release:
 		case <-ctx.Done():

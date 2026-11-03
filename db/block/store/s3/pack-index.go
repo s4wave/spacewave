@@ -38,7 +38,9 @@ import (
 //     collision no one will find. It halves the bytes the index costs.
 //   - An h row names the number of the last pack that wrote it, so a block
 //     written twice is found in one pack, and the lookups fall back to the
-//     filters when that pack has left the manifest.
+//     filters when that pack has left the manifest. The background indexer
+//     never replaces a row that names a pack the table holds, so a listed pack
+//     indexed while a tail merge replaces it cannot shadow the merged pack.
 //   - A t/ row holds the tail bytes of a pack id, which never change, so a
 //     reader loads it instead of reading the tail again; removing the pack
 //     removes its row.
@@ -416,6 +418,25 @@ func hashRowKey(key []byte) []byte {
 	return append([]byte(indexHashPrefix), key[max(len(key)-indexKeyBytes, 0):]...)
 }
 
+// namesLivePack reports whether the h row at rowKey names a pack other than
+// num that the table still holds.
+func (x *packIndex) namesLivePack(ctx context.Context, tx kvtx.Tx, rowKey []byte, num uint32) (bool, error) {
+	// Read the row; a missing row or one of this pack is free to write.
+	value, ok, err := tx.Get(ctx, rowKey)
+	if err != nil || !ok || len(value) != 4 {
+		return false, err
+	}
+	at := binary.BigEndian.Uint32(value)
+	if at == num {
+		return false, nil
+	}
+
+	// Check the number it names against the table.
+	x.mtx.RLock()
+	defer x.mtx.RUnlock()
+	return int(at) < len(x.ids) && x.ids[at] != "", nil
+}
+
 // remove drops packs from the table and the cache. Their h rows stay: no pack
 // holds their number again.
 func (x *packIndex) remove(ctx context.Context, ids []string) error {
@@ -482,8 +503,11 @@ func (x *packIndex) Set(ctx context.Context, packID string, data []byte) error {
 	return tx.Commit(ctx)
 }
 
-// Locate returns the pack that holds a block key.
+// Locate returns the pack that holds a block key. A row that names a removed
+// pack reports found with an empty id: the block may sit in an older pack the
+// row shadowed, so the lookup must test every filter rather than end.
 func (x *packIndex) Locate(ctx context.Context, key []byte) (string, bool, error) {
+	// Read the key's h row.
 	tx, err := x.store.NewTransaction(ctx, false)
 	if err != nil {
 		return "", false, err
@@ -493,11 +517,13 @@ func (x *packIndex) Locate(ctx context.Context, key []byte) (string, bool, error
 	if err != nil || !ok || len(value) != 4 {
 		return "", false, err
 	}
+
+	// Name its pack, or none when the pack was removed.
 	num := binary.BigEndian.Uint32(value)
 	x.mtx.RLock()
 	defer x.mtx.RUnlock()
-	if int(num) >= len(x.ids) || x.ids[num] == "" {
-		return "", false, nil
+	if int(num) >= len(x.ids) {
+		return "", true, nil
 	}
 	return x.ids[num], true, nil
 }
@@ -604,6 +630,7 @@ func (x *packIndex) writeKeys(ctx context.Context, id string, scan func(func(key
 		return pause(ctx)
 	}
 	err := scan(func(key []byte) error {
+		// Open the batch's transaction.
 		if tx == nil {
 			var err error
 			tx, err = x.store.NewTransaction(ctx, true)
@@ -611,7 +638,17 @@ func (x *packIndex) writeKeys(ctx context.Context, id string, scan func(func(key
 				return err
 			}
 		}
-		if err := tx.Set(ctx, hashRowKey(key), value); err != nil {
+
+		// Keep a row that names another live pack, which wrote the block
+		// later or replaced this one.
+		rowKey := hashRowKey(key)
+		live, err := x.namesLivePack(ctx, tx, rowKey, row.num)
+		if err != nil || live {
+			return err
+		}
+
+		// Write the row and commit each full batch.
+		if err := tx.Set(ctx, rowKey, value); err != nil {
 			return err
 		}
 		total++

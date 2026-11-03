@@ -561,7 +561,7 @@ func (s *PackStore) lookupEarly(ctx context.Context, ref *block.BlockRef, find f
 	if err != nil {
 		return false, err
 	}
-	if !ok {
+	if !ok || id == "" {
 		s.early.waited.Add(1)
 		return false, nil
 	}
