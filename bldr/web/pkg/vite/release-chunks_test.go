@@ -16,7 +16,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
 	bldr_vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
 	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
@@ -276,29 +275,29 @@ func checkSharedButtonBrowser(ctx context.Context, root string, client bldr_vite
 
 	// Compile the consumer with the shared package kept external.
 	appOut := filepath.Join(directory, "consumer")
-	response, err := client.BuildWebPkg(ctx, &bldr_vite.BuildWebPkgRequest{PkgId: "native-button-consumer", PkgRoot: appRoot, PackageRoots: map[string]string{"@s4wave/web": filepath.Join(root, "web")}, Imports: []string{"App.tsx"}, ExternalPkgs: []string{"react", "react-dom", "cmdk", "@stylexjs/stylex", "@s4wave/web"}, OutDir: appOut, WebPkgBasePath: "/b/pkg/", IsRelease: true})
+	_, _, consumerEntries, err := BuildWebPkgsViteWithManagedRoot(
+		ctx, logrus.NewEntry(logrus.New()), root, "",
+		[]*web_pkg.WebPkgRef{{WebPkgId: "native-button-consumer", WebPkgRoot: appRoot, Imports: []string{"App.tsx"}}},
+		[]string{"@s4wave/web", "cmdk"}, appOut, "/b/pkg/", true, true, false,
+		client, filepath.Join(directory, "consumer-cache"),
+	)
 	if err != nil {
 		return err
 	}
-	if !response.GetSuccess() {
-		return errors.New(response.GetError())
+	if len(consumerEntries) == 0 {
+		return errors.New("native consumer has no import-map entry")
 	}
 
 	// Install the actual returned import map before the consumer starts.
-	var arena fastjson.Arena
-	imports := arena.NewObject()
-	for _, entry := range entries {
-		imports.Set(entry.Specifier, arena.NewString(entry.OutputPath))
-	}
-	mapping := arena.NewObject()
-	mapping.Set("imports", imports)
-	html := `<!doctype html><html><body><div id="target" data-state="loading">Loading</div><script type="importmap">` + string(mapping.MarshalTo(nil)) + `</script><script type="module">await import('./App.mjs');document.getElementById('target').dataset.state='ready';</script></body></html>`
-	if err := os.WriteFile(filepath.Join(appOut, "index.html"), []byte(html), 0o644); err != nil {
+	mapping := BuildImportMapFromEntries(entries).WithWebPkgFallback()
+
+	html := `<!doctype html><html><body><div id="target" data-state="loading">Loading</div><script type="importmap">` + mapping.String() + `</script><script type="module">await import('./App.mjs');document.getElementById('target').dataset.state='ready';</script></body></html>`
+	if err := os.WriteFile(filepath.Join(appOut, "native-button-consumer", "index.html"), []byte(html), 0o644); err != nil {
 		return err
 	}
 
 	// Keep the HTTP origin alive until both browser engines finish.
-	mux.Handle("/", http.FileServer(http.Dir(appOut)))
+	mux.Handle("/", http.FileServer(http.Dir(filepath.Join(appOut, "native-button-consumer"))))
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
