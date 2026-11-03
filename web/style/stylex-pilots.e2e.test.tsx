@@ -5,6 +5,9 @@ import * as stylex from '@stylexjs/stylex'
 import { expect, it, onTestFinished } from 'vitest'
 import { page, server, userEvent } from 'vitest/browser'
 
+import { CommandTableRow } from '../../app/debug/keybindings/CommandTableRow.js'
+import { MOCK_KEYBINDING_COMMANDS } from '../../app/debug/keybindings/keybindings-model.js'
+
 import { VmErrorBanner } from '../../app/vm/VmErrorBanner.js'
 import { TagChip } from '../../plugin/notes/blog/TagChip.js'
 import { InfoCard } from '../ui/InfoCard.js'
@@ -288,6 +291,20 @@ function PilotJourney() {
           </SheetFooter>
         </SheetContent>
       </Sheet>
+      <table data-testid="native-command-table">
+        <tbody>
+          {MOCK_KEYBINDING_COMMANDS.slice(0, 2).map((command) => (
+            <CommandTableRow
+              key={command.id}
+              command={{ ...command, binding: command.defaultBinding }}
+              hasConflict={false}
+              isCustomized={false}
+              setBinding={() => {}}
+              resetBinding={() => {}}
+            />
+          ))}
+        </tbody>
+      </table>
     </main>
   )
 }
@@ -318,6 +335,14 @@ it('composes shared, app and plugin styles through the browser build', async () 
   const style = getComputedStyle(card)
   expect(style.padding).toBe('19px')
   expect(style.borderRadius).toBe('9px')
+
+  // The actual command row keeps its divider while the final row clears the same longhand.
+  const commandRows = document.querySelectorAll(
+    '[data-testid="native-command-table"] tr',
+  )
+  expect(commandRows).toHaveLength(2)
+  expect(getComputedStyle(commandRows[0]!).borderBottomWidth).toBe('1px')
+  expect(getComputedStyle(commandRows[1]!).borderBottomWidth).toBe('0px')
 
   // Native label activation and marker conditions retain their direction and caller properties.
   const ancestorLabel = document.querySelector(
