@@ -1,3 +1,4 @@
+import { controlTargetStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import * as ownerStylex from '@stylexjs/stylex'
 
 /* eslint-disable react-doctor/no-giant-component */
@@ -1176,7 +1177,10 @@ export function Community() {
           WebRTC, running in web browsers, Linux, and other operating systems.
           We are grateful to everyone behind these projects.
         </p>
-        <ExternalLink href={GITHUB_REPO_URL} sx={stylexStyles4.rule5}>
+        <ExternalLink
+          href={GITHUB_REPO_URL}
+          sx={[stylexStyles4.rule5, controlTargetStyles.minimum]}
+        >
           <LuGithub sx={stylexStyles.rule1} />
           Contribute to Spacewave
         </ExternalLink>

@@ -113,7 +113,7 @@ const containerStyle: React.CSSProperties = {
 const errorTextStyle: React.CSSProperties = {
   fontFamily: 'monospace',
   fontSize: '12px',
-  color: '#808080',
+  color: '#909090',
   wordBreak: 'break-all',
   textAlign: 'center',
   maxWidth: '480px',

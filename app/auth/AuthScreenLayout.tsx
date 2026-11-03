@@ -231,7 +231,7 @@ const authCornerStyles = stylex.create({
       '@media (pointer: coarse)': 'calc(var(--spacing) * 2)',
     },
     minHeight: {
-      default: null,
+      default: '24px',
       '@media (pointer: coarse)': 'calc(var(--spacing) * 11)',
     },
   },

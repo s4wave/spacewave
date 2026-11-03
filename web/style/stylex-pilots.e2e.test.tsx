@@ -381,6 +381,15 @@ it('composes shared, app and plugin styles through the browser build', async () 
   const targetFloor = matchMedia('(pointer: coarse)').matches ? 44 : 24
   expect(swatchBox.width).toBeGreaterThanOrEqual(targetFloor)
   expect(swatchBox.height).toBeGreaterThanOrEqual(targetFloor)
+  const colorInput = document.querySelector<HTMLInputElement>(
+    'input[aria-label="Custom drawing color"]',
+  )!
+  const colorBox = colorInput.getBoundingClientRect()
+  const colorLabelBox = colorInput.parentElement!.getBoundingClientRect()
+  expect(colorBox.left).toBeLessThanOrEqual(colorLabelBox.left)
+  expect(colorBox.top).toBeLessThanOrEqual(colorLabelBox.top)
+  expect(colorBox.right).toBeGreaterThanOrEqual(colorLabelBox.right)
+  expect(colorBox.bottom).toBeGreaterThanOrEqual(colorLabelBox.bottom)
   await redSwatch.click()
   await expect.element(redSwatch).toHaveAttribute('aria-pressed', 'true')
 

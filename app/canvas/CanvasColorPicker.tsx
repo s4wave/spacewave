@@ -90,8 +90,8 @@ const stylexStyles = stylex.create({
     backgroundColor: '#0000',
     cursor: 'pointer',
     position: 'absolute',
-    height: `calc(${themeLayout['--spacing']} * 9)`,
-    width: `calc(${themeLayout['--spacing']} * 9)`,
+    height: 'calc(100% + 16px)',
+    width: 'calc(100% + 16px)',
   },
 })
 
