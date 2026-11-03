@@ -5,6 +5,7 @@ import * as stylex from '@stylexjs/stylex'
 import { expect, it, onTestFinished } from 'vitest'
 import { page, server, userEvent } from 'vitest/browser'
 
+import { CanvasColorPicker } from '../../app/canvas/CanvasColorPicker.js'
 import { CommandTableRow } from '../../app/debug/keybindings/CommandTableRow.js'
 import { MOCK_KEYBINDING_COMMANDS } from '../../app/debug/keybindings/keybindings-model.js'
 
@@ -118,6 +119,7 @@ function PilotJourney() {
   const [buttonActions, setButtonActions] = useState(0)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [path, setPath] = useState('/Users/example/Documents')
+  const [drawingColor, setDrawingColor] = useState('#2563eb')
 
   return (
     <main>
@@ -291,6 +293,7 @@ function PilotJourney() {
           </SheetFooter>
         </SheetContent>
       </Sheet>
+      <CanvasColorPicker color={drawingColor} onColorChange={setDrawingColor} />
       <table data-testid="native-command-table">
         <tbody>
           {MOCK_KEYBINDING_COMMANDS.slice(0, 2).map((command) => (
@@ -343,6 +346,18 @@ it('composes shared, app and plugin styles through the browser build', async () 
   expect(commandRows).toHaveLength(2)
   expect(getComputedStyle(commandRows[0]!).borderBottomWidth).toBe('1px')
   expect(getComputedStyle(commandRows[1]!).borderBottomWidth).toBe('0px')
+
+  // Real swatches keep their hit area and selection behavior at either pointer size.
+  const redSwatch = page.getByRole('button', {
+    name: 'Use color #dc2626',
+    exact: true,
+  })
+  const swatchBox = redSwatch.element().getBoundingClientRect()
+  const targetFloor = matchMedia('(pointer: coarse)').matches ? 44 : 24
+  expect(swatchBox.width).toBeGreaterThanOrEqual(targetFloor)
+  expect(swatchBox.height).toBeGreaterThanOrEqual(targetFloor)
+  await redSwatch.click()
+  await expect.element(redSwatch).toHaveAttribute('aria-pressed', 'true')
 
   // Native label activation and marker conditions retain their direction and caller properties.
   const ancestorLabel = document.querySelector(
