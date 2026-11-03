@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"sync"
 	"sync/atomic"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -16,9 +17,13 @@ type ManifestSnapshot struct {
 	store *PackfileStore
 	// entries is an immutable copy-on-write tree in lookup order.
 	entries *btree.BTreeG[*manifestEntry]
+	// ids is an immutable copy-on-write tree of the same entries in id order.
+	ids *btree.BTreeG[*manifestEntry]
 	// unindexed caches the packs the locator has not indexed, for the
-	// locator version it was computed at.
-	unindexed atomic.Pointer[unindexedPacks]
+	// locator version it was computed at. unindexedMtx lets one lookup
+	// compute a split while the others wait for it.
+	unindexed    atomic.Pointer[unindexedPacks]
+	unindexedMtx sync.Mutex
 }
 
 // SnapshotManifest returns the current catalog in constant time. The result
@@ -30,7 +35,18 @@ func (s *PackfileStore) SnapshotManifest() *ManifestSnapshot {
 // publishManifest publishes a snapshot of the manifest. Call with bcast held,
 // or before the store is shared.
 func (s *PackfileStore) publishManifest() {
-	s.current.Store(&ManifestSnapshot{store: s, entries: s.manifest.Copy()})
+	s.current.Store(&ManifestSnapshot{store: s, entries: s.manifest.Copy(), ids: s.manifestIDs.Copy()})
+}
+
+// publishManifestDelta publishes a snapshot of the manifest that dropped and
+// added the given entries to the current one, carrying its locator split
+// across so a lookup need not scan the whole catalog. Call with bcast held.
+func (s *PackfileStore) publishManifestDelta(dropped, added []*manifestEntry) {
+	prev := s.current.Load()
+	s.publishManifest()
+	if packs := prev.unindexed.Load(); packs != nil {
+		s.current.Load().unindexed.Store(packs.derive(dropped, added))
+	}
 }
 
 // GetEntries materializes an explicitly requested complete catalog snapshot.

@@ -26,6 +26,13 @@ func newManifestTree() *btree.BTreeG[*manifestEntry] {
 	}, btree.Options{NoLocks: true})
 }
 
+// newManifestIDTree orders entries by pack id.
+func newManifestIDTree() *btree.BTreeG[*manifestEntry] {
+	return btree.NewBTreeGOptions(func(a, b *manifestEntry) bool {
+		return a.entry.GetId() < b.entry.GetId()
+	}, btree.Options{NoLocks: true})
+}
+
 // parseManifestEntry copies an accepted descriptor and parses its bloom once.
 func parseManifestEntry(entry *packfile.PackfileEntry) *manifestEntry {
 	item := &manifestEntry{entry: entry.CloneVT()}

@@ -471,7 +471,10 @@ func (e *PackReader) insertSpanLocked(s *span) {
 	e.spans = slices.Insert(e.spans, i, s)
 	s.lru = e.lru.PushBack(s)
 	e.chargeLocked(s.size)
-	e.touchSpanLocked(s)
+	if len(e.spans) == 1 {
+		e.budget.spansChanged(e, 1)
+	}
+	e.spanRef.Store(true)
 }
 
 // removeSpanLocked removes a resident span and returns its bytes to the budget.
@@ -488,6 +491,9 @@ func (e *PackReader) removeSpanLocked(s *span) {
 	e.spans = slices.Delete(e.spans, i, i+1)
 	e.lru.Remove(s.lru)
 	e.chargeLocked(-s.size)
+	if len(e.spans) == 0 {
+		e.budget.spansChanged(e, 0)
+	}
 }
 
 // chargeLocked adds delta resident bytes to the reader and its budget.
@@ -496,15 +502,11 @@ func (e *PackReader) chargeLocked(delta int64) {
 	e.budget.used.Add(delta)
 }
 
-// nextUseSeqLocked returns the next budget-wide LRU sequence.
-func (e *PackReader) nextUseSeqLocked() uint64 {
-	return e.budget.clock.Add(1)
-}
-
-// touchSpanLocked marks a span as the most recently used.
+// touchSpanLocked marks a span as the reader's most recently used and the
+// reader as used for the budget's span ring.
 func (e *PackReader) touchSpanLocked(s *span) {
-	s.lastUseSeq = e.nextUseSeqLocked()
 	e.lru.MoveToBack(s.lru)
+	e.spanRef.Store(true)
 }
 
 // collectSpansLocked returns the disjoint spans covering [start, end).
@@ -545,36 +547,16 @@ func (e *PackReader) oldestEvictableLocked() *span {
 	return front.Value.(*span)
 }
 
-// oldestEvictableSeq returns the LRU sequence of the reader's oldest
-// evictable span.
-func (e *PackReader) oldestEvictableSeq() (uint64, bool) {
-	var seq uint64
-	var ok bool
-	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		// Ignore resident eviction after the reader closes.
-		if e.closed {
-			return
-		}
-
-		// Read the sequence of the oldest evictable resident span.
-		if s := e.oldestEvictableLocked(); s != nil {
-			seq, ok = s.lastUseSeq, true
-		}
-	})
-	return seq, ok
-}
-
-// evictOldestSpan removes the reader's oldest evictable span.
+// evictOldestSpan removes the reader's oldest evictable span. A closed reader
+// keeps its spans until its jobs drain, so it leaves the span ring instead;
+// either way the sweep never returns to a reader with nothing to give.
 func (e *PackReader) evictOldestSpan() {
 	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		// Ignore resident eviction after the reader closes.
-		if e.closed {
+		s := e.oldestEvictableLocked()
+		if e.closed || s == nil {
+			e.budget.spansChanged(e, 0)
 			return
 		}
-
-		// Remove the oldest resident span that a reader no longer needs.
-		if s := e.oldestEvictableLocked(); s != nil {
-			e.removeSpanLocked(s)
-		}
+		e.removeSpanLocked(s)
 	})
 }

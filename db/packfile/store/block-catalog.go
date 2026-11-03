@@ -134,7 +134,6 @@ func (e *PackReader) startIndexLoad(cache IndexCache) {
 			}
 			if err == nil {
 				e.setIndexEntriesLocked(entries)
-				e.indexUseSeq = e.nextUseSeqLocked()
 				writeback = e.prepareWritebackLocked(0, e.size)
 				e.indexLoaded = true
 				budget = e.budget
@@ -172,7 +171,7 @@ func (e *PackReader) withIndex(ctx context.Context, fn func()) error {
 			if !e.indexLoaded {
 				return
 			}
-			e.indexUseSeq = e.nextUseSeqLocked()
+			e.indexRef.Store(true)
 			fn()
 			ran = true
 		})
@@ -182,25 +181,13 @@ func (e *PackReader) withIndex(ctx context.Context, fn func()) error {
 	}
 }
 
-// lastIndexUse returns the budget clock at the last use of the loaded index,
-// and false when no index is loaded.
-func (e *PackReader) lastIndexUse() (uint64, bool) {
-	var seq uint64
-	var ok bool
+// dropIndex drops the parsed index unless a use referenced it since the
+// ring's sweep chose it; a referenced index stays and the sweep passes it
+// again. The next use loads a dropped index again, from the index cache when
+// one is set.
+func (e *PackReader) dropIndex() {
 	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		if e.closed || !e.indexLoaded {
-			return
-		}
-		seq, ok = e.indexUseSeq, true
-	})
-	return seq, ok
-}
-
-// dropIndex drops the parsed index when it is unused since seq. The next use
-// loads it again, from the index cache when one is set.
-func (e *PackReader) dropIndex(seq uint64) {
-	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		if e.closed || !e.indexLoaded || e.indexUseSeq != seq {
+		if e.closed || !e.indexLoaded || e.indexRef.Load() {
 			return
 		}
 		e.setIndexEntriesLocked(nil)
@@ -451,6 +438,7 @@ func (e *PackReader) setIndexEntriesLocked(entries []*kvfile.IndexEntry) {
 	e.budget.indexUsed.Add(int64(len(byKey) - len(e.entriesByKey)))
 	e.entriesByOff = byOff
 	e.entriesByKey = byKey
+	e.budget.indexChanged(e, len(byKey))
 }
 
 // findEntryByKeyLocked binary-searches the key-sorted index.

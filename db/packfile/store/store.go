@@ -85,6 +85,9 @@ type PackfileStore struct {
 	manifest *btree.BTreeG[*manifestEntry]
 	// manifestByID permits point replacement and removal, guarded by bcast.
 	manifestByID map[string]*manifestEntry
+	// manifestIDs holds the manifest entries in id order, guarded by bcast.
+	// Each snapshot takes a copy-on-write copy to find a pack by id.
+	manifestIDs *btree.BTreeG[*manifestEntry]
 	// current is the immutable catalog published after each manifest change,
 	// so lookups share one snapshot and its locator cache.
 	current atomic.Pointer[ManifestSnapshot]
@@ -98,6 +101,7 @@ func NewPackfileStore(opener Opener, cache IndexCache) *PackfileStore {
 		engines:         make(map[string]*PackReader),
 		manifest:        newManifestTree(),
 		manifestByID:    make(map[string]*manifestEntry),
+		manifestIDs:     newManifestIDTree(),
 		writebackCtx:    context.Background(),
 		writebackWindow: defaultWritebackWindow,
 		budget:          newResidentBudget(defaultResidentBudget),
@@ -140,6 +144,7 @@ func (s *PackfileStore) Close() {
 		// Publish the empty manifest and wake the waiters.
 		s.manifest = newManifestTree()
 		s.manifestByID = nil
+		s.manifestIDs = newManifestIDTree()
 		s.closeComplete = true
 		s.publishManifest()
 		broadcast()
@@ -650,6 +655,7 @@ func (s *PackfileStore) updateManifest(entries []*packfile.PackfileEntry, remove
 		return
 	}
 	var evicted []*PackReader
+	var dropped, added []*manifestEntry
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		// A full snapshot alone computes the missing IDs.
 		if replace {
@@ -679,7 +685,9 @@ func (s *PackfileStore) updateManifest(entries []*packfile.PackfileEntry, remove
 			// Remove the pack descriptor from both catalog indexes.
 			if old := s.manifestByID[id]; old != nil {
 				s.manifest.Delete(old)
+				s.manifestIDs.Delete(old)
 				delete(s.manifestByID, id)
+				dropped = append(dropped, old)
 			}
 
 			// Detach the pack reader for draining outside the catalog locks.
@@ -720,16 +728,19 @@ func (s *PackfileStore) updateManifest(entries []*packfile.PackfileEntry, remove
 					remove(id)
 				}
 				s.manifest.Delete(old)
+				dropped = append(dropped, old)
 			}
 
 			// Index the accepted descriptor with its parsed bloom filter.
 			item := parseManifestEntry(entry)
 			s.manifestByID[id] = item
 			s.manifest.Set(item)
+			s.manifestIDs.Set(item)
+			added = append(added, item)
 		}
 
 		// Wake catalog observers after publishing the manifest changes.
-		s.publishManifest()
+		s.publishManifestDelta(dropped, added)
 		broadcast()
 	})
 	s.mtx.Unlock()
