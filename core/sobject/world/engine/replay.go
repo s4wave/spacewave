@@ -174,7 +174,7 @@ type replayer struct {
 	// baseRoots are the World roots baseHold names when pages is set.
 	baseRoots []*block.BlockRef
 	// deaths gathers the World transitions the engine's block engines commit,
-	// or is nil before the engine starts.
+	// or is nil before the engine starts and when recordsDeaths is false.
 	deaths *worldDeaths
 	// ledger tracks the deadlist records of the named Worlds when pages is
 	// set and the store holds named roots.
@@ -1032,24 +1032,26 @@ func (r *replayer) transitions() []world_block.EngineOption {
 	return []world_block.EngineOption{world_block.WithTransitions(r.deaths.add)}
 }
 
+// recordsDeaths reports whether the replayer records World deaths: only the
+// page view names roots, and only a store that keeps shared counts can check
+// a deadlist record. Without it the engine gathers no deaths at all, since
+// each pending interval links the one before it until a publication seals it,
+// and an interval nothing records is never sealed.
+func (r *replayer) recordsDeaths() bool {
+	return r.pages != nil && r.pages.KeepsHoldCounts()
+}
+
 // composeDeaths joins the interval from the last named World to the World at
-// root and, when the store holds named roots and keeps shared counts, adds its
-// deadlist entry, whose
-// record a later save carries once the interval's puts resolve. It returns the
-// interval for the naming publication to seal, or nil when there is none to
-// record. A forfeited interval leaks.
+// root and adds its deadlist entry, whose record a later save carries once the
+// interval's puts resolve. It returns the interval for the naming publication
+// to seal, or nil when the replayer records no deaths. A forfeited interval
+// leaks.
 func (r *replayer) composeDeaths(root *block.BlockRef) *pendingNet {
-	// Join the interval.
+	// Join and record an interval only when the replayer retains its ledger.
 	if r.deaths == nil {
 		return nil
 	}
 	from, net := r.deaths.take(root)
-
-	// Record it where the store can name it and keeps the shared counts its
-	// check reads.
-	if r.pages == nil || !r.pages.KeepsHoldCounts() {
-		return nil
-	}
 	r.changed = true
 	r.ledger.name(from, root, net)
 	return net
