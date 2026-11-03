@@ -1,6 +1,7 @@
 package block_store_writeback
 
 import (
+	"bytes"
 	"context"
 	"slices"
 	"time"
@@ -66,8 +67,11 @@ func batchLimitsOf(remote block.StoreOps) block.BatchLimits {
 // successful batch. The caller retries with its own backoff.
 func (s *Store) Upload(ctx context.Context, remote block.StoreOps) error {
 	limits := batchLimitsOf(remote)
+	var head *queueHead
 	for {
-		round, err := s.nextRound(ctx, limits)
+		var round uploadRound
+		var err error
+		round, head, err = s.nextRound(ctx, limits, head)
 		if err != nil {
 			return err
 		}
@@ -168,25 +172,29 @@ type queueHead struct {
 	pendingBytes int64
 }
 
-// nextRound waits until a round of batches is worth uploading and returns it.
-func (s *Store) nextRound(ctx context.Context, limits block.BatchLimits) (uploadRound, error) {
+// nextRound waits until a round of batches is worth uploading and returns it,
+// with the queue head it was chosen from. prev is the head the last call
+// returned, or nil; each read of the queue reuses the entries the read before
+// it parsed.
+func (s *Store) nextRound(ctx context.Context, limits block.BatchLimits, prev *queueHead) (uploadRound, *queueHead, error) {
 	for {
 		// Wait for the oldest block to settle, then read the queue's head.
 		if err := s.waitDue(ctx); err != nil {
-			return uploadRound{}, err
+			return uploadRound{}, prev, err
 		}
-		head, err := s.scanHead(ctx, limits)
+		head, err := s.scanHead(ctx, limits, prev)
 		if err != nil {
-			return uploadRound{}, err
+			return uploadRound{}, prev, err
 		}
+		prev = head
 
 		// Upload the round, or wait for the batch to fill or linger.
 		round, readyAt := head.plan(time.Now(), limits.Linger)
 		if len(round.spans) != 0 {
-			return round, nil
+			return round, head, nil
 		}
 		if err := s.waitFill(ctx, head, limits, readyAt); err != nil {
-			return uploadRound{}, err
+			return uploadRound{}, head, err
 		}
 	}
 }
@@ -195,13 +203,20 @@ func (s *Store) nextRound(ctx context.Context, limits block.BatchLimits) (upload
 // uploads and one block past the last, which tells that the last is full. A
 // round stays within limits.Workers batches, so a read holds at most that many
 // batches of keys, never the queue.
-func (s *Store) scanHead(ctx context.Context, limits block.BatchLimits) (*queueHead, error) {
+//
+// prev is an earlier head of the same queue, or nil. An entry whose key and
+// value match one prev read is taken from prev rather than parsed again: a
+// queue key names one block written at one time, and a repeated write of the
+// block changes the value. Both list keys in order, so one pass matches them.
+func (s *Store) scanHead(ctx context.Context, limits block.BatchLimits, prev *queueHead) (*queueHead, error) {
 	// Read the status the batches are chosen against.
 	var policy Policy
 	var oldest time.Time
 	var pendingBytes int64
+	var floor []byte
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		policy, oldest, pendingBytes = s.status.Policy, s.status.Oldest, s.status.PendingBytes
+		floor = s.floor
 	})
 	settled := time.Now().Add(-policy.Settle)
 
@@ -210,10 +225,33 @@ func (s *Store) scanHead(ctx context.Context, limits block.BatchLimits) (*queueH
 	err := kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
 		// Start a head and track the open batch.
 		head = &queueHead{policy: policy, oldest: oldest, pendingBytes: pendingBytes}
+		var known []pendingBlock
+		if prev != nil {
+			known = prev.entries
+			head.entries = make([]pendingBlock, 0, len(known))
+		}
 		var batchBlocks int
 		var batchBytes, dueBytes int64
 		ended := false
-		err := scanQueue(ctx, tx, func(entry queueEntry) error {
+
+		// A transaction that commits after the floor read lowered the floor
+		// first, so the next round reads its blocks if this one misses them.
+		err := scanQueue(ctx, tx, floor, func(item queueItem) error {
+			// Take the entry from the earlier head, or parse it.
+			for len(known) != 0 && bytes.Compare(known[0].queueKey, item.key) < 0 {
+				known = known[1:]
+			}
+			var entry pendingBlock
+			if len(known) != 0 && bytes.Equal(known[0].queueKey, item.key) && bytes.Equal(known[0].value, item.value) {
+				entry, known = known[0], known[1:]
+				entry.dropped = false
+			} else {
+				var err error
+				if entry, err = item.pending(); err != nil {
+					return err
+				}
+			}
+
 			// Close the open batch when the entry does not fit it.
 			if batchBlocks != 0 && (batchBlocks == limits.Blocks || batchBytes+entry.size > limits.Bytes) {
 				head.ends = append(head.ends, len(head.entries))
@@ -246,14 +284,7 @@ func (s *Store) scanHead(ctx context.Context, limits block.BatchLimits) (*queueH
 			}
 
 			// Add the entry to the open batch.
-			head.entries = append(head.entries, pendingBlock{
-				queueKey:  entry.key,
-				markedKey: markedKey(entry.hash),
-				value:     entry.value,
-				ref:       block.NewBlockRef(entry.hash),
-				size:      entry.size,
-				at:        entry.at,
-			})
+			head.entries = append(head.entries, entry)
 			batchBlocks++
 			batchBytes += entry.size
 			if !ended {

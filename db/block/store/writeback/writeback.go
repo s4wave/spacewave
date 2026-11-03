@@ -63,6 +63,15 @@ type Store struct {
 	// evictMtx runs one eviction pass at a time, and disabling uploads waits
 	// for the pass to end.
 	evictMtx csync.Mutex
+	// evictFrom is the eviction queue key the next eviction batch walks
+	// from, guarded by evictMtx: where the last committed batch stopped,
+	// with every entry before it walked. Entries before it are deleted, and
+	// their tombstones stay in the store until it compacts them, so a walk
+	// from the start of the queue would step over them again on every batch.
+	// Every entry queues in a write transaction at the epoch it reads there,
+	// and a pass advances the epoch before it walks, so a later entry sorts
+	// at or past it. Nil walks from the start, as after an open.
+	evictFrom []byte
 	// bcast guards status, and wakes Upload and status watchers.
 	bcast broadcast.Broadcast
 	// status projects the committed markers and the upload policy.
@@ -70,6 +79,14 @@ type Store struct {
 	// gen counts enablement changes, guarded by bcast. A transaction that
 	// marked blocks projects them into status only if no change followed it.
 	gen uint64
+	// floor is a key at or before every queue entry a write transaction
+	// committed or holds in flight, or nil for the queue's start; guarded by
+	// bcast. Queue scans start from it. A transaction lowers it before it
+	// commits, and clear raises it to the queue's new head.
+	floor []byte
+	// lowered counts the transactions that lowered floor, guarded by bcast,
+	// so clear raises it only when none lowered it since clear read it.
+	lowered uint64
 	// reads bounds the upload's local reads in flight by the disk's load.
 	reads *readGate
 }
@@ -130,12 +147,16 @@ func NewStore(
 		if err != nil {
 			return err
 		}
-		return scanQueue(ctx, tx, func(entry queueEntry) error {
+		return scanQueue(ctx, tx, nil, func(item queueItem) error {
 			if pending == 0 {
-				oldest = entry.at
+				at, err := item.at()
+				if err != nil {
+					return err
+				}
+				oldest = at
 			}
 			pending++
-			pendingBytes += entry.size
+			pendingBytes += item.size()
 			return nil
 		})
 	})
@@ -337,6 +358,7 @@ func (s *Store) MarkBlocks(ctx context.Context, tx kvtx.Tx, blocks []kvtx.BlockM
 	if delta.added == 0 {
 		return nil, nil
 	}
+	s.lowerFloor(delta.oldest)
 	return func() { s.applyQueued(gen, delta) }, nil
 }
 
@@ -367,6 +389,9 @@ func (s *Store) queue(ctx context.Context, marks []Mark) error {
 	err = kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
 		var err error
 		delta, err = queueMarks(ctx, tx, marks)
+		if err == nil && delta.added != 0 {
+			s.lowerFloor(delta.oldest)
+		}
 		return err
 	})
 	if err != nil {
@@ -374,6 +399,30 @@ func (s *Store) queue(ctx context.Context, marks []Mark) error {
 	}
 	s.applyQueued(gen, delta)
 	return nil
+}
+
+// lowerFloor lowers the queue floor to the entries written at oldest, inside
+// the transaction that queues them, so no scan that starts after the commit
+// passes them.
+func (s *Store) lowerFloor(oldest time.Time) {
+	key := queueFloor(oldest)
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if s.floor != nil && bytes.Compare(key, s.floor) < 0 {
+			s.floor = key
+		}
+		s.lowered++
+	})
+}
+
+// readFloor returns the queue floor and the count of transactions that
+// lowered it.
+func (s *Store) readFloor() ([]byte, uint64) {
+	var floor []byte
+	var lowered uint64
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		floor, lowered = s.floor, s.lowered
+	})
+	return floor, lowered
 }
 
 // applyQueued projects blocks queued by a committed transaction into the
@@ -413,6 +462,8 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 	var cleared, uploaded int
 	var clearedBytes, uploadedBytes, queuedBytes int64
 	var oldest time.Time
+	var head []byte
+	var lowered uint64
 	err = kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
 		// Delete the markers still queued, counting what they held, and queue
 		// the uploaded blocks for eviction.
@@ -451,10 +502,18 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 			return err
 		}
 
-		// Read the new queue head's write time.
-		oldest = time.Time{}
-		err = scanQueue(ctx, tx, func(entry queueEntry) error {
-			oldest = entry.at
+		// Read the new queue head's write time from the floor. The store
+		// orders write transactions, so every transaction that lowered the
+		// floor before this read committed or discarded already.
+		var floor []byte
+		floor, lowered = s.readFloor()
+		oldest, head = time.Time{}, []byte(queueEnd)
+		err = scanQueue(ctx, tx, floor, func(item queueItem) error {
+			at, err := item.at()
+			if err != nil {
+				return err
+			}
+			oldest, head = at, queueFloor(at)
 			return errScanDone
 		})
 		if errors.Is(err, errScanDone) {
@@ -476,6 +535,11 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 		s.status.EvictableBytes += queuedBytes
 		s.status.Err = nil
 		s.status.Oldest = oldest
+
+		// Retain a floor lowered by a writer since this clear read it.
+		if s.lowered == lowered || (s.floor != nil && bytes.Compare(head, s.floor) < 0) {
+			s.floor = head
+		}
 		broadcast()
 	})
 	return nil

@@ -60,13 +60,18 @@ type evictEntry struct {
 
 // evictKey returns the eviction queue key of a block queued at epoch.
 func evictKey(epoch uint64, h *hash.Hash) []byte {
+	return append(evictEpochKey(epoch), h.MarshalString()...)
+}
+
+// evictEpochKey returns the prefix of the eviction queue keys queued at epoch,
+// which sorts before all of them.
+func evictEpochKey(epoch uint64) []byte {
 	// Encode the epoch as fixed-width hex, so keys sort by epoch.
 	var stamp [8]byte
 	binary.BigEndian.PutUint64(stamp[:], epoch)
 	key := []byte(evictPrefix)
 	key = hex.AppendEncode(key, stamp[:])
-	key = append(key, '/')
-	return append(key, h.MarshalString()...)
+	return append(key, '/')
 }
 
 // parseEvictKey decodes an eviction queue key into an entry without its size.
@@ -89,12 +94,17 @@ func parseEvictKey(key []byte) (evictEntry, error) {
 	return evictEntry{key: bytes.Clone(key), epoch: binary.BigEndian.Uint64(stamp[:]), hash: h}, nil
 }
 
-// scanEvictable calls cb with each eviction queue entry, oldest epoch first,
-// until cb returns an error.
-func scanEvictable(ctx context.Context, tx kvtx.Tx, cb func(evictEntry) error) error {
+// scanEvictable calls cb with each eviction queue entry from the key from,
+// oldest epoch first, until cb returns an error. A nil from starts at the
+// oldest entry.
+func scanEvictable(ctx context.Context, tx kvtx.Tx, from []byte, cb func(evictEntry) error) error {
+	// Walk eviction entries from the previous batch boundary.
 	it := tx.Iterate(ctx, []byte(evictPrefix), true, false)
 	defer it.Close()
-	for it.Next() {
+	if err := it.Seek(from); err != nil {
+		return err
+	}
+	for valid := it.Valid(); valid; valid = it.Next() {
 		entry, err := parseEvictKey(it.Key())
 		if err != nil {
 			return err
@@ -289,7 +299,8 @@ func (s *Store) Evict(
 		return result, errors.Wrap(err, "advance eviction epoch")
 	}
 
-	// Evict in batches until the byte target or the new epoch.
+	// Evict in batches until the byte target or the new epoch, each from
+	// where the last committed batch stopped, as evictFrom describes.
 	var last int64
 	for result.EvictedBytes < maxBytes {
 		if admit != nil {
@@ -298,38 +309,47 @@ func (s *Store) Evict(
 			}
 		}
 		last = result.EvictedBytes
-		done, err := s.evictBatch(ctx, remote, epoch, maxBytes, keep, &result)
-		if err != nil || done {
+		next, done, err := s.evictBatch(ctx, remote, epoch, maxBytes, keep, s.evictFrom, &result)
+		if err != nil {
 			return result, err
+		}
+		s.evictFrom = next
+		if done {
+			return result, nil
 		}
 	}
 	return result, nil
 }
 
-// evictBatch reads one batch of entries older than epoch, drops the values it
-// may, and commits the entry changes. Returns true when the walk reached the
-// end of the older entries.
+// evictBatch reads one batch of entries older than epoch from the key from,
+// drops the values it may, and commits the entry changes. Returns the key the
+// next batch starts from, and true when the walk reached the end of the older
+// entries; the key is then the start of epoch, where later entries queue.
 func (s *Store) evictBatch(
 	ctx context.Context,
 	remote block.StoreOps,
 	epoch uint64,
 	maxBytes int64,
 	keep func(*hash.Hash) bool,
+	from []byte,
 	result *EvictResult,
-) (bool, error) {
+) ([]byte, bool, error) {
 	// Read the batch with the markers of its blocks.
 	var batch []evictEntry
 	var marked []bool
+	var next []byte
 	var done bool
 	err := kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
 		// Walk the older entries up to the batch and byte limits; the walk is
 		// done when it runs out of them.
 		batch, marked, done = batch[:0], marked[:0], true
 		var batchBytes int64
-		err := scanEvictable(ctx, tx, func(entry evictEntry) error {
-			// Stop at the new epoch or a full batch.
+		next = nil
+		err := scanEvictable(ctx, tx, from, func(entry evictEntry) error {
+			// Stop at the new epoch or a full batch, where the next batch
+			// starts.
 			if entry.epoch >= epoch || len(batch) == evictBatchBlocks || result.EvictedBytes+batchBytes >= maxBytes {
-				done = entry.epoch >= epoch
+				done, next = entry.epoch >= epoch, entry.key
 				return errScanDone
 			}
 
@@ -348,10 +368,13 @@ func (s *Store) evictBatch(
 		return err
 	})
 	if err != nil {
-		return false, errors.Wrap(err, "scan eviction queue")
+		return nil, false, errors.Wrap(err, "scan eviction queue")
+	}
+	if done {
+		next = evictEpochKey(epoch)
 	}
 	if len(batch) == 0 {
-		return true, nil
+		return next, true, nil
 	}
 
 	// Ask the local values and the remote which blocks they hold.
@@ -361,11 +384,11 @@ func (s *Store) evictBatch(
 	}
 	held, err := s.values.GetBlockExistsBatch(ctx, refs)
 	if err != nil {
-		return false, errors.Wrap(err, "check local values")
+		return nil, false, errors.Wrap(err, "check local values")
 	}
 	stored, err := remote.GetBlockExistsBatch(ctx, refs)
 	if err != nil {
-		return false, errors.Wrap(err, "check remote blocks")
+		return nil, false, errors.Wrap(err, "check remote blocks")
 	}
 
 	// Decide each entry.
@@ -390,7 +413,7 @@ func (s *Store) evictBatch(
 	// bounds eviction to a few blocks a second under load.
 	if len(drop) != 0 {
 		if _, err := s.values.PutBlockBatch(ctx, drop); err != nil {
-			return false, errors.Wrap(err, "evict blocks")
+			return nil, false, errors.Wrap(err, "evict blocks")
 		}
 		result.Evicted += len(drop)
 	}
@@ -416,12 +439,12 @@ func (s *Store) evictBatch(
 		return addEvictableBytes(ctx, tx, delta)
 	})
 	if err != nil {
-		return false, errors.Wrap(err, "update eviction queue")
+		return nil, false, errors.Wrap(err, "update eviction queue")
 	}
 
 	// Report the batch.
 	s.addEvictStatus(delta, evictedBytes, 0)
 	result.EvictedBytes += evictedBytes
 	result.Requeued += len(requeue)
-	return done, nil
+	return next, done, nil
 }

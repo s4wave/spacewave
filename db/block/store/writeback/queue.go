@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/net/hash"
 )
@@ -28,39 +29,45 @@ const queuePrefix = "queue/"
 // queueTimeLen is the length of the write time in a queue key.
 const queueTimeLen = 16
 
-// queueEntry is a decoded queue entry.
-type queueEntry struct {
-	// key is the entry's key, owned by the entry.
+// queueItem is a queue entry as a scan reads it. key and value belong to the
+// iterator and hold only during the scan's callback; pending copies them.
+type queueItem struct {
+	// key names this entry for the duration of the callback.
 	key []byte
-	// at is the block's write time.
-	at time.Time
-	// hash is the block hash.
-	hash *hash.Hash
-	// size is the block size in bytes.
-	size int64
-	// value is the entry's value, owned by the entry. A repeated write of the
-	// block changes it.
+	// value holds its encoding for the duration of the callback.
 	value []byte
 }
 
-// scanQueue calls cb with each queue entry in write order until cb returns an
-// error.
-func scanQueue(ctx context.Context, tx kvtx.Tx, cb func(queueEntry) error) error {
+// queueEnd sorts after every queue key, so a floor at it starts a scan past
+// the queue.
+const queueEnd = "queue0"
+
+// scanQueue calls cb with each queue entry in write order, unparsed, so a
+// scan pays only for the fields it reads, from the key from,
+// or from the queue's start when from is nil, until cb returns an error.
+//
+// A floor below every live entry skips the deletes the store keeps for the
+// entries already cleared, which an iteration from the queue's start walks
+// one by one until the store checkpoints.
+func scanQueue(ctx context.Context, tx kvtx.Tx, from []byte, cb func(queueItem) error) error {
+	// Seek to the earliest possible live entry before scanning.
 	it := tx.Iterate(ctx, []byte(queuePrefix), true, false)
 	defer it.Close()
-	for it.Next() {
-		entry, err := parseQueueKey(it.Key())
-		if err != nil {
+	ok := false
+	if from != nil {
+		if err := it.Seek(from); err != nil {
 			return err
 		}
+		ok = it.Valid()
+	} else {
+		ok = it.Next()
+	}
+	for ; ok; ok = it.Next() {
 		value, err := it.Value()
 		if err != nil {
 			return err
 		}
-		entry.value = bytes.Clone(value)
-		size, _, _ := bytes.Cut(value, []byte("@"))
-		entry.size, _ = strconv.ParseInt(string(size), 10, 64)
-		if err := cb(entry); err != nil {
+		if err := cb(queueItem{key: it.Key(), value: value}); err != nil {
 			return err
 		}
 	}
@@ -82,45 +89,67 @@ func queueTime(at time.Time) time.Time {
 	return time.Unix(0, max(at.UnixNano(), 0))
 }
 
+// queueFloor returns a key at or before every queue key of a block written
+// at at or later, which queueTime has normalized.
+func queueFloor(at time.Time) []byte {
+	var stamp [8]byte
+	binary.BigEndian.PutUint64(stamp[:], uint64(at.UnixNano()))
+	return hex.AppendEncode([]byte(queuePrefix), stamp[:])
+}
+
 // queueKey returns the queue key of a block written at at, which queueTime
 // has normalized.
 func queueKey(at time.Time, h *hash.Hash) []byte {
 	// Encode the write time as fixed-width hex, so keys sort by time.
-	var stamp [8]byte
-	binary.BigEndian.PutUint64(stamp[:], uint64(at.UnixNano()))
-	key := []byte(queuePrefix)
-	key = hex.AppendEncode(key, stamp[:])
-	key = append(key, '/')
+	key := append(queueFloor(at), '/')
 	return append(key, h.MarshalString()...)
 }
 
-// parseQueueKey decodes a queue key into an entry without its size.
-func parseQueueKey(key []byte) (queueEntry, error) {
-	// Split the key into its write time and hash.
-	rest := key[len(queuePrefix):]
+// at decodes the block's write time from the key.
+func (q queueItem) at() (time.Time, error) {
+	// Decode the timestamp without retaining iterator-owned bytes.
+	rest := q.key[len(queuePrefix):]
 	if len(rest) <= queueTimeLen || rest[queueTimeLen] != '/' {
-		return queueEntry{}, errors.Errorf("malformed upload queue key %q", key)
+		return time.Time{}, errors.Errorf("malformed upload queue key %q", q.key)
 	}
-
-	// Decode the write time.
 	var stamp [8]byte
 	if _, err := hex.Decode(stamp[:], rest[:queueTimeLen]); err != nil {
-		return queueEntry{}, errors.Wrap(err, "parse upload queue time")
+		return time.Time{}, errors.Wrap(err, "parse upload queue time")
 	}
 	nanos := binary.BigEndian.Uint64(stamp[:])
 	if nanos > math.MaxInt64 {
-		return queueEntry{}, errors.Errorf("upload queue time out of range in %q", key)
+		return time.Time{}, errors.Errorf("upload queue time out of range in %q", q.key)
 	}
+	return time.Unix(0, int64(nanos)), nil
+}
 
-	// Decode the block hash.
-	h := &hash.Hash{}
-	if err := h.ParseFromB58(string(rest[queueTimeLen+1:])); err != nil {
-		return queueEntry{}, errors.Wrap(err, "parse upload queue hash")
+// size decodes the block size from the value, or 0 when it holds none.
+func (q queueItem) size() int64 {
+	text, _, _ := bytes.Cut(q.value, []byte("@"))
+	size, _ := strconv.ParseInt(string(text), 10, 64)
+	return size
+}
+
+// pending decodes the whole entry into a block awaiting upload, which owns
+// copies of the key and value.
+func (q queueItem) pending() (pendingBlock, error) {
+	// Decode the write time, then the block hash after it.
+	at, err := q.at()
+	if err != nil {
+		return pendingBlock{}, err
 	}
-	return queueEntry{
-		key:  bytes.Clone(key),
-		at:   time.Unix(0, int64(nanos)),
-		hash: h,
+	text := q.key[len(queuePrefix)+queueTimeLen+1:]
+	h := &hash.Hash{}
+	if err := h.ParseFromB58(string(text)); err != nil {
+		return pendingBlock{}, errors.Wrap(err, "parse upload queue hash")
+	}
+	return pendingBlock{
+		queueKey:  bytes.Clone(q.key),
+		markedKey: append([]byte(markedPrefix), text...),
+		value:     bytes.Clone(q.value),
+		ref:       block.NewBlockRef(h),
+		size:      q.size(),
+		at:        at,
 	}, nil
 }
 
