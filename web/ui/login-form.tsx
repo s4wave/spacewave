@@ -1,6 +1,4 @@
-import * as ownerStylex from '@stylexjs/stylex'
-import { cn as ownerClasses } from '@s4wave/web/style/utils.js'
-import { groupMarker as ownergroupMarker } from '@s4wave/web/style/relations.stylex.js'
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import React, {
   useCallback,
   useEffect,
@@ -25,7 +23,7 @@ import { SPACEWAVE_PUBLIC_BASE_URL } from '@s4wave/app/urls.js'
 
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 import { AuthProgressCard } from '@s4wave/web/ui/credential/AuthProgressCard.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import {
   Tooltip,
   TooltipTrigger,
@@ -60,6 +58,67 @@ import {
   fonts as themeFonts2,
 } from '../style/tokens.stylex.js'
 import { groupMarker } from '../style/relations.stylex.js'
+
+import { groupMarker as groupMarker2 } from '../style/relations.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: { width: '100%' },
+  rule2: { flex: 1 },
+  rule3: {
+    display: 'flex',
+    height: `calc(${themeLayout2['--spacing']} * 11)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout2['--spacing']} * 2)`,
+    borderRadius: themeRadii2['--radius-md'],
+    borderStyle: themeUtilityState2['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors2['--color-foreground']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors2['--color-brand']} 30%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors2['--color-background']} 20%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors2['--color-background']} 40%, transparent)`,
+      },
+    },
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion2['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule4: {
+    display: 'flex',
+    height: `calc(${themeLayout2['--spacing']} * 11)`,
+    cursor: { default: 'not-allowed', ':disabled': 'not-allowed' },
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout2['--spacing']} * 2)`,
+    borderRadius: themeRadii2['--radius-md'],
+    borderStyle: themeUtilityState2['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors2['--color-foreground']} 10%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors2['--color-background']} 20%, transparent)`,
+    opacity: { default: 0.4, ':disabled': 0.5 },
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion2['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+  },
+  rule5: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout2['--spacing']} * 4)`,
+  },
+  rule6: { padding: `calc(${themeLayout2['--spacing']} * 6)` },
+})
 
 const actionStyles = stylex.create({
   brand: {
@@ -502,13 +561,6 @@ const stylexStyles = stylex.create({
 // dnsLabelRegex validates DNS label format for usernames.
 const dnsLabelRegex = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/
 
-const inputClassName = cn(
-  'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50',
-  'w-full rounded-md border px-3 py-2 text-sm transition-colors outline-none [@media(pointer:coarse)]:min-h-11',
-  'focus:border-brand/50',
-  'disabled:opacity-50',
-)
-
 // LoginResult represents the outcome of a login attempt.
 export type LoginResult =
   | { type: 'session'; sessionIndex: number }
@@ -537,7 +589,12 @@ function getErrorMessage(code: string, method: string): string {
   return 'Login failed. Please try again.'
 }
 
-interface LoginFormProps extends React.ComponentPropsWithoutRef<'div'> {
+interface LoginFormProps extends Omit<
+  React.ComponentPropsWithoutRef<'div'>,
+  'className'
+> {
+  className?: never
+  sx?: ComponentStyles
   initialUsername?: string
   cloudProviderConfig?: CloudProviderConfig | null
   onContinueWithoutAccount?: () => void | Promise<void>
@@ -624,6 +681,7 @@ function SignInMethodButton({
   label,
   onClick,
   fullWidth = false,
+  sx,
 }: {
   enabled: boolean
   // busy is true when any sign-in is in progress (locks all buttons).
@@ -634,27 +692,22 @@ function SignInMethodButton({
   label: React.ReactNode
   onClick: () => void
   fullWidth?: boolean
+  sx?: ComponentStyles
 }) {
   return (
     <button
       type="button"
       disabled={busy || !enabled}
       onClick={onClick}
-      className={
-        /* TODO(stylex): global or unknown class: group */ cn(
-          ownerClasses(
-            'group rounded-md border transition-all duration-300',
-            ownerStylex.props(ownergroupMarker).className,
-          ),
-          fullWidth ? 'w-full' : 'flex-1',
-          'border-foreground/10 bg-background/20',
+      sx={[
+        [
+          fullWidth ? stylexStyles2.rule1 : stylexStyles2.rule2,
           enabled
-            ? 'hover:border-brand/30 hover:bg-background/40'
-            : 'cursor-not-allowed opacity-40',
-          'disabled:cursor-not-allowed disabled:opacity-50',
-          'flex h-11 items-center justify-center gap-2',
-        )
-      }
+            ? [stylexStyles2.rule3, groupMarker2]
+            : [stylexStyles2.rule4, groupMarker2],
+        ],
+        sx,
+      ]}
     >
       {loading ? <Spinner size="md" sx={stylexStyles.rule1} /> : icon}
       <span sx={stylexStyles.rule2}>{label}</span>
@@ -665,7 +718,7 @@ function SignInMethodButton({
 // Divider renders a centered label over a horizontal rule.
 function Divider({ label }: { label: string }) {
   return (
-    <div sx={stylexStyles.rule3}>
+    <div sx={[stylexStyles.rule3, spacingStyles.three]}>
       <div sx={stylexStyles.rule4}>
         <div sx={stylexStyles.rule5} />
       </div>
@@ -1057,12 +1110,8 @@ function LoginFields({
   const confirmId = useId()
 
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
-      }
-    >
-      <div>
+    <div sx={spacingStyles.three}>
+      <div sx={spacingStyles.three}>
         <label sx={stylexStyles.rule10} htmlFor={usernameId}>
           Username
         </label>
@@ -1078,7 +1127,7 @@ function LoginFields({
         />
       </div>
 
-      <div>
+      <div sx={spacingStyles.three}>
         <label sx={stylexStyles.rule10} htmlFor={passwordId}>
           Password
         </label>
@@ -1094,7 +1143,7 @@ function LoginFields({
       </div>
 
       {creatingAccount && (
-        <div>
+        <div sx={spacingStyles.three}>
           <label sx={stylexStyles.rule10} htmlFor={confirmId}>
             Confirm password
           </label>
@@ -1106,14 +1155,10 @@ function LoginFields({
             onChange={(e) => onConfirmChange(e.target.value)}
             placeholder="Confirm password"
             disabled={busy}
-            className={
-              /* TODO(stylex): conditional property composition: borderColor */ cn(
-                inputClassName,
-                confirm.length > 0 &&
-                  !passwordsMatch &&
-                  'border-destructive/50',
-              )
-            }
+            sx={[
+              stylexStyles.rule11,
+              confirm.length > 0 && !passwordsMatch && loginStyles.invalid,
+            ]}
           />
         </div>
       )}
@@ -1134,7 +1179,7 @@ function TermsAgreement({
   onChange: (agreed: boolean) => void
 }) {
   return (
-    <label sx={stylexStyles.rule12}>
+    <label sx={[stylexStyles.rule12, spacingStyles.three]}>
       <input
         type="checkbox"
         checked={agreed}
@@ -1181,7 +1226,7 @@ function LoginNotices({
   return (
     <>
       {error && (
-        <div>
+        <div sx={spacingStyles.three}>
           <p sx={stylexStyles.rule16}>{error}</p>
           {error.includes('Wrong password') && (
             <a
@@ -1197,7 +1242,7 @@ function LoginNotices({
       )}
 
       {rateLimitCountdown > 0 && (
-        <div sx={stylexStyles.rule18}>
+        <div sx={[stylexStyles.rule18, spacingStyles.three]}>
           <p sx={stylexStyles.rule19}>
             Rate limited, retrying in {rateLimitCountdown}s…
           </p>
@@ -1205,7 +1250,7 @@ function LoginNotices({
       )}
 
       {browserAuthRequired && (
-        <div sx={stylexStyles.rule20}>
+        <div sx={[stylexStyles.rule20, spacingStyles.three]}>
           <p sx={stylexStyles.rule21}>
             Enhanced security required. Sign in via your browser.
           </p>
@@ -1258,7 +1303,7 @@ function PasswordSubmit({
         type="button"
         onClick={onSubmit}
         disabled={disabled}
-        sx={[[actionStyles.brand, groupMarker]]}
+        sx={[[[actionStyles.brand, groupMarker]], spacingStyles.three]}
       >
         {busy ? (
           <Spinner sx={stylexStyles.rule25} />
@@ -1270,6 +1315,7 @@ function PasswordSubmit({
 
       {busy && (
         <AuthProgressCard
+          sx={spacingStyles.three}
           title={
             creatingAccount
               ? 'Creating your secure account'
@@ -1322,12 +1368,9 @@ function SignInMethods({
   if (loading === 'pem') pemLabel = 'Signing in with backup key...'
 
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-      }
-    >
+    <div sx={spacingStyles.three}>
       <input
+        sx={spacingStyles.two}
         ref={pemInputRef}
         type="file"
         accept=".pem"
@@ -1335,6 +1378,7 @@ function SignInMethods({
         hidden
       />
       <SignInMethodButton
+        sx={spacingStyles.two}
         fullWidth
         enabled={canUsePem}
         busy={busy}
@@ -1343,7 +1387,7 @@ function SignInMethods({
         label={pemLabel}
         onClick={() => pemInputRef.current?.click()}
       />
-      <div sx={stylexStyles.rule29}>
+      <div sx={[stylexStyles.rule29, spacingStyles.two]}>
         <Tooltip>
           <TooltipTrigger asChild>
             <SignInMethodButton
@@ -1398,7 +1442,7 @@ function ContinueWithoutAccount({
             type="button"
             onClick={onContinue}
             disabled={loading !== null}
-            sx={[[actionStyles.continue, groupMarker]]}
+            sx={[[[actionStyles.continue, groupMarker]], spacingStyles.three]}
           >
             <div sx={stylexStyles.rule30}>
               <PiUserCircleDuotone sx={actionStyles.userIcon} />
@@ -1644,7 +1688,7 @@ function useAuthBusyState(
 // fields and a "Continue with password" button that handles both new account
 // creation and login to existing accounts.
 export function LoginForm({
-  className,
+  sx,
   initialUsername,
   cloudProviderConfig,
   onContinueWithoutAccount,
@@ -1657,7 +1701,10 @@ export function LoginForm({
   onSignInWithSSO,
   onAuthBusyChange,
   ...props
-}: LoginFormProps) {
+}: Omit<LoginFormProps, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
   // Keep the current sign-in draft, mode and request feedback together.
   const [loading, setLoading] = useAuthBusyState(onAuthBusyChange)
   const [username, setUsername] = useState(
@@ -1838,21 +1885,12 @@ export function LoginForm({
   return (
     <div
       role="group"
-      className={
-        /* TODO(stylex): dynamic class or forwarded className */ cn(
-          'flex flex-col gap-4',
-          className,
-        )
-      }
+      sx={[stylexStyles2.rule5, sx]}
       onKeyDown={handleKeyDown}
       {...props}
     >
       <div sx={stylexStyles.rule34}>
-        <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3 p-6'
-          }
-        >
+        <div sx={stylexStyles2.rule6}>
           <LoginFields
             username={username}
             password={password}
@@ -1878,7 +1916,11 @@ export function LoginForm({
           />
 
           {!isDesktop && turnstileSiteKey !== '' && (
-            <Turnstile ref={turnstileRef} siteKey={turnstileSiteKey} />
+            <Turnstile
+              sx={spacingStyles.three}
+              ref={turnstileRef}
+              siteKey={turnstileSiteKey}
+            />
           )}
 
           <PasswordSubmit
@@ -1896,7 +1938,7 @@ export function LoginForm({
             <button
               type="button"
               onClick={returnToLogin}
-              sx={stylexStyles.rule35}
+              sx={[stylexStyles.rule35, spacingStyles.three]}
             >
               &larr; Return to login
             </button>
@@ -1936,31 +1978,90 @@ function PasswordStrength({ password }: { password: string }) {
           ? 2
           : 3
   const labels = ['', 'Weak', 'Fair', 'Strong']
-  const colors = ['', 'bg-destructive', 'bg-yellow-500', 'bg-green-500']
 
   // Hide the strength indicator until the person enters a password.
   if (password.length === 0) return null
 
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1 */ 'space-y-1'
-      }
-    >
-      <div sx={stylexStyles.rule36}>
+    <div sx={spacingStyles.three}>
+      <div sx={[stylexStyles.rule36, spacingStyles.one]}>
         {[1, 2, 3].map((level) => (
           <div
             key={level}
-            className={
-              /* TODO(stylex): dynamic class or forwarded className */ cn(
-                'h-full flex-1 rounded-full transition-colors',
-                level <= strength ? colors[strength] : 'bg-transparent',
-              )
-            }
+            sx={[
+              loginStyles.strength,
+              level <= strength && strengthStyles[strength],
+            ]}
           />
         ))}
       </div>
-      <p sx={stylexStyles.rule37}>{labels[strength]}</p>
+      <p sx={[stylexStyles.rule37, spacingStyles.one]}>{labels[strength]}</p>
     </div>
   )
 }
+
+const spacingStyles = stylex.create({
+  one: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(${themeLayout['--spacing']} * 1 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(${themeLayout['--spacing']} * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  two: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(${themeLayout['--spacing']} * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(${themeLayout['--spacing']} * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  three: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(${themeLayout['--spacing']} * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(${themeLayout['--spacing']} * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+const loginStyles = stylex.create({
+  invalid: {
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 50%, transparent)`,
+      ':focus': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    },
+  },
+  strength: {
+    height: '100%',
+    flex: 1,
+    borderRadius: '3.40282e38px',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction:
+      themeMotion['--default-transition-timing-function'],
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    backgroundColor: 'transparent',
+  },
+  empty: {},
+  weak: { backgroundColor: themeColors['--color-destructive'] },
+  fair: { backgroundColor: 'var(--color-yellow-500)' },
+  strong: { backgroundColor: 'var(--color-green-500)' },
+})
+const strengthStyles = [
+  loginStyles.empty,
+  loginStyles.weak,
+  loginStyles.fair,
+  loginStyles.strong,
+] as const
