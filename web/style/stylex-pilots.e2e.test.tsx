@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { createPortal } from 'react-dom'
 import * as stylex from '@stylexjs/stylex'
 import { expect, it, onTestFinished } from 'vitest'
-import { page, userEvent } from 'vitest/browser'
+import { page, server, userEvent } from 'vitest/browser'
 
 import { VmErrorBanner } from '../../app/vm/VmErrorBanner.js'
 import { TagChip } from '../../plugin/notes/blog/TagChip.js'
@@ -459,12 +459,19 @@ it('composes shared, app and plugin styles through the browser build', async () 
     )
     .toBe(false)
 
-  // Keyboard focus reaches the header button's own outline and both caller overrides.
-  await userEvent.keyboard('{Tab}')
+  // WebKit on macOS uses Option+Tab to include native buttons in keyboard navigation.
+  const tabKey =
+    server.platform === 'darwin' && server.browser === 'webkit'
+      ? '{Alt>}{Tab}{/Alt}'
+      : '{Tab}'
+  trigger.element().focus()
+  await userEvent.keyboard(tabKey)
   expect(document.activeElement?.getAttribute('aria-label')).toBe(
     'Section action',
   )
-  await userEvent.keyboard('{Tab}')
+
+  // The next stop keeps the panel action's own focus outline and caller color.
+  await userEvent.keyboard(tabKey)
   const panelButton = document.querySelector('button[title="Panel action"]')!
   expect(document.activeElement).toBe(panelButton)
   expect(getComputedStyle(panelButton).outlineWidth).toBe('2px')
