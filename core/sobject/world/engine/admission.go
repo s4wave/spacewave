@@ -50,6 +50,8 @@ type writeAdmission struct {
 // its writer. The caller holds the writer lock and passes the World the
 // publication holds under the accepted World root.
 func (e *soEngine) admit(receipt *block.PublicationReceipt, held *bucket.ObjectRef, seqno uint64) {
+	// Acquire receipt ownership before marking its prepared names carried.
+	e.replay.ledger.retainPrepared(receipt)
 	e.admissions = append(e.admissions, &writeAdmission{
 		receipt:       receipt,
 		base:          e.replay.base,

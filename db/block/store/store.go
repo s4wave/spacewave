@@ -85,6 +85,12 @@ func (s *store) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntr
 	return s.ops.PutBlockBatch(ctx, entries)
 }
 
+// PutBlockBatchReceipt preserves the actual write path and its optional
+// counting result through this ID-only adapter.
+func (s *store) PutBlockBatchReceipt(ctx context.Context, entries []*block.PutBatchEntry) (*block.PublicationReceipt, error) {
+	return block.PutBlockBatchReceipt(ctx, s.ops, entries)
+}
+
 // GetBlock forwards to the inner StoreOps.
 func (s *store) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	return s.ops.GetBlock(ctx, ref)

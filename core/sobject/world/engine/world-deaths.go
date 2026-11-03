@@ -1,6 +1,7 @@
 package sobject_world_engine
 
 import (
+	"context"
 	"slices"
 	"sync"
 
@@ -116,9 +117,13 @@ type pendingNet struct {
 	lineage *pendingNet
 	// sealed is set once the naming publication joined puts.
 	sealed bool
+	// cancelEncoding stops off-writer receipt waits when the entry is abandoned.
+	cancelEncoding context.CancelFunc
 	// encoded closes once the record is encoded off the writer lock, after
 	// which the fields below are set.
 	encoded chan struct{}
+	// preparation is the writer-owned stage job after encoding completes.
+	preparation *deadlistPreparation
 	// dead is what died in the interval.
 	dead *block.Replacements
 	// blocks and record are the encoded record's blocks and first block.
@@ -137,58 +142,55 @@ func (n *pendingNet) seal(put *worldPut) {
 	n.sealed = true
 }
 
-// ready reports whether the interval is sealed and each put resolved.
-func (n *pendingNet) ready() bool {
-	if !n.sealed {
-		return false
-	}
-	for _, put := range n.puts {
-		select {
-		case <-put.receipt.Done():
-		default:
-			return false
-		}
-	}
-	return true
-}
-
 // poll starts encoding the interval's record as seq from from to to once
-// every put resolved, and reports whether the encoded record is ready. The
+// its puts are sealed, and reports whether the encoded record is ready. The
 // ledger has asked for recounts recounts, and recounting is set while it
 // waits for one. Netting walks every page the interval wrote, tens of
 // milliseconds for a long interval, so it runs off the writer lock and no
-// commit waits on it; it waits on nothing, so it always ends. Call it under
+// commit waits on it. Receipt waits cancel with the entry or engine. Call it under
 // the writer lock.
 //
 // A record whose from the store's counts may not hold as a holder nets from
 // the puts alone, as one without steps does: it kills nothing before the
 // interval and takes nothing from from, which leaks the tree at from.
-func (n *pendingNet) poll(seq uint64, from, to *block.BlockRef, recounts uint64, recounting bool, notify chan<- struct{}) bool {
-	// Start the encoding once every put, and the lineage's, resolved.
+func (n *pendingNet) poll(ctx context.Context, seq uint64, from, to *block.BlockRef, recounts uint64, recounting bool, notify chan<- struct{}) bool {
+	// Start one background task once both receipt lists are immutable.
 	if n.encoded == nil {
-		if !n.ready() || (n.lineage != nil && !n.lineage.ready()) {
+		if !n.sealed || (n.lineage != nil && !n.lineage.sealed) {
 			return false
 		}
-		if n.steps != nil && !from.GetEmpty() && !n.counted(from, recounts, recounting) {
-			writeFlows.unfunded.Add(1)
-			n.steps = nil
-		}
-		n.lineage = nil
 		n.encoded = make(chan struct{})
-		if n.steps == nil {
-			from = nil
-		}
+		ctx, n.cancelEncoding = context.WithCancel(ctx)
 		go func() {
-			// Publish the completed record before waking the state watcher.
-			n.dead = n.net(to)
-			n.blocks, n.record, n.err = block.EncodeDeadlist(seq, from, to, n.dead)
-			close(n.encoded)
+			// Detach completed receipt waits from the engine context.
+			defer n.cancelEncoding()
 
-			// Coalesce notifications without waiting for the watcher or writer.
-			select {
-			case notify <- struct{}{}:
-			default:
+			// Publish the immutable encoding after every receipt scan completes.
+			defer func() {
+				close(n.encoded)
+				select {
+				case notify <- struct{}{}:
+				default:
+				}
+			}()
+
+			// Receipt waits use immutable sealed inputs off the writer. An
+			// abandoned interval cancels the wait even if a receipt never settles.
+			puts := [][]worldPut{n.puts}
+			if n.lineage != nil {
+				puts = append(puts, n.lineage.puts)
 			}
+			for _, list := range puts {
+				for _, put := range list {
+					select {
+					case <-put.receipt.Done():
+					case <-ctx.Done():
+						n.err = ctx.Err()
+						return
+					}
+				}
+			}
+			n.encode(seq, from, to, recounts, recounting)
 		}()
 		return false
 	}
@@ -202,20 +204,36 @@ func (n *pendingNet) poll(seq uint64, from, to *block.BlockRef, recounts uint64,
 	}
 }
 
+// encode certifies and nets only immutable, completed receipt inputs. It does
+// no I/O and waits on nothing; its caller publishes the result through encoded.
+func (n *pendingNet) encode(seq uint64, from, to *block.BlockRef, recounts uint64, recounting bool) {
+	// An uncertified lineage cannot consume any historical holder.
+	if n.steps != nil && !from.GetEmpty() && !n.counted(from, recounts, recounting) {
+		writeFlows.unfunded.Add(1)
+		n.steps = nil
+	}
+	n.lineage = nil
+	if n.steps == nil {
+		from = nil
+	}
+
+	// Encode the netted interval as bounded physical record blocks.
+	n.dead = n.net(to)
+	n.blocks, n.record, n.err = block.EncodeDeadlist(seq, from, to, n.dead)
+}
+
 // counted reports whether the store's shared counts hold from, the root the
 // interval starts at, with its lineage as a holder: the record that takes from
 // is the first holder of the root, the one a count leaves out, and applying it
 // takes a count from from.
 //
-// A sharing walk counts the holders the graph holds and the From of each
-// named record, but not the lineage of a root no record names yet, so a walk
-// between the root's first put and the naming of its record counts it one
-// holder short. The counts hold the lineage only when the first successful put
-// of from in the lineage's interval stored it afresh while the counts were
-// complete, and the ledger has asked for no recount since that put was
-// submitted, nor waits for one, so the record's name reaches the store before
-// any walk the ledger asks for begins. A walk the store begins on its own,
-// when it opens, restarts the engine and its ledger with it.
+// A sharing walk rebuilds the actual stored graph and discards an interval's
+// provisional lineage and historical claims. Only a fresh first root put in
+// the unchanged complete basis can certify that lineage. Naming a precise
+// record later transfers its temporary From holder atomically; an uncertain
+// record abandons all historical refunds. Another engine's recount or physical
+// erasure is visible through the receipts' Volume generation, independently of
+// this ledger's recount counter. Naming and application check that basis again.
 //
 // The ledger counts a recount once the save asking for it is submitted, after
 // any put submitted with it, so a put applied after a recount began may count
@@ -223,7 +241,8 @@ func (n *pendingNet) poll(seq uint64, from, to *block.BlockRef, recounts uint64,
 func (n *pendingNet) counted(from *block.BlockRef, recounts uint64, recounting bool) bool {
 	// Find the first successful put of from. A page listed twice in one put
 	// finds its own first copy, so its first entry decides.
-	if n.lineage == nil || recounting {
+	complete, generation := n.countingBasis()
+	if n.lineage == nil || recounting || !complete {
 		return false
 	}
 	for _, put := range n.lineage.puts {
@@ -244,7 +263,7 @@ func (n *pendingNet) counted(from *block.BlockRef, recounts uint64, recounting b
 		// Require a fresh put while counting, with no recount since.
 		existed := put.receipt.Existed()
 		found := first < len(existed) && existed[first]
-		return !found && put.receipt.Counting() && put.recounts == recounts
+		return !found && put.receipt.Counting() && put.receipt.CountingGeneration() == generation && put.recounts == recounts
 	}
 	return false
 }
@@ -256,7 +275,9 @@ func (n *pendingNet) counted(from *block.BlockRef, recounts uint64, recounting b
 // another path stored it. Without steps, the record counts the edges of the
 // pages the successful puts stored afresh and kills nothing, as block.NetPuts
 // describes. Either way the record lists in Found each successful put that
-// found a page, whose count the Volume added until the record is named. Call
+// found a page, whose provisional count remains through child funding. It
+// also records the complete generation and a conservative NetPuts summary,
+// computed off the writer, for a store whose recount erased that basis. Call
 // it once ready.
 func (n *pendingNet) net(to *block.BlockRef) *block.Replacements {
 	// Gather the pages the successful puts carried, which of them a put
@@ -292,12 +313,38 @@ func (n *pendingNet) net(to *block.BlockRef) *block.Replacements {
 		for key, isFresh := range fresh {
 			found[key] = !isFresh
 		}
-		dead = n.steps.Join().Net(found)
+		step := n.steps.Join()
+		step.AddFresh(pages, fresh)
+		dead = step.Net(found)
 	}
 	for _, e := range foundPuts {
 		dead.Found = append(dead.Found, e.Ref)
 	}
+	dead.CountsComplete, dead.CountingGeneration = n.countingBasis()
+	dead.FallbackHeld = block.NetPuts(pages, fresh).Held
 	return dead
+}
+
+// countingBasis certifies all successful puts against one Volume generation.
+// Another engine's recount is visible through receipts too; the ledger's own
+// recount counter alone cannot certify holders across that boundary.
+func (n *pendingNet) countingBasis() (bool, uint64) {
+	first := true
+	var generation uint64
+	for _, put := range n.puts {
+		if put.receipt.Err() != nil {
+			continue
+		}
+		if !put.receipt.Counting() {
+			return false, 0
+		}
+		if first {
+			generation, first = put.receipt.CountingGeneration(), false
+		} else if generation != put.receipt.CountingGeneration() {
+			return false, 0
+		}
+	}
+	return !first, generation
 }
 
 // found returns each page the put found stored, by its first entry, as the

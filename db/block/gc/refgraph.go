@@ -91,6 +91,9 @@ type RefGraph struct {
 	// owners nets the owner edges the graph's writes add and remove, nil
 	// unless CountOwnerEdges enabled it.
 	owners *ownerNet
+	// basisChanged coalesces invalidations only for an explicitly scoped
+	// physical transaction. A graph over an ordinary Store leaves it nil.
+	basisChanged *bool
 }
 
 // NewRefGraph constructs a reference graph over store.
@@ -303,7 +306,8 @@ func (g *RefGraph) applyRefBatchTx(ctx context.Context, tx kvtx.Tx, adds, remove
 		case len(added) != 0:
 			young.changed = append(young.changed, parent)
 		}
-		if len(added) != 0 {
+		if created || len(added) != 0 {
+			// Even a new empty list repairs a previously doubtful address.
 			listed[parent] = added
 		}
 	}
@@ -453,27 +457,68 @@ func hasIncomingTx(ctx context.Context, tx kvtx.Tx, object string, ignored map[s
 // New unrelated edges may be added after this operation's initial snapshot. A
 // block's child list and shared count go first, so the block is no longer
 // tracked; its children never join the unreferenced queue. Its pending
-// releases go too, so a block stored again later starts without them.
+// releases go too, so a block stored again later starts without them. Erasing
+// actual count metadata advances its receipt basis, coalesced when the caller
+// scoped this graph to one physical transaction.
 func (g *RefGraph) RemoveNodeRefs(ctx context.Context, node string, markOrphaned bool) ([]string, error) {
 	// Drop a block's child list.
 	var children []string
 	if isBlockNode(node) {
 		err := g.transaction(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
-			// Drop the shared count and the releases, then read the list
-			// and delete it.
-			if err := tx.Delete(ctx, graphKey(kindHold, node)); err != nil {
-				return err
-			}
-			if err := tx.Delete(ctx, graphKey(kindRelease, node)); err != nil {
-				return err
-			}
+			// Erasing an incarnation also erases unnamed provisional holders.
+			// Invalidate their receipts before deletion. Surviving parents may
+			// still name this address, so rebuilt counts must fund its next
+			// incarnation before any writer trusts the stored parent.
 			var found bool
 			var err error
 			children, found, err = readChildrenTx(ctx, tx, node)
-			if err != nil || !found {
+			if err != nil {
 				return err
 			}
-			return tx.Delete(ctx, graphKey(kindChildren, node))
+			if !found {
+				// An absent-node no-op changes no basis. Count-only remnants
+				// still invalidate receipts when their metadata is erased.
+				for _, kind := range []byte{kindHold, kindRelease} {
+					present, err := tx.Exists(ctx, graphKey(kind, node))
+					if err != nil {
+						return err
+					}
+					found = found || present
+				}
+				if !found {
+					return nil
+				}
+			}
+			if err := g.invalidateSharingBasisTx(ctx, tx); err != nil {
+				return err
+			}
+
+			// Rebuild surviving incoming edges without restarting an active walk.
+			state, err := readSharingTx(ctx, tx)
+			if err != nil {
+				return err
+			}
+			switch {
+			case state.Phase == SharingChildren || state.Phase == SharingOwners:
+				// Erasing h after an earlier sighting loses the already-walked
+				// prefix. Keep this cursor but never certify its damaged counts.
+				state.Doubt = true
+				if err := writeSharingTx(ctx, tx, state); err != nil {
+					return err
+				}
+			case state.Phase != SharingOff && !state.Phase.Walking():
+				if _, err := g.restartSharingTx(ctx, tx); err != nil {
+					return err
+				}
+			}
+
+			// Delete the metadata in the same physical transaction as its basis.
+			for _, kind := range []byte{kindHold, kindRelease, kindChildren} {
+				if err := tx.Delete(ctx, graphKey(kind, node)); err != nil {
+					return err
+				}
+			}
+			return nil
 		})
 		if err != nil {
 			return nil, err

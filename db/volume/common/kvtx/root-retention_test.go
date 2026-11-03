@@ -650,22 +650,28 @@ func TestDueDeadlistCheckedAgainstMark(t *testing.T) {
 		return ref
 	}
 	live, shared := page("live page"), page("shared page")
-	gone, err := block.BuildBlockRef([]byte("dead page"), nil)
+
+	// Keep the precision check on known leaves. A fabricated Removed address
+	// with no stored child list selects conservative recount recovery instead
+	// of making historical fate decisions against this mark.
+	generation, err := OpenRefGraph(v.kvtxStore).GetSharingGeneration(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Name a pending record that lists the live and shared pages and a dead
-	// one, and holds the shared page.
+	// Encode the precise record under that complete accounting generation.
 	dead := &block.Replacements{
-		Replaced: []*block.BlockRef{live, shared},
-		Removed:  []*block.BlockRef{gone},
-		Held:     []*block.BlockRef{shared},
+		Replaced:           []*block.BlockRef{live, shared},
+		Held:               []*block.BlockRef{shared},
+		CountsComplete:     true,
+		CountingGeneration: generation,
 	}
 	record, recordRef, err := block.EncodeDeadlist(1, nil, nil, dead)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Publish its pending name and the independent live roots.
 	roots := []block.NamedRoot{
 		{Name: "head", Ref: live},
 		{Name: "other", Ref: shared},
@@ -732,6 +738,16 @@ func TestDueDeadlistCheckedAgainstMark(t *testing.T) {
 	}
 	if found, err := v.GetBlockExists(ctx, live); err != nil || !found {
 		t.Fatalf("live page found=%v err=%v, want kept", found, err)
+	}
+
+	// Physical record removal invalidates the accounting basis. Finish that
+	// rebuild before checking the incremental writers' exact count changes.
+	if err := v.walkSharing(ctx); err != nil {
+		t.Fatal(err)
+	}
+	state, err := OpenRefGraph(v.kvtxStore).GetSharing(ctx)
+	if err != nil || state.Phase != block_gc.SharingComplete || state.Doubt {
+		t.Fatalf("record cleanup left counts unready: %+v/%v", state, err)
 	}
 
 	// A put that finds the live page stored counts a racing holder, unless

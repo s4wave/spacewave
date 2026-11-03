@@ -844,7 +844,7 @@ func TestPublicationPreparationAtomicAndOversized(t *testing.T) {
 	raw.mu.Unlock()
 
 	// Attempt the failing batch and clear the injected fault.
-	_, err = v.PrepareOwnedBlockBatch(t.Context(), failed.BucketID, failed.Entries)
+	failedReceipt, err := v.PrepareOwnedBlockBatch(t.Context(), failed.BucketID, failed.Entries)
 	raw.mu.Lock()
 	raw.errorCommit = nil
 	raw.mu.Unlock()
@@ -854,6 +854,31 @@ func TestPublicationPreparationAtomicAndOversized(t *testing.T) {
 		t.Fatal(err)
 	}
 	assertPublishedBlock(t, v, failed, false)
+	if failedReceipt != nil {
+		t.Fatal("rejected physical prepare exposed a successful receipt")
+	}
+
+	// Unowned bytes and empty prepares cannot certify GC count provenance.
+	for _, batch := range [][]*block.PutBatchEntry{nil, failed.Entries} {
+		receipt, err := v.PrepareOwnedBlockBatch(t.Context(), "", batch)
+		if err != nil || receipt.Counting() || receipt.CountingGeneration() != 0 {
+			t.Fatalf("unowned prepare receipt=%v error=%v", receipt, err)
+		}
+		select {
+		case <-receipt.Done():
+		default:
+			t.Fatal("synchronous prepare returned an unresolved receipt")
+		}
+	}
+
+	// An owned write during a rebuild reports its real incomplete basis.
+	if _, err := OpenRefGraph(v.kvtxStore).RecountSharing(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	receipt, err := v.PrepareOwnedBlockBatch(t.Context(), "large", failed.Entries)
+	if err != nil || receipt.Counting() {
+		t.Fatalf("walking prepare receipt=%v error=%v", receipt, err)
+	}
 }
 
 func TestPublicationDirectCloseAndGraphScope(t *testing.T) {

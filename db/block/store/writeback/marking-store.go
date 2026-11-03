@@ -95,10 +95,20 @@ func (m *MarkingStore) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 
 // PutBlockBatch marks every successful non-tombstone write.
 func (m *MarkingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	receipt, err := m.PutBlockBatchReceipt(ctx, entries)
+	if err != nil {
+		return nil, err
+	}
+	return receipt.Existed(), nil
+}
+
+// PutBlockBatchReceipt forwards provenance through the same marker boundary
+// as ordinary batches. Success still follows both bytes and required markers.
+func (m *MarkingStore) PutBlockBatchReceipt(ctx context.Context, entries []*block.PutBatchEntry) (*block.PublicationReceipt, error) {
 	// Mark in the storing transaction.
 	if m.marker != nil {
 		ctx, req := kvtx.WithBlockMarker(ctx, m.marker)
-		existed, err := m.store.PutBlockBatch(ctx, entries)
+		receipt, err := block.PutBlockBatchReceipt(ctx, m.store, entries)
 		if err != nil {
 			return nil, err
 		}
@@ -106,16 +116,19 @@ func (m *MarkingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBa
 			return nil, errUnmarkedWrite
 		}
 		m.invalidateTombstones(ctx, entries)
-		return existed, nil
+		return receipt, nil
 	}
 
 	// Store the batch, then mark it. A failed marker returns an error;
 	// repeating the batch repairs the markers.
-	existed, err := m.store.PutBlockBatch(ctx, entries)
+	receipt, err := block.PutBlockBatchReceipt(ctx, m.store, entries)
 	if err != nil {
 		return nil, err
 	}
-	return existed, m.markEntries(ctx, entries)
+	if err := m.markEntries(ctx, entries); err != nil {
+		return nil, err
+	}
+	return receipt, nil
 }
 
 // isMarked reports whether a batch entry stores a block that needs a marker.

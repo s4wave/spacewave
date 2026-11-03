@@ -232,8 +232,10 @@ func TestLocalWorldCommitPhysicalCommits(t *testing.T) {
 
 // TestCheckpointInstallPhysicalCommits bounds the checkpoint and install to
 // four database commits, plus its triggering write and up to two saves for
-// an encoded record and its move to due. Encoding may finish during installation
-// or later, so the saves can join another publication. Its named record agrees
+// the prepared record and its move to due. Each record leaf and header is
+// prepared in its own background commit before naming; these writes are counted
+// separately from the install budget. Preparation may finish during installation
+// or later, so the naming saves can join another publication. Its record agrees
 // with the reported deaths and excludes pages the checkpoint still reaches.
 func TestCheckpointInstallPhysicalCommits(t *testing.T) {
 	// Write one operation short of a checkpoint, the first with a payload, and
@@ -263,11 +265,21 @@ func TestCheckpointInstallPhysicalCommits(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Wait for the record itself, then bound the physical writes including
-	// its pending and due saves. Encoding never delays the triggering write.
+	// Each small record prepares one header and at most one list leaf in
+	// separate stage writes. Keep the trigger/install/save budget unchanged.
 	records := w.waitDeadlists(t, so.GetBlockStore())
-	if got := waitSeqIdle(t, w) - written; got > 7 {
-		t.Fatalf("trigger, checkpoint and install made %d physical commits, want at most 7", got)
+	if len(records) != 1 {
+		t.Fatalf("first checkpoint named %d records, want one", len(records))
+	}
+	var prepared uint64
+	for _, rec := range records {
+		if len(rec.head.Parts) > 1 {
+			t.Fatalf("small checkpoint record has %d parts, want at most one leaf", len(rec.head.Parts))
+		}
+		prepared += 1 + uint64(len(rec.head.Parts))
+	}
+	if got := waitSeqIdle(t, w) - written; got > 7+prepared {
+		t.Fatalf("trigger, checkpoint and install made %d physical commits, want at most 7 plus %d record preparation writes", got, prepared)
 	}
 
 	// The metrics count every commit, each kind of byte, and the checkpoint.

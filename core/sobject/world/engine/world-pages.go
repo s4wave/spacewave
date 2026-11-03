@@ -91,13 +91,21 @@ func (w *worldPages) keep(entries []*block.PutBatchEntry) []*block.PutBatchEntry
 // it, so the Worlds it computes reach the store only with the replay base or
 // checkpoint that names them. The view buffers every write until the writer
 // syncs: a store that buffers itself would take each page as it is written.
-func (w *worldPages) keeping() bstore.BlockStore {
-	return &keepingPages{worldPages: w}
+// put stores the pages past the bound and reports which the store held.
+func (w *worldPages) keeping(put func(context.Context, []*block.PutBatchEntry) ([]bool, error)) bstore.BlockStore {
+	return &keepingPages{worldPages: w, put: put}
+}
+
+// PutBlockBatchReceipt forwards construction spills to the actual write store.
+func (w *worldPages) PutBlockBatchReceipt(ctx context.Context, entries []*block.PutBatchEntry) (*block.PublicationReceipt, error) {
+	return block.PutBlockBatchReceipt(ctx, w.inner, entries)
 }
 
 // keepingPages is the view keeping returns.
 type keepingPages struct {
 	*worldPages
+	// put stores the entries the view does not keep.
+	put func(context.Context, []*block.PutBatchEntry) ([]bool, error)
 }
 
 // GetSupportedFeatures reports the store's features, minus its own buffering.
@@ -114,7 +122,7 @@ func (k *keepingPages) PutBlockBatch(ctx context.Context, entries []*block.PutBa
 	if len(rest) == 0 {
 		return existed, nil
 	}
-	found, err := k.worldPages.PutBlockBatch(ctx, rest)
+	found, err := k.put(ctx, rest)
 	if err != nil {
 		return nil, err
 	}
@@ -128,6 +136,19 @@ func (k *keepingPages) PutBlockBatch(ctx context.Context, entries []*block.PutBa
 		}
 	}
 	return existed, nil
+}
+
+// PutBlockBatchReceipt preserves the keeping view's semantics: kept pages
+// have no physical commit to certify, so the aggregate basis is unknown.
+func (k *keepingPages) PutBlockBatchReceipt(ctx context.Context, entries []*block.PutBatchEntry) (*block.PublicationReceipt, error) {
+	// Kept pages were not necessarily persisted, so no count basis is proven.
+	existed, err := k.PutBlockBatch(ctx, entries)
+	if err != nil {
+		return nil, err
+	}
+	receipt := block.NewPublicationReceipt()
+	receipt.ResolveExisted(nil, existed, false, 0)
+	return receipt, nil
 }
 
 // pagesOf returns the kept pages the roots reach, which a publication naming

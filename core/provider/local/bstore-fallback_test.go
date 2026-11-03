@@ -13,6 +13,7 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
+	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
@@ -29,6 +30,11 @@ import (
 // with no outgoing refs. The bare in-memory store holds bytes without refs.
 type leafStore struct {
 	block.StoreOps
+}
+
+// PutBlockBatchReceipt preserves the bound bucket's counting result.
+func (o ownedStore) PutBlockBatchReceipt(ctx context.Context, entries []*block.PutBatchEntry) (*block.PublicationReceipt, error) {
+	return o.PrepareOwnedBlockBatch(ctx, "bucket", entries)
 }
 
 // GetStoredBlock reads the block as a known leaf.
@@ -59,7 +65,11 @@ func (o ownedStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 
 // PutBlockBatch writes a batch owned by the bucket.
 func (o ownedStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
-	return o.PrepareOwnedBlockBatch(ctx, "bucket", entries)
+	receipt, err := o.PrepareOwnedBlockBatch(ctx, "bucket", entries)
+	if err != nil {
+		return nil, err
+	}
+	return receipt.Existed(), nil
 }
 
 // GetStoredBlock reads a block with the refs the Volume tracks.
@@ -615,5 +625,40 @@ func TestReadFallbackFillRacesEviction(t *testing.T) {
 			t.Fatalf("pack store lacks %s", ref.MarshalString())
 		}
 		f.read(ref, data)
+	}
+}
+
+// TestBatchReceiptUsesWriteBackend keeps construction receipts on the actual
+// local or SQL write path, including the local writeback marker boundary.
+func TestBatchReceiptUsesWriteBackend(t *testing.T) {
+	f := newFallbackTest(t)
+	data := []byte("certified construction overflow")
+	ref, err := block.BuildBlockRef(data, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entries := []*block.PutBatchEntry{{Ref: ref, Data: data, RefsKnown: true, Netted: true}}
+	local := &BlockStore{store: block_store.NewStore("local", f.wb), placement: f.p}
+	receipt, err := local.PutBlockBatchReceipt(f.ctx, entries)
+	if err != nil || !receipt.Counting() {
+		t.Fatalf("local counting receipt=%v error=%v", receipt, err)
+	}
+	if status := f.status(); status.Pending != 1 {
+		t.Fatalf("local receipt bypassed marker: %+v", status)
+	}
+	generation := receipt.CountingGeneration()
+	repeat, err := local.PutBlockBatchReceipt(f.ctx, entries)
+	if err != nil || !repeat.Counting() || repeat.CountingGeneration() != generation || !repeat.Existed()[0] {
+		t.Fatalf("repeated local receipt=%v error=%v", repeat, err)
+	}
+
+	// SQL writes must not borrow the local head domain's certificate.
+	sql := &BlockStore{store: block_store.NewStore("sql", f.sql), placement: f.p}
+	unknown, err := sql.PutBlockBatchReceipt(f.ctx, entries)
+	if err != nil || unknown.Counting() || unknown.CountingGeneration() != 0 {
+		t.Fatalf("SQL receipt=%v error=%v", unknown, err)
+	}
+	if found, err := f.sql.GetBlockExists(f.ctx, ref); err != nil || !found {
+		t.Fatalf("SQL write absent: %v/%v", found, err)
 	}
 }

@@ -288,6 +288,17 @@ func (b *bucketHandle) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 // tracking is enabled, otherwise falls back to per-entry volume PutBlock.
 // FlushPending is called once for the entire batch.
 func (b *bucketHandle) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	receipt, err := b.PutBlockBatchReceipt(ctx, entries)
+	if err != nil {
+		return nil, err
+	}
+	return receipt.Existed(), nil
+}
+
+// PutBlockBatchReceipt prepares through this handle's actual bucket owner.
+// Untracked, staged and legacy stores preserve their old route and report an
+// unknown counting basis instead of borrowing another domain's generation.
+func (b *bucketHandle) PutBlockBatchReceipt(ctx context.Context, entries []*block.PutBatchEntry) (*block.PublicationReceipt, error) {
 	// Trace the complete bucket batch write.
 	ctx, task := trace.NewTask(ctx, "hydra/volume/bucket-handle/put-block-batch")
 	defer task.End()
@@ -299,16 +310,24 @@ func (b *bucketHandle) PutBlockBatch(ctx context.Context, entries []*block.PutBa
 	if b.bucketConf == nil {
 		return nil, bucket.ErrBucketNotFound
 	}
+	unknown := func(existed []bool, err error) (*block.PublicationReceipt, error) {
+		if err != nil {
+			return nil, err
+		}
+		receipt := block.NewPublicationReceipt()
+		receipt.ResolveExisted(nil, existed, false, 0)
+		return receipt, nil
+	}
 	if len(entries) == 0 {
-		return nil, nil
+		return unknown(nil, nil)
 	}
 	if b.readOps != nil {
-		return b.readOps.PutBlockBatch(ctx, entries)
+		return block.PutBlockBatchReceipt(ctx, b.readOps, entries)
 	}
 
 	// A stage owns the batch of a staged handle.
 	if b.stage != "" {
-		return b.v.(bucketRootVolume).PrepareStagedBlockBatch(ctx, b.stage, entries)
+		return unknown(b.v.(bucketRootVolume).PrepareStagedBlockBatch(ctx, b.stage, entries))
 	}
 
 	// Publish the batch atomically when the volume supports it.
@@ -317,15 +336,18 @@ func (b *bucketHandle) PutBlockBatch(ctx context.Context, entries []*block.PutBa
 		if b.gcOps != nil {
 			owner = b.GetID()
 		}
-		existed, err := prepare.PrepareOwnedBlockBatch(ctx, owner, entries)
+		receipt, err := prepare.PrepareOwnedBlockBatch(ctx, owner, entries)
 		if !errors.Is(err, block.ErrAtomicPublicationUnsupported) {
-			return existed, err
+			if err != nil {
+				return nil, err
+			}
+			return receipt, nil
 		}
 	}
 
 	// Write the batch through the volume directly when GC is not tracking.
 	if b.gcOps == nil {
-		return b.v.PutBlockBatch(ctx, entries)
+		return unknown(b.v.PutBlockBatch(ctx, entries))
 	}
 
 	// Write the batch through GC tracking, then flush its edges.
@@ -338,7 +360,7 @@ func (b *bucketHandle) PutBlockBatch(ctx context.Context, entries []*block.PutBa
 	if err := b.gcOps.FlushPending(flushCtx); err != nil {
 		return nil, err
 	}
-	return existed, nil
+	return unknown(existed, nil)
 }
 
 // GetHashType returns the preferred hash type for the store.

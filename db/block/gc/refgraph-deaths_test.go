@@ -28,8 +28,13 @@ func TestResolveDeathsSharedPage(t *testing.T) {
 	rootA, rootB, x, c, d := page("root a"), page("root b"), page("x"), page("c"), page("d")
 	rootA2, x2, c2 := page("root a 2"), page("x 2"), page("c 2")
 	edges := [][2]*block.BlockRef{
-		{rootA, x}, {rootB, x}, {x, c}, {x, d},
-		{rootA2, x2}, {x2, c2}, {x2, d},
+		{rootA, x},
+		{rootB, x},
+		{x, c},
+		{x, d},
+		{rootA2, x2},
+		{x2, c2},
+		{x2, d},
 	}
 	for _, e := range edges {
 		if err := rg.AddBlockRef(ctx, e[0], e[1]); err != nil {
@@ -45,7 +50,7 @@ func TestResolveDeathsSharedPage(t *testing.T) {
 		// Record each page's fate once.
 		t.Helper()
 		fates := make(map[string]bool)
-		changes, err := rg.ResolveDeaths(ctx, from, dead, func(node string, frees bool) error {
+		changes, _, err := rg.ResolveDeaths(ctx, from, dead, func(node string, frees bool) error {
 			if _, ok := fates[node]; ok {
 				t.Fatalf("%s visited twice", node)
 			}

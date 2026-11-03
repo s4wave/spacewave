@@ -673,8 +673,7 @@ func (r *replayer) holdSpan(ctx context.Context, hold *rootHold) error {
 		hold.add(r.baseHold)
 	}
 	if !hold.skip {
-		puts, roots := r.ledger.carry()
-		hold.entries = append(hold.entries, puts...)
+		roots := r.ledger.carry()
 		hold.roots = append(hold.roots, roots...)
 		hold.recount = r.ledger.carryRecount()
 	}
@@ -729,8 +728,7 @@ func (r *replayer) pendingSave(ctx context.Context, publisher sobject.StatePubli
 		entries = append(entries, r.baseHold.entries...)
 		roots = append(roots, r.baseHold.roots...)
 	}
-	puts, deadlists := r.ledger.carry()
-	entries, roots = append(entries, puts...), append(roots, deadlists...)
+	roots = append(roots, r.ledger.carry()...)
 
 	// Write the cursor only when it changed.
 	var head *block.AtomicHeadUpdate
@@ -891,7 +889,7 @@ func (r *replayer) replay(
 	// page view keeps the pass's World pages until a base names them.
 	store := r.store()
 	if r.pages != nil {
-		store = r.pages.keeping()
+		store = r.pages.keeping(r.putPages)
 	}
 	w := newReplayWorld(r.c, store)
 	w.opts = r.transitions()
@@ -1071,6 +1069,20 @@ func (r *replayer) netted(entries, pages []*block.PutBatchEntry) ([]*block.PutBa
 		return entries, pages
 	}
 	return markNetted(entries, pages)
+}
+
+// putPages stores World pages the page view does not keep and records the
+// actual write's completed receipt. Capable bound stores certify their count
+// generation; legacy or foreign body stores keep an explicitly unknown basis.
+func (r *replayer) putPages(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	// Store with the actual bound store's receipt, including unknown fallback.
+	entries, netted := r.netted(entries, entries)
+	receipt, err := block.PutBlockBatchReceipt(ctx, r.pages, entries)
+	if err != nil {
+		return nil, err
+	}
+	r.addWorldPut(receipt, entries, netted)
+	return receipt.Existed(), nil
 }
 
 // addWorldPut records a publication that put the World pages among entries,

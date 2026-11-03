@@ -27,6 +27,13 @@ import (
 // sweeps are recomputed or redone. The head publication that follows commits
 // fully and makes these writes durable, as does Sync.
 func (v *Volume) withDirectAtomic(ctx context.Context, fn func(block.StoreOps, *block_gc.RefGraph) error) error {
+	return v.withDirectAtomicAt(ctx, nil, fn)
+}
+
+// withDirectAtomicAt optionally requires the read's physical revision before
+// changing anything. The constant-size guard keeps a large death walk outside
+// the writer and detects every committed adoption, pin and new incarnation.
+func (v *Volume) withDirectAtomicAt(ctx context.Context, expected *uint64, fn func(block.StoreOps, *block_gc.RefGraph) error) error {
 	// Join direct Volume operations and reject writes after storage closes.
 	v.directMu.RLock()
 	defer v.directMu.RUnlock()
@@ -43,6 +50,9 @@ func (v *Volume) withDirectAtomic(ctx context.Context, fn func(block.StoreOps, *
 		return err
 	}
 	defer p.discard()
+	if expected != nil && p.revision != *expected {
+		return errPhysicalRevisionChanged
+	}
 
 	// Apply the direct operation.
 	if fn != nil {
@@ -61,6 +71,9 @@ func (v *Volume) withDirectAtomic(ctx context.Context, fn func(block.StoreOps, *
 		err = p.rg.SettleOwnerCounts(ctx)
 	}
 	committed := false
+	if err == nil && p.wrote() {
+		err = p.advanceRevision(ctx)
+	}
 	if err == nil && p.wrote() {
 		// Commit using the Volume write-ordering contract.
 		if v.ordered != nil {
@@ -98,7 +111,7 @@ func (v *Volume) PrepareOwnedBlock(ctx context.Context, bucketID string, data []
 	err = v.prepareOwned(ctx, bucketOwner(bucketID), len(data), claimBucket, func(store block.StoreOps) error {
 		ref, existed, err = store.PutBlock(ctx, data, putOpts)
 		return err
-	})
+	}, nil)
 	if err == nil {
 		v.countPut(putOwned, len(data), existed)
 	}
@@ -108,23 +121,47 @@ func (v *Volume) PrepareOwnedBlock(ctx context.Context, bucketID string, data []
 
 // PrepareOwnedBlockBatch is used by bounded staging's ordinary capacity drains.
 // It cannot expose a gap between persisting bytes and rescuing their ownership.
-func (v *Volume) PrepareOwnedBlockBatch(ctx context.Context, bucketID string, entries []*block.PutBatchEntry) (existed []bool, err error) {
-	// An empty batch writes nothing.
+func (v *Volume) PrepareOwnedBlockBatch(ctx context.Context, bucketID string, entries []*block.PutBatchEntry) (*block.PublicationReceipt, error) {
+	// An empty prepare has no counting evidence and writes nothing.
 	if len(entries) == 0 && v.SupportsAtomicPublication() {
-		return nil, nil
+		receipt := block.NewPublicationReceipt()
+		receipt.Resolve(nil)
+		return receipt, nil
 	}
 
-	// Write the entries under the bucket's ownership and count them.
+	// Capture existence and count provenance inside the same physical write.
+	var existed []bool
+	var counting bool
+	var generation uint64
 	v.noteUnknownRefsBatch(putOwned, entries)
-	err = v.prepareOwned(ctx, bucketOwner(bucketID), batchBytes(entries), claimBucket, func(store block.StoreOps) error {
+	err := v.prepareOwned(ctx, bucketOwner(bucketID), batchBytes(entries), claimBucket, func(store block.StoreOps) error {
+		var err error
 		existed, err = store.PutBlockBatch(ctx, entries)
 		return err
+	}, func(rg *block_gc.RefGraph, refilled bool) error {
+		// Certify only the phase and generation that funded these actual bytes.
+		if !v.holdCounts {
+			return nil
+		}
+		state, err := rg.GetSharing(ctx)
+		if err != nil {
+			return err
+		}
+		generation, err = rg.GetSharingGeneration(ctx)
+		counting = state.Phase.Counting() && !state.Doubt && !refilled
+		return err
 	})
-	if err == nil {
-		v.countPutBatch(putOwned, entries, existed)
-	}
 	v.countRefused(putOwned, err)
-	return existed, err
+	if err != nil {
+		return nil, err
+	}
+	v.countPutBatch(putOwned, entries, existed)
+
+	// Preparation remains synchronous: buffers are released and the result
+	// resolves only after the enclosing physical commit succeeded.
+	receipt := block.NewPublicationReceipt()
+	receipt.ResolveExisted(nil, existed, counting, generation)
+	return receipt, nil
 }
 
 // bucketOwner returns the graph node of a bucket, or empty for no bucket.
@@ -152,6 +189,7 @@ func (v *Volume) prepareOwned(
 	size int,
 	claim func(context.Context, *block_gc.RefGraph, string) error,
 	put func(block.StoreOps) error,
+	capture func(*block_gc.RefGraph, bool) error,
 ) error {
 	// Require atomic publication and refuse new data below the disk reserve.
 	if !v.SupportsAtomicPublication() {
@@ -178,10 +216,27 @@ func (v *Volume) prepareOwned(
 		if err := put(noted); err != nil {
 			return err
 		}
-		if err := v.addExistedHolds(ctx, blocks, rg, noted.entries, noted.existed); err != nil {
+
+		// Classify and fund this bounded put against existing count metadata.
+		refilled, recount, err := v.addExistedHolds(ctx, blocks, rg, noted.entries, noted.existed)
+		if err != nil {
 			return err
 		}
-		return gc.FlushPending(ctx)
+		if err := gc.FlushPending(ctx); err != nil {
+			return err
+		}
+
+		// Cached parents have no old child funding to preserve. Attach their
+		// graph first, then make every receipt/fate wait for its budgeted walk.
+		if recount {
+			if _, err := rg.RecountSharing(ctx); err != nil {
+				return err
+			}
+		}
+		if capture != nil {
+			return capture(rg, refilled)
+		}
+		return nil
 	})
 }
 
@@ -513,15 +568,33 @@ func (v *Volume) sweepBlockPass(ctx context.Context, actual *transactionRefGraph
 	}
 	stats.RecordMark(mark)
 	v.checkReleases(released, mark)
-	if !mark.Awaitable() {
-		return mark, false, nil
+
+	// Uncertain history can retire without fate diagnostics. Its own absent
+	// historical refs must not block it behind the full-mark gate forever.
+	changed, err := v.checkDueDeadlists(ctx, mark)
+	if err != nil && v.le != nil {
+		v.le.WithError(err).Warn("unable to check due deadlist records")
+	}
+	if !mark.Awaitable() || (mark.Unknown != 0 && changed) {
+		// The next mark observes the retired owners instead of waiting for
+		// metadata this pass just made obsolete.
+		return mark, false, err
 	}
 
-	// Check the due deadlist records against a mark that read every list.
-	// A failed check leaves the records for the next pass.
-	if mark.Unknown == 0 {
-		if err := v.checkDueDeadlists(ctx, mark); err != nil && v.le != nil {
-			v.le.WithError(err).Warn("unable to check due deadlist records")
+	// A hole filled behind a running walk leaves its sticky doubt until a
+	// fresh walk. A complete mark is the existing background readiness signal;
+	// recovery never makes a foreground writer wait for that walk.
+	if mark.Unknown == 0 && v.holdCounts {
+		err := v.withDirectAtomic(ctx, func(_ block.StoreOps, rg *block_gc.RefGraph) error {
+			state, err := rg.GetSharing(ctx)
+			if err != nil || !state.Phase.Counting() || !state.Doubt {
+				return err
+			}
+			_, err = rg.RecountSharing(ctx)
+			return err
+		})
+		if err != nil {
+			return mark, false, err
 		}
 	}
 

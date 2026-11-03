@@ -34,7 +34,9 @@ type publicationTestStore struct {
 	failSet, errorCommit error
 	afterCommit          bool
 	writersWaiting       bool
+	forwardWriterQueue   bool
 	commits              int
+	commitObserver       func()
 	// readDelay slows each read of a write transaction, as a cold page does.
 	readDelay time.Duration
 	// longestWrite is the longest a write transaction stayed open.
@@ -54,9 +56,15 @@ func (s *publicationTestStore) SupportsAtomicCommit() bool { return true }
 // yields after one block.
 func (s *publicationTestStore) WritersWaiting() bool {
 	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.writersWaiting
+	injected, forward := s.writersWaiting, s.forwardWriterQueue
+	s.mu.Unlock()
+	if injected || !forward {
+		return injected
+	}
+	queued, ok := s.Store.(db_kvtx.WriterQueueStore)
+	return ok && queued.WritersWaiting()
 }
+
 func (s *publicationTestStore) arm(t *testing.T) *publicationGate {
 	// Arm the publication store gate and register its release.
 	g := &publicationGate{started: make(chan struct{}), release: make(chan struct{})}
@@ -165,7 +173,11 @@ func (t *publicationTestTx) Commit(ctx context.Context) error {
 	// Count committed physical transactions before returning the injected result.
 	t.store.mu.Lock()
 	t.store.commits++
+	observer := t.store.commitObserver
 	t.store.mu.Unlock()
+	if observer != nil {
+		observer()
+	}
 	return t.errorCommit
 }
 

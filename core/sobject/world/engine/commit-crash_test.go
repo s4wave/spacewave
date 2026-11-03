@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/block"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 )
 
@@ -129,12 +131,15 @@ func worldCommitCrashWorker(t *testing.T, role, dir string) {
 		os.Exit(74)
 	}
 
-	// The restarted engine reaches the head it had before the cut.
+	// Compare the restarted read snapshot with the World visible before the cut.
+	// Backfill retention may still be preparing its independent background save.
+	tx := newRead(t, w)
+	defer tx.Discard()
 	data, err := os.ReadFile(headPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if head := engineHead(t.Context(), t, w.eng); head.MarshalString() != string(data) {
+	if head := snapshotRoot(t, tx); head.MarshalString() != string(data) {
 		t.Fatalf("head root %s after restart, want %s", head.MarshalString(), data)
 	}
 
@@ -151,10 +156,6 @@ func worldCommitCrashWorker(t *testing.T, role, dir string) {
 	}
 
 	// Read each crash object, which is found only when committed.
-	tx, err := w.eng.NewTransaction(t.Context(), false)
-	if err != nil {
-		t.Fatal(err)
-	}
 	for _, key := range []string{"crash/0", "crash/1", "crash/2", "crash/3"} {
 		obj, found, err := tx.GetObject(t.Context(), key)
 		if err != nil {
@@ -185,11 +186,28 @@ func worldCommitCrashWorker(t *testing.T, role, dir string) {
 	w.create(t, "crash/next")
 }
 
-// writeHead writes the engine's head root to path, for the step after a cut to
-// compare.
+// writeHead writes the read snapshot's World root to path for the restart
+// to compare.
 func (w *localWorld) writeHead(t *testing.T, path string) {
-	head := engineHead(t.Context(), t, w.eng)
+	// Record the user-visible snapshot, independently of background retention.
+	tx := newRead(t, w)
+	defer tx.Discard()
+	head := snapshotRoot(t, tx)
 	if err := os.WriteFile(path, []byte(head.MarshalString()), 0o600); err != nil {
 		t.Fatal(err)
 	}
+}
+
+// snapshotRoot returns the immutable World root held by the read transaction.
+func snapshotRoot(t *testing.T, tx world.Tx) *block.BlockRef {
+	// Copy the snapshot's root while its storage cursor is live.
+	t.Helper()
+	var root *block.BlockRef
+	if err := tx.AccessWorldState(t.Context(), nil, func(cursor *bucket_lookup.Cursor) error {
+		root = cursor.GetRef().GetRootRef().CloneVT()
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	return root
 }

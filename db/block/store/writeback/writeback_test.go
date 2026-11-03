@@ -43,6 +43,11 @@ func (o ownedStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 	return o.PrepareOwnedBlock(ctx, "bucket", data, opts)
 }
 
+// PutBlockBatchReceipt preserves the bound bucket's counting result.
+func (o ownedStore) PutBlockBatchReceipt(ctx context.Context, entries []*block.PutBatchEntry) (*block.PublicationReceipt, error) {
+	return o.PrepareOwnedBlockBatch(ctx, "bucket", entries)
+}
+
 // GetStoredBlock reads a block with the refs the Volume tracks.
 func (o ownedStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	return block_gc.NewGCStoreOps(o.Volume, o.GetRefGraph()).GetStoredBlock(ctx, ref)
@@ -50,7 +55,11 @@ func (o ownedStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*b
 
 // PutBlockBatch writes a batch owned by the bucket.
 func (o ownedStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
-	return o.PrepareOwnedBlockBatch(ctx, "bucket", entries)
+	receipt, err := o.PrepareOwnedBlockBatch(ctx, "bucket", entries)
+	if err != nil {
+		return nil, err
+	}
+	return receipt.Existed(), nil
 }
 
 // testEnv is a Volume over an in-memory key-value store, which holds the

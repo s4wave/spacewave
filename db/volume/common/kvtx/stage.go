@@ -122,7 +122,7 @@ func (v *Volume) PrepareStagedBlock(ctx context.Context, stage string, data []by
 	err = v.prepareOwned(ctx, stage, len(data), v.claimStage, func(store block.StoreOps) error {
 		ref, existed, err = store.PutBlock(ctx, data, putOpts)
 		return err
-	})
+	}, nil)
 
 	// Count the block it stored, or the refusal.
 	if err == nil {
@@ -144,7 +144,7 @@ func (v *Volume) PrepareStagedBlockBatch(ctx context.Context, stage string, entr
 	err = v.prepareOwned(ctx, stage, batchBytes(entries), v.claimStage, func(store block.StoreOps) error {
 		existed, err = store.PutBlockBatch(ctx, entries)
 		return err
-	})
+	}, nil)
 
 	// Count the blocks it stored, or the refusal.
 	if err == nil {

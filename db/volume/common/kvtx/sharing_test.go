@@ -96,12 +96,9 @@ func TestVolumeSharedCountsConfig(t *testing.T) {
 	open(&store_kvtx.Config{}, store_kvkey.FormatVersion, true, block_gc.SharingComplete, nil)
 }
 
-// TestSharingWalkDeadlistRenames names a deadlist record whose old root a
-// head also names, and renames it due at each point of a walk run in
-// one-record slices, then finishes the walk: wherever the cursor sits, the
-// old root's count covers both holders. Implied answers the old root for a
-// pending or a due record, nothing for another name or a pin, and an error
-// for a record it cannot read.
+// TestSharingWalkDeadlistRenames renames a record across every sharing slice.
+// Its ordinary Found child remains funded; historical From is count-only and
+// is never reconstructed as a new holder by recount.
 func TestSharingWalkDeadlistRenames(t *testing.T) {
 	// Encode the old root and a record naming it.
 	ctx := t.Context()
@@ -113,16 +110,16 @@ func TestSharingWalkDeadlistRenames(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	record, recordRef, err := block.EncodeDeadlist(1, from, nil, &block.Replacements{Removed: []*block.BlockRef{gone}})
+	record, recordRef, err := block.EncodeDeadlist(1, from, nil, &block.Replacements{Found: []*block.BlockRef{gone}})
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Store the old root and the record under the pending name, which a
 	// rename moves due.
-	entries := append([]*block.PutBatchEntry{{Ref: from, Data: []byte("old root"), RefsKnown: true}}, record...)
-	pending := []block.NamedRoot{{Name: "head", Ref: from}, {Name: block.DeadlistRootName(1), Ref: recordRef}}
-	due := []block.NamedRoot{{Name: block.DeadlistRootName(1)}, {Name: block.DeadlistDueRootName(1), Ref: recordRef}}
+	entries := append([]*block.PutBatchEntry{{Ref: from, Data: []byte("old root"), RefsKnown: true}, {Ref: gone, Data: []byte("dead page"), RefsKnown: true}}, record...)
+	pending := []block.NamedRoot{{Name: "head", Ref: from}, {Name: "other", Ref: gone}, {Name: block.DeadlistRootName(1), Ref: recordRef}}
+	due := []block.NamedRoot{{Name: block.DeadlistDueRootName(1), Ref: recordRef}, {Name: block.DeadlistRootName(1)}}
 
 	// Rename after each count of slices, until the walk ends before the
 	// rename.
@@ -138,11 +135,6 @@ func TestSharingWalkDeadlistRenames(t *testing.T) {
 		}
 		if _, err := rg.BeginSharing(ctx); err != nil {
 			t.Fatal(err)
-		}
-
-		// Ask Implied about each owner of the record once.
-		if slices == 0 {
-			checkImplied(t, v, recordRef, gone, block_gc.BlockIRI(from))
 		}
 
 		// Walk the slices, rename the record due, and finish the walk.
@@ -167,11 +159,18 @@ func TestSharingWalkDeadlistRenames(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		// The head and the due record hold the old root.
+		// The head alone holds From; the record part and other root hold Gone.
 		err := (&transactionRefGraph{volume: v}).read(ctx, func(rg *block_gc.RefGraph) error {
 			n, err := rg.GetHolds(ctx, block_gc.BlockIRI(from))
+			if err != nil {
+				return err
+			}
+			if n != 0 {
+				t.Errorf("renamed after %d slices: historical From holds %d,want0", slices, n)
+			}
+			n, err = rg.GetHolds(ctx, block_gc.BlockIRI(gone))
 			if err == nil && n < 1 {
-				t.Errorf("renamed after %d slices: old root holds %d, want at least 1", slices, n)
+				t.Errorf("renamed after %d slices: Found child holds %d,want at least1", slices, n)
 			}
 			return err
 		})
@@ -181,37 +180,6 @@ func TestSharingWalkDeadlistRenames(t *testing.T) {
 		if !running {
 			return
 		}
-	}
-}
-
-// checkImplied checks what Implied answers for each owner of the record at
-// ref, whose old root is from, and for a record it cannot read at missing.
-func checkImplied(t *testing.T, v *Volume, ref, missing *block.BlockRef, from string) {
-	t.Helper()
-	ctx := t.Context()
-	err := v.withDirectAtomic(ctx, func(ops block.StoreOps, _ *block_gc.RefGraph) error {
-		// Each owner of the record.
-		h := txHolders{blocks: ops}
-		for owner, want := range map[string]string{
-			RootOwnerIRI("bucket", block.DeadlistRootName(1)):    from,
-			RootOwnerIRI("bucket", block.DeadlistDueRootName(1)): from,
-			RootOwnerIRI("bucket", "head"):                       "",
-			rootPinPrefix + "reader":                             "",
-		} {
-			got, err := h.Implied(ctx, owner, block_gc.BlockIRI(ref))
-			if err != nil || got != want {
-				t.Errorf("Implied(%s) = %q %v, want %q", owner, got, err, want)
-			}
-		}
-
-		// A record it cannot read.
-		if _, err := h.Implied(ctx, RootOwnerIRI("bucket", block.DeadlistDueRootName(2)), block_gc.BlockIRI(missing)); err == nil {
-			t.Error("Implied read a missing record")
-		}
-		return nil
-	})
-	if err != nil {
-		t.Fatal(err)
 	}
 }
 

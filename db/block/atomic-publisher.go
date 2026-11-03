@@ -29,6 +29,9 @@ type AtomicBlockPreparer interface {
 	// PrepareOwnedBlock durably prepares one oversized body with bucket ownership.
 	PrepareOwnedBlock(ctx context.Context, bucketID string, data []byte, opts *PutOpts) (*BlockRef, bool, error)
 	// PrepareOwnedBlockBatch durably prepares a batch with bucket ownership.
-	// Returns whether each block was stored before the write, like PutBlockBatch.
-	PrepareOwnedBlockBatch(ctx context.Context, bucketID string, entries []*PutBatchEntry) ([]bool, error)
+	// The returned receipt is complete on return: Existed and the counting
+	// generation describe this prepare's own physical transaction. It is not
+	// publication admission and cannot be used as a SubmitAtomic dependency.
+	// Empty-owner or uncounted writes report an unknown counting basis.
+	PrepareOwnedBlockBatch(ctx context.Context, bucketID string, entries []*PutBatchEntry) (*PublicationReceipt, error)
 }

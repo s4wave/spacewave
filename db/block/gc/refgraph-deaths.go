@@ -14,7 +14,9 @@ import (
 // interval that started at the root from, reading the graph in one
 // transaction and writing nothing. It calls visit with each page the record
 // kills, parent before child, and whether the page frees, and returns the
-// change to each shared count the record makes.
+// change to each shared count the record makes. The bool reports a freed
+// parent (including an unknown child list): a shadow caller retaining its bytes
+// must rebuild the counts before a later writer trusts those stored edges.
 //
 // The walk starts at each listed page that no listed page names: a page a write
 // dirtied before dropping its parent's subtree is listed replaced under a
@@ -32,12 +34,29 @@ import (
 // parent names it too. The old root loses the lineage's count last when it is
 // in Existed.
 //
-// A page in Dropped is decided as a root of the walk with no children: no put
-// counted its edges, so freeing it takes no count from the pages it names.
+// A page in Dropped loses its own holder as a root of the walk. Its edges
+// were never counted: freeing it takes none from its children, while a page
+// another writer adopted must fund each child edge once before a child is
+// decided. Counts always cover the edges of a surviving page.
 //
 // A killed page whose child list the graph does not hold is a hole: the walk
 // skips its children, which can only leave a count too high.
-func (g *RefGraph) ResolveDeaths(ctx context.Context, from *block.BlockRef, dead *block.Replacements, visit func(node string, frees bool) error) (map[string]int64, error) {
+func (g *RefGraph) ResolveDeaths(ctx context.Context, from *block.BlockRef, dead *block.Replacements, visit func(node string, frees bool) error) (map[string]int64, bool, error) {
+	return g.resolveDeaths(ctx, from, dead, visit, 0)
+}
+
+// ErrDeathWalkBudget reports a discarded plan that exceeded its work bound.
+// Its caller publishes no partial changes or observations.
+var ErrDeathWalkBudget = errors.New("death walk exceeded its work bound")
+
+// ResolveDeathsBounded limits the nodes and edges read for one shadow plan.
+// A spent bound returns ErrDeathWalkBudget before visiting any fate; a caller
+// retaining physical bytes can abandon that history and rebuild its counts.
+func (g *RefGraph) ResolveDeathsBounded(ctx context.Context, from *block.BlockRef, dead *block.Replacements, limit int, visit func(node string, frees bool) error) (map[string]int64, bool, error) {
+	return g.resolveDeaths(ctx, from, dead, visit, limit)
+}
+
+func (g *RefGraph) resolveDeaths(ctx context.Context, from *block.BlockRef, dead *block.Replacements, visit func(node string, frees bool) error, limit int) (map[string]int64, bool, error) {
 	// Index the record by node.
 	set := func(lists ...[]*block.BlockRef) map[string]struct{} {
 		out := make(map[string]struct{})
@@ -55,22 +74,46 @@ func (g *RefGraph) ResolveDeaths(ctx context.Context, from *block.BlockRef, dead
 
 	// Walk the record in one read transaction, gathering the count changes.
 	changes := make(map[string]int64)
+	freedParent := false
 	err := g.transaction(ctx, false, func(ctx context.Context, tx kvtx.Tx) error {
+		// Fate decisions require one complete, known accounting basis.
+		state, err := readSharingTx(ctx, tx)
+		if err != nil {
+			return err
+		}
+		if !state.Phase.Counting() || state.Doubt {
+			return ErrSharingWalk
+		}
+		work := 0
+		readChildren := func(node string) ([]string, bool, error) {
+			// Charge each decoded list before retaining any of its edges.
+			list, known, err := readChildrenTx(ctx, tx, node)
+			if err != nil {
+				return nil, false, err
+			}
+			work += 1 + len(list)
+			if limit > 0 && work > limit {
+				return nil, false, ErrDeathWalkBudget
+			}
+			return list, known, nil
+		}
+
 		// Read the listed pages' child lists: their listed children are not
 		// roots of the walk, and a replaced page's unlisted children are live.
-		// A dropped page names no child the walk follows.
+		// A dropped page names no child the death walk follows, but its children
+		// are needed if another writer adopted the page before this record applies.
 		childLists := make(map[string][]string, len(listed))
+		knownChildren := make(map[string]bool, len(listed))
 		named := make(map[string]struct{})
 		for node := range listed {
-			if _, ok := dropped[node]; ok {
-				childLists[node] = nil
-				continue
-			}
-			children, _, err := readChildrenTx(ctx, tx, node)
+			children, known, err := readChildren(node)
 			if err != nil {
 				return err
 			}
-			childLists[node] = children
+			childLists[node], knownChildren[node] = children, known
+			if _, ok := dropped[node]; ok {
+				continue
+			}
 			for _, child := range children {
 				if _, ok := listed[child]; ok {
 					named[child] = struct{}{}
@@ -92,8 +135,8 @@ func (g *RefGraph) ResolveDeaths(ctx context.Context, from *block.BlockRef, dead
 			if list, ok := childLists[node]; ok {
 				return list, nil
 			}
-			list, _, err := readChildrenTx(ctx, tx, node)
-			childLists[node] = list
+			list, known, err := readChildren(node)
+			childLists[node], knownChildren[node] = list, known
 			return list, err
 		}
 		var roots []string
@@ -113,6 +156,9 @@ func (g *RefGraph) ResolveDeaths(ctx context.Context, from *block.BlockRef, dead
 				continue
 			}
 			seen[node] = struct{}{}
+			if _, ok := dropped[node]; ok {
+				continue
+			}
 			list, err := children(node)
 			if err != nil {
 				return err
@@ -125,6 +171,17 @@ func (g *RefGraph) ResolveDeaths(ctx context.Context, from *block.BlockRef, dead
 			}
 		}
 
+		// A surviving dropped parent funds its edges before any walked child is
+		// decided. These ordering edges do not remove a child's independent root
+		// loss, and a freeing dropped parent passes no loss to its children.
+		for node := range dropped {
+			for _, child := range childLists[node] {
+				if _, walked := seen[child]; walked {
+					parents[child]++
+				}
+			}
+		}
+
 		// Decide each page once all its walk parents are decided, in node
 		// order among the ready pages. A page loses one count for each walk
 		// parent that frees, and a root one more for the holder that dropped
@@ -133,7 +190,12 @@ func (g *RefGraph) ResolveDeaths(ctx context.Context, from *block.BlockRef, dead
 		for _, root := range roots {
 			killed[root] = 1
 		}
-		ready := slices.Clone(roots)
+		ready := make([]string, 0, len(roots))
+		for _, root := range roots {
+			if parents[root] == 0 {
+				ready = append(ready, root)
+			}
+		}
 		slices.Reverse(ready)
 		for len(ready) != 0 {
 			node := ready[len(ready)-1]
@@ -146,9 +208,12 @@ func (g *RefGraph) ResolveDeaths(ctx context.Context, from *block.BlockRef, dead
 				if err != nil {
 					return err
 				}
-				if lives = int64(n) >= k; lives { // #nosec G115 -- counts stay far below 2^63.
+				if lives = int64(n)+changes[node] >= k; lives { // #nosec G115 -- counts stay far below 2^63.
 					changes[node] -= k
 				}
+			}
+			if !lives && (!knownChildren[node] || len(childLists[node]) != 0) {
+				freedParent = true
 			}
 			if err := visit(node, !lives); err != nil {
 				return err
@@ -156,6 +221,17 @@ func (g *RefGraph) ResolveDeaths(ctx context.Context, from *block.BlockRef, dead
 
 			// Hand each child its parent's fate.
 			for _, child := range childLists[node] {
+				if _, isDropped := dropped[node]; isDropped {
+					if lives {
+						changes[child]++
+					}
+					if _, walked := seen[child]; walked {
+						if parents[child]--; parents[child] == 0 {
+							ready = append(ready, child)
+						}
+					}
+					continue
+				}
 				if _, isLive := live[child]; !isLive {
 					if !lives {
 						killed[child]++
@@ -177,7 +253,7 @@ func (g *RefGraph) ResolveDeaths(ctx context.Context, from *block.BlockRef, dead
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	// Take the lineage's count from an old root an existing page still names.
@@ -188,7 +264,7 @@ func (g *RefGraph) ResolveDeaths(ctx context.Context, from *block.BlockRef, dead
 			changes[root]--
 		}
 	}
-	return changes, nil
+	return changes, freedParent, nil
 }
 
 // ChangeHolds adds each change to its block's shared count in one transaction,
@@ -216,7 +292,7 @@ func (g *RefGraph) ChangeHolds(ctx context.Context, changes map[string]int64) (i
 		if err != nil {
 			return err
 		}
-		if !s.Phase.Counting() {
+		if !s.Phase.Counting() || s.Doubt {
 			return ErrSharingWalk
 		}
 

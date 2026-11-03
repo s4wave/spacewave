@@ -46,6 +46,8 @@ type publicationRequest struct {
 	// counting records whether the volume's shared counts were complete when
 	// the group wrote the entries.
 	counting bool
+	// countingGeneration identifies the shared counts that applied the puts.
+	countingGeneration uint64
 }
 
 // publicationWriter serializes atomic publications into bounded physical groups.
@@ -401,7 +403,7 @@ func (w *publicationWriter) run() {
 				w.stats.Pending--
 				w.stats.PendingBytes -= r.bytes
 				w.stats.PendingEntries -= len(r.publication.Entries)
-				r.receipt.ResolveExisted(results[i], r.existed, r.counting)
+				r.receipt.ResolveExisted(results[i], r.existed, r.counting, r.countingGeneration)
 			}
 			w.queue = slices.Delete(w.queue, 0, len(group))
 			w.next -= len(group)
@@ -487,6 +489,11 @@ func (w *publicationWriter) applyGroup(first *publicationRequest) (group []*publ
 	}
 	if err == nil && accepted != 0 {
 		err = rg.SettleOwnerCounts(first.ctx)
+	}
+
+	// Advance once for the whole already-changing group, never per request.
+	if err == nil && accepted != 0 {
+		err = p.advanceRevision(first.ctx)
 	}
 
 	// Publish all accepted requests together, or discard the entire physical group.
@@ -617,18 +624,20 @@ func (w *publicationWriter) apply(
 	if req.existed, err = gc.PutBlockBatch(ctx, p.Entries); err != nil {
 		return err
 	}
-	if err := w.volume.addExistedHolds(ctx, blocks, rg, p.Entries, req.existed); err != nil {
+	refilled, recount, err := w.volume.addExistedHolds(ctx, blocks, rg, p.Entries, req.existed)
+	if err != nil {
 		return err
 	}
 	if err := gc.FlushPending(ctx); err != nil {
 		return err
 	}
-	if w.volume.holdCounts {
-		s, err := rg.GetSharing(ctx)
-		if err != nil {
+
+	// Cached bytes acquiring their first graph ownership have no established
+	// child funding. Rebuild from the attached lists before counts are trusted.
+	if recount {
+		if _, err := rg.RecountSharing(ctx); err != nil {
 			return err
 		}
-		req.counting = s.Phase.Counting()
 	}
 
 	// Move the published root under its name. A temporary reader owner
@@ -657,6 +666,19 @@ func (w *publicationWriter) apply(
 	// Set the further named roots.
 	for _, root := range p.Roots {
 		if err := w.volume.setBucketRoot(ctx, blocks, rg, p.BucketID, root.Name, root.Ref); err != nil {
+			return err
+		}
+	}
+
+	// Root publication may itself start recount. Certify the final transaction
+	// basis, not the intermediate state before those ownership edits.
+	if w.volume.holdCounts {
+		s, err := rg.GetSharing(ctx)
+		if err != nil {
+			return err
+		}
+		req.counting = s.Phase.Counting() && !s.Doubt && !refilled
+		if req.countingGeneration, err = rg.GetSharingGeneration(ctx); err != nil {
 			return err
 		}
 	}

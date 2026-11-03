@@ -50,7 +50,7 @@ func TestWorldDeathsComposesAcceptedChain(t *testing.T) {
 
 	// dead returns what died across net. The commits store their pages
 	// directly rather than through tracked puts, so every page counts as
-	// stored afresh.
+	// stored afresh, and a dead one the chain created is dropped.
 	dead := func(net *pendingNet) []*block.BlockRef {
 		record := net.steps.Join().Net(nil)
 		return append(record.Replaced, record.Dropped...)
@@ -76,6 +76,46 @@ func TestWorldDeathsComposesAcceptedChain(t *testing.T) {
 		t.Fatalf("composed %v, want a and b", got)
 	}
 
+	// A put stored the fork's x afresh, deferring its edges to the record,
+	// so the record drops x though no step on the chain created it.
+	fork := []*block.PutBatchEntry{{Ref: x, RefsKnown: true}}
+	receipt := block.NewPublicationReceipt()
+	receipt.ResolveExisted(nil, []bool{false}, true, 0)
+	net.puts = append(net.puts, newWorldPut(receipt, fork, fork, 0))
+	if got := net.net(c).Dropped; !slices.EqualFunc(got, []*block.BlockRef{x}, (*block.BlockRef).EqualsRef) {
+		t.Fatalf("dropped %v, want the fork's x", got)
+	}
+
+	// A current interval's G1 receipts cannot certify a From root whose
+	// first fresh lineage receipt used G0, even if a later root put used G1.
+	lineageEntry := []*block.PutBatchEntry{{Ref: a, RefsKnown: true}}
+	oldRoot, laterRoot, currentPut := block.NewPublicationReceipt(), block.NewPublicationReceipt(), block.NewPublicationReceipt()
+	oldRoot.ResolveExisted(nil, []bool{false}, true, 0)
+	laterRoot.ResolveExisted(nil, []bool{false}, true, 1)
+	currentPut.ResolveExisted(nil, []bool{false}, true, 1)
+	currentEntry := []*block.PutBatchEntry{{Ref: c, RefsKnown: true}}
+	epochNet := &pendingNet{
+		steps: net.steps, sealed: true,
+		lineage: &pendingNet{sealed: true, puts: []worldPut{
+			newWorldPut(oldRoot, lineageEntry, lineageEntry, 0),
+			newWorldPut(laterRoot, lineageEntry, lineageEntry, 0),
+		}},
+		puts: []worldPut{newWorldPut(currentPut, currentEntry, currentEntry, 0)},
+	}
+	epochNet.poll(t.Context(), 40, a, c, 0, false, nil)
+	<-epochNet.encoded
+	if epochNet.err != nil || epochNet.steps != nil || !epochNet.dead.CountsComplete || epochNet.dead.CountingGeneration != 1 {
+		t.Fatalf("old lineage counted across generations: steps=%v dead=%+v error=%v", epochNet.steps, epochNet.dead, epochNet.err)
+	}
+	for _, entry := range epochNet.blocks {
+		if entry.Ref.EqualsRef(epochNet.record) {
+			var header block.Deadlist
+			if err := header.UnmarshalVT(entry.Data); err != nil || !header.GetFrom().GetEmpty() {
+				t.Fatalf("old lineage record From=%v error=%v", header.GetFrom(), err)
+			}
+		}
+	}
+
 	// Duplicate entries use their first receipt position, even after ordinary,
 	// Counted and tombstone entries are omitted from World-page accounting.
 	firstA, laterA := &block.PutBatchEntry{Ref: a}, &block.PutBatchEntry{Ref: a}
@@ -83,14 +123,14 @@ func TestWorldDeathsComposesAcceptedChain(t *testing.T) {
 	counted, tombstone := &block.PutBatchEntry{Ref: c, Counted: true}, &block.PutBatchEntry{Ref: x, Tombstone: true}
 	batch := []*block.PutBatchEntry{{Ref: x}, firstA, laterA, counted, tombstone, firstB, laterB}
 	duplicateReceipt := block.NewPublicationReceipt()
-	duplicateReceipt.ResolveExisted(nil, []bool{true, false, true, true, false, true, true}, true)
+	duplicateReceipt.ResolveExisted(nil, []bool{true, false, true, true, false, true, true}, true, 1)
 	put := newWorldPut(duplicateReceipt, batch, batch[1:], 0)
 	if got := put.found(duplicateReceipt.Existed()); len(got) != 1 || !got[0].Ref.EqualsRef(b) {
 		t.Fatalf("duplicate puts found %v, want only b's first entry", got)
 	}
 
 	// A later duplicate that found a cannot erase its first fresh root birth.
-	sameBatch := &pendingNet{lineage: &pendingNet{puts: []worldPut{put}}, puts: []worldPut{put}}
+	sameBatch := &pendingNet{lineage: &pendingNet{puts: []worldPut{put}}, puts: epochNet.puts}
 	if !sameBatch.counted(a, 0, false) {
 		t.Fatal("later duplicate erased the first fresh lineage receipt")
 	}

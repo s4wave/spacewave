@@ -270,11 +270,17 @@ func (v *Volume) SetBucketRoots(ctx context.Context, bucketID string, entries []
 			if existed, err = gc.PutBlockBatch(ctx, entries); err != nil {
 				return err
 			}
-			if err := v.addExistedHolds(ctx, blocks, rg, entries, existed); err != nil {
+			_, recount, err := v.addExistedHolds(ctx, blocks, rg, entries, existed)
+			if err != nil {
 				return err
 			}
 			if err := gc.FlushPending(ctx); err != nil {
 				return err
+			}
+			if recount {
+				if _, err := rg.RecountSharing(ctx); err != nil {
+					return err
+				}
 			}
 		}
 
@@ -334,19 +340,25 @@ func (v *Volume) setBucketRoot(ctx context.Context, blocks block.StoreOps, rg *b
 			removes = append(removes, block_gc.RefEdge{Subject: owner, Object: previous})
 		}
 	}
+
+	// Publish certified small transfers before the record edge. A running
+	// walk relies only on the already-prepared physical graph; uncertain
+	// history never creates synthetic claims to refund afterward.
+	if v.holdCounts && !ref.GetEmpty() && !slices.Contains(old, next) {
+		counted, err := heldCounted(ctx, rg, bucketID, name, next)
+		if err != nil {
+			return err
+		}
+		if !counted {
+			if err := v.addDeadlistHolds(ctx, blocks, rg, bucketID, ref); err != nil {
+				return err
+			}
+		}
+	}
 	if err := rg.ApplyRefBatch(ctx, adds, removes); err != nil {
 		return err
 	}
-
-	// Count the held pages of a deadlist record the first time it is named.
-	if !v.holdCounts || ref.GetEmpty() || slices.Contains(old, next) {
-		return nil
-	}
-	counted, err := heldCounted(ctx, rg, bucketID, name, next)
-	if err != nil || counted {
-		return err
-	}
-	return v.addDeadlistHolds(ctx, blocks, rg, ref)
+	return nil
 }
 
 // heldCounted reports whether naming the block next under the root name of
@@ -368,43 +380,57 @@ func heldCounted(ctx context.Context, rg *block_gc.RefGraph, bucketID, name, nex
 	return slices.Contains(pending, next), err
 }
 
-// addDeadlistHolds adds one shared count to each page the deadlist record at
-// ref lists as held, and to the old root it holds until applied, which the
-// sharing walk counts as the holder its name implies, and takes back the
-// count each put that found a page in Found held it with. Naming the record
-// is the holder's save, so the counts land in the transaction that makes the
-// new holders durable, exactly once per record: renaming it due, or naming it
-// again, changes nothing, and applying it takes the old root's count. The
-// writer keeps the old root named until the save that names the record, so
-// the old root's count never falls between the two. A change below zero
-// leaves the count at zero and counts in deadlistCountUnderflows.
-func (v *Volume) addDeadlistHolds(ctx context.Context, blocks block.StoreOps, rg *block_gc.RefGraph, ref *block.BlockRef) error {
-	// Read the record from the transaction that stores it.
-	first, dead, err := block.ReadDeadlist(ctx, blocks, ref)
+// addDeadlistHolds transfers only a small record's certified Held/From claims.
+// Uncertain small records add their conservative fresh-edge summary; large
+// records start the existing budgeted recount from their prepared graph.
+// Found retention belongs to ordinary record-part child edges, independently
+// of provisional scalar holders. No recount recreates historical refunds.
+func (v *Volume) addDeadlistHolds(ctx context.Context, blocks block.StoreOps, rg *block_gc.RefGraph, _ string, ref *block.BlockRef) error {
+	// A large record's bounded prepared graph replaces historical accounting.
+	// Start the budgeted rebuild atomically with its name, never a large Held
+	// or fallback loop under a foreground writer.
+	first, dead, small, err := block.ReadSmallDeadlist(ctx, blocks, ref)
 	if err != nil {
-		return fmt.Errorf("count held pages of deadlist record: %w", err)
+		// A prepared header remains publishable after a historical list's
+		// byte-only eviction. Recovery uses its graph instead of those values.
+		if first != nil && errors.Is(err, block.ErrNotFound) {
+			_, err = rg.RecountSharing(ctx)
+		}
+		return err
+	}
+	if !small {
+		_, err := rg.RecountSharing(ctx)
+		return err
 	}
 
-	// Count each held page and the old root, less each found put.
-	changes := make(map[string]int64, len(dead.Held)+len(dead.Found)+1)
-	for _, page := range dead.Held {
+	// Only an unchanged complete basis may transfer a precise From claim.
+	// Unknown records fund their fresh edges conservatively and never return
+	// historical claims; ordinary record children keep Found bytes reachable.
+	trusted, err := deadlistBasisCurrent(ctx, rg, dead)
+	if err != nil {
+		return err
+	}
+
+	// Summarize only this bounded leaf's new holders.
+	held := dead.FallbackHeld
+	if trusted {
+		held = dead.Held
+	}
+	changes := make(map[string]int64, len(held)+1)
+	for _, page := range held {
 		changes[block_gc.BlockIRI(page)]++
 	}
-	for _, page := range dead.Found {
-		changes[block_gc.BlockIRI(page)]--
-	}
-	if from := first.GetFrom(); !from.GetEmpty() {
+	if from := first.GetFrom(); trusted && !from.GetEmpty() {
 		changes[block_gc.BlockIRI(from)]++
 	}
 
-	// Apply the changes; the sharing walk counts the holders while counts
-	// are incomplete.
+	// Publish only complete-known deltas; a concurrent rebuild supersedes them.
 	underflows, err := rg.ChangeHolds(ctx, changes)
-	if errors.Is(err, block_gc.ErrSharingWalk) {
-		return nil
+	if err != nil && !errors.Is(err, block_gc.ErrSharingWalk) {
+		return err
 	}
 	v.deadlistCountUnderflows.Add(uint64(underflows)) // #nosec G115 -- a count is not negative.
-	return err
+	return nil
 }
 
 // addExistedHolds adds the shared counts a put batch gives the pages it found
@@ -414,7 +440,10 @@ func (v *Volume) addDeadlistHolds(ctx context.Context, blocks block.StoreOps, rg
 // batch also found gains nothing, since the stored parent already named it.
 // A page the batch stores afresh takes its first holder without a count; it
 // gains one for each new entry marked HoldsRoots that names it, whose edge
-// joins a holder outside the batch, such as a new World root's lineage.
+// joins a holder outside the batch, such as a new World root's lineage. Every
+// fresh ordinary parent also funds its already-stored children outside the
+// batch: no interval receipt owns those edges, and another owner may keep
+// every wrapper or record header alive, preventing incidental recount.
 //
 // A writer marks Counted each entry it can prove the store held before its
 // interval began, such as a page of the old tree written back. Such an entry
@@ -434,24 +463,59 @@ func (v *Volume) addDeadlistHolds(ctx context.Context, blocks block.StoreOps, rg
 // to count: its deadlist record holds each page once per page stored afresh
 // that names it. So a found Netted entry gains no count from a Netted parent
 // and none for having no parent; it gains one count instead, which holds it
-// until its record is named, since a record applying before then may free its
-// stored parent. The record lists the entry in Found and naming it takes that
-// count back.
+// through its record's application, since an older record may free its stored
+// parent. The record returns Found only after child funding and only when its
+// receipt basis still proves that scalar holder survived.
 //
-// It adds nothing on a Volume configured to keep no counts.
+// It adds nothing on a Volume configured to keep no counts. It reports a
+// byte refill of preserved count metadata, whose byte-existence result cannot
+// certify a new birth in a PublicationReceipt, and cached bytes entering this
+// graph for the first time. The latter require recount after graph attachment;
+// that rebuild supersedes all scalar changes this batch would have made.
 //
 // Every over-count leaks and never frees: a parent and child split across two
 // batches each count, and a payload or span block gains a count no record
 // takes, which the sweep deletes with the block.
-func (v *Volume) addExistedHolds(ctx context.Context, blocks block.StoreOps, rg *block_gc.RefGraph, entries []*block.PutBatchEntry, existed []bool) error {
+func (v *Volume) addExistedHolds(ctx context.Context, blocks block.StoreOps, rg *block_gc.RefGraph, entries []*block.PutBatchEntry, existed []bool) (bool, bool, error) {
 	// A Volume that keeps no counts skips the graph reads and writes.
 	if !v.holdCounts {
-		return nil
+		return false, false, nil
 	}
 
-	// Note which entries the batch found and which it stored afresh, setting
-	// aside marked entries. A page listed twice finds its own first copy, so
-	// its first entry decides.
+	// Byte presence and counted ownership can differ in either direction.
+	// A refill preserves old funding; cached bytes entering this graph for
+	// the first time need a rebuild after their child lists are attached.
+	var refs []*block.BlockRef
+	var positions []int
+	for i, e := range entries {
+		if !e.Tombstone {
+			refs = append(refs, e.Ref)
+			positions = append(positions, i)
+		}
+	}
+	tracked, err := rg.TrackedBlocks(ctx, refs)
+	if err != nil {
+		return false, false, err
+	}
+
+	// Distinguish preserved funding from first ownership of cached bytes.
+	preserved := make(map[string]bool)
+	recount := false
+	for i, yes := range tracked {
+		body := existed[positions[i]]
+		if !yes && body {
+			recount = true
+		}
+		if yes && !body {
+			preserved[block_gc.BlockIRI(refs[i])] = true
+		}
+	}
+	if recount {
+		return len(preserved) != 0, true, nil
+	}
+
+	// Classify from byte-or-metadata presence, setting aside marked entries.
+	// The first occurrence decides when the batch repeats a page.
 	found := make(map[string]bool, len(entries))
 	kept := make(map[string]bool)
 	var listed, marked, revived []*block.PutBatchEntry
@@ -463,8 +527,9 @@ func (v *Volume) addExistedHolds(ctx context.Context, blocks block.StoreOps, rg 
 		if _, ok := found[key]; ok || kept[key] {
 			continue
 		}
+		wasFound := existed[i] || preserved[key]
 		switch {
-		case e.Counted && existed[i]:
+		case e.Counted && wasFound:
 			kept[key] = true
 			marked = append(marked, e)
 		case e.Counted:
@@ -472,7 +537,7 @@ func (v *Volume) addExistedHolds(ctx context.Context, blocks block.StoreOps, rg 
 			listed = append(listed, e)
 			revived = append(revived, e)
 		default:
-			found[key] = existed[i]
+			found[key] = wasFound
 			listed = append(listed, e)
 		}
 	}
@@ -520,11 +585,19 @@ func (v *Volume) addExistedHolds(ctx context.Context, blocks block.StoreOps, rg 
 		}
 	}
 
-	// Count the other stored children of each revived entry: marked entries
-	// at once, and children outside the batch after a probe.
+	// Fund outside-batch children of fresh ordinary or HoldsRoots parents,
+	// and revived Counted entries. Netted parents leave these edges to their
+	// interval. Existence is this transaction's result, so a reused parent
+	// never funds its already-stored children again.
 	v.revivedPuts.Add(uint64(len(revived)))
 	var probe []*block.BlockRef
-	for _, e := range revived {
+	outside := slices.Clone(revived)
+	for _, e := range listed {
+		if (!e.Netted || e.HoldsRoots) && !found[block_gc.BlockIRI(e.Ref)] && !e.Counted {
+			outside = append(outside, e)
+		}
+	}
+	for _, e := range outside {
 		named := make(map[string]struct{}, len(e.Refs))
 		for _, child := range e.Refs {
 			key := block_gc.BlockIRI(child)
@@ -543,7 +616,24 @@ func (v *Volume) addExistedHolds(ctx context.Context, blocks block.StoreOps, rg 
 	if len(probe) != 0 {
 		stored, err := blocks.GetBlockExistsBatch(ctx, probe)
 		if err != nil {
-			return err
+			return false, false, err
+		}
+		// A cached-out child still has its old implicit holder. Fund the new
+		// parent edge against that tracked incarnation, without reading bytes.
+		var absent []*block.BlockRef
+		var positions []int
+		for i, yes := range stored {
+			if !yes {
+				absent = append(absent, probe[i])
+				positions = append(positions, i)
+			}
+		}
+		tracked, err := rg.TrackedBlocks(ctx, absent)
+		if err != nil {
+			return false, false, err
+		}
+		for i, yes := range tracked {
+			stored[positions[i]] = yes
 		}
 		for i, ok := range stored {
 			if ok {
@@ -551,7 +641,7 @@ func (v *Volume) addExistedHolds(ctx context.Context, blocks block.StoreOps, rg 
 			}
 		}
 	}
-	return rg.AddHolds(ctx, holds)
+	return len(preserved) != 0, false, rg.AddHolds(ctx, holds)
 }
 
 // ReleaseBucketRoots drops the bucket's staging edges to roots in one

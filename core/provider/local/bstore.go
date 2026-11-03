@@ -258,7 +258,18 @@ func (b *BlockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 
 // PutBlockBatch forwards batched writes to the inner store.
 func (b *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
-	existed, err := b.store.PutBlockBatch(ctx, entries)
+	receipt, err := b.PutBlockBatchReceipt(ctx, entries)
+	if err != nil {
+		return nil, err
+	}
+	return receipt.Existed(), nil
+}
+
+// PutBlockBatchReceipt follows the configured body-write store, including SQL
+// primary and writeback markers. The head publisher may be another domain and
+// must never supply this operation's existence or counting result.
+func (b *BlockStore) PutBlockBatchReceipt(ctx context.Context, entries []*block.PutBatchEntry) (*block.PublicationReceipt, error) {
+	receipt, err := block.PutBlockBatchReceipt(ctx, b.store, entries)
 	if err != nil {
 		return nil, err
 	}
@@ -266,7 +277,7 @@ func (b *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 	// Batch tombstones bypass RmBlock, so the provider wrapper must invalidate
 	// decoded entries here before any future read can reuse stale content.
 	b.invalidateBatchTombstones(ctx, entries)
-	return existed, nil
+	return receipt, nil
 }
 
 // GetBlock forwards to the configured Session read store.

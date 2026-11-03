@@ -17,6 +17,7 @@ import (
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
 	"github.com/s4wave/spacewave/db/block"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/volume"
 	kvtx_volume "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	"github.com/s4wave/spacewave/db/world"
@@ -58,17 +59,22 @@ func TestDeadlistsRandomWrites(t *testing.T) {
 		r.check()
 		if i%20 == 19 {
 			sweep(t, w)
+			r.checkLive()
 		}
 	}
 
 	// End with writes enough for a checkpoint whose whole interval follows
 	// the last.
-	for range 2 * sobject.MinCheckpointOperations {
-		r.create(false)
+	for i := range 2 * sobject.MinCheckpointOperations {
+		r.create(i == 0)
 	}
 	waitSeqIdle(t, w)
 	r.check()
 	sweep(t, w)
+
+	// A fresh engine must still read the entire current World after collection.
+	r.restart()
+	r.checkLive()
 
 	// The applied records and resolved releases agree with the marks.
 	vf := w.vol.(volume.FlowReporter).GetFlows()
@@ -77,9 +83,6 @@ func TestDeadlistsRandomWrites(t *testing.T) {
 	}
 	if vf.ReleaseLiveBlocks != 0 || vf.ReleaseUnderflows != 0 {
 		t.Fatalf("resolved %d releases freeing %d blocks, %d the mark reached, with %d underflows", vf.ReleasesResolved, vf.ReleaseFreedBlocks, vf.ReleaseLiveBlocks, vf.ReleaseUnderflows)
-	}
-	if vf.ReleasesResolved == 0 {
-		t.Fatal("resolved no releases")
 	}
 
 	// The records that recorded steps named deaths. Restarts and change log
@@ -414,6 +417,44 @@ func (r *deadlistRun) check() {
 			if _, ok := live[ref.MarshalString()]; ok {
 				r.t.Fatalf("%s lists %s, which its World reaches; steps so far %v", rec.name, ref.MarshalString(), r.ran)
 			}
+		}
+	}
+}
+
+// checkLive reads the real current World and every expected object after each
+// collection, including each nonempty payload root. Recount recovery may
+// supersede every pending release, so safety
+// is readable user data and zero false frees, independent of a path counter.
+func (r *deadlistRun) checkLive() {
+	// Pin the same World snapshot the application reads.
+	r.t.Helper()
+	ctx := r.t.Context()
+	tx, err := r.w.eng.NewTransaction(ctx, false)
+	if err != nil {
+		r.t.Fatal(err)
+	}
+	defer tx.Discard()
+
+	// Check every expected key and its actual payload graph through public reads.
+	for _, key := range r.live {
+		obj, err := world.MustGetObject(ctx, tx, key)
+		if err != nil {
+			r.t.Fatalf("live object %s after collection: %v", key, err)
+		}
+		ref, _, err := obj.GetRootRef(ctx)
+		if err == nil && !ref.GetRootRef().GetEmpty() {
+			err = obj.AccessWorldState(ctx, ref, func(cursor *bucket_lookup.Cursor) error {
+				blocks, root := cursor.BuildTransaction(nil)
+				if root.GetRef().GetEmpty() {
+					return errors.New("live object read cursor has no root")
+				}
+				return block.WalkGraph(ctx, blocks.GetStoreOps(), []*block.BlockRef{root.GetRef()}, 0,
+					func(*block.BlockRef, *block.StoredBlock) error { return nil })
+			})
+		}
+		world.ReleaseObjectState(obj)
+		if err != nil {
+			r.t.Fatalf("live object %s payload after collection: %v", key, err)
 		}
 	}
 }

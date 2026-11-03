@@ -36,6 +36,9 @@ type BlockTx interface {
 type physicalTx struct {
 	// tx is the store transaction.
 	tx kvtx.Tx
+	// revision and its key certify the snapshot before a deferred GC decision.
+	revision    uint64
+	revisionKey []byte
 	// store wraps tx and records whether a record changed.
 	store *kvtx.TxStore
 	// blocks serves the blocks in tx and records the blocks tx removes.
@@ -53,8 +56,17 @@ func (v *Volume) openPhysical(ctx context.Context) (*physicalTx, error) {
 	if err != nil {
 		return nil, err
 	}
-	p := &physicalTx{tx: tx, store: kvtx.NewTxStore(tx)}
+
+	// Capture the revision used by off-writer GC snapshots and this commit.
+	key := v.physicalRevisionKey()
+	revision, err := readPhysicalRevision(ctx, tx, key)
+	if err != nil {
+		tx.Discard()
+		return nil, err
+	}
+	p := &physicalTx{tx: tx, store: kvtx.NewTxStore(tx), revision: revision, revisionKey: key}
 	p.rg = OpenRefGraph(p.store)
+	p.rg.CoalesceSharingBasisChanges()
 	if v.holdCounts {
 		p.rg.CountOwnerEdges()
 	}
@@ -71,7 +83,6 @@ func (v *Volume) openPhysical(ctx context.Context) (*physicalTx, error) {
 		StoreOps: blocks,
 		marks:    &txMarks{store: p.store, kvKey: v.kvKey},
 	}
-	p.rg.SetHolderSource(txHolders{blocks: p.blocks})
 	return p, nil
 }
 

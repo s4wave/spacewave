@@ -47,10 +47,19 @@ func (v *Volume) resolveReleases(ctx context.Context) (*releaseCheck, error) {
 	}
 	for {
 		var res block_gc.ReleaseResult
+		recounted := false
 		err := v.withDirectAtomic(ctx, func(_ block.StoreOps, rg *block_gc.RefGraph) (err error) {
+			// Bound this background writer slice and yield to foreground writers.
 			held := time.Now()
 			yield := func() bool { return time.Since(held) >= sweepBudget || v.writersWaiting() }
 			res, err = rg.ResolveReleases(ctx, yield, visit)
+			if err == nil && res.FreedParents != 0 {
+				// Freed parents remain physically stored in shadow. Their child
+				// funding was returned, so a later find must use an incomplete
+				// basis until the budgeted walk funds the retained graph again.
+				_, err = rg.RecountSharing(ctx)
+				recounted = err == nil
+			}
 			return err
 		})
 		if errors.Is(err, block_gc.ErrSharingWalk) {
@@ -62,7 +71,7 @@ func (v *Volume) resolveReleases(ctx context.Context) (*releaseCheck, error) {
 		v.releasesResolved.Add(res.Resolved)
 		v.releaseFreedBlocks.Add(res.Freed)
 		v.releaseUnderflows.Add(res.Underflows)
-		if res.Done {
+		if res.Done || recounted {
 			return check, nil
 		}
 	}

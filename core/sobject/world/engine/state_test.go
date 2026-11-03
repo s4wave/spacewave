@@ -18,6 +18,7 @@ import (
 	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/kvtx"
+	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/util/blockenc"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
@@ -41,10 +42,29 @@ func TestDeadlistEncodingWakesIdleReplay(t *testing.T) {
 	net := &pendingNet{}
 	net.seal(nil)
 	var ledger deadlistLedger
+	space := newReplayTestSpace(t)
+	tb, err := testbed.NewTestbed(ctx, space.c.le)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+	cursor, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cursor.Release()
+	var writer writerLock
+	worker := newDeadlistPreparer(ctx, &writer, &ledger, cursor.GetBucket(), nil)
+	defer func() { cancel(); worker.close() }()
+	unlock, err := writer.Lock(ctx, "idle-encoding")
+	if err != nil {
+		t.Fatal(err)
+	}
 	ledger.name(nil, root, net)
 	if _, err := ledger.resolve(); err != nil {
 		t.Fatal(err)
 	}
+	unlock()
 
 	// Observe completion before subscribing, so the wake must be retained.
 	select {
@@ -59,11 +79,27 @@ func TestDeadlistEncodingWakesIdleReplay(t *testing.T) {
 	}
 
 	// The resumed pass consumes the record so its next save can name it.
-	resolved, err := ledger.resolve()
-	if err != nil || !resolved {
-		t.Fatalf("resolve completed encoding: resolved=%v error=%v", resolved, err)
+	for {
+		// Preparation completion must also wake the idle replay pass.
+		unlock, err := writer.Lock(ctx, "idle-preparation")
+		if err != nil {
+			t.Fatal(err)
+		}
+		resolved, err := ledger.resolve()
+		unlock()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if resolved {
+			break
+		}
+		select {
+		case <-ledger.encoded:
+		case <-ctx.Done():
+			t.Fatal(ctx.Err())
+		}
 	}
-	_, roots := ledger.carry()
+	roots := ledger.carry()
 	if len(roots) != 1 || roots[0].Ref.GetEmpty() {
 		t.Fatalf("resumed save carried %v, want the encoded record", roots)
 	}

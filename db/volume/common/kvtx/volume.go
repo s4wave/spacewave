@@ -439,7 +439,11 @@ func (v *Volume) GetRefGraph() block_gc.RefGraphOps {
 func (v *Volume) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Store a batch that asked for marking with its markers in one transaction.
 	if kvtx.GetBlockMarkRequest(ctx) != nil {
-		return v.PrepareOwnedBlockBatch(ctx, "", entries)
+		receipt, err := v.PrepareOwnedBlockBatch(ctx, "", entries)
+		if err != nil {
+			return nil, err
+		}
+		return receipt.Existed(), nil
 	}
 
 	// Refuse new data below the disk reserve, and new blocks without their

@@ -13,20 +13,16 @@ import (
 // testHolders is a HolderSource over fixed answers: the blocks the store
 // holds, and the block each owner subject implies.
 type testHolders struct {
-	// stored is the set of blocks the store holds.
-	stored map[string]bool
 	// implied maps an owner subject to the block it implies.
 	implied map[string]string
 }
 
-// Stored reports whether block is in the stored set.
-func (h *testHolders) Stored(_ context.Context, block string) (bool, error) {
-	return h.stored[block], nil
-}
-
 // Implied returns the block owner implies, whatever its object.
-func (h *testHolders) Implied(_ context.Context, owner, _ string) (string, error) {
-	return h.implied[owner], nil
+func (h *testHolders) Implied(_ context.Context, owner, _ string, visit func(string) error) error {
+	if node := h.implied[owner]; node != "" {
+		return visit(node)
+	}
+	return nil
 }
 
 // sharingModel is the oracle of the sharing property test: the holder edges
@@ -88,10 +84,19 @@ func testSharingWalkProperty(t *testing.T, seed uint64, removals bool) {
 	// Name twelve blocks and four pairs of deadlist subjects, each pair
 	// implying the same old root, so a rename keeps its holder.
 	blocks := make([]string, 12)
+	staged := make([]RefEdge, len(blocks))
 	for i := range blocks {
 		blocks[i] = BlockIRI(testBlockRef(t, "sharing "+strconv.Itoa(i)))
+		staged[i] = RefEdge{Subject: NodeUnreferenced, Object: blocks[i]}
 	}
-	holders := &testHolders{stored: make(map[string]bool), implied: make(map[string]string)}
+
+	// Declare every available block's child list, including the leaves. An
+	// owner of an unknown list must leave a walk doubtful, not certify counts.
+	// Staging supplies that metadata without adding a counted holder.
+	if err := rg.ApplyRefBatch(ctx, staged, nil); err != nil {
+		t.Fatal(err)
+	}
+	holders := &testHolders{implied: make(map[string]string)}
 	deadlists := make([]string, 8)
 	for i := range deadlists {
 		deadlists[i] = ObjectIRI("deadlist/" + strconv.Itoa(i))
@@ -272,8 +277,8 @@ func indexOf(list []string, s string) int {
 
 // TestSharingWalkGates checks the counts' writers and the walk's doubt: an
 // empty graph completes at once; while walking, AddHolds adds nothing and
-// ChangeHolds refuses; a stored block with no child list puts the counts in
-// doubt, which outlives the walk, while a hole or a tracked leaf does not.
+// ChangeHolds refuses; every missing child list puts the counts in doubt,
+// including a byte-absent address that a later writer can recreate.
 func TestSharingWalkGates(t *testing.T) {
 	// An empty graph completes its counts at once.
 	ctx := t.Context()
@@ -286,7 +291,7 @@ func TestSharingWalkGates(t *testing.T) {
 	// Track a leaf, a hole and a stored block of unknown references, each
 	// held twice.
 	leaf, hole, unknown := BlockIRI(testBlockRef(t, "leaf")), BlockIRI(testBlockRef(t, "hole")), BlockIRI(testBlockRef(t, "unknown"))
-	holders := &testHolders{stored: map[string]bool{leaf: true, unknown: true}}
+	holders := &testHolders{}
 	rg.SetHolderSource(holders)
 	adds := []RefEdge{{Subject: NodeUnreferenced, Object: leaf}}
 	for _, b := range []string{leaf, hole} {
@@ -325,15 +330,26 @@ func TestSharingWalkGates(t *testing.T) {
 		}
 	}
 
-	// A hole, a tracked leaf and a root that is not a block leave the counts
-	// certain.
-	if s := walk(); s.Phase != SharingComplete || s.Doubt {
+	// A missing list remains uncertain even without bytes at that address.
+	if s := walk(); s.Phase != SharingComplete || !s.Doubt {
 		t.Fatalf("walk ended in phase %c doubt %v", s.Phase, s.Doubt)
 	}
 	for _, b := range []string{leaf, hole} {
 		if n, err := rg.GetHolds(ctx, b); err != nil || n != 1 {
 			t.Fatalf("%s holds %d %v, want 1", FormatIRI(b), n, err)
 		}
+	}
+
+	// Filling a missing leaf is a real graph mutation even though it adds no
+	// child edges or new owner edge. Completed doubt starts a fresh walk.
+	if err := rg.AddRef(ctx, NodeUnreferenced, hole); err != nil {
+		t.Fatal(err)
+	}
+	if state, err := rg.GetSharing(ctx); err != nil || !state.Phase.Walking() {
+		t.Fatalf("empty child-list repair did not rebuild: %+v/%v", state, err)
+	}
+	if state := walk(); state.Doubt {
+		t.Fatal("repaired leaf did not regain known counts")
 	}
 
 	// A stored block of unknown references puts the walk in doubt, which

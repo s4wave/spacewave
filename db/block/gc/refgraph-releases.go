@@ -89,6 +89,7 @@ func (g *RefGraph) SettleOwnerCounts(ctx context.Context) error {
 	// Write each change in key order.
 	nodes := slices.Sorted(maps.Keys(net))
 	return g.transaction(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
+		// Settle owner changes only against complete counts.
 		s, err := readSharingTx(ctx, tx)
 		if err != nil || !s.Phase.Counting() {
 			return err
@@ -115,6 +116,50 @@ func (g *RefGraph) SettleOwnerCounts(ctx context.Context) error {
 	})
 }
 
+// ReleaseHolds queues one release per entry in blocks. Only ResolveReleases
+// removes the last, implicit holder and hands its funded children their
+// releases. A record returns temporary holders only after funding its children.
+// Missing child lists are left alone, so a later incarnation cannot inherit an
+// obsolete release. A sharing walk discards releases when rebuilding counts.
+func (g *RefGraph) ReleaseHolds(ctx context.Context, blocks []string) error {
+	// Aggregate repeated holders so each block needs one indexed update.
+	if len(blocks) == 0 {
+		return nil
+	}
+	releases := make(map[string]uint64, len(blocks))
+	for _, node := range blocks {
+		releases[node]++
+	}
+	nodes := slices.Sorted(maps.Keys(releases))
+
+	// Publish the releases with the count changes that funded their children.
+	return g.transaction(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
+		// Refuse returns while a walk reconstructs their accounting basis.
+		s, err := readSharingTx(ctx, tx)
+		if err != nil {
+			return err
+		}
+		if !s.Phase.Counting() || s.Doubt {
+			return ErrSharingWalk
+		}
+		for _, node := range nodes {
+			if !isBlockNode(node) {
+				return errors.Errorf("release of %q, which is not a block", node)
+			}
+			tracked, err := tx.Exists(ctx, graphKey(kindChildren, node))
+			if err != nil {
+				return err
+			}
+			if tracked {
+				if err := addCountTx(ctx, tx, kindRelease, node, releases[node]); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
+}
+
 // ReleaseResult reports what one ResolveReleases call did.
 type ReleaseResult struct {
 	// Done reports that no release was left when the call ended.
@@ -123,6 +168,9 @@ type ReleaseResult struct {
 	Resolved uint64
 	// Freed is the number of blocks the call freed.
 	Freed uint64
+	// FreedParents counts freed blocks with children, or an unknown child
+	// list. A shadow caller retaining them must invalidate the count basis.
+	FreedParents uint64
 	// Underflows is the number of releases beyond a block's count and the
 	// one that freed it; any means a holder was never counted.
 	Underflows uint64
@@ -133,8 +181,11 @@ type ReleaseResult struct {
 // waiting writer, after the first block. Each release of a block takes one
 // from its shared count; one with no count left frees the block, calling
 // visit with it, and adds a release to each block its child list names. It
-// deletes nothing else: the collector's sweep removes a freed block. It
-// refuses with ErrSharingWalk while the counts are not complete.
+// stops immediately after a freed nonleaf or unknown child list, with Done
+// false and its children queued. Its shadow caller must invalidate counts in
+// the same physical transaction before retained bytes can be adopted again.
+// It deletes no bytes: the collector's sweep removes a freed block. It refuses
+// with ErrSharingWalk while the counts are not complete.
 //
 // The caller must not run it while a deadlist record applies, between the
 // record's read of the counts and its write of their changes.
@@ -147,7 +198,7 @@ func (g *RefGraph) ResolveReleases(ctx context.Context, yield func() bool, visit
 		if err != nil {
 			return err
 		}
-		if !s.Phase.Counting() {
+		if !s.Phase.Counting() || s.Doubt {
 			return ErrSharingWalk
 		}
 
@@ -191,14 +242,23 @@ func (g *RefGraph) ResolveReleases(ctx context.Context, yield func() bool, visit
 			if err := visit(node); err != nil {
 				return err
 			}
-			children, _, err := readChildrenTx(ctx, tx, node)
+			children, known, err := readChildrenTx(ctx, tx, node)
 			if err != nil {
 				return err
+			}
+			if !known || len(children) != 0 {
+				res.FreedParents++
 			}
 			for _, child := range children {
 				if err := addCountTx(ctx, tx, kindRelease, child, 1); err != nil {
 					return err
 				}
+			}
+
+			// A retained parent's funding proof ends here. Do not consume child
+			// or later releases before the caller atomically begins its rebuild.
+			if res.FreedParents != 0 {
+				return nil
 			}
 		}
 	})

@@ -21,9 +21,11 @@ type PublicationReceipt struct {
 	// existed reports, for each entry of a successful publication, whether
 	// the store already held it, or is nil when the publisher did not say.
 	existed []bool
-	// counting reports whether the store's shared counts were complete when
-	// it applied a successful publication.
+	// counting certifies that existed describes funded incarnations in a
+	// complete, known count basis; byte-only cache refills cannot certify it.
 	counting bool
+	// countingGeneration identifies the Volume's shared counts at application.
+	countingGeneration uint64
 	// release drops optional publication ownership after durable completion.
 	release     func()
 	releaseOnce sync.Once
@@ -59,14 +61,15 @@ func (r *PublicationReceipt) Done() <-chan struct{} { return r.doneCh }
 
 // Resolve completes a receipt exactly once. Only its owning publisher calls it.
 func (r *PublicationReceipt) Resolve(err error) {
-	r.ResolveExisted(err, nil, false)
+	r.ResolveExisted(err, nil, false, 0)
 }
 
 // ResolveExisted completes a receipt exactly once, reporting for each entry of
 // the publication whether the store already held it, and whether the store's
-// shared counts were complete when it applied the publication. Both are kept
-// only when err is nil. Only its owning publisher calls it.
-func (r *PublicationReceipt) ResolveExisted(err error, existed []bool, counting bool) {
+// complete, known counts agree with that existence result. The generation
+// identifies the funding basis. These are kept only when err is nil.
+// Only its owning publisher calls it.
+func (r *PublicationReceipt) ResolveExisted(err error, existed []bool, counting bool, generation uint64) {
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		// Resolve the receipt once and wake its waiters.
 		if r.resolved {
@@ -75,7 +78,7 @@ func (r *PublicationReceipt) ResolveExisted(err error, existed []bool, counting 
 		r.resolved = true
 		r.err = err
 		if err == nil {
-			r.existed, r.counting = existed, counting
+			r.existed, r.counting, r.countingGeneration = existed, counting, generation
 		}
 		close(r.doneCh)
 		broadcast()
@@ -103,11 +106,11 @@ func (r *PublicationReceipt) Existed() []bool {
 	return existed
 }
 
-// Counting reports whether the store's shared counts were complete when it
-// applied the publication, so its puts counted every holder they added as
-// they wrote it rather than leaving it to a sharing walk. It is meaningful
-// only after Done closes with no error, and is false when the publisher did
-// not report it.
+// Counting certifies that Existed describes the funded incarnations of a
+// complete, known count basis. Byte-only cache refills keep count metadata but
+// report absent bytes, so they return false rather than certify a fresh birth.
+// It is meaningful only after Done closes with no error, and is false when the
+// publisher did not report it.
 func (r *PublicationReceipt) Counting() bool {
 	var counting bool
 	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -134,4 +137,15 @@ func (r *PublicationReceipt) Wait(ctx context.Context) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	}
+}
+
+// CountingGeneration reports the persisted counting generation at application.
+// It certifies provisional holders only together with Counting and a matching
+// complete generation when the record is named.
+func (r *PublicationReceipt) CountingGeneration() uint64 {
+	var generation uint64
+	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		generation = r.countingGeneration
+	})
+	return generation
 }

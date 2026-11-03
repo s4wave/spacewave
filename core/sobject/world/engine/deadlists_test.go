@@ -1,10 +1,13 @@
 package sobject_world_engine
 
 import (
+	"context"
 	"slices"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
+	block_mock "github.com/s4wave/spacewave/db/block/mock"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // TestDeadlistLedger walks records through a failed save, adoption past a
@@ -23,16 +26,41 @@ func TestDeadlistLedger(t *testing.T) {
 	// resolve takes every record whose puts resolved, waiting for the
 	// encodings it starts.
 	var l deadlistLedger
+	var writer writerLock
+	store := block_mock.NewMockStore(hash.RecommendedHashType)
+	unlock, err := writer.Lock(t.Context(), "ledger-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { unlock() }()
+	workerCtx, stopWorker := context.WithCancel(t.Context())
+	preparer := newDeadlistPreparer(workerCtx, &writer, &l, store, nil)
+	defer stopWorker()
 	resolve := func() {
 		t.Helper()
-		for range 2 {
+		for {
 			if _, err := l.resolve(); err != nil {
 				t.Fatal(err)
 			}
+			waiting := false
 			for _, e := range l.entries {
 				if e.net != nil && e.net.encoded != nil {
-					<-e.net.encoded
+					waiting = true
 				}
+			}
+			if !waiting {
+				return
+			}
+			wake := l.encoded
+			unlock()
+			select {
+			case <-wake:
+			case <-t.Context().Done():
+				t.Fatal(t.Context().Err())
+			}
+			unlock, err = writer.Lock(t.Context(), "ledger-test")
+			if err != nil {
+				t.Fatal(err)
 			}
 		}
 	}
@@ -58,10 +86,10 @@ func TestDeadlistLedger(t *testing.T) {
 	}
 
 	// carried checks the roots a save carries and returns its blocks.
-	carried := func(want ...string) []*block.PutBatchEntry {
+	carried := func(want ...string) {
 		// Render each root a save sets as + and releases as -.
 		t.Helper()
-		puts, roots := l.carry()
+		roots := l.carry()
 		var got []string
 		for _, r := range roots {
 			if r.Ref == nil {
@@ -73,7 +101,6 @@ func TestDeadlistLedger(t *testing.T) {
 		if !slices.Equal(got, want) {
 			t.Fatalf("save carries %v, want %v", got, want)
 		}
-		return puts
 	}
 
 	// A record waiting for its naming publication is carried only once it
@@ -84,8 +111,11 @@ func TestDeadlistLedger(t *testing.T) {
 	carried()
 	waiting.seal(nil)
 	name("b", "c", true)
-	if puts := carried("+"+block.DeadlistRootName(1), "+"+block.DeadlistRootName(2)); len(puts) != 2 {
-		t.Fatalf("save carries %d blocks, want 2", len(puts))
+	carried("+"+block.DeadlistRootName(1), "+"+block.DeadlistRootName(2))
+	for _, entry := range l.entries {
+		if exists, err := store.GetBlockExists(t.Context(), entry.record); err != nil || !exists {
+			t.Fatalf("prepared record missing before naming: exists=%v error=%v", exists, err)
+		}
 	}
 
 	// A failed save carries everything again; a durable one stores it.
@@ -101,9 +131,7 @@ func TestDeadlistLedger(t *testing.T) {
 	if !l.advance(1, true) {
 		t.Fatal("advance moved nothing")
 	}
-	if puts := carried("+"+block.DeadlistDueRootName(1), "-"+block.DeadlistRootName(1)); len(puts) != 0 {
-		t.Fatalf("handoff carries %d blocks", len(puts))
-	}
+	carried("+"+block.DeadlistDueRootName(1), "-"+block.DeadlistRootName(1))
 	l.confirm(l.saved())
 
 	// Store a forfeited interval, a chain from it and a fork off the chain.
@@ -122,9 +150,14 @@ func TestDeadlistLedger(t *testing.T) {
 
 	// A restart restores the pending records as stored; with no pin open,
 	// each becomes due without carrying a block.
+	unlock()
+	stopWorker()
+	preparer.close()
+	unlock, err = writer.Lock(t.Context(), "ledger-test")
+	if err != nil {
+		t.Fatal(err)
+	}
 	l = restoreDeadlists(&ReplayCursor{Deadlists: l.encode(), NextDeadlist: l.next, AdoptedDeadlist: l.adopted})
 	l.advance(0, false)
-	if puts := carried("+"+block.DeadlistDueRootName(2), "-"+block.DeadlistRootName(2), "+"+block.DeadlistDueRootName(7), "-"+block.DeadlistRootName(7)); len(puts) != 0 {
-		t.Fatalf("restored handoff carries %d blocks", len(puts))
-	}
+	carried("+"+block.DeadlistDueRootName(2), "-"+block.DeadlistRootName(2), "+"+block.DeadlistDueRootName(7), "-"+block.DeadlistRootName(7))
 }

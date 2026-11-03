@@ -17,6 +17,12 @@ type transactionRefGraph struct{ volume *Volume }
 
 // read runs fn against a fresh read-scoped reference graph in one transaction.
 func (g *transactionRefGraph) read(ctx context.Context, fn func(*block_gc.RefGraph) error) error {
+	return g.readSnapshot(ctx, func(_ kvtx.Tx, rg *block_gc.RefGraph) error { return fn(rg) })
+}
+
+// readSnapshot gives its caller the same transaction as the graph, so a GC
+// decision can capture the physical revision without a second snapshot.
+func (g *transactionRefGraph) readSnapshot(ctx context.Context, fn func(kvtx.Tx, *block_gc.RefGraph) error) error {
 	// Join Volume operations while reading the reference graph.
 	v := g.volume
 	v.directMu.RLock()
@@ -33,7 +39,7 @@ func (g *transactionRefGraph) read(ctx context.Context, fn func(*block_gc.RefGra
 	defer tx.Discard()
 
 	// Read through a fresh reference graph scoped to the transaction.
-	return fn(OpenRefGraph(kvtx.NewTxStore(tx)))
+	return fn(tx, OpenRefGraph(kvtx.NewTxStore(tx)))
 }
 
 // write runs fn against a fresh writable reference graph in one transaction.

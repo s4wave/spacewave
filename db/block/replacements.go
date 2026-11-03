@@ -12,6 +12,17 @@ import (
 // parent, such as a block put twice or a subtree copied by reference, may be
 // listed while the other parent still names it.
 type Replacements struct {
+	// CountsComplete and CountingGeneration certify that all interval puts
+	// used the same complete, known funding basis. A small uncertain record
+	// uses FallbackHeld; large records recount. Neither replays historical
+	// deaths or returns historical From/Found holders.
+	CountsComplete bool
+	// CountingGeneration identifies the complete Volume count basis used by
+	// the interval puts and the first receipt owning its From lineage.
+	CountingGeneration uint64
+	// FallbackHeld funds every fresh parent's edges without consuming any old
+	// holder. It is computed from the puts off the store's writer.
+	FallbackHeld []*BlockRef
 	// Replaced lists dead stored pages a write encoded again, whose own
 	// children are accounted here.
 	Replaced []*BlockRef
@@ -41,9 +52,10 @@ type Replacements struct {
 	// it through an existing page, and then loses the lineage's count.
 	Existed []*BlockRef
 	// Found lists each page an interval's put found stored, once per such
-	// put. The put held the page with one shared count, so no record applying
-	// before this one is named frees it; naming the record takes those counts
-	// back as it adds Held.
+	// put. Bucket/stage owners retain its bytes before naming. Ordinary leaf
+	// children retain them afterward; only a proven count basis returns the
+	// provisional scalar multiplicity after child funding. Uncertainty keeps
+	// conservative surplus until recount or physical collection.
 	Found []*BlockRef
 }
 
@@ -65,4 +77,10 @@ func (r *Replacements) Expand(ctx context.Context, src StoreOps, visit func(ref 
 		}
 		return visit(ref)
 	})
+}
+
+// RefCount counts list occurrences, including repeated provisional holders.
+// The count bounds inline record work without scanning the record's pages.
+func (r *Replacements) RefCount() int {
+	return len(r.Replaced) + len(r.Dropped) + len(r.Removed) + len(r.Kept) + len(r.Held) + len(r.Existed) + len(r.Found) + len(r.FallbackHeld)
 }

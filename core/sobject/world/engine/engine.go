@@ -261,6 +261,8 @@ func newSoEngine(lifetime context.Context, c *Controller, so sobject.SharedObjec
 	// The engine serves the World the replay reached, and replay must not
 	// leave it for a World behind it.
 	replay.served = true
+
+	// Assemble the installed engine and its independent publication workers.
 	e := &soEngine{
 		lifetime:       lifetime,
 		c:              c,
@@ -277,12 +279,17 @@ func newSoEngine(lifetime context.Context, c *Controller, so sobject.SharedObjec
 	if e.admitted == nil {
 		e.admitted = e.bengine
 	}
+
+	// Reconcile backfill with this engine's state and lifecycle.
 	e.backfill = routine.NewStateRoutineContainer[bool](
 		nil,
 		routine.WithExitLogger(c.le.WithField("routine", "world-backfill")),
 		routine.WithRetry(backfillBackoff),
 	)
 	e.backfill.SetStateRoutine(e.executeBackfill)
+
+	// Preparation and checkpoint persistence never wait under the World writer.
+	newDeadlistPreparer(lifetime, &c.writeMtx, &replay.ledger, so.GetBlockStore(), c.le)
 	go e.executeStableCheckpoints()
 	if store, ok := so.GetBlockStore().(block.PublicationReserver); ok && store.SupportsPublicationReservations() {
 		go e.executeReplayPublications()
@@ -910,6 +917,12 @@ func (e *soEngine) applyHold(ctx context.Context, hold *rootHold) (bool, error) 
 		ctx = block.WithPublicationReservation(ctx, claim)
 	}
 
+	// Read admission metadata before submitting any irreversible publication.
+	seqno, err := e.admitted.GetSeqno(ctx)
+	if err != nil {
+		return false, err
+	}
+
 	// Submit the prepared save with its independent capacity claim.
 	head := publisher.LocalStateHead(replayCursorStoreID, replayCursorKey, cursor)
 	receipt, err := store.SubmitAtomic(ctx, &block.AtomicPublication{
@@ -926,10 +939,6 @@ func (e *soEngine) applyHold(ctx context.Context, hold *rootHold) (bool, error) 
 	}
 
 	// Count and admit it; the caller records what it holds.
-	seqno, err := e.admitted.GetSeqno(ctx)
-	if err != nil {
-		return false, err
-	}
 	countPublication(nil, pages, save)
 	e.replay.addWorldPut(receipt, entries, pages)
 	e.admit(receipt, e.retained, seqno)

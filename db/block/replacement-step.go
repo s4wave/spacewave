@@ -133,6 +133,24 @@ func (s ReplacementSteps) Join() *ReplacementStep {
 	return out
 }
 
+// AddFresh adds to the step, as created pages, each of pages a put stored
+// afresh that the step neither created nor replaced. pages are the pages the
+// interval's successful puts carried, and fresh holds, by MarshalString, each
+// one a put stored afresh. Such a page was written outside the step's chain,
+// as by a commit the replay later ordered away or a replayed position a later
+// replay dropped. Its put left the edges to its children to the record, so Net
+// must see it: a live one holds its children, and a dead one is dropped.
+func (s *ReplacementStep) AddFresh(pages []*PutBatchEntry, fresh map[string]bool) {
+	for _, e := range pages {
+		key := e.Ref.MarshalString()
+		_, isCreated := s.created[key]
+		_, isReplaced := s.replaced[key]
+		if fresh[key] && !isCreated && !isReplaced {
+			s.created[key] = pageBase{ref: e.Ref, refs: e.Refs}
+		}
+	}
+}
+
 // Net derives what the step did to the stored pages. puts holds, by
 // MarshalString, each page a put carried, true when the put found the store
 // already held it; nil means the step's puts stored every page it created
@@ -264,6 +282,9 @@ func (s *ReplacementStep) Net(puts map[string]bool) *Replacements {
 		if !s.stored(puts, key) || (isOriginal && !isLive && !isDead) {
 			continue
 		}
+		if !isLive && found(key) {
+			continue
+		}
 		if !isLive {
 			listed[key] = struct{}{}
 			if fresh(key) {
@@ -282,7 +303,7 @@ func (s *ReplacementStep) Net(puts map[string]bool) *Replacements {
 	for key, page := range s.created {
 		_, isLive := live[key]
 		_, isReplaced := s.replaced[key]
-		if !isLive && !isReplaced && s.stored(puts, key) {
+		if !isLive && !isReplaced && s.stored(puts, key) && !found(key) {
 			listed[key] = struct{}{}
 			if fresh(key) {
 				out.Dropped = append(out.Dropped, page.ref)

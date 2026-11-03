@@ -4,6 +4,7 @@ import (
 	"slices"
 	"sync"
 
+	"github.com/aperturerobotics/util/refcount"
 	"github.com/s4wave/spacewave/db/block"
 )
 
@@ -45,8 +46,8 @@ type deadlistEntry struct {
 	// resolved. They name payloads the interval's pages may name, whose
 	// edges from those pages only the record counts.
 	spans []*block.BlockRef
-	// puts are the record's blocks until a durable save stores them.
-	puts []*block.PutBatchEntry
+	// prepared retains the stage until durable naming or abandonment.
+	prepared *deadlistPreparation
 	// state is where the record is.
 	state deadlistState
 	// stored is set once a durable save named the record as pending, so its
@@ -71,15 +72,16 @@ func (e *deadlistEntry) forfeited() bool {
 //
 // Each save carries the changes no save carries yet, under the next
 // generation. A durable generation confirms its changes; a failed one returns
-// them to be carried again. Every name a save sets carries the record's blocks
-// unless a durable save stored them, so no save names a missing block.
+// them to be carried again. Every name a save sets holds the already prepared record's stage until
+// actual completion, so neither orphaning nor cancellation loses its bytes.
 type deadlistLedger struct {
-	// encoded coalesces completed encodings for the state watcher. It is
-	// created by resolve and captured by each worker before the ledger changes.
-	encoded chan struct{}
 	// entries are the records in sequence order: pending ones, and due and
 	// orphaned ones until a durable save carries them.
 	entries []deadlistEntry
+	// encoded coalesces encoder and preparation completion wakes.
+	encoded chan struct{}
+	// preparer performs this engine's stage I/O outside the writer.
+	preparer *deadlistPreparer
 	// next is the sequence of the next record.
 	next uint64
 	// adopted is the sequence of the latest record whose World the base
@@ -145,23 +147,45 @@ func (l *deadlistLedger) name(from, to *block.BlockRef, net *pendingNet) {
 // starting the encoding of each whose puts resolved, and reports whether it
 // took any, so a save carries it.
 func (l *deadlistLedger) resolve() (bool, error) {
-	// Give encoding workers one nonblocking wake for the state watcher.
+	// Initialize the completion source before any background job can signal it.
 	if l.encoded == nil {
 		l.encoded = make(chan struct{}, 1)
 	}
 
-	// Consume completed records and start the encodings whose receipts settled.
+	// A retired engine never attaches a late result to its saved ledger.
+	if l.preparer == nil || l.preparer.ctx.Err() != nil {
+		return false, nil
+	}
+
+	// Start ready encodings and attach only completed preparations to their own net.
 	resolved := false
 	for i := range l.entries {
 		e := &l.entries[i]
-		if e.net == nil || !e.net.poll(e.seq, e.from, e.to, l.recounts, l.recount, l.encoded) {
+		if e.net == nil || !e.net.poll(l.preparer.ctx, e.seq, e.from, e.to, l.recounts, l.recount, l.encoded) {
 			continue
 		}
 		if e.net.err != nil {
 			return resolved, e.net.err
 		}
+		if e.net.preparation == nil {
+			l.preparer.notify()
+			continue
+		}
+		job := e.net.preparation
+		select {
+		case <-job.done:
+		default:
+			continue
+		}
+
+		// A failed background prepare forfeits history, never the foreground save.
+		if job.err != nil {
+			l.move(i, deadlistOrphan)
+			resolved = true
+			continue
+		}
 		countDeaths(e.net.dead, true)
-		e.record, e.puts, e.net = e.net.record, e.net.blocks, nil
+		e.record, e.prepared, e.net = e.net.record, job, nil
 		resolved = true
 	}
 	return resolved, nil
@@ -214,6 +238,13 @@ func (l *deadlistLedger) dropSpan(span *block.BlockRef) {
 func (l *deadlistLedger) move(i int, state deadlistState) {
 	e := &l.entries[i]
 	if state == deadlistOrphan {
+		e.prepared.abandon()
+		if e.net != nil {
+			if e.net.cancelEncoding != nil {
+				e.net.cancelEncoding()
+			}
+			e.net.preparation.abandon()
+		}
 		if e.net != nil {
 			l.dropped = append(l.dropped, e.spans...)
 			l.lost()
@@ -294,17 +325,14 @@ func (l *deadlistLedger) advance(oldestPin uint64, pinned bool) bool {
 	return moved
 }
 
-// carry returns what the next save stores: the blocks and names of each change
-// no save carries yet. saved marks them carried.
-func (l *deadlistLedger) carry() ([]*block.PutBatchEntry, []block.NamedRoot) {
-	var puts []*block.PutBatchEntry
+// carry returns the names no save carries yet. Their immutable record blocks
+// are already prepared under independent stage ownership; saved marks the names
+// carried, and retainPrepared protects them through actual receipt completion.
+func (l *deadlistLedger) carry() []block.NamedRoot {
 	var roots []block.NamedRoot
 	for _, e := range l.entries {
 		if e.carried != 0 || e.record == nil {
 			continue
-		}
-		if !e.stored && e.state != deadlistOrphan {
-			puts = append(puts, e.puts...)
 		}
 		pendingName := block.DeadlistRootName(e.seq)
 		switch e.state {
@@ -319,7 +347,7 @@ func (l *deadlistLedger) carry() ([]*block.PutBatchEntry, []block.NamedRoot) {
 			roots = append(roots, block.NamedRoot{Name: pendingName})
 		}
 	}
-	return puts, roots
+	return roots
 }
 
 // saved marks what carry returned as carried by a new save generation, which
@@ -349,8 +377,9 @@ func (l *deadlistLedger) confirm(gen uint64) {
 		if e.carried == 0 || e.carried > gen {
 			continue
 		}
+		e.prepared.abandon()
 		if e.state == deadlistPending {
-			e.stored, e.puts = true, nil
+			e.stored, e.prepared = true, nil
 			continue
 		}
 		e.record = nil
@@ -363,7 +392,11 @@ func (l *deadlistLedger) confirm(gen uint64) {
 func (l *deadlistLedger) unsave() {
 	l.recountGen = 0
 	for i := range l.entries {
-		l.entries[i].carried = 0
+		e := &l.entries[i]
+		if e.state == deadlistOrphan && !e.stored && e.record != nil {
+			l.lost()
+		}
+		e.carried = 0
 	}
 }
 
@@ -451,4 +484,28 @@ func (s *readerStamps) oldest() (stamp uint64, pinned bool) {
 		}
 	}
 	return stamp, pinned
+}
+
+// retainPrepared holds every not-yet-durable record this save can name. It is
+// called after successful admission and before saved changes carry markers,
+// under the writer, so orphaning cannot interleave with reference acquisition.
+func (l *deadlistLedger) retainPrepared(receipt *block.PublicationReceipt) {
+	// Snapshot the same uncarried records this admitted save names.
+	var refs []*refcount.Ref[block.StoreOps]
+	for _, e := range l.entries {
+		if e.carried == 0 && !e.stored && e.state != deadlistOrphan && e.prepared != nil {
+			refs = append(refs, e.prepared.stage.AddRef(nil))
+		}
+	}
+	if len(refs) == 0 {
+		return
+	}
+
+	// Admission outlives engine cancellation and ends only at actual Done.
+	go func() {
+		<-receipt.Done()
+		for _, ref := range refs {
+			ref.Release()
+		}
+	}()
 }

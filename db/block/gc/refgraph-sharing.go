@@ -42,8 +42,8 @@ import (
 // it in its own transaction, so no write applies a rule from a stale copy.
 //
 // A first sighting also checks that the block's references are known: a block
-// the store holds without a child list may hold children the walk never
-// sights, so the counts go into doubt, which the walk keeps after it ends.
+// without a child list may receive a later incarnation whose first holder
+// the walk already counted, so the counts stay doubtful until a fresh walk.
 
 // SharingPhase is the phase of a graph's sharing walk.
 type SharingPhase byte
@@ -69,8 +69,8 @@ const (
 	SharingForgetting SharingPhase = 's'
 )
 
-// Counting reports whether the shared counts are complete, so the writers
-// that keep them incrementally run and a deadlist record may apply.
+// Counting reports whether the phase keeps incremental shared counts.
+// Fate decisions and receipt certification also require a state without Doubt.
 func (p SharingPhase) Counting() bool {
 	return p == SharingComplete || p == SharingForgetting
 }
@@ -94,9 +94,9 @@ func (p SharingPhase) Running() bool {
 type SharingState struct {
 	// Phase is the walk's phase.
 	Phase SharingPhase
-	// Doubt reports that the walk met a holder it cannot count, a stored
-	// block whose references are unknown or a registered root naming a
-	// block, so some counts may be short.
+	// Doubt reports an unknown child list, an erased sighted count prefix,
+	// or a registered block root the walk cannot count. Fate decisions and
+	// certified receipts wait for a fresh walk to rebuild known counts.
 	Doubt bool
 	// cursor is the key after the last record the phase walked.
 	cursor []byte
@@ -105,11 +105,9 @@ type SharingState struct {
 // HolderSource answers what the sharing walk asks of the block store, in the
 // transaction the graph writes in.
 type HolderSource interface {
-	// Stored reports whether the store holds block.
-	Stored(ctx context.Context, block string) (bool, error)
-	// Implied returns the block that object holds without naming it, given an
-	// owner edge from owner to object, or "" when it holds none.
-	Implied(ctx context.Context, owner, object string) (string, error)
+	// Implied visits the holders object keeps without graph edges, given its
+	// owner edge. Repeated visits represent distinct holders of the same block.
+	Implied(ctx context.Context, owner, object string, visit func(string) error) error
 }
 
 // ErrSharingWalk reports a change to the shared counts while they are not
@@ -124,6 +122,37 @@ const maxSharingSlice = 1024
 
 // sharingKey is the key of the state record.
 var sharingKey = []byte{kindSharing}
+
+// sharingGenerationKey survives completed walks. Rebuilding or erasing an
+// incarnation's count metadata invalidates receipts from the preceding basis.
+var sharingGenerationKey = []byte{kindSharing, 0}
+
+// GetSharingGeneration returns the persisted receipt funding basis. An actual
+// rebuild or erasure of an incarnation's count metadata advances it. Completion
+// and requesting an already-running walk alone leave it unchanged.
+func (g *RefGraph) GetSharingGeneration(ctx context.Context) (uint64, error) {
+	var generation uint64
+	err := g.transaction(ctx, false, func(ctx context.Context, tx kvtx.Tx) error {
+		var err error
+		generation, err = readSharingGenerationTx(ctx, tx)
+		return err
+	})
+	return generation, err
+}
+
+// readSharingGenerationTx reads the one counting generation in tx.
+func readSharingGenerationTx(ctx context.Context, tx kvtx.TxOps) (uint64, error) {
+	// Missing generation belongs to the initial complete count basis.
+	data, found, err := tx.Get(ctx, sharingGenerationKey)
+	if err != nil || !found {
+		return 0, err
+	}
+	n, size := binary.Uvarint(data)
+	if size <= 0 || size != len(data) {
+		return 0, errors.New("sharing generation is malformed")
+	}
+	return n, nil
+}
 
 // readSharingTx reads the state of the sharing walk.
 func readSharingTx(ctx context.Context, tx kvtx.TxOps) (SharingState, error) {
@@ -154,9 +183,9 @@ func writeSharingTx(ctx context.Context, tx kvtx.TxOps, s SharingState) error {
 	return tx.Set(ctx, sharingKey, append([]byte{byte(s.Phase), flags}, s.cursor...))
 }
 
-// SetHolderSource sets the source the sharing walk and the writes during it
-// ask about blocks. Without one, a sighting checks no references and an owner
-// edge implies no block.
+// SetHolderSource supplies count-only holders not represented by graph edges.
+// Without one, owner edges imply no additional holders. Missing child lists
+// always put the walk in doubt, independently of implied holders.
 func (g *RefGraph) SetHolderSource(src HolderSource) {
 	g.holders = src
 }
@@ -199,20 +228,28 @@ func (g *RefGraph) beginSharing(ctx context.Context, keep func(SharingPhase) boo
 			return err
 		}
 
-		// Look for a tracked block.
-		tracked, err := tracksBlocksTx(ctx, tx)
-		if err != nil {
-			return err
-		}
-
-		// Walk from the first shared count, or complete the counts.
-		s = SharingState{}
-		if tracked {
-			s = SharingState{Phase: SharingClearingHolds, cursor: []byte{kindHold}}
-		}
-		return writeSharingTx(ctx, tx, s)
+		s, err = g.restartSharingTx(ctx, tx)
+		return err
 	})
 	return s, err
+}
+
+// restartSharingTx starts a rebuild in the caller's physical transaction.
+// A caller preserves an active walk before calling it.
+func (g *RefGraph) restartSharingTx(ctx context.Context, tx kvtx.Tx) (SharingState, error) {
+	// Empty graphs need no cursor; tracked graphs rebuild from their first hold.
+	tracked, err := tracksBlocksTx(ctx, tx)
+	if err != nil {
+		return SharingState{}, err
+	}
+	s := SharingState{}
+	if tracked {
+		if err := g.invalidateSharingBasisTx(ctx, tx); err != nil {
+			return s, err
+		}
+		s = SharingState{Phase: SharingClearingHolds, cursor: []byte{kindHold}}
+	}
+	return s, writeSharingTx(ctx, tx, s)
 }
 
 // StopSharing stops keeping shared counts. They are stale from now on, and
@@ -284,13 +321,16 @@ func (g *RefGraph) WalkSharing(ctx context.Context, yield func() bool) (SharingS
 
 		// Walk them.
 		w := sharingTx{tx: tx, holders: g.holders, state: &s}
-		for _, r := range records {
+		for i, r := range records {
+			if i != 0 && yield() {
+				done = false
+				break
+			}
 			if err := w.walk(ctx, s.Phase, r); err != nil {
 				return err
 			}
-		}
-		if len(records) != 0 {
-			s.cursor = append(records[len(records)-1].key, 0)
+			s.cursor = append(s.cursor[:0], r.key...)
+			s.cursor = append(s.cursor, 0)
 		}
 
 		// Move to the next phase after the last record. A registered root
@@ -428,11 +468,9 @@ func (w *sharingTx) sightOwned(ctx context.Context, subject, object string) erro
 	if w.holders == nil {
 		return nil
 	}
-	implied, err := w.holders.Implied(ctx, subject, object)
-	if err != nil || implied == "" {
-		return err
-	}
-	return w.sight(ctx, implied)
+	return w.holders.Implied(ctx, subject, object, func(node string) error {
+		return w.sight(ctx, node)
+	})
 }
 
 // sight counts one holder of block: the first leaves a seen record and checks
@@ -453,19 +491,14 @@ func (w *sharingTx) sight(ctx context.Context, block string) error {
 		return w.tx.Set(ctx, graphKey(kindHold, block), binary.AppendUvarint(nil, n+1))
 	}
 
-	// Doubt the counts at a stored block whose references are unknown.
-	if w.holders != nil && !w.state.Doubt {
+	// An absent child list also leaves the first implicit holder unknown.
+	// A later fresh write must not certify a second first holder at this address.
+	if !w.state.Doubt {
 		tracked, err := w.tx.Exists(ctx, graphKey(kindChildren, block))
 		if err != nil {
 			return err
 		}
-		if !tracked {
-			stored, err := w.holders.Stored(ctx, block)
-			if err != nil {
-				return err
-			}
-			w.state.Doubt = stored
-		}
+		w.state.Doubt = !tracked
 	}
 	return w.tx.Set(ctx, seen, nil)
 }
@@ -476,8 +509,15 @@ func (w *sharingTx) sight(ctx context.Context, block string) error {
 func (g *RefGraph) sightWritesTx(ctx context.Context, tx kvtx.Tx, lists map[string][]string, owned []RefEdge) error {
 	// Read the state; only the sighting phases have a cursor writes respect.
 	s, err := readSharingTx(ctx, tx)
-	if err != nil || (s.Phase != SharingChildren && s.Phase != SharingOwners) {
+	if err != nil {
 		return err
+	}
+	if s.Phase.Counting() && s.Doubt && (len(lists) != 0 || len(owned) != 0) {
+		_, err = g.restartSharingTx(ctx, tx)
+		return err
+	}
+	if s.Phase != SharingChildren && s.Phase != SharingOwners {
+		return nil
 	}
 	w := sharingTx{tx: tx, holders: g.holders, state: &s}
 	doubt := s.Doubt

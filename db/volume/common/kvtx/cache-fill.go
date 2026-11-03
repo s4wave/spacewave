@@ -149,7 +149,7 @@ func (v *Volume) prepareCacheFills(ctx context.Context, owner string, fills []*c
 			fill.ref, fill.existed = ref, existed
 		}
 		return nil
-	})
+	}, nil)
 
 	// Count the blocks they stored, or the refusal.
 	if err == nil {
