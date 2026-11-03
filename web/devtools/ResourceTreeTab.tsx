@@ -76,7 +76,9 @@ const stylexStyles = stylex.create({
 })
 
 // ResourceTreeTab displays resources in a hierarchical tree view.
-export function ResourceTreeTab() {
+export function ResourceTreeTab({
+  sx,
+}: { sx?: stylex.StyleXStyles; className?: never } = {}) {
   const devtools = useResourceDevToolsContext()
   const resources = useTrackedResources()
   const namespace = useStateNamespace(['devtools', 'resources', 'tree'])
@@ -118,7 +120,7 @@ export function ResourceTreeTab() {
   const resourceCount = resources.size
 
   return (
-    <div sx={stylexStyles.rule1}>
+    <div sx={[stylexStyles.rule1, sx]}>
       {/* Section header */}
       <div sx={[stylexStyles.rule2]}>
         <span sx={stylexStyles2.rule1}>Resources</span>

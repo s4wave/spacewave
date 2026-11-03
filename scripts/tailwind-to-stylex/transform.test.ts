@@ -915,14 +915,52 @@ void invalidNativeDelegate;
       // Compare default and hovered controls in both engines at every accepted size.
       const manifest = {
         states: [
-          ...['default', 'hovered', 'forge', 'forge-rows'].map((mode) => ({
+          ...[
+            'default',
+            'hovered',
+            'forge',
+            'forge-rows',
+            'hdr',
+            'hdr-glow',
+            'hdr-flash',
+            'shell',
+            'shell-coarse',
+            'unixfs-row',
+            'unixfs-selected',
+          ].map((mode) => ({
             id: `dividers-${mode}`,
+            hasTouch: mode === 'shell-coarse',
             path: `/?dividers=${mode}`,
             ready: async (page: import('playwright').Page) => {
               await page.locator('#divider-fixtures').waitFor({ timeout: 5000 })
               await page.evaluate(() => document.fonts.ready)
             },
             setup: async (page: import('playwright').Page) => {
+              if (mode.startsWith('unixfs')) {
+                const row = page
+                  .getByRole('button')
+                  .filter({ has: page.getByText('documents', { exact: true }) })
+                  .first()
+                if (mode === 'unixfs-selected')
+                  await row.click({ timeout: 5000 })
+                await row.evaluate((node) =>
+                  node.scrollIntoView({ block: 'center', behavior: 'instant' }),
+                )
+              }
+              if (mode === 'hdr-glow')
+                await page
+                  .getByText('Hover me (window glow)', { exact: true })
+                  .hover({ timeout: 5000 })
+              if (mode === 'hdr-flash') {
+                const button = page.getByRole('button', {
+                  name: 'SUCCESS',
+                  exact: true,
+                })
+                await button.click({ timeout: 5000 })
+                await button.evaluate((node) =>
+                  node.scrollIntoView({ block: 'center', behavior: 'instant' }),
+                )
+              }
               if (mode === 'hovered')
                 await page
                   .getByText('task/first', { exact: true })
@@ -1770,6 +1808,13 @@ void invalidNativeDelegate;
             'dividers-hovered',
             'dividers-forge',
             'dividers-forge-rows',
+            'dividers-hdr',
+            'dividers-hdr-glow',
+            'dividers-hdr-flash',
+            'dividers-shell',
+            'dividers-shell-coarse',
+            'dividers-unixfs-row',
+            'dividers-unixfs-selected',
           ],
         },
         {

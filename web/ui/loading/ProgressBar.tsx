@@ -98,11 +98,16 @@ interface ProgressBarProps {
 // ProgressBar renders a slim progress track with an optional right-side label.
 // Determinate mode shows percent or a rate label; indeterminate mode runs the
 // progress-indeterminate keyframe.
-export function ProgressBar({ value, indeterminate, rate }: ProgressBarProps) {
+export function ProgressBar({
+  sx,
+  value,
+  indeterminate,
+  rate,
+}: ProgressBarProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const pct =
     value === undefined ? 0 : Math.max(0, Math.min(100, Math.round(value)))
   return (
-    <div sx={styles.root}>
+    <div sx={[styles.root, sx]}>
       <div sx={styles.track}>
         {indeterminate ? (
           <div sx={styles.indeterminate} />

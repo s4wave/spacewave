@@ -2,7 +2,6 @@
 import { useCallback } from 'react'
 import { LuArrowLeft } from '@s4wave/web/images/icons.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import * as stylex from '@stylexjs/stylex'
 import {
@@ -13,6 +12,86 @@ import {
   motion as themeMotion,
   radii as themeRadii,
 } from '../style/tokens.stylex.js'
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    width: `calc(${themeLayout['--spacing']} * 16)`,
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-white']} 10%, transparent)`,
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule3: {
+    borderRadius: '.25rem',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-red-500']} 20%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-red-400'],
+  },
+  rule4: {
+    borderRadius: '.25rem',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-green-500']} 20%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: '10px',
+    lineHeight: 1.5,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-green-400'],
+  },
+  rule5: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 24)`,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: themeColors['--color-window-border'],
+    backgroundColor: themeColors['--color-background-primary'],
+  },
+  rule6: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 24)`,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: themeColors['--color-ui-outline'],
+    backgroundColor: themeColors['--color-background-secondary'],
+  },
+  rule7: {
+    cursor: 'pointer',
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-white']} 10%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-bold)',
+    fontWeight: 'var(--font-weight-bold)',
+  },
+})
 
 const stylexStyles3 = stylex.create({
   rule1: {
@@ -463,25 +542,94 @@ const stylexStyles = stylex.create({
   },
 })
 
+// hdrStyles keeps display capability and transient feedback at their actual DOM owners.
+const hdrStyles = stylex.create({
+  swatch: { backgroundColor: 'var(--hdr-swatch-color)' },
+  windowGlow: {
+    transitionProperty: {
+      default: null,
+      '@media (dynamic-range: high)': 'box-shadow, border-color',
+    },
+    transitionDuration: {
+      default: null,
+      '@media (dynamic-range: high)': '0.15s',
+    },
+    transitionTimingFunction: {
+      default: null,
+      '@media (dynamic-range: high)': 'ease',
+    },
+    dynamicRangeLimit: {
+      default: null,
+      '@media (dynamic-range: high)': { default: null, ':hover': 'no-limit' },
+    },
+    boxShadow: {
+      default: null,
+      '@media (dynamic-range: high)': {
+        default: null,
+        ':hover': '0 0 6px 1px var(--hdr-glow-active-shadow)',
+      },
+    },
+  },
+  status: {
+    color: 'var(--hdr-status-color)',
+    dynamicRangeLimit: {
+      default: null,
+      '@media (dynamic-range: high)': 'no-limit',
+    },
+    animationName: {
+      default: null,
+      '@media (dynamic-range: high)': {
+        default: null,
+        ':is([data-status-changed])': 'hdr-flash',
+      },
+    },
+    animationDuration: {
+      default: null,
+      '@media (dynamic-range: high)': {
+        default: null,
+        ':is([data-status-changed])': '200ms',
+      },
+    },
+    animationTimingFunction: {
+      default: null,
+      '@media (dynamic-range: high)': {
+        default: null,
+        ':is([data-status-changed])': 'ease-out',
+      },
+    },
+  },
+  cap0no: {
+    display: { default: 'inline', '@media (color-gamut: p3)': 'none' },
+  },
+  cap0yes: {
+    display: { default: 'none', '@media (color-gamut: p3)': 'inline' },
+  },
+  cap1no: {
+    display: { default: 'inline', '@media (color-gamut: rec2020)': 'none' },
+  },
+  cap1yes: {
+    display: { default: 'none', '@media (color-gamut: rec2020)': 'inline' },
+  },
+  cap2no: {
+    display: { default: 'inline', '@media (dynamic-range: high)': 'none' },
+  },
+  cap2yes: {
+    display: { default: 'none', '@media (dynamic-range: high)': 'inline' },
+  },
+  cap3no: {
+    display: { default: 'inline', '@media (dynamic-range: standard)': 'none' },
+  },
+  cap3yes: {
+    display: { default: 'none', '@media (dynamic-range: standard)': 'inline' },
+  },
+})
+
 // Swatch renders a color sample with its token name.
-function Swatch({
-  label,
-  className,
-  color,
-}: {
-  label: string
-  className?: string
-  color: string
-}) {
+function Swatch({ label, color }: { label: string; color: string }) {
   return (
     <div sx={stylexStyles.rule1}>
       <div
-        className={
-          /* TODO(stylex): global or unknown class: hdr-swatch-color */ cn(
-            'hdr-swatch-color h-10 w-16 rounded border border-white/10',
-            className,
-          )
-        }
+        sx={[stylexStyles4.rule1, hdrStyles.swatch]}
         style={{ '--hdr-swatch-color': color }}
       />
       <span sx={stylexStyles.rule2}>{label}</span>
@@ -577,14 +725,20 @@ function Section({
   )
 }
 
-export function HDRDebug() {
+// HDRDebug renders the display capability and color comparison laboratory.
+export function HDRDebug({
+  sx,
+}: {
+  sx?: stylex.StyleXStyles
+  className?: never
+}) {
   const navigate = useNavigate()
   const goBack = useCallback(() => {
     navigate({ path: '/' })
   }, [navigate])
 
   return (
-    <div sx={stylexStyles.rule11}>
+    <div sx={[stylexStyles.rule11, sx]}>
       <div sx={stylexStyles.rule12}>
         <button type="button" onClick={goBack} sx={stylexStyles.rule13}>
           <LuArrowLeft sx={stylexStyles.rule14} />
@@ -601,98 +755,34 @@ export function HDRDebug() {
           {/* === 1. Display Capability Detection === */}
           <Section title="1. Display Capabilities">
             <div sx={stylexStyles.rule18}>
-              <div
-                className={
-                  /* TODO(stylex): global or unknown class: hdr-debug-gamut-p3 */ 'hdr-debug-gamut-p3 flex items-center gap-2'
-                }
-              >
+              <div sx={stylexStyles4.rule2}>
                 <span sx={stylexStyles3.rule1}>Wide Gamut (P3)</span>
-                <span
-                  className={
-                    /* TODO(stylex): global or unknown class: cap-no */ 'cap-no rounded bg-red-500/20 px-2 py-0.5 text-xs font-semibold text-red-400'
-                  }
-                >
-                  NO
-                </span>
-                <span
-                  className={
-                    /* TODO(stylex): global or unknown class: cap-yes */ 'cap-yes micro-ten hidden rounded bg-green-500/20 px-2 py-0.5 font-semibold text-green-400'
-                  }
-                >
-                  YES
-                </span>
+                <span sx={[stylexStyles4.rule3, hdrStyles.cap0no]}>NO</span>
+                <span sx={[stylexStyles4.rule4, hdrStyles.cap0yes]}>YES</span>
                 <span sx={stylexStyles.rule6}>@media (color-gamut: p3)</span>
               </div>
-              <div
-                className={
-                  /* TODO(stylex): global or unknown class: hdr-debug-gamut-rec2020 */ 'hdr-debug-gamut-rec2020 flex items-center gap-2'
-                }
-              >
+              <div sx={stylexStyles4.rule2}>
                 <span sx={stylexStyles3.rule1}>
                   Ultra Wide Gamut (Rec.2020)
                 </span>
-                <span
-                  className={
-                    /* TODO(stylex): global or unknown class: cap-no */ 'cap-no rounded bg-red-500/20 px-2 py-0.5 text-xs font-semibold text-red-400'
-                  }
-                >
-                  NO
-                </span>
-                <span
-                  className={
-                    /* TODO(stylex): global or unknown class: cap-yes */ 'cap-yes micro-ten hidden rounded bg-green-500/20 px-2 py-0.5 font-semibold text-green-400'
-                  }
-                >
-                  YES
-                </span>
+                <span sx={[stylexStyles4.rule3, hdrStyles.cap1no]}>NO</span>
+                <span sx={[stylexStyles4.rule4, hdrStyles.cap1yes]}>YES</span>
                 <span sx={stylexStyles.rule6}>
                   @media (color-gamut: rec2020)
                 </span>
               </div>
-              <div
-                className={
-                  /* TODO(stylex): global or unknown class: hdr-debug-dynamic-range */ 'hdr-debug-dynamic-range flex items-center gap-2'
-                }
-              >
+              <div sx={stylexStyles4.rule2}>
                 <span sx={stylexStyles3.rule1}>HDR Dynamic Range</span>
-                <span
-                  className={
-                    /* TODO(stylex): global or unknown class: cap-no */ 'cap-no rounded bg-red-500/20 px-2 py-0.5 text-xs font-semibold text-red-400'
-                  }
-                >
-                  NO
-                </span>
-                <span
-                  className={
-                    /* TODO(stylex): global or unknown class: cap-yes */ 'cap-yes micro-ten hidden rounded bg-green-500/20 px-2 py-0.5 font-semibold text-green-400'
-                  }
-                >
-                  YES
-                </span>
+                <span sx={[stylexStyles4.rule3, hdrStyles.cap2no]}>NO</span>
+                <span sx={[stylexStyles4.rule4, hdrStyles.cap2yes]}>YES</span>
                 <span sx={stylexStyles.rule6}>
                   @media (dynamic-range: high)
                 </span>
               </div>
-              <div
-                className={
-                  /* TODO(stylex): global or unknown class: hdr-debug-dynamic-range-sdr */ 'hdr-debug-dynamic-range-sdr flex items-center gap-2'
-                }
-              >
+              <div sx={stylexStyles4.rule2}>
                 <span sx={stylexStyles3.rule1}>SDR Dynamic Range</span>
-                <span
-                  className={
-                    /* TODO(stylex): global or unknown class: cap-no */ 'cap-no rounded bg-red-500/20 px-2 py-0.5 text-xs font-semibold text-red-400'
-                  }
-                >
-                  NO
-                </span>
-                <span
-                  className={
-                    /* TODO(stylex): global or unknown class: cap-yes */ 'cap-yes micro-ten hidden rounded bg-green-500/20 px-2 py-0.5 font-semibold text-green-400'
-                  }
-                >
-                  YES
-                </span>
+                <span sx={[stylexStyles4.rule3, hdrStyles.cap3no]}>NO</span>
+                <span sx={[stylexStyles4.rule4, hdrStyles.cap3yes]}>YES</span>
                 <span sx={stylexStyles.rule6}>
                   @media (dynamic-range: standard)
                 </span>
@@ -1132,18 +1222,10 @@ export function HDRDebug() {
               displays, the hdr-window-glow class has no effect.
             </p>
             <div sx={stylexStyles.rule23}>
-              <div
-                className={
-                  /* TODO(stylex): global or unknown class: hdr-window-glow */ 'hdr-window-glow border-window-border bg-background-primary flex h-24 flex-1 items-center justify-center rounded-lg border'
-                }
-              >
+              <div sx={[stylexStyles4.rule5, hdrStyles.windowGlow]}>
                 <span sx={stylexStyles3.rule1}>Hover me (window glow)</span>
               </div>
-              <div
-                className={
-                  /* TODO(stylex): global or unknown class: hdr-window-glow */ 'hdr-window-glow border-ui-outline bg-background-secondary flex h-24 flex-1 items-center justify-center rounded-lg border'
-                }
-              >
+              <div sx={[stylexStyles4.rule6, hdrStyles.windowGlow]}>
                 <span sx={stylexStyles3.rule1}>Hover me (outline glow)</span>
               </div>
               <div sx={stylexStyles.rule29}>
@@ -1195,9 +1277,7 @@ function StatusFlashDemoInner() {
         <button
           type="button"
           key={status}
-          className={
-            /* TODO(stylex): global or unknown class: hdr-status-color */ 'hdr-status-color hdr-status-flash cursor-pointer rounded border border-white/10 px-3 py-2 font-mono text-xs font-bold'
-          }
+          sx={[stylexStyles4.rule7, hdrStyles.status]}
           style={{ '--hdr-status-color': statusColors[status] }}
           onClick={(e) => {
             const el = e.currentTarget

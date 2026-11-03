@@ -117,7 +117,10 @@ interface StateDetailsPanelProps {
 }
 
 // StateDetailsPanel displays detailed information about a selected state atom.
-export function StateDetailsPanel({ entry }: StateDetailsPanelProps) {
+export function StateDetailsPanel({
+  sx,
+  entry,
+}: StateDetailsPanelProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const devtools = useStateDevToolsContext()
   const selectedPath = useSelectedStatePath()
   const value = useStateInspectorValue(entry)
@@ -140,7 +143,7 @@ export function StateDetailsPanel({ entry }: StateDetailsPanelProps) {
     selectedPath.length > 0 ? selectedPath.join('.') : '(root)'
 
   return (
-    <div sx={[stylexStyles.rule1]} data-testid="state-details-panel">
+    <div sx={[[stylexStyles.rule1], sx]} data-testid="state-details-panel">
       <div sx={stylexStyles.rule2}>
         <span sx={stylexStyles2.rule1}>{entry.label}</span>
         <button type="button" onClick={handleClose} sx={stylexStyles.rule3}>

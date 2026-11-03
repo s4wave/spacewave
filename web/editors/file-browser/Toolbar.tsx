@@ -309,6 +309,7 @@ function ToolbarActions({
 
 /** Toolbar keeps the file path and primary action visible as its width shrinks. */
 export function Toolbar({
+  sx,
   currentPath,
   onPathChange,
   onNavigate,
@@ -325,7 +326,7 @@ export function Toolbar({
   onPathTargetDrop,
   height,
   hideNav,
-}: ToolbarProps) {
+}: ToolbarProps & { sx?: stylex.StyleXStyles; className?: never }) {
   // Keep compact search activation beside the measured toolbar layout.
   const { collapseLevel, toolbarRef } = useCollapseLevel()
   const [searchActive, setSearchActive] = useState(false)
@@ -367,7 +368,7 @@ export function Toolbar({
       ref={toolbarRef}
       variant="compact"
       height={height}
-      sx={stylexStyles.header}
+      sx={[stylexStyles.header, sx]}
     >
       {!hideNav && wide && (
         <ToolbarNav

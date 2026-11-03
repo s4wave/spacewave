@@ -1,3 +1,4 @@
+import { forgeControlStyles } from '@s4wave/web/style/forge-controls.stylex.js'
 /* eslint-disable react-doctor/no-giant-component */
 import { useCallback, useMemo, useState } from 'react'
 import {
@@ -405,6 +406,7 @@ export function ForgeDashboardViewer({
                   execution in this session.
                 </p>
                 <button
+                  sx={forgeControlStyles.required}
                   type="button"
                   onClick={() => {
                     void handleStartWorkers()

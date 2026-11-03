@@ -1,3 +1,4 @@
+import { playwright } from '@vitest/browser-playwright'
 import { defineConfig } from 'vitest/config'
 import base from './vitest.browser.config.js'
 
@@ -27,11 +28,23 @@ export default defineConfig({
     include: [
       'web/style/stylex-pilots.e2e.test.tsx',
       'web/ui/FloatingWindow.e2e.test.tsx',
+      'web/forge/ForgeViewerShell.e2e.test.tsx',
     ],
     browser: {
       ...base.test.browser,
       connectTimeout: 30000,
-      instances: [{ browser: 'chromium' }, { browser: 'webkit' }],
+      instances: [
+        { browser: 'chromium' },
+        { browser: 'webkit' },
+        ...(['chromium', 'webkit'] as const).map((browser) => ({
+          browser,
+          name: browser + '-touch',
+          include: ['web/forge/ForgeViewerShell.e2e.test.tsx'],
+          provider: playwright({
+            contextOptions: { hasTouch: true, colorScheme: 'dark' },
+          }),
+        })),
+      ],
     },
   },
 })

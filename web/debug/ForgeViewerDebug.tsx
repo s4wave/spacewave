@@ -957,14 +957,16 @@ const stylexStyles = stylex.create({
 // surfaces (Task, Job, Pass, Worker, Cluster, Execution, Dashboard). Each
 // section shows the current production look first, then candidate variants
 // aligned with guides/alpha-ui-design-system.org.
-export function ForgeViewerDebug() {
+export function ForgeViewerDebug({
+  sx,
+}: { sx?: stylex.StyleXStyles; className?: never } = {}) {
   const navigate = useNavigate()
   const goBack = useCallback(() => {
     navigate({ path: '/' })
   }, [navigate])
 
   return (
-    <div sx={stylexStyles.rule1}>
+    <div sx={[stylexStyles.rule1, sx]}>
       <div sx={stylexStyles.rule2}>
         <button
           type="button"
@@ -978,11 +980,7 @@ export function ForgeViewerDebug() {
       </div>
 
       <div sx={stylexStyles.rule6}>
-        <div
-          sx={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-6 */ stylexStyles4.rule1
-          }
-        >
+        <div sx={stylexStyles4.rule1}>
           <Intro sx={childSpacing.s6} />
           <StateBadgeSection sx={childSpacing.s6} />
           <EntityRowSection sx={childSpacing.s6} />
@@ -1011,11 +1009,7 @@ function Intro({ sx }: { sx?: stylex.StyleXStyles } = {}) {
         from the modern token set in guides/alpha-ui-design-system.org.
       </p>
       <p sx={stylexStyles.rule10}>Decisions live in production code:</p>
-      <ul
-        sx={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-0.5 */ stylexStyles4.rule2
-        }
-      >
+      <ul sx={stylexStyles4.rule2}>
         <li sx={childSpacing.s0_5}>
           State badge: B (tinted pill) is default, C (dot + label) is the list
           variant via prop.
@@ -1050,11 +1044,7 @@ interface SectionProps {
 
 function Section({ title, description, children, sx }: SectionProps) {
   return (
-    <section
-      sx={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ sx
-      }
-    >
+    <section sx={sx}>
       <div sx={childSpacing.s3}>
         <h2 sx={stylexStyles.rule5}>{title}</h2>
         <p sx={stylexStyles.rule11}>{description}</p>
@@ -1659,11 +1649,7 @@ function ViewerShellSection({ sx }: { sx?: stylex.StyleXStyles } = {}) {
           ))}
         </div>
 
-        <div
-          sx={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ stylexStyles4.rule4
-          }
-        >
+        <div sx={stylexStyles4.rule4}>
           {tab === 0 && (
             <>
               <div sx={[stylexStyles.rule35, childSpacing.s3]}>
@@ -1697,11 +1683,7 @@ function ViewerShellSection({ sx }: { sx?: stylex.StyleXStyles } = {}) {
             </>
           )}
           {tab === 1 && (
-            <div
-              sx={
-                /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ childSpacing.s3
-              }
-            >
+            <div sx={childSpacing.s3}>
               {ROW_SAMPLES.map((s) => (
                 <GlassRow sx={childSpacing.s2} key={s.name} sample={s} />
               ))}

@@ -122,7 +122,9 @@ const stylexStyles = stylex.create({
 })
 
 // ResourceErrorsTab displays a list of resources with errors.
-export function ResourceErrorsTab() {
+export function ResourceErrorsTab({
+  sx,
+}: { sx?: stylex.StyleXStyles; className?: never } = {}) {
   const resources = useTrackedResources()
 
   const errorResources = useMemo(() => {
@@ -131,7 +133,7 @@ export function ResourceErrorsTab() {
 
   if (errorResources.length === 0) {
     return (
-      <div sx={stylexStyles.rule1}>
+      <div sx={[stylexStyles.rule1, sx]}>
         <RiErrorWarningLine sx={stylexStyles.rule2} />
         <span>No errors</span>
       </div>
@@ -139,7 +141,7 @@ export function ResourceErrorsTab() {
   }
 
   return (
-    <div sx={stylexStyles.rule3}>
+    <div sx={[stylexStyles.rule3, sx]}>
       {errorResources.map((resource) => (
         <ErrorRow key={resource.id} resource={resource} />
       ))}

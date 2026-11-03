@@ -16,20 +16,21 @@ const stylexStyles = stylex.create({
 })
 
 export function BottomBarBreadcrumbSeparator({
+  sx,
   onClick,
 }: {
   onClick?: () => void
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   if (onClick) {
     return (
-      <BottomBarItem onClick={onClick} sx={stylexStyles.rule1}>
+      <BottomBarItem onClick={onClick} sx={[stylexStyles.rule1, sx]}>
         <RxChevronRight aria-hidden="true" />
       </BottomBarItem>
     )
   }
 
   return (
-    <div sx={stylexStyles.rule2}>
+    <div sx={[stylexStyles.rule2, sx]}>
       <RxChevronRight sx={stylexStyles.rule3} aria-hidden="true" />
     </div>
   )

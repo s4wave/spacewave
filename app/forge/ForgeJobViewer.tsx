@@ -1,3 +1,4 @@
+import { forgeControlStyles } from '@s4wave/web/style/forge-controls.stylex.js'
 /* eslint-disable react-doctor/no-giant-component */
 import { useCallback, useMemo, useState } from 'react'
 import {
@@ -327,6 +328,7 @@ export function ForgeJobViewer({
             <div className="flex items-center justify-between gap-2">
               <div className="bg-foreground/5 inline-flex gap-1 rounded-md p-1">
                 <button
+                  sx={forgeControlStyles.required}
                   type="button"
                   onClick={() => setTasksView('list')}
                   className={cn(
@@ -340,6 +342,7 @@ export function ForgeJobViewer({
                   List
                 </button>
                 <button
+                  sx={forgeControlStyles.required}
                   type="button"
                   onClick={() => setTasksView('dag')}
                   className={cn(

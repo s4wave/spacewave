@@ -51,11 +51,12 @@ export interface FlexTabNameInputProps {
 // copy that focused would blur the visible one, which saves and ends the
 // rename the moment it starts.
 export function FlexTabNameInput({
+  sx,
   name,
   label,
   onSave,
   onCancel,
-}: FlexTabNameInputProps) {
+}: FlexTabNameInputProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -84,7 +85,7 @@ export function FlexTabNameInput({
     <input
       ref={inputRef}
       aria-label={label}
-      sx={[stylexStyles.rule1]}
+      sx={[[stylexStyles.rule1], sx]}
       defaultValue={name}
       onBlur={(event) => onSave(event.currentTarget.value.trim())}
       onKeyDown={handleKeyDown}

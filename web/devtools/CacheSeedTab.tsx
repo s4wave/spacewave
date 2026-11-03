@@ -104,7 +104,10 @@ export interface CacheSeedTabProps {
 // renders them as a rolling list. Only populates when the provider binary is
 // built with the =alphadebug= build tag; otherwise the stream returns an
 // unknown-service error which is surfaced inline.
-export function CacheSeedTab({ rootResource }: CacheSeedTabProps) {
+export function CacheSeedTab({
+  sx,
+  rootResource,
+}: CacheSeedTabProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const root = rootResource.value
   const [entries, setEntries] = useState<CacheSeedEntry[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -151,7 +154,7 @@ export function CacheSeedTab({ rootResource }: CacheSeedTabProps) {
 
   if (error) {
     return (
-      <div sx={stylexStyles.rule1}>
+      <div sx={[stylexStyles.rule1, sx]}>
         <div sx={stylexStyles.rule2}>
           <LuRadar sx={stylexStyles.rule3} />
           <span>Cache-seed inspector unavailable.</span>
@@ -165,11 +168,13 @@ export function CacheSeedTab({ rootResource }: CacheSeedTabProps) {
   }
 
   if (entries.length === 0) {
-    return <div sx={stylexStyles.rule5}>Waiting for cache-seed entries…</div>
+    return (
+      <div sx={[stylexStyles.rule5, sx]}>Waiting for cache-seed entries…</div>
+    )
   }
 
   return (
-    <div sx={stylexStyles.rule6}>
+    <div sx={[stylexStyles.rule6, sx]}>
       {entries.map((entry) => (
         <div
           key={`${entry.timestampMs}-${entry.reason}-${entry.path}`}

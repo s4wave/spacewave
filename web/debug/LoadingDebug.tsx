@@ -558,14 +558,16 @@ const stylexStyles = stylex.create({
 // LoadingDebug renders candidate "unified loading" primitives in one gallery.
 // All primitives are inline in this file; none are extracted to web/ui/ yet.
 // Once the visual treatment is approved, primitives move to web/ui/loading/.
-export function LoadingDebug() {
+export function LoadingDebug({
+  sx,
+}: { sx?: stylex.StyleXStyles; className?: never } = {}) {
   const navigate = useNavigate()
   const goBack = useCallback(() => {
     navigate({ path: '/' })
   }, [navigate])
 
   return (
-    <div sx={stylexStyles.rule1}>
+    <div sx={[stylexStyles.rule1, sx]}>
       <div sx={stylexStyles.rule2}>
         <button
           type="button"
@@ -579,11 +581,7 @@ export function LoadingDebug() {
       </div>
 
       <div sx={stylexStyles.rule6}>
-        <div
-          sx={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-6 */ stylexStyles3.rule1
-          }
-        >
+        <div sx={stylexStyles3.rule1}>
           <Intro sx={childSpacing.s6} />
           <SpinnerSection sx={childSpacing.s6} />
           <ProgressBarSection sx={childSpacing.s6} />
@@ -629,11 +627,7 @@ interface SectionProps {
 
 function Section({ title, description, children, sx }: SectionProps) {
   return (
-    <section
-      sx={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ sx
-      }
-    >
+    <section sx={sx}>
       <div sx={childSpacing.s3}>
         <h2 sx={stylexStyles.rule5}>{title}</h2>
         <p sx={stylexStyles.rule10}>{description}</p>
@@ -1081,11 +1075,7 @@ function LoadingScreenSection({ sx }: { sx?: stylex.StyleXStyles } = {}) {
           <div sx={stylexStyles.rule50}>
             <Spinner size="xl" variant="brand" />
           </div>
-          <div
-            sx={
-              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1 */ stylexStyles3.rule2
-            }
-          >
+          <div sx={stylexStyles3.rule2}>
             <div sx={[stylexStyles.rule51, childSpacing.s1]}>
               Loading Spacewave
             </div>

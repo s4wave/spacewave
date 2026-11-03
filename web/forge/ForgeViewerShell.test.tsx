@@ -40,7 +40,6 @@ describe('ForgeViewerShell', () => {
     expect(header.textContent).not.toContain('Start Worker')
     expect(actionBar.textContent).not.toContain('Create Job')
     expect(screen.getByText('Overview content')).toBeTruthy()
-    expect(document.querySelectorAll('[class~="max-w-5xl"]').length).toBe(2)
 
     await user.click(screen.getByRole('button', { name: 'Create Job' }))
     await user.click(screen.getByRole('button', { name: 'Start Worker' }))

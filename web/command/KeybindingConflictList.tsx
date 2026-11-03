@@ -75,11 +75,7 @@ export function KeybindingConflictList({
   return (
     <div sx={[stylexStyles.rule1, sx]}>
       <div sx={stylexStyles.rule2}>Conflict</div>
-      <div
-        sx={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1 */ stylexStyles2.rule1
-        }
-      >
+      <div sx={stylexStyles2.rule1}>
         {conflicts.map((conflict) => (
           <div
             key={`${conflict.context}:${conflict.kind}:${conflict.key}`}

@@ -560,6 +560,7 @@ export interface ObjectViewerDetailsProps {
 
 // ObjectViewerDetails displays metadata and viewer selection for an object.
 export function ObjectViewerDetails({
+  sx,
   objectKey,
   typeID,
   rootRef,
@@ -570,7 +571,7 @@ export function ObjectViewerDetails({
   onComponentSelect,
   onCloseClick,
   onDeleteConfirm,
-}: ObjectViewerDetailsProps) {
+}: ObjectViewerDetailsProps & { sx?: stylex.StyleXStyles; className?: never }) {
   // Retain local disclosure and the pending viewer selection.
   const [technicalDetailsOpen, setTechnicalDetailsOpen] = useState(false)
   const [selectedComponentOverride, setSelectedComponentOverride] = useState<
@@ -595,7 +596,7 @@ export function ObjectViewerDetails({
   )
 
   return (
-    <div sx={stylexStyles.rule1}>
+    <div sx={[stylexStyles.rule1, sx]}>
       <div sx={stylexStyles.rule2}>
         <div sx={stylexStyles.rule3}>
           <RxCube sx={stylexStyles.rule4} />
@@ -618,11 +619,7 @@ export function ObjectViewerDetails({
       <div sx={stylexStyles.rule8}>
         <div sx={stylexStyles.rule9}>
           <div sx={stylexStyles.rule10}>
-            <div
-              sx={
-                /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ stylexStyles4.rule1
-              }
-            >
+            <div sx={stylexStyles4.rule1}>
               <section sx={childSpacing.s3}>
                 <div sx={stylexStyles.rule11}>
                   <h2 sx={stylexStyles.rule12}>
@@ -673,11 +670,7 @@ export function ObjectViewerDetails({
               </CollapsibleSection>
             </div>
 
-            <div
-              sx={
-                /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ stylexStyles4.rule1
-              }
-            >
+            <div sx={stylexStyles4.rule1}>
               {exportUrl && (
                 <ExportDataSection sx={childSpacing.s3} exportUrl={exportUrl} />
               )}

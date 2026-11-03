@@ -678,7 +678,9 @@ function SwatchRow({ scheme }: { scheme: ColorScheme }) {
 }
 
 // LayoutColorsDebug renders the Monokai Spectrum comparison page.
-export function LayoutColorsDebug() {
+export function LayoutColorsDebug({
+  sx,
+}: { sx?: stylex.StyleXStyles; className?: never } = {}) {
   // Return to the application through the active router.
   const navigate = useNavigate()
   const goBack = useCallback(() => {
@@ -696,7 +698,7 @@ export function LayoutColorsDebug() {
 
   // Render the current scheme and its live layout preview.
   return (
-    <div sx={stylexStyles.rule14}>
+    <div sx={[stylexStyles.rule14, sx]}>
       <div sx={stylexStyles.rule15}>
         <button type="button" onClick={goBack} sx={stylexStyles.rule16}>
           <LuArrowLeft sx={stylexStyles.rule17} />
