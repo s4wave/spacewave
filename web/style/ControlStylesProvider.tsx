@@ -1,6 +1,14 @@
 import { createContext, use, type ReactNode } from 'react'
 import * as stylex from '@stylexjs/stylex'
 
+/** controlTargetStyles gives native controls the shared pointer and touch target floors. */
+export const controlTargetStyles = stylex.create({
+  minimum: {
+    minHeight: { default: '24px', '@media (pointer: coarse)': '44px' },
+    minWidth: { default: '24px', '@media (pointer: coarse)': '44px' },
+  },
+})
+
 const ControlStyleContext = createContext<string | undefined>(undefined)
 
 /** ControlStylesProvider carries compiled, DOM-gated rules to the controls that render their classes. */

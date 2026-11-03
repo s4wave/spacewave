@@ -1,3 +1,4 @@
+import { controlTargetStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import {
   type ReactNode,
   useCallback,
@@ -669,7 +670,7 @@ function FileEntryRow({
       <button
         type="button"
         aria-label={`More actions for ${entry.name || entry.id}`}
-        sx={stylexStyles2.rule6}
+        sx={[stylexStyles2.rule6, controlTargetStyles.minimum]}
         onClick={row.dotsClick}
         onDoubleClick={(e) => {
           e.stopPropagation()
