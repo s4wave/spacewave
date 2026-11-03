@@ -221,7 +221,11 @@ export function stylexCss(
     name: 'bldr-stylex-css',
     api: owner,
     enforce: 'pre',
-    config: () => ({ optimizeDeps: { exclude: ['@stylexjs/stylex'] } }),
+    config: () => ({
+      // Config-free renderers still consume the project's TypeScript source mappings.
+      resolve: { tsconfigPaths: true },
+      optimizeDeps: { exclude: ['@stylexjs/stylex'] },
+    }),
     configResolved(resolved) {
       config = resolved
       resolveTheme = resolved.createResolver()

@@ -16,7 +16,7 @@ import { stylexCss } from '../bldr/web/bundler/vite/stylex.js'
 // appSource changes both an extracted rule and its compiled class name.
 const appSource = (color: string) => `import React,{useState} from 'react';
 import * as stylex from '@stylexjs/stylex';
-import {metrics} from './tokens.stylex';
+import {metrics} from '@fixture/tokens.stylex.js';
 import {ImportedStyle} from './ImportedStyle';
 const styles=stylex.create({button:{color:'${color}',marginTop:metrics.space},balanced:{textWrap:'balance'},geometry:(z:number)=>({position:'absolute',zIndex:z,minHeight:{default:null,'@media (pointer: coarse)':'48px','@media (width < 40rem)':'48px'}})});
 export function App(){ const [count,setCount]=useState(0);return <><button sx={styles.button} onClick={()=>setCount(count+1)}>{count}<ImportedStyle/></button><div data-geometry className="theme-only" style={{left:31,width:47,height:53}} sx={styles.geometry(7)}/><div data-geometry sx={styles.geometry(8)} className="theme-only" style={{left:37,width:59,height:61}}/><aside className="theme-only">Theme</aside><div className="landing-finish"><p data-balanced sx={styles.balanced}>Balanced public copy</p><p data-pretty>Default public copy</p></div></> }`
@@ -33,6 +33,10 @@ test('native CSS ships in the manifest and updates without losing component stat
   await writeFile(
     join(root, 'main.tsx'),
     `import './theme-entry';import React from 'react';import {createRoot} from 'react-dom/client';import {App} from './App';createRoot(document.getElementById('root')!).render(<App/>);`,
+  )
+  await writeFile(
+    join(root, 'tsconfig.json'),
+    JSON.stringify({ compilerOptions: { paths: { '@fixture/*': ['./*'] } } }),
   )
   await writeFile(
     join(root, 'tokens.stylex.ts'),
