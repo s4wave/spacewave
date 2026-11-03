@@ -161,6 +161,17 @@ func (t *Tx) ApplyWorldOp(
 	return t.state.ApplyWorldOp(ctx, op, opSender)
 }
 
+// PrepareCommit folds the pending changes into the World tree without writing
+// a block. See WorldState.PrepareCommit.
+func (t *Tx) PrepareCommit(ctx context.Context) error {
+	unlock, err := t.rmtx.Lock(ctx, true)
+	if err != nil {
+		return err
+	}
+	defer unlock()
+	return t.state.PrepareCommit(ctx)
+}
+
 // CommitBlockTransaction implements Commit but additionally returns the updated BlockRef.
 // Commit commits the transaction to storage.
 // Can return an error to indicate tx failure.

@@ -551,15 +551,14 @@ func (t *WorldState) Discard() {
 	})
 }
 
-// Commit commits the current pending changes to the block cursor and updates
-// the WorldState with the new root.
-func (t *WorldState) Commit(ctx context.Context) error {
-	// Trace the commit.
-	ctx, task := trace.NewTask(ctx, "hydra/world-block/world-state/commit")
-	defer task.End()
-
-	// Commit needs a live write state. It does not discard the state, which
-	// stays usable after Commit.
+// PrepareCommit folds the pending changes into the World tree: it applies the
+// held graph writes, records the world changes in the log and stamps the
+// written objects. It reads every tree page the commit rewrites and writes no
+// block. Commit runs it first. A fork that prepared leaves the pages it read
+// in the block cache, so the Commit of a write on the same World finds them
+// in memory.
+func (t *WorldState) PrepareCommit(ctx context.Context) error {
+	// Prepare needs a live write state.
 	if !t.write {
 		return tx.ErrNotWrite
 	}
@@ -601,6 +600,20 @@ func (t *WorldState) Commit(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("object mod seqno: %w", err)
 	}
+	return nil
+}
+
+// Commit commits the current pending changes to the block cursor and updates
+// the WorldState with the new root.
+func (t *WorldState) Commit(ctx context.Context) error {
+	// Trace the commit.
+	ctx, task := trace.NewTask(ctx, "hydra/world-block/world-state/commit")
+	defer task.End()
+
+	// Fold the pending changes into the World tree.
+	if err := t.PrepareCommit(ctx); err != nil {
+		return err
+	}
 	if t.btx == nil {
 		t.modObjects = nil
 		return nil
@@ -608,7 +621,7 @@ func (t *WorldState) Commit(ctx context.Context) error {
 
 	// Write the dirty blocks and release the tree data. Write batches the
 	// volume's reference updates into one flush.
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/commit/block-write")
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/world-state/commit/block-write")
 	_, bcs, err := t.btx.Write(taskCtx, true)
 	subtask.End()
 	if err != nil {

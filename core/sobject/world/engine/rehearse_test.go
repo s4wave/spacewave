@@ -14,7 +14,8 @@ import (
 
 // TestRehearsalSkipsWriterLock checks that a rehearsal opens while a write
 // holds the writer lock, reads the newest World, accepts writes, and leaves
-// no trace: its Commit fails and neither the database nor the World sees it.
+// no trace: its Commit folds the object and the graph writes into the fork's
+// tree, fails, and neither the database nor the World sees any of it.
 func TestRehearsalSkipsWriterLock(t *testing.T) {
 	// Commit one object, then hold the writer lock with an open write.
 	ctx := t.Context()
@@ -45,8 +46,12 @@ func TestRehearsalSkipsWriterLock(t *testing.T) {
 		if err != nil {
 			return err
 		}
+		err = tx.SetGraphQuad(ctx, world.NewGraphQuadWithKeys("rehearse/scratch", "<rehearse-rel>", "rehearse/base", ""))
+		if err != nil {
+			return err
+		}
 
-		// Its Commit refuses.
+		// Its Commit applies the graph write to the fork, then refuses.
 		if err := tx.Commit(ctx); !errors.Is(err, sobject_world_engine.ErrRehearsalCommit) {
 			t.Fatalf("rehearsal commit = %v; want ErrRehearsalCommit", err)
 		}
@@ -73,6 +78,13 @@ func TestRehearsalSkipsWriterLock(t *testing.T) {
 	}
 	if !hasObject(t, ctx, read, "rehearse/held") {
 		t.Fatal("the held write's object is missing")
+	}
+	quads, err := read.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys("rehearse/scratch", "", "", ""), 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(quads) != 0 {
+		t.Fatalf("the rehearsal's graph write is visible: %v", quads)
 	}
 }
 

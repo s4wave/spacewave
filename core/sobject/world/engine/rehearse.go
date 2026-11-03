@@ -25,7 +25,9 @@ type RehearsalEngine interface {
 // writer lock. An operation applied to it reads every block its locked apply
 // will read, also after its first write, so the locked apply finds them in
 // memory or on the drive. Its writes stay in the fork's buffer and Discard
-// drops them; Commit returns ErrRehearsalCommit.
+// drops them. Commit reads the pages the locked commit of the writes would
+// read, applies the graph writes and the change log to the fork, then
+// discards it and returns ErrRehearsalCommit.
 func (e *soEngine) NewRehearsalTransaction(ctx context.Context) (world.Tx, error) {
 	// Fork the newest World with buffered writes.
 	if e.admitted == nil {
@@ -69,9 +71,17 @@ func (t *rehearsalTx) ApplyWorldOp(ctx context.Context, op world.Operation, send
 	return t.WorldState.ApplyWorldOp(ctx, op, sender)
 }
 
-// Commit refuses: a rehearsal only reads ahead of a locked write.
-func (t *rehearsalTx) Commit(context.Context) error {
-	t.Discard()
+// Commit rehearses the locked commit: it folds the fork's writes into the
+// World tree, which reads the tree pages the locked commit of the same writes
+// reads, then discards the fork without writing a block. It always returns
+// ErrRehearsalCommit, or the failure that stopped the rehearsal. The apply of
+// an operation reads the pages of the objects it changes, but the graph tree
+// takes its writes only here, and its pages are the cold ones.
+func (t *rehearsalTx) Commit(ctx context.Context) error {
+	defer t.Discard()
+	if err := t.btx.PrepareCommit(ctx); err != nil {
+		return err
+	}
 	return ErrRehearsalCommit
 }
 
