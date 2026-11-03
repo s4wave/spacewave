@@ -261,6 +261,7 @@ function keyboardShortcutAliasMatches(text: string, query: string): boolean {
 }
 
 function highlightSemanticTerms(text: string, terms: readonly string[]) {
+  // Build an escaped match pattern from the normalized semantic terms.
   const normalizedTerms = terms.flatMap(
     (term) => normalizeSearchText(term) || [],
   )
@@ -271,12 +272,14 @@ function highlightSemanticTerms(text: string, terms: readonly string[]) {
       .join('|'),
   )
 
+  // Retain unmatched text while tracking the next token boundary.
   const content: ReactNode[] = []
   const tokenPattern = /[A-Za-z0-9]+/g
   let lastIndex = 0
   let match: RegExpExecArray | null
   let highlighted = false
 
+  // Highlight each matching token without changing the original text.
   while ((match = tokenPattern.exec(text))) {
     const token = match[0]
     const normalizedToken = normalizeSearchText(token)
@@ -296,6 +299,7 @@ function highlightSemanticTerms(text: string, terms: readonly string[]) {
     highlighted = true
   }
 
+  // Return plain rendering when every token misses, or append the trailing text.
   if (!highlighted) return null
   if (lastIndex < text.length) {
     content.push(text.slice(lastIndex))
@@ -312,6 +316,7 @@ function commandMatchesQuery(
   bindingGraph: KeybindingGraph,
   query: string,
 ): boolean {
+  // Search the active command label and its displayed keyboard bindings.
   const normalizedQuery = normalizeSearchText(query)
   if (!normalizedQuery) return true
   const commandId = cmd.command?.commandId
@@ -328,9 +333,11 @@ function highlightQueryText(
   query: string,
   semanticTerms: readonly string[] = [],
 ) {
+  // Keep the original label when the query is empty.
   const trimmedQuery = query.trim()
   if (!trimmedQuery) return text
 
+  // Prefer one contiguous highlighted substring.
   const lowerText = text.toLowerCase()
   const lowerQuery = trimmedQuery.toLowerCase()
   const start = lowerText.indexOf(lowerQuery)
@@ -345,9 +352,11 @@ function highlightQueryText(
     ]
   }
 
+  // Use semantic aliases when the visible label lacks the literal query.
   const semanticHighlight = highlightSemanticTerms(text, semanticTerms)
   if (semanticHighlight) return semanticHighlight
 
+  // Fall back to ordered character matching across the visible label.
   const matched = new Set<number>()
   let queryIndex = 0
   for (let textIndex = 0; textIndex < text.length; textIndex++) {
@@ -437,10 +446,12 @@ function findActiveCommand(
 
 // groupCommands groups active commands by the first menu path segment.
 function groupCommands(commands: CommandState[]): GroupedCommands[] {
+  // Deduplicate active commands while retaining their menu-group order.
   const groups = new Map<string, CommandState[]>()
   const groupOrder = ['File', 'Edit', 'View', 'Tools', 'Help']
   const seen = new Set<string>()
 
+  // Place each active command into its first menu-path group.
   for (const cmd of commands) {
     if (!cmd.active) continue
     const commandId = cmd.command?.commandId
@@ -456,6 +467,7 @@ function groupCommands(commands: CommandState[]): GroupedCommands[] {
     list.push(cmd)
   }
 
+  // Emit standard menu groups first, followed by remaining groups.
   const result: GroupedCommands[] = []
   for (const name of groupOrder) {
     const list = groups.get(name)
@@ -488,6 +500,7 @@ function CommandPaletteItem({
   query: string
   onSelect: (commandId: string) => void
 }) {
+  // Resolve the enabled command label, bindings and search aliases.
   const commandId = cmd.command?.commandId
   if (!commandId) return null
   const enabled = isCommandEnabled(cmd)
@@ -504,7 +517,7 @@ function CommandPaletteItem({
       onSelect={() => enabled && onSelect(commandId)}
       disabled={!enabled}
       variant={enabled ? 'palette' : 'paletteDisabled'}
-      {...stylex.props(!enabled ? stylexStyles.rule3 : undefined)}
+      sx={!enabled ? stylexStyles.rule3 : undefined}
     >
       <span sx={stylexStyles.rule4}>
         <span sx={stylexStyles.rule5}>
@@ -604,20 +617,26 @@ function paletteResultSummary({
 // useCommandPaletteController owns palette mode, chord traversal, sub-item
 // loading, query projection, and command invocation.
 function useCommandPaletteController() {
+  // Subscribe to commands and retain the palette opening state.
   const [open, setOpen] = useState(false)
   const commands = useCommands()
   const invokeCommand = useInvokeCommand()
   const { getSubItems, registerOpenCommand } = useCommandContext()
 
+  // Retain sub-item loading and the current palette navigation state.
   const [subItemCommandId, setSubItemCommandId] = useState<string | null>(null)
   const [subItems, setSubItems] = useState<SubItem[]>([])
   const [subQuery, setSubQuery] = useState('')
   const [query, setQuery] = useState('')
+
+  // Retain chord traversal independently of the sub-item query.
   const [paletteMode, setPaletteMode] = useState<PaletteMode>('chord')
   const [chordPath, setChordPath] = useState<string[]>(['Leader'])
   const [chordNode, setChordNode] = useState<KeybindingSequenceNode | null>(
     null,
   )
+
+  // Retain request cancellation and the current command snapshot across callbacks.
   const abortRef = useRef<AbortController | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
   const commandsRef = useRef(commands)
@@ -639,6 +658,8 @@ function useCommandPaletteController() {
     () => (chordNode ? continuationsFromNode(chordNode) : []),
     [chordNode],
   )
+
+  // Filter menu groups only while the root palette accepts a text query.
   const filteredGrouped = useMemo(() => {
     if (subItemCommandId || paletteMode === 'chord' || !query.trim()) {
       return grouped
@@ -651,6 +672,7 @@ function useCommandPaletteController() {
     })
   }, [bindingGraph, grouped, paletteMode, query, subItemCommandId])
 
+  // Project visible groups from the active mode and query.
   const resetChord = useCallback(() => {
     setPaletteMode('chord')
     setQuery('')
@@ -658,10 +680,12 @@ function useCommandPaletteController() {
     setChordNode(rootChordNode)
   }, [rootChordNode])
 
+  // Return chord navigation to the current leader node.
   const focusFilter = useCallback(() => {
     window.queueMicrotask(() => inputRef.current?.focus())
   }, [])
 
+  // Focus filtering after the next rendered input is available.
   const enterFilterMode = useCallback(
     (nextQuery = '') => {
       setPaletteMode('filter')
@@ -671,7 +695,9 @@ function useCommandPaletteController() {
     [focusFilter],
   )
 
+  // Open the root palette after clearing any prior sub-item selection.
   const openMergedPalette = useCallback(() => {
+    // Clear sub-item navigation before opening the command root.
     setSubItemCommandId(null)
     setSubItems([])
     setSubQuery('')
@@ -679,10 +705,12 @@ function useCommandPaletteController() {
     setOpen(true)
   }, [resetChord])
 
+  // Keep command callbacks reading the latest watched command list.
   useEffect(() => {
     commandsRef.current = commands
   }, [commands])
 
+  // Register command-driven opening and its sub-item destination.
   useEffect(() => {
     return registerOpenCommand((commandId: string) => {
       const cmd = findActiveCommand(commandsRef.current, commandId)
@@ -697,6 +725,7 @@ function useCommandPaletteController() {
     })
   }, [openMergedPalette, registerOpenCommand])
 
+  // Register the global palette shortcut through the command owner.
   useCommand({
     commandId: 'spacewave.view.palette',
     label: 'Command Palette',
@@ -720,6 +749,7 @@ function useCommandPaletteController() {
     handler: openMergedPalette,
   })
 
+  // Clear transient palette state and abort sub-item loading on close.
   const handleOpenChange = useCallback((next: boolean) => {
     setOpen(next)
     if (!next) {
@@ -735,13 +765,17 @@ function useCommandPaletteController() {
     }
   }, [])
 
+  // Load the active sub-item query until it changes or unmounts.
   useEffect(() => {
+    // Leave the loader idle when the root command list is active.
     if (!subItemCommandId) return
 
+    // Cancel the previous sub-item query before starting its replacement.
     abortRef.current?.abort()
     const abort = new AbortController()
     abortRef.current = abort
 
+    // Publish results only while their request remains current.
     getSubItems(subItemCommandId, subQuery, abort.signal)
       .then((items) => {
         if (!abort.signal.aborted) {
@@ -755,6 +789,7 @@ function useCommandPaletteController() {
     }
   }, [subItemCommandId, subQuery, getSubItems])
 
+  // Select a command destination or invoke its terminal action.
   const handleSelect = useCallback(
     (commandId: string) => {
       const cmd = findActiveCommand(commands, commandId)
@@ -771,8 +806,10 @@ function useCommandPaletteController() {
     [commands, enterFilterMode, invokeCommand, handleOpenChange],
   )
 
+  // Follow a chord branch until it resolves to a command.
   const selectChordContinuation = useCallback(
     (continuation: ChordContinuation) => {
+      // Keep conflicting continuations open for explicit selection.
       if (continuation.conflict) {
         setChordNode(continuation.node)
         setChordPath((current) => [...current, continuation.key])
@@ -790,6 +827,7 @@ function useCommandPaletteController() {
     [handleOpenChange, invokeCommand],
   )
 
+  // Follow a sub-item navigation query or invoke the selected item.
   const handleSubItemSelect = useCallback(
     (subItemId: string) => {
       const nextQuery = getSubItemQuery(subItemId)
@@ -806,7 +844,9 @@ function useCommandPaletteController() {
     [focusFilter, subItemCommandId, invokeCommand, handleOpenChange],
   )
 
+  // Return from sub-items and cancel their outstanding request.
   const handleBack = useCallback(() => {
+    // Discard sub-item state before restoring the root chord.
     setSubItemCommandId(null)
     setSubItems([])
     setSubQuery('')
@@ -815,6 +855,7 @@ function useCommandPaletteController() {
     resetChord()
   }, [resetChord])
 
+  // Switch between text filtering and the empty-query chord view.
   const handlePaletteQueryChange = useCallback(
     (next: string) => {
       setQuery(next)
@@ -824,6 +865,7 @@ function useCommandPaletteController() {
     [resetChord],
   )
 
+  // Move back one chord segment while retaining the leader root.
   const stepChordBack = useCallback(() => {
     if (chordPath.length <= 1) return
     const nextPath = chordPath.slice(0, -1)
@@ -831,8 +873,10 @@ function useCommandPaletteController() {
     setChordNode(nodeForPath(rootChordNode, nextPath.slice(1)))
   }, [chordPath, rootChordNode])
 
+  // Route keyboard input according to the current palette mode.
   const handlePaletteKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>) => {
+      // Let the native input own edits while filter mode handles Escape.
       if (subItemCommandId) return
       if (paletteMode === 'filter') {
         if (event.key === 'Escape') {
@@ -849,6 +893,7 @@ function useCommandPaletteController() {
         return
       }
 
+      // Handle root chord navigation before interpreting printable keys.
       if (event.key === 'Escape') {
         event.preventDefault()
         if (chordPath.length <= 1) handleOpenChange(false)
@@ -867,6 +912,7 @@ function useCommandPaletteController() {
       }
       if (!isPrintableKey(event.nativeEvent)) return
 
+      // Resolve a printable key against the current chord node.
       const combo = comboFromKeyboardEvent(event.nativeEvent)
       const nextNode = chordNode?.children.get(combo)
       if (nextNode) {
@@ -897,6 +943,7 @@ function useCommandPaletteController() {
     ],
   )
 
+  // Project the visible input, placeholder and result count from palette state.
   const activeSubItemCommand = subItemCommandId
     ? findActiveCommand(commands, subItemCommandId)
     : undefined
@@ -990,7 +1037,7 @@ export function CommandPalette() {
                 : 'Filtering'}
           </span>
         </div>
-        <CommandList variant="palette" {...stylex.props(stylexStyles.rule11)}>
+        <CommandList variant="palette" sx={stylexStyles.rule11}>
           {subItemCommandId ? (
             <>
               <CommandEmpty>No items found.</CommandEmpty>

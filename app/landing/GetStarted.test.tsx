@@ -1,4 +1,5 @@
 import React from 'react'
+import * as stylex from '@stylexjs/stylex'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen } from '@testing-library/react'
 import { renderToString } from 'react-dom/server'
@@ -8,6 +9,10 @@ import {
   setExperimentalCreatorsEnabled,
 } from '../creator-visibility.js'
 import GetStarted from './GetStarted.js'
+
+const styles = stylex.create({
+  launcher: (width: number) => ({ minWidth: width }),
+})
 
 const mockUseSessionMetadata = vi.hoisted(() => vi.fn())
 const mockAddSpaceRootAlias = vi.hoisted(() => vi.fn())
@@ -97,6 +102,7 @@ vi.mock('@s4wave/web/ui/command.js', () => ({
 }))
 
 afterEach(() => {
+  // Release rendered state, environment overrides and persisted creator preferences.
   cleanup()
   vi.unstubAllEnvs()
   vi.clearAllMocks()
@@ -107,6 +113,7 @@ afterEach(() => {
 
 describe('GetStarted', () => {
   it('shows account-facing labels for existing sessions', () => {
+    // Supply two account identities with distinct metadata completeness.
     mockUseSessionMetadata.mockImplementation((sessionIdx: number | null) => {
       if (sessionIdx === 1) {
         return {
@@ -126,6 +133,7 @@ describe('GetStarted', () => {
       return null
     })
 
+    // Render both sessions through the launcher.
     render(
       <GetStarted
         sessions={[
@@ -149,6 +157,7 @@ describe('GetStarted', () => {
       />,
     )
 
+    // Check visible account labels and the absence of numeric session labels.
     expect(screen.getByText('Account: Casey')).toBeTruthy()
     expect(screen.getByText('Cloud · casey')).toBeTruthy()
     expect(screen.getByText('Account: second-user')).toBeTruthy()
@@ -157,20 +166,27 @@ describe('GetStarted', () => {
   })
 
   it('keeps prerendered quickstart links crawlable before browser handoff', () => {
+    // Select static rendering before the browser handoff starts.
     mockUseIsStaticMode.mockReturnValue(true)
 
-    const html = renderToString(<GetStarted />)
+    // Render the real prerendered launcher with dynamic caller styles.
+    const html = renderToString(<GetStarted sx={styles.launcher(123)} />)
 
+    // Retain crawlable routes and the caller’s dynamic width variable.
     expect(html).toContain('href="#/login"')
     expect(html).toContain('href="/quickstart/drive"')
+    expect(html).toContain('123px')
   })
 
   it('uses hash links for static quickstart routes once boot handoff is active', () => {
+    // Activate the browser handoff for static quickstart links.
     mockUseIsStaticMode.mockReturnValue(true)
     globalThis.__swStaticHandoffLinks = true
 
+    // Render the launcher after the handoff flag is active.
     render(<GetStarted />)
 
+    // Route both account and quickstart links through the hash router.
     expect(
       screen
         .getByRole('link', { name: /sign in or create account/i })
@@ -192,35 +208,45 @@ describe('GetStarted', () => {
   })
 
   it('uses the runtime preference for interactive experimental quickstarts', () => {
+    // Render the interactive launcher with the local-root action.
     vi.stubEnv('DEV', false)
     render(<GetStarted />)
 
+    // Select the local-root action through its visible button.
     expect(screen.queryByRole('button', { name: /add a device/i })).toBeNull()
 
+    // Dispatch the existing state-root picker once.
     cleanup()
     setExperimentalCreatorsEnabled(true)
     render(<GetStarted />)
 
+    // Render the public interactive inventory with experimental creators disabled.
     expect(screen.getByRole('button', { name: /add a device/i })).toBeTruthy()
   })
 
   it('keeps static quickstart links on the build-time public inventory', () => {
+    // Check that experimental device creation starts hidden.
     vi.stubEnv('DEV', false)
     mockUseIsStaticMode.mockReturnValue(true)
     setExperimentalCreatorsEnabled(true)
 
+    // Enable experimental creators and render the updated inventory.
     render(<GetStarted />)
 
+    // Expose the device quickstart after the preference changes.
     expect(screen.queryByRole('link', { name: /add a device/i })).toBeNull()
     expect(screen.getByRole('link', { name: /create a drive/i })).toBeTruthy()
   })
 
   it('keeps the public storage quickstart ordering stable', () => {
+    // Select static public rendering while enabling the runtime-only preference.
     vi.stubEnv('DEV', false)
     mockUseIsStaticMode.mockReturnValue(true)
 
+    // Render the static launcher from its build-time inventory.
     render(<GetStarted />)
 
+    // Keep experimental creators hidden while retaining public storage.
     const storageLinks = screen
       .getAllByRole('link')
       .filter((link) =>
@@ -232,6 +258,7 @@ describe('GetStarted', () => {
         ].some((label) => link.textContent?.includes(label)),
       )
 
+    // Read public storage links in their rendered order.
     expect(storageLinks.map((link) => link.textContent)).toEqual([
       'Create an Empty SpaceStart with a blank space',
       'Create a DrivePrivate browser files with offline work and device sync',
@@ -241,8 +268,10 @@ describe('GetStarted', () => {
   })
 
   it('places the local state root action third in the account group', () => {
+    // Render the interactive account actions.
     render(<GetStarted />)
 
+    // Keep the local-root picker after account sign-in and pairing.
     const buttons = screen.getAllByRole('button')
     expect(buttons[0].textContent).toContain('Sign in or create account')
     expect(buttons[1].textContent).toContain('Enter a device pairing code')

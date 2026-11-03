@@ -24,3 +24,8 @@ export const buttonGroupMarker = stylex.defineMarker()
 export const buttonGroupHorizontalMarker = stylex.defineMarker()
 /** buttonGroupVerticalMarker joins vertical control edges. */
 export const buttonGroupVerticalMarker = stylex.defineMarker()
+
+/** commandDialogMarker scopes dialog overrides to their actual command descendants. */
+export const commandDialogMarker = stylex.defineMarker()
+/** commandGroupMarker identifies preceding visible command groups. */
+export const commandGroupMarker = stylex.defineMarker()

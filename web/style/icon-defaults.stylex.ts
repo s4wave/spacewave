@@ -1,4 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
+import { commandDialogMarker } from './relations.stylex.js'
 import { colors } from './tokens.stylex.js'
 
 /** menuIconMarker gates the menu's default SVG dimensions to its DOM descendants. */
@@ -82,6 +83,32 @@ export const iconDefaults = stylex.create({
 
 /** iconRequired retains menu interaction rules independently of explicit caller defaults. */
 export const iconRequired = stylex.create({
+  command: {
+    pointerEvents: {
+      default: null,
+      [stylex.when.ancestor(':is(*)', commandIconMarker)]: 'none',
+    },
+    flexShrink: {
+      default: null,
+      [stylex.when.ancestor(':is(*)', commandIconMarker)]: 0,
+    },
+  },
+  commandDialog: {
+    width: {
+      default: null,
+      [stylex.when.ancestor(
+        ':is(*) :is([cmdk-item], [cmdk-input-wrapper])',
+        commandDialogMarker,
+      )]: '16px',
+    },
+    height: {
+      default: null,
+      [stylex.when.ancestor(
+        ':is(*) :is([cmdk-item], [cmdk-input-wrapper])',
+        commandDialogMarker,
+      )]: '16px',
+    },
+  },
   buttonGroup: {
     pointerEvents: {
       default: null,

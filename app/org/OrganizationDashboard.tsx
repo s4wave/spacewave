@@ -35,6 +35,11 @@ import { groupMarker } from '../../web/style/relations.stylex.js'
 
 import { groupMarker as groupMarker2 } from '../../web/style/relations.stylex.js'
 
+const stylexStyles4 = stylex.create({
+  rule1: { overscrollBehaviorY: 'contain' },
+  rule2: { marginInline: themeLayout['--spacing'] },
+})
+
 const stylexStyles3 = stylex.create({
   rule1: {
     display: 'flex',
@@ -122,6 +127,7 @@ const stylexStyles = stylex.create({
 // OrganizationDashboard renders the main content area for an organization.
 // Mirrors SessionDashboard: command palette with space list and actions.
 export function OrganizationDashboard() {
+  // Read the organization snapshot and its persisted details-menu selection.
   const {
     orgId,
     orgName,
@@ -141,6 +147,7 @@ export function OrganizationDashboard() {
   )
   const isEmpty = spaces.length === 0
 
+  // Open the selected Space inside the current organization.
   const handleSpaceClick = useCallback(
     (spaceId: string) => {
       navigateSession({ path: `org/${orgId}/so/${spaceId}` })
@@ -148,6 +155,7 @@ export function OrganizationDashboard() {
     [navigateSession, orgId],
   )
 
+  // Open a new Space using the selected quickstart.
   const handleCreateSpace = useCallback(
     (quickstartId: string) => {
       navigateSession({ path: `org/${orgId}/new/${quickstartId}` })
@@ -155,6 +163,7 @@ export function OrganizationDashboard() {
     [navigateSession, orgId],
   )
 
+  // Connect join, recovery and billing actions to their existing routes.
   const handleJoinSpace = useCallback(() => {
     navigateSession({ path: 'join' })
   }, [navigateSession])
@@ -166,6 +175,7 @@ export function OrganizationDashboard() {
     navigateSession({ path: 'billing' })
   }, [navigateSession])
 
+  // Project the billing banner and permitted quickstart options.
   const showMissingBillingBanner = !!orgState && !billingAccountId
   const visibleQuickstartOptions = useVisibleQuickstartOptions()
 
@@ -246,7 +256,7 @@ export function OrganizationDashboard() {
               variant="dashboard"
               placeholder={!isEmpty ? 'Search spaces...' : 'Get started...'}
             />
-            <CommandList variant="transparent" className="overscroll-y-contain">
+            <CommandList variant="transparent" sx={stylexStyles4.rule1}>
               <CommandEmpty variant="dashboard">No results</CommandEmpty>
 
               {!isEmpty && (
@@ -273,7 +283,7 @@ export function OrganizationDashboard() {
                       key={space.id}
                       value={`space-${space.displayName}-${space.id}`}
                       variant="dashboard"
-                      className="mx-1"
+                      sx={stylexStyles4.rule2}
                       onSelect={() => handleSpaceClick(space.id ?? '')}
                     >
                       <div className="bg-brand/10 group-data-[selected=true]:bg-brand/20 flex size-7 shrink-0 items-center justify-center rounded-md transition-colors">
@@ -304,7 +314,7 @@ export function OrganizationDashboard() {
                     key={opt.id}
                     value={`create-${opt.id}`}
                     variant="dashboard"
-                    className="mx-1"
+                    sx={stylexStyles4.rule2}
                     onSelect={() => handleCreateSpace(opt.id)}
                   >
                     <div className="bg-foreground/5 group-data-[selected=true]:bg-foreground/10 flex size-7 shrink-0 items-center justify-center rounded-md transition-colors">
@@ -324,7 +334,7 @@ export function OrganizationDashboard() {
                 <CommandItem
                   value="join-space"
                   variant="dashboard"
-                  className="mx-1"
+                  sx={stylexStyles4.rule2}
                   onSelect={handleJoinSpace}
                 >
                   <div className="bg-foreground/5 group-data-[selected=true]:bg-foreground/10 flex size-7 shrink-0 items-center justify-center rounded-md transition-colors">

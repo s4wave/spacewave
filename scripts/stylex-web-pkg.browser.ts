@@ -69,6 +69,22 @@ for (const [engine, launcher] of Object.entries({ chromium, webkit })) {
           .evaluate((element) => getComputedStyle(element).paddingTop),
         '13px',
       )
+      const heading = await page
+        .locator('[cmdk-group-heading]')
+        .evaluate((element) => {
+          const style = getComputedStyle(element)
+          return { paddingTop: style.paddingTop, color: style.color }
+        })
+      assert.deepEqual(heading, {
+        paddingTop: '17px',
+        color: 'rgb(12, 34, 56)',
+      })
+      assert.equal(
+        await page
+          .locator('[cmdk-list-sizer]')
+          .evaluate((element) => getComputedStyle(element).display),
+        'grid',
+      )
       console.log(
         `${engine}: shared native button styles its caller's icon after CSS delivery`,
       )

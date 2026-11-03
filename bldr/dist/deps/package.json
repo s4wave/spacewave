@@ -46,13 +46,15 @@
     "zod": "4.6.7",
     "@babel/core": "^7.29.0",
     "@stylexjs/babel-plugin": "0.19.1",
-    "@stylexjs/stylex": "0.19.1"
+    "@stylexjs/stylex": "0.19.1",
+    "cmdk": "1.1.1"
   },
   "overrides": {
     "@aptre/protobuf-es-lite": "1.2.6"
   },
   "patchedDependencies": {
     "@stylexjs/babel-plugin@0.19.1": "patches/@stylexjs%2Fbabel-plugin@0.19.1.patch",
-    "@stylexjs/stylex@0.19.1": "patches/@stylexjs%2Fstylex@0.19.1.patch"
+    "@stylexjs/stylex@0.19.1": "patches/@stylexjs%2Fstylex@0.19.1.patch",
+    "cmdk@1.1.1": "patches/cmdk@1.1.1.patch"
   }
 }

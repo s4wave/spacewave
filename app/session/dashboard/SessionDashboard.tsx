@@ -81,6 +81,11 @@ import {
 } from '../../../web/style/tokens.stylex.js'
 import { groupMarker as groupMarker2 } from '../../../web/style/relations.stylex.js'
 
+const stylexStyles5 = stylex.create({
+  rule1: { marginInline: 0 },
+  rule2: { marginInline: themeLayout['--spacing'] },
+})
+
 const stylexStyles4 = stylex.create({
   rule1: {
     display: 'flex',
@@ -115,6 +120,31 @@ const stylexStyles3 = stylex.create({
   rule3: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
     height: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
+const commandLayout = stylex.create({
+  list: { overscrollBehaviorY: 'contain' },
+  sizer: {
+    display: {
+      default: null,
+      '@media (max-height: 470px) and (min-width: 40rem)': 'grid',
+    },
+    gridTemplateColumns: {
+      default: null,
+      '@media (max-height: 470px) and (min-width: 40rem)':
+        'repeat(2, minmax(0, 1fr))',
+    },
+    alignItems: {
+      default: null,
+      '@media (max-height: 470px) and (min-width: 40rem)': 'flex-start',
+    },
+  },
+  separator: {
+    display: {
+      default: null,
+      '@media (max-height: 470px) and (min-width: 40rem)': 'none',
+    },
   },
 })
 
@@ -826,7 +856,7 @@ function DashboardJoinGroup() {
           onSelect={handleLinkDevice}
         />
       </CommandGroup>
-      <CommandSeparator variant="subtle" />
+      <CommandSeparator variant="subtle" sx={commandLayout.separator} />
     </>
   )
 }
@@ -1146,7 +1176,8 @@ function DashboardCommandPalette({
       />
       <CommandList
         variant="transparent"
-        className="very-short:sm:[&_[cmdk-list-sizer]]:grid very-short:sm:[&_[cmdk-list-sizer]]:grid-cols-2 very-short:sm:[&_[cmdk-list-sizer]]:items-start very-short:sm:[&_[cmdk-separator]]:hidden overscroll-y-contain"
+        sx={commandLayout.list}
+        sizerSx={commandLayout.sizer}
       >
         <CommandEmpty variant="dashboard">
           {isLoading ? (
@@ -1314,7 +1345,7 @@ function DashboardItem({
       value={value}
       keywords={keywords}
       variant={identifier ? 'dashboardIdentifier' : 'dashboard'}
-      className={identifier ? 'mx-0' : 'mx-1'}
+      sx={identifier ? stylexStyles5.rule1 : stylexStyles5.rule2}
       onSelect={onSelect}
     >
       <IconButton icon={icon} tone={iconTone} />
