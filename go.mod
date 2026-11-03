@@ -44,6 +44,7 @@ require (
 	github.com/aperturerobotics/protobuf-go-lite v0.19.1-0.20261028131920-f644656fc4a7 // master
 	github.com/aperturerobotics/starpc v0.52.4-0.20261024233818-0a9074172c29 // master
 	github.com/aperturerobotics/util v1.34.10-0.20261101200942-bf18ec0ecb29 // master
+	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/cloudflare/circl v1.6.5
 	github.com/cockroachdb/apd/v3 v3.2.3
 	github.com/creack/pty v1.1.24
@@ -84,7 +85,7 @@ require (
 	github.com/prometheus/prometheus v0.315.1
 	github.com/quic-go/quic-go v0.64.1
 	github.com/restic/chunker v0.5.0
-	github.com/s4wave/goscript v0.6.4-0.20261103004250-0dd2738852f7
+	github.com/s4wave/goscript v0.6.4-0.20261103022401-cc6ce470fdd5
 	github.com/sasha-s/go-deadlock v0.3.9
 	github.com/satori/go.uuid v1.2.0
 	github.com/sergi/go-diff v1.4.0
@@ -121,7 +122,6 @@ require (
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bwesterb/go-ristretto v1.2.4 // indirect
-	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/deckarep/golang-set/v2 v2.8.0 // indirect
 	github.com/dolthub/flatbuffers/v23 v23.3.3-dh.2 // indirect
