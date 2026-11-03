@@ -9,11 +9,178 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@s4wave/web/ui/dialog.js'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import * as stylex from '@stylexjs/stylex'
 
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+import {
+  radii as themeRadii,
+  colors as themeColors,
+  motion as themeMotion,
+  fonts as themeFonts,
+  utilityState as themeUtilityState,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    position: 'absolute',
+    top: {
+      default: `calc(${themeLayout['--spacing']} * 2)`,
+      '@media (min-width: 40rem)': `calc(${themeLayout['--spacing']} * 4)`,
+    },
+    right: {
+      default: `calc(${themeLayout['--spacing']} * 2)`,
+      '@media (min-width: 40rem)': `calc(${themeLayout['--spacing']} * 4)`,
+    },
+    display: 'flex',
+    width: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 4)`,
+    },
+    height: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 4)`,
+    },
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': themeColors['--color-brand'],
+    },
+    '--tw-outline-style': { default: null, ':focus-visible': 'none' },
+    outlineStyle: { default: null, ':focus-visible': 'none' },
+  },
+  rule2: {
+    clipPath: 'inset(50%)',
+    whiteSpace: 'nowrap',
+    borderWidth: 0,
+    width: '1px',
+    height: '1px',
+    margin: '-1px',
+    padding: 0,
+    position: 'absolute',
+    overflow: 'hidden',
+  },
+  rule3: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 1.5)`,
+    display: 'block',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule4: {
+    minHeight: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (pointer: fine)': 0,
+    },
+    width: '100%',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      ':focus': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+    '::placeholder': {
+      color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    },
+  },
+  rule5: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule6: {
+    minHeight: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (pointer: fine)': 0,
+    },
+    borderRadius: themeRadii['--radius-md'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule7: {
+    minHeight: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (pointer: fine)': 0,
+    },
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-brand'],
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -111,10 +278,6 @@ export function RenameSpaceDialog({
   }, [canSubmit, onConfirm, trimmed, handleOpenChange])
 
   // Style the editable name consistently across pointer types.
-  const inputClass = cn(
-    'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 min-h-11 w-full rounded-md border px-3 py-2 text-sm outline-none transition-colors fine-pointer:min-h-0',
-    'focus:border-brand/50',
-  )
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -122,10 +285,10 @@ export function RenameSpaceDialog({
         <button
           type="button"
           onClick={() => handleOpenChange(false)}
-          className="text-foreground-alt hover:text-foreground focus-visible:ring-brand fine-pointer:size-4 absolute top-2 right-2 flex size-11 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none sm:top-4 sm:right-4"
+          sx={stylexStyles2.rule1}
         >
           <LuX sx={stylexStyles.rule1} />
-          <span className="sr-only">Close</span>
+          <span sx={stylexStyles2.rule2}>Close</span>
         </button>
 
         <DialogHeader>
@@ -136,10 +299,7 @@ export function RenameSpaceDialog({
         </DialogHeader>
 
         <div>
-          <label
-            className="text-foreground-alt mb-1.5 block text-xs select-none"
-            htmlFor={spaceNameId}
-          >
+          <label sx={stylexStyles2.rule3} htmlFor={spaceNameId}>
             Space name
           </label>
           <input
@@ -154,7 +314,7 @@ export function RenameSpaceDialog({
               })
             }
             placeholder={spaceName}
-            className={inputClass}
+            sx={[stylexStyles2.rule4]}
             aria-label="New space name"
             onKeyDown={(e) => {
               if (
@@ -169,16 +329,14 @@ export function RenameSpaceDialog({
           />
         </div>
 
-        {state.error && (
-          <p className="text-destructive text-xs">{state.error}</p>
-        )}
+        {state.error && <p sx={stylexStyles2.rule5}>{state.error}</p>}
 
         <DialogFooter>
           <button
             type="button"
             onClick={() => handleOpenChange(false)}
             disabled={state.submitting}
-            className="text-foreground-alt hover:text-foreground fine-pointer:min-h-0 min-h-11 rounded-md px-4 py-2 text-sm transition-colors"
+            sx={stylexStyles2.rule6}
           >
             Cancel
           </button>
@@ -186,11 +344,7 @@ export function RenameSpaceDialog({
             type="button"
             onClick={() => void handleSubmit()}
             disabled={!canSubmit}
-            className={cn(
-              'min-h-11 rounded-md border px-4 py-2 text-sm transition-all fine-pointer:min-h-0',
-              'border-brand/30 bg-brand/10 text-brand hover:bg-brand/20',
-              'disabled:cursor-not-allowed disabled:opacity-50',
-            )}
+            sx={[stylexStyles2.rule7]}
           >
             {state.submitting ? 'Saving…' : 'Save'}
           </button>

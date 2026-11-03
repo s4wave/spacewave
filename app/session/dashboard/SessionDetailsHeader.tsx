@@ -22,6 +22,99 @@ import {
 } from '../../../web/style/tokens.stylex.js'
 import { headerGroupMarker } from '../../../web/style/relations.stylex.js'
 
+import {
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+} from '../../../web/style/tokens.stylex.js'
+import { headerGroupMarker as headerGroupMarker2 } from '../../../web/style/relations.stylex.js'
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    display: { default: 'none', '@media (min-width: 48rem)': 'inline' },
+  },
+  rule2: {
+    display: 'flex',
+    minHeight: `calc(${themeLayout['--spacing']} * 9)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule3: { minWidth: 0 },
+  rule4: {
+    display: 'block',
+    minWidth: 0,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+  },
+  rule5: {
+    display: 'block',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-tight)',
+    '--tw-leading': 'var(--leading-tight)',
+    '--tw-font-weight': 'var(--font-weight-normal)',
+    fontWeight: 'var(--font-weight-normal)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule6: {
+    display: 'flex',
+    flexShrink: 0,
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule7: {
+    marginLeft: themeLayout['--spacing'],
+    display: { default: 'none', '@media (min-width: 48rem)': 'flex' },
+    maxWidth: `calc(${themeLayout['--spacing']} * 36)`,
+    minWidth: 0,
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 40%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-normal)',
+    fontWeight: 'var(--font-weight-normal)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 45%, transparent)`,
+    opacity: {
+      default: 0,
+      [stylex.when.ancestor(':is(:focus-within)', headerGroupMarker2)]: 1,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', headerGroupMarker2)]: 1,
+      },
+      '@media (pointer: coarse)': 1,
+    },
+    transitionProperty: 'opacity',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule8: { textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' },
+})
+
 const stylexStyles3 = stylex.create({
   rule1: {
     display: 'flex',
@@ -92,7 +185,7 @@ function HeaderAction({
       <TooltipTrigger asChild>
         <DashboardButton {...props}>
           {collapseLabel ? (
-            <span className="hidden md:inline">{children}</span>
+            <span sx={stylexStyles4.rule1}>{children}</span>
           ) : (
             children
           )}
@@ -137,18 +230,16 @@ export function SessionDetailsHeader({
   onClose,
 }: SessionDetailsHeaderProps) {
   return (
-    <div className="border-foreground/8 flex min-h-9 shrink-0 items-center justify-between gap-3 border-b px-4 py-2">
+    <div sx={stylexStyles4.rule2}>
       <div sx={[stylexStyles3.rule1, headerGroupMarker]}>
         <RxPerson sx={stylexStyles2.rule1} />
-        <div className="min-w-0">
-          <span className="block min-w-0 truncate tracking-tight">{title}</span>
-          <span className="text-foreground-alt/50 block truncate text-xs leading-tight font-normal">
-            {subtitle}
-          </span>
+        <div sx={stylexStyles4.rule3}>
+          <span sx={stylexStyles4.rule4}>{title}</span>
+          <span sx={stylexStyles4.rule5}>{subtitle}</span>
         </div>
         {peerId && <PeerIdBadge peerId={peerId} />}
       </div>
-      <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+      <div sx={stylexStyles4.rule6}>
         <HeaderAction
           icon={<LuUserCog sx={stylexStyles2.rule2} />}
           onClick={onChangeAccount}
@@ -175,7 +266,7 @@ export function SessionDetailsHeader({
             tooltip="Logout (revoke cloud session)"
             collapseLabel={false}
           >
-            <span className="hidden md:inline">
+            <span sx={stylexStyles4.rule1}>
               {loggingOut ? 'Logging out…' : 'Logout'}
             </span>
           </HeaderAction>
@@ -196,11 +287,8 @@ export function SessionDetailsHeader({
 // and always on a touch screen, which has no hover.
 function PeerIdBadge({ peerId }: { peerId: string }): ReactNode {
   return (
-    <span
-      className="border-foreground/8 bg-background-card/40 text-foreground-alt/45 ml-1 hidden max-w-36 min-w-0 items-center gap-1 rounded border px-1.5 py-0.5 font-mono text-xs font-normal opacity-0 transition-opacity group-focus-within/header:opacity-100 group-hover/header:opacity-100 md:flex [@media(pointer:coarse)]:opacity-100"
-      title={peerId}
-    >
-      <span className="truncate">{formatMiddleEllipsis(peerId)}</span>
+    <span sx={stylexStyles4.rule7} title={peerId}>
+      <span sx={stylexStyles4.rule8}>{formatMiddleEllipsis(peerId)}</span>
       <CopyButton
         text={peerId}
         label="Copy session ID"

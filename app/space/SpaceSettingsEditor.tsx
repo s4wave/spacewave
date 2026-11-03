@@ -27,6 +27,114 @@ import {
 } from '../../web/style/tokens.stylex.js'
 import { groupMarker as groupMarker2 } from '../../web/style/relations.stylex.js'
 
+import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
+import { groupMarker as groupMarker3 } from '../../web/style/relations.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule3: {
+    marginBottom: themeLayout['--spacing'],
+    display: 'block',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule4: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule5: {
+    minWidth: 0,
+    flex: 1,
+    cursor: 'text',
+    textAlign: 'left',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground-alt'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule6: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule7: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule8: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker3)]:
+          `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule9: { display: 'flex', minWidth: 0, flex: 1, flexDirection: 'column' },
+  rule10: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule11: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     marginTop: `calc(${themeLayout['--spacing']} * 2)`,
@@ -146,24 +254,22 @@ export function SpaceSettingsEditor({
   const content = (
     <>
       {!embedded && (
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
+        <div sx={stylexStyles3.rule1}>
+          <h2 sx={stylexStyles3.rule2}>
             <LuSettings sx={stylexStyles.rule1} />
             Settings
           </h2>
         </div>
       )}
       <InfoCard>
-        <div className="space-y-2">
-          <div>
-            <span className="text-foreground-alt mb-1 block text-xs select-none">
-              Display Name
-            </span>
+        <div>
+          <div sx={nativeChildSpacing.s2}>
+            <span sx={stylexStyles3.rule3}>Display Name</span>
             {canRename && onRenameStart ? (
-              <div className="flex items-center justify-between gap-2">
+              <div sx={stylexStyles3.rule4}>
                 <button
                   type="button"
-                  className="text-foreground hover:text-foreground-alt min-w-0 flex-1 cursor-text text-left text-xs transition-colors"
+                  sx={stylexStyles3.rule5}
                   onDoubleClick={() => onRenameStart()}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
@@ -182,15 +288,11 @@ export function SpaceSettingsEditor({
                 </DashboardButton>
               </div>
             ) : (
-              <div className="text-foreground text-xs">
-                {displayName || 'Untitled'}
-              </div>
+              <div sx={stylexStyles3.rule6}>{displayName || 'Untitled'}</div>
             )}
           </div>
-          <div>
-            <span className="text-foreground-alt mb-1 block text-xs select-none">
-              Index Path
-            </span>
+          <div sx={nativeChildSpacing.s2}>
+            <span sx={stylexStyles3.rule3}>Index Path</span>
             {canEdit ? (
               <ObjectKeySelector
                 world={spaceWorldResource}
@@ -199,9 +301,7 @@ export function SpaceSettingsEditor({
                 placeholder="No default view"
               />
             ) : (
-              <div className="text-foreground text-sm">
-                {indexPath || 'Not set'}
-              </div>
+              <div sx={stylexStyles3.rule7}>{indexPath || 'Not set'}</div>
             )}
           </div>
         </div>
@@ -218,14 +318,12 @@ export function SpaceSettingsEditor({
           })
         }
       >
-        <div className="bg-foreground/10 group-hover:bg-brand/10 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors">
+        <div sx={stylexStyles3.rule8}>
           <LuKeyboard sx={stylexStyles.rule3} />
         </div>
-        <div className="flex min-w-0 flex-1 flex-col">
-          <h4 className="text-foreground text-xs font-medium select-none">
-            Space Overrides
-          </h4>
-          <p className="text-foreground-alt text-xs select-none">
+        <div sx={stylexStyles3.rule9}>
+          <h4 sx={stylexStyles3.rule10}>Space Overrides</h4>
+          <p sx={stylexStyles3.rule11}>
             Open keyboard shortcut overrides for this Space
           </p>
         </div>
@@ -237,3 +335,18 @@ export function SpaceSettingsEditor({
 
   return <section>{content}</section>
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

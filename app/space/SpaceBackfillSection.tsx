@@ -18,6 +18,23 @@ import { toast } from '@s4wave/web/ui/toaster.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: { marginTop: `calc(${themeLayout['--spacing']} * 2)` },
+  rule2: {
+    marginBottom: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -63,13 +80,13 @@ export function SpaceBackfillSection() {
   const backfill = !!state.backfill
 
   return (
-    <div className="mt-2">
-      <h3 className="text-foreground-alt mb-1 text-xs select-none">
-        Storage on this device
-      </h3>
+    <div sx={stylexStyles2.rule1}>
+      <h3 sx={stylexStyles2.rule2}>Storage on this device</h3>
       <InfoCard>
         <div
-          className="space-y-1.5"
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ 'space-y-1.5'
+          }
           role="radiogroup"
           aria-label="Storage on this device"
         >

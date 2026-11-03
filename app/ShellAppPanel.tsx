@@ -25,6 +25,18 @@ import {
 import { buildPathTab } from './shell-layout-tab-utils.js'
 import { getTabObjectKey } from './shell-tab.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    flex: 1,
+    flexDirection: 'column',
+    overflow: 'hidden',
+  },
+})
+
 // ShellAppPanelProps are the props for ShellAppPanel.
 export interface ShellAppPanelProps {
   tabId: string
@@ -167,7 +179,7 @@ function ShellAppPanelInner({
   return (
     <TabContextProvider value={tabContext}>
       <BottomBarRoot openMenu={openMenu} setOpenMenu={setOpenMenu}>
-        <div className="flex h-full flex-1 flex-col overflow-hidden">
+        <div sx={stylexStyles.rule1}>
           <HistoryRouter path={path} onNavigate={handleNavigate}>
             <AppRoutes />
           </HistoryRouter>

@@ -22,7 +22,7 @@ import {
   SessionContext,
   useSessionNavigate,
 } from '@s4wave/web/contexts/contexts.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { CollapsibleSection } from '@s4wave/web/ui/CollapsibleSection.js'
 
 import {
@@ -44,6 +44,182 @@ import {
   utilityState as themeUtilityState,
 } from '../../../web/style/tokens.stylex.js'
 import { groupMarker as groupMarker2 } from '../../../web/style/relations.stylex.js'
+
+import { fonts as themeFonts } from '../../../web/style/tokens.stylex.js'
+import { groupMarker as groupMarker3 } from '../../../web/style/relations.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule2: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule3: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBlock: themeLayout['--spacing'],
+  },
+  rule4: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: {
+      default: themeColors['--color-brand'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 80%, transparent)`,
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule5: {
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    paddingTop: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule6: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 7)`,
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker3)]:
+          `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule7: { display: 'flex', minWidth: 0, flex: 1, flexDirection: 'column' },
+  rule8: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule9: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule10: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule11: {
+    display: 'flex',
+    minWidth: 0,
+    flex: 1,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule12: { position: 'relative', flexShrink: 0 },
+  rule13: {
+    position: 'absolute',
+    top: `calc(${themeLayout['--spacing']} * -.5)`,
+    right: `calc(${themeLayout['--spacing']} * -.5)`,
+    width: `calc(${themeLayout['--spacing']} * 1.5)`,
+    height: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: '3.40282e38px',
+    backgroundColor: themeColors['--color-success'],
+  },
+  rule14: { minWidth: 0, flex: 1 },
+  rule15: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule16: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule17: {
+    borderRadius: '3.40282e38px',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-success']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-success']} 10%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-success'],
+  },
+  rule18: {
+    borderRadius: '3.40282e38px',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule19: {
+    display: 'flex',
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderRadius: '.25rem',
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-destructive'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule20: { cursor: 'not-allowed', opacity: 0.5 },
+})
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -220,24 +396,28 @@ export function SessionsSection({
       onOpenChange={handleOpenChange}
       badge={
         rows.length > 0 ? (
-          <span className="text-foreground-alt/50 text-xs">{rows.length}</span>
+          <span sx={stylexStyles3.rule1}>{rows.length}</span>
         ) : undefined
       }
     >
-      <div className="space-y-2">
+      <div
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
+        }
+      >
         {sessionsResource.loading && (
-          <p className="text-foreground-alt text-xs">Loading sessions…</p>
+          <p sx={stylexStyles3.rule2}>Loading sessions…</p>
         )}
         {!sessionsResource.loading && rows.length === 0 && (
-          <div className="flex items-center justify-between py-1">
-            <p className="text-foreground-alt text-xs">
+          <div sx={stylexStyles3.rule3}>
+            <p sx={stylexStyles3.rule2}>
               {isLocal ? 'No linked sessions yet.' : 'No other sessions found.'}
             </p>
             {isLocal && (
               <button
                 type="button"
                 onClick={handleLinkDeviceClick}
-                className="text-brand hover:text-brand/80 text-xs font-medium transition-colors"
+                sx={stylexStyles3.rule4}
               >
                 Link My Device
               </button>
@@ -245,16 +425,22 @@ export function SessionsSection({
           </div>
         )}
         {!sessionsResource.loading && rows.length > 0 && (
-          <div className="space-y-2">
+          <div>
             {rows.map((row) => (
               <SessionRow
+                sx={nativeChildSpacing.s2}
                 key={row.peerId}
                 row={row}
                 pending={actions.pendingPeerId === (row.peerId ?? '')}
                 onAction={actions.handleRowAction}
               />
             ))}
-            {isLocal && <LinkDeviceCard onClick={handleLinkDeviceClick} />}
+            {isLocal && (
+              <LinkDeviceCard
+                sx={nativeChildSpacing.s2}
+                onClick={handleLinkDeviceClick}
+              />
+            )}
           </div>
         )}
       </div>
@@ -272,22 +458,23 @@ export function SessionsSection({
 }
 
 // LinkDeviceCard renders the action that links another device.
-function LinkDeviceCard({ onClick }: { onClick: () => void }) {
+function LinkDeviceCard({
+  sx,
+  onClick,
+}: { onClick: () => void } & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
-    <div className="border-foreground/10 border-t pt-2">
+    <div sx={[stylexStyles3.rule5, sx]}>
       <button
         type="button"
         onClick={onClick}
         sx={[stylexStyles2.rule1, groupMarker2]}
       >
-        <div className="bg-foreground/10 group-hover:bg-brand/10 flex size-7 shrink-0 items-center justify-center rounded-md transition-colors">
+        <div sx={stylexStyles3.rule6}>
           <LuLink sx={stylexStyles.rule2} />
         </div>
-        <div className="flex min-w-0 flex-1 flex-col">
-          <span className="text-foreground text-xs font-medium select-none">
-            Link Another Device
-          </span>
-          <span className="text-foreground-alt text-xs select-none">
+        <div sx={stylexStyles3.rule7}>
+          <span sx={stylexStyles3.rule8}>Link Another Device</span>
+          <span sx={stylexStyles3.rule9}>
             Connect another device to sync your data peer-to-peer.
           </span>
         </div>
@@ -366,7 +553,12 @@ interface SessionRowProps {
   onAction: (row: AccountSession) => Promise<void>
 }
 
-function SessionRow({ row, pending, onAction }: SessionRowProps) {
+function SessionRow({
+  sx,
+  row,
+  pending,
+  onAction,
+}: SessionRowProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const isLocalRow = isLocalSession(row)
   // The local provider stamps deviceType "linked", which the Linked badge
   // already conveys; cloud sessions carry a real platform ("web", "desktop").
@@ -380,37 +572,29 @@ function SessionRow({ row, pending, onAction }: SessionRowProps) {
   const label = row.label || row.peerId || 'Session'
 
   return (
-    <div className="flex items-center justify-between gap-2">
-      <div className="flex min-w-0 flex-1 items-center gap-2">
-        <div className="relative shrink-0">
+    <div sx={[stylexStyles3.rule10, sx]}>
+      <div sx={stylexStyles3.rule11}>
+        <div sx={stylexStyles3.rule12}>
           {isLocalRow ? (
             <LuSmartphone sx={stylexStyles.rule3} />
           ) : (
             <LuCloud sx={stylexStyles.rule3} />
           )}
-          {row.currentSession && (
-            <span className="bg-success absolute -top-0.5 -right-0.5 size-1.5 rounded-full" />
-          )}
+          {row.currentSession && <span sx={stylexStyles3.rule13} />}
         </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <p className="text-foreground truncate text-xs font-medium">
-              {label}
-            </p>
+        <div sx={stylexStyles3.rule14}>
+          <div sx={stylexStyles3.rule15}>
+            <p sx={stylexStyles3.rule16}>{label}</p>
             {/* The local session's default label is already "This device";
                 skip the badge there so the row shows one, not two. */}
             {row.currentSession && label !== 'This device' && (
-              <span className="border-success/20 bg-success/10 text-success rounded-full border px-1.5 py-0.5 text-xs font-medium">
-                This device
-              </span>
+              <span sx={stylexStyles3.rule17}>This device</span>
             )}
             {!row.currentSession && isLocalRow && (
-              <span className="border-foreground/10 bg-foreground/5 text-foreground-alt rounded-full border px-1.5 py-0.5 text-xs font-medium">
-                Linked
-              </span>
+              <span sx={stylexStyles3.rule18}>Linked</span>
             )}
           </div>
-          <p className="text-foreground-alt text-xs">
+          <p sx={stylexStyles3.rule2}>
             {details ? `${status} · ${details}` : status}
           </p>
         </div>
@@ -420,10 +604,7 @@ function SessionRow({ row, pending, onAction }: SessionRowProps) {
           type="button"
           onClick={() => void onAction(row)}
           disabled={pending}
-          className={cn(
-            'text-foreground-alt hover:text-destructive flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-xs transition-colors',
-            pending && 'cursor-not-allowed opacity-50',
-          )}
+          sx={[stylexStyles3.rule19, !!pending && stylexStyles3.rule20]}
           title={actionLabel}
         >
           {isLocalRow ? (
@@ -436,3 +617,18 @@ function SessionRow({ row, pending, onAction }: SessionRowProps) {
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

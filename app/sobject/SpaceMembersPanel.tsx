@@ -18,7 +18,7 @@ import {
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { truncatePeerId } from '@s4wave/web/ui/credential/auth-utils.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
@@ -31,6 +31,178 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
+
+import {
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    paddingTop: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule2: {
+    marginBottom: themeLayout['--spacing'],
+    fontSize: '.6rem',
+    lineHeight: 1.5,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-wider)',
+    letterSpacing: 'var(--tracking-wider)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    textTransform: 'uppercase',
+  },
+  rule3: {
+    paddingInline: themeLayout['--spacing'],
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule4: { padding: themeLayout['--spacing'] },
+  rule5: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    padding: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule6: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule7: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+  },
+  rule8: { minWidth: 0, flex: 1 },
+  rule9: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule10: {
+    marginLeft: themeLayout['--spacing'],
+    fontFamily: 'var(--font-sans)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule11: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule12: {
+    borderRadius: '3.40282e38px',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule13: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule14: {
+    cursor: 'pointer',
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-destructive'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule15: {
+    minWidth: 0,
+    flex: 1,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule16: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule17: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 30%, transparent)`,
+  },
+  rule18: {
+    cursor: 'pointer',
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-green-500'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule19: {
+    cursor: 'pointer',
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-destructive'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -246,11 +418,13 @@ function InvitesSection({
   onRevoke: (inviteId: string) => void
 }) {
   return (
-    <div className={cn(bordered && 'border-foreground/6 mt-2 border-t pt-2')}>
-      <div className="text-foreground-alt/50 micro-text mb-1 font-medium tracking-wider uppercase">
-        Invites
-      </div>
-      <div className="space-y-1">
+    <div sx={[!!bordered && stylexStyles2.rule1]}>
+      <div sx={stylexStyles2.rule2}>Invites</div>
+      <div
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1 */ 'space-y-1'
+        }
+      >
         {invites.map((inv) => (
           <InviteRow
             key={inv.inviteId}
@@ -278,12 +452,14 @@ function PendingRequestsSection({
   onProcess: (entryId: bigint, accept: boolean) => void
 }) {
   return (
-    <div className={cn(bordered && 'border-foreground/6 mt-2 border-t pt-2')}>
-      <div className="text-foreground-alt/50 micro-text mb-1 font-medium tracking-wider uppercase">
-        Pending Requests
-      </div>
+    <div sx={[!!bordered && stylexStyles2.rule1]}>
+      <div sx={stylexStyles2.rule2}>Pending Requests</div>
       {entries.length > 0 ? (
-        <div className="space-y-1">
+        <div
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1 */ 'space-y-1'
+          }
+        >
           {entries.map((entry) => (
             <PendingRequestRow
               key={String(entry.id)}
@@ -295,10 +471,7 @@ function PendingRequestsSection({
           ))}
         </div>
       ) : (
-        <div
-          className="text-foreground-alt/40 px-1 py-0.5 text-xs"
-          data-testid="pending-request-empty"
-        >
+        <div sx={stylexStyles2.rule3} data-testid="pending-request-empty">
           No pending requests yet
         </div>
       )}
@@ -352,20 +525,25 @@ export function SpaceMembersPanel({ compact = false }: SpaceMembersPanelProps) {
   return (
     <InfoCard compact={compact}>
       {!spaceSharingState && (
-        <div className="p-1">
+        <div sx={stylexStyles2.rule4}>
           <LoadingInline label="Loading sharing state" tone="muted" size="sm" />
         </div>
       )}
 
       {empty && (
-        <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
+        <div sx={stylexStyles2.rule5}>
           <LuUsers sx={stylexStyles.rule1} />
           <span>No users added yet</span>
         </div>
       )}
 
       {participantInfo.length > 0 && (
-        <div className="space-y-1" data-testid="space-members-panel">
+        <div
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1 */ 'space-y-1'
+          }
+          data-testid="space-members-panel"
+        >
           {participantInfo.map((member) => (
             <MemberRow
               key={getParticipantKey(member)}
@@ -404,9 +582,7 @@ export function SpaceMembersPanel({ compact = false }: SpaceMembersPanelProps) {
         />
       )}
 
-      {state.error && (
-        <p className="text-destructive mt-1 text-xs">{state.error}</p>
-      )}
+      {state.error && <p sx={stylexStyles2.rule6}>{state.error}</p>}
     </InfoCard>
   )
 }
@@ -424,45 +600,33 @@ function MemberRow(props: {
 }) {
   return (
     <div
-      className="flex items-center gap-2 py-0.5"
+      sx={stylexStyles2.rule7}
       data-testid="space-member-row"
       data-member-id={props.memberId}
     >
       <LuShield sx={stylexStyles.rule2} />
-      <div className="min-w-0 flex-1">
-        <div
-          className="text-foreground truncate text-xs font-medium"
-          data-testid="space-member-label"
-        >
+      <div sx={stylexStyles2.rule8}>
+        <div sx={stylexStyles2.rule9} data-testid="space-member-label">
           {props.primaryLabel}
-          {props.isSelf && (
-            <span className="text-foreground-alt/50 ml-1 font-sans">(you)</span>
-          )}
+          {props.isSelf && <span sx={stylexStyles2.rule10}>(you)</span>}
         </div>
         {props.secondaryLabel && (
-          <div className="text-foreground-alt/50 truncate font-mono text-xs">
-            {props.secondaryLabel}
-          </div>
+          <div sx={stylexStyles2.rule11}>{props.secondaryLabel}</div>
         )}
       </div>
       {props.deviceCount > 1 && (
-        <span
-          className="text-foreground-alt/40 border-foreground/10 rounded-full border px-1.5 py-0.5 text-xs"
-          data-testid="space-member-device-count"
-        >
+        <span sx={stylexStyles2.rule12} data-testid="space-member-device-count">
           {props.deviceCount} devices
         </span>
       )}
-      <span className="text-foreground-alt/50 text-xs">
-        {roleName(props.role)}
-      </span>
+      <span sx={stylexStyles2.rule13}>{roleName(props.role)}</span>
       {props.canRemove && (
         <button
           type="button"
           aria-label="Remove member"
           onClick={props.onRemove}
           disabled={props.removing}
-          className="text-foreground-alt/40 hover:text-destructive cursor-pointer transition-colors disabled:opacity-50"
+          sx={stylexStyles2.rule14}
           data-testid="space-member-remove"
         >
           {props.removing ? (
@@ -488,21 +652,21 @@ function InviteRow(props: {
     : `${inv.uses ?? 0} uses`
 
   return (
-    <div className="flex items-center gap-2 py-0.5">
-      <span className="text-foreground-alt/60 min-w-0 flex-1 truncate font-mono text-xs">
+    <div sx={stylexStyles2.rule7}>
+      <span sx={stylexStyles2.rule15}>
         {truncatePeerId(inv.inviteId ?? '')}
       </span>
-      <span className="text-foreground-alt/40 text-xs">
+      <span sx={stylexStyles2.rule16}>
         {roleName(inv.role ?? SOParticipantRole.SOParticipantRole_UNKNOWN)}
       </span>
-      <span className="text-foreground-alt/30 text-xs">{usageText}</span>
+      <span sx={stylexStyles2.rule17}>{usageText}</span>
       {props.canRevoke && (
         <button
           type="button"
           aria-label="Revoke invite"
           onClick={props.onRevoke}
           disabled={props.revoking}
-          className="text-foreground-alt/40 hover:text-destructive cursor-pointer transition-colors disabled:opacity-50"
+          sx={stylexStyles2.rule14}
         >
           {props.revoking ? (
             <Spinner size="sm" />
@@ -526,23 +690,16 @@ function PendingRequestRow(props: {
   const inviteLabel = getMailboxEntryInviteLabel(props.entry)
 
   return (
-    <div className="flex items-center gap-2 py-0.5">
-      <div className="min-w-0 flex-1">
-        <div
-          className="text-foreground truncate text-xs font-medium"
-          data-testid="pending-request-label"
-        >
+    <div sx={stylexStyles2.rule7}>
+      <div sx={stylexStyles2.rule8}>
+        <div sx={stylexStyles2.rule9} data-testid="pending-request-label">
           {primaryLabel}
         </div>
         {secondaryLabel && (
-          <div className="text-foreground-alt/50 truncate font-mono text-xs">
-            {secondaryLabel}
-          </div>
+          <div sx={stylexStyles2.rule11}>{secondaryLabel}</div>
         )}
       </div>
-      {inviteLabel && (
-        <span className="text-foreground-alt/40 text-xs">{inviteLabel}</span>
-      )}
+      {inviteLabel && <span sx={stylexStyles2.rule16}>{inviteLabel}</span>}
       {props.processing ? (
         <Spinner size="sm" variant="subtle" />
       ) : (
@@ -551,7 +708,7 @@ function PendingRequestRow(props: {
             type="button"
             aria-label="Accept join request"
             onClick={props.onAccept}
-            className="text-foreground-alt/40 cursor-pointer transition-colors hover:text-green-500"
+            sx={stylexStyles2.rule18}
           >
             <LuCheck sx={stylexStyles.rule3} />
           </button>
@@ -559,7 +716,7 @@ function PendingRequestRow(props: {
             type="button"
             aria-label="Reject join request"
             onClick={props.onReject}
-            className="text-foreground-alt/40 hover:text-destructive cursor-pointer transition-colors"
+            sx={stylexStyles2.rule19}
           >
             <LuX sx={stylexStyles.rule3} />
           </button>

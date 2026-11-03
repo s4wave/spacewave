@@ -32,6 +32,49 @@ import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
 import { colors as themeColors } from '../../web/style/tokens.stylex.js'
 
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 15%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    color: themeColors['--color-destructive'],
+  },
+  rule2: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+  },
+  rule3: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+  },
+  rule4: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule5: {
+    display: 'flex',
+    maxHeight: themeLayout['--max-height-wizard'],
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    overflowY: 'auto',
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -113,12 +156,9 @@ function CatalogEntries({
   if (loadError) {
     const copy = getV86CatalogErrorCopy(loadError)
     return (
-      <div
-        role="alert"
-        className="border-destructive/15 bg-destructive/5 text-destructive rounded-lg border p-3"
-      >
-        <div className="text-sm font-semibold">{copy.title}</div>
-        <p className="mt-1 text-xs leading-relaxed">{copy.detail}</p>
+      <div role="alert" sx={stylexStyles3.rule1}>
+        <div sx={stylexStyles3.rule2}>{copy.title}</div>
+        <p sx={stylexStyles3.rule3}>{copy.detail}</p>
         {!copy.unpublished && (
           <Button
             variant="destructiveOutline"
@@ -152,14 +192,14 @@ function CatalogEntries({
         icon={<LuCloud sx={stylexStyles2.rule1} />}
         title="No VM images are published yet"
       >
-        <p className="text-foreground-alt/70 text-xs leading-relaxed">
+        <p sx={stylexStyles3.rule4}>
           This image catalog has no published images yet.
         </p>
       </InfoCard>
     )
   }
   return (
-    <div className="max-h-wizard flex flex-col gap-2 overflow-y-auto">
+    <div sx={stylexStyles3.rule5}>
       {entries.map((entry) => (
         <V86ImageRow
           key={entry.objectKey}

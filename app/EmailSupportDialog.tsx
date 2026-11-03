@@ -1,6 +1,5 @@
 import { useCallback } from 'react'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import {
   Dialog,
   DialogContent,
@@ -11,6 +10,76 @@ import {
 } from '@s4wave/web/ui/dialog.js'
 
 import * as stylex from '@stylexjs/stylex'
+
+import {
+  colors as themeColors,
+  radii as themeRadii,
+  layout as themeLayout,
+  fonts as themeFonts,
+  motion as themeMotion,
+  utilityState as themeUtilityState,
+} from '../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    color: {
+      default: themeColors['--color-brand'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-brand-highlight'],
+      },
+    },
+    textDecorationLine: 'underline',
+    textUnderlineOffset: '4px',
+  },
+  rule2: {
+    borderRadius: themeRadii['--radius-md'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule3: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-brand'],
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+})
 
 const dialogStyles = stylex.create({
   content: {
@@ -45,10 +114,7 @@ export function EmailSupportDialog({
           <DialogTitle>Email Support</DialogTitle>
           <DialogDescription>
             Need a hand? Reach out at{' '}
-            <a
-              href={`mailto:${SUPPORT_EMAIL}`}
-              className="text-brand hover:text-brand-highlight underline underline-offset-4"
-            >
+            <a href={`mailto:${SUPPORT_EMAIL}`} sx={stylexStyles.rule1}>
               {SUPPORT_EMAIL}
             </a>{' '}
             and we'll get back to you.
@@ -58,17 +124,14 @@ export function EmailSupportDialog({
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
+            sx={stylexStyles.rule2}
           >
             Close
           </button>
           <button
             type="button"
             onClick={handleOpenEmail}
-            className={cn(
-              'rounded-md border px-4 py-2 text-sm transition-all',
-              'border-brand/30 bg-brand/10 text-brand hover:border-brand/50 hover:bg-brand/15',
-            )}
+            sx={[stylexStyles.rule3]}
           >
             Open Email
           </button>

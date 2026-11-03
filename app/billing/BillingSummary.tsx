@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { LuCreditCard } from '@s4wave/web/images/icons.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { useSessionNavigate } from '@s4wave/web/contexts/contexts.js'
 import { BillingStatus } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 import { useBillingStateContext } from './BillingStateProvider.js'
@@ -24,6 +24,68 @@ import {
   utilityState as themeUtilityState,
 } from '../../web/style/tokens.stylex.js'
 import { groupMarker as groupMarker2 } from '../../web/style/relations.stylex.js'
+
+import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
+import { groupMarker as groupMarker3 } from '../../web/style/relations.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker3)]:
+          `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule2: { display: 'flex', minWidth: 0, flex: 1, flexDirection: 'column' },
+  rule3: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule4: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule5: {
+    fontSize: '10px',
+    lineHeight: 1.5,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+  },
+  rule6: { color: themeColors['--color-green-500'] },
+  rule7: { color: themeColors['--color-yellow-500'] },
+  rule8: { color: themeColors['--color-destructive'] },
+  rule9: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule10: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+})
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -96,13 +158,7 @@ export function BillingSummary() {
   if (!billing) return null
 
   const status = billing.status
-  const stColor = isStatusActive(status)
-    ? 'text-green-500'
-    : isStatusPastDue(status)
-      ? 'text-yellow-500'
-      : status === BillingStatus.BillingStatus_CANCELED
-        ? 'text-destructive'
-        : 'text-foreground-alt/50'
+
   const intLabel = intervalLabel(billing.billingInterval)
   const nextDate = billing.currentPeriodEnd
     ? new Date(Number(billing.currentPeriodEnd)).toLocaleDateString()
@@ -114,19 +170,28 @@ export function BillingSummary() {
       onClick={handleManage}
       sx={[stylexStyles2.rule1, groupMarker2]}
     >
-      <div className="bg-foreground/10 group-hover:bg-brand/10 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors">
+      <div sx={stylexStyles3.rule1}>
         <LuCreditCard sx={stylexStyles.rule1} />
       </div>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-center gap-2">
-          <h4 className="text-foreground text-xs font-medium select-none">
-            Billing
-          </h4>
-          <span className={cn('micro-ten font-semibold', stColor)}>
+      <div sx={stylexStyles3.rule2}>
+        <div sx={stylexStyles3.rule3}>
+          <h4 sx={stylexStyles3.rule4}>Billing</h4>
+          <span
+            sx={[
+              stylexStyles3.rule5,
+              isStatusActive(status)
+                ? stylexStyles3.rule6
+                : isStatusPastDue(status)
+                  ? stylexStyles3.rule7
+                  : status === BillingStatus.BillingStatus_CANCELED
+                    ? stylexStyles3.rule8
+                    : stylexStyles3.rule9,
+            ]}
+          >
             {statusLabel(status)}
           </span>
         </div>
-        <p className="text-foreground-alt text-xs select-none">
+        <p sx={stylexStyles3.rule10}>
           {[intLabel, nextDate && `Next: ${nextDate}`]
             .filter(Boolean)
             .join(' \u00b7 ') || 'Manage your subscription'}

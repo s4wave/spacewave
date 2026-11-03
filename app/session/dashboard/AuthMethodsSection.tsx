@@ -11,7 +11,7 @@ import {
 import { FcGoogle } from '@s4wave/web/images/icons.js'
 
 import { downloadPemFile } from '@s4wave/web/download.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { truncatePeerId } from '@s4wave/web/ui/credential/auth-utils.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import {
@@ -55,6 +55,148 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
+
+import {
+  fonts as themeFonts,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule2: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule3: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    padding: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule4: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+  },
+  rule5: {
+    display: 'flex',
+    minWidth: 0,
+    flex: 1,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule6: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+  },
+  rule7: { minWidth: 0, flex: 1 },
+  rule8: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule9: {
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule10: { display: 'flex', gap: themeLayout['--spacing'] },
+  rule11: {
+    width: '100%',
+    cursor: 'not-allowed',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+    textAlign: 'left',
+    opacity: 0.5,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule12: {
+    width: '100%',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 12%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+    textAlign: 'left',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule13: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule14: {
+    marginLeft: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-normal)',
+    fontWeight: 'var(--font-weight-normal)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule15: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -217,9 +359,7 @@ function AuthMethodsSectionContent({
         onOpenChange={handleOpenChange}
         badge={
           keypairCount > 0 ? (
-            <span className="text-foreground-alt/50 text-xs">
-              {keypairCount}
-            </span>
+            <span sx={stylexStyles2.rule1}>{keypairCount}</span>
           ) : undefined
         }
         headerActions={
@@ -236,20 +376,19 @@ function AuthMethodsSectionContent({
         }
       >
         {authMethodsResource.loading && (
-          <p className="text-foreground-alt/40 text-xs">
-            Loading auth methods…
-          </p>
+          <p sx={stylexStyles2.rule2}>Loading auth methods…</p>
         )}
         {!authMethodsResource.loading && authMethods.length === 0 && (
-          <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
+          <div sx={stylexStyles2.rule3}>
             <LuKey sx={stylexStyles.rule2} />
             <span>No auth methods found</span>
           </div>
         )}
         {authMethods.length > 0 && (
-          <div className="space-y-2">
+          <div>
             {authMethods.map((method) => (
               <AuthMethodRow
+                sx={nativeChildSpacing.s2}
                 key={method.peerId ?? method.keypair?.peerId ?? 'unknown'}
                 method={method}
                 hasOtherMethods={authMethods.length > 1}
@@ -337,6 +476,7 @@ function AuthMethodsSectionContent({
 // AuthMethodRow renders an auth method with its change and remove actions.
 // The only remaining method cannot be removed.
 function AuthMethodRow({
+  sx,
   method,
   hasOtherMethods,
   onChangePassword,
@@ -346,28 +486,24 @@ function AuthMethodRow({
   hasOtherMethods: boolean
   onChangePassword: () => void
   onRemove: (peerId: string, label: string) => void
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   const peerId = method.peerId ?? method.keypair?.peerId ?? 'unknown'
   const label = method.label ?? 'Auth method'
   const secondary = method.secondaryLabel ?? ''
 
   return (
-    <div className="border-foreground/6 bg-background-card/30 flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5">
-      <div className="flex min-w-0 flex-1 items-center gap-3">
-        <div className="bg-foreground/5 flex size-8 shrink-0 items-center justify-center rounded-md">
+    <div sx={[stylexStyles2.rule4, sx]}>
+      <div sx={stylexStyles2.rule5}>
+        <div sx={stylexStyles2.rule6}>
           <AuthMethodIcon method={method} />
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-foreground text-sm font-medium">{label}</p>
-          {secondary && (
-            <p className="text-foreground-alt/50 text-xs">{secondary}</p>
-          )}
-          <p className="text-foreground-alt/50 font-mono text-xs">
-            {truncatePeerId(peerId)}
-          </p>
+        <div sx={stylexStyles2.rule7}>
+          <p sx={stylexStyles2.rule8}>{label}</p>
+          {secondary && <p sx={stylexStyles2.rule1}>{secondary}</p>}
+          <p sx={stylexStyles2.rule9}>{truncatePeerId(peerId)}</p>
         </div>
       </div>
-      <div className="flex gap-1">
+      <div sx={stylexStyles2.rule10}>
         {isPasswordMethod(method) && (
           <DashboardButton
             icon={<LuLock sx={stylexStyles.rule3} />}
@@ -410,7 +546,11 @@ function AuthMethodPickerDialog({
             Choose which type of auth method to add.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-2">
+        <div
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
+          }
+        >
           <MethodOption
             label="Backup key (.pem)"
             description="Generate a key file for offline recovery"
@@ -611,25 +751,31 @@ function MethodOption({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={cn(
-        'border-foreground/6 bg-background-card/30 w-full rounded-md border px-3 py-2.5 text-left transition-colors',
-        disabled
-          ? 'cursor-not-allowed opacity-50'
-          : 'hover:border-foreground/12 hover:bg-background-card/50',
-      )}
+      sx={disabled ? stylexStyles2.rule11 : stylexStyles2.rule12}
     >
-      <div className="flex items-center gap-2">
+      <div sx={stylexStyles2.rule13}>
         {icon}
-        <p className="text-foreground text-sm font-medium">
+        <p sx={stylexStyles2.rule8}>
           {label}
-          {disabled && (
-            <span className="text-foreground-alt ml-2 text-xs font-normal">
-              Coming soon
-            </span>
-          )}
+          {disabled && <span sx={stylexStyles2.rule14}>Coming soon</span>}
         </p>
       </div>
-      <p className="text-foreground-alt text-xs">{description}</p>
+      <p sx={stylexStyles2.rule15}>{description}</p>
     </button>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

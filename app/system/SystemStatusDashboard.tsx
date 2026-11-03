@@ -74,6 +74,532 @@ import {
 } from '../../web/style/tokens.stylex.js'
 import { groupMarker } from '../../web/style/relations.stylex.js'
 
+import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
+import { groupMarker as groupMarker2 } from '../../web/style/relations.stylex.js'
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingTop: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: { marginTop: `calc(${themeLayout['--spacing']} * 2)` },
+})
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    containerType: 'inline-size',
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    backgroundColor: themeColors['--color-background'],
+  },
+  rule2: {
+    display: 'flex',
+    minHeight: 0,
+    flex: 1,
+    flexDirection: 'column',
+    overflow: 'auto',
+  },
+  rule3: {
+    display: 'flex',
+    minHeight: 0,
+    flex: 1,
+    animationName: {
+      default: 'shadcn-enter',
+      '@media (prefers-reduced-motion: reduce)': 'none',
+    },
+    animationDuration: {
+      default: '.15s',
+      '@media (prefers-reduced-motion: reduce)': '0s',
+    },
+    animationTimingFunction: {
+      default: 'ease-out',
+      '@media (prefers-reduced-motion: reduce)': 'ease',
+    },
+    animationIterationCount: {
+      default: 1,
+      '@media (prefers-reduced-motion: reduce)': 1,
+    },
+    animationDirection: {
+      default: 'normal',
+      '@media (prefers-reduced-motion: reduce)': 'normal',
+    },
+    animationPlayState: {
+      default: 'running',
+      '@media (prefers-reduced-motion: reduce)': 'running',
+    },
+    animationDelay: {
+      default: '0s',
+      '@media (prefers-reduced-motion: reduce)': '0s',
+    },
+    animationFillMode: {
+      default: 'both',
+      '@media (prefers-reduced-motion: reduce)': 'none',
+    },
+    animationTimeline: {
+      default: 'auto',
+      '@media (prefers-reduced-motion: reduce)': 'auto',
+    },
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    '--tw-duration': '.2s',
+    transitionDuration: '.2s',
+    '--tw-ease': 'var(--ease-out)',
+    transitionTimingFunction: 'var(--ease-out)',
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+    '--tw-enter-opacity': '0',
+    '--tw-enter-scale': '.95',
+  },
+  rule4: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule5: { minHeight: 0, flex: 1, overflow: 'auto' },
+  rule6: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 12)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule7: {
+    minWidth: 0,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+  },
+  rule8: {
+    display: { default: 'none', '@container (min-width: 32rem)': 'block' },
+    minWidth: 0,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule9: {
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+  },
+  rule10: {
+    marginLeft: 'auto',
+    display: 'flex',
+    width: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 7)`,
+    },
+    height: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 7)`,
+    },
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    },
+    '--tw-outline-style': { default: null, ':focus-visible': 'none' },
+    outlineStyle: { default: null, ':focus-visible': 'none' },
+  },
+  rule11: { minWidth: 0, flex: 1 },
+  rule12: {
+    display: 'block',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule13: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    display: 'block',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    overflowWrap: 'break-word',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule14: {
+    display: 'flex',
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker2)]:
+          themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule15: {
+    display: 'grid',
+    gridTemplateColumns: {
+      default: 'repeat(1, minmax(0, 1fr))',
+      '@container (min-width: 42rem)': 'repeat(6, minmax(0, 1fr))',
+    },
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule16: {
+    gridColumn: {
+      default: null,
+      '@container (min-width: 42rem)': 'span 2 / span 2',
+    },
+  },
+  rule17: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    '--tw-numeric-spacing': 'tabular-nums',
+    fontVariantNumeric:
+      'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+  },
+  rule18: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+  },
+  rule19: {
+    marginTop: themeLayout['--spacing'],
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+  },
+  rule20: {
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    '--tw-numeric-spacing': 'tabular-nums',
+    fontVariantNumeric:
+      'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+  },
+  rule21: { marginBlock: `calc(${themeLayout['--spacing']} * 2)` },
+  rule22: { color: themeColors['--color-warning'] },
+  rule23: {
+    gridColumn: {
+      default: null,
+      '@container (min-width: 42rem)': 'span 4 / span 4',
+    },
+  },
+  rule24: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule25: {
+    minWidth: 0,
+    flex: 1,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+  },
+  rule26: {
+    height: themeLayout['--spacing'],
+    width: `calc(${themeLayout['--spacing']} * 20)`,
+    flexShrink: 0,
+    overflow: 'hidden',
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+  },
+  rule27: {
+    width: 'var(--progress-width)',
+    display: 'block',
+    height: '100%',
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule28: {
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    flexShrink: 0,
+    textAlign: 'right',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    '--tw-numeric-spacing': 'tabular-nums',
+    fontVariantNumeric:
+      'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+  },
+  rule29: { color: themeColors['--color-destructive'] },
+  rule30: { marginTop: themeLayout['--spacing'] },
+  rule31: {
+    gridColumn: {
+      default: null,
+      '@container (min-width: 42rem)': 'span 6 / span 6',
+    },
+  },
+  rule32: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule33: {
+    maxWidth: `calc(${themeLayout['--spacing']} * 48)`,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+  },
+  rule34: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+  },
+  rule35: {
+    display: 'flex',
+    maxWidth: `calc(${themeLayout['--spacing']} * 56)`,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+  },
+  rule36: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    color: themeColors['--color-foreground'],
+  },
+  rule37: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+  },
+  rule38: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+  },
+  rule39: {
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule40: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBottom: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule41: {
+    marginRight: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule42: {
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    '--tw-numeric-spacing': 'tabular-nums',
+    fontVariantNumeric:
+      'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+  },
+  rule43: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    overflowX: 'auto',
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule44: {
+    display: 'flex',
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: themeRadii['--radius-md'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    },
+    '--tw-outline-style': { default: null, ':focus-visible': 'none' },
+    outlineStyle: { default: null, ':focus-visible': 'none' },
+  },
+  rule45: {
+    marginInline: themeLayout['--spacing'],
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    width: '1px',
+    flexShrink: 0,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+  },
+  rule46: {
+    display: 'flex',
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: themeRadii['--radius-md'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    },
+    '--tw-outline-style': { default: null, ':focus-visible': 'none' },
+    outlineStyle: { default: null, ':focus-visible': 'none' },
+  },
+  rule47: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    color: themeColors['--color-foreground'],
+  },
+  rule48: {
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+  },
+  rule49: {
+    marginLeft: 'auto',
+    display: { default: 'none', '@container (min-width: 36rem)': 'block' },
+    flexShrink: 0,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 45%, transparent)`,
+  },
+  rule50: { fontFamily: 'var(--font-sans)' },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     display: 'flex',
@@ -279,7 +805,7 @@ export function SystemStatusDashboard({ onClose }: SystemStatusDashboardProps) {
     <div
       role="region"
       aria-label="System status"
-      className="bg-background @container flex h-full w-full flex-col"
+      sx={stylexStyles3.rule1}
       onKeyDown={handleKeyDown}
     >
       <VerdictBar model={model} onClose={close} />
@@ -292,23 +818,25 @@ export function SystemStatusDashboard({ onClose }: SystemStatusDashboardProps) {
             onSelect={setInspector}
             onBack={() => setInspector('')}
           />
-          <div className="flex min-h-0 flex-1 flex-col overflow-auto">
+          <div sx={stylexStyles3.rule2}>
             <div
               key={inspector}
               ref={inspectorRef}
               tabIndex={-1}
               aria-labelledby="system-inspector-title"
-              className="animate-in fade-in-0 zoom-in-95 flex min-h-0 flex-1 flex-col gap-4 p-4 duration-200 ease-out outline-none motion-reduce:animate-none"
+              sx={stylexStyles3.rule3}
             >
               <div>
                 <h2
                   id="system-inspector-title"
-                  className="text-foreground flex items-center gap-2 text-lg font-semibold tracking-tight [&>svg]:size-4"
+                  className={
+                    /* TODO(stylex): a descendant, group, peer or compound selector: [&>svg]:size-4 */ 'text-foreground flex items-center gap-2 text-lg font-semibold tracking-tight [&>svg]:size-4'
+                  }
                 >
                   {inspectorMeta[inspector].icon}
                   {inspectorMeta[inspector].title}
                 </h2>
-                <p className="text-foreground-alt/60 mt-0.5 text-xs">
+                <p sx={stylexStyles3.rule4}>
                   {inspectorMeta[inspector].description}
                 </p>
               </div>
@@ -357,7 +885,7 @@ export function SystemStatusDashboard({ onClose }: SystemStatusDashboardProps) {
           </div>
         </>
       ) : (
-        <div className="min-h-0 flex-1 overflow-auto">
+        <div sx={stylexStyles3.rule5}>
           <AttentionList items={model.verdict.items} onOpen={setInspector} />
           <SystemGrid model={model} tileRef={tileRef} onOpen={setInspector} />
           <UnderTheHood tileRef={tileRef} onOpen={setInspector} />
@@ -380,27 +908,26 @@ function VerdictBar({
     build.goos && build.goarch ? `${build.goos}/${build.goarch}` : ''
 
   return (
-    <header className="border-foreground/8 flex h-12 shrink-0 items-center gap-3 border-b px-4">
+    <header sx={stylexStyles3.rule6}>
       <span
-        className={cn(
-          'size-2.5 shrink-0 rounded-full',
-          toneDotClass[verdict.tone],
-        )}
+        className={
+          /* TODO(stylex): dynamic class or forwarded className */ cn(
+            'size-2.5 shrink-0 rounded-full',
+            toneDotClass[verdict.tone],
+          )
+        }
         aria-hidden="true"
       />
-      <h1
-        className="text-foreground min-w-0 truncate text-sm font-semibold tracking-tight"
-        role="status"
-      >
+      <h1 sx={stylexStyles3.rule7} role="status">
         {verdict.headline}
       </h1>
-      <p className="text-foreground-alt/50 hidden min-w-0 truncate text-xs @lg:block">
-        <span className="font-mono">{build.version || 'dev'}</span>
+      <p sx={stylexStyles3.rule8}>
+        <span sx={stylexStyles3.rule9}>{build.version || 'dev'}</span>
         {build.runtimeLabel && <> · {build.runtimeLabel}</>}
         {platform && (
           <>
             {' · '}
-            <span className="font-mono">{platform}</span>
+            <span sx={stylexStyles3.rule9}>{platform}</span>
           </>
         )}
       </p>
@@ -408,7 +935,7 @@ function VerdictBar({
         type="button"
         onClick={onClose}
         aria-label="Close system status"
-        className="text-foreground-alt/60 hover:text-foreground hover:bg-foreground/5 focus-visible:ring-brand/50 fine-pointer:size-7 ml-auto flex size-11 shrink-0 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none"
+        sx={stylexStyles3.rule10}
       >
         <LuX sx={stylexStyles.rule1} aria-hidden="true" />
       </button>
@@ -430,9 +957,9 @@ function AttentionList({
   }
 
   return (
-    <ul className="space-y-2 px-4 pt-4" aria-label="Needs attention">
+    <ul sx={stylexStyles4.rule1} aria-label="Needs attention">
       {items.map((item) => (
-        <li key={item.key}>
+        <li sx={nativeChildSpacing.s2} key={item.key}>
           <button
             type="button"
             onClick={() => onOpen(item.subsystem)}
@@ -446,15 +973,11 @@ function AttentionList({
             ) : (
               <LuTriangleAlert sx={stylexStyles.rule3} aria-hidden="true" />
             )}
-            <span className="min-w-0 flex-1">
-              <span className="text-foreground block text-xs font-medium">
-                {item.title}
-              </span>
-              <span className="text-foreground-alt/70 mt-0.5 block text-xs break-words">
-                {item.detail}
-              </span>
+            <span sx={stylexStyles3.rule11}>
+              <span sx={stylexStyles3.rule12}>{item.title}</span>
+              <span sx={stylexStyles3.rule13}>{item.detail}</span>
             </span>
-            <span className="text-foreground-alt/60 group-hover:text-foreground flex shrink-0 items-center gap-1 text-xs transition-colors">
+            <span sx={stylexStyles3.rule14}>
               Inspect {inspectorMeta[item.subsystem].title}
               <LuArrowRight sx={stylexStyles.rule4} aria-hidden="true" />
             </span>
@@ -490,7 +1013,7 @@ function SystemGrid({
   })
 
   return (
-    <div className="grid grid-cols-1 gap-3 p-4 @2xl:grid-cols-6">
+    <div sx={stylexStyles3.rule15}>
       <SyncTile base={tile('sync')} sync={model.sync} />
       <StorageTile base={tile('storage')} storage={model.storage} />
       <NetworkTile base={tile('network')} network={model.network} />
@@ -516,20 +1039,20 @@ function SyncTile({
   return (
     <SystemTile
       {...base}
-      className="@2xl:col-span-2"
+      {...stylex.props(stylexStyles3.rule16)}
       headline={sync.summaryLabel}
     >
-      <div className="flex items-center gap-4 font-mono tabular-nums">
-        <span className="flex items-center gap-1">
+      <div sx={stylexStyles3.rule17}>
+        <span sx={stylexStyles3.rule18}>
           <LuArrowUp sx={stylexStyles.rule5} aria-label="Upload" />
           {sync.uploadRateLabel}
         </span>
-        <span className="flex items-center gap-1">
+        <span sx={stylexStyles3.rule18}>
           <LuArrowDown sx={stylexStyles.rule5} aria-label="Download" />
           {sync.downloadRateLabel}
         </span>
       </div>
-      <p className="mt-1 truncate">{sync.transportLabel}</p>
+      <p sx={stylexStyles3.rule19}>{sync.transportLabel}</p>
     </SystemTile>
   )
 }
@@ -550,11 +1073,15 @@ function StorageTile({
   }
 
   return (
-    <SystemTile {...base} className="@2xl:col-span-2" headline={headline}>
-      <p className="font-mono tabular-nums">
+    <SystemTile
+      {...base}
+      {...stylex.props(stylexStyles3.rule16)}
+      headline={headline}
+    >
+      <p sx={stylexStyles3.rule20}>
         {formatCount(storage.blockCount)} block entries
       </p>
-      <div className="my-2">
+      <div sx={stylexStyles3.rule21}>
         <StorageMeter
           usage={storage.originUsageBytes}
           quota={storage.originQuotaBytes}
@@ -576,26 +1103,30 @@ function NetworkTile({
 }) {
   if (!network) {
     return (
-      <SystemTile {...base} className="@2xl:col-span-2" headline="Reading…" />
+      <SystemTile
+        {...base}
+        {...stylex.props(stylexStyles3.rule16)}
+        headline="Reading…"
+      />
     )
   }
 
   return (
     <SystemTile
       {...base}
-      className="@2xl:col-span-2"
+      {...stylex.props(stylexStyles3.rule16)}
       headline={plural(network.peerCount ?? 0, 'peer')}
     >
       <p>
         {plural(network.linkCount ?? 0, 'link')} · Transport{' '}
-        <span className={cn(!network.transportRunning && 'text-warning')}>
+        <span sx={[!network.transportRunning && stylexStyles3.rule22]}>
           {network.transportRunning ? 'running' : 'stopped'}
         </span>
       </p>
       {network.localPeerId && (
-        <p className="mt-1 truncate">
+        <p sx={stylexStyles3.rule19}>
           This device{' '}
-          <span className="font-mono">{shortId(network.localPeerId)}</span>
+          <span sx={stylexStyles3.rule9}>{shortId(network.localPeerId)}</span>
         </p>
       )}
     </SystemTile>
@@ -622,32 +1153,30 @@ function RuntimeTile({ base, model }: { base: TileBase; model: SystemModel }) {
   return (
     <SystemTile
       {...base}
-      className="@2xl:col-span-4"
+      {...stylex.props(stylexStyles3.rule23)}
       headline={runtimeHeadline(model.plugins, running)}
     >
-      <p className="font-mono tabular-nums">
+      <p sx={stylexStyles3.rule20}>
         {plural(model.controllers?.length ?? 0, 'controller')} ·{' '}
         {plural(model.directiveCount, 'directive')}
       </p>
       {busiest.length > 0 && (
-        <ol className="mt-2 space-y-1" aria-label="Busiest directive types">
+        <ol sx={stylexStyles4.rule2} aria-label="Busiest directive types">
           {busiest.map((group) => (
-            <li key={group.name} className="flex items-center gap-3">
-              <span className="min-w-0 flex-1 truncate font-mono">
-                {group.name}
-              </span>
-              <span
-                className="bg-foreground/8 h-1 w-20 shrink-0 overflow-hidden rounded-full"
-                aria-hidden="true"
-              >
+            <li
+              key={group.name}
+              sx={[nativeChildSpacing.s1, stylexStyles3.rule24]}
+            >
+              <span sx={stylexStyles3.rule25}>{group.name}</span>
+              <span sx={stylexStyles3.rule26} aria-hidden="true">
                 <span
-                  className="bg-foreground-alt/50 progress-width block h-full rounded-full"
+                  sx={stylexStyles3.rule27}
                   style={{
                     '--progress-width': `${(group.idents.length / busiest[0].idents.length) * 100}%`,
                   }}
                 />
               </span>
-              <span className="w-10 shrink-0 text-right font-mono tabular-nums">
+              <span sx={stylexStyles3.rule28}>
                 {formatCount(group.idents.length)}
               </span>
             </li>
@@ -672,18 +1201,16 @@ function ReleaseTile({ base, model }: { base: TileBase; model: SystemModel }) {
   return (
     <SystemTile
       {...base}
-      className="@2xl:col-span-2"
+      {...stylex.props(stylexStyles3.rule16)}
       headline={
-        <span className="font-mono">{model.build.version || 'dev'}</span>
+        <span sx={stylexStyles3.rule9}>{model.build.version || 'dev'}</span>
       }
     >
-      <p
-        className={cn(launcher?.updatePhase === 'error' && 'text-destructive')}
-      >
+      <p sx={[launcher?.updatePhase === 'error' && stylexStyles3.rule29]}>
         {update}
       </p>
       {asset?.status === 'reported' && (
-        <p className={cn('mt-1', !asset.ok && 'text-destructive')}>
+        <p sx={[stylexStyles3.rule30, !asset.ok && stylexStyles3.rule29]}>
           {asset.ok ? 'Runtime loaded cleanly' : 'Runtime loaded with errors'}
         </p>
       )}
@@ -703,7 +1230,11 @@ function SpacesTile({
 }) {
   if (!sessions || !spaces) {
     return (
-      <SystemTile {...base} className="@2xl:col-span-6" headline="Reading…" />
+      <SystemTile
+        {...base}
+        {...stylex.props(stylexStyles3.rule31)}
+        headline="Reading…"
+      />
     )
   }
 
@@ -711,10 +1242,10 @@ function SpacesTile({
   return (
     <SystemTile
       {...base}
-      className="@2xl:col-span-6"
+      {...stylex.props(stylexStyles3.rule31)}
       headline={`${plural(spaces.length, 'Space')} · ${plural(sessions.length, 'account')}`}
     >
-      <ul className="flex flex-wrap gap-1.5">
+      <ul sx={stylexStyles3.rule32}>
         {sessions.map((session) => (
           <SessionChip
             key={session.sessionIndex}
@@ -722,15 +1253,12 @@ function SpacesTile({
           />
         ))}
         {shown.map((space) => (
-          <li
-            key={spaceEngineId(space)}
-            className="border-foreground/8 max-w-48 truncate rounded-md border px-2 py-1"
-          >
+          <li key={spaceEngineId(space)} sx={stylexStyles3.rule33}>
             {space.spaceMeta?.name || 'Untitled Space'}
           </li>
         ))}
         {spaces.length > shown.length && (
-          <li className="px-2 py-1">
+          <li sx={stylexStyles3.rule34}>
             +{formatCount(spaces.length - shown.length)} more
           </li>
         )}
@@ -746,19 +1274,15 @@ function SessionChip({ sessionIndex }: { sessionIndex: number }) {
 
   return (
     <li
-      className={cn(
-        'flex max-w-56 items-center gap-1.5 rounded-md border px-2 py-1',
-        current
-          ? 'border-brand/30 bg-brand/10 text-foreground'
-          : 'border-foreground/8',
-      )}
+      sx={[
+        stylexStyles3.rule35,
+        current ? stylexStyles3.rule36 : stylexStyles3.rule37,
+      ]}
     >
-      <span className="truncate">
+      <span sx={stylexStyles3.rule38}>
         {metadata?.displayName || `Session ${sessionIndex}`}
       </span>
-      <span className="text-foreground-alt/50 font-mono">
-        /u/{sessionIndex}
-      </span>
+      <span sx={stylexStyles3.rule39}>/u/{sessionIndex}</span>
     </li>
   )
 }
@@ -775,17 +1299,15 @@ function UnderTheHood({
   const atomCount = useStateInspectorEntryMap().size
 
   return (
-    <div className="flex flex-wrap items-center gap-2 px-4 pb-4">
-      <h2 className="text-foreground-alt/60 mr-1 text-xs">Under the hood</h2>
+    <div sx={stylexStyles3.rule40}>
+      <h2 sx={stylexStyles3.rule41}>Under the hood</h2>
       <DashboardButton
         ref={tileRef('resources')}
         icon={<LuLayers sx={stylexStyles.rule4} />}
         onClick={() => onOpen('resources')}
       >
         Resources
-        <span className="text-foreground-alt/50 font-mono tabular-nums">
-          {formatCount(resourceCount)}
-        </span>
+        <span sx={stylexStyles3.rule42}>{formatCount(resourceCount)}</span>
       </DashboardButton>
       <DashboardButton
         ref={tileRef('atoms')}
@@ -793,9 +1315,7 @@ function UnderTheHood({
         onClick={() => onOpen('atoms')}
       >
         State atoms
-        <span className="text-foreground-alt/50 font-mono tabular-nums">
-          {formatCount(atomCount)}
-        </span>
+        <span sx={stylexStyles3.rule42}>{formatCount(atomCount)}</span>
       </DashboardButton>
     </div>
   )
@@ -814,22 +1334,12 @@ function InspectorNav({
   onBack: () => void
 }) {
   return (
-    <nav
-      aria-label="System inspectors"
-      className="border-foreground/8 flex h-10 shrink-0 items-center gap-1 overflow-x-auto border-b px-2"
-    >
-      <button
-        type="button"
-        onClick={onBack}
-        className="text-foreground-alt/70 hover:text-foreground hover:bg-foreground/5 focus-visible:ring-brand/50 flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors focus-visible:ring-2 focus-visible:outline-none"
-      >
+    <nav aria-label="System inspectors" sx={stylexStyles3.rule43}>
+      <button type="button" onClick={onBack} sx={stylexStyles3.rule44}>
         <LuArrowLeft sx={stylexStyles.rule4} aria-hidden="true" />
         All systems
       </button>
-      <span
-        className="bg-foreground/10 mx-1 h-4 w-px shrink-0"
-        aria-hidden="true"
-      />
+      <span sx={stylexStyles3.rule45} aria-hidden="true" />
       {inspectorOrder.map((id) => {
         const tone = id in tones ? tones[id as SubsystemId] : null
         return (
@@ -838,28 +1348,63 @@ function InspectorNav({
             type="button"
             aria-current={id === current ? 'page' : undefined}
             onClick={() => onSelect(id)}
-            className={cn(
-              'focus-visible:ring-brand/50 flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors focus-visible:ring-2 focus-visible:outline-none',
-              id === current
-                ? 'bg-foreground/8 text-foreground'
-                : 'text-foreground-alt/60 hover:text-foreground',
-            )}
+            sx={[
+              stylexStyles3.rule46,
+              id === current ? stylexStyles3.rule47 : stylexStyles3.rule48,
+            ]}
           >
             {tone && (
               <span
-                className={cn('size-1.5 rounded-full', toneDotClass[tone])}
+                className={
+                  /* TODO(stylex): dynamic class or forwarded className */ cn(
+                    'size-1.5 rounded-full',
+                    toneDotClass[tone],
+                  )
+                }
                 aria-hidden="true"
               />
             )}
-            <span className={cn(tone === 'error' && toneTextClass.error)}>
+            <span
+              className={
+                /* TODO(stylex): dynamic class or forwarded className */ cn(
+                  tone === 'error' && toneTextClass.error,
+                )
+              }
+            >
               {inspectorMeta[id].title}
             </span>
           </button>
         )
       })}
-      <span className="text-foreground-alt/45 ml-auto hidden shrink-0 px-2 text-xs @xl:block">
-        <kbd className="font-sans">Esc</kbd> to go back
+      <span sx={stylexStyles3.rule49}>
+        <kbd sx={stylexStyles3.rule50}>Esc</kbd> to go back
       </span>
     </nav>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s1: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

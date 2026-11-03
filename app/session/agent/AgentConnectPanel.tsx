@@ -24,6 +24,166 @@ import {
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
 
+import {
+  radii as themeRadii,
+  fonts as themeFonts,
+  utilityState as themeUtilityState,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule2: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    color: themeColors['--color-brand'],
+  },
+  rule3: { minWidth: 0, flex: 1 },
+  rule4: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+  },
+  rule5: {
+    display: 'flex',
+    width: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 40rem)': {
+        default: null,
+        '@media (pointer: fine)': 'auto',
+      },
+    },
+    height: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 40rem)': {
+        default: null,
+        '@media (pointer: fine)': 'auto',
+      },
+    },
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '.25rem',
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    padding: {
+      default: null,
+      '@media (min-width: 40rem)': {
+        default: null,
+        '@media (pointer: fine)': themeLayout['--spacing'],
+      },
+    },
+  },
+  rule6: {
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingTop: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule7: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule8: { color: themeColors['--color-destructive'] },
+  rule9: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule10: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule11: {
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    wordBreak: 'break-all',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule12: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule13: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule14: { overflowWrap: 'break-word' },
+  rule15: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule16: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 12)`,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 15%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: 'var(--text-xl)',
+    lineHeight: 'var(--tw-leading, var(--text-xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-bold)',
+    fontWeight: 'var(--font-weight-bold)',
+    '--tw-tracking': 'var(--tracking-widest)',
+    letterSpacing: 'var(--tracking-widest)',
+  },
+  rule17: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+    textDecorationLine: 'line-through',
+  },
+  rule18: { display: 'flex', gap: `calc(${themeLayout['--spacing']} * 2)` },
+  rule19: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 4)`,
@@ -91,24 +251,24 @@ export function AgentConnectPanel({
 
   return (
     <div
-      className="max-h-128 space-y-3 overflow-y-auto p-3"
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'max-h-128 space-y-3 overflow-y-auto p-3'
+      }
       data-testid="agent-connect-panel"
     >
-      <div className="flex items-start gap-3">
-        <div className="bg-brand/10 text-brand flex size-8 shrink-0 items-center justify-center rounded-md">
+      <div sx={stylexStyles2.rule1}>
+        <div sx={stylexStyles2.rule2}>
           <LuBot sx={stylexStyles.rule1} aria-hidden="true" />
         </div>
-        <div className="min-w-0 flex-1">
-          <div className="text-sm font-semibold tracking-tight">
-            Connect an agent
-          </div>
+        <div sx={stylexStyles2.rule3}>
+          <div sx={stylexStyles2.rule4}>Connect an agent</div>
           <CopyStatus copyState={copyState} />
         </div>
         <button
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="text-foreground-alt/60 hover:text-foreground sm:fine-pointer:size-auto sm:fine-pointer:p-1 flex size-11 shrink-0 items-center justify-center rounded"
+          sx={stylexStyles2.rule5}
         >
           <LuX sx={stylexStyles.rule2} />
         </button>
@@ -129,7 +289,7 @@ export function AgentConnectPanel({
         />
       )}
 
-      <div className="border-foreground/8 border-t pt-2">
+      <div sx={stylexStyles2.rule6}>
         <SessionsSection
           account={account}
           isLocal={isLocal}
@@ -152,10 +312,10 @@ const COPY_STATUS: Record<CopyState, string> = {
 function CopyStatus({ copyState }: { copyState: CopyState }) {
   return (
     <div
-      className={cn(
-        'mt-0.5 text-xs',
-        copyState === 'failed' ? 'text-destructive' : 'text-foreground-alt/60',
-      )}
+      sx={[
+        stylexStyles2.rule7,
+        copyState === 'failed' ? stylexStyles2.rule8 : stylexStyles2.rule9,
+      ]}
     >
       {COPY_STATUS[copyState]}
     </div>
@@ -172,15 +332,17 @@ function SocketBody({
   onCopy: () => void
 }) {
   return (
-    <div className="space-y-3">
-      <p className="text-foreground-alt text-xs leading-relaxed">
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
+      }
+    >
+      <p sx={stylexStyles2.rule10}>
         Your agent connects through this app's command-line socket. No approval
         is needed.
       </p>
-      <div className="bg-foreground/5 text-foreground-alt rounded-md px-2 py-1.5 font-mono text-xs break-all">
-        {socketPath}
-      </div>
-      <div className="text-foreground-alt/60 text-xs">
+      <div sx={stylexStyles2.rule11}>{socketPath}</div>
+      <div sx={stylexStyles2.rule12}>
         {connectedClients === 1
           ? '1 command-line client connected'
           : `${connectedClients} command-line clients connected`}
@@ -205,8 +367,12 @@ function PairingBody({
 
   if (!pairing) {
     return (
-      <div className="space-y-3">
-        <p className="text-foreground-alt text-xs leading-relaxed">
+      <div
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
+        }
+      >
+        <p sx={stylexStyles2.rule10}>
           The prompt carries a pairing code. Your agent runs the Spacewave CLI
           and asks you to approve it here.
         </p>
@@ -222,10 +388,14 @@ function PairingBody({
 
   if (pairing.error) {
     return (
-      <div className="space-y-3">
-        <div className="text-destructive flex items-start gap-2 text-xs">
+      <div
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
+        }
+      >
+        <div sx={stylexStyles2.rule13}>
           <LuCircleAlert sx={stylexStyles.rule3} />
-          <span className="break-words">{pairing.error}</span>
+          <span sx={stylexStyles2.rule14}>{pairing.error}</span>
         </div>
         <PanelButton
           icon={<LuRefreshCw />}
@@ -286,18 +456,15 @@ function CodeWaiting({
     .padStart(2, '0')}`
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-col items-center gap-1.5">
+    <div>
+      <div sx={[nativeChildSpacing.s3, stylexStyles2.rule15]}>
         <div
-          className={cn(
-            'border-foreground/15 bg-foreground/5 flex h-12 w-full items-center justify-center rounded-md border font-mono text-xl font-bold tracking-widest',
-            expired && 'text-foreground-alt/40 line-through',
-          )}
+          sx={[stylexStyles2.rule16, !!expired && stylexStyles2.rule17]}
           aria-label="Pairing code"
         >
           {code ? formatted : <Spinner size="sm" />}
         </div>
-        <div className="text-foreground-alt/60 text-xs" aria-live="polite">
+        <div sx={stylexStyles2.rule12} aria-live="polite">
           {!code
             ? 'Creating a pairing code…'
             : expired
@@ -305,11 +472,11 @@ function CodeWaiting({
               : `Waiting for your agent · expires in ${countdown}`}
         </div>
       </div>
-      <p className="text-foreground-alt text-xs leading-relaxed">
+      <p sx={[nativeChildSpacing.s3, stylexStyles2.rule10]}>
         Your agent reads the instructions, runs the Spacewave CLI, and asks you
         to approve it here.
       </p>
-      <div className="flex gap-2">
+      <div sx={[nativeChildSpacing.s3, stylexStyles2.rule18]}>
         <PanelButton
           icon={<LuCopy />}
           label={expired ? 'Copy new prompt' : 'Copy prompt'}
@@ -344,10 +511,14 @@ function AgentConnected({
 
   if (error) {
     return (
-      <div className="space-y-3">
-        <div className="text-destructive flex items-start gap-2 text-xs">
+      <div
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
+        }
+      >
+        <div sx={stylexStyles2.rule13}>
           <LuCircleAlert sx={stylexStyles.rule3} />
-          <span className="break-words">{error}</span>
+          <span sx={stylexStyles2.rule14}>{error}</span>
         </div>
         <PanelButton
           icon={<LuRefreshCw />}
@@ -360,8 +531,12 @@ function AgentConnected({
 
   const done = !completion.loading && !!completion.value
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2 text-sm">
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
+      }
+    >
+      <div sx={stylexStyles2.rule19}>
         {done ? (
           <LuCircleCheck sx={stylexStyles.rule4} />
         ) : (
@@ -370,7 +545,7 @@ function AgentConnected({
         <span>{done ? 'Agent connected' : 'Finishing connection…'}</span>
       </div>
       {done && (
-        <p className="text-foreground-alt text-xs leading-relaxed">
+        <p sx={stylexStyles2.rule10}>
           The agent can now use your account from its CLI. Remove it under
           Sessions to end its access.
         </p>
@@ -399,12 +574,14 @@ function PanelButton({
     <button
       type="button"
       onClick={onClick}
-      className={cn(
-        'flex h-11 flex-1 items-center justify-center gap-1.5 rounded-md border px-2 text-xs sm:fine-pointer:h-8 [&_svg]:size-3.5',
-        primary
-          ? 'border-brand/30 bg-brand/10 hover:bg-brand/20 text-foreground'
-          : 'border-foreground/15 hover:border-foreground/30 text-foreground-alt',
-      )}
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: [&_svg]:size-3.5 */ cn(
+          'flex h-11 flex-1 items-center justify-center gap-1.5 rounded-md border px-2 text-xs sm:fine-pointer:h-8 [&_svg]:size-3.5',
+          primary
+            ? 'border-brand/30 bg-brand/10 hover:bg-brand/20 text-foreground'
+            : 'border-foreground/15 hover:border-foreground/30 text-foreground-alt',
+        )
+      }
     >
       {icon}
       {label}
@@ -435,3 +612,18 @@ function useSecondsUntil(deadline: number): number {
   }, [deadline])
   return Math.max(0, Math.ceil((deadline - now) / 1000))
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

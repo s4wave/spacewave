@@ -8,12 +8,129 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@s4wave/web/ui/tooltip.js'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import { WizardField } from './WizardField.js'
 
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+import {
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+  radii as themeRadii,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    minHeight: `calc(${themeLayout['--spacing']} * 9)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    display: 'flex',
+    minWidth: 0,
+    alignItems: 'center',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule3: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule4: {
+    marginTop: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule5: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule6: { display: 'flex', gap: `calc(${themeLayout['--spacing']} * 2)` },
+  rule7: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: {
+      default: `calc(${themeLayout['--spacing']} * 10)`,
+      '@media (max-height: 470px)': `calc(${themeLayout['--spacing']} * 2)`,
+    },
+  },
+  rule8: {
+    display: 'flex',
+    maxHeight: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    overflow: 'hidden',
+    borderRadius: 'var(--radius-xl)',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+  },
+  rule9: { maxWidth: 'var(--container-2xl)' },
+  rule10: { maxWidth: 'var(--container-lg)' },
+  rule11: {
+    minHeight: 0,
+    flex: 1,
+    overflowY: 'auto',
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule12: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule13: {
+    fontSize: '.6rem',
+    lineHeight: 1.5,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-widest)',
+    letterSpacing: 'var(--tracking-widest)',
+    textTransform: 'uppercase',
+  },
+  rule14: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 80%, transparent)`,
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -67,10 +184,8 @@ function WizardHeader({
   onCancel,
 }: Pick<WizardShellProps, 'title' | 'onCancel'>) {
   return (
-    <div className="border-foreground/8 flex min-h-9 shrink-0 items-center justify-between border-b px-4">
-      <h2 className="text-foreground flex min-w-0 items-center text-sm font-semibold tracking-tight select-none">
-        {title}
-      </h2>
+    <div sx={stylexStyles2.rule1}>
+      <h2 sx={stylexStyles2.rule2}>{title}</h2>
       <Tooltip>
         <TooltipTrigger asChild>
           <DashboardButton
@@ -99,6 +214,7 @@ type WizardNameFieldProps = Pick<
 
 /** WizardNameField renders the name input with its optional error message. */
 function WizardNameField({
+  sx,
   localName,
   onUpdateName,
   nameLabel = 'Name',
@@ -106,7 +222,7 @@ function WizardNameField({
   nameHelp,
   nameError,
   selectNameOnFocus = false,
-}: WizardNameFieldProps) {
+}: WizardNameFieldProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const handleNameInputRef = useCallback(
     (node: HTMLInputElement | null) => {
       node?.focus()
@@ -122,8 +238,8 @@ function WizardNameField({
   )
 
   return (
-    <section>
-      <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
+    <section sx={sx}>
+      <div sx={stylexStyles2.rule3}>
         <WizardField
           inputRef={handleNameInputRef}
           label={nameLabel}
@@ -137,7 +253,7 @@ function WizardNameField({
           onFocus={handleNameFocus}
         />
         {nameError && (
-          <p id="wizard-name-error" className="text-destructive mt-1.5 text-xs">
+          <p id="wizard-name-error" sx={stylexStyles2.rule4}>
             {nameError}
           </p>
         )}
@@ -185,7 +301,7 @@ function WizardFooter({
   const showFinalize = finalizeStep === undefined || step === finalizeStep
 
   return (
-    <div className="border-foreground/8 flex items-center justify-between gap-2 border-t px-4 py-3">
+    <div sx={stylexStyles2.rule5}>
       <div>
         {step > 0 && (
           <DashboardButton
@@ -197,7 +313,7 @@ function WizardFooter({
           </DashboardButton>
         )}
       </div>
-      <div className="flex gap-2">
+      <div sx={stylexStyles2.rule6}>
         {onNext && step < (finalizeStep ?? 0) && (
           <Button
             onClick={onNext}
@@ -244,26 +360,24 @@ export function WizardShell({
       : `Step ${step + 1}`
 
   return (
-    <div className="very-short:py-2 flex h-full w-full items-start justify-center px-4 py-10">
+    <div sx={stylexStyles2.rule7}>
       <div
-        className={cn(
-          'border-foreground/6 bg-background-card/30 flex max-h-full w-full flex-col overflow-hidden rounded-xl border',
-          width === 'wide' ? 'max-w-2xl' : 'max-w-lg',
-        )}
+        sx={[
+          stylexStyles2.rule8,
+          width === 'wide' ? stylexStyles2.rule9 : stylexStyles2.rule10,
+        ]}
       >
         <WizardHeader title={title} onCancel={onCancel} />
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
-          <div className="space-y-3">
-            <div className="text-foreground-alt/50 flex items-center gap-2 select-none">
-              <span className="micro-text font-medium tracking-widest uppercase">
-                {stepLabel}
-              </span>
-              {stepName && (
-                <span className="text-foreground-alt/80 text-xs font-medium">
-                  {stepName}
-                </span>
-              )}
+        <div sx={stylexStyles2.rule11}>
+          <div
+            className={
+              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
+            }
+          >
+            <div sx={stylexStyles2.rule12}>
+              <span sx={stylexStyles2.rule13}>{stepLabel}</span>
+              {stepName && <span sx={stylexStyles2.rule14}>{stepName}</span>}
             </div>
 
             {step === nameStep && <WizardNameField {...rest} />}

@@ -10,6 +10,10 @@ import { StorageHealth } from './StorageHealth.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
 
+const stylexStyles2 = stylex.create({
+  rule1: { marginTop: `calc(${themeLayout['--spacing']} * 4)` },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -52,7 +56,7 @@ export function StorageHealthSection({
         onLinkDevice={handleLinkDevice}
         onUseCloud={handleUseCloud}
       />
-      <div className="mt-4">
+      <div sx={stylexStyles2.rule1}>
         <StorageBackendsSection />
       </div>
     </CollapsibleSection>

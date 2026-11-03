@@ -81,6 +81,487 @@ import {
 } from '../../../web/style/tokens.stylex.js'
 import { groupMarker as groupMarker2 } from '../../../web/style/relations.stylex.js'
 
+import { fonts as themeFonts } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles6 = stylex.create({
+  rule1: {
+    position: 'relative',
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    overflow: 'hidden',
+    backgroundColor: themeColors['--color-background-landing'],
+  },
+  rule2: {
+    position: 'relative',
+    zIndex: 10,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule3: {
+    pointerEvents: 'none',
+    position: 'absolute',
+    insetInline: 0,
+    top: `calc(${themeLayout['--spacing']} * 14)`,
+    zIndex: 20,
+    display: 'flex',
+    justifyContent: 'center',
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule4: {
+    borderRadius: '3.40282e38px',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-border']} 60%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 80%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: themeLayout['--spacing'],
+    '--tw-shadow':
+      '0 1px 3px 0 var(--tw-shadow-color, #0000001a), 0 1px 2px -1px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    '--tw-backdrop-blur': 'blur(8px)',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+  },
+  rule5: {
+    position: 'relative',
+    zIndex: 10,
+    display: 'flex',
+    minHeight: 0,
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: {
+      default: 'safe center',
+      '@media (max-height: 470px)': 'flex-start',
+    },
+    overflowY: 'auto',
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: {
+      default: `calc(${themeLayout['--spacing']} * 8)`,
+      '@media (max-height: 470px)': `calc(${themeLayout['--spacing']} * 2)`,
+    },
+  },
+  rule6: {
+    width: '100%',
+    maxWidth: {
+      default: 'var(--container-md)',
+      '@media (max-height: 470px)': {
+        default: null,
+        '@media (min-width: 40rem)': 'var(--container-2xl)',
+      },
+    },
+    flexShrink: { default: null, '@media (max-height: 470px)': 0 },
+  },
+  rule7: {
+    position: 'relative',
+    zIndex: 10,
+    paddingBottom: `calc(${themeLayout['--spacing']} * 3)`,
+    textAlign: 'center',
+  },
+  rule8: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+    display: { default: null, '@media (pointer: coarse)': 'inline-flex' },
+    alignItems: { default: null, '@media (pointer: coarse)': 'center' },
+  },
+  rule9: {
+    cursor: 'pointer',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    color: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    display: { default: null, '@media (pointer: coarse)': 'inline-flex' },
+    minHeight: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+    minWidth: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+    alignItems: { default: null, '@media (pointer: coarse)': 'center' },
+    justifyContent: { default: null, '@media (pointer: coarse)': 'center' },
+    paddingInline: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 2)`,
+    },
+  },
+  rule10: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: { default: null, '@media (pointer: coarse)': 'center' },
+    columnGap: {
+      default: null,
+      '@media (pointer: coarse)': themeLayout['--spacing'],
+    },
+  },
+  rule11: { display: 'flex', alignItems: 'center' },
+  rule12: {
+    paddingInline: themeLayout['--spacing'],
+    fontSize: themeLayout['--text-metadata'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-metadata--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 30%, transparent)`,
+    display: { default: null, '@media (pointer: coarse)': 'none' },
+  },
+  rule13: {
+    backgroundColor: '#0000',
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-wide)',
+    letterSpacing: 'var(--tracking-wide)',
+    whiteSpace: 'nowrap',
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground-alt'],
+      },
+      '@media (pointer: coarse)': `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+    },
+    textTransform: 'uppercase',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    minHeight: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+    minWidth: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+  },
+  rule14: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 6)`,
+    textAlign: 'center',
+  },
+  rule15: {
+    fontSize: 'var(--text-2xl)',
+    lineHeight: 'var(--tw-leading, var(--text-2xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-wide)',
+    letterSpacing: 'var(--tracking-wide)',
+    color: themeColors['--color-foreground'],
+  },
+  rule16: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule17: {
+    marginTop: `calc(${themeLayout['--spacing']} * 4)`,
+    width: '100%',
+    maxWidth: 'var(--container-md)',
+  },
+  rule18: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-ui-outline']} 50%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule19: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 3)`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule20: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule21: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule22: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-lg'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+  },
+  rule23: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule24: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule25: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 1.5)`,
+    display: 'block',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule26: {
+    width: '100%',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      ':focus': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+    '::placeholder': {
+      color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    },
+  },
+  rule27: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule28: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule29: {
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-ui-outline']} 30%, transparent)`,
+  },
+  rule30: {
+    width: '100%',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 50%, transparent)`,
+      ':focus': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+    '::placeholder': {
+      color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    },
+  },
+  rule31: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule32: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule33: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule34: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  rule35: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: themeLayout['--spacing'],
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 80%, transparent)`,
+    fontSize: '10px',
+    lineHeight: 1.5,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule36: {
+    marginLeft: `calc(${themeLayout['--spacing']} * 1.5)`,
+    '--tw-font-weight': 'var(--font-weight-normal)',
+    fontWeight: 'var(--font-weight-normal)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule37: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rule38: {
+    cursor: 'pointer',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    color: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+  },
+  rule39: {
+    cursor: 'pointer',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-normal)',
+    letterSpacing: 'var(--tracking-normal)',
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 70%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-brand'],
+      },
+    },
+    textTransform: 'none',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule40: { minWidth: 0, flex: 1 },
+  rule41: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule42: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule43: {
+    flexShrink: 0,
+    borderRadius: '.25rem',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: themeLayout['--spacing'],
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 1,
+    '--tw-leading': '1',
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule44: {
+    display: 'flex',
+    minWidth: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule45: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule46: {
+    maxWidth: `calc(${themeLayout['--spacing']} * 28)`,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule47: {
+    position: 'relative',
+    marginInline: themeLayout['--spacing'],
+    display: { default: 'none', ':has([cmdk-item])': 'block' },
+  },
+})
+
 const stylexStyles5 = stylex.create({
   rule1: { marginInline: 0 },
   rule2: { marginInline: themeLayout['--spacing'] },
@@ -284,21 +765,21 @@ export function SessionDashboard({
   )
 
   return (
-    <div className="bg-background-landing relative flex h-full w-full flex-col overflow-hidden">
+    <div sx={stylexStyles6.rule1}>
       <QuickstartCommands onQuickstart={handleQuickstartCommand} />
-      <div className="relative z-10 p-3">
+      <div sx={stylexStyles6.rule2}>
         <DashboardNav />
       </div>
 
       {topStatus && (
-        <div className="pointer-events-none absolute inset-x-0 top-14 z-20 flex justify-center px-4">
-          <div className="border-border/60 bg-background/80 rounded-full border px-3 py-1 shadow-sm backdrop-blur">
+        <div sx={stylexStyles6.rule3}>
+          <div sx={stylexStyles6.rule4}>
             <LoadingInline label={topStatus} tone="muted" size="sm" />
           </div>
         </div>
       )}
 
-      <div className="very-short:justify-start very-short:py-2 relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center-safe overflow-y-auto px-4 py-8">
+      <div sx={stylexStyles6.rule5}>
         {isEmpty && isCloud && !readOnly && <WelcomeHeading />}
         {!isEmpty && (
           <AnimatedLogo
@@ -307,7 +788,7 @@ export function SessionDashboard({
           />
         )}
 
-        <div className="very-short:shrink-0 very-short:sm:max-w-2xl w-full max-w-md">
+        <div sx={stylexStyles6.rule6}>
           <DashboardCommandPalette
             spaces={spaces}
             orgs={orgs}
@@ -334,13 +815,13 @@ export function SessionDashboard({
         {isEmpty && !isLoading && isCloud && !readOnly && <CreateOrgSection />}
       </div>
 
-      <div className="relative z-10 pb-3 text-center">
-        <p className="text-foreground-alt/60 text-xs [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:items-center">
+      <div sx={stylexStyles6.rule7}>
+        <p sx={stylexStyles6.rule8}>
           local-first · encrypted ·{' '}
           <button
             type="button"
             onClick={goToCommunity}
-            className="hover:text-foreground cursor-pointer transition-colors [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11 [@media(pointer:coarse)]:items-center [@media(pointer:coarse)]:justify-center [@media(pointer:coarse)]:px-2"
+            sx={stylexStyles6.rule9}
           >
             community
           </button>
@@ -362,14 +843,10 @@ function DashboardNav() {
   ]
 
   return (
-    <nav className="flex flex-wrap items-center [@media(pointer:coarse)]:justify-center [@media(pointer:coarse)]:gap-x-1">
+    <nav sx={stylexStyles6.rule10}>
       {links.map((link, i) => (
-        <span key={link.text} className="flex items-center">
-          {i > 0 && (
-            <span className="text-foreground-alt/30 text-metadata px-1 [@media(pointer:coarse)]:hidden">
-              ·
-            </span>
-          )}
+        <span key={link.text} sx={stylexStyles6.rule11}>
+          {i > 0 && <span sx={stylexStyles6.rule12}>·</span>}
           <NavLink text={link.text} onClick={link.onClick} />
         </span>
       ))}
@@ -381,11 +858,7 @@ function NavLink({ text, onClick }: { text: string; onClick?: () => void }) {
   const handleNavSelect = useCallback(() => onClick?.(), [onClick])
 
   return (
-    <button
-      type="button"
-      onClick={handleNavSelect}
-      className="text-foreground-alt/40 hover:text-foreground-alt [@media(pointer:coarse)]:text-foreground-alt/70 bg-transparent px-2 py-1 text-xs font-medium tracking-wide whitespace-nowrap uppercase transition-colors [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11"
-    >
+    <button type="button" onClick={handleNavSelect} sx={stylexStyles6.rule13}>
       {text}
     </button>
   )
@@ -394,11 +867,9 @@ function NavLink({ text, onClick }: { text: string; onClick?: () => void }) {
 // WelcomeHeading renders a congrats message for new cloud subscribers.
 function WelcomeHeading() {
   return (
-    <div className="mb-6 text-center">
-      <h1 className="text-foreground text-2xl font-semibold tracking-wide">
-        Welcome to Spacewave!
-      </h1>
-      <p className="text-foreground-alt mt-2 text-sm">
+    <div sx={stylexStyles6.rule14}>
+      <h1 sx={stylexStyles6.rule15}>Welcome to Spacewave!</h1>
+      <p sx={stylexStyles6.rule16}>
         Your subscription is active. Create your first space to get started.
       </p>
     </div>
@@ -542,39 +1013,42 @@ function InlineSecureAccountSection(props: {
   }, [session, lock.mode, lock.pin, lock.confirmPin, onboarding])
 
   return (
-    <div className="mt-4 w-full max-w-md">
-      <div className="border-ui-outline/50 rounded-lg border p-4">
-        <h2 className="text-foreground mb-3 flex items-center gap-2 text-sm font-medium">
+    <div sx={stylexStyles6.rule17}>
+      <div sx={stylexStyles6.rule18}>
+        <h2 sx={stylexStyles6.rule19}>
           <LuShieldCheck sx={stylexStyles2.rule1} />
           Secure Your Account
         </h2>
-        <div className="space-y-4">
+        <div
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4'
+          }
+        >
           {onboarding.onboarding.backupComplete ? (
-            <div className="text-foreground-alt flex items-center gap-2 px-3 py-2 text-sm">
+            <div sx={stylexStyles6.rule20}>
               <LuCheck sx={stylexStyles2.rule2} />
               <span>Backup key downloaded</span>
             </div>
           ) : (
-            <div className="space-y-3">
-              <div className="flex items-start gap-3">
-                <div className="bg-brand/10 flex size-8 shrink-0 items-center justify-center rounded-lg">
+            <div
+              className={
+                /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
+              }
+            >
+              <div sx={stylexStyles6.rule21}>
+                <div sx={stylexStyles6.rule22}>
                   <LuDownload sx={stylexStyles2.rule3} />
                 </div>
                 <div>
-                  <p className="text-foreground text-sm font-medium">
-                    Download a backup key
-                  </p>
-                  <p className="text-foreground-alt mt-0.5 text-xs leading-relaxed">
+                  <p sx={stylexStyles6.rule23}>Download a backup key</p>
+                  <p sx={stylexStyles6.rule24}>
                     A backup key gives you a second way to recover your account
                     if you lose your password.
                   </p>
                 </div>
               </div>
               <div>
-                <label
-                  htmlFor={passwordInputId}
-                  className="text-foreground-alt mb-1.5 block text-xs select-none"
-                >
+                <label htmlFor={passwordInputId} sx={stylexStyles6.rule25}>
                   Account password
                 </label>
                 <input
@@ -583,10 +1057,7 @@ function InlineSecureAccountSection(props: {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
-                  className={cn(
-                    'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 text-sm transition-colors outline-none',
-                    'focus:border-brand/50',
-                  )}
+                  sx={[stylexStyles6.rule26]}
                 />
               </div>
               <button
@@ -596,40 +1067,44 @@ function InlineSecureAccountSection(props: {
                 sx={[[stylexStyles4.rule1, groupMarker2]]}
               >
                 <LuDownload sx={stylexStyles2.rule4} />
-                <span className="text-foreground text-sm">
+                <span sx={stylexStyles6.rule27}>
                   {downloading ? 'Generating…' : 'Download backup .pem'}
                 </span>
               </button>
-              {pemError && (
-                <p className="text-destructive text-xs">{pemError}</p>
-              )}
+              {pemError && <p sx={stylexStyles6.rule28}>{pemError}</p>}
             </div>
           )}
 
-          <div className="border-ui-outline/30 border-t" />
+          <div sx={stylexStyles6.rule29} />
 
           {onboarding.onboarding.lockComplete ? (
-            <div className="text-foreground-alt flex items-center gap-2 px-3 py-2 text-sm">
+            <div sx={stylexStyles6.rule20}>
               <LuCheck sx={stylexStyles2.rule2} />
               <span>Session lock configured</span>
             </div>
           ) : (
-            <div className="space-y-3">
-              <div className="flex items-start gap-3">
-                <div className="bg-brand/10 flex size-8 shrink-0 items-center justify-center rounded-lg">
+            <div
+              className={
+                /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
+              }
+            >
+              <div sx={stylexStyles6.rule21}>
+                <div sx={stylexStyles6.rule22}>
                   <LuKeyRound sx={stylexStyles2.rule3} />
                 </div>
                 <div>
-                  <p className="text-foreground text-sm font-medium">
-                    Set up session lock
-                  </p>
-                  <p className="text-foreground-alt mt-0.5 text-xs leading-relaxed">
+                  <p sx={stylexStyles6.rule23}>Set up session lock</p>
+                  <p sx={stylexStyles6.rule24}>
                     Controls how your session key is protected when the app is
                     closed.
                   </p>
                 </div>
               </div>
-              <div className="space-y-2">
+              <div
+                className={
+                  /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
+                }
+              >
                 <RadioOption
                   selected={lock.mode === 'auto'}
                   onSelect={() =>
@@ -650,12 +1125,9 @@ function InlineSecureAccountSection(props: {
                 />
               </div>
               {lock.mode === 'pin' && (
-                <div className="space-y-2">
-                  <div>
-                    <label
-                      htmlFor={pinInputId}
-                      className="text-foreground-alt mb-1.5 block text-xs select-none"
-                    >
+                <div>
+                  <div sx={nativeChildSpacing.s2}>
+                    <label htmlFor={pinInputId} sx={stylexStyles6.rule25}>
                       PIN
                     </label>
                     <input
@@ -666,16 +1138,13 @@ function InlineSecureAccountSection(props: {
                         dispatchLock({ type: 'set-pin', pin: e.target.value })
                       }
                       placeholder="Enter PIN"
-                      className={cn(
-                        'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 text-sm transition-colors outline-none',
-                        'focus:border-brand/50',
-                      )}
+                      sx={[stylexStyles6.rule26]}
                     />
                   </div>
-                  <div>
+                  <div sx={nativeChildSpacing.s2}>
                     <label
                       htmlFor={confirmPinInputId}
-                      className="text-foreground-alt mb-1.5 block text-xs select-none"
+                      sx={stylexStyles6.rule25}
                     >
                       Confirm PIN
                     </label>
@@ -690,13 +1159,12 @@ function InlineSecureAccountSection(props: {
                         })
                       }
                       placeholder="Confirm PIN"
-                      className={cn(
-                        'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 text-sm transition-colors outline-none',
-                        'focus:border-brand/50',
+                      sx={
                         lock.confirmPin.length > 0 &&
-                          lock.pin !== lock.confirmPin &&
-                          'border-destructive/50',
-                      )}
+                        lock.pin !== lock.confirmPin
+                          ? stylexStyles6.rule30
+                          : stylexStyles6.rule26
+                      }
                     />
                   </div>
                 </div>
@@ -707,13 +1175,11 @@ function InlineSecureAccountSection(props: {
                 disabled={savingLock}
                 sx={[[stylexStyles4.rule1, groupMarker2]]}
               >
-                <span className="text-foreground text-sm">
+                <span sx={stylexStyles6.rule27}>
                   {savingLock ? 'Saving…' : 'Set lock mode'}
                 </span>
               </button>
-              {lock.error && (
-                <p className="text-destructive text-xs">{lock.error}</p>
-              )}
+              {lock.error && <p sx={stylexStyles6.rule28}>{lock.error}</p>}
             </div>
           )}
         </div>
@@ -754,9 +1220,9 @@ function CreateOrgSection() {
   // Replace the creation form with confirmation after the organization is created.
   if (created) {
     return (
-      <div className="mt-4 w-full max-w-md">
-        <div className="border-ui-outline/50 rounded-lg border p-4">
-          <div className="text-foreground-alt flex items-center gap-2 text-sm">
+      <div sx={stylexStyles6.rule17}>
+        <div sx={stylexStyles6.rule18}>
+          <div sx={stylexStyles6.rule31}>
             <LuCheck sx={stylexStyles2.rule2} />
             <span>Organization created</span>
           </div>
@@ -766,27 +1232,28 @@ function CreateOrgSection() {
   }
 
   return (
-    <div className="mt-4 w-full max-w-md">
-      <div className="border-ui-outline/50 rounded-lg border p-4">
-        <h2 className="text-foreground mb-3 flex items-center gap-2 text-sm font-medium">
+    <div sx={stylexStyles6.rule17}>
+      <div sx={stylexStyles6.rule18}>
+        <h2 sx={stylexStyles6.rule19}>
           <LuBuilding2 sx={stylexStyles2.rule1} />
           Create an Organization
         </h2>
-        <p className="text-foreground-alt mb-3 text-xs leading-relaxed">
+        <p sx={stylexStyles6.rule32}>
           Organizations let you collaborate with others and manage shared
           resources.
         </p>
-        <div className="space-y-3">
+        <div
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
+          }
+        >
           <input
             type="text"
             value={orgName}
             onChange={(e) => setOrgName(e.target.value)}
             placeholder="Organization name"
             aria-label="Organization name"
-            className={cn(
-              'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 text-sm transition-colors outline-none',
-              'focus:border-brand/50',
-            )}
+            sx={[stylexStyles6.rule26]}
           />
           <button
             type="button"
@@ -795,11 +1262,11 @@ function CreateOrgSection() {
             sx={[[stylexStyles4.rule1, groupMarker2]]}
           >
             <LuBuilding2 sx={stylexStyles2.rule4} />
-            <span className="text-foreground text-sm">
+            <span sx={stylexStyles6.rule27}>
               {creating ? 'Creating…' : 'Create organization'}
             </span>
           </button>
-          {error && <p className="text-destructive text-xs">{error}</p>}
+          {error && <p sx={stylexStyles6.rule28}>{error}</p>}
         </div>
       </div>
     </div>
@@ -993,9 +1460,7 @@ function DashboardSpaceGroups({
           variant="compact"
         >
           {spaces.length === 0 ? (
-            <div className="text-foreground-alt/40 px-2 py-3 text-center text-xs">
-              No spaces yet
-            </div>
+            <div sx={stylexStyles6.rule33}>No spaces yet</div>
           ) : (
             spaces.map((space) => (
               <DashboardSpaceItem
@@ -1181,7 +1646,7 @@ function DashboardCommandPalette({
       >
         <CommandEmpty variant="dashboard">
           {isLoading ? (
-            <div className="flex items-center justify-center">
+            <div sx={stylexStyles6.rule34}>
               <LoadingInline label="Loading spaces" tone="muted" size="sm" />
             </div>
           ) : (
@@ -1211,10 +1676,7 @@ function DashboardCommandPalette({
         )}
       </CommandList>
       {showScrollCue && (
-        <div
-          role="note"
-          className="border-foreground/8 bg-background-card/80 text-foreground-alt/60 micro-ten flex h-7 shrink-0 items-center justify-center gap-1 border-t select-none"
-        >
+        <div role="note" sx={stylexStyles6.rule35}>
           <LuChevronDown sx={stylexStyles2.rule5} />
           Scroll to see all {recentSpaces.length} spaces
         </div>
@@ -1245,14 +1707,12 @@ function SectionHeading(props: {
     <>
       {props.label}
       {props.count !== undefined && props.count > 0 && (
-        <span className="text-foreground-alt/40 ml-1.5 font-normal">
-          {props.count}
-        </span>
+        <span sx={stylexStyles6.rule36}>{props.count}</span>
       )}
     </>
   )
   return (
-    <span className="flex w-full items-center justify-between">
+    <span sx={stylexStyles6.rule37}>
       {props.onLabelClick ? (
         <button
           type="button"
@@ -1260,7 +1720,7 @@ function SectionHeading(props: {
             e.stopPropagation()
             props.onLabelClick?.()
           }}
-          className="hover:text-foreground cursor-pointer transition-colors"
+          sx={stylexStyles6.rule38}
         >
           {labelNode}
         </button>
@@ -1274,7 +1734,7 @@ function SectionHeading(props: {
             e.stopPropagation()
             props.onAction?.()
           }}
-          className="text-brand/70 hover:text-brand cursor-pointer text-xs font-medium tracking-normal normal-case transition-colors"
+          sx={stylexStyles6.rule39}
         >
           + {props.actionLabel}
         </button>
@@ -1305,10 +1765,12 @@ function IconButton({ icon: Icon, tone }: { icon: IconType; tone: IconTone }) {
   const tones = iconToneClasses[tone]
   return (
     <div
-      className={cn(
-        'flex size-7 shrink-0 items-center justify-center rounded-md transition-colors',
-        tones.bg,
-      )}
+      className={
+        /* TODO(stylex): dynamic class or forwarded className */ cn(
+          'flex size-7 shrink-0 items-center justify-center rounded-md transition-colors',
+          tones.bg,
+        )
+      }
     >
       <Icon sx={[stylexStyles3.rule3, tones.icon]} />
     </div>
@@ -1349,30 +1811,17 @@ function DashboardItem({
       onSelect={onSelect}
     >
       <IconButton icon={icon} tone={iconTone} />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <div className="text-foreground truncate text-sm font-medium">
-            {label}
-          </div>
-          {orgName && (
-            <span className="bg-foreground/8 text-foreground-alt/50 shrink-0 rounded px-1 py-0.5 text-xs leading-none font-medium">
-              {orgName}
-            </span>
-          )}
+      <div sx={stylexStyles6.rule40}>
+        <div sx={stylexStyles6.rule41}>
+          <div sx={stylexStyles6.rule42}>{label}</div>
+          {orgName && <span sx={stylexStyles6.rule43}>{orgName}</span>}
           {experimental && <ExperimentalBadge />}
         </div>
         {(sublabel || identifier) && (
-          <div className="flex min-w-0 items-center gap-1.5">
-            {sublabel && (
-              <div className="text-foreground-alt/60 truncate text-xs">
-                {sublabel}
-              </div>
-            )}
+          <div sx={stylexStyles6.rule44}>
+            {sublabel && <div sx={stylexStyles6.rule45}>{sublabel}</div>}
             {identifier && (
-              <span
-                className="text-foreground-alt/40 max-w-28 truncate font-mono text-xs"
-                title={identifier}
-              >
+              <span sx={stylexStyles6.rule46} title={identifier}>
                 {identifier}
               </span>
             )}
@@ -1386,7 +1835,7 @@ function DashboardItem({
   if (!identifier) return item
 
   return (
-    <div className="relative mx-1 hidden has-[[cmdk-item]]:block">
+    <div sx={stylexStyles6.rule47}>
       {item}
       <CopyButton
         text={identifier}
@@ -1397,3 +1846,18 @@ function DashboardItem({
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

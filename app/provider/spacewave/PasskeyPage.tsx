@@ -12,7 +12,7 @@ import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import type { HandoffRequest } from '@s4wave/core/session/handoff/handoff.pb.js'
 import { AuthScreenLayout } from '@s4wave/app/auth/AuthScreenLayout.js'
 import { HandoffComplete } from '@s4wave/app/auth/HandoffComplete.js'
@@ -22,7 +22,7 @@ import {
 } from '@s4wave/app/auth/handoff-state.js'
 import { base64ToBytes, generateAuthKeypairs } from './keypair-utils.js'
 import {
-  authInputClassName,
+  authInputStyles,
   getErrorMessage,
   isUsernameTakenError,
   loginWithEntityPem,
@@ -45,6 +45,237 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
+
+import {
+  fonts as themeFonts,
+  motion as themeMotion,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    position: 'relative',
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: themeColors['--color-background-landing'],
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule2: {
+    position: 'relative',
+    zIndex: 10,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    textAlign: 'center',
+  },
+  rule3: {
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule4: {
+    maxWidth: 'var(--container-sm)',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule5: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: {
+      default: themeColors['--color-brand'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 80%, transparent)`,
+      },
+    },
+    textDecorationLine: 'underline',
+  },
+  rule6: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule7: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule8: {
+    display: 'flex',
+    width: '100%',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule9: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-warning']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-warning']} 10%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule10: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule11: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: {
+      default: themeColors['--color-brand'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 90%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-brand-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule12: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 30%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-background']} 40%, transparent)`,
+      },
+    },
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule13: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: {
+      default: themeColors['--color-brand'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 80%, transparent)`,
+      },
+    },
+    textDecorationLine: 'underline',
+  },
+  rule14: {
+    display: 'flex',
+    width: '100%',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule15: {
+    display: 'flex',
+    width: '100%',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule16: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule17: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule18: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: {
+      default: themeColors['--color-brand'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 90%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-brand-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule19: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -326,29 +557,25 @@ export function PasskeyPage() {
 
   if (state.step === 'error') {
     return (
-      <div className="bg-background-landing relative flex flex-1 flex-col items-center justify-center p-6">
-        <div className="relative z-10 flex flex-col items-center gap-4 text-center">
+      <div sx={stylexStyles2.rule1}>
+        <div sx={stylexStyles2.rule2}>
           <LuCircleAlert sx={stylexStyles.rule1} />
-          <h2 className="text-foreground text-lg font-semibold">
-            Passkey sign-in failed
-          </h2>
-          <p className="text-foreground-alt max-w-sm text-sm">
-            {state.message}
-          </p>
+          <h2 sx={stylexStyles2.rule3}>Passkey sign-in failed</h2>
+          <p sx={stylexStyles2.rule4}>{state.message}</p>
           <button
             type="button"
             onClick={() => {
               setState({ step: 'username' })
               setUsernameError('')
             }}
-            className="text-brand hover:text-brand/80 mt-2 text-sm underline"
+            sx={stylexStyles2.rule5}
           >
             Try again
           </button>
           <button
             type="button"
             onClick={handleBackToLogin}
-            className="text-foreground-alt hover:text-foreground text-xs transition-colors"
+            sx={stylexStyles2.rule6}
           >
             Back to login
           </button>
@@ -363,29 +590,24 @@ export function PasskeyPage() {
         intro={
           <>
             <AnimatedLogo followMouse={false} />
-            <h2 className="text-foreground text-lg font-semibold">
-              Continue with passkey
-            </h2>
-            <p className="text-foreground-alt max-w-sm text-sm">
+            <h2 sx={stylexStyles2.rule3}>Continue with passkey</h2>
+            <p sx={stylexStyles2.rule4}>
               Choose how to continue for{' '}
-              <span className="text-foreground font-medium">{username}</span>.
+              <span sx={stylexStyles2.rule7}>{username}</span>.
             </p>
           </>
         }
       >
-        <div className="flex w-full flex-col gap-4">
+        <div sx={stylexStyles2.rule8}>
           {choiceMessage && (
-            <div className="border-warning/20 bg-warning/10 rounded-md border px-3 py-2">
-              <p className="text-foreground-alt text-xs">{choiceMessage}</p>
+            <div sx={stylexStyles2.rule9}>
+              <p sx={stylexStyles2.rule10}>{choiceMessage}</p>
             </div>
           )}
           <button
             type="button"
             onClick={() => void handleExistingPasskey()}
-            className={cn(
-              'flex w-full items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors',
-              'bg-brand text-brand-foreground hover:bg-brand/90',
-            )}
+            sx={[stylexStyles2.rule11]}
           >
             <LuFingerprint sx={stylexStyles.rule2} />
             Sign in with Passkey
@@ -399,16 +621,12 @@ export function PasskeyPage() {
             type="button"
             onClick={() => void handleCreateAccount()}
             disabled={!agreed}
-            className={cn(
-              'border-foreground/20 text-foreground hover:border-foreground/30 hover:bg-background/40',
-              'flex w-full items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors',
-              'disabled:cursor-not-allowed disabled:opacity-50',
-            )}
+            sx={[stylexStyles2.rule12]}
           >
             <LuFingerprint sx={stylexStyles.rule2} />
             Create New Passkey Account
           </button>
-          <p className="text-foreground-alt text-xs">
+          <p sx={stylexStyles2.rule10}>
             If your passkey cannot derive an encryption key, Spacewave Cloud
             keeps your account key so you can sign in, and we could use it to
             open your data.
@@ -419,14 +637,14 @@ export function PasskeyPage() {
               setChoiceMessage('')
               setState({ step: 'username' })
             }}
-            className="text-brand hover:text-brand/80 text-sm underline"
+            sx={stylexStyles2.rule13}
           >
             Use a different username
           </button>
           <button
             type="button"
             onClick={handleBackToLogin}
-            className="text-foreground-alt hover:text-foreground text-xs transition-colors"
+            sx={stylexStyles2.rule6}
           >
             Back to login
           </button>
@@ -441,18 +659,13 @@ export function PasskeyPage() {
         intro={
           <>
             <AnimatedLogo followMouse={false} />
-            <h2 className="text-foreground text-lg font-semibold">
-              Continue with passkey
-            </h2>
+            <h2 sx={stylexStyles2.rule3}>Continue with passkey</h2>
           </>
         }
       >
-        <div className="flex w-full flex-col gap-6">
-          <div className="flex w-full flex-col gap-2">
-            <label
-              htmlFor="passkey-username"
-              className="text-foreground text-sm font-medium"
-            >
+        <div sx={stylexStyles2.rule14}>
+          <div sx={stylexStyles2.rule15}>
+            <label htmlFor="passkey-username" sx={stylexStyles2.rule16}>
               Username
             </label>
             <input
@@ -463,10 +676,9 @@ export function PasskeyPage() {
               onChange={handleUsernameChange}
               placeholder="your-username"
               autoComplete="username webauthn"
-              className={cn(
-                authInputClassName,
-                usernameError && 'border-destructive',
-              )}
+              sx={
+                usernameError ? authInputStyles.invalid : authInputStyles.base
+              }
               onKeyDown={(e) => {
                 if (e.nativeEvent.isComposing) return
                 if (e.key === 'Enter') {
@@ -474,20 +686,14 @@ export function PasskeyPage() {
                 }
               }}
             />
-            {usernameError && (
-              <p className="text-destructive text-xs">{usernameError}</p>
-            )}
+            {usernameError && <p sx={stylexStyles2.rule17}>{usernameError}</p>}
           </div>
 
           <button
             type="button"
             onClick={() => void handleContinue()}
             disabled={!username || !!usernameError}
-            className={cn(
-              'flex w-full items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors',
-              'bg-brand text-brand-foreground hover:bg-brand/90',
-              'disabled:cursor-not-allowed disabled:opacity-50',
-            )}
+            sx={[stylexStyles2.rule18]}
           >
             <LuFingerprint sx={stylexStyles.rule2} />
             Continue
@@ -496,7 +702,7 @@ export function PasskeyPage() {
           <button
             type="button"
             onClick={handleBackToLogin}
-            className="text-foreground-alt hover:text-foreground text-xs transition-colors"
+            sx={stylexStyles2.rule6}
           >
             Back to login
           </button>
@@ -506,15 +712,15 @@ export function PasskeyPage() {
   }
 
   return (
-    <div className="bg-background-landing relative flex flex-1 flex-col items-center justify-center p-6">
-      <div className="relative z-10 flex flex-col items-center gap-4 text-center">
+    <div sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>
         <AnimatedLogo followMouse={false} />
         {state.step === 'complete' ? (
           <LuCheck sx={stylexStyles.rule3} />
         ) : (
           <Spinner size="md" variant="muted" />
         )}
-        <p className="text-foreground-alt text-sm">{statusMessage}</p>
+        <p sx={stylexStyles2.rule19}>{statusMessage}</p>
       </div>
     </div>
   )

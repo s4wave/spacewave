@@ -23,6 +23,21 @@ import { AppAPI } from './AppAPI.js'
 import { releaseQuickstartAppHandoffs } from './quickstart/session-handoff.js'
 import { EditorShell } from './EditorShell.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    position: 'relative',
+    display: 'flex',
+    height: '100%',
+    minHeight: 0,
+    minWidth: 0,
+    flex: 1,
+    flexDirection: 'column',
+    overflow: 'hidden',
+  },
+})
+
 export interface AppSetupContext {
   root: Root
   client: ResourceClient
@@ -248,7 +263,7 @@ export function SpacewaveApp({
     <div
       data-spacewave-app={appId}
       data-app-status={error ? 'error' : current ? 'ready' : 'loading'}
-      className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+      sx={stylexStyles.rule1}
       tabIndex={-1}
     >
       {error ? (

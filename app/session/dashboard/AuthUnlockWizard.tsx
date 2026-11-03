@@ -25,7 +25,7 @@ import type { EntityKeypairState } from '@s4wave/sdk/account/account.pb.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import { useCloudProviderConfig } from '@s4wave/app/provider/spacewave/useSpacewaveAuth.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { CredentialProofInput } from '@s4wave/web/ui/credential/CredentialProofInput.js'
 import { useCredentialProof } from '@s4wave/web/ui/credential/useCredentialProof.js'
 import {
@@ -49,6 +49,281 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
+
+import {
+  fonts as themeFonts,
+  radii as themeRadii,
+  motion as themeMotion,
+  utilityState as themeUtilityState,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rule3: {
+    borderRadius: '3.40282e38px',
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  rule4: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    color: themeColors['--color-brand'],
+  },
+  rule5: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule6: {
+    height: `calc(${themeLayout['--spacing']} * 1.5)`,
+    width: '100%',
+    overflow: 'hidden',
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+  },
+  rule7: {
+    width: 'var(--progress-width)',
+    transition: 'width 300ms',
+    height: '100%',
+    backgroundColor: themeColors['--color-brand'],
+  },
+  rule8: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule9: {
+    borderRadius: themeRadii['--radius-md'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule10: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule11: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule12: {
+    display: 'flex',
+    minWidth: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule13: { minWidth: 0 },
+  rule14: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule15: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule16: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule17: { display: 'flex', justifyContent: 'flex-end' },
+  rule18: {
+    flexShrink: 0,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule19: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule20: { minWidth: 0, flex: 1 },
+  rule21: {
+    width: '100%',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      ':focus': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+    '::placeholder': {
+      color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule22: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule23: {
+    borderRadius: themeRadii['--radius-md'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule24: {
+    display: 'inline-flex',
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+})
 
 const stylexStyles = stylex.create({
   credentialSpacing: {
@@ -197,38 +472,42 @@ function AuthUnlockWizardContent({
           </DialogDescription>
         </DialogHeader>
 
-        {loading && (
-          <p className="text-foreground-alt text-xs">Loading keypairs…</p>
-        )}
+        {loading && <p sx={stylexStyles2.rule1}>Loading keypairs…</p>}
 
         {!loading && keypairs.length > 0 && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-foreground-alt text-xs">
+          <div
+            className={
+              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
+            }
+          >
+            <div sx={stylexStyles2.rule2}>
+              <span sx={stylexStyles2.rule1}>
                 {unlockedCount} of {required} unlocked
               </span>
               <div
-                className={cn(
-                  'rounded-full px-2 py-0.5 text-xs font-medium',
-                  canConfirm
-                    ? 'bg-brand/10 text-brand'
-                    : 'bg-foreground/5 text-foreground-alt',
-                )}
+                sx={[
+                  stylexStyles2.rule3,
+                  canConfirm ? stylexStyles2.rule4 : stylexStyles2.rule5,
+                ]}
               >
                 {canConfirm ? 'Ready' : 'Unlock more'}
               </div>
             </div>
 
-            <div className="bg-foreground/5 h-1.5 w-full overflow-hidden rounded-full">
+            <div sx={stylexStyles2.rule6}>
               <div
-                className="bg-brand progress-width progress-width-transition-medium h-full"
+                sx={stylexStyles2.rule7}
                 style={{
                   '--progress-width': `${Math.min(100, (unlockedCount / required) * 100)}%`,
                 }}
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div
+              className={
+                /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ 'space-y-1.5'
+              }
+            >
               {keypairs.map((kp) => (
                 <KeypairRow
                   key={kp.keypair?.peerId ?? 'unknown'}
@@ -242,14 +521,14 @@ function AuthUnlockWizardContent({
           </div>
         )}
 
-        {error && <p className="text-destructive text-xs">{error}</p>}
+        {error && <p sx={stylexStyles2.rule8}>{error}</p>}
 
         <DialogFooter>
           <button
             type="button"
             onClick={() => handleOpenChange(false)}
             disabled={submitting}
-            className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors disabled:opacity-50"
+            sx={stylexStyles2.rule9}
           >
             Cancel
           </button>
@@ -257,11 +536,7 @@ function AuthUnlockWizardContent({
             type="button"
             onClick={() => void handleConfirm()}
             disabled={submitting || !canConfirm}
-            className={cn(
-              'rounded-md border px-4 py-2 text-sm transition-all',
-              'border-brand/30 bg-brand/10 hover:bg-brand/20',
-              'disabled:cursor-not-allowed disabled:opacity-50',
-            )}
+            sx={[stylexStyles2.rule10]}
           >
             {submitting ? 'Confirming…' : confirmLabel}
           </button>
@@ -340,23 +615,19 @@ function UnlockedKeypairRow({
   }
 
   return (
-    <div className="border-foreground/10 flex items-center justify-between gap-2 rounded-md border px-3 py-2">
-      <div className="flex min-w-0 items-center gap-2">
+    <div sx={stylexStyles2.rule11}>
+      <div sx={stylexStyles2.rule12}>
         <LuLockOpen sx={stylexStyles.rule1} />
-        <div className="min-w-0">
-          <p className="text-foreground text-sm font-medium">
-            {methodLabel(method)}
-          </p>
-          <p className="text-foreground-alt truncate font-mono text-xs">
-            {truncated}
-          </p>
+        <div sx={stylexStyles2.rule13}>
+          <p sx={stylexStyles2.rule14}>{methodLabel(method)}</p>
+          <p sx={stylexStyles2.rule15}>{truncated}</p>
         </div>
       </div>
       <button
         type="button"
         onClick={() => void handleLock()}
         disabled={disabled}
-        className="text-foreground-alt hover:text-foreground text-xs transition-colors disabled:opacity-50"
+        sx={stylexStyles2.rule16}
       >
         Lock
       </button>
@@ -765,8 +1036,12 @@ function CredentialUnlockCard({
   const canUnlock = showPassword ? !!credential.password : !!credential.pemData
 
   return (
-    <div className="border-foreground/10 space-y-3 rounded-md border p-3">
-      <UnlockCardHeader method={method} truncated={truncated} />
+    <div sx={stylexStyles3.rule1}>
+      <UnlockCardHeader
+        sx={nativeChildSpacing.s3}
+        method={method}
+        truncated={truncated}
+      />
 
       <CredentialProofInput
         password={credential.password}
@@ -780,7 +1055,7 @@ function CredentialUnlockCard({
         passwordPlaceholder="Enter your password"
         pemLabel="Backup key (.pem)"
         disabled={disabled}
-        sx={stylexStyles.credentialSpacing}
+        sx={[nativeChildSpacing.s3, stylexStyles.credentialSpacing]}
         onPasswordKeyDown={(e) => {
           if (e.key === 'Enter' && canUnlock) {
             onUnlock()
@@ -788,16 +1063,12 @@ function CredentialUnlockCard({
         }}
       />
 
-      <div className="flex justify-end">
+      <div sx={[nativeChildSpacing.s3, stylexStyles2.rule17]}>
         <button
           type="button"
           onClick={onUnlock}
           disabled={disabled || !canUnlock}
-          className={cn(
-            'shrink-0 rounded-md border px-3 py-1.5 text-xs transition-all',
-            'border-brand/30 bg-brand/10 hover:bg-brand/20',
-            'disabled:cursor-not-allowed disabled:opacity-50',
-          )}
+          sx={[stylexStyles2.rule18]}
         >
           {unlocking ? '...' : 'Unlock'}
         </button>
@@ -848,22 +1119,19 @@ function describeBrowserUnlock(
 // UnlockCardHeader renders the lock icon, method label, and signer id shared
 // by the unlock cards.
 function UnlockCardHeader({
+  sx,
   method,
   truncated,
 }: {
   method: string
   truncated: string
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
-    <div className="flex items-center gap-2">
+    <div sx={[stylexStyles2.rule19, sx]}>
       <LuLock sx={stylexStyles.rule2} />
-      <div className="min-w-0 flex-1">
-        <p className="text-foreground text-sm font-medium">
-          {methodLabel(method)}
-        </p>
-        <p className="text-foreground-alt truncate font-mono text-xs">
-          {truncated}
-        </p>
+      <div sx={stylexStyles2.rule20}>
+        <p sx={stylexStyles2.rule14}>{methodLabel(method)}</p>
+        <p sx={stylexStyles2.rule15}>{truncated}</p>
       </div>
     </div>
   )
@@ -883,6 +1151,7 @@ function MethodIcon({ method }: { method: string }) {
 // PinField renders the PIN input for resuming a PIN-wrapped recovery. Enter
 // submits a non-empty PIN.
 function PinField({
+  sx,
   pin,
   onChange,
   onSubmit,
@@ -892,7 +1161,7 @@ function PinField({
   onChange: (pin: string) => void
   onSubmit: () => void
   locked: boolean
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
     <input
       type="password"
@@ -907,10 +1176,7 @@ function PinField({
           onSubmit()
         }
       }}
-      className={cn(
-        'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-2.5 py-1.5 text-xs transition-colors outline-none',
-        'focus:border-brand/50 disabled:opacity-50',
-      )}
+      sx={[[stylexStyles2.rule21], sx]}
     />
   )
 }
@@ -939,13 +1205,18 @@ function BrowserUnlockCard({
   )
 
   return (
-    <div className="border-foreground/10 space-y-3 rounded-md border p-3">
-      <UnlockCardHeader method={method} truncated={truncated} />
+    <div sx={stylexStyles3.rule1}>
+      <UnlockCardHeader
+        sx={nativeChildSpacing.s3}
+        method={method}
+        truncated={truncated}
+      />
 
-      <p className="text-foreground-alt text-xs">{helperText}</p>
+      <p sx={[nativeChildSpacing.s3, stylexStyles2.rule1]}>{helperText}</p>
 
       {needsPin && (
         <PinField
+          sx={nativeChildSpacing.s3}
           pin={pin}
           onChange={onPinChange}
           onSubmit={onUnlockPin}
@@ -953,13 +1224,13 @@ function BrowserUnlockCard({
         />
       )}
 
-      <div className="flex flex-wrap justify-end gap-2">
+      <div sx={[nativeChildSpacing.s3, stylexStyles2.rule22]}>
         {needsPin && (
           <button
             type="button"
             onClick={onStart}
             disabled={disabled || waiting}
-            className="text-foreground-alt hover:text-foreground rounded-md px-2 py-1 text-xs transition-colors disabled:opacity-50"
+            sx={stylexStyles2.rule23}
           >
             Retry {methodLabel(method)}
           </button>
@@ -969,7 +1240,7 @@ function BrowserUnlockCard({
             type="button"
             onClick={onCancel}
             disabled={disabled}
-            className="text-foreground-alt hover:text-foreground rounded-md px-2 py-1 text-xs transition-colors disabled:opacity-50"
+            sx={stylexStyles2.rule23}
           >
             Cancel
           </button>
@@ -979,11 +1250,7 @@ function BrowserUnlockCard({
             type="button"
             onClick={onUnlockPin}
             disabled={disabled || waiting || pin.length === 0}
-            className={cn(
-              'shrink-0 rounded-md border px-3 py-1.5 text-xs transition-all',
-              'border-brand/30 bg-brand/10 hover:bg-brand/20',
-              'disabled:cursor-not-allowed disabled:opacity-50',
-            )}
+            sx={[stylexStyles2.rule18]}
           >
             {waiting ? '...' : 'Unlock'}
           </button>
@@ -992,12 +1259,7 @@ function BrowserUnlockCard({
             type="button"
             onClick={onStart}
             disabled={disabled || waiting}
-            className={cn(
-              'shrink-0 rounded-md border px-3 py-1.5 text-xs transition-all',
-              'border-brand/30 bg-brand/10 hover:bg-brand/20',
-              'disabled:cursor-not-allowed disabled:opacity-50',
-              'inline-flex items-center gap-1.5',
-            )}
+            sx={[stylexStyles2.rule24]}
           >
             <MethodIcon method={method} />
             {waiting
@@ -1011,3 +1273,18 @@ function BrowserUnlockCard({
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

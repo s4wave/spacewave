@@ -13,6 +13,28 @@ import { type UseWizardStateResult, useWizardState } from './useWizardState.js'
 import { IntroWizardOverlay } from './IntroWizardOverlay.js'
 import { IntroWizardPresentationContext } from './intro-context.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule2: { width: '100%', maxWidth: 'var(--container-sm)' },
+  rule3: {
+    position: 'relative',
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    overflow: 'hidden',
+  },
+})
+
 // IntroWizardViewer is the generic new-user introduction viewer. It contains
 // the introduced object's standalone ObjectViewer (its own window frame) and
 // draws the introduction around that frame. Finishing sets the Space index to
@@ -69,8 +91,8 @@ export function IntroWizardViewer(props: ObjectViewerComponentProps) {
 
   if (!state) {
     return (
-      <div className="flex flex-1 items-center justify-center p-6">
-        <div className="w-full max-w-sm">
+      <div sx={stylexStyles.rule1}>
+        <div sx={stylexStyles.rule2}>
           <LoadingCard
             view={{
               state: 'active',
@@ -84,7 +106,7 @@ export function IntroWizardViewer(props: ObjectViewerComponentProps) {
   }
 
   return (
-    <div className="relative flex h-full w-full flex-col overflow-hidden">
+    <div sx={stylexStyles.rule3}>
       <IntroWizardPresentationContext.Provider value={true}>
         <ObjectViewer
           standalone

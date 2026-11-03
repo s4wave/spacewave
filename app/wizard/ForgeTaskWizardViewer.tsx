@@ -14,6 +14,16 @@ import * as stylex from '@stylexjs/stylex'
 
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'flex',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     marginRight: `calc(${themeLayout['--spacing']} * 2)`,
@@ -101,7 +111,7 @@ export function ForgeTaskWizardViewer(props: ObjectViewerComponentProps) {
   // Show wizard initialization until its state is available.
   if (!state) {
     return (
-      <div className="flex flex-1 items-center justify-center p-4">
+      <div sx={stylexStyles3.rule1}>
         <LoadingCard
           view={{
             state: 'loading',

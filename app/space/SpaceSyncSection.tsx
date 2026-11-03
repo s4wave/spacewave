@@ -22,7 +22,7 @@ import {
 import { SessionContext, SpaceContext } from '@s4wave/web/contexts/contexts.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { useStateAtom } from '@s4wave/web/state/index.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import {
@@ -42,6 +42,99 @@ import { SyncPeerList } from './SyncPeerList.js'
 
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+  motion as themeMotion,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: { marginTop: `calc(${themeLayout['--spacing']} * 2)` },
+  rule2: {
+    marginBottom: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule3: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule4: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule5: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-warning'],
+  },
+  rule6: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule7: {
+    borderRadius: themeRadii['--radius-md'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule8: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -125,12 +218,14 @@ export function SpaceSyncSection() {
     choices.includes(SpaceSequencer.SpaceSequencer_THIS_DEVICE)
 
   return (
-    <div className="mt-2">
-      <h3 className="text-foreground-alt mb-1 text-xs select-none">
-        How edits sync
-      </h3>
+    <div sx={stylexStyles2.rule1}>
+      <h3 sx={stylexStyles2.rule2}>How edits sync</h3>
       <InfoCard>
-        <div className="space-y-2">
+        <div
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
+          }
+        >
           <SyncChoice
             sequencer={sequencer}
             choices={choices}
@@ -144,7 +239,7 @@ export function SpaceSyncSection() {
             unordered={health?.unorderedCount ?? 0}
           />
           {canTakeOver && (
-            <div className="flex flex-wrap gap-2">
+            <div sx={stylexStyles2.rule3}>
               <DashboardButton
                 icon={<LuMonitor sx={stylexStyles.rule1} />}
                 onClick={() => setTakeOver(MAKE_MAIN)}
@@ -269,7 +364,13 @@ function SyncChoice({
       c === SpaceSequencer.SpaceSequencer_THIS_DEVICE,
   )
   return (
-    <div className="space-y-1.5" role="radiogroup" aria-label="How edits sync">
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ 'space-y-1.5'
+      }
+      role="radiogroup"
+      aria-label="How edits sync"
+    >
       <RadioOption
         selected={merged}
         onSelect={() => onChoose(SpaceSequencer.SpaceSequencer_MERGE)}
@@ -306,18 +407,16 @@ function SyncStatus({
   const merged = sequencer === SpaceSequencer.SpaceSequencer_MERGE
   if (switching) {
     return (
-      <p className="text-foreground-alt text-xs" role="status">
+      <p sx={stylexStyles2.rule4} role="status">
         {switchingStatus(sequencer)}
       </p>
     )
   }
   return (
     <>
-      <p className="text-foreground-alt text-xs">
-        {sequencerStatus(state, sequencer)}
-      </p>
+      <p sx={stylexStyles2.rule4}>{sequencerStatus(state, sequencer)}</p>
       {!merged && unordered > 0 && (
-        <p className="text-warning text-xs">
+        <p sx={stylexStyles2.rule5}>
           {unordered === 1
             ? '1 edit is waiting to be put in order.'
             : `${unordered} edits are waiting to be put in order.`}
@@ -342,21 +441,23 @@ function TechnicalDetails({
 }) {
   return (
     <>
-      <button
-        type="button"
-        className="text-foreground-alt hover:text-foreground text-xs transition-colors"
-        onClick={onToggle}
-      >
+      <button type="button" sx={stylexStyles2.rule6} onClick={onToggle}>
         {show ? 'Hide technical details' : 'Show technical details'}
       </button>
       {show && (
-        <div className="space-y-1.5">
-          <p className="text-foreground-alt text-xs">
+        <div>
+          <p sx={[nativeChildSpacing.s1_5, stylexStyles2.rule4]}>
             {merged
               ? 'No sequencer is appointed. Each operation becomes stable once every device has acknowledged it.'
               : 'The sequencer signs a position for each operation. Operations with a position are stable.'}
           </p>
-          {peerId && <CopyableField label="Sequencer peer ID" value={peerId} />}
+          {peerId && (
+            <CopyableField
+              sx={nativeChildSpacing.s1_5}
+              label="Sequencer peer ID"
+              value={peerId}
+            />
+          )}
         </div>
       )}
     </>
@@ -387,7 +488,7 @@ function TakeOverDialog({
             type="button"
             onClick={onCancel}
             disabled={pending}
-            className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
+            sx={stylexStyles2.rule7}
           >
             Cancel
           </button>
@@ -395,11 +496,7 @@ function TakeOverDialog({
             type="button"
             onClick={onConfirm}
             disabled={pending}
-            className={cn(
-              'rounded-md border px-4 py-2 text-sm transition-all',
-              'border-brand/30 bg-brand/10 hover:bg-brand/20',
-              'disabled:cursor-not-allowed disabled:opacity-50',
-            )}
+            sx={[stylexStyles2.rule8]}
           >
             {takeOver?.confirm}
           </button>
@@ -451,3 +548,18 @@ function switchingStatus(to: SpaceSequencer): string {
       return 'Switching to One order…'
   }
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s1_5: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

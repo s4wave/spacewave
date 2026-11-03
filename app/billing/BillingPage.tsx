@@ -38,6 +38,143 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 6)`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule2: {
+    display: 'flex',
+    minWidth: 0,
+    flex: 1,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule3: {
+    minWidth: 0,
+    flex: 1,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      ':focus': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+    '::placeholder': {
+      color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    },
+  },
+  rule4: {
+    display: 'flex',
+    minWidth: 0,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule5: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+  },
+  rule6: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule7: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule8: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule9: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule10: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule11: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule12: {
+    position: 'relative',
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    overflowY: 'auto',
+    paddingTop: `calc(${themeLayout['--spacing']} * 16)`,
+    paddingBottom: `calc(${themeLayout['--spacing']} * 8)`,
+  },
+  rule13: {
+    width: '100%',
+    maxWidth: 'var(--container-md)',
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule14: {
+    marginInline: 'auto',
+    width: '100%',
+    maxWidth: 'var(--container-sm)',
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 5)`,
@@ -200,10 +337,10 @@ function BillingTitle({
 
   return (
     <>
-      <div className="mb-6 flex items-center gap-2">
+      <div sx={stylexStyles2.rule1}>
         <LuCreditCard sx={stylexStyles.rule1} />
         {renaming ? (
-          <div className="flex min-w-0 flex-1 items-center gap-2">
+          <div sx={stylexStyles2.rule2}>
             <input
               ref={handleRenameInputRef}
               type="text"
@@ -214,10 +351,7 @@ function BillingTitle({
                 if (e.key === 'Enter') void handleRenameSave()
                 if (e.key === 'Escape') handleRenameCancel()
               }}
-              className={cn(
-                'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 min-w-0 flex-1 rounded-md border px-2 py-1 text-sm transition-colors outline-none',
-                'focus:border-brand/50',
-              )}
+              sx={[stylexStyles2.rule3]}
               placeholder="Billing account name"
               aria-label="Billing account name"
             />
@@ -241,10 +375,8 @@ function BillingTitle({
             </DashboardButton>
           </div>
         ) : (
-          <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
-            <h1 className="text-foreground truncate text-lg font-semibold tracking-tight">
-              {title}
-            </h1>
+          <div sx={stylexStyles2.rule4}>
+            <h1 sx={stylexStyles2.rule5}>{title}</h1>
             {canRename && (
               <DashboardButton
                 icon={<LuPencil sx={stylexStyles.rule2} />}
@@ -264,11 +396,7 @@ function BillingTitle({
 /** InlineError renders a destructive notice, or nothing without a message. */
 function InlineError({ message }: { message: string | null }) {
   if (!message) return null
-  return (
-    <div className="border-destructive/20 bg-destructive/5 text-destructive mb-3 rounded-md border px-3 py-2 text-xs">
-      {message}
-    </div>
-  )
+  return <div sx={stylexStyles2.rule6}>{message}</div>
 }
 
 /** BillingStatusRow shows the plan status, interval, and renewal or end date. */
@@ -280,35 +408,29 @@ function BillingStatusRow({ billing }: { billing: BillingAccountInfo }) {
 
   return (
     <>
-      <div className="flex items-center gap-3">
+      <div sx={stylexStyles2.rule7}>
         <span
-          className={cn(
-            'micro-ten rounded-full px-2 py-0.5 font-semibold tracking-wider uppercase',
-            statusBadgeColor(status),
-          )}
+          className={
+            /* TODO(stylex): computed class helper */ cn(
+              'micro-ten rounded-full px-2 py-0.5 font-semibold tracking-wider uppercase',
+              statusBadgeColor(status),
+            )
+          }
         >
           {statusLabel(status)}
         </span>
-        {intLabel && (
-          <span className="text-foreground-alt/50 text-xs">{intLabel}</span>
-        )}
+        {intLabel && <span sx={stylexStyles2.rule8}>{intLabel}</span>}
         {renewalAt && (
-          <span
-            suppressHydrationWarning
-            className="text-foreground-alt/40 text-xs"
-          >
+          <span suppressHydrationWarning sx={stylexStyles2.rule9}>
             {isCancelScheduled ? 'Ends' : 'Renews'}{' '}
             {formatBillingDate(renewalAt)}
           </span>
         )}
       </div>
       {isCancelScheduled && renewalAt && (
-        <div className="border-destructive/20 bg-destructive/5 text-foreground-alt rounded-md border px-3 py-2 text-xs leading-relaxed">
+        <div sx={stylexStyles2.rule10}>
           Your subscription is set to end on{' '}
-          <span
-            suppressHydrationWarning
-            className="text-foreground font-medium"
-          >
+          <span suppressHydrationWarning sx={stylexStyles2.rule11}>
             {formatBillingDate(renewalAt)}
           </span>
           . You keep full access until then, and your cloud data stays read-only
@@ -339,11 +461,11 @@ export function BillingPage() {
   }, [navigate])
 
   return (
-    <div className="relative flex h-full w-full items-start justify-center overflow-y-auto pt-16 pb-8">
+    <div sx={stylexStyles2.rule12}>
       <BackButton floating onClick={handleBack}>
         Back
       </BackButton>
-      <div className="w-full max-w-md px-4">
+      <div sx={stylexStyles2.rule13}>
         <BillingTitle
           session={session}
           baId={baId}
@@ -353,7 +475,7 @@ export function BillingPage() {
         />
         <InlineError message={usage.error} />
         {billingState.loading && !billing && (
-          <div className="mx-auto w-full max-w-sm">
+          <div sx={stylexStyles2.rule14}>
             <LoadingCard
               view={{
                 state: 'active',
@@ -364,7 +486,11 @@ export function BillingPage() {
           </div>
         )}
         {billing && (
-          <div className="space-y-6">
+          <div
+            className={
+              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-6 */ 'space-y-6'
+            }
+          >
             <BillingStatusRow billing={billing} />
             <UsageBars
               actions={

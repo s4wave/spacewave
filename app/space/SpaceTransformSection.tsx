@@ -9,7 +9,11 @@ export function SpaceDataSection() {
   const { spaceState } = SpaceContainerContext.useContext()
   const info = spaceState.transformInfo
   return (
-    <div className="space-y-3">
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
+      }
+    >
       <SpaceStorageCard />
       {info && <TransformConfigDisplay info={info} />}
     </div>

@@ -22,7 +22,7 @@ import { type Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { DebugInfo } from '@aptre/bldr-react'
 
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import type { Session } from '@s4wave/sdk/session/session.js'
 import {
   Route,
@@ -108,6 +108,251 @@ import {
 } from '../../web/style/tokens.stylex.js'
 
 import * as stylex from '@stylexjs/stylex'
+
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    marginLeft: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: '3.40282e38px',
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: '9px',
+    lineHeight: 1.5,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-wider)',
+    letterSpacing: 'var(--tracking-wider)',
+    textTransform: 'uppercase',
+  },
+})
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-warning']} 15%, transparent)`,
+    color: themeColors['--color-warning'],
+  },
+  rule2: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
+    color: themeColors['--color-brand'],
+  },
+  rule3: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    maxWidth: `calc(${themeLayout['--spacing']} * 36)`,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+  },
+  rule2: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 8)`,
+  },
+  rule3: {
+    display: 'flex',
+    width: '100%',
+    maxWidth: 'var(--container-md)',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule4: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+  },
+  rule5: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule6: {
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule7: {
+    borderRadius: '.25rem',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: '.7rem',
+    lineHeight: 1.5,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 80%, transparent)`,
+  },
+  rule8: {
+    pointerEvents: 'none',
+    position: 'fixed',
+    right: `calc(${themeLayout['--spacing']} * 4)`,
+    bottom: `calc(${themeLayout['--spacing']} * 16)`,
+    zIndex: 40,
+    width: themeLayout['--width-session-overlay'],
+  },
+  rule9: {
+    pointerEvents: 'auto',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 95%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    '--tw-shadow':
+      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    '--tw-backdrop-blur': 'blur(8px)',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+  },
+  rule10: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule11: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule12: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule13: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule14: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule15: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'flex',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule16: {
+    display: 'flex',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-green-500']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-green-500'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-green-500']} 10%, transparent)`,
+      },
+    },
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule17: {
+    display: 'flex',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 15%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule18: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -342,21 +587,18 @@ function useAccountButton(
         ) : (
           <LuPersonStanding {...bottomBarIconProps} aria-hidden="true" />
         )}
-        <div className="max-w-36 truncate">{label}</div>
+        <div sx={stylexStyles2.rule1}>{label}</div>
         {metadata && (
           <span
             data-testid="session-account-provider-badge"
-            className={cn(
-              'ml-1.5 rounded-full px-1.5 py-0.5 micro-nine font-semibold tracking-wider uppercase',
-              badge.className,
-            )}
+            sx={[[stylexStyles4.rule1], [badge.sx]]}
           >
             {badge.label}
           </span>
         )}
       </BottomBarItem>
     ),
-    [label, badge.label, badge.className, metadata],
+    [label, badge.label, badge.sx, metadata],
   )
 
   return { button, label }
@@ -365,14 +607,14 @@ function useAccountButton(
 // accountBadge names the account's provider, or marks a dormant cloud account.
 function accountBadge(isCloudProvider: boolean, isDormant: boolean) {
   if (isDormant) {
-    return { label: 'INACTIVE', className: 'bg-warning/15 text-warning' }
+    return { label: 'INACTIVE', sx: stylexStyles3.rule1 }
   }
   if (isCloudProvider) {
-    return { label: 'CLOUD', className: 'bg-brand/15 text-brand' }
+    return { label: 'CLOUD', sx: stylexStyles3.rule2 }
   }
   return {
     label: 'LOCAL',
-    className: 'bg-foreground/10 text-foreground-alt/70',
+    sx: stylexStyles3.rule3,
   }
 }
 
@@ -570,22 +812,18 @@ export function SessionContainer(props: SessionContainerProps) {
                         <Redirect to="../" />
                       </Route>
                       <Route path="*">
-                        <div className="flex h-full w-full items-center justify-center px-4 py-8">
-                          <div className="border-foreground/6 bg-background-card/30 flex w-full max-w-md flex-col items-center gap-3 rounded-lg border p-6">
-                            <div className="bg-foreground/5 flex size-10 items-center justify-center rounded-full">
+                        <div sx={stylexStyles2.rule2}>
+                          <div sx={stylexStyles2.rule3}>
+                            <div sx={stylexStyles2.rule4}>
                               <LuCompass
                                 sx={stylexStyles.rule1}
                                 aria-hidden="true"
                               />
                             </div>
-                            <h2 className="text-foreground text-sm font-semibold tracking-tight select-none">
-                              Page not found
-                            </h2>
-                            <p className="text-foreground-alt/60 text-center text-xs">
+                            <h2 sx={stylexStyles2.rule5}>Page not found</h2>
+                            <p sx={stylexStyles2.rule6}>
                               No page exists at{' '}
-                              <code className="text-foreground-alt/80 bg-foreground/5 micro-seven rounded px-1.5 py-0.5 font-mono">
-                                {path}
-                              </code>
+                              <code sx={stylexStyles2.rule7}>{path}</code>
                             </p>
                             <DashboardButton
                               icon={<LuArrowLeft sx={stylexStyles.rule2} />}
@@ -707,36 +945,30 @@ function TargetedInvitationInbox(props: {
   if (!session || pending.length === 0) return null
 
   return (
-    <div className="pointer-events-none fixed right-4 bottom-16 z-40 w-(--width-session-overlay)">
-      <div className="border-foreground/10 bg-background-card/95 pointer-events-auto rounded-lg border p-3 shadow-lg backdrop-blur">
-        <div className="mb-2 flex items-center gap-2">
+    <div sx={stylexStyles2.rule8}>
+      <div sx={stylexStyles2.rule9}>
+        <div sx={stylexStyles2.rule10}>
           <LuInbox sx={stylexStyles.rule3} />
-          <div className="text-foreground text-sm font-medium">
-            Pending Invites
-          </div>
+          <div sx={stylexStyles2.rule11}>Pending Invites</div>
         </div>
-        <div className="space-y-2">
+        <div>
           {pending.slice(0, 3).map((inv) => (
             <div
               key={inv.id}
-              className="border-foreground/10 rounded-md border p-2"
+              sx={[nativeChildSpacing.s2, stylexStyles2.rule12]}
             >
-              <div className="text-foreground truncate text-xs font-medium">
+              <div sx={stylexStyles2.rule13}>
                 {targetedInvitationTitle(inv)}
               </div>
-              <div className="text-foreground-alt/60 truncate text-xs">
+              <div sx={stylexStyles2.rule14}>
                 {inv.role || 'reader'} from {inv.actorAccountId}
               </div>
-              <div className="mt-2 flex gap-2">
+              <div sx={stylexStyles2.rule15}>
                 <button
                   type="button"
                   disabled={!!processing}
                   onClick={() => void handleAccept(inv)}
-                  className={cn(
-                    'flex flex-1 items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-xs transition-colors',
-                    'border-green-500/30 text-green-500 hover:bg-green-500/10',
-                    'disabled:cursor-not-allowed disabled:opacity-50',
-                  )}
+                  sx={[stylexStyles2.rule16]}
                 >
                   <LuCheck sx={stylexStyles.rule2} />
                   Accept
@@ -745,11 +977,7 @@ function TargetedInvitationInbox(props: {
                   type="button"
                   disabled={!!processing}
                   onClick={() => void handleDecline(inv)}
-                  className={cn(
-                    'flex flex-1 items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-xs transition-colors',
-                    'border-foreground/15 text-foreground-alt hover:bg-foreground/5',
-                    'disabled:cursor-not-allowed disabled:opacity-50',
-                  )}
+                  sx={[stylexStyles2.rule17]}
                 >
                   <LuX sx={stylexStyles.rule2} />
                   Decline
@@ -758,7 +986,7 @@ function TargetedInvitationInbox(props: {
             </div>
           ))}
         </div>
-        {error && <div className="text-destructive mt-2 text-xs">{error}</div>}
+        {error && <div sx={stylexStyles2.rule18}>{error}</div>}
       </div>
     </div>
   )
@@ -774,3 +1002,18 @@ function targetedInvitationTitle(inv: TargetedInvitationInfo): string {
   }
   return 'Invitation'
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

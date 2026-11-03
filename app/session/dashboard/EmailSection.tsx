@@ -10,7 +10,6 @@ import {
   LuX,
 } from '@s4wave/web/images/icons.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import { CollapsibleSection } from '@s4wave/web/ui/CollapsibleSection.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import {
@@ -29,6 +28,245 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
+
+import {
+  fonts as themeFonts,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+  },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule2: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule3: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    padding: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule4: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 12%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    textAlign: 'left',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+  },
+  rule5: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 7)`,
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+  },
+  rule6: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule7: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule8: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule9: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-tight)',
+    '--tw-leading': 'var(--leading-tight)',
+    color: themeColors['--color-destructive'],
+  },
+  rule10: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule11: {
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+  },
+  rule12: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+  },
+  rule13: {
+    display: 'flex',
+    minWidth: 0,
+    flex: 1,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule14: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+  },
+  rule15: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+  },
+  rule16: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+  },
+  rule17: { minWidth: 0, flex: 1 },
+  rule18: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule19: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule20: {
+    display: 'inline-flex',
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderRadius: '3.40282e38px',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: '.55rem',
+    lineHeight: 1.5,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-widest)',
+    letterSpacing: 'var(--tracking-widest)',
+    color: themeColors['--color-brand'],
+    textTransform: 'uppercase',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule21: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule22: { opacity: 0.4 },
+  rule23: {
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+  },
+  rule24: {
+    display: 'flex',
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+  },
+  rule25: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule26: { color: themeColors['--color-foreground'] },
+  rule27: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule28: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -169,24 +407,21 @@ export function EmailSection({ open, onOpenChange }: EmailSectionProps) {
       open={sectionOpen}
       onOpenChange={handleOpenChange}
       badge={
-        count > 0 ? (
-          <span className="text-foreground-alt/50 text-xs">{count}</span>
-        ) : undefined
+        count > 0 ? <span sx={stylexStyles2.rule1}>{count}</span> : undefined
       }
     >
-      {loading && !emails && (
-        <p className="text-foreground-alt/40 text-xs">Loading emails…</p>
-      )}
+      {loading && !emails && <p sx={stylexStyles2.rule2}>Loading emails…</p>}
       {!loading && emails && emails.length === 0 && (
-        <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
+        <div sx={stylexStyles2.rule3}>
           <LuMail sx={stylexStyles.rule2} />
           <span>No email addresses yet</span>
         </div>
       )}
       {emails && emails.length > 0 && (
-        <div className="space-y-2">
+        <div>
           {emails.map((email) => (
             <EmailRow
+              sx={nativeChildSpacingNext.s2}
               key={email.email}
               email={email}
               verifiedCount={verifiedCount}
@@ -264,24 +499,28 @@ function AddEmailForm({
       <button
         type="button"
         onClick={() => onOpenChange(true)}
-        className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/50 bg-background-card/30 flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left transition duration-150"
+        sx={stylexStyles2.rule4}
       >
-        <div className="bg-foreground/5 flex size-7 shrink-0 items-center justify-center rounded-md">
+        <div sx={stylexStyles2.rule5}>
           <LuPlus sx={stylexStyles.rule3} />
         </div>
-        <span className="text-foreground-alt text-xs">Add another email</span>
+        <span sx={stylexStyles2.rule6}>Add another email</span>
       </button>
     )
   }
   const trimmed = value.trim()
   const canSubmit = !adding && isValidEmail(trimmed)
   return (
-    <div className="border-foreground/6 bg-background-card/30 space-y-2 rounded-lg border px-3 py-2.5">
-      <div className="flex items-center gap-2">
-        <div className="bg-foreground/5 flex size-7 shrink-0 items-center justify-center rounded-md">
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'border-foreground/6 bg-background-card/30 space-y-2 rounded-lg border px-3 py-2.5'
+      }
+    >
+      <div sx={stylexStyles2.rule7}>
+        <div sx={stylexStyles2.rule5}>
           <LuPlus sx={stylexStyles.rule3} />
         </div>
-        <p className="text-foreground text-xs font-medium">Add another email</p>
+        <p sx={stylexStyles2.rule8}>Add another email</p>
       </div>
       <input
         ref={handleInputRef}
@@ -310,14 +549,11 @@ function AddEmailForm({
         aria-describedby={error ? 'add-email-error' : undefined}
       />
       {error && (
-        <p
-          id="add-email-error"
-          className="text-destructive text-xs leading-tight"
-        >
+        <p id="add-email-error" sx={stylexStyles2.rule9}>
           {error}
         </p>
       )}
-      <div className="flex items-center justify-end gap-1.5">
+      <div sx={stylexStyles2.rule10}>
         <DashboardButton
           icon={<LuX sx={stylexStyles.rule4} />}
           onClick={() => onOpenChange(false)}
@@ -346,6 +582,7 @@ function AddEmailForm({
 
 // EmailRow renders one email entry in the SessionDetails card style.
 function EmailRow({
+  sx,
   email,
   verifiedCount,
   removing,
@@ -383,7 +620,7 @@ function EmailRow({
   onCancelPrimary: () => void
   onSetPrimary: (email: string) => Promise<unknown>
   registerRef: (addr: string, node: HTMLDivElement | null) => void
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   const addr = email.email ?? ''
   const verified = email.verified ?? false
   const primary = email.primary ?? false
@@ -392,9 +629,9 @@ function EmailRow({
   return (
     <div
       ref={(node) => registerRef(addr, node)}
-      className="border-foreground/6 bg-background-card/30 overflow-hidden rounded-lg border"
+      sx={[stylexStyles2.rule11, sx]}
     >
-      <div className="flex items-center justify-between gap-3 px-3 py-2.5">
+      <div sx={stylexStyles2.rule12}>
         <EmailIdentity
           addr={addr}
           verified={verified}
@@ -455,12 +692,12 @@ function EmailIdentity({
   source: string
 }) {
   return (
-    <div className="flex min-w-0 flex-1 items-center gap-3">
+    <div sx={stylexStyles2.rule13}>
       <div
-        className={cn(
-          'flex size-8 shrink-0 items-center justify-center rounded-md',
-          verified ? 'bg-brand/10' : 'bg-foreground/5',
-        )}
+        sx={[
+          stylexStyles2.rule14,
+          verified ? stylexStyles2.rule15 : stylexStyles2.rule16,
+        ]}
       >
         {verified ? (
           <LuCheck sx={stylexStyles.rule5} />
@@ -468,24 +705,24 @@ function EmailIdentity({
           <LuMail sx={stylexStyles.rule6} />
         )}
       </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <p className="text-foreground truncate text-sm font-medium">{addr}</p>
+      <div sx={stylexStyles2.rule17}>
+        <div sx={stylexStyles2.rule18}>
+          <p sx={stylexStyles2.rule19}>{addr}</p>
           {primary && (
-            <span className="border-brand/30 bg-brand/10 text-brand micro-fine inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 font-semibold tracking-widest uppercase select-none">
+            <span sx={stylexStyles2.rule20}>
               <LuStar sx={stylexStyles.rule7} />
               Primary
             </span>
           )}
         </div>
-        <div className="text-foreground-alt/50 flex items-center gap-1.5 text-xs">
+        <div sx={stylexStyles2.rule21}>
           <span>{verified ? 'Verified' : 'Not yet verified'}</span>
           {source && (
             <>
-              <span aria-hidden className="opacity-40">
+              <span aria-hidden sx={stylexStyles2.rule22}>
                 &middot;
               </span>
-              <span className="font-mono">{source}</span>
+              <span sx={stylexStyles2.rule23}>{source}</span>
             </>
           )}
         </div>
@@ -535,7 +772,7 @@ function EmailRowActions({
   const busy = removing || sendingCode || verifyingCode || settingPrimary
 
   return (
-    <div className="flex shrink-0 items-center gap-1">
+    <div sx={stylexStyles2.rule24}>
       {!verified && (
         <DashboardButton
           icon={
@@ -587,12 +824,12 @@ function PrimaryConfirmPanel({
   onSetPrimary: (email: string) => Promise<unknown>
 }) {
   return (
-    <div className="border-brand/20 bg-brand/5 space-y-2 border-t px-3 py-2.5">
-      <p className="text-foreground-alt text-xs leading-relaxed">
-        Make <strong className="text-foreground">{addr}</strong> the primary
-        email for billing and notifications?
+    <div sx={stylexStyles3.rule1}>
+      <p sx={[nativeChildSpacing.s2, stylexStyles2.rule25]}>
+        Make <strong sx={stylexStyles2.rule26}>{addr}</strong> the primary email
+        for billing and notifications?
       </p>
-      <div className="flex items-center justify-end gap-1.5">
+      <div sx={[nativeChildSpacing.s2, stylexStyles2.rule10]}>
         <DashboardButton
           icon={<LuX sx={stylexStyles.rule4} />}
           onClick={onCancel}
@@ -644,11 +881,15 @@ function VerifyCodePanel({
   }, [])
 
   return (
-    <div className="border-foreground/6 space-y-3 border-t p-3">
-      <p className="text-foreground-alt text-xs leading-relaxed">
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'border-foreground/6 space-y-3 border-t p-3'
+      }
+    >
+      <p sx={stylexStyles2.rule25}>
         We sent a 6-digit code to{' '}
-        <strong className="text-foreground">{addr}</strong>. Check your inbox
-        and enter it below.
+        <strong sx={stylexStyles2.rule26}>{addr}</strong>. Check your inbox and
+        enter it below.
       </p>
       <input
         ref={handleCodeInputRef}
@@ -667,12 +908,12 @@ function VerifyCodePanel({
         sx={[credentialInputStyles.input, credentialInputStyles.compactCode]}
         aria-label={'Verification code for ' + addr}
       />
-      <div className="flex items-center justify-between gap-2">
+      <div sx={stylexStyles2.rule27}>
         <button
           type="button"
           onClick={() => void onSendCode(addr)}
           disabled={sendingCode || verifyingCode || retryAfter > 0}
-          className="text-foreground-alt hover:text-foreground text-xs transition-colors disabled:opacity-50"
+          sx={stylexStyles2.rule28}
         >
           {sendingCode
             ? 'Sending…'
@@ -733,3 +974,33 @@ function RemoveAction({
   }
   return button
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

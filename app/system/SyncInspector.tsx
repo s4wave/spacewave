@@ -3,11 +3,74 @@ import type { SessionSyncStatusView } from '@s4wave/app/session/SessionSyncStatu
 import { Facts } from './Facts.js'
 import { InspectorSection } from './InspectorSection.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  fonts as themeFonts,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'grid',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    gridTemplateColumns: {
+      default: null,
+      '@container (min-width: 48rem)': 'repeat(2, minmax(0, 1fr))',
+    },
+  },
+  rule2: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule3: {
+    display: 'flex',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule4: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule5: {
+    flexShrink: 0,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule6: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+    '--tw-numeric-spacing': 'tabular-nums',
+    fontVariantNumeric:
+      'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+  },
+  rule7: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+})
+
 // SyncInspector shows every reading of the session sync watcher: status,
 // throughput, local copies, peers, and pack engine counters.
 export function SyncInspector({ sync }: { sync: SessionSyncStatusView }) {
   return (
-    <div className="grid gap-3 @3xl:grid-cols-2">
+    <div sx={stylexStyles.rule1}>
       <InspectorSection title="Status" description={sync.detailLabel}>
         <Facts
           facts={[
@@ -59,29 +122,21 @@ export function SyncInspector({ sync }: { sync: SessionSyncStatusView }) {
         description="Stores on this device that hold a copy of your data."
       >
         {sync.localCopies.length === 0 ? (
-          <p className="text-foreground-alt/50 text-xs">
-            No local copies reported.
-          </p>
+          <p sx={stylexStyles.rule2}>No local copies reported.</p>
         ) : (
-          <ul className="divide-foreground/6 divide-y">
+          <ul
+            className={
+              /* TODO(stylex): a descendant, group, peer or compound selector: divide-y */ 'divide-foreground/6 divide-y'
+            }
+          >
             {sync.localCopies.map((copy) => (
-              <li key={copy.id} className="py-2 first:pt-0 last:pb-0">
-                <div className="flex items-baseline justify-between gap-3 text-xs">
-                  <span className="text-foreground truncate font-medium">
-                    {copy.name}
-                  </span>
-                  <span className="text-foreground-alt/70 shrink-0">
-                    {copy.status}
-                  </span>
+              <li key={copy.id} sx={[false, edgeSpacing.s2]}>
+                <div sx={stylexStyles.rule3}>
+                  <span sx={stylexStyles.rule4}>{copy.name}</span>
+                  <span sx={stylexStyles.rule5}>{copy.status}</span>
                 </div>
-                <p className="text-foreground-alt/60 mt-0.5 font-mono text-xs tabular-nums">
-                  {copy.detail}
-                </p>
-                {copy.error && (
-                  <p className="text-destructive mt-0.5 text-xs">
-                    {copy.error}
-                  </p>
-                )}
+                <p sx={stylexStyles.rule6}>{copy.detail}</p>
+                {copy.error && <p sx={stylexStyles.rule7}>{copy.error}</p>}
               </li>
             ))}
           </ul>
@@ -93,24 +148,20 @@ export function SyncInspector({ sync }: { sync: SessionSyncStatusView }) {
         description="Devices exchanging blocks with this session."
       >
         {sync.peers.length === 0 ? (
-          <p className="text-foreground-alt/50 text-xs">
-            No peers are exchanging data right now.
-          </p>
+          <p sx={stylexStyles.rule2}>No peers are exchanging data right now.</p>
         ) : (
-          <ul className="divide-foreground/6 divide-y">
+          <ul
+            className={
+              /* TODO(stylex): a descendant, group, peer or compound selector: divide-y */ 'divide-foreground/6 divide-y'
+            }
+          >
             {sync.peers.map((peer) => (
-              <li key={peer.id} className="py-2 first:pt-0 last:pb-0">
-                <div className="flex items-baseline justify-between gap-3 text-xs">
-                  <span className="text-foreground truncate font-medium">
-                    {peer.name}
-                  </span>
-                  <span className="text-foreground-alt/70 shrink-0">
-                    {peer.state}
-                  </span>
+              <li key={peer.id} sx={[false, edgeSpacing.s2]}>
+                <div sx={stylexStyles.rule3}>
+                  <span sx={stylexStyles.rule4}>{peer.name}</span>
+                  <span sx={stylexStyles.rule5}>{peer.state}</span>
                 </div>
-                <p className="text-foreground-alt/60 mt-0.5 font-mono text-xs tabular-nums">
-                  {peer.traffic}
-                </p>
+                <p sx={stylexStyles.rule6}>{peer.traffic}</p>
               </li>
             ))}
           </ul>
@@ -141,3 +192,11 @@ export function SyncInspector({ sync }: { sync: SessionSyncStatusView }) {
     </div>
   )
 }
+
+// edgeSpacing keeps first and last row padding at the row owner.
+const edgeSpacing = stylex.create({
+  s2: {
+    paddingTop: { default: 'calc(var(--spacing) * 2)', ':first-child': 0 },
+    paddingBottom: { default: 'calc(var(--spacing) * 2)', ':last-child': 0 },
+  },
+})

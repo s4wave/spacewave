@@ -66,6 +66,338 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: { display: 'inline-flex' },
+  rule2: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule3: { minWidth: 0, flex: 1 },
+  rule4: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule5: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 65%, transparent)`,
+  },
+  rule6: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeLayout['--text-metadata'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-metadata--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule7: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: '.65rem',
+    lineHeight: 1.5,
+    overflowWrap: 'break-word',
+    whiteSpace: 'pre-wrap',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule8: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule9: {
+    fontSize: '.58rem',
+    lineHeight: 1.5,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-widest)',
+    letterSpacing: 'var(--tracking-widest)',
+    color: `color-mix(in oklab, ${themeColors['--color-destructive']} 80%, transparent)`,
+    textTransform: 'uppercase',
+  },
+  rule10: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule11: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule12: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 20%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule13: {
+    fontSize: '.58rem',
+    lineHeight: 1.5,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-widest)',
+    letterSpacing: 'var(--tracking-widest)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 45%, transparent)`,
+    textTransform: 'uppercase',
+  },
+  rule14: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule15: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 55%, transparent)`,
+  },
+  rule16: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule17: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule18: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 20%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule19: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 1.5)`,
+    display: 'block',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule20: { display: 'flex', gap: `calc(${themeLayout['--spacing']} * 2)` },
+  rule21: {
+    minWidth: 0,
+    flex: 1,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      ':focus': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+    '::placeholder': {
+      color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    },
+  },
+  rule22: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule23: {
+    width: '100%',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      ':focus': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+    '::placeholder': {
+      color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    },
+  },
+  rule24: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule25: {
+    minWidth: 0,
+    flex: 1,
+    cursor: 'text',
+    textAlign: 'left',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground-alt'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule26: {
+    marginBottom: themeLayout['--spacing'],
+    display: 'block',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule27: {
+    display: 'flex',
+    minHeight: `calc(${themeLayout['--spacing']} * 9)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule28: {
+    display: 'flex',
+    minWidth: 0,
+    flex: 1,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule29: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '.25rem',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    color: themeColors['--color-brand'],
+  },
+  rule30: {
+    minWidth: 0,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+  },
+  rule31: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-normal)',
+    fontWeight: 'var(--font-weight-normal)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule32: {
+    display: 'flex',
+    flexShrink: 0,
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule33: {
+    display: { default: 'none', '@media (min-width: 48rem)': 'inline' },
+  },
+  rule34: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: themeColors['--color-background-primary'],
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule35: { width: '100%', maxWidth: 'var(--container-sm)' },
+  rule36: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    overflow: 'hidden',
+    backgroundColor: themeColors['--color-background-primary'],
+  },
+  rule37: {
+    minHeight: 0,
+    flex: 1,
+    overflow: 'auto',
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 4)`,
@@ -252,7 +584,7 @@ function RecoveryActionButton({
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className="inline-flex">{button}</span>
+        <span sx={stylexStyles3.rule1}>{button}</span>
       </TooltipTrigger>
       <TooltipContent side="top" sx={stylexStyles.rule1}>
         {disabledReason}
@@ -327,31 +659,30 @@ function RecoverySummaryCard({
 }) {
   const classes = recoveryToneClasses[summary.tone]
   return (
-    <div className={cn('rounded-md border px-3 py-2', classes.card)}>
-      <div className="flex items-start gap-2">
+    <div
+      className={
+        /* TODO(stylex): dynamic class or forwarded className */ cn(
+          'rounded-md border px-3 py-2',
+          classes.card,
+        )
+      }
+    >
+      <div sx={stylexStyles3.rule2}>
         <div
-          className={cn(
-            'flex size-7 shrink-0 items-center justify-center rounded-md',
-            classes.icon,
-          )}
+          className={
+            /* TODO(stylex): dynamic class or forwarded className */ cn(
+              'flex size-7 shrink-0 items-center justify-center rounded-md',
+              classes.icon,
+            )
+          }
         >
           <RecoveryToneIcon tone={summary.tone} />
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-foreground text-xs font-medium">{summary.title}</p>
-          <p className="text-foreground-alt/65 mt-1 text-xs">
-            {summary.description}
-          </p>
-          {summary.hint && (
-            <p className="text-foreground-alt/60 text-metadata mt-2">
-              {summary.hint}
-            </p>
-          )}
-          {healthError && (
-            <div className="border-foreground/8 bg-background-card/30 text-foreground-alt/70 micro-label mt-2 rounded-md border px-2 py-1.5 break-words whitespace-pre-wrap">
-              {healthError}
-            </div>
-          )}
+        <div sx={stylexStyles3.rule3}>
+          <p sx={stylexStyles3.rule4}>{summary.title}</p>
+          <p sx={stylexStyles3.rule5}>{summary.description}</p>
+          {summary.hint && <p sx={stylexStyles3.rule6}>{summary.hint}</p>}
+          {healthError && <div sx={stylexStyles3.rule7}>{healthError}</div>}
         </div>
       </div>
     </div>
@@ -401,15 +732,13 @@ function ReinitializeConfirm({
   onConfirm: () => void
 }) {
   return (
-    <div className="border-destructive/20 bg-destructive/5 mt-3 rounded-md border px-3 py-2">
-      <div className="text-destructive/80 micro-caption font-medium tracking-widest uppercase">
-        Confirm Reinitialize
-      </div>
-      <p className="text-foreground-alt/70 mt-1 text-xs">
+    <div sx={stylexStyles3.rule8}>
+      <div sx={stylexStyles3.rule9}>Confirm Reinitialize</div>
+      <p sx={stylexStyles3.rule10}>
         Reinitialize is destructive. It rewrites the organization root shared
         object in place on the same shared object id and canonical org route.
       </p>
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div sx={stylexStyles3.rule11}>
         <DashboardButton
           icon={<LuX sx={stylexStyles2.rule3} />}
           onClick={onCancel}
@@ -439,6 +768,7 @@ function disabledReasonFor(
 
 /** RecoveryRemediation renders the repair and reinitialize controls. */
 function RecoveryRemediation({
+  sx,
   session,
   sharedObjectId,
   permission,
@@ -446,20 +776,18 @@ function RecoveryRemediation({
   session: Session | null
   sharedObjectId: string
   permission: SharedObjectMutationPermission
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   const { pending, error, run } = useRecoveryAction(session, sharedObjectId)
   const [confirming, setConfirming] = useState(false)
 
   return (
-    <div className="border-foreground/8 bg-background-card/20 rounded-md border px-3 py-2">
-      <div className="text-foreground-alt/45 micro-caption font-medium tracking-widest uppercase">
-        Remediation
-      </div>
-      <p className="text-foreground-alt/65 mt-1 text-xs">
+    <div sx={[stylexStyles3.rule12, sx]}>
+      <div sx={stylexStyles3.rule13}>Remediation</div>
+      <p sx={stylexStyles3.rule5}>
         This works in place on the canonical organization root shared object at
         the current org-owned id.
       </p>
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div sx={stylexStyles3.rule11}>
         <RecoveryActionButton
           label={pending ? 'Repairing...' : 'Repair'}
           icon={<LuRefreshCw sx={stylexStyles2.rule3} />}
@@ -492,10 +820,8 @@ function RecoveryRemediation({
           }}
         />
       )}
-      {error && <p className="text-destructive mt-2 text-xs">{error}</p>}
-      <p className="text-foreground-alt/55 mt-2 text-xs">
-        Shared object ID: {sharedObjectId}
-      </p>
+      {error && <p sx={stylexStyles3.rule14}>{error}</p>}
+      <p sx={stylexStyles3.rule15}>Shared object ID: {sharedObjectId}</p>
     </div>
   )
 }
@@ -522,7 +848,11 @@ function OrgRecoverySection({
       onOpenChange={onOpenChange}
     >
       <InfoCard>
-        <div className="space-y-3">
+        <div
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
+          }
+        >
           <RecoverySummaryCard
             summary={getRecoverySummary(rootState?.health)}
             healthError={rootState?.health?.error}
@@ -572,11 +902,9 @@ function OrgMembersSection({
       icon={<LuUsers sx={stylexStyles2.rule3} />}
       open={open}
       onOpenChange={onOpenChange}
-      badge={
-        <span className="text-foreground-alt/40 text-xs">{members.length}</span>
-      }
+      badge={<span sx={stylexStyles3.rule16}>{members.length}</span>}
     >
-      <p className="text-foreground-alt/60 mb-2 text-xs">
+      <p sx={stylexStyles3.rule17}>
         Members are shown by username first. Their account ID stays underneath
         for review or copy.
       </p>
@@ -643,23 +971,17 @@ function UsernameInviteForm({
   const invite = useUsernameInvite(session, orgId)
 
   return (
-    <div className="border-foreground/8 bg-background-card/20 mb-3 rounded-md border px-3 py-2">
-      <label
-        htmlFor={inputId}
-        className="text-foreground-alt mb-1.5 block text-xs select-none"
-      >
+    <div sx={stylexStyles3.rule18}>
+      <label htmlFor={inputId} sx={stylexStyles3.rule19}>
         Spacewave username
       </label>
-      <div className="flex gap-2">
+      <div sx={stylexStyles3.rule20}>
         <input
           id={inputId}
           value={invite.username}
           onChange={(e) => invite.change(e.target.value)}
           placeholder="alice"
-          className={cn(
-            'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 min-w-0 flex-1 rounded-md border px-2 py-1.5 font-mono text-xs transition-colors outline-none',
-            'focus:border-brand/50',
-          )}
+          sx={[stylexStyles3.rule21]}
         />
         <DashboardButton
           icon={<LuUserPlus sx={stylexStyles2.rule4} />}
@@ -715,9 +1037,7 @@ function OrgInvitesSection({
       onOpenChange={onOpenChange}
       badge={
         invites.length > 0 ? (
-          <span className="text-foreground-alt/40 text-xs">
-            {invites.length}
-          </span>
+          <span sx={stylexStyles3.rule16}>{invites.length}</span>
         ) : undefined
       }
       headerActions={
@@ -791,7 +1111,7 @@ function OrgRenameEditor({
   rename: OrgRename
 }) {
   return (
-    <div className="flex items-center gap-2">
+    <div sx={stylexStyles3.rule22}>
       <input
         ref={focusInput}
         id={inputId}
@@ -803,10 +1123,7 @@ function OrgRenameEditor({
           if (e.key === 'Enter') void rename.save()
           if (e.key === 'Escape') rename.cancel()
         }}
-        className={cn(
-          'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-2 py-1 text-xs transition-colors outline-none',
-          'focus:border-brand/50',
-        )}
+        sx={[stylexStyles3.rule23]}
       />
       <DashboardButton
         icon={<LuSave sx={stylexStyles2.rule4} />}
@@ -835,10 +1152,10 @@ function OrgRenameDisplay({
   onStart: () => void
 }) {
   return (
-    <div className="flex items-center justify-between gap-2">
+    <div sx={stylexStyles3.rule24}>
       <button
         type="button"
-        className="text-foreground hover:text-foreground-alt min-w-0 flex-1 cursor-text text-left text-xs transition-colors"
+        sx={stylexStyles3.rule25}
         onDoubleClick={onStart}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
@@ -878,12 +1195,9 @@ function OrgSettingsSection({
       onOpenChange={onOpenChange}
     >
       <InfoCard>
-        <div className="space-y-2">
-          <div>
-            <label
-              htmlFor={renameInputId}
-              className="text-foreground-alt mb-1 block text-xs select-none"
-            >
+        <div>
+          <div sx={nativeChildSpacing.s2}>
+            <label htmlFor={renameInputId} sx={stylexStyles3.rule26}>
               Display Name
             </label>
             {rename.renaming ? (
@@ -961,17 +1275,15 @@ function OrgHeader({
   }, [session, orgId, navigateSession])
 
   return (
-    <div className="border-foreground/8 flex min-h-9 shrink-0 items-center justify-between gap-3 border-b px-4 py-2">
-      <div className="text-foreground flex min-w-0 flex-1 items-center gap-2 text-sm font-semibold select-none">
-        <div className="bg-brand/10 text-brand flex size-5 shrink-0 items-center justify-center rounded">
+    <div sx={stylexStyles3.rule27}>
+      <div sx={stylexStyles3.rule28}>
+        <div sx={stylexStyles3.rule29}>
           <LuBuilding2 sx={stylexStyles2.rule4} />
         </div>
-        <span className="min-w-0 truncate tracking-tight">{orgName}</span>
-        <span className="text-foreground-alt/50 text-xs font-normal">
-          {roleLabel}
-        </span>
+        <span sx={stylexStyles3.rule30}>{orgName}</span>
+        <span sx={stylexStyles3.rule31}>{roleLabel}</span>
       </div>
-      <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+      <div sx={stylexStyles3.rule32}>
         {canLeave && (
           <Tooltip>
             <TooltipTrigger asChild>
@@ -980,7 +1292,7 @@ function OrgHeader({
                 variant="destructive"
                 onClick={() => void handleLeave()}
               >
-                <span className="hidden md:inline">Leave</span>
+                <span sx={stylexStyles3.rule33}>Leave</span>
               </DashboardButton>
             </TooltipTrigger>
             <TooltipContent side="bottom">Leave organization</TooltipContent>
@@ -1005,8 +1317,8 @@ function OrgHeader({
 /** OrgLoading renders the placeholder shown until the org state arrives. */
 function OrgLoading() {
   return (
-    <div className="bg-background-primary flex h-full w-full flex-1 items-center justify-center p-6">
-      <div className="w-full max-w-sm">
+    <div sx={stylexStyles3.rule34}>
+      <div sx={stylexStyles3.rule35}>
         <LoadingCard
           view={{
             state: 'active',
@@ -1056,7 +1368,7 @@ export function OrganizationDetails({
   }
 
   return (
-    <div className="bg-background-primary flex h-full w-full flex-col overflow-hidden">
+    <div sx={stylexStyles3.rule36}>
       <OrgHeader
         orgId={orgId}
         orgName={orgName}
@@ -1065,8 +1377,12 @@ export function OrganizationDetails({
         onCloseClick={onCloseClick}
       />
 
-      <div className="min-h-0 flex-1 overflow-auto px-4 py-3">
-        <div className="space-y-3">
+      <div sx={stylexStyles3.rule37}>
+        <div
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
+          }
+        >
           {degraded && (
             <OrgRecoverySection
               orgId={orgId}
@@ -1099,8 +1415,12 @@ export function OrganizationDetails({
             {...sectionProps('identifiers')}
           >
             <InfoCard>
-              <div className="space-y-2">
-                <CopyableField label="Organization ID" value={orgId} />
+              <div>
+                <CopyableField
+                  sx={nativeChildSpacing.s2}
+                  label="Organization ID"
+                  value={orgId}
+                />
               </div>
             </InfoCard>
           </CollapsibleSection>
@@ -1117,3 +1437,18 @@ export function OrganizationDetails({
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

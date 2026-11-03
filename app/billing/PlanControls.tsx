@@ -13,6 +13,64 @@ import { usePlanReactivation } from './usePlanReactivation.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-wider)',
+    letterSpacing: 'var(--tracking-wider)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+    textTransform: 'uppercase',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule2: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule3: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule4: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule5: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule6: {
+    marginLeft: `calc(${themeLayout['--spacing']} * 2)`,
+    cursor: 'pointer',
+    color: {
+      default: themeColors['--color-brand'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 80%, transparent)`,
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3)`,
@@ -46,12 +104,14 @@ export function PlanControls(props: {
   }, [navigate])
 
   return (
-    <div className="space-y-3">
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
+      }
+    >
       {checkout.consentDialog}
-      <div className="text-foreground-alt/60 text-xs font-medium tracking-wider uppercase select-none">
-        Plan
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
+      <div sx={stylexStyles2.rule1}>Plan</div>
+      <div sx={stylexStyles2.rule2}>
         <DashboardButton
           icon={<LuExternalLink sx={stylexStyles.rule1} />}
           onClick={() => void portal.open()}
@@ -71,7 +131,7 @@ export function PlanControls(props: {
           />
         )}
       </div>
-      <div className="text-foreground-alt/50 text-xs">
+      <div sx={stylexStyles2.rule3}>
         Payment methods, invoices, and billing history are on Stripe.
         {isCancelScheduled &&
           cancelLabel &&
@@ -79,7 +139,7 @@ export function PlanControls(props: {
       </div>
       <ReactivationProgress checkout={checkout} />
       {(portal.error || reactivation.error || checkout.error) && (
-        <div className="text-destructive text-xs">
+        <div sx={stylexStyles2.rule4}>
           {portal.error || reactivation.error || checkout.error}
         </div>
       )}
@@ -142,13 +202,13 @@ function ReactivationProgress(props: {
   const { checkout } = props
   if (!checkout.polling) return null
   return (
-    <div className="text-foreground-alt/70 text-xs">
+    <div sx={stylexStyles2.rule5}>
       Reactivation in progress. This page will update when Stripe confirms.
       {checkout.showRetry && (
         <button
           type="button"
           onClick={checkout.continueCheckout}
-          className="text-brand hover:text-brand/80 ml-2 cursor-pointer transition-colors"
+          sx={stylexStyles2.rule6}
         >
           Continue with Stripe
         </button>

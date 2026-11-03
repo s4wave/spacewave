@@ -10,6 +10,16 @@ import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 
 import { PageWrapper } from './CloudConfirmationPage.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    marginInline: 'auto',
+    width: '100%',
+    maxWidth: 'var(--container-sm)',
+  },
+})
+
 // InvitePage redeems the platform invite in the route for the session's
 // account, then opens the session home. A sponsored invite stays on this page
 // until the watched onboarding status shows the sponsored billing, so the home
@@ -39,7 +49,7 @@ export function InvitePage() {
   }
   return (
     <PageWrapper>
-      <div className="mx-auto w-full max-w-sm">
+      <div sx={stylexStyles.rule1}>
         {redeem.error ? (
           <LoadingCard
             view={{

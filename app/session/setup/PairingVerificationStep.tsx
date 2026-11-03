@@ -19,6 +19,138 @@ import {
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({ rule1: { textAlign: 'center' } })
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule2: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule3: {
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    width: '100%',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule4: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    textAlign: 'center',
+  },
+  rule5: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+  },
+  rule6: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground'],
+  },
+  rule7: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule8: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule9: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 14)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    fontSize: 'var(--text-3xl)',
+    lineHeight: 'var(--tw-leading, var(--text-3xl--line-height))',
+  },
+  rule10: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    justifyContent: 'center',
+  },
+  rule11: { display: 'flex', gap: `calc(${themeLayout['--spacing']} * 2)` },
+  rule12: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+      },
+    },
+  },
+  rule13: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule14: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+  },
+  rule15: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 5)`,
@@ -131,13 +263,15 @@ export function PairingVerificationStep({
 
   if (error) {
     return (
-      <div className="space-y-4 text-center">
-        <h2 className="text-foreground text-sm font-medium">Pairing failed</h2>
-        <p className="text-destructive text-xs">{error}</p>
+      <div sx={stylexStyles3.rule1}>
+        <h2 sx={[nativeChildSpacing.s4, stylexStyles2.rule1]}>
+          Pairing failed
+        </h2>
+        <p sx={[nativeChildSpacing.s4, stylexStyles2.rule2]}>{error}</p>
         <button
           type="button"
           onClick={onAbort}
-          className="border-foreground/20 text-foreground h-10 w-full rounded-md border text-sm"
+          sx={[nativeChildSpacing.s4, stylexStyles2.rule3]}
         >
           Try again
         </button>
@@ -229,59 +363,70 @@ function PairingVerification({
   const emoji = snapshot?.emoji ?? []
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col items-center gap-2 text-center">
-        <div className="bg-brand/10 flex size-10 items-center justify-center rounded-full">
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4'
+      }
+    >
+      <div sx={stylexStyles2.rule4}>
+        <div sx={stylexStyles2.rule5}>
           <LuShieldCheck sx={stylexStyles.rule1} />
         </div>
-        <h2 className="text-foreground text-sm font-medium">{heading}</h2>
-        {snapshot?.accountId && (
-          <p className="text-foreground text-xs leading-relaxed">{summary}</p>
-        )}
-        <p className="text-foreground-alt text-xs leading-relaxed">{body}</p>
+        <h2 sx={stylexStyles2.rule1}>{heading}</h2>
+        {snapshot?.accountId && <p sx={stylexStyles2.rule6}>{summary}</p>}
+        <p sx={stylexStyles2.rule7}>{body}</p>
       </div>
 
       {emoji.length > 0 && (
-        <div
-          className="grid grid-cols-3 gap-2 px-4"
-          aria-label="Verification emoji"
-        >
+        <div sx={stylexStyles2.rule8} aria-label="Verification emoji">
           {emoji.map((symbol, index) => (
-            <div
-              key={`${index}-${symbol}`}
-              className="bg-foreground/5 flex h-14 items-center justify-center rounded-md text-3xl"
-            >
+            <div key={`${index}-${symbol}`} sx={stylexStyles2.rule9}>
               {symbol}
             </div>
           ))}
         </div>
       )}
       {busy ? (
-        <div className="flex h-10 justify-center">
+        <div sx={stylexStyles2.rule10}>
           <Spinner size="lg" />
         </div>
       ) : emoji.length === 0 ? (
         <PairingChannelProgress status={snapshot?.status} />
       ) : (
-        <div className="flex gap-2">
+        <div sx={stylexStyles2.rule11}>
           <button
             type="button"
             onClick={() => onConfirm(false)}
-            className="border-destructive/30 hover:bg-destructive/10 flex h-10 flex-1 items-center justify-center gap-2 rounded-md border"
+            sx={stylexStyles2.rule12}
           >
             <LuX sx={stylexStyles.rule2} />
-            <span className="text-destructive text-sm">No, abort</span>
+            <span sx={stylexStyles2.rule13}>No, abort</span>
           </button>
           <button
             type="button"
             onClick={() => onConfirm(true)}
-            className="border-brand/30 bg-brand/10 hover:bg-brand/20 flex h-10 flex-1 items-center justify-center gap-2 rounded-md border"
+            sx={stylexStyles2.rule14}
           >
             <LuCircleCheck sx={stylexStyles.rule3} />
-            <span className="text-foreground text-sm">Yes, they match</span>
+            <span sx={stylexStyles2.rule15}>Yes, they match</span>
           </button>
         </div>
       )}
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s4: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

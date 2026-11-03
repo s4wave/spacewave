@@ -1,13 +1,11 @@
 import { useCallback } from 'react'
 import { LuArrowLeft, LuCheck, LuLock } from '@s4wave/web/images/icons.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
-
 import {
   AuthCard,
   AuthPrimaryActionButton,
   AuthSecondaryActionButton,
-  authInputClassName,
+  authInputStyles,
   getProviderLabel,
   ProviderIcon,
 } from './auth-flow-shared.js'
@@ -17,6 +15,114 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
+
+import {
+  radii as themeRadii,
+  fonts as themeFonts,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 4)`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule3: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-lg'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+  },
+  rule4: { display: 'flex', minWidth: 0, flexDirection: 'column' },
+  rule5: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule6: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule7: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule8: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule9: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule10: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule11: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule12: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    color: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-brand'],
+      },
+    },
+  },
+  rule13: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'center',
+    columnGap: `calc(${themeLayout['--spacing']} * 6)`,
+    rowGap: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule14: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+})
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -83,30 +189,22 @@ export function SSOUnlockCard(props: SSOUnlockCardProps) {
   }, [])
 
   return (
-    <div className="flex flex-col gap-4">
+    <div sx={stylexStyles3.rule1}>
       <AuthCard>
-        <div className="mb-4 flex items-center gap-3">
-          <div className="bg-brand/10 flex size-10 items-center justify-center rounded-lg">
+        <div sx={stylexStyles3.rule2}>
+          <div sx={stylexStyles3.rule3}>
             <ProviderIcon provider={provider} sx={stylexStyles2.rule1} />
           </div>
-          <div className="flex min-w-0 flex-col">
-            <h2 className="text-foreground text-sm font-semibold">
-              Signing in with {providerLabel}
-            </h2>
-            {username && (
-              <p className="text-foreground truncate text-xs font-medium">
-                {username}
-              </p>
-            )}
-            {email && (
-              <p className="text-foreground-alt truncate text-xs">{email}</p>
-            )}
+          <div sx={stylexStyles3.rule4}>
+            <h2 sx={stylexStyles3.rule5}>Signing in with {providerLabel}</h2>
+            {username && <p sx={stylexStyles3.rule6}>{username}</p>}
+            {email && <p sx={stylexStyles3.rule7}>{email}</p>}
           </div>
         </div>
 
-        <div className="flex flex-col gap-4">
-          <label className="flex flex-col gap-1.5">
-            <span className="text-foreground-alt flex items-center gap-1.5 text-xs select-none">
+        <div sx={stylexStyles3.rule1}>
+          <label sx={stylexStyles3.rule8}>
+            <span sx={stylexStyles3.rule9}>
               <LuLock sx={stylexStyles.rule1} />
               PIN
             </span>
@@ -118,10 +216,9 @@ export function SSOUnlockCard(props: SSOUnlockCardProps) {
               onChange={(e) => onPinChange(e.target.value)}
               placeholder="Enter your PIN"
               disabled={busy}
-              className={cn(
-                authInputClassName,
-                pinError && 'border-destructive/50',
-              )}
+              sx={
+                pinError ? authInputStyles.invalidSubtle : authInputStyles.base
+              }
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !busy) {
                   e.preventDefault()
@@ -130,9 +227,9 @@ export function SSOUnlockCard(props: SSOUnlockCardProps) {
               }}
             />
             {pinError ? (
-              <p className="text-destructive text-xs">{pinError}</p>
+              <p sx={stylexStyles3.rule10}>{pinError}</p>
             ) : (
-              <p className="text-foreground-alt/50 text-xs">
+              <p sx={stylexStyles3.rule11}>
                 The PIN you set when this account was created.
               </p>
             )}
@@ -146,7 +243,7 @@ export function SSOUnlockCard(props: SSOUnlockCardProps) {
           </AuthPrimaryActionButton>
           <AuthSecondaryActionButton
             onClick={onCancel}
-            className="hover:text-brand flex items-center justify-center gap-1.5"
+            sx={stylexStyles3.rule12}
           >
             <LuArrowLeft sx={stylexStyles.rule3} />
             {cancelLabel}
@@ -154,9 +251,9 @@ export function SSOUnlockCard(props: SSOUnlockCardProps) {
         </div>
       </AuthCard>
 
-      <div className="text-foreground-alt flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-xs">
+      <div sx={stylexStyles3.rule13}>
         {UNLOCK_HIGHLIGHTS.map((text) => (
-          <span key={text} className="flex items-center gap-1.5">
+          <span key={text} sx={stylexStyles3.rule14}>
             <LuCheck sx={stylexStyles.rule4} />
             {text}
           </span>

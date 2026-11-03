@@ -2,7 +2,6 @@ import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
 import { LuLink, LuRefreshCw } from '@s4wave/web/images/icons.js'
 import QRCode from 'qrcode'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 import { usePromise } from '@s4wave/web/hooks/usePromise.js'
 import { SPACEWAVE_PUBLIC_BASE_URL } from '@s4wave/app/urls.js'
@@ -21,6 +20,171 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
+
+import {
+  fonts as themeFonts,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 40)`,
+    height: `calc(${themeLayout['--spacing']} * 40)`,
+    borderRadius: '.25rem',
+  },
+  rule3: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule4: {
+    width: '100%',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+    backgroundColor: themeColors['--color-background-get-started'],
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+    '--tw-shadow':
+      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+  },
+  rule5: { textAlign: 'center' },
+  rule6: {
+    marginInline: 'auto',
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rule7: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule8: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule9: {
+    display: 'flex',
+    minHeight: `calc(${themeLayout['--spacing']} * 16)`,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule10: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule11: {
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule12: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 40%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+  },
+  rule13: { display: 'flex', gap: `calc(${themeLayout['--spacing']} * 2)` },
+  rule14: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 40%, transparent)`,
+      },
+    },
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule15: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule16: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule17: {
+    display: 'inline-block',
+    width: `calc(${themeLayout['--spacing']} * 2)`,
+    height: `calc(${themeLayout['--spacing']} * 2)`,
+    animationName: 'pulse',
+    animationDuration: '2s',
+    animationTimingFunction: 'cubic-bezier(.4, 0, .6, 1)',
+    animationIterationCount: 'infinite',
+    animationDirection: 'normal',
+    animationPlayState: 'running',
+    animationDelay: '0s',
+    animationFillMode: 'none',
+    animationTimeline: 'auto',
+    borderRadius: '3.40282e38px',
+    backgroundColor: themeColors['--color-brand'],
+  },
+  rule18: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule19: { color: themeColors['--color-destructive'] },
+  rule20: { color: themeColors['--color-foreground-alt'] },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -53,13 +217,9 @@ function PairingQRCode({ code }: { code: string }) {
   if (!qrResult.data) return null
 
   return (
-    <div className="flex flex-col items-center gap-1">
-      <img
-        src={qrResult.data}
-        alt="Pairing QR code"
-        className="size-40 rounded"
-      />
-      <span className="text-foreground-alt text-xs">Or scan this QR code</span>
+    <div sx={stylexStyles2.rule1}>
+      <img src={qrResult.data} alt="Pairing QR code" sx={stylexStyles2.rule2} />
+      <span sx={stylexStyles2.rule3}>Or scan this QR code</span>
     </div>
   )
 }
@@ -159,19 +319,17 @@ function PairingCodeView({
   const instructions = PAIRING_CODE_INSTRUCTIONS
 
   return (
-    <div className="border-foreground/20 bg-background-get-started w-full rounded-lg border p-6 shadow-lg backdrop-blur-sm">
-      <div className="text-center">
-        <div className="mx-auto mb-2 flex size-10 items-center justify-center">
+    <div sx={stylexStyles2.rule4}>
+      <div sx={stylexStyles2.rule5}>
+        <div sx={stylexStyles2.rule6}>
           <LuLink sx={stylexStyles.rule1} />
         </div>
-        <h2 className="text-foreground text-sm font-medium">Link My Device</h2>
-        <p className="text-foreground-alt mt-1 text-xs">
-          {instructions.heading}
-        </p>
-        <p className="text-foreground-alt mt-1 text-xs">{instructions.hint}</p>
+        <h2 sx={stylexStyles2.rule7}>Link My Device</h2>
+        <p sx={stylexStyles2.rule8}>{instructions.heading}</p>
+        <p sx={stylexStyles2.rule8}>{instructions.hint}</p>
       </div>
 
-      <div className="flex min-h-16 flex-col items-center justify-center gap-3">
+      <div sx={stylexStyles2.rule9}>
         {loading && <Spinner size="lg" variant="muted" />}
         {!loading && code && (
           <>
@@ -182,17 +340,12 @@ function PairingCodeView({
       </div>
 
       {connectionError && (
-        <div className="flex flex-col items-center gap-2">
-          <p className="text-destructive text-center text-xs">
-            {connectionError}
-          </p>
+        <div sx={stylexStyles2.rule10}>
+          <p sx={stylexStyles2.rule11}>{connectionError}</p>
           <button
             type="button"
             onClick={onRegenerateCode}
-            className={cn(
-              'rounded-md border px-3 py-1.5 text-xs transition-all duration-300',
-              'border-foreground/20 hover:border-foreground/40',
-            )}
+            sx={[stylexStyles2.rule12]}
           >
             Retry
           </button>
@@ -200,26 +353,21 @@ function PairingCodeView({
       )}
 
       {codeResult.error && !connectionError && (
-        <p className="text-destructive text-center text-xs">
+        <p sx={stylexStyles2.rule11}>
           {pairingErrorMessage(codeResult.error.message)}
         </p>
       )}
 
-      <div className="flex gap-2">
+      <div sx={stylexStyles2.rule13}>
         <LinkDeviceBackButton onClick={onBack} />
         <button
           type="button"
           onClick={onRegenerateCode}
           disabled={loading}
-          className={cn(
-            'flex-1 rounded-md border transition-all duration-300',
-            'border-foreground/20 hover:border-foreground/40',
-            'disabled:cursor-not-allowed disabled:opacity-50',
-            'flex h-10 items-center justify-center gap-2',
-          )}
+          sx={[stylexStyles2.rule14]}
         >
           <LuRefreshCw sx={stylexStyles.rule2} />
-          <span className="text-foreground text-sm">Generate new code</span>
+          <span sx={stylexStyles2.rule15}>Generate new code</span>
         </button>
       </div>
       {!loading && code && !connectionError && (
@@ -238,18 +386,16 @@ function WaitingForConnection({
   countdown: string
 }) {
   return (
-    <div className="flex flex-col items-center gap-1">
-      <div className="flex items-center justify-center gap-2">
-        <span className="bg-brand inline-block size-2 animate-pulse rounded-full" />
-        <span className="text-foreground-alt text-xs">
-          Waiting for connection…
-        </span>
+    <div sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule16}>
+        <span sx={stylexStyles2.rule17} />
+        <span sx={stylexStyles2.rule3}>Waiting for connection…</span>
       </div>
       <span
-        className={cn(
-          'text-xs',
-          secondsLeft <= 60 ? 'text-destructive' : 'text-foreground-alt',
-        )}
+        sx={[
+          stylexStyles2.rule18,
+          secondsLeft <= 60 ? stylexStyles2.rule19 : stylexStyles2.rule20,
+        ]}
       >
         Code expires in {countdown}
       </span>

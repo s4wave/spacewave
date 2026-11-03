@@ -38,6 +38,322 @@ import { useBillingAccountCheckout } from './useBillingAccountCheckout.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
 
+import {
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+  radii as themeRadii,
+  motion as themeMotion,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    marginTop: `calc(${themeLayout['--spacing']} * 4)`,
+    display: 'flex',
+    width: '100%',
+    justifyContent: 'flex-start',
+  },
+  rule2: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: 'var(--radius-xl)',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 35%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule3: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 'var(--radius-xl)',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    color: themeColors['--color-brand'],
+  },
+  rule4: { minWidth: 0 },
+  rule5: {
+    fontSize: themeLayout['--text-metadata'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-metadata--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    letterSpacing: '.18em',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+    textTransform: 'uppercase',
+  },
+  rule6: {
+    maxWidth: `calc(${themeLayout['--spacing']} * 64)`,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+  },
+  rule7: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule8: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: 'var(--text-xl)',
+    lineHeight: 'var(--tw-leading, var(--text-xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-wide)',
+    letterSpacing: 'var(--tracking-wide)',
+  },
+  rule9: {
+    maxWidth: 'var(--container-md)',
+    textAlign: 'center',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule10: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule11: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+  },
+  rule12: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule13: { color: themeColors['--color-foreground'] },
+  rule14: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    display: 'inline-flex',
+    cursor: 'pointer',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule15: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 12%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+      },
+    },
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+  },
+  rule16: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: themeLayout['--spacing'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule17: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule18: {
+    fontSize: '.6rem',
+    lineHeight: 1.5,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule19: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule20: {
+    display: 'flex',
+    cursor: 'pointer',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule21: { WebkitUserSelect: 'none', userSelect: 'none' },
+  rule22: {
+    display: 'flex',
+    cursor: { default: 'pointer', ':disabled': 'not-allowed' },
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: themeColors['--color-brand'],
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule23: { display: 'flex', justifyContent: 'center' },
+  rule24: {
+    display: 'flex',
+    cursor: { default: 'pointer', ':disabled': 'not-allowed' },
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule25: {
+    display: 'flex',
+    cursor: { default: 'pointer', ':disabled': 'not-allowed' },
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: themeColors['--color-brand'],
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule26: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 5)`,
@@ -228,22 +544,18 @@ function useBillingAccountActions(
 /** BillingTargetBadge shows who the billing account is being set up for. */
 function BillingTargetBadge({ target }: { target: BillingSetupTarget }) {
   return (
-    <div className="mt-4 flex w-full justify-start">
-      <div className="border-foreground/10 bg-background-card/35 inline-flex items-center gap-3 rounded-xl border p-3">
-        <div className="bg-brand/10 text-brand flex size-10 items-center justify-center rounded-xl">
+    <div sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>
+        <div sx={stylexStyles2.rule3}>
           {target.ownerType === 'organization' ? (
             <LuBuilding2 sx={stylexStyles.rule1} />
           ) : (
             <RxPerson sx={stylexStyles.rule1} />
           )}
         </div>
-        <div className="min-w-0">
-          <div className="text-foreground-alt/60 text-metadata tracking-brand-medium font-medium uppercase">
-            Setting billing for
-          </div>
-          <div className="text-foreground max-w-64 truncate text-sm font-semibold tracking-tight">
-            {target.label}
-          </div>
+        <div sx={stylexStyles2.rule4}>
+          <div sx={stylexStyles2.rule5}>Setting billing for</div>
+          <div sx={stylexStyles2.rule6}>{target.label}</div>
         </div>
       </div>
     </div>
@@ -260,32 +572,26 @@ function BillingHeader({ hasAccounts }: { hasAccounts: boolean }) {
     : 'Create a billing account to continue using Spacewave Cloud.'
 
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div sx={stylexStyles2.rule7}>
       <AnimatedLogo followMouse={false} />
-      <h1 className="mt-2 text-xl font-semibold tracking-wide">{title}</h1>
-      <p className="text-foreground-alt max-w-md text-center text-sm">
-        {subtitle}
-      </p>
+      <h1 sx={stylexStyles2.rule8}>{title}</h1>
+      <p sx={stylexStyles2.rule9}>{subtitle}</p>
     </div>
   )
 }
 
 /** ErrorNotice renders a destructive-toned error message. */
 function ErrorNotice({ message }: { message: string }) {
-  return (
-    <div className="border-destructive/20 bg-destructive/5 text-destructive rounded-lg border px-3 py-2 text-sm">
-      {message}
-    </div>
-  )
+  return <div sx={stylexStyles2.rule10}>{message}</div>
 }
 
 /** CheckoutPollingNotice explains that activation is pending and offers the Stripe retry. */
 function CheckoutPollingNotice({ checkout }: { checkout: BillingCheckout }) {
   return (
-    <div className="border-brand/20 bg-brand/5 rounded-lg border p-3 text-sm">
-      <div className="flex items-center gap-2">
+    <div sx={stylexStyles2.rule11}>
+      <div sx={stylexStyles2.rule12}>
         <Spinner variant="brand" />
-        <span className="text-foreground">
+        <span sx={stylexStyles2.rule13}>
           Activating subscription, this page will update when confirmation
           arrives.
         </span>
@@ -294,7 +600,7 @@ function CheckoutPollingNotice({ checkout }: { checkout: BillingCheckout }) {
         <button
           type="button"
           onClick={checkout.continueCheckout}
-          className="border-brand/30 bg-brand/10 hover:bg-brand/20 text-foreground mt-3 inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors"
+          sx={stylexStyles2.rule14}
         >
           <LuZap sx={stylexStyles.rule2} />
           <span>Continue with Stripe</span>
@@ -314,62 +620,54 @@ interface BillingAccountRowProps {
 
 /** BillingAccountRow lists one billing account with its manage and activate actions. */
 function BillingAccountRow({
+  sx,
   account,
   busy,
   disabled,
   onManage,
   onActivate,
-}: BillingAccountRowProps) {
+}: BillingAccountRowProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const baId = account.id ?? ''
   const activateLabel = isStatusActive(account.subscriptionStatus)
     ? 'Use this billing account'
     : 'Activate'
 
   return (
-    <li
-      className={cn(
-        'border-foreground/6 bg-background-card/30 rounded-lg border transition-all duration-150',
-        'hover:border-foreground/12 hover:bg-background-card/50',
-      )}
-    >
-      <div className="flex flex-col gap-1 px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span className="text-foreground text-sm font-medium select-none">
-            {account.displayName || baId}
-          </span>
+    <li sx={[[stylexStyles2.rule15], sx]}>
+      <div sx={stylexStyles2.rule16}>
+        <div sx={stylexStyles2.rule12}>
+          <span sx={stylexStyles2.rule17}>{account.displayName || baId}</span>
           <span
-            className={cn(
-              'rounded-full border px-2 py-0.5 micro-fine font-semibold tracking-widest uppercase',
-              subscriptionStatusBadgeColor(account.subscriptionStatus),
-            )}
+            className={
+              /* TODO(stylex): computed class helper */ cn(
+                'rounded-full border px-2 py-0.5 micro-fine font-semibold tracking-widest uppercase',
+                subscriptionStatusBadgeColor(account.subscriptionStatus),
+              )
+            }
           >
             {statusLabel(account.subscriptionStatus)}
           </span>
         </div>
         {account.lifecycleState && (
-          <div className="text-foreground-alt/50 micro-text select-none">
+          <div sx={stylexStyles2.rule18}>
             {lifecycleStateLabel(account.lifecycleState)}
           </div>
         )}
       </div>
-      <div className="border-foreground/6 flex items-center justify-end gap-2 border-t px-4 py-2">
+      <div sx={stylexStyles2.rule19}>
         <button
           type="button"
           onClick={() => onManage(baId)}
-          className="text-foreground-alt hover:text-foreground flex cursor-pointer items-center gap-1.5 text-xs transition-colors"
+          sx={stylexStyles2.rule20}
         >
           <LuSettings sx={stylexStyles.rule2} />
-          <span className="select-none">Manage</span>
+          <span sx={stylexStyles2.rule21}>Manage</span>
         </button>
         <button
           type="button"
           onClick={() => void onActivate(account)}
           disabled={busy || disabled}
-          className={cn(
-            'flex cursor-pointer items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-all duration-300 select-none',
-            'border-brand bg-brand/10 text-foreground hover:bg-brand/20',
-            'disabled:cursor-not-allowed disabled:opacity-50',
-          )}
+          sx={[stylexStyles2.rule22]}
         >
           {busy ? <Spinner size="sm" /> : <LuZap sx={stylexStyles.rule2} />}
           <span>{busy ? 'Starting…' : activateLabel}</span>
@@ -394,18 +692,12 @@ function CreateBillingAccountButton({
   onCreate,
 }: CreateBillingAccountButtonProps) {
   return (
-    <div className="flex justify-center">
+    <div sx={stylexStyles2.rule23}>
       <button
         type="button"
         onClick={() => void onCreate()}
         disabled={creating || disabled}
-        className={cn(
-          'flex cursor-pointer items-center justify-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium transition-all duration-300 select-none',
-          hasAccounts
-            ? 'border-foreground/20 bg-foreground/5 text-foreground hover:bg-foreground/10'
-            : 'border-brand bg-brand/10 text-foreground hover:bg-brand/20',
-          'disabled:cursor-not-allowed disabled:opacity-50',
-        )}
+        sx={hasAccounts ? stylexStyles2.rule24 : stylexStyles2.rule25}
       >
         {creating ? <Spinner /> : <LuPlus sx={stylexStyles.rule3} />}
         <span>{creating ? 'Creating…' : 'Create new billing account'}</span>
@@ -463,7 +755,7 @@ export function NoActiveBillingAccountPage() {
       <BillingHeader hasAccounts={hasAccounts} />
 
       {loading && (
-        <div className="flex items-center justify-center">
+        <div sx={stylexStyles2.rule26}>
           <LoadingInline
             label="Loading billing accounts"
             tone="muted"
@@ -478,9 +770,10 @@ export function NoActiveBillingAccountPage() {
       {checkout.polling && <CheckoutPollingNotice checkout={checkout} />}
 
       {hasAccounts && (
-        <ul className="space-y-2">
+        <ul>
           {accounts.map((ba) => (
             <BillingAccountRow
+              sx={nativeChildSpacing.s2}
               key={ba.id ?? ''}
               account={ba}
               busy={activatingBaId === (ba.id ?? '')}
@@ -503,3 +796,18 @@ export function NoActiveBillingAccountPage() {
     </PageWrapper>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

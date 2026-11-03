@@ -7,6 +7,44 @@ import { useStorageBackends } from '@s4wave/app/session/storage/useStorageBacken
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule2: { WebkitUserSelect: 'none', userSelect: 'none' },
+  rule3: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 15%, transparent)`,
+      ':focus': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 40%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -41,16 +79,16 @@ export function NewSpaceStorageChoice({
     "the account's own storage"
 
   return (
-    <div className="text-foreground-alt/70 mt-3 flex items-center justify-center gap-2 text-xs">
+    <div sx={stylexStyles2.rule1}>
       <LuDatabase sx={stylexStyles.rule1} aria-hidden="true" />
-      <label htmlFor={id} className="select-none">
+      <label htmlFor={id} sx={stylexStyles2.rule2}>
         New Spaces store data in
       </label>
       <select
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="border-foreground/15 bg-background/40 text-foreground focus:border-brand/50 rounded-md border px-2 py-1 text-xs outline-none"
+        sx={stylexStyles2.rule3}
         data-testid="new-space-storage"
       >
         <option value="">{defaultName} (default)</option>

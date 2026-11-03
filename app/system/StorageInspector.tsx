@@ -11,6 +11,18 @@ import { formatBytes, formatCount, protectionLabel } from './format.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'grid',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    gridTemplateColumns: {
+      default: null,
+      '@container (min-width: 48rem)': 'repeat(2, minmax(0, 1fr))',
+    },
+  },
+  rule2: { marginTop: `calc(${themeLayout['--spacing']} * 3)` },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -28,7 +40,7 @@ export function StorageInspector({
   onOpenSettings: () => void
 }) {
   return (
-    <div className="grid gap-3 @3xl:grid-cols-2">
+    <div sx={stylexStyles2.rule1}>
       <InspectorSection
         title="This device's store"
         description="Spacewave's local block store. Entries measure storage, not a verified backup."
@@ -84,7 +96,7 @@ export function StorageInspector({
           usage={storage.originUsageBytes}
           quota={storage.originQuotaBytes}
         />
-        <div className="mt-3">
+        <div sx={stylexStyles2.rule2}>
           <Facts
             facts={[
               {

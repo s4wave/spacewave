@@ -13,6 +13,146 @@ import { useSpendingLimit } from './useSpendingLimit.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule2: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-wider)',
+    letterSpacing: 'var(--tracking-wider)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+    textTransform: 'uppercase',
+  },
+  rule3: {
+    marginTop: `calc(${themeLayout['--spacing']} * -2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 45%, transparent)`,
+  },
+  rule4: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-yellow-400']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-yellow-400']} 10%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+  },
+  rule5: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule6: {
+    marginTop: themeLayout['--spacing'],
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule7: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule8: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule9: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule10: { minWidth: 0 },
+  rule11: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule12: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule13: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule14: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule15: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule16: {
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 4%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule17: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    '--tw-numeric-spacing': 'tabular-nums',
+    fontVariantNumeric:
+      'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+  },
+  rule18: {
+    marginLeft: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-normal)',
+    fontWeight: 'var(--font-weight-normal)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule19: {
+    marginBottom: themeLayout['--spacing'],
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rule20: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule21: {
+    height: `calc(${themeLayout['--spacing']} * 1.5)`,
+    width: '100%',
+    overflow: 'hidden',
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3)`,
@@ -58,24 +198,24 @@ export function UsageBars(props: { actions?: ReactNode }) {
   const storageRatio = storageBaseline > 0 ? storageUsed / storageBaseline : 0
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <div className="text-foreground-alt/60 text-xs font-medium tracking-wider uppercase">
-          Usage
-        </div>
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
+      }
+    >
+      <div sx={stylexStyles2.rule1}>
+        <div sx={stylexStyles2.rule2}>Usage</div>
         {props.actions}
       </div>
       {meteredThroughAt > 0 && (
-        <div className="text-foreground-alt/45 -mt-2 text-xs">
+        <div sx={stylexStyles2.rule3}>
           Usage metered through {formatMeteredThrough(meteredThroughAt)}
         </div>
       )}
       {storageRatio >= SOFT_USAGE_ALERT_RATIO && (
-        <div className="rounded-md border border-yellow-400/20 bg-yellow-400/10 px-2.5 py-2 text-xs leading-relaxed">
-          <div className="text-foreground text-xs font-medium">
-            Included storage alert
-          </div>
-          <div className="text-foreground-alt/60 mt-1">
+        <div sx={stylexStyles2.rule4}>
+          <div sx={stylexStyles2.rule5}>Included storage alert</div>
+          <div sx={stylexStyles2.rule6}>
             Storage has reached {Math.round(storageRatio * 100)}% of included
             storage.
           </div>
@@ -88,10 +228,10 @@ export function UsageBars(props: { actions?: ReactNode }) {
         formatValue={formatBytes}
         barClassName="bg-blue-500"
       />
-      <div className="text-foreground-alt/70 flex justify-between text-xs">
+      <div sx={stylexStyles2.rule7}>
         <span>Writes {formatCount(writeOps)}</span>
         <span>Reads {formatCount(readOps)}</span>
-        <span className="text-foreground-alt/50">Not billed</span>
+        <span sx={stylexStyles2.rule8}>Not billed</span>
       </div>
       <ExtraStoragePanel usage={usage} />
     </div>
@@ -115,14 +255,16 @@ function ExtraStoragePanel({ usage }: { usage: BillingUsageInfo }) {
   const paused = accrued >= overageLimit && storageUsed >= storageBaseline
 
   return (
-    <div className="border-foreground/8 space-y-3 rounded-md border p-3">
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'border-foreground/8 space-y-3 rounded-md border p-3'
+      }
+    >
       {spending.consentDialog}
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className="text-foreground text-xs font-medium">
-            Extra storage
-          </div>
-          <div className="text-foreground-alt/50 text-xs">
+      <div sx={stylexStyles2.rule9}>
+        <div sx={stylexStyles2.rule10}>
+          <div sx={stylexStyles2.rule5}>Extra storage</div>
+          <div sx={stylexStyles2.rule11}>
             {overageLimit
               ? `${formatCurrency(overageLimit)} monthly limit`
               : 'Off'}{' '}
@@ -139,7 +281,7 @@ function ExtraStoragePanel({ usage }: { usage: BillingUsageInfo }) {
           </DashboardButton>
         )}
       </div>
-      <dl className="grid grid-cols-3 gap-2">
+      <dl sx={stylexStyles2.rule12}>
         <SpendingStat label="Accrued" value={formatCurrency(accrued)} />
         <SpendingStat
           label="Available"
@@ -152,24 +294,24 @@ function ExtraStoragePanel({ usage }: { usage: BillingUsageInfo }) {
         />
       </dl>
       {periodEnd > 0 && (
-        <div className="text-foreground-alt/60 text-xs">
+        <div sx={stylexStyles2.rule13}>
           Period {formatPeriodDate(periodStart)} – {formatPeriodDate(periodEnd)}{' '}
           · Spending resets {formatResetTime(periodEnd)}
         </div>
       )}
       {paused && (
-        <div className="rounded-md border border-yellow-400/20 bg-yellow-400/10 px-2.5 py-2 text-xs leading-relaxed">
+        <div sx={stylexStyles2.rule4}>
           Accrued charges remain payable. Uploads are paused until the period
           renews or you raise the limit.
         </div>
       )}
-      <p className="text-foreground-alt/40 text-xs leading-relaxed">
+      <p sx={stylexStyles2.rule14}>
         Storage above the included amount is measured hourly. Reads and writes
         are not billed; rate limits protect the service. One GiB is
         1,073,741,824 bytes.
       </p>
       {spending.error && (
-        <p className="text-destructive text-xs" role="alert">
+        <p sx={stylexStyles2.rule15} role="alert">
           {spending.error}
         </p>
       )}
@@ -206,15 +348,11 @@ function SpendingStat(props: {
   detail?: string
 }) {
   return (
-    <div className="bg-foreground/4 rounded-md px-2.5 py-2">
-      <dt className="text-foreground-alt/50 text-xs">{props.label}</dt>
-      <dd className="text-foreground text-sm font-medium tabular-nums">
+    <div sx={stylexStyles2.rule16}>
+      <dt sx={stylexStyles2.rule11}>{props.label}</dt>
+      <dd sx={stylexStyles2.rule17}>
         {props.value}
-        {props.detail && (
-          <span className="text-foreground-alt/40 ml-1 text-xs font-normal">
-            {props.detail}
-          </span>
-        )}
+        {props.detail && <span sx={stylexStyles2.rule18}>{props.detail}</span>}
       </dd>
     </div>
   )
@@ -234,18 +372,20 @@ function UsageBar(props: {
 
   return (
     <div>
-      <div className="mb-1 flex items-center justify-between">
-        <span className="text-foreground-alt/70 text-xs">{props.label}</span>
-        <span className="text-foreground-alt/50 text-xs">
+      <div sx={stylexStyles2.rule19}>
+        <span sx={stylexStyles2.rule20}>{props.label}</span>
+        <span sx={stylexStyles2.rule11}>
           {props.formatValue(props.used)} / {props.formatValue(props.baseline)}
         </span>
       </div>
-      <div className="bg-foreground/8 h-1.5 w-full overflow-hidden rounded-full">
+      <div sx={stylexStyles2.rule21}>
         <div
-          className={cn(
-            'progress-width h-full rounded-full transition-all',
-            barClassName,
-          )}
+          className={
+            /* TODO(stylex): fallback class expression */ cn(
+              'progress-width h-full rounded-full transition-all',
+              barClassName,
+            )
+          }
           style={{ '--progress-width': `${pct}%` }}
         />
       </div>

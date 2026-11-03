@@ -9,6 +9,11 @@ import {
   invalidateSharedStyleApis,
 } from './component-api.js'
 
+// isSourceFile also filters explicit paths, which rg does not exclude with globs.
+function isSourceFile(file: string): boolean {
+  return !/(?:\.(?:test|e2e)\.|\.(?:pb|gen|d)\.ts$)/.test(file)
+}
+
 // sourceFiles streams rg's source manifest without collecting the repository tree.
 async function* sourceFiles(paths: string[]): AsyncGenerator<string> {
   // Generated bindings and tests retain their original source contracts during conversion.
@@ -39,9 +44,9 @@ async function* sourceFiles(paths: string[]): AsyncGenerator<string> {
     pending += new TextDecoder().decode(chunk)
     const lines = pending.split('\n')
     pending = lines.pop()!
-    for (const line of lines) if (line) yield line
+    for (const line of lines) if (line && isSourceFile(line)) yield line
   }
-  if (pending) yield pending
+  if (pending && isSourceFile(pending)) yield pending
   const code = await command.exited
   if (code > 1) throw new Error(`rg source manifest failed: ${code}`)
 }

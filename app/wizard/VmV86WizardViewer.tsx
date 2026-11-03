@@ -50,6 +50,41 @@ import { useWizardState } from './useWizardState.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule2: { width: '100%', maxWidth: 'var(--container-sm)' },
+  rule3: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 15%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-destructive'],
+  },
+  rule4: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  rule5: { marginTop: `calc(${themeLayout['--spacing']} * .5)` },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     marginRight: `calc(${themeLayout['--spacing']} * 2)`,
@@ -516,8 +551,8 @@ function VmCreationScreen({ request, resource }: VmCreationScreenProps) {
 /** WizardLoading shows the loading card until the wizard state arrives. */
 function WizardLoading() {
   return (
-    <div className="flex flex-1 items-center justify-center p-6">
-      <div className="w-full max-w-sm">
+    <div sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>
         <LoadingCard
           view={{
             state: 'active',
@@ -533,12 +568,9 @@ function WizardLoading() {
 /** OperationErrorAlert shows why VM creation could not proceed. */
 function OperationErrorAlert({ message }: { message: string }) {
   return (
-    <div
-      className="border-destructive/15 bg-destructive/5 text-destructive rounded-lg border p-3 text-xs leading-relaxed"
-      role="alert"
-    >
-      <div className="font-medium">VM could not be created</div>
-      <div className="mt-0.5">{message}</div>
+    <div sx={stylexStyles2.rule3} role="alert">
+      <div sx={stylexStyles2.rule4}>VM could not be created</div>
+      <div sx={stylexStyles2.rule5}>{message}</div>
     </div>
   )
 }

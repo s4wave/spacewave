@@ -18,6 +18,64 @@ import { useAccountDashboardState } from './AccountDashboardStateContext.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rule3: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule4: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule5: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule6: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule7: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rule8: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -108,26 +166,26 @@ function SecurityLevelSectionContent({
   const content =
     !loading && info && keypairCount <= 1 ? null : (
       <>
-        {loading && (
-          <p className="text-foreground-alt/40 text-xs">
-            Loading security info…
-          </p>
-        )}
+        {loading && <p sx={stylexStyles2.rule1}>Loading security info…</p>}
         {!loading && info && keypairCount > 1 && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-foreground text-xs font-medium">
-                {level.label}
-              </span>
-              <span className="text-foreground-alt text-xs">
+          <div
+            className={
+              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
+            }
+          >
+            <div sx={stylexStyles2.rule2}>
+              <span sx={stylexStyles2.rule3}>{level.label}</span>
+              <span sx={stylexStyles2.rule4}>
                 {threshold + 1} of {keypairCount} required
               </span>
             </div>
-            <p className="text-foreground-alt/50 text-xs">
-              {level.description}
-            </p>
+            <p sx={stylexStyles2.rule5}>{level.description}</p>
 
-            <div className="space-y-1.5">
+            <div
+              className={
+                /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ 'space-y-1.5'
+              }
+            >
               {securityLevels(keypairCount).map((opt) => (
                 <RadioOption
                   key={opt.value}
@@ -143,7 +201,7 @@ function SecurityLevelSectionContent({
               ))}
             </div>
 
-            <p className="text-foreground-alt/60 text-xs">
+            <p sx={stylexStyles2.rule6}>
               Changing security level requires account re-authentication.
             </p>
           </div>
@@ -175,8 +233,8 @@ function SecurityLevelSectionContent({
 
   return (
     <section>
-      <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
+      <div sx={stylexStyles2.rule7}>
+        <h2 sx={stylexStyles2.rule8}>
           <LuShield sx={stylexStyles.rule1} />
           Security Level
         </h2>

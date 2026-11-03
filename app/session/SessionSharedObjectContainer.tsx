@@ -68,7 +68,7 @@ import { BackButton } from '@s4wave/web/ui/BackButton.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { useMountAccount } from '@s4wave/web/hooks/useMountAccount.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import {
   Tooltip,
   TooltipContent,
@@ -99,6 +99,234 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
+
+import {
+  fonts as themeFonts,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles7 = stylex.create({
+  rule1: { marginTop: `calc(${themeLayout['--spacing']} * 5)` },
+})
+
+const stylexStyles6 = stylex.create({
+  rule1: {
+    borderRadius: 'var(--radius-xl)',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    padding: `calc(${themeLayout['--spacing']} * 5)`,
+  },
+  rule2: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 12)`,
+    height: `calc(${themeLayout['--spacing']} * 12)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '3.40282e38px',
+  },
+  rule3: {
+    borderRadius: '3.40282e38px',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: '.55rem',
+    lineHeight: 1.5,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-widest)',
+    letterSpacing: 'var(--tracking-widest)',
+    textTransform: 'uppercase',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+})
+
+const stylexStyles5 = stylex.create({
+  rule1: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+  },
+  rule2: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+  },
+  rule3: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+  },
+  rule4: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule5: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-warning']} 20%, transparent)`,
+  },
+  rule6: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-warning']} 5%, transparent)`,
+  },
+  rule7: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-warning']} 10%, transparent)`,
+  },
+  rule8: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-warning']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-warning']} 10%, transparent)`,
+    color: themeColors['--color-warning'],
+  },
+  rule9: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+  },
+  rule10: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+  },
+  rule11: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+  },
+  rule12: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+    color: themeColors['--color-destructive'],
+  },
+})
+
+const stylexStyles4 = stylex.create({
+  rule1: { display: 'inline-flex' },
+  rule2: {
+    position: 'relative',
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    overflow: 'auto',
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 12)`,
+  },
+  rule3: {
+    display: 'flex',
+    width: '100%',
+    maxWidth: 'var(--container-xl)',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule4: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    textAlign: 'center',
+  },
+  rule5: {
+    fontSize: 'var(--text-base)',
+    lineHeight: 'var(--tw-leading, var(--text-base--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+  },
+  rule6: {
+    maxWidth: 'var(--container-sm)',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule7: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule8: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule9: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule10: {
+    marginTop: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule11: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2.5)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: '.7rem',
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    overflowWrap: 'break-word',
+    whiteSpace: 'pre-wrap',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 80%, transparent)`,
+  },
+  rule12: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule13: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2.5)`,
+    fontSize: '.7rem',
+    lineHeight: 1.5,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 55%, transparent)`,
+  },
+  rule14: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2.5)`,
+    fontSize: '.7rem',
+    lineHeight: 1.5,
+    color: themeColors['--color-destructive'],
+  },
+  rule15: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule16: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-destructive'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule17: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    textDecorationLine: 'underline',
+  },
+})
 
 const stylexStyles3 = stylex.create({
   rule1: {
@@ -323,39 +551,39 @@ function getSharedObjectHealthTone(
   isLoading: boolean,
   isDegraded: boolean,
 ): {
-  cardBorder: string
-  cardBackground: string
-  iconWrap: string
+  cardBorder: stylex.StyleXStyles
+  cardBackground: stylex.StyleXStyles
+  iconWrap: stylex.StyleXStyles
   iconColor: stylex.StyleXStyles
-  badgeTone: string
+  badgeTone: stylex.StyleXStyles
   Icon: IconType
 } {
   if (isLoading) {
     return {
-      cardBorder: 'border-foreground/8',
-      cardBackground: 'bg-background-card/30',
-      iconWrap: 'bg-foreground/5',
+      cardBorder: stylexStyles5.rule1,
+      cardBackground: stylexStyles5.rule2,
+      iconWrap: stylexStyles5.rule3,
       iconColor: healthIconStyles['--color-foreground'],
-      badgeTone: 'border-foreground/10 bg-foreground/5 text-foreground-alt/70',
+      badgeTone: stylexStyles5.rule4,
       Icon: LuCircleAlert,
     }
   }
   if (isDegraded) {
     return {
-      cardBorder: 'border-warning/20',
-      cardBackground: 'bg-warning/5',
-      iconWrap: 'bg-warning/10',
+      cardBorder: stylexStyles5.rule5,
+      cardBackground: stylexStyles5.rule6,
+      iconWrap: stylexStyles5.rule7,
       iconColor: healthIconStyles['--color-warning'],
-      badgeTone: 'border-warning/20 bg-warning/10 text-warning',
+      badgeTone: stylexStyles5.rule8,
       Icon: LuTriangleAlert,
     }
   }
   return {
-    cardBorder: 'border-destructive/20',
-    cardBackground: 'bg-destructive/5',
-    iconWrap: 'bg-destructive/10',
+    cardBorder: stylexStyles5.rule9,
+    cardBackground: stylexStyles5.rule10,
+    iconWrap: stylexStyles5.rule11,
     iconColor: healthIconStyles['--color-destructive'],
-    badgeTone: 'border-destructive/20 bg-destructive/10 text-destructive',
+    badgeTone: stylexStyles5.rule12,
     Icon: LuShieldAlert,
   }
 }
@@ -396,7 +624,7 @@ function RemediationActionButton({
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className="inline-flex">{button}</span>
+        <span sx={stylexStyles4.rule1}>{button}</span>
       </TooltipTrigger>
       <TooltipContent side="top" sx={stylexStyles.rule1}>
         {disabledReason}
@@ -452,17 +680,13 @@ function SharedObjectHealthCard({
   const badgeLabel = `${summary.badge} - ${layerLabel}`
 
   return (
-    <div className="relative flex h-full w-full items-start justify-center overflow-auto px-4 py-12">
+    <div sx={stylexStyles4.rule2}>
       <BackButton floating onClick={onBack}>
         Back
       </BackButton>
-      <div className="flex w-full max-w-xl flex-col gap-4">
+      <div sx={stylexStyles4.rule3}>
         <div
-          className={cn(
-            'rounded-xl border p-5',
-            tone.cardBackground,
-            tone.cardBorder,
-          )}
+          sx={[[stylexStyles6.rule1], [tone.cardBackground, tone.cardBorder]]}
         >
           <HealthSummaryHeader
             tone={tone}
@@ -471,12 +695,14 @@ function SharedObjectHealthCard({
             description={summary.description}
           />
 
-          <div className="mt-5 space-y-3">
+          <div sx={stylexStyles7.rule1}>
             <HealthIssuePanel
+              sx={nativeChildSpacing.s3}
               hint={summary.hint}
               detail={health.error?.trim() ?? ''}
             />
             <RemediationPanel
+              sx={nativeChildSpacing.s3}
               flow={flow}
               showRetry={
                 health.remediationHint ===
@@ -510,52 +736,37 @@ function HealthSummaryHeader({
   description: string
 }) {
   return (
-    <div className="flex flex-col items-center gap-3 text-center">
-      <div
-        className={cn(
-          'flex size-12 shrink-0 items-center justify-center rounded-full',
-          tone.iconWrap,
-        )}
-      >
+    <div sx={stylexStyles4.rule4}>
+      <div sx={[[stylexStyles6.rule2], [tone.iconWrap]]}>
         <tone.Icon sx={[healthIconStyles.size, tone.iconColor]} />
       </div>
-      <span
-        className={cn(
-          'rounded-full border px-2 py-0.5 micro-fine font-semibold tracking-widest uppercase select-none',
-          tone.badgeTone,
-        )}
-      >
-        {badgeLabel}
-      </span>
-      <h1 className="text-foreground text-base font-semibold tracking-tight">
-        {title}
-      </h1>
-      <p className="text-foreground-alt/70 max-w-sm text-xs leading-relaxed">
-        {description}
-      </p>
+      <span sx={[[stylexStyles6.rule3], [tone.badgeTone]]}>{badgeLabel}</span>
+      <h1 sx={stylexStyles4.rule5}>{title}</h1>
+      <p sx={stylexStyles4.rule6}>{description}</p>
     </div>
   )
 }
 
 // HealthIssuePanel renders the issue hint and the raw error detail.
-function HealthIssuePanel({ hint, detail }: { hint: string; detail: string }) {
+function HealthIssuePanel({
+  sx,
+  hint,
+  detail,
+}: { hint: string; detail: string } & {
+  sx?: stylex.StyleXStyles
+  className?: never
+}) {
   return (
-    <div className="border-foreground/8 bg-background-card/30 rounded-lg border p-3">
-      <div className="flex items-center gap-1.5">
+    <div sx={[stylexStyles4.rule7, sx]}>
+      <div sx={stylexStyles4.rule8}>
         <LuCircleAlert sx={stylexStyles2.rule1} />
-        <span className="text-foreground text-xs font-medium select-none">
-          Issue
-        </span>
+        <span sx={stylexStyles4.rule9}>Issue</span>
       </div>
-      <p className="text-foreground-alt/70 mt-1.5 text-xs leading-relaxed">
+      <p sx={stylexStyles4.rule10}>
         {hint ||
           'Review the issue details below before choosing the next step.'}
       </p>
-      {detail ? (
-        <div className="border-foreground/8 bg-foreground/5 text-foreground-alt/80 micro-seven mt-2.5 rounded-md border px-2.5 py-1.5 leading-relaxed break-words whitespace-pre-wrap">
-          {detail}
-        </div>
-      ) : null}
+      {detail ? <div sx={stylexStyles4.rule11}>{detail}</div> : null}
     </div>
   )
 }
@@ -627,6 +838,7 @@ function getRemediationMessage(
 // RemediationPanel renders the next-step guidance, the retry, repair, and
 // reinitialize actions, their confirmation prompts, and the mutation status.
 function RemediationPanel({
+  sx,
   flow,
   showRetry,
   onRetry,
@@ -640,24 +852,22 @@ function RemediationPanel({
   mutationPermission: SharedObjectMutationPermission
   mutationPending: boolean
   mutationError: string
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   const { selectedAction } = flow
   const disabledReason = mutationPermission.canMutate
     ? ''
     : mutationPermission.disabledReason
 
   return (
-    <div className="border-foreground/8 bg-background-card/30 rounded-lg border p-3">
-      <div className="flex items-center gap-1.5">
+    <div sx={[stylexStyles4.rule7, sx]}>
+      <div sx={stylexStyles4.rule8}>
         <LuArrowRight sx={stylexStyles2.rule1} />
-        <span className="text-foreground text-xs font-medium select-none">
-          Next step
-        </span>
+        <span sx={stylexStyles4.rule9}>Next step</span>
       </div>
-      <p className="text-foreground-alt/70 mt-1.5 text-xs leading-relaxed">
+      <p sx={stylexStyles4.rule10}>
         {getRemediationMessage(selectedAction, mutationPermission.canMutate)}
       </p>
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div sx={stylexStyles4.rule12}>
         {showRetry ? (
           <DashboardButton
             icon={<LuRotateCcw sx={stylexStyles2.rule2} />}
@@ -705,15 +915,13 @@ function RemediationPanel({
         />
       ) : null}
       {selectedAction ? (
-        <p className="text-foreground-alt/55 micro-seven mt-2.5">
+        <p sx={stylexStyles4.rule13}>
           {selectedAction === 'repair'
             ? 'Repair is selected for this broken shared object.'
             : 'Reinitialize is selected for this broken shared object.'}
         </p>
       ) : null}
-      {mutationError ? (
-        <p className="text-destructive micro-seven mt-2.5">{mutationError}</p>
-      ) : null}
+      {mutationError ? <p sx={stylexStyles4.rule14}>{mutationError}</p> : null}
     </div>
   )
 }
@@ -736,17 +944,13 @@ function RemediationConfirm({
   onConfirm: () => void
 }) {
   return (
-    <div className="border-destructive/20 bg-destructive/5 mt-3 rounded-md border p-3">
-      <div className="flex items-center gap-1.5">
+    <div sx={stylexStyles4.rule15}>
+      <div sx={stylexStyles4.rule8}>
         <Icon sx={stylexStyles3.rule1} />
-        <span className="text-destructive text-xs font-medium select-none">
-          {title}
-        </span>
+        <span sx={stylexStyles4.rule16}>{title}</span>
       </div>
-      <p className="text-foreground-alt/70 mt-1.5 text-xs leading-relaxed">
-        {description}
-      </p>
-      <div className="mt-3 flex flex-wrap gap-2">
+      <p sx={stylexStyles4.rule10}>{description}</p>
+      <div sx={stylexStyles4.rule12}>
         <DashboardButton
           icon={<LuRotateCcw sx={stylexStyles2.rule2} />}
           onClick={onCancel}
@@ -1181,10 +1385,7 @@ function SharedObjectRouteState({
         message="This content has been disabled due to a DMCA takedown notice. If you believe this is an error, you can file a counter-notice."
         onRetry={onRetry}
       >
-        <a
-          href={dmcaHref}
-          className="text-foreground-alt hover:text-foreground mt-2 text-sm underline"
-        >
+        <a href={dmcaHref} sx={stylexStyles4.rule17}>
           DMCA Policy
         </a>
       </ErrorState>
@@ -1415,4 +1616,19 @@ const healthIconStyles = stylex.create({
   '--color-foreground': { color: themeColors['--color-foreground'] },
   '--color-warning': { color: themeColors['--color-warning'] },
   '--color-destructive': { color: themeColors['--color-destructive'] },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
 })

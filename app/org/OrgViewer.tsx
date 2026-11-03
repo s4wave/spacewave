@@ -9,6 +9,58 @@ import { useCallback } from 'react'
 import { OrgHandle, OrganizationTypeID } from '@s4wave/sdk/org/org.js'
 import type { OrgState } from '@s4wave/sdk/org/org.pb.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  colors as themeColors,
+  layout as themeLayout,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    backgroundColor: themeColors['--color-background-primary'],
+  },
+  rule2: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule3: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule4: { flex: 1, padding: `calc(${themeLayout['--spacing']} * 4)` },
+  rule5: {
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule6: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-muted-foreground'],
+  },
+})
+
 export { OrganizationTypeID }
 
 // OrgViewer displays organization state from the typed resource.
@@ -35,13 +87,11 @@ export function OrgViewer({
   useObjectName(state?.displayName)
 
   return (
-    <div className="bg-background-primary flex h-full w-full flex-col">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center border-b px-4">
-        <span className="text-foreground text-sm font-semibold tracking-tight select-none">
-          Organization
-        </span>
+    <div sx={stylexStyles.rule1}>
+      <div sx={stylexStyles.rule2}>
+        <span sx={stylexStyles.rule3}>Organization</span>
       </div>
-      <div className="flex-1 p-4">
+      <div sx={stylexStyles.rule4}>
         {stateResource.loading && !state && (
           <LoadingCard
             view={{
@@ -52,11 +102,11 @@ export function OrgViewer({
           />
         )}
         {state && (
-          <div className="space-y-2">
-            <div className="text-foreground text-lg font-semibold">
+          <div>
+            <div sx={[nativeChildSpacing.s2, stylexStyles.rule5]}>
               {state.displayName || 'Untitled Organization'}
             </div>
-            <div className="text-muted-foreground text-sm">
+            <div sx={[nativeChildSpacing.s2, stylexStyles.rule6]}>
               {state.members?.length ?? 0} member
               {(state.members?.length ?? 0) !== 1 ? 's' : ''}
             </div>
@@ -66,3 +116,18 @@ export function OrgViewer({
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

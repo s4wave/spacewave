@@ -1,4 +1,3 @@
-import { cn } from '@s4wave/web/style/utils.js'
 import {
   BillingStatus,
   type BillingAccountInfo,
@@ -19,6 +18,49 @@ import {
   motion as themeMotion,
 } from '../../web/style/tokens.stylex.js'
 import { groupMarker } from '../../web/style/relations.stylex.js'
+
+import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: { display: 'flex', minWidth: 0, flex: 1, flexDirection: 'column' },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule3: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule4: {
+    fontSize: '10px',
+    lineHeight: 1.5,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+  },
+  rule5: { color: themeColors['--color-green-500'] },
+  rule6: { color: themeColors['--color-yellow-500'] },
+  rule7: { color: themeColors['--color-destructive'] },
+  rule8: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule9: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule10: {
+    flexShrink: 0,
+    alignSelf: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-brand']} 60%, transparent)`,
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -62,13 +104,6 @@ export function BillingAccountCard({
   onManage,
 }: BillingAccountCardProps) {
   const status = billing.status
-  const stColor = isStatusActive(status)
-    ? 'text-green-500'
-    : isStatusPastDue(status)
-      ? 'text-yellow-500'
-      : status === BillingStatus.BillingStatus_CANCELED
-        ? 'text-destructive'
-        : 'text-foreground-alt/50'
 
   const intLabel = intervalLabel(billing.billingInterval)
   const nextDate = billing.currentPeriodEnd
@@ -85,18 +120,27 @@ export function BillingAccountCard({
       onClick={onManage}
       sx={[stylexStyles.rule1, groupMarker]}
     >
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-center gap-2">
-          <span className="text-foreground text-xs font-medium">{label}</span>
-          <span className={cn('micro-ten font-semibold', stColor)}>
+      <div sx={stylexStyles2.rule1}>
+        <div sx={stylexStyles2.rule2}>
+          <span sx={stylexStyles2.rule3}>{label}</span>
+          <span
+            sx={[
+              stylexStyles2.rule4,
+              isStatusActive(status)
+                ? stylexStyles2.rule5
+                : isStatusPastDue(status)
+                  ? stylexStyles2.rule6
+                  : status === BillingStatus.BillingStatus_CANCELED
+                    ? stylexStyles2.rule7
+                    : stylexStyles2.rule8,
+            ]}
+          >
             {statusLabel(status)}
           </span>
         </div>
-        {detail && (
-          <p className="text-foreground-alt/50 mt-0.5 text-xs">{detail}</p>
-        )}
+        {detail && <p sx={stylexStyles2.rule9}>{detail}</p>}
       </div>
-      <span className="text-brand/60 shrink-0 self-center text-xs">Manage</span>
+      <span sx={stylexStyles2.rule10}>Manage</span>
     </button>
   )
 }

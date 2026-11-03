@@ -26,7 +26,7 @@ import type { Session } from '@s4wave/sdk/session/session.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
 import {
   Dialog,
@@ -44,6 +44,244 @@ import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
 import { colors as themeColors } from '../../web/style/tokens.stylex.js'
+
+import {
+  fonts as themeFonts,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: { textAlign: 'center' },
+  rule2: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule3: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule4: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 40%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+  },
+  rule5: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-success']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-success']} 5%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    textAlign: 'center',
+  },
+  rule6: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule7: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule8: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 40%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 40%, transparent)`,
+    },
+    '--tw-outline-style': { default: null, ':focus-visible': 'none' },
+    outlineStyle: { default: null, ':focus-visible': 'none' },
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule9: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 1.5)`,
+    display: 'block',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule10: {
+    width: '100%',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      ':focus': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+    '::placeholder': {
+      color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    },
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus':
+        'var(--tw-ring-inset, ) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    boxShadow: {
+      default: null,
+      ':focus':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    '--tw-ring-color': {
+      default: null,
+      ':focus': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+    },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule11: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule12: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-destructive'],
+  },
+  rule13: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule14: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-lg'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    color: themeColors['--color-brand'],
+  },
+  rule15: { minWidth: 0 },
+  rule16: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule17: { marginTop: `calc(${themeLayout['--spacing']} * .5)` },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -163,11 +401,6 @@ const phaseLabels: Record<JoinPhase, string> = {
   error: '',
 }
 
-const panelButtonClass = cn(
-  'mt-3 flex w-full items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm transition-all',
-  'border-foreground/20 hover:border-foreground/40 hover:bg-foreground/5',
-)
-
 /**
  * joinResultAction maps the join response to the state transition for it. An
  * accepted join also starts the optional whole-Space download.
@@ -211,10 +444,10 @@ function JoinNoticePanel({
   children: ReactNode
 }) {
   return (
-    <div className="text-center">
-      <p className="text-foreground text-sm font-medium">{title}</p>
-      <p className="text-foreground-alt/60 mt-1 text-xs">{children}</p>
-      <button type="button" onClick={onClose} className={panelButtonClass}>
+    <div sx={stylexStyles2.rule1}>
+      <p sx={stylexStyles2.rule2}>{title}</p>
+      <p sx={stylexStyles2.rule3}>{children}</p>
+      <button type="button" onClick={onClose} sx={[stylexStyles2.rule4]}>
         Close
       </button>
     </div>
@@ -224,15 +457,11 @@ function JoinNoticePanel({
 /** JoinEnrolledPanel renders the success state with the open action. */
 function JoinEnrolledPanel({ onOpen }: { onOpen: () => void }) {
   return (
-    <div className="border-success/20 bg-success/5 rounded-lg border p-4 text-center">
+    <div sx={stylexStyles2.rule5}>
       <LuCheck sx={stylexStyles.rule1} />
-      <p className="text-foreground text-sm font-medium">
-        Joined successfully!
-      </p>
-      <p className="text-foreground-alt/60 mt-1 text-xs">
-        Your shared Space is ready.
-      </p>
-      <button type="button" onClick={onOpen} className={panelButtonClass}>
+      <p sx={stylexStyles2.rule2}>Joined successfully!</p>
+      <p sx={stylexStyles2.rule3}>Your shared Space is ready.</p>
+      <button type="button" onClick={onOpen} sx={[stylexStyles2.rule4]}>
         Open the shared Space
       </button>
     </div>
@@ -251,25 +480,14 @@ function JoinSubmitControls({
 }) {
   if (busy) {
     return (
-      <div className="flex items-center justify-center gap-2 py-2">
+      <div sx={stylexStyles2.rule6}>
         <Spinner variant="muted" />
-        <span className="text-foreground-alt text-xs">
-          {phaseLabels[state.phase]}
-        </span>
+        <span sx={stylexStyles2.rule7}>{phaseLabels[state.phase]}</span>
       </div>
     )
   }
   return (
-    <button
-      type="submit"
-      disabled={!canSubmit}
-      className={cn(
-        'flex w-full items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm transition-all',
-        'border-brand/30 bg-brand/10 text-foreground hover:border-brand/40 hover:bg-brand/15',
-        'focus-visible:ring-brand/40 focus-visible:ring-2 focus-visible:outline-none',
-        'disabled:cursor-not-allowed disabled:opacity-50',
-      )}
-    >
+    <button type="submit" disabled={!canSubmit} sx={[stylexStyles2.rule8]}>
       {state.phase === 'error' ? 'Try again' : 'Join Space'}
     </button>
   )
@@ -339,6 +557,7 @@ function JoinPhasePanel({
 
 /** JoinInviteField renders the invite input and its guidance. */
 function JoinInviteField({
+  sx,
   inputId,
   state,
   isCloud,
@@ -350,15 +569,12 @@ function JoinInviteField({
   isCloud: boolean
   busy: boolean
   onChange: (code: string) => void
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   const label = isCloud ? 'Invite code or link' : 'Invite link'
 
   return (
-    <div>
-      <label
-        htmlFor={inputId}
-        className="text-foreground mb-1.5 block text-xs font-medium"
-      >
+    <div sx={sx}>
+      <label htmlFor={inputId} sx={stylexStyles2.rule9}>
         {label}
       </label>
       <input
@@ -369,16 +585,9 @@ function JoinInviteField({
         disabled={busy || state.phase === 'enrolled'}
         aria-invalid={state.phase === 'error'}
         aria-describedby={`${inputId}-guidance${state.error ? ` ${inputId}-error` : ''}`}
-        className={cn(
-          'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 font-mono text-sm transition-colors outline-none',
-          'focus:border-brand/50 focus:ring-brand/20 focus:ring-2',
-          'disabled:opacity-50',
-        )}
+        sx={[stylexStyles2.rule10]}
       />
-      <p
-        id={`${inputId}-guidance`}
-        className="text-foreground-alt/50 mt-2 flex items-start gap-1.5 text-xs leading-relaxed"
-      >
+      <p id={`${inputId}-guidance`} sx={stylexStyles2.rule11}>
         <LuShieldCheck sx={stylexStyles.rule2} />
         The invite determines which Space you can access. It does not link
         devices or accounts.
@@ -392,6 +601,7 @@ function JoinInviteField({
  * peer a server must list before it answers.
  */
 function JoinServerField({
+  sx,
   inputId,
   state,
   peerId,
@@ -403,14 +613,11 @@ function JoinServerField({
   peerId: string
   busy: boolean
   onChange: (serverAddr: string) => void
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
-    <div className="space-y-3">
-      <div>
-        <label
-          htmlFor={inputId}
-          className="text-foreground mb-1.5 block text-xs font-medium"
-        >
+    <div sx={sx}>
+      <div sx={nativeChildSpacing.s3}>
+        <label htmlFor={inputId} sx={stylexStyles2.rule9}>
           Server address
         </label>
         <input
@@ -419,26 +626,31 @@ function JoinServerField({
           onChange={(e) => onChange(e.target.value)}
           placeholder="100.64.0.1:4101"
           disabled={busy || state.phase === 'enrolled'}
-          className={cn(
-            'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 font-mono text-sm transition-colors outline-none',
-            'focus:border-brand/50 focus:ring-brand/20 focus:ring-2',
-            'disabled:opacity-50',
-          )}
+          sx={[stylexStyles2.rule10]}
         />
       </div>
-      {peerId && <CopyableField label="This Session" value={peerId} />}
+      {peerId && (
+        <CopyableField
+          sx={nativeChildSpacing.s3}
+          label="This Session"
+          value={peerId}
+        />
+      )}
     </div>
   )
 }
 
 /** JoinError renders the join failure announced by the invite input. */
-function JoinError({ id, message }: { id: string; message: string }) {
+function JoinError({
+  sx,
+  id,
+  message,
+}: { id: string; message: string } & {
+  sx?: stylex.StyleXStyles
+  className?: never
+}) {
   return (
-    <div
-      id={id}
-      role="alert"
-      className="border-destructive/20 bg-destructive/5 text-destructive flex items-start gap-2 rounded-md border px-3 py-2.5 text-xs leading-relaxed"
-    >
+    <div id={id} role="alert" sx={[stylexStyles2.rule12, sx]}>
       <LuTriangleAlert sx={stylexStyles.rule2} />
       <span>{message}</span>
     </div>
@@ -525,11 +737,11 @@ export function JoinSpaceDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent variant="panel">
         <DialogHeader variant="panel">
-          <div className="flex items-start gap-3">
-            <div className="bg-brand/10 text-brand flex size-10 shrink-0 items-center justify-center rounded-lg">
+          <div sx={stylexStyles2.rule13}>
+            <div sx={stylexStyles2.rule14}>
               <LuLogIn sx={stylexStyles.rule3} />
             </div>
-            <div className="min-w-0">
+            <div sx={stylexStyles2.rule15}>
               <DialogTitle>Join Space</DialogTitle>
               <DialogDescription
                 variant="relaxed"
@@ -544,7 +756,9 @@ export function JoinSpaceDialog({
         </DialogHeader>
 
         <form
-          className="space-y-4 px-6 py-5"
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4 px-6 py-5'
+          }
           onSubmit={(event) => {
             event.preventDefault()
             if (!busy) void handleSubmit()
@@ -571,10 +785,10 @@ export function JoinSpaceDialog({
           )}
 
           {showBackfill && (
-            <label className="text-foreground-alt flex items-start gap-2 text-xs select-none">
+            <label sx={stylexStyles2.rule16}>
               <input
                 type="checkbox"
-                className="mt-0.5"
+                sx={stylexStyles2.rule17}
                 checked={backfill}
                 disabled={busy}
                 onChange={(e) => setBackfill(e.target.checked)}
@@ -671,3 +885,18 @@ async function resolveInvite(
   }
   return resp.inviteMessage
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

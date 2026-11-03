@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { LuCamera, LuLink } from '@s4wave/web/images/icons.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 import type { Session } from '@s4wave/sdk/session/session.js'
 
@@ -15,6 +14,160 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
+
+import {
+  fonts as themeFonts,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: { textAlign: 'center' },
+  rule2: {
+    marginInline: 'auto',
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rule3: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule4: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule5: {
+    width: '100%',
+    resize: 'none',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      ':focus': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+    '::placeholder': {
+      color: `color-mix(in oklab, ${themeColors['--color-foreground']} 30%, transparent)`,
+    },
+    '--tw-outline-style': { default: null, ':focus': 'none' },
+    outlineStyle: { default: null, ':focus': 'none' },
+  },
+  rule6: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+      },
+    },
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+      },
+    },
+  },
+  rule7: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule8: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule9: {
+    display: 'inline-block',
+    width: `calc(${themeLayout['--spacing']} * 2)`,
+    height: `calc(${themeLayout['--spacing']} * 2)`,
+    animationName: 'pulse',
+    animationDuration: '2s',
+    animationTimingFunction: 'cubic-bezier(.4, 0, .6, 1)',
+    animationIterationCount: 'infinite',
+    animationDirection: 'normal',
+    animationPlayState: 'running',
+    animationDelay: '0s',
+    animationFillMode: 'none',
+    animationTimeline: 'auto',
+    borderRadius: '3.40282e38px',
+    backgroundColor: themeColors['--color-brand'],
+  },
+  rule10: {
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule11: { display: 'flex', gap: `calc(${themeLayout['--spacing']} * 2)` },
+  rule12: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule13: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -95,7 +248,11 @@ export function DirectAnswerStep({
   })
 
   return (
-    <div className="space-y-4">
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4'
+      }
+    >
       {scanning && (
         <QRScannerModal
           title="Scan direct pairing QR"
@@ -107,14 +264,14 @@ export function DirectAnswerStep({
         />
       )}
 
-      <div className="text-center">
-        <div className="mx-auto mb-2 flex size-10 items-center justify-center">
+      <div sx={stylexStyles2.rule1}>
+        <div sx={stylexStyles2.rule2}>
           <LuCamera sx={stylexStyles.rule1} />
         </div>
-        <h2 className="text-foreground text-sm font-medium">
+        <h2 sx={stylexStyles2.rule3}>
           {answerPayload ? 'Share this response' : 'Scan or paste offer'}
         </h2>
-        <p className="text-foreground-alt mt-1 text-xs leading-relaxed">
+        <p sx={stylexStyles2.rule4}>
           {answerPayload
             ? 'Copy this response and paste it on the other device.'
             : 'Scan the QR code or paste the offer from the other device.'}
@@ -129,61 +286,51 @@ export function DirectAnswerStep({
             aria-label="Offer payload"
             placeholder="Paste offer payload here…"
             rows={3}
-            className={cn(
-              'border-foreground/20 bg-foreground/5 text-foreground w-full resize-none rounded-md border px-2 py-1.5 font-mono text-xs',
-              'placeholder:text-foreground/30 focus:border-brand/50 focus:outline-none',
-            )}
+            sx={[stylexStyles2.rule5]}
           />
 
           <button
             type="button"
             onClick={() => setScanning(true)}
-            className={cn(
-              'w-full rounded-md border transition-all duration-300',
-              'border-foreground/10 hover:border-brand/30 hover:bg-brand/5',
-              'flex h-9 items-center justify-center gap-2',
-            )}
+            sx={[stylexStyles2.rule6]}
           >
             <LuCamera sx={stylexStyles.rule2} />
-            <span className="text-foreground-alt text-xs">Scan QR code</span>
+            <span sx={stylexStyles2.rule7}>Scan QR code</span>
           </button>
         </>
       )}
 
       {answerPayload && (
-        <div className="space-y-2">
+        <div
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
+          }
+        >
           <CopyablePayloadField value={answerPayload} label="Answer payload" />
-          <div className="flex items-center justify-center gap-2">
-            <span className="bg-brand inline-block size-2 animate-pulse rounded-full" />
-            <span className="text-foreground-alt text-xs">
-              Waiting for connection…
-            </span>
+          <div sx={stylexStyles2.rule8}>
+            <span sx={stylexStyles2.rule9} />
+            <span sx={stylexStyles2.rule7}>Waiting for connection…</span>
           </div>
         </div>
       )}
 
-      {error && <p className="text-destructive text-center text-xs">{error}</p>}
+      {error && <p sx={stylexStyles2.rule10}>{error}</p>}
 
-      <div className="flex gap-2">
+      <div sx={stylexStyles2.rule11}>
         <LinkDeviceBackButton onClick={onBack} />
         {!answerPayload && (
           <button
             type="button"
             onClick={() => void handleAcceptOffer(offerInput)}
             disabled={loading || !offerInput.trim() || !session}
-            className={cn(
-              'flex-1 rounded-md border transition-all duration-300',
-              'border-brand/30 bg-brand/10 hover:bg-brand/20',
-              'disabled:cursor-not-allowed disabled:opacity-50',
-              'flex h-10 items-center justify-center gap-2',
-            )}
+            sx={[stylexStyles2.rule12]}
           >
             {loading ? (
               <Spinner />
             ) : (
               <>
                 <LuLink sx={stylexStyles.rule3} />
-                <span className="text-foreground text-sm">Accept offer</span>
+                <span sx={stylexStyles2.rule13}>Accept offer</span>
               </>
             )}
           </button>

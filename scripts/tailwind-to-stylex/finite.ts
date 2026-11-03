@@ -60,6 +60,17 @@ export function compileFiniteClasses(
     return result
   }
 
+  // A conditional already coerces its test, so an explicit double cast is redundant there.
+  const predicate = (node: Node) =>
+    scope.slice(
+      node.type === 'UnaryExpression' &&
+        node.operator === '!' &&
+        node.argument.type === 'UnaryExpression' &&
+        node.argument.operator === '!'
+        ? node.argument.argument
+        : node,
+    )
+
   // Traverse one runtime path at a time, keeping each condition's evaluation order.
   function sequence(
     nodes: Node[],
@@ -101,9 +112,9 @@ export function compileFiniteClasses(
 
     // Branches remain lazy and evaluate the original test exactly once per path.
     if (node.type === 'ConditionalExpression')
-      return `(${scope.slice(node.test)}?${walk(node.consequent, done, stack)}:${walk(node.alternate, done, stack)})`
+      return `(${predicate(node.test)}?${walk(node.consequent, done, stack)}:${walk(node.alternate, done, stack)})`
     if (node.type === 'LogicalExpression' && node.operator === '&&')
-      return `(${scope.slice(node.left)}?${walk(node.right, done, stack)}:${done([])})`
+      return `(${predicate(node.left)}?${walk(node.right, done, stack)}:${done([])})`
     if (node.type === 'ArrayExpression') {
       if (node.elements.some((n) => n?.type === 'SpreadElement'))
         throw Error('spread class array')

@@ -34,6 +34,252 @@ import {
 } from '../../web/style/tokens.stylex.js'
 import { groupMarker } from '../../web/style/relations.stylex.js'
 
+import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-brand'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule2: { WebkitUserSelect: 'none', userSelect: 'none' },
+  rule3: {
+    fontSize: 'var(--text-xl)',
+    lineHeight: 'var(--tw-leading, var(--text-xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-wide)',
+    letterSpacing: 'var(--tracking-wide)',
+  },
+  rule4: {
+    position: 'relative',
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+    backgroundColor: themeColors['--color-background-get-started'],
+    '--tw-shadow':
+      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+  },
+  rule5: { padding: `calc(${themeLayout['--spacing']} * 6)` },
+  rule6: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule7: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+  },
+  rule8: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule9: {
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule10: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule11: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 1.5)`,
+    display: 'block',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule12: {
+    width: '100%',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      ':focus': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+    '::placeholder': {
+      color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    },
+  },
+  rule13: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule14: {
+    width: '100%',
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule15: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule16: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+  },
+  rule17: {
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule18: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule19: {
+    width: '100%',
+    cursor: 'not-allowed',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+    opacity: 0.7,
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+  },
+  rule20: {
+    width: '100%',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 50%, transparent)`,
+      ':focus': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+    '::placeholder': {
+      color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    },
+  },
+  rule21: {
+    display: 'flex',
+    height: themeLayout['--spacing'],
+    gap: `calc(${themeLayout['--spacing']} * .5)`,
+    overflow: 'hidden',
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+  },
+  rule22: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule23: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule24: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 12)`,
+    height: `calc(${themeLayout['--spacing']} * 12)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+  },
+  rule25: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     display: 'flex',
@@ -320,26 +566,22 @@ export function RecoveryPage() {
       onKeyDown={handleKeyDown}
       tabIndex={-1}
       topLeft={
-        <button
-          type="button"
-          onClick={handleBack}
-          className="text-foreground-alt hover:text-brand flex items-center gap-2 text-sm transition-colors"
-        >
+        <button type="button" onClick={handleBack} sx={stylexStyles3.rule1}>
           <LuArrowLeft sx={stylexStyles.rule1} />
-          <span className="select-none">Back to home</span>
+          <span sx={stylexStyles3.rule2}>Back to home</span>
         </button>
       }
       intro={
         <>
           <AnimatedLogo followMouse={false} />
-          <h1 className="text-xl font-semibold tracking-wide">
+          <h1 sx={stylexStyles3.rule3}>
             {token ? 'Reset Password' : 'Recover Account'}
           </h1>
         </>
       }
     >
-      <div className="border-foreground/20 bg-background-get-started relative overflow-hidden rounded-lg border shadow-lg backdrop-blur-sm">
-        <div className="p-6">
+      <div sx={stylexStyles3.rule4}>
+        <div sx={stylexStyles3.rule5}>
           {!token && (
             <RequestRecoveryForm
               email={email}
@@ -417,15 +659,17 @@ function RequestRecoveryForm({
 
   if (requestSent) {
     return (
-      <div className="space-y-4">
-        <div className="flex flex-col items-center gap-2">
-          <div className="bg-brand/10 flex size-10 items-center justify-center rounded-full">
+      <div
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4'
+        }
+      >
+        <div sx={stylexStyles3.rule6}>
+          <div sx={stylexStyles3.rule7}>
             <LuCircleCheck sx={stylexStyles.rule2} />
           </div>
-          <h2 className="text-foreground text-sm font-medium">
-            Check your email
-          </h2>
-          <p className="text-foreground-alt text-center text-xs leading-relaxed">
+          <h2 sx={stylexStyles3.rule8}>Check your email</h2>
+          <p sx={stylexStyles3.rule9}>
             If the address is attached to a verified account, we sent a recovery
             link. It may take a minute to arrive.
           </p>
@@ -435,7 +679,7 @@ function RequestRecoveryForm({
           onClick={onGoToLogin}
           sx={[[stylexStyles2.rule1, groupMarker]]}
         >
-          <span className="text-foreground text-sm">Back to login</span>
+          <span sx={stylexStyles3.rule10}>Back to login</span>
           <LuArrowRight sx={stylexStyles.rule3} />
         </button>
       </div>
@@ -443,25 +687,28 @@ function RequestRecoveryForm({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col items-center gap-2">
-        <div className="bg-brand/10 flex size-10 items-center justify-center rounded-full">
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4'
+      }
+    >
+      <div sx={stylexStyles3.rule6}>
+        <div sx={stylexStyles3.rule7}>
           <LuKeyRound sx={stylexStyles.rule2} />
         </div>
-        <h2 className="text-foreground text-sm font-medium">
-          Send a recovery link
-        </h2>
-        <p className="text-foreground-alt text-center text-xs leading-relaxed">
+        <h2 sx={stylexStyles3.rule8}>Send a recovery link</h2>
+        <p sx={stylexStyles3.rule9}>
           Enter the verified email address on your account and we will send you
           a password reset link.
         </p>
       </div>
-      <div className="space-y-3">
+      <div
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
+        }
+      >
         <div>
-          <label
-            htmlFor={emailInputId}
-            className="text-foreground-alt mb-1.5 block text-xs select-none"
-          >
+          <label htmlFor={emailInputId} sx={stylexStyles3.rule11}>
             Email
           </label>
           <input
@@ -471,17 +718,14 @@ function RequestRecoveryForm({
             value={email}
             onChange={onEmailChange}
             placeholder="you@example.com"
-            className={cn(
-              'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 text-sm transition-colors outline-none',
-              'focus:border-brand/50',
-            )}
+            sx={[stylexStyles3.rule12]}
           />
         </div>
         {!isDesktop && turnstileSiteKey !== '' && (
           <Turnstile ref={turnstileRef} siteKey={turnstileSiteKey} />
         )}
       </div>
-      {error && <p className="text-destructive text-xs">{error}</p>}
+      {error && <p sx={stylexStyles3.rule13}>{error}</p>}
       <button
         type="button"
         onClick={() => void onSubmit()}
@@ -493,15 +737,11 @@ function RequestRecoveryForm({
         ) : (
           <LuArrowRight sx={stylexStyles.rule4} />
         )}
-        <span className="text-foreground text-sm">
+        <span sx={stylexStyles3.rule10}>
           {loading ? 'Sending recovery link…' : 'Send recovery link'}
         </span>
       </button>
-      <button
-        type="button"
-        onClick={onGoToLogin}
-        className="text-foreground-alt hover:text-foreground w-full text-center text-xs transition-colors"
-      >
+      <button type="button" onClick={onGoToLogin} sx={stylexStyles3.rule14}>
         Back to login
       </button>
     </div>
@@ -517,12 +757,10 @@ interface VerifyingStepProps {
 function VerifyingStep({ loading, error, onGoToLogin }: VerifyingStepProps) {
   if (loading) {
     return (
-      <div className="space-y-4">
-        <div className="flex flex-col items-center gap-2">
+      <div>
+        <div sx={[nativeChildSpacing.s4, stylexStyles3.rule6]}>
           <Spinner size="lg" variant="muted" />
-          <p className="text-foreground-alt text-sm">
-            Verifying recovery token…
-          </p>
+          <p sx={stylexStyles3.rule15}>Verifying recovery token…</p>
         </div>
       </div>
     )
@@ -530,18 +768,18 @@ function VerifyingStep({ loading, error, onGoToLogin }: VerifyingStepProps) {
 
   if (error) {
     return (
-      <div className="space-y-4">
-        <div className="flex flex-col items-center gap-2">
-          <div className="bg-destructive/10 flex size-10 items-center justify-center rounded-full">
+      <div
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4'
+        }
+      >
+        <div sx={stylexStyles3.rule6}>
+          <div sx={stylexStyles3.rule16}>
             <LuKeyRound sx={stylexStyles.rule5} />
           </div>
-          <h2 className="text-foreground text-sm font-medium">
-            Token verification failed
-          </h2>
-          <p className="text-destructive text-center text-xs">
-            {error.message}
-          </p>
-          <p className="text-foreground-alt text-center text-xs leading-relaxed">
+          <h2 sx={stylexStyles3.rule8}>Token verification failed</h2>
+          <p sx={stylexStyles3.rule17}>{error.message}</p>
+          <p sx={stylexStyles3.rule9}>
             The recovery link may have expired. Please request a new one.
           </p>
         </div>
@@ -550,7 +788,7 @@ function VerifyingStep({ loading, error, onGoToLogin }: VerifyingStepProps) {
           onClick={onGoToLogin}
           sx={[[stylexStyles2.rule1, groupMarker]]}
         >
-          <span className="text-foreground text-sm">Back to login</span>
+          <span sx={stylexStyles3.rule10}>Back to login</span>
           <LuArrowRight sx={stylexStyles.rule3} />
         </button>
       </div>
@@ -595,25 +833,22 @@ function PasswordForm({
   )
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col items-center gap-2">
-        <div className="bg-brand/10 flex size-10 items-center justify-center rounded-full">
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4'
+      }
+    >
+      <div sx={stylexStyles3.rule6}>
+        <div sx={stylexStyles3.rule7}>
           <LuShieldCheck sx={stylexStyles.rule2} />
         </div>
-        <h2 className="text-foreground text-sm font-medium">
-          Set a new password
-        </h2>
-        <p className="text-foreground-alt text-xs">
-          Choose a new password for your account.
-        </p>
+        <h2 sx={stylexStyles3.rule8}>Set a new password</h2>
+        <p sx={stylexStyles3.rule18}>Choose a new password for your account.</p>
       </div>
 
-      <div className="space-y-3">
-        <div>
-          <label
-            htmlFor={usernameInputId}
-            className="text-foreground-alt mb-1.5 block text-xs select-none"
-          >
+      <div>
+        <div sx={nativeChildSpacingNext.s3}>
+          <label htmlFor={usernameInputId} sx={stylexStyles3.rule11}>
             Username
           </label>
           <input
@@ -621,18 +856,12 @@ function PasswordForm({
             type="text"
             value={username}
             readOnly
-            className={cn(
-              'border-foreground/20 bg-background/30 text-foreground w-full rounded-md border px-3 py-2 text-sm outline-none',
-              'cursor-not-allowed opacity-70',
-            )}
+            sx={[stylexStyles3.rule19]}
           />
         </div>
 
-        <div>
-          <label
-            htmlFor={passwordInputId}
-            className="text-foreground-alt mb-1.5 block text-xs select-none"
-          >
+        <div sx={nativeChildSpacingNext.s3}>
+          <label htmlFor={passwordInputId} sx={stylexStyles3.rule11}>
             New password
           </label>
           <input
@@ -642,18 +871,12 @@ function PasswordForm({
             value={password}
             onChange={onPasswordChange}
             placeholder="Enter new password"
-            className={cn(
-              'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 text-sm transition-colors outline-none',
-              'focus:border-brand/50',
-            )}
+            sx={[stylexStyles3.rule12]}
           />
         </div>
 
-        <div>
-          <label
-            htmlFor={confirmInputId}
-            className="text-foreground-alt mb-1.5 block text-xs select-none"
-          >
+        <div sx={nativeChildSpacingNext.s3}>
+          <label htmlFor={confirmInputId} sx={stylexStyles3.rule11}>
             Confirm new password
           </label>
           <input
@@ -662,18 +885,23 @@ function PasswordForm({
             value={confirm}
             onChange={onConfirmChange}
             placeholder="Confirm new password"
-            className={cn(
-              'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 text-sm transition-colors outline-none',
-              'focus:border-brand/50',
-              confirm.length > 0 && !passwordsMatch && 'border-destructive/50',
-            )}
+            sx={
+              confirm.length > 0 && !passwordsMatch
+                ? stylexStyles3.rule20
+                : stylexStyles3.rule12
+            }
           />
         </div>
 
-        {password.length > 0 && <PasswordStrength password={password} />}
+        {password.length > 0 && (
+          <PasswordStrength
+            sx={nativeChildSpacingNext.s3}
+            password={password}
+          />
+        )}
       </div>
 
-      {error && <p className="text-destructive text-xs">{error}</p>}
+      {error && <p sx={stylexStyles3.rule13}>{error}</p>}
 
       <button
         type="button"
@@ -682,13 +910,16 @@ function PasswordForm({
         sx={[[stylexStyles2.rule2, groupMarker]]}
       >
         <LuRefreshCw sx={stylexStyles.rule4} />
-        <span className="text-foreground text-sm">Reset password</span>
+        <span sx={stylexStyles3.rule10}>Reset password</span>
       </button>
     </div>
   )
 }
 
-function PasswordStrength({ password }: { password: string }) {
+function PasswordStrength({
+  sx,
+  password,
+}: { password: string } & { sx?: stylex.StyleXStyles; className?: never }) {
   const strength =
     password.length === 0
       ? 0
@@ -703,32 +934,34 @@ function PasswordStrength({ password }: { password: string }) {
   if (password.length === 0) return null
 
   return (
-    <div className="space-y-1">
-      <div className="bg-foreground/10 flex h-1 gap-0.5 overflow-hidden rounded-full">
+    <div sx={sx}>
+      <div sx={[nativeChildSpacing.s1, stylexStyles3.rule21]}>
         {[1, 2, 3].map((level) => (
           <div
             key={level}
-            className={cn(
-              'h-full flex-1 rounded-full transition-colors',
-              level <= strength ? colors[strength] : 'bg-transparent',
-            )}
+            className={
+              /* TODO(stylex): dynamic class or forwarded className */ cn(
+                'h-full flex-1 rounded-full transition-colors',
+                level <= strength ? colors[strength] : 'bg-transparent',
+              )
+            }
           />
         ))}
       </div>
-      <p className="text-foreground-alt/60 text-xs">{labels[strength]}</p>
+      <p sx={[nativeChildSpacing.s1, stylexStyles3.rule22]}>
+        {labels[strength]}
+      </p>
     </div>
   )
 }
 
 function ExecutingStep() {
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col items-center gap-3">
+    <div>
+      <div sx={[nativeChildSpacing.s4, stylexStyles3.rule23]}>
         <Spinner size="lg" variant="muted" />
-        <h2 className="text-foreground text-sm font-medium">
-          Resetting your password…
-        </h2>
-        <p className="text-foreground-alt text-xs">
+        <h2 sx={stylexStyles3.rule8}>Resetting your password…</h2>
+        <p sx={stylexStyles3.rule18}>
           Deriving new encryption keys. This may take a moment.
         </p>
       </div>
@@ -738,15 +971,17 @@ function ExecutingStep() {
 
 function DoneStep({ onGoToLogin }: { onGoToLogin: () => void }) {
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col items-center gap-3">
-        <div className="bg-brand/10 flex size-12 items-center justify-center rounded-full">
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4'
+      }
+    >
+      <div sx={stylexStyles3.rule23}>
+        <div sx={stylexStyles3.rule24}>
           <LuCircleCheck sx={stylexStyles.rule6} />
         </div>
-        <h2 className="text-foreground text-sm font-medium">
-          Password reset successfully!
-        </h2>
-        <p className="text-foreground-alt text-xs leading-relaxed">
+        <h2 sx={stylexStyles3.rule8}>Password reset successfully!</h2>
+        <p sx={stylexStyles3.rule25}>
           You can now sign in with your new password.
         </p>
       </div>
@@ -756,9 +991,50 @@ function DoneStep({ onGoToLogin }: { onGoToLogin: () => void }) {
         onClick={onGoToLogin}
         sx={[[stylexStyles2.rule1, groupMarker]]}
       >
-        <span className="text-foreground text-sm">Go to login</span>
+        <span sx={stylexStyles3.rule10}>Go to login</span>
         <LuArrowRight sx={stylexStyles.rule3} />
       </button>
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s4: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s1: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

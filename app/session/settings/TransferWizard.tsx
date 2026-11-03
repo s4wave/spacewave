@@ -12,7 +12,7 @@ import {
 } from '@s4wave/web/images/icons.js'
 
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { useNavigate } from '@s4wave/web/router/router.js'
 import {
   SessionContext,
@@ -33,6 +33,294 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
+
+import {
+  fonts as themeFonts,
+  motion as themeMotion,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    overflowY: 'auto',
+    backgroundColor: themeColors['--color-background-landing'],
+    padding: {
+      default: `calc(${themeLayout['--spacing']} * 6)`,
+      '@media (min-width: 48rem)': `calc(${themeLayout['--spacing']} * 10)`,
+    },
+  },
+  rule2: {
+    marginInline: 'auto',
+    width: '100%',
+    maxWidth: 'var(--container-lg)',
+  },
+  rule3: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 6)`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule4: { marginBottom: `calc(${themeLayout['--spacing']} * 6)` },
+  rule5: {
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-wide)',
+    letterSpacing: 'var(--tracking-wide)',
+    color: themeColors['--color-foreground'],
+  },
+  rule6: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule7: {
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+    backgroundColor: themeColors['--color-background-get-started'],
+    '--tw-shadow':
+      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+  },
+  rule8: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule9: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule10: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-brand'],
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule11: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-destructive'],
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+      },
+    },
+  },
+  rule12: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'block',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule13: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingBlock: `calc(${themeLayout['--spacing']} * 8)`,
+  },
+  rule14: {
+    paddingBlock: `calc(${themeLayout['--spacing']} * 4)`,
+    textAlign: 'center',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule15: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule16: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 2.5)`,
+    textAlign: 'left',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule17: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+  },
+  rule18: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 20%, transparent)`,
+    opacity: 0.6,
+  },
+  rule19: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '.25rem',
+  },
+  rule20: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule21: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 4)`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule22: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule23: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 2.5)`,
+  },
+  rule24: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rule25: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule26: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule27: {
+    marginTop: `calc(${themeLayout['--spacing']} * 1.5)`,
+    height: themeLayout['--spacing'],
+    overflow: 'hidden',
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+  },
+  rule28: {
+    width: 'var(--progress-width)',
+    height: '100%',
+    borderRadius: '3.40282e38px',
+    backgroundColor: themeColors['--color-brand'],
+    transitionProperty: 'width',
+  },
+  rule29: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    paddingBlock: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule30: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 4)`,
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 12)`,
+    height: `calc(${themeLayout['--spacing']} * 12)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+  },
+  rule31: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -288,31 +576,31 @@ function TransferWizardSteps({
   const { shownStep, shownError } = resolveShownStep(step, error, transferState)
 
   return (
-    <div className="bg-background-landing flex flex-1 flex-col overflow-y-auto p-6 md:p-10">
-      <div className="mx-auto w-full max-w-lg">
+    <div sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>
         <button
           type="button"
           onClick={
             shownStep === 'select' ? handleBack : () => setStep('select')
           }
           disabled={shownStep === 'progress' || shownStep === 'complete'}
-          className="text-foreground-alt hover:text-foreground mb-6 flex items-center gap-1.5 text-sm transition-colors disabled:opacity-50"
+          sx={stylexStyles2.rule3}
         >
           <LuArrowLeft sx={stylexStyles.rule1} />
           {shownStep === 'select' ? 'Back to dashboard' : 'Back'}
         </button>
 
-        <div className="mb-6">
-          <h1 className="text-foreground text-lg font-semibold tracking-wide">
-            Transfer Sessions
-          </h1>
-          <p className="text-foreground-alt mt-1 text-sm">
-            {stepDescription(shownStep)}
-          </p>
+        <div sx={stylexStyles2.rule4}>
+          <h1 sx={stylexStyles2.rule5}>Transfer Sessions</h1>
+          <p sx={stylexStyles2.rule6}>{stepDescription(shownStep)}</p>
         </div>
 
-        <div className="border-foreground/20 bg-background-get-started overflow-hidden rounded-lg border shadow-lg backdrop-blur-sm">
-          <div className="space-y-4 p-6">
+        <div sx={stylexStyles2.rule7}>
+          <div
+            className={
+              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4 p-6'
+            }
+          >
             <WizardBody
               step={shownStep}
               draft={draft}
@@ -325,7 +613,7 @@ function TransferWizardSteps({
             />
           </div>
 
-          <div className="border-foreground/10 flex justify-end gap-2 border-t p-4">
+          <div sx={stylexStyles2.rule8}>
             <WizardAction
               step={shownStep}
               canProceed={
@@ -343,7 +631,7 @@ function TransferWizardSteps({
         </div>
 
         {shownError && shownStep !== 'progress' && (
-          <p className="text-destructive mt-3 text-sm">{shownError}</p>
+          <p sx={stylexStyles2.rule9}>{shownError}</p>
         )}
       </div>
     </div>
@@ -452,13 +740,6 @@ function stepDescription(step: WizardStep): string {
   }
 }
 
-const wizardPrimaryActionClass = cn(
-  'flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition-all',
-  'bg-brand/10 text-brand border-brand/30 border',
-  'hover:bg-brand/20',
-  'disabled:cursor-not-allowed disabled:opacity-50',
-)
-
 // WizardAction renders the footer button for a wizard step.
 function WizardAction({
   step,
@@ -484,7 +765,7 @@ function WizardAction({
           type="button"
           onClick={onNext}
           disabled={!canProceed}
-          className={wizardPrimaryActionClass}
+          sx={[stylexStyles2.rule10]}
         >
           Next
           <LuArrowRight sx={stylexStyles.rule2} />
@@ -496,7 +777,7 @@ function WizardAction({
           type="button"
           onClick={onStart}
           disabled={!hasSelection}
-          className={wizardPrimaryActionClass}
+          sx={[stylexStyles2.rule10]}
         >
           <LuMerge sx={stylexStyles.rule2} />
           Start Transfer
@@ -504,26 +785,14 @@ function WizardAction({
       )
     case 'progress':
       return (
-        <button
-          type="button"
-          onClick={onCancel}
-          className={cn(
-            'flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition-all',
-            'text-destructive border-destructive/30 border',
-            'hover:bg-destructive/10',
-          )}
-        >
+        <button type="button" onClick={onCancel} sx={[stylexStyles2.rule11]}>
           <LuX sx={stylexStyles.rule2} />
           Cancel
         </button>
       )
     case 'complete':
       return (
-        <button
-          type="button"
-          onClick={onComplete}
-          className={wizardPrimaryActionClass}
-        >
+        <button type="button" onClick={onComplete} sx={[stylexStyles2.rule10]}>
           <LuCheck sx={stylexStyles.rule2} />
           Go to Session
         </button>
@@ -552,10 +821,12 @@ function SelectStep({
   return (
     <>
       <div>
-        <span className="text-foreground mb-2 block text-xs font-medium">
-          Source session (merge from)
-        </span>
-        <div className="space-y-1.5">
+        <span sx={stylexStyles2.rule12}>Source session (merge from)</span>
+        <div
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ 'space-y-1.5'
+          }
+        >
           {sessionOptions.map((s) => (
             <RadioOption
               key={`src-${s.index}`}
@@ -571,10 +842,12 @@ function SelectStep({
       </div>
 
       <div>
-        <span className="text-foreground mb-2 block text-xs font-medium">
-          Target session (merge into)
-        </span>
-        <div className="space-y-1.5">
+        <span sx={stylexStyles2.rule12}>Target session (merge into)</span>
+        <div
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ 'space-y-1.5'
+          }
+        >
           {sessionOptions.flatMap((s) =>
             s.index !== sourceIdx
               ? [
@@ -596,10 +869,12 @@ function SelectStep({
       </div>
 
       <div>
-        <span className="text-foreground mb-2 block text-xs font-medium">
-          Transfer mode
-        </span>
-        <div className="space-y-1.5">
+        <span sx={stylexStyles2.rule12}>Transfer mode</span>
+        <div
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ 'space-y-1.5'
+          }
+        >
           <RadioOption
             selected={mode === TransferMode.TransferMode_MERGE}
             onSelect={() => onModeChange(TransferMode.TransferMode_MERGE)}
@@ -641,7 +916,7 @@ function InventoryStep({
 }) {
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8">
+      <div sx={stylexStyles2.rule13}>
         <Spinner size="md" variant="muted" />
       </div>
     )
@@ -649,9 +924,7 @@ function InventoryStep({
 
   if (spaces.length === 0) {
     return (
-      <p className="text-foreground-alt py-4 text-center text-sm">
-        No spaces found on the source session.
-      </p>
+      <p sx={stylexStyles2.rule14}>No spaces found on the source session.</p>
     )
   }
 
@@ -659,11 +932,15 @@ function InventoryStep({
 
   return (
     <div>
-      <p className="text-foreground-alt mb-3 text-xs">
+      <p sx={stylexStyles2.rule15}>
         {selectedCount} of {spaces.length} space
         {spaces.length !== 1 ? 's' : ''} selected for transfer:
       </p>
-      <div className="space-y-1.5">
+      <div
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ 'space-y-1.5'
+        }
+      >
         {spaces.map((sp) => {
           const id = sp.entry?.ref?.providerResourceRef?.id ?? ''
           const name = sp.spaceMeta?.name || id || 'Unnamed'
@@ -673,19 +950,19 @@ function InventoryStep({
               key={id}
               type="button"
               onClick={() => onToggle(id)}
-              className={cn(
-                'border-foreground/10 flex w-full items-center gap-3 rounded-md border p-2.5 text-left transition-colors',
-                checked ? 'bg-brand/5' : 'bg-background/20 opacity-60',
-              )}
+              sx={[
+                stylexStyles2.rule16,
+                checked ? stylexStyles2.rule17 : stylexStyles2.rule18,
+              ]}
             >
-              <div className="flex size-8 shrink-0 items-center justify-center rounded">
+              <div sx={stylexStyles2.rule19}>
                 {checked ? (
                   <LuSquareCheck sx={stylexStyles.rule3} />
                 ) : (
                   <LuSquare sx={stylexStyles.rule4} />
                 )}
               </div>
-              <p className="text-foreground text-sm">{name}</p>
+              <p sx={stylexStyles2.rule20}>{name}</p>
             </button>
           )
         })}
@@ -742,7 +1019,7 @@ function ProgressStep({
 
   return (
     <div>
-      <div className="mb-4 flex items-center gap-2">
+      <div sx={stylexStyles2.rule21}>
         {phase !== TransferPhase.TransferPhase_COMPLETE &&
           phase !== TransferPhase.TransferPhase_FAILED && (
             <Spinner variant="brand" />
@@ -753,13 +1030,15 @@ function ProgressStep({
         {phase === TransferPhase.TransferPhase_FAILED && (
           <LuX sx={stylexStyles.rule6} />
         )}
-        <p className="text-foreground text-sm font-medium">
-          {phaseLabel(phase)}
-        </p>
+        <p sx={stylexStyles2.rule22}>{phaseLabel(phase)}</p>
       </div>
 
       {spaceStates.length > 0 && (
-        <div className="space-y-2">
+        <div
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
+          }
+        >
           {spaceStates.map((sp) => {
             const spPhase = sp.phase ?? TransferPhase.TransferPhase_IDLE
             const copied = Number(sp.blocksCopied ?? 0n)
@@ -767,20 +1046,15 @@ function ProgressStep({
             const pct = total > 0 ? Math.round((copied / total) * 100) : 0
 
             return (
-              <div
-                key={sp.sharedObjectId}
-                className="border-foreground/10 rounded-md border p-2.5"
-              >
-                <div className="flex items-center justify-between">
-                  <p className="text-foreground text-xs">{sp.sharedObjectId}</p>
-                  <p className="text-foreground-alt text-xs">
-                    {phaseLabel(spPhase)}
-                  </p>
+              <div key={sp.sharedObjectId} sx={stylexStyles2.rule23}>
+                <div sx={stylexStyles2.rule24}>
+                  <p sx={stylexStyles2.rule25}>{sp.sharedObjectId}</p>
+                  <p sx={stylexStyles2.rule26}>{phaseLabel(spPhase)}</p>
                 </div>
                 {total > 0 && (
-                  <div className="bg-foreground/10 mt-1.5 h-1 overflow-hidden rounded-full">
+                  <div sx={stylexStyles2.rule27}>
                     <div
-                      className="bg-brand progress-width transition-width h-full rounded-full"
+                      sx={stylexStyles2.rule28}
                       style={{ '--progress-width': `${pct}%` }}
                     />
                   </div>
@@ -791,7 +1065,7 @@ function ProgressStep({
         </div>
       )}
 
-      {error && <p className="text-destructive mt-3 text-sm">{error}</p>}
+      {error && <p sx={stylexStyles2.rule9}>{error}</p>}
     </div>
   )
 }
@@ -799,12 +1073,12 @@ function ProgressStep({
 // CompleteStep shows the transfer completion message.
 function CompleteStep({ spaceCount }: { spaceCount: number }) {
   return (
-    <div className="flex flex-col items-center py-6">
-      <div className="bg-brand/10 mb-4 flex size-12 items-center justify-center rounded-full">
+    <div sx={stylexStyles2.rule29}>
+      <div sx={stylexStyles2.rule30}>
         <LuCheck sx={stylexStyles.rule7} />
       </div>
-      <p className="text-foreground text-sm font-medium">Transfer complete</p>
-      <p className="text-foreground-alt mt-1 text-xs">
+      <p sx={stylexStyles2.rule22}>Transfer complete</p>
+      <p sx={stylexStyles2.rule31}>
         {spaceCount} space{spaceCount !== 1 ? 's' : ''} transferred
         successfully.
       </p>

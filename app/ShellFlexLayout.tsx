@@ -81,6 +81,15 @@ import { openShellTabInNewTab } from './shell-popout.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../web/style/tokens.stylex.js'
 
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    overflow: 'hidden',
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 2.5)`,
@@ -901,7 +910,9 @@ function ShellTabStripInner({
         <button
           key="close-tab"
           type="button"
-          className="flexlayout__tab_toolbar_button"
+          className={
+            /* TODO(stylex): global or unknown class: flexlayout__tab_toolbar_button */ 'flexlayout__tab_toolbar_button'
+          }
           onClick={handleCloseTab}
           title="Close tab"
           disabled={tabs.length <= 1}
@@ -911,7 +922,9 @@ function ShellTabStripInner({
         <button
           key="add-tab"
           type="button"
-          className="flexlayout__tab_toolbar_button"
+          className={
+            /* TODO(stylex): global or unknown class: flexlayout__tab_toolbar_button */ 'flexlayout__tab_toolbar_button'
+          }
           onClick={handleNewTab}
           title="New tab"
         >
@@ -920,7 +933,9 @@ function ShellTabStripInner({
         <button
           key="popout-tab"
           type="button"
-          className="flexlayout__tab_toolbar_button"
+          className={
+            /* TODO(stylex): global or unknown class: flexlayout__tab_toolbar_button */ 'flexlayout__tab_toolbar_button'
+          }
           onClick={handlePopoutTab}
           title="Open in new tab"
         >
@@ -980,10 +995,11 @@ function ShellTabStripInner({
     <ShellTabStateProvider tabId={activeTabId}>
       <TabContextProvider value={overlayTabContext}>
         <div
+          className="shell-flexlayout shell-flexlayout--with-menu"
           ref={containerRef}
-          className="shell-flexlayout shell-flexlayout--with-menu flex flex-1 flex-col overflow-hidden"
+          sx={stylexStyles2.rule1}
         >
-          <div ref={menuBarRef} className="shell-menu-bar-overlay">
+          <div className="shell-menu-bar-overlay" ref={menuBarRef} sx={false}>
             {children}
           </div>
           <OptimizedLayout

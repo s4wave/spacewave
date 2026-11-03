@@ -31,7 +31,12 @@ export function WizardTextareaField({
     >
       <textarea
         ref={textareaRef}
-        className={cn(wizardTextareaClassName, className)}
+        className={
+          /* TODO(stylex): dynamic class or forwarded className */ cn(
+            wizardTextareaClassName,
+            className,
+          )
+        }
         {...props}
       />
     </WizardFieldFrame>

@@ -12,6 +12,45 @@ import { CLOUD_OFFER, formatStorageRate } from './pricing.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+  utilityState as themeUtilityState,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule2: { display: 'grid', gap: `calc(${themeLayout['--spacing']} * 2)` },
+  rule3: {
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    backgroundColor: themeColors['--color-background'],
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule4: { textDecorationLine: 'underline' },
+  rule5: {
+    width: '100%',
+    borderRadius: '.25rem',
+    backgroundColor: themeColors['--color-brand'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    color: themeColors['--color-background'],
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+})
+
 const dialogStyles = stylex.create({
   content: {
     maxHeight: themeLayout['--max-height-confirmation'],
@@ -39,15 +78,15 @@ export function BillingConsentForm({
     ? 'Save spending limit'
     : `Subscribe for $${monthlyPrice}/month`
   return (
-    <div className="space-y-4 text-sm">
-      <p className="text-foreground-alt text-xs">
+    <div sx={stylexStyles2.rule1}>
+      <p sx={[nativeChildSpacing.s4, stylexStyles.rule1]}>
         Extra storage: {formatStorageRate(offer.storageMicrodollarsPerGibMonth)}
         , measured hourly. Reads and writes are not billed.
       </p>
-      <label className="grid gap-2">
+      <label sx={[nativeChildSpacing.s4, stylexStyles.rule2]}>
         Monthly spending limit
         <select
-          className="bg-background rounded border p-2"
+          sx={stylexStyles.rule3}
           value={limit}
           disabled={disabled}
           onChange={(event) => setLimit(Number(event.target.value))}
@@ -60,15 +99,15 @@ export function BillingConsentForm({
         </select>
       </label>
       {!spendingOnly && (
-        <p>
+        <p sx={nativeChildSpacing.s4}>
           Your subscription renews automatically for ${monthlyPrice}/month
           before tax until you cancel online in Billing, effective at the paid
           period's end. By subscribing, you agree to the{' '}
-          <a className="underline" href="#/tos">
+          <a sx={stylexStyles.rule4} href="#/tos">
             Terms
           </a>
           , acknowledge the{' '}
-          <a className="underline" href="#/privacy">
+          <a sx={stylexStyles.rule4} href="#/privacy">
             Privacy Policy
           </a>
           , and authorize extra storage up to the selected limit at the rate
@@ -76,7 +115,7 @@ export function BillingConsentForm({
         </p>
       )}
       {spendingOnly && (
-        <p>
+        <p sx={nativeChildSpacing.s4}>
           By selecting “{label}”, you authorize extra storage up to the selected
           monthly limit at the rate above. Your base subscription stays $
           {monthlyPrice}/month. Lowering the limit preserves accrued charges.
@@ -84,7 +123,7 @@ export function BillingConsentForm({
       )}
       <button
         type="button"
-        className="bg-brand text-background w-full rounded px-4 py-2 disabled:opacity-50"
+        sx={[nativeChildSpacing.s4, stylexStyles.rule5]}
         disabled={disabled}
         onClick={() =>
           onAccept({
@@ -177,3 +216,18 @@ export function useBillingConsent() {
   )
   return { requestConsent, consentDialog }
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s4: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

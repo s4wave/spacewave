@@ -8,6 +8,60 @@ import {
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
 
+import { fonts as themeFonts } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    position: 'relative',
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: themeColors['--color-background-landing'],
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule2: {
+    position: 'relative',
+    zIndex: 10,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 6)`,
+    textAlign: 'center',
+  },
+  rule3: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 16)`,
+    height: `calc(${themeLayout['--spacing']} * 16)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+  },
+  rule4: {
+    fontSize: 'var(--text-xl)',
+    lineHeight: 'var(--tw-leading, var(--text-xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule5: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule6: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 16)`,
+    height: `calc(${themeLayout['--spacing']} * 16)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 8)`,
@@ -26,30 +80,26 @@ const stylexStyles = stylex.create({
 // here after completion. The desktop app receives status via streaming RPC.
 export function CheckoutResultPage({ success }: { success?: boolean }) {
   return (
-    <div className="bg-background-landing relative flex flex-1 flex-col items-center justify-center p-6">
-      <div className="relative z-10 flex flex-col items-center gap-6 text-center">
+    <div sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>
         <AnimatedLogo followMouse={false} />
         {success ? (
           <>
-            <div className="bg-brand/10 flex size-16 items-center justify-center rounded-full">
+            <div sx={stylexStyles2.rule3}>
               <LuCheck sx={stylexStyles.rule1} />
             </div>
-            <h1 className="text-foreground text-xl font-semibold">
-              Subscription activated!
-            </h1>
-            <p className="text-foreground-alt text-sm">
+            <h1 sx={stylexStyles2.rule4}>Subscription activated!</h1>
+            <p sx={stylexStyles2.rule5}>
               You can close this tab and return to the app.
             </p>
           </>
         ) : (
           <>
-            <div className="bg-destructive/10 flex size-16 items-center justify-center rounded-full">
+            <div sx={stylexStyles2.rule6}>
               <LuX sx={stylexStyles.rule2} />
             </div>
-            <h1 className="text-foreground text-xl font-semibold">
-              Checkout canceled
-            </h1>
-            <p className="text-foreground-alt text-sm">
+            <h1 sx={stylexStyles2.rule4}>Checkout canceled</h1>
+            <p sx={stylexStyles2.rule5}>
               You can close this tab and return to the app to try again.
             </p>
           </>

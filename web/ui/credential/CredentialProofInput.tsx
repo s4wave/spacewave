@@ -1,7 +1,7 @@
 import { useCallback, useId } from 'react'
 import { LuUpload } from '@s4wave/web/images/icons.js'
 
-import type { StyleXStyles } from '@stylexjs/stylex'
+import type { StyleXArray, StyleXStyles } from '@stylexjs/stylex'
 
 import * as stylex from '@stylexjs/stylex'
 import {
@@ -176,7 +176,9 @@ export interface CredentialProofInputProps {
   disabled?: boolean
   focusOnMount?: boolean
   onPasswordKeyDown?: (e: React.KeyboardEvent) => void
-  sx?: StyleXStyles | StyleXStyles<{ '--credential-proof-space': string }>
+  sx?: StyleXArray<
+    StyleXStyles | StyleXStyles<{ '--credential-proof-space': string }>
+  >
   className?: never
 }
 

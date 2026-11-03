@@ -18,6 +18,20 @@ import { useObjectWizards } from '../space/useObjectWizards.js'
 import { useWizardState } from './useWizardState.js'
 import { WizardShell } from './WizardShell.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule2: { width: '100%', maxWidth: 'var(--container-sm)' },
+})
+
 export const WizardTypePrefix = 'wizard/'
 
 const dns1123NamePattern = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/
@@ -42,8 +56,8 @@ function WizardDeleted() {
     if (tabId) closeShellTab(tabId)
   }, [tabId, closeShellTab])
   return (
-    <div className="flex flex-1 items-center justify-center p-6">
-      <div className="w-full max-w-sm">
+    <div sx={stylexStyles.rule1}>
+      <div sx={stylexStyles.rule2}>
         <LoadingCard
           view={{
             state: 'error',
@@ -144,8 +158,8 @@ export function WizardViewer(props: ObjectViewerComponentProps) {
 
   if (!state) {
     return (
-      <div className="flex flex-1 items-center justify-center p-6">
-        <div className="w-full max-w-sm">
+      <div sx={stylexStyles.rule1}>
+        <div sx={stylexStyles.rule2}>
           <LoadingCard
             view={{
               state: 'active',

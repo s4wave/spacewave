@@ -2,7 +2,7 @@ import { useCallback, useId, useState } from 'react'
 import { LuLock, LuLockOpen } from '@s4wave/web/images/icons.js'
 
 import { useNavigate } from '@s4wave/web/router/router.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { BackButton } from '@s4wave/web/ui/BackButton.js'
 import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'
@@ -26,6 +26,186 @@ import {
   motion as themeMotion,
 } from '../../web/style/tokens.stylex.js'
 import { groupMarker } from '../../web/style/relations.stylex.js'
+
+import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    position: 'relative',
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 6)`,
+    overflowY: 'auto',
+    backgroundColor: themeColors['--color-background-landing'],
+    padding: {
+      default: `calc(${themeLayout['--spacing']} * 6)`,
+      '@media (min-width: 48rem)': `calc(${themeLayout['--spacing']} * 10)`,
+    },
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+  },
+  rule2: {
+    position: 'relative',
+    zIndex: 10,
+    display: 'flex',
+    width: '100%',
+    maxWidth: 'var(--container-sm)',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule3: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule4: {
+    position: 'relative',
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+    backgroundColor: themeColors['--color-background-get-started'],
+    '--tw-shadow':
+      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+  },
+  rule5: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 12)`,
+    height: `calc(${themeLayout['--spacing']} * 12)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+  },
+  rule6: {
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule7: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule8: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 1.5)`,
+    display: 'block',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule9: {
+    width: '100%',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 50%, transparent)`,
+      ':focus': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    textAlign: 'center',
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-tracking': 'var(--tracking-widest)',
+    letterSpacing: 'var(--tracking-widest)',
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+    '::placeholder': {
+      color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule10: {
+    width: '100%',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      ':focus': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    textAlign: 'center',
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-tracking': 'var(--tracking-widest)',
+    letterSpacing: 'var(--tracking-widest)',
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+    '::placeholder': {
+      color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule11: {
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule12: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule13: {
+    width: '100%',
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule14: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+})
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -146,41 +326,40 @@ export function PinUnlockOverlay({
     <div
       role="group"
       data-testid="pin-unlock-overlay"
-      className="bg-background-landing relative flex flex-1 flex-col items-center justify-center gap-6 overflow-y-auto p-6 outline-none md:p-10"
+      sx={stylexStyles3.rule1}
       onKeyDown={handleKeyDown}
       tabIndex={-1}
     >
       <BackButton floating onClick={() => navigate({ path: '/sessions' })}>
         Sessions
       </BackButton>
-      <div className="relative z-10 flex w-full max-w-sm flex-col gap-6">
-        <div className="flex flex-col items-center gap-2">
+      <div sx={stylexStyles3.rule2}>
+        <div sx={stylexStyles3.rule3}>
           <AnimatedLogo followMouse={false} />
         </div>
 
-        <div className="border-foreground/20 bg-background-get-started relative overflow-hidden rounded-lg border shadow-lg backdrop-blur-sm">
-          <div className="space-y-4 p-6">
-            <div className="flex flex-col items-center gap-2">
-              <div className="bg-brand/10 flex size-12 items-center justify-center rounded-full">
+        <div sx={stylexStyles3.rule4}>
+          <div
+            className={
+              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4 p-6'
+            }
+          >
+            <div sx={stylexStyles3.rule3}>
+              <div sx={stylexStyles3.rule5}>
                 <LuLock sx={stylexStyles.rule1} />
               </div>
-              <h2 className="text-foreground text-lg font-medium">
+              <h2 sx={stylexStyles3.rule6}>
                 {metadata.displayName || 'Locked Session'}
               </h2>
               {metadata.providerDisplayName && (
-                <p className="text-foreground-alt text-xs">
-                  {metadata.providerDisplayName}
-                </p>
+                <p sx={stylexStyles3.rule7}>{metadata.providerDisplayName}</p>
               )}
             </div>
 
             {!showRecovery ? (
               <>
                 <div>
-                  <label
-                    htmlFor={pinInputId}
-                    className="text-foreground-alt mb-1.5 block text-xs select-none"
-                  >
+                  <label htmlFor={pinInputId} sx={stylexStyles3.rule8}>
                     Enter PIN to unlock
                   </label>
                   <input
@@ -192,20 +371,11 @@ export function PinUnlockOverlay({
                     onChange={(e) => setPin(e.target.value)}
                     placeholder="PIN"
                     disabled={unlocking}
-                    className={cn(
-                      'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 text-center text-lg tracking-widest transition-colors outline-none',
-                      'focus:border-brand/50',
-                      error && 'border-destructive/50',
-                      'disabled:opacity-50',
-                    )}
+                    sx={pinInputStyles(error)}
                   />
                 </div>
 
-                {error && (
-                  <p className="text-destructive text-center text-xs">
-                    {error}
-                  </p>
-                )}
+                {error && <p sx={stylexStyles3.rule11}>{error}</p>}
 
                 <button
                   type="button"
@@ -215,7 +385,7 @@ export function PinUnlockOverlay({
                   sx={[[stylexStyles2.rule1, groupMarker]]}
                 >
                   <LuLockOpen sx={stylexStyles.rule2} />
-                  <span className="text-foreground text-sm">
+                  <span sx={stylexStyles3.rule12}>
                     {unlocking ? 'Unlocking…' : 'Unlock'}
                   </span>
                 </button>
@@ -223,18 +393,18 @@ export function PinUnlockOverlay({
                 <button
                   type="button"
                   onClick={() => setShowRecovery(true)}
-                  className="text-foreground-alt hover:text-foreground w-full text-center text-xs transition-colors"
+                  sx={stylexStyles3.rule13}
                 >
                   Forgot PIN?
                 </button>
               </>
             ) : recoveryUnavailable ? (
               <>
-                <div className="space-y-2">
-                  <p className="text-foreground-alt text-xs leading-relaxed">
+                <div>
+                  <p sx={[nativeChildSpacing.s2, stylexStyles3.rule14]}>
                     This local session has no recovery password or backup key.
                   </p>
-                  <p className="text-foreground-alt text-xs leading-relaxed">
+                  <p sx={[nativeChildSpacing.s2, stylexStyles3.rule14]}>
                     Your PIN is the only unlock method. Try the PIN again, or
                     return to Sessions and remove this local session to create a
                     new one. Local-only data that only this session can access
@@ -245,14 +415,14 @@ export function PinUnlockOverlay({
                 <button
                   type="button"
                   onClick={() => setShowRecovery(false)}
-                  className="text-foreground-alt hover:text-foreground w-full text-center text-xs transition-colors"
+                  sx={stylexStyles3.rule13}
                 >
                   Back to PIN entry
                 </button>
               </>
             ) : (
               <>
-                <p className="text-foreground-alt text-xs leading-relaxed">
+                <p sx={stylexStyles3.rule14}>
                   Re-authenticate with your account password or backup key to
                   reset this session. This generates a new session key.
                 </p>
@@ -274,7 +444,7 @@ export function PinUnlockOverlay({
                   disabled={resetting || !cred.hasCredential}
                   sx={[[stylexStyles2.rule1, groupMarker]]}
                 >
-                  <span className="text-foreground text-sm">
+                  <span sx={stylexStyles3.rule12}>
                     {resetting ? 'Resetting…' : 'Reset session'}
                   </span>
                 </button>
@@ -282,7 +452,7 @@ export function PinUnlockOverlay({
                 <button
                   type="button"
                   onClick={() => setShowRecovery(false)}
-                  className="text-foreground-alt hover:text-foreground w-full text-center text-xs transition-colors"
+                  sx={stylexStyles3.rule13}
                 >
                   Back to PIN entry
                 </button>
@@ -294,3 +464,23 @@ export function PinUnlockOverlay({
     </div>
   )
 }
+
+// pinInputStyles keeps the complete invalid border and focus recipe together.
+function pinInputStyles(error: string | null): stylex.StyleXStyles {
+  return error ? stylexStyles3.rule9 : stylexStyles3.rule10
+}
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

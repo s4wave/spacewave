@@ -42,6 +42,12 @@ import EditorCommandsPlugin from './editor/EditorCommandsPlugin.js'
 import { $convertFromOrgString, $convertToOrgString } from './org/lexical.js'
 import type { NoteFileFormat } from './note-files.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: { position: 'relative', flex: 1, overflow: 'auto' },
+})
+
 // validateLinkUrl rejects dangerous URL schemes (javascript:, data:, vbscript:).
 function validateLinkUrl(url: string): boolean {
   const trimmed = url.trim()
@@ -132,7 +138,7 @@ function LexicalEditor({
       <ToolbarPlugin />
       <FocusContextProvider
         focusContext={CommandFocusContext.EDITOR}
-        className="relative flex-1 overflow-auto"
+        sx={stylexStyles.rule1}
       >
         <RichTextPlugin
           contentEditable={

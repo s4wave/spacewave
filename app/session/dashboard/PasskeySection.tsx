@@ -7,7 +7,6 @@ import {
 } from '@s4wave/web/images/icons.js'
 import { startRegistration } from '@simplewebauthn/browser'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import {
   Dialog,
   DialogContent,
@@ -39,6 +38,62 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
+
+import {
+  fonts as themeFonts,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingBlock: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule3: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule4: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule5: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-green-500']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-green-500']} 5%, transparent)`,
+  },
+  rule6: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-yellow-500']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-yellow-500']} 5%, transparent)`,
+  },
+  rule7: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule8: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+})
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -195,19 +250,19 @@ export function PasskeySection({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3">
+        <div>
           {status === 'idle' && (
             <DashboardButton
               icon={<LuFingerprint sx={stylexStyles2.rule1} />}
               onClick={() => void handleRegister()}
-              sx={stylexStyles.rule1}
+              sx={[nativeChildSpacingNext.s3, stylexStyles.rule1]}
             >
               Start registration
             </DashboardButton>
           )}
 
           {status === 'loading' && (
-            <div className="flex items-center justify-center py-4">
+            <div sx={[nativeChildSpacingNext.s3, stylexStyles3.rule1]}>
               <LoadingInline
                 label={
                   isDesktop
@@ -221,28 +276,27 @@ export function PasskeySection({
           )}
 
           {status === 'success' && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 py-2">
+            <div sx={nativeChildSpacingNext.s3}>
+              <div sx={[nativeChildSpacing.s2, stylexStyles3.rule2]}>
                 <LuFingerprint sx={stylexStyles2.rule2} />
-                <span className="text-foreground text-sm font-medium">
-                  Passkey registered
-                </span>
+                <span sx={stylexStyles3.rule3}>Passkey registered</span>
               </div>
               {prfResult !== null && (
                 <div
-                  className={cn(
-                    'flex items-center gap-2 rounded-md border px-3 py-2',
-                    prfResult
-                      ? 'border-green-500/20 bg-green-500/5'
-                      : 'border-yellow-500/20 bg-yellow-500/5',
-                  )}
+                  sx={[
+                    nativeChildSpacing.s2,
+                    [
+                      stylexStyles3.rule4,
+                      prfResult ? stylexStyles3.rule5 : stylexStyles3.rule6,
+                    ],
+                  ]}
                 >
                   {prfResult ? (
                     <LuShieldCheck sx={stylexStyles2.rule3} />
                   ) : (
                     <LuShieldAlert sx={stylexStyles2.rule4} />
                   )}
-                  <span className="text-foreground-alt text-xs">
+                  <span sx={stylexStyles3.rule7}>
                     {prfResult
                       ? 'Authenticator PRF is active: your PEM was encrypted locally before upload'
                       : 'Server-assisted: this passkey is stored with server PEM wrapping'}
@@ -252,7 +306,7 @@ export function PasskeySection({
               <DashboardButton
                 icon={<></>}
                 onClick={() => handleClose(false)}
-                sx={stylexStyles.rule1}
+                sx={[nativeChildSpacing.s2, stylexStyles.rule1]}
               >
                 Done
               </DashboardButton>
@@ -260,12 +314,12 @@ export function PasskeySection({
           )}
 
           {status === 'error' && (
-            <div className="space-y-2">
-              <p className="text-destructive text-xs">{error}</p>
+            <div sx={nativeChildSpacingNext.s3}>
+              <p sx={[nativeChildSpacing.s2, stylexStyles3.rule8]}>{error}</p>
               <DashboardButton
                 icon={<LuFingerprint sx={stylexStyles2.rule1} />}
                 onClick={() => void handleRegister()}
-                sx={stylexStyles.rule1}
+                sx={[nativeChildSpacing.s2, stylexStyles.rule1]}
               >
                 Try again
               </DashboardButton>
@@ -276,3 +330,33 @@ export function PasskeySection({
     </Dialog>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

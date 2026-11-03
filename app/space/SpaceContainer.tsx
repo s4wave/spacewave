@@ -94,6 +94,18 @@ import {
   useSpaceWorldMount,
 } from '@s4wave/app/hooks/useSharedMounts.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    flexShrink: 1,
+    flexGrow: 1,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+  },
+})
+
 // noSpaceObjectTargets stands in for the object targets while they load.
 
 const noSpaceObjectTargets: SpaceObjectTargets = { targets: [], more: false }
@@ -349,7 +361,7 @@ function useSpaceContainerController() {
         ) : (
           <PiAppStoreLogoLight {...bottomBarIconProps} aria-hidden="true" />
         )}
-        <div className="flex-shrink flex-grow truncate">{spaceName}</div>
+        <div sx={stylexStyles.rule1}>{spaceName}</div>
       </BottomBarItem>
     ),
     [spaceName],

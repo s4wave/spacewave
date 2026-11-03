@@ -22,6 +22,34 @@ import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
 import { colors as themeColors } from '../../web/style/tokens.stylex.js'
 
+import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule3: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -67,8 +95,8 @@ export function V86SourceStep({
   const empty = !inheritKey && inSpaceImages.length === 0
 
   return (
-    <section className="flex flex-col gap-2">
-      <h3 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
+    <section sx={stylexStyles3.rule1}>
+      <h3 sx={stylexStyles3.rule2}>
         <LuMonitor sx={stylexStyles2.rule1} />
         Choose a VM image
       </h3>
@@ -121,7 +149,7 @@ export function V86SourceStep({
           icon={<LuHardDrive sx={stylexStyles2.rule2} />}
           title="No VM images in this Space"
         >
-          <p className="text-foreground-alt/70 text-xs leading-relaxed">
+          <p sx={stylexStyles3.rule3}>
             Choose a published image from the catalog to continue.
           </p>
           <Button

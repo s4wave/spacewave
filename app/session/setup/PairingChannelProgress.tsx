@@ -12,6 +12,52 @@ import {
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
 
+import {
+  radii as themeRadii,
+  fonts as themeFonts,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule2: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 9)`,
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-lg'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    color: themeColors['--color-brand'],
+  },
+  rule3: { minWidth: 0 },
+  rule4: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule5: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule6: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule7: { paddingInline: 0 },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 4)`,
@@ -74,26 +120,22 @@ export function PairingChannelProgress({
   }, [progress.active, stallTimeoutMs, status])
 
   return (
-    <div className="border-foreground/10 bg-foreground/[0.02] space-y-4 rounded-lg border p-4">
-      <div className="flex items-center gap-3">
-        <div className="bg-brand/10 text-brand flex size-9 shrink-0 items-center justify-center rounded-lg">
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'border-foreground/10 bg-foreground/[0.02] space-y-4 rounded-lg border p-4'
+      }
+    >
+      <div sx={stylexStyles2.rule1}>
+        <div sx={stylexStyles2.rule2}>
           <LuLink sx={stylexStyles.rule1} aria-hidden="true" />
         </div>
-        <div className="min-w-0">
-          <h2 className="text-foreground text-sm font-medium">
-            {activePhase.label}
-          </h2>
-          <p
-            className="text-foreground-alt mt-0.5 text-xs leading-relaxed"
-            aria-live="polite"
-          >
+        <div sx={stylexStyles2.rule3}>
+          <h2 sx={stylexStyles2.rule4}>{activePhase.label}</h2>
+          <p sx={stylexStyles2.rule5} aria-live="polite">
             Setting up the connection with your other device…
           </p>
           {stalled && (
-            <p
-              className="text-foreground-alt/70 mt-1 text-xs"
-              aria-live="polite"
-            >
+            <p sx={stylexStyles2.rule6} aria-live="polite">
               Still working… this is taking longer than usual
             </p>
           )}
@@ -104,7 +146,7 @@ export function PairingChannelProgress({
         <ProgressBar value={progressValue} />
       </div>
 
-      <PhaseChecklist phases={phases} className="px-0" />
+      <PhaseChecklist phases={phases} {...stylex.props(stylexStyles2.rule7)} />
     </div>
   )
 }

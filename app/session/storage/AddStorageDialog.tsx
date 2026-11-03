@@ -3,7 +3,7 @@ import { isDesktop } from '@aptre/bldr'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,143 @@ import {
   type StorageCheckView,
   type StorageLocationFields,
 } from './storage-backend.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  layout as themeLayout,
+  fonts as themeFonts,
+  motion as themeMotion,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: '100%',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      ':focus': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+    '::placeholder': {
+      color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    },
+  },
+  rule2: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule3: {
+    cursor: 'pointer',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    minHeight: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+    paddingBlock: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 3.5)`,
+    },
+  },
+  rule4: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule5: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule6: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule7: {
+    borderRadius: themeRadii['--radius-md'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule8: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule9: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 1.5)`,
+    display: 'block',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+})
 
 interface AddStorageDialogProps {
   open: boolean
@@ -49,11 +186,6 @@ const emptyForm: AddStorageForm = {
   accessKeyId: '',
   secretAccessKey: '',
 }
-
-const inputClass = cn(
-  'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 text-sm outline-none transition-colors',
-  'focus:border-brand/50',
-)
 
 // AddStorageDialog adds an S3-compatible bucket as a storage backend. The
 // bucket is checked live before it is saved; when the browser cannot reach
@@ -172,7 +304,11 @@ export function AddStorageDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3">
+        <div
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
+          }
+        >
           <Field id={`${formId}-preset`} label="Provider">
             <select
               id={`${formId}-preset`}
@@ -180,7 +316,7 @@ export function AddStorageDialog({
               onChange={(e) =>
                 update({ preset: e.target.value as AddStorageForm['preset'] })
               }
-              className={inputClass}
+              sx={[stylexStyles.rule1]}
             >
               {storagePresets.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -190,7 +326,7 @@ export function AddStorageDialog({
             </select>
           </Field>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div sx={stylexStyles.rule2}>
             <Field id={`${formId}-bucket`} label="Bucket">
               <input
                 id={`${formId}-bucket`}
@@ -198,7 +334,7 @@ export function AddStorageDialog({
                 onChange={(e) => update({ bucket: e.target.value })}
                 placeholder="my-spaces"
                 autoComplete="off"
-                className={inputClass}
+                sx={[stylexStyles.rule1]}
               />
             </Field>
             {preset.needsAccountId ? (
@@ -208,7 +344,7 @@ export function AddStorageDialog({
                   value={form.accountId}
                   onChange={(e) => update({ accountId: e.target.value })}
                   autoComplete="off"
-                  className={inputClass}
+                  sx={[stylexStyles.rule1]}
                 />
               </Field>
             ) : (
@@ -220,7 +356,7 @@ export function AddStorageDialog({
                     onChange={(e) => update({ region: e.target.value })}
                     placeholder={preset.regionHint}
                     autoComplete="off"
-                    className={inputClass}
+                    sx={[stylexStyles.rule1]}
                   />
                 </Field>
               )
@@ -234,18 +370,18 @@ export function AddStorageDialog({
               onChange={(e) => update({ endpoint: e.target.value })}
               placeholder={endpointHint}
               autoComplete="off"
-              className={inputClass}
+              sx={[stylexStyles.rule1]}
             />
           </Field>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div sx={stylexStyles.rule2}>
             <Field id={`${formId}-key`} label="Access key ID">
               <input
                 id={`${formId}-key`}
                 value={form.accessKeyId}
                 onChange={(e) => update({ accessKeyId: e.target.value })}
                 autoComplete="off"
-                className={inputClass}
+                sx={[stylexStyles.rule1]}
               />
             </Field>
             <Field id={`${formId}-secret`} label="Secret access key">
@@ -255,16 +391,14 @@ export function AddStorageDialog({
                 value={form.secretAccessKey}
                 onChange={(e) => update({ secretAccessKey: e.target.value })}
                 autoComplete="off"
-                className={inputClass}
+                sx={[stylexStyles.rule1]}
               />
             </Field>
           </div>
 
           <details>
-            <summary className="text-foreground-alt hover:text-foreground cursor-pointer text-xs [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-3.5">
-              Name and key prefix
-            </summary>
-            <div className="mt-2 grid grid-cols-2 gap-3">
+            <summary sx={stylexStyles.rule3}>Name and key prefix</summary>
+            <div sx={stylexStyles.rule4}>
               <Field id={`${formId}-name`} label="Name">
                 <input
                   id={`${formId}-name`}
@@ -272,7 +406,7 @@ export function AddStorageDialog({
                   onChange={(e) => update({ name: e.target.value })}
                   placeholder={form.bucket || 'The bucket name'}
                   autoComplete="off"
-                  className={inputClass}
+                  sx={[stylexStyles.rule1]}
                 />
               </Field>
               <Field id={`${formId}-prefix`} label="Key prefix">
@@ -282,13 +416,13 @@ export function AddStorageDialog({
                   onChange={(e) => update({ prefix: e.target.value })}
                   placeholder="spacewave/"
                   autoComplete="off"
-                  className={inputClass}
+                  sx={[stylexStyles.rule1]}
                 />
               </Field>
             </div>
           </details>
 
-          <label className="text-foreground-alt flex items-center gap-2 text-xs select-none">
+          <label sx={stylexStyles.rule5}>
             <input
               type="checkbox"
               checked={setDefault}
@@ -306,7 +440,7 @@ export function AddStorageDialog({
               )}
             />
           )}
-          {error && <p className="text-destructive text-xs">{error}</p>}
+          {error && <p sx={stylexStyles.rule6}>{error}</p>}
         </div>
 
         <DialogFooter>
@@ -314,7 +448,7 @@ export function AddStorageDialog({
             type="button"
             onClick={() => void handleCheck()}
             disabled={busy}
-            className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors disabled:opacity-50"
+            sx={stylexStyles.rule7}
           >
             {busy ? 'Checking…' : check ? 'Check again' : 'Check connection'}
           </button>
@@ -322,11 +456,7 @@ export function AddStorageDialog({
             type="button"
             onClick={() => void handleAdd()}
             disabled={busy}
-            className={cn(
-              'rounded-md border px-4 py-2 text-sm transition-all',
-              'border-brand/30 bg-brand/10 hover:bg-brand/20',
-              'disabled:cursor-not-allowed disabled:opacity-50',
-            )}
+            sx={[stylexStyles.rule8]}
           >
             Add storage
           </button>
@@ -338,6 +468,7 @@ export function AddStorageDialog({
 
 // Field labels one form input.
 function Field({
+  sx,
   id,
   label,
   children,
@@ -345,13 +476,10 @@ function Field({
   id: string
   label: string
   children: React.ReactNode
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
-    <div>
-      <label
-        className="text-foreground-alt mb-1.5 block text-xs select-none"
-        htmlFor={id}
-      >
+    <div sx={sx}>
+      <label sx={stylexStyles.rule9} htmlFor={id}>
         {label}
       </label>
       {children}

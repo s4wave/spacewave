@@ -50,6 +50,155 @@ import {
 } from '../../web/style/tokens.stylex.js'
 import { groupMarker } from '../../web/style/relations.stylex.js'
 
+import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
+import { groupMarker as groupMarker2 } from '../../web/style/relations.stylex.js'
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    display: 'flex',
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+  },
+  rule2: {
+    minHeight: `calc(${themeLayout['--spacing']} * 8)`,
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule3: {
+    minHeight: `calc(${themeLayout['--spacing']} * 9)`,
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule4: {
+    display: 'flex',
+    minWidth: 0,
+    flex: 1,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule5: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule6: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+  },
+  rule7: {
+    minWidth: 0,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+  },
+  rule8: {
+    cursor: 'text',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    color: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground-alt'],
+      },
+    },
+  },
+  rule9: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule10: {
+    display: 'flex',
+    flexShrink: 0,
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: themeLayout['--spacing'],
+  },
+  rule11: {
+    display: { default: 'none', '@media (min-width: 48rem)': 'inline' },
+  },
+  rule12: {
+    display: 'flex',
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker2)]:
+          `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule13: {
+    width: `calc(${themeLayout['--spacing']} * 7)`,
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+  },
+  rule14: {
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+  },
+  rule15: { display: 'flex', minWidth: 0, flex: 1, flexDirection: 'column' },
+  rule16: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-destructive'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule17: {
+    fontSize: '.6rem',
+    lineHeight: 1.5,
+    color: `color-mix(in oklab, ${themeColors['--color-destructive']} 80%, transparent)`,
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule18: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    overflow: 'hidden',
+    backgroundColor: themeColors['--color-background-primary'],
+  },
+  rule19: { minHeight: 0, flex: 1, overflow: 'auto' },
+  rule20: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 2.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule21: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 const stylexStyles3 = stylex.create({
   rule1: { flexShrink: 0 },
   rule2: {
@@ -193,16 +342,16 @@ function SharedObjectHeader({
 }) {
   return (
     <div
-      className={cn(
-        'border-foreground/8 flex shrink-0 items-center justify-between border-b',
-        compact ? 'min-h-8 gap-1.5 px-2.5 py-1.5' : 'min-h-9 gap-3 px-4 py-2',
-      )}
+      sx={[
+        stylexStyles4.rule1,
+        compact ? stylexStyles4.rule2 : stylexStyles4.rule3,
+      ]}
     >
       <div
-        className={cn(
-          'text-foreground flex min-w-0 flex-1 items-center gap-2 font-semibold select-none',
-          compact ? 'text-xs' : 'text-sm',
-        )}
+        sx={[
+          stylexStyles4.rule4,
+          compact ? stylexStyles4.rule5 : stylexStyles4.rule6,
+        ]}
       >
         <PiAppStoreLogoBold
           sx={[
@@ -211,11 +360,7 @@ function SharedObjectHeader({
           ]}
         />
         <span
-          className={cn(
-            'min-w-0 truncate tracking-tight',
-            onRenameStart &&
-              'hover:text-foreground-alt cursor-text transition-colors',
-          )}
+          sx={[stylexStyles4.rule7, !!onRenameStart && stylexStyles4.rule8]}
           onDoubleClick={
             onRenameStart
               ? (e) => {
@@ -228,14 +373,10 @@ function SharedObjectHeader({
         >
           {objectName}
         </span>
-        {!compact && (
-          <span className="text-foreground-alt/50 truncate">
-            · {bodyTypeName}
-          </span>
-        )}
+        {!compact && <span sx={stylexStyles4.rule9}>· {bodyTypeName}</span>}
         {orgIndicator}
       </div>
-      <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+      <div sx={stylexStyles4.rule10}>
         {onRenameStart && (
           <Tooltip>
             <TooltipTrigger asChild>
@@ -243,7 +384,7 @@ function SharedObjectHeader({
                 icon={<LuPencil sx={stylexStyles.rule1} />}
                 onClick={onRenameStart}
               >
-                <span className="hidden md:inline">Rename</span>
+                <span sx={stylexStyles4.rule11}>Rename</span>
               </DashboardButton>
             </TooltipTrigger>
             <TooltipContent side="bottom">Rename space</TooltipContent>
@@ -315,7 +456,11 @@ function SharedObjectDataSection({
       icon={<LuDatabase sx={stylexStyles.rule1} />}
       {...section}
     >
-      <div className="space-y-2">
+      <div
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
+        }
+      >
         <ActionCard
           icon={<LuDownload sx={stylexStyles.rule2} />}
           label="Export Data"
@@ -349,7 +494,11 @@ function SharedObjectIdentifiersSection({
       {...section}
     >
       <InfoCard compact={section.compact}>
-        <div className="space-y-2">
+        <div
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
+          }
+        >
           <CopyableField label="Object ID" value={sharedObjectId} />
           <CopyableField label="Block Store" value={blockStoreId} />
           <CopyableField label="Peer ID" value={peerId} />
@@ -380,19 +529,17 @@ function SharedObjectDangerSection({
         ]}
       >
         <div
-          className={cn(
-            'bg-destructive/20 group-hover:bg-destructive/30 flex shrink-0 items-center justify-center rounded-md transition-colors',
-            compact ? 'size-7' : 'size-8',
-          )}
+          sx={[
+            stylexStyles4.rule12,
+            compact ? stylexStyles4.rule13 : stylexStyles4.rule14,
+          ]}
         >
           <LuTrash2 sx={stylexStyles.rule3} />
         </div>
-        <div className="flex min-w-0 flex-1 flex-col">
-          <h4 className="text-destructive text-xs font-medium select-none">
-            Delete Object
-          </h4>
+        <div sx={stylexStyles4.rule15}>
+          <h4 sx={stylexStyles4.rule16}>Delete Object</h4>
           {!compact && (
-            <p className="text-destructive/80 micro-text select-none">
+            <p sx={stylexStyles4.rule17}>
               Permanently remove this object and all its data
             </p>
           )}
@@ -453,10 +600,7 @@ export function SharedObjectDetails({
   )
 
   return (
-    <div
-      ref={containerRef}
-      className="bg-background-primary flex h-full w-full flex-col overflow-hidden"
-    >
+    <div ref={containerRef} sx={stylexStyles4.rule18}>
       <SharedObjectHeader
         objectName={objectName}
         bodyTypeName={getBodyTypeName(
@@ -469,12 +613,18 @@ export function SharedObjectDetails({
       />
 
       <div
-        className={cn(
-          'min-h-0 flex-1 overflow-auto',
-          compact ? 'px-2.5 py-2' : 'px-4 py-3',
-        )}
+        sx={[
+          stylexStyles4.rule19,
+          compact ? stylexStyles4.rule20 : stylexStyles4.rule21,
+        ]}
       >
-        <div className={cn(compact ? 'space-y-2' : 'space-y-3')}>
+        <div
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ cn(
+              compact ? 'space-y-2' : 'space-y-3',
+            )
+          }
+        >
           {objectsSection && (
             <CollapsibleSection
               title="Objects"

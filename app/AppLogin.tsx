@@ -12,10 +12,93 @@ import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import { usePromise } from '@s4wave/web/hooks/usePromise.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useSpacewaveAuth } from '@s4wave/app/provider/spacewave/useSpacewaveAuth.js'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../web/style/tokens.stylex.js'
+
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+  motion as themeMotion,
+} from '../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+    backgroundColor: themeColors['--color-background-get-started'],
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+    textAlign: 'center',
+    '--tw-shadow':
+      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+  },
+  rule2: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  rule3: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule4: {
+    transitionProperty: 'opacity',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+  },
+  rule5: { pointerEvents: 'none', opacity: 0 },
+  rule6: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-brand'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule7: { WebkitUserSelect: 'none', userSelect: 'none' },
+  rule8: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-brand'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    pointerEvents: { default: null, ':disabled': 'none' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -136,11 +219,9 @@ export function AppLogin({
           </>
         }
       >
-        <div className="border-foreground/20 bg-background-get-started rounded-lg border p-6 text-center shadow-lg">
-          <p className="text-sm font-medium">
-            Opening {normalizedLaunchUsername}...
-          </p>
-          <p className="text-foreground-alt mt-2 text-sm">
+        <div sx={stylexStyles2.rule1}>
+          <p sx={stylexStyles2.rule2}>Opening {normalizedLaunchUsername}...</p>
+          <p sx={stylexStyles2.rule3}>
             If this account is already signed in here, Spacewave will open that
             session directly.
           </p>
@@ -156,29 +237,19 @@ export function AppLogin({
       tabIndex={-1}
       topLeft={<BackButton onClick={handleBack}>Back to home</BackButton>}
       topRight={
-        <div
-          className={cn(
-            'transition-opacity duration-150',
-            authBusy && 'pointer-events-none opacity-0',
-          )}
-        >
+        <div sx={[stylexStyles2.rule4, !!authBusy && stylexStyles2.rule5]}>
           <button
             type="button"
             onClick={() => navigate({ path: '/pair' })}
-            className="text-foreground-alt hover:text-brand flex items-center gap-1.5 text-xs transition-colors"
+            sx={stylexStyles2.rule6}
           >
             <LuLink sx={stylexStyles.rule1} />
-            <span className="select-none">Link to existing device</span>
+            <span sx={stylexStyles2.rule7}>Link to existing device</span>
           </button>
         </div>
       }
       bottomRight={
-        <div
-          className={cn(
-            'transition-opacity duration-150',
-            authBusy && 'pointer-events-none opacity-0',
-          )}
-        >
+        <div sx={[stylexStyles2.rule4, !!authBusy && stylexStyles2.rule5]}>
           <button
             type="button"
             onClick={() => {
@@ -190,10 +261,10 @@ export function AppLogin({
                 .catch(() => {})
             }}
             disabled={!addRootAlias.canAdd}
-            className="text-foreground-alt hover:text-brand flex items-center gap-1.5 text-xs transition-colors disabled:pointer-events-none disabled:opacity-50"
+            sx={stylexStyles2.rule8}
           >
             <LuFolderOpen sx={stylexStyles.rule1} />
-            <span className="select-none">Open local state root</span>
+            <span sx={stylexStyles2.rule7}>Open local state root</span>
           </button>
         </div>
       }

@@ -11,6 +11,49 @@ import { useSpacewaveAuth } from './useSpacewaveAuth.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+  motion as themeMotion,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-brand'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule2: { WebkitUserSelect: 'none', userSelect: 'none' },
+  rule3: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: 'var(--text-xl)',
+    lineHeight: 'var(--tw-leading, var(--text-xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-wide)',
+    letterSpacing: 'var(--tracking-wide)',
+  },
+  rule4: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 4)`,
@@ -40,26 +83,20 @@ export function UpgradeLoginPage() {
   return (
     <AuthScreenLayout
       topLeft={
-        <button
-          type="button"
-          onClick={handleBack}
-          className="text-foreground-alt hover:text-brand flex items-center gap-2 text-sm transition-colors"
-        >
+        <button type="button" onClick={handleBack} sx={stylexStyles2.rule1}>
           <LuArrowLeft sx={stylexStyles.rule1} />
-          <span className="select-none">Back to plan selection</span>
+          <span sx={stylexStyles2.rule2}>Back to plan selection</span>
         </button>
       }
       intro={
         <>
           <AnimatedLogo followMouse={false} />
-          <h1 className="mt-2 text-xl font-semibold tracking-wide">
-            Create a Cloud Account
-          </h1>
+          <h1 sx={stylexStyles2.rule3}>Create a Cloud Account</h1>
         </>
       }
       contentClassName="auth-short:max-w-lg"
     >
-      <div className="flex flex-col gap-6">
+      <div sx={stylexStyles2.rule4}>
         <LoginForm
           cloudProviderConfig={auth.cloudProviderConfig}
           onLoginWithPassword={auth.handleLoginWithPassword}

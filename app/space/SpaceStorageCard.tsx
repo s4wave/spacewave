@@ -15,6 +15,25 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule2: { color: themeColors['--color-foreground'] },
+  rule3: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     marginTop: `calc(${themeLayout['--spacing']} * .5)`,
@@ -39,19 +58,21 @@ export function SpaceStorageCard() {
     b.placedSpaces?.some((space) => space.spaceId === spaceId),
   )?.backend
   return (
-    <div className="flex items-start gap-2 text-xs" data-testid="space-storage">
+    <div sx={stylexStyles2.rule1} data-testid="space-storage">
       <LuDatabase sx={stylexStyles.rule1} aria-hidden="true" />
-      <div className="min-w-0 space-y-1.5">
-        <div className="text-foreground">
+      <div
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ 'min-w-0 space-y-1.5'
+        }
+      >
+        <div sx={stylexStyles2.rule2}>
           {placed
             ? `Stored in ${placed.displayName}`
             : "Stored in the account's own storage"}
         </div>
         {placed && (
           <>
-            <p className="text-foreground-alt/60 truncate">
-              {formatStorageLocation(placed.s3)}
-            </p>
+            <p sx={stylexStyles2.rule3}>{formatStorageLocation(placed.s3)}</p>
             <SpaceUploadStatus
               sharedObjectId={spaceId}
               preset={guessStoragePreset(placed.s3)}

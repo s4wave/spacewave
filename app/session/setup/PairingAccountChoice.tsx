@@ -5,7 +5,144 @@ import {
   type AccountChoice,
   type AccountOffer,
 } from '@s4wave/core/pairing/pairing.pb.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+  layout as themeLayout,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: { textAlign: 'center' },
+  rule2: { minWidth: 0 },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule2: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule3: { color: themeColors['--color-foreground-alt'] },
+  rule4: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    overflowWrap: 'break-word',
+    color: themeColors['--color-foreground'],
+  },
+  rule5: {
+    clipPath: 'inset(50%)',
+    whiteSpace: 'nowrap',
+    borderWidth: 0,
+    width: '1px',
+    height: '1px',
+    margin: '-1px',
+    padding: 0,
+    position: 'absolute',
+    overflow: 'hidden',
+  },
+  rule6: {
+    display: 'flex',
+    cursor: 'pointer',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule7: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+  },
+  rule8: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+  },
+  rule9: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    accentColor: themeColors['--color-brand'],
+  },
+  rule10: {
+    display: 'block',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    overflowWrap: 'break-word',
+    color: themeColors['--color-foreground'],
+  },
+  rule11: {
+    display: 'block',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule12: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule13: {
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    width: '100%',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule14: {
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule15: {
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    width: '100%',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+  },
+})
 
 interface PairingAccountChoiceProps {
   choice: AccountChoice
@@ -82,58 +219,59 @@ export function PairingAccountChoice({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-2 text-center">
-        <h2 className="text-foreground text-sm font-medium">
+    <div>
+      <div sx={[nativeChildSpacingNextNext.s4, stylexStyles3.rule1]}>
+        <h2 sx={[nativeChildSpacingNext.s2, stylexStyles.rule1]}>
           Choose an account
         </h2>
-        <p className="text-foreground-alt text-xs leading-relaxed">
+        <p sx={[nativeChildSpacingNext.s2, stylexStyles.rule2]}>
           These devices use different accounts. Both devices will confirm the
           selected outcome before access changes.
         </p>
       </div>
-      <dl className="bg-foreground/5 space-y-2 rounded-md p-3 text-xs">
-        <div>
-          <dt className="text-foreground-alt">{offeredMachine}</dt>
-          <dd className="text-foreground font-medium break-words">{offered}</dd>
-          <dd className="text-foreground-alt">
-            {inventory(choice.offeredAccount)}
-          </dd>
+      <dl sx={[nativeChildSpacingNextNext.s4, stylexStyles2.rule1]}>
+        <div sx={nativeChildSpacing.s2}>
+          <dt sx={stylexStyles.rule3}>{offeredMachine}</dt>
+          <dd sx={stylexStyles.rule4}>{offered}</dd>
+          <dd sx={stylexStyles.rule3}>{inventory(choice.offeredAccount)}</dd>
         </div>
-        <div>
-          <dt className="text-foreground-alt">{receivingMachine}</dt>
-          <dd className="text-foreground font-medium break-words">{current}</dd>
-          <dd className="text-foreground-alt">
-            {inventory(choice.receivingAccount)}
-          </dd>
+        <div sx={nativeChildSpacing.s2}>
+          <dt sx={stylexStyles.rule3}>{receivingMachine}</dt>
+          <dd sx={stylexStyles.rule4}>{current}</dd>
+          <dd sx={stylexStyles.rule3}>{inventory(choice.receivingAccount)}</dd>
         </div>
       </dl>
       {receiving ? (
         <>
-          <fieldset disabled={submitting} className="space-y-2">
-            <legend className="sr-only">Account outcome</legend>
+          <fieldset sx={nativeChildSpacingNextNext.s4} disabled={submitting}>
+            <legend sx={[nativeChildSpacingNext.s2, stylexStyles.rule5]}>
+              Account outcome
+            </legend>
             {choices.map(({ outcome, label, detail }) => (
               <label
                 key={outcome}
-                className={cn(
-                  'flex cursor-pointer items-start gap-2 rounded-md border p-3',
-                  selected === outcome
-                    ? 'border-brand/50 bg-brand/10'
-                    : 'border-foreground/20',
-                )}
+                sx={[
+                  nativeChildSpacingNext.s2,
+                  [
+                    stylexStyles.rule6,
+                    selected === outcome
+                      ? stylexStyles.rule7
+                      : stylexStyles.rule8,
+                  ],
+                ]}
               >
                 <input
                   type="radio"
                   name="pairing-account-outcome"
                   checked={selected === outcome}
                   onChange={() => setSelected(outcome)}
-                  className="accent-brand mt-0.5"
+                  sx={stylexStyles.rule9}
                 />
-                <span className="min-w-0 space-y-1">
-                  <span className="text-foreground block text-xs font-medium break-words">
+                <span sx={stylexStyles3.rule2}>
+                  <span sx={[nativeChildSpacingNext.s1, stylexStyles.rule10]}>
                     {label}
                   </span>
-                  <span className="text-foreground-alt block text-xs leading-relaxed">
+                  <span sx={[nativeChildSpacingNext.s1, stylexStyles.rule11]}>
                     {detail}
                   </span>
                 </span>
@@ -141,7 +279,10 @@ export function PairingAccountChoice({
             ))}
           </fieldset>
           {error && (
-            <p role="alert" className="text-destructive text-xs">
+            <p
+              role="alert"
+              sx={[nativeChildSpacingNextNext.s4, stylexStyles.rule12]}
+            >
               {error}
             </p>
           )}
@@ -149,13 +290,16 @@ export function PairingAccountChoice({
             type="button"
             disabled={submitting}
             onClick={() => void submit()}
-            className="border-brand/30 bg-brand/10 hover:bg-brand/20 text-foreground h-10 w-full rounded-md border text-sm disabled:opacity-50"
+            sx={[nativeChildSpacingNextNext.s4, stylexStyles.rule13]}
           >
             {submitting ? 'Preparing account…' : 'Review and verify'}
           </button>
         </>
       ) : (
-        <p role="status" className="text-foreground-alt text-center text-xs">
+        <p
+          role="status"
+          sx={[nativeChildSpacingNextNext.s4, stylexStyles.rule14]}
+        >
           Choose the outcome on the device entering the code, then review it
           here.
         </p>
@@ -163,10 +307,66 @@ export function PairingAccountChoice({
       <button
         type="button"
         onClick={onAbort}
-        className="text-foreground-alt hover:text-foreground h-8 w-full text-xs"
+        sx={[nativeChildSpacingNextNext.s4, stylexStyles.rule15]}
       >
         Cancel pairing
       </button>
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s1: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNextNext = stylex.create({
+  s4: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

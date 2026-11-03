@@ -27,7 +27,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@s4wave/web/ui/dialog.js'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import { TypedConfirmField } from './TypedConfirmField.js'
 
@@ -37,6 +36,277 @@ import {
   colors as themeColors,
   motion as themeMotion,
 } from '../../../web/style/tokens.stylex.js'
+
+import {
+  fonts as themeFonts,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule2: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule3: {
+    display: 'flex',
+    cursor: 'pointer',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule4: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    flexShrink: 0,
+    accentColor: themeColors['--color-destructive'],
+  },
+  rule5: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    wordBreak: 'break-all',
+    color: themeColors['--color-destructive'],
+  },
+  rule6: {
+    borderRadius: themeRadii['--radius-md'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule7: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-destructive'],
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule8: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: themeColors['--color-destructive'],
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-destructive'],
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule9: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule10: {
+    display: 'flex',
+    width: '100%',
+    cursor: 'pointer',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 2.5)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    padding: `calc(${themeLayout['--spacing']} * 2.5)`,
+    textAlign: 'left',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule11: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+  },
+  rule12: {
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+      },
+    },
+  },
+  rule13: { minWidth: 0, flex: 1 },
+  rule14: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule15: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: '.65rem',
+    lineHeight: 1.5,
+    wordBreak: 'break-all',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+    WebkitUserSelect: 'text',
+    userSelect: 'text',
+  },
+  rule16: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+  },
+  rule17: {
+    fontSize: '.55rem',
+    lineHeight: 1.5,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-widest)',
+    letterSpacing: 'var(--tracking-widest)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    textTransform: 'uppercase',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule18: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule19: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    wordBreak: 'break-all',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+    WebkitUserSelect: 'text',
+    userSelect: 'text',
+  },
+  rule20: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule21: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-warning'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule22: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -267,7 +537,7 @@ export function DeleteSpaceEscapeHatchDialog({
           />
         )}
 
-        {error && <p className="text-destructive text-xs">{error}</p>}
+        {error && <p sx={stylexStyles2.rule1}>{error}</p>}
 
         <DialogFooter>
           {step === 'select' && (
@@ -330,7 +600,7 @@ function DeleteSpaceDescription({
     return (
       <DialogDescription>
         This will permanently delete{' '}
-        <span className="text-foreground font-medium">
+        <span sx={stylexStyles2.rule2}>
           {selected.hasName ? selected.name : selected.id}
         </span>{' '}
         and all of its data. Confirm you understand before continuing.
@@ -360,14 +630,18 @@ function DeleteWarningStep({
   onAcknowledgedChange,
 }: DeleteWarningStepProps) {
   return (
-    <div className="space-y-3">
-      <SelectedSpaceSummary space={space} health={health} />
-      <label className="border-destructive/30 bg-destructive/5 text-destructive flex cursor-pointer items-start gap-2 rounded-md border p-3 text-xs select-none">
+    <div>
+      <SelectedSpaceSummary
+        sx={nativeChildSpacing.s3}
+        space={space}
+        health={health}
+      />
+      <label sx={[nativeChildSpacing.s3, stylexStyles2.rule3]}>
         <input
           type="checkbox"
           checked={acknowledged}
           onChange={(e) => onAcknowledgedChange(e.target.checked)}
-          className="accent-destructive mt-0.5 size-3.5 shrink-0"
+          sx={stylexStyles2.rule4}
           aria-label="Confirm delete is permanent"
         />
         <span>
@@ -397,16 +671,16 @@ function DeleteFinalStep({
   onDelete,
 }: DeleteFinalStepProps) {
   return (
-    <div className="space-y-3">
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
+      }
+    >
       <SelectedSpaceSummary space={space} health={health} />
       <TypedConfirmField
         label={
           <>
-            Type{' '}
-            <span className="text-destructive font-medium break-all">
-              {space.name}
-            </span>{' '}
-            to confirm
+            Type <span sx={stylexStyles2.rule5}>{space.name}</span> to confirm
           </>
         }
         value={typedConfirm}
@@ -434,22 +708,14 @@ function SelectStepActions({
 }: SelectStepActionsProps) {
   return (
     <>
-      <button
-        type="button"
-        onClick={onCancel}
-        className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
-      >
+      <button type="button" onClick={onCancel} sx={stylexStyles2.rule6}>
         Cancel
       </button>
       <button
         type="button"
         disabled={!canContinue}
         onClick={onContinue}
-        className={cn(
-          'rounded-md border px-4 py-2 text-sm transition-all',
-          'border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20',
-          'disabled:cursor-not-allowed disabled:opacity-50',
-        )}
+        sx={[stylexStyles2.rule7]}
       >
         Review space deletion
       </button>
@@ -471,22 +737,14 @@ function WarningStepActions({
 }: WarningStepActionsProps) {
   return (
     <>
-      <button
-        type="button"
-        onClick={onBack}
-        className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
-      >
+      <button type="button" onClick={onBack} sx={stylexStyles2.rule6}>
         Back
       </button>
       <button
         type="button"
         disabled={!acknowledged}
         onClick={onContinue}
-        className={cn(
-          'rounded-md border px-4 py-2 text-sm transition-all',
-          'border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20',
-          'disabled:cursor-not-allowed disabled:opacity-50',
-        )}
+        sx={[stylexStyles2.rule7]}
       >
         Confirm space deletion
       </button>
@@ -514,7 +772,7 @@ function FinalStepActions({
         type="button"
         onClick={onBack}
         disabled={submitting}
-        className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
+        sx={stylexStyles2.rule6}
       >
         Back
       </button>
@@ -522,11 +780,7 @@ function FinalStepActions({
         type="button"
         onClick={onDelete}
         disabled={!canDelete}
-        className={cn(
-          'rounded-md border px-4 py-2 text-sm transition-all',
-          'border-destructive bg-destructive/20 text-destructive hover:bg-destructive/30',
-          'disabled:cursor-not-allowed disabled:opacity-50',
-        )}
+        sx={[stylexStyles2.rule8]}
       >
         {submitting ? 'Deleting…' : 'Delete Space'}
       </button>
@@ -550,7 +804,7 @@ function SpaceSelectList({
 }: SpaceSelectListProps) {
   if (loading) {
     return (
-      <div className="text-foreground-alt flex items-center gap-2 text-xs select-none">
+      <div sx={stylexStyles2.rule9}>
         <LuBoxes sx={stylexStyles.rule2} />
         Loading spaces…
       </div>
@@ -558,7 +812,7 @@ function SpaceSelectList({
   }
   if (choices.length === 0) {
     return (
-      <div className="text-foreground-alt flex items-center gap-2 text-xs select-none">
+      <div sx={stylexStyles2.rule9}>
         <LuBoxes sx={stylexStyles.rule2} />
         No spaces in this session.
       </div>
@@ -568,7 +822,9 @@ function SpaceSelectList({
     <div
       role="radiogroup"
       aria-label="Spaces"
-      className="max-h-72 space-y-1.5 overflow-y-auto pr-1"
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ 'max-h-72 space-y-1.5 overflow-y-auto pr-1'
+      }
     >
       {choices.map((choice) => {
         const isSelected = choice.id === selectedId
@@ -579,12 +835,10 @@ function SpaceSelectList({
             role="radio"
             aria-checked={isSelected}
             onClick={() => onSelect(choice.id)}
-            className={cn(
-              'flex w-full cursor-pointer items-start gap-2.5 rounded-md border p-2.5 text-left transition-colors',
-              isSelected
-                ? 'border-destructive/40 bg-destructive/5'
-                : 'border-foreground/10 bg-foreground/5 hover:border-destructive/30 hover:bg-destructive/5',
-            )}
+            sx={[
+              stylexStyles2.rule10,
+              isSelected ? stylexStyles2.rule11 : stylexStyles2.rule12,
+            ]}
           >
             <LuBoxes
               sx={[
@@ -592,13 +846,11 @@ function SpaceSelectList({
                 isSelected ? stylexStyles.rule4 : stylexStyles.rule5,
               ]}
             />
-            <div className="min-w-0 flex-1">
-              <div className="text-foreground truncate text-xs font-medium select-none">
+            <div sx={stylexStyles2.rule13}>
+              <div sx={stylexStyles2.rule14}>
                 {choice.hasName ? choice.name : 'Unnamed space'}
               </div>
-              <div className="text-foreground-alt/70 micro-label truncate font-mono break-all select-text">
-                {choice.id}
-              </div>
+              <div sx={stylexStyles2.rule15}>{choice.id}</div>
             </div>
           </button>
         )
@@ -613,18 +865,21 @@ interface SelectedSpaceSummaryProps {
 }
 
 // SelectedSpaceSummary shows identity and health for the chosen space.
-function SelectedSpaceSummary({ space, health }: SelectedSpaceSummaryProps) {
+function SelectedSpaceSummary({
+  sx,
+  space,
+  health,
+}: SelectedSpaceSummaryProps & {
+  sx?: stylex.StyleXStyles
+  className?: never
+}) {
   return (
-    <div className="border-foreground/8 bg-background-card/30 rounded-lg border px-3 py-2.5">
-      <div className="text-foreground-alt/50 micro-fine font-medium tracking-widest uppercase select-none">
-        Space
-      </div>
-      <div className="text-foreground mt-0.5 truncate text-sm font-medium">
+    <div sx={[stylexStyles2.rule16, sx]}>
+      <div sx={stylexStyles2.rule17}>Space</div>
+      <div sx={stylexStyles2.rule18}>
         {space.hasName ? space.name : 'Unnamed space'}
       </div>
-      <div className="text-foreground-alt/70 mt-0.5 font-mono text-xs break-all select-text">
-        {space.id}
-      </div>
+      <div sx={stylexStyles2.rule19}>{space.id}</div>
       <HealthBadge health={health} />
     </div>
   )
@@ -640,7 +895,7 @@ function HealthBadge({ health }: HealthBadgeProps) {
   const status = health.status ?? SharedObjectHealthStatus.UNKNOWN
   if (status === SharedObjectHealthStatus.READY) {
     return (
-      <div className="text-foreground-alt/70 mt-2 flex items-center gap-1.5 text-xs select-none">
+      <div sx={stylexStyles2.rule20}>
         <LuCircleCheck sx={stylexStyles.rule6} />
         Space is reachable.
       </div>
@@ -648,7 +903,7 @@ function HealthBadge({ health }: HealthBadgeProps) {
   }
   if (status === SharedObjectHealthStatus.LOADING) {
     return (
-      <div className="text-foreground-alt/70 mt-2 flex items-center gap-1.5 text-xs select-none">
+      <div sx={stylexStyles2.rule20}>
         <LuCircleAlert sx={stylexStyles.rule6} />
         Checking status…
       </div>
@@ -656,7 +911,7 @@ function HealthBadge({ health }: HealthBadgeProps) {
   }
   if (status === SharedObjectHealthStatus.DEGRADED) {
     return (
-      <div className="text-warning mt-2 flex items-center gap-1.5 text-xs select-none">
+      <div sx={stylexStyles2.rule21}>
         <LuTriangleAlert sx={stylexStyles.rule7} />
         Degraded. Some data may be partially available.
       </div>
@@ -664,7 +919,7 @@ function HealthBadge({ health }: HealthBadgeProps) {
   }
   if (status === SharedObjectHealthStatus.CLOSED) {
     return (
-      <div className="text-destructive mt-2 flex items-center gap-1.5 text-xs select-none">
+      <div sx={stylexStyles2.rule22}>
         <LuShieldAlert sx={stylexStyles.rule7} />
         Cannot mount. This space is broken and must be deleted from here.
       </div>
@@ -672,3 +927,18 @@ function HealthBadge({ health }: HealthBadgeProps) {
   }
   return null
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

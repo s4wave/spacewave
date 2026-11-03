@@ -32,6 +32,91 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+  radii as themeRadii,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-wider)',
+    letterSpacing: 'var(--tracking-wider)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+    textTransform: 'uppercase',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule2: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule3: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule4: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderRadius: '3.40282e38px',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule5: {
+    cursor: 'pointer',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    color: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-destructive'],
+      },
+    },
+  },
+  rule6: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule7: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule8: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3)`,
@@ -152,20 +237,22 @@ export function BillingAssignmentsSection({
   const menuDisabled = !session || assigning || noTargets
 
   return (
-    <div className="space-y-3">
-      <div className="text-foreground-alt/60 text-xs font-medium tracking-wider uppercase select-none">
-        Assigned to
-      </div>
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
+      }
+    >
+      <div sx={stylexStyles2.rule1}>Assigned to</div>
       {loading && !managedBillingAccount && (
         <LoadingInline label="Loading assignments" tone="muted" size="sm" />
       )}
       {!loading && assignees.length === 0 && (
-        <div className="text-foreground-alt/60 text-xs">
+        <div sx={stylexStyles2.rule2}>
           Unassigned. Pick a principal below to link this billing account.
         </div>
       )}
       {assignees.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div sx={stylexStyles2.rule3}>
           {assignees.map((a) => {
             const isPersonal =
               a.ownerType === 'account' && a.ownerId === callerAccountId
@@ -175,7 +262,7 @@ export function BillingAssignmentsSection({
             return (
               <span
                 key={`${a.ownerType}:${a.ownerId}`}
-                className="border-foreground/10 bg-foreground/5 text-foreground-alt flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs"
+                sx={stylexStyles2.rule4}
               >
                 <span>{label}</span>
                 <button
@@ -188,7 +275,7 @@ export function BillingAssignmentsSection({
                     })
                   }
                   aria-label={`Detach ${label}`}
-                  className="hover:text-destructive cursor-pointer transition-colors"
+                  sx={stylexStyles2.rule5}
                 >
                   <LuX sx={stylexStyles.rule1} />
                 </button>
@@ -197,7 +284,7 @@ export function BillingAssignmentsSection({
           })}
         </div>
       )}
-      <div className="flex items-center gap-2">
+      <div sx={stylexStyles2.rule6}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild disabled={menuDisabled}>
             <DropdownTriggerButton icon={<LuLink sx={stylexStyles.rule1} />}>
@@ -229,21 +316,13 @@ export function BillingAssignmentsSection({
           </DropdownMenuContent>
         </DropdownMenu>
         {noTargets && (
-          <span className="text-foreground-alt/50 text-xs">
+          <span sx={stylexStyles2.rule7}>
             No owned organizations. Create one to assign.
           </span>
         )}
       </div>
-      {assignError && (
-        <div className="border-destructive/20 bg-destructive/5 text-destructive rounded-md border px-3 py-2 text-xs">
-          {assignError}
-        </div>
-      )}
-      {detachError && (
-        <div className="border-destructive/20 bg-destructive/5 text-destructive rounded-md border px-3 py-2 text-xs">
-          {detachError}
-        </div>
-      )}
+      {assignError && <div sx={stylexStyles2.rule8}>{assignError}</div>}
+      {detachError && <div sx={stylexStyles2.rule8}>{detachError}</div>}
       <DetachAssignmentDialog
         target={detachTarget}
         busy={detaching}

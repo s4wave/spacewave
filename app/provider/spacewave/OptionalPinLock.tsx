@@ -1,14 +1,45 @@
 import { LuLock } from '@s4wave/web/images/icons.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
-
-import { authInputClassName } from './auth-flow-shared.js'
+import { authInputStyles } from './auth-flow-shared.js'
 
 import * as stylex from '@stylexjs/stylex'
 import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
+
+import { fonts as themeFonts } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    width: '100%',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule3: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule4: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule5: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -48,13 +79,10 @@ export function OptionalPinLock(props: OptionalPinLockProps) {
   } = props
 
   return (
-    <div className="flex w-full flex-col gap-2">
-      <div className="flex items-center gap-2">
+    <div sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>
         <LuLock sx={stylexStyles.rule1} />
-        <label
-          htmlFor={pinInputId}
-          className="text-foreground text-sm font-medium"
-        >
+        <label htmlFor={pinInputId} sx={stylexStyles2.rule3}>
           Optional PIN lock
         </label>
       </div>
@@ -65,7 +93,7 @@ export function OptionalPinLock(props: OptionalPinLockProps) {
         onChange={(e) => onPinChange(e.target.value)}
         placeholder="Leave blank to skip"
         disabled={disabled}
-        className={authInputClassName}
+        sx={authInputStyles.base}
         onKeyDown={(e) => {
           if (e.nativeEvent.isComposing) return
           if (e.key === 'Enter' && !disabled) {
@@ -80,7 +108,7 @@ export function OptionalPinLock(props: OptionalPinLockProps) {
         onChange={(e) => onConfirmPinChange(e.target.value)}
         placeholder="Confirm PIN"
         disabled={disabled}
-        className={cn(authInputClassName, pinError && 'border-destructive')}
+        sx={pinError ? authInputStyles.invalid : authInputStyles.base}
         onKeyDown={(e) => {
           if (e.nativeEvent.isComposing) return
           if (e.key === 'Enter' && !disabled) {
@@ -88,9 +116,9 @@ export function OptionalPinLock(props: OptionalPinLockProps) {
           }
         }}
       />
-      {pinError && <p className="text-destructive text-xs">{pinError}</p>}
+      {pinError && <p sx={stylexStyles2.rule4}>{pinError}</p>}
       {keyHeldWithoutPin && !pin && (
-        <p className="text-foreground-alt text-xs">
+        <p sx={stylexStyles2.rule5}>
           Without a PIN, Spacewave Cloud keeps your account key so you can sign
           in on any device, and we could use it to open your data. With a long
           PIN, only you can unlock the key.

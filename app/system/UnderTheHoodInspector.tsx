@@ -9,6 +9,28 @@ import { useSelectedStateAtomId } from '@s4wave/web/devtools/StateDevToolsContex
 import { StateTreeTab } from '@s4wave/web/devtools/StateTreeTab.js'
 import { useStateInspectorEntryMap } from '@s4wave/web/devtools/useStateInspectorEntries.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    minHeight: 0,
+    flex: 1,
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+  },
+  rule2: { minWidth: 0, flex: 1, overflow: 'auto' },
+})
+
 // UnderTheHoodInspector embeds the devtools trees: the SDK resources this app
 // holds open, or the UI state atoms, each beside the selected entry's details.
 export function UnderTheHoodInspector({
@@ -29,8 +51,8 @@ export function UnderTheHoodInspector({
     kind === 'atoms' && selectedAtomId ? atoms.get(selectedAtomId) : undefined
 
   return (
-    <div className="border-foreground/8 bg-background-card/30 flex min-h-0 flex-1 overflow-hidden rounded-lg border">
-      <div className="min-w-0 flex-1 overflow-auto">
+    <div sx={stylexStyles.rule1}>
+      <div sx={stylexStyles.rule2}>
         {kind === 'resources' ? <ResourceTreeTab /> : <StateTreeTab />}
       </div>
       {selectedResource && <ResourceDetailsPanel resource={selectedResource} />}

@@ -10,7 +10,6 @@ import {
   LuZap,
 } from '@s4wave/web/images/icons.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import {
   PLAN_PRICE_MONTHLY,
   OVERAGE_EXPLANATION,
@@ -44,6 +43,272 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
+
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+  fonts as themeFonts,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: { marginBottom: `calc(${themeLayout['--spacing']} * 4)` },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    color: themeColors['--color-brand'],
+    textDecorationLine: {
+      default: null,
+      '@media (hover: hover)': { default: null, ':hover': 'underline' },
+    },
+  },
+  rule2: {
+    marginTop: `calc(${themeLayout['--spacing']} * 4)`,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule3: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: 'var(--text-xl)',
+    lineHeight: 'var(--tw-leading, var(--text-xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-wide)',
+    letterSpacing: 'var(--tracking-wide)',
+  },
+  rule4: {
+    position: 'relative',
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 40%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 60%, transparent)`,
+      },
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    '--tw-shadow': {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover':
+          '0 4px 6px -1px var(--tw-shadow-color, #0000001a), 0 2px 4px -2px var(--tw-shadow-color, #0000001a)',
+      },
+    },
+    boxShadow: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover':
+          'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+      },
+    },
+    '--tw-shadow-color': {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent) var(--tw-shadow-alpha), transparent)`,
+      },
+    },
+  },
+  rule5: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 4)`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rule6: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule7: {
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule8: {
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: themeLayout['--spacing'],
+  },
+  rule9: {
+    fontSize: 'var(--text-2xl)',
+    lineHeight: 'var(--tw-leading, var(--text-2xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-bold)',
+    fontWeight: 'var(--font-weight-bold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule10: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule11: {
+    marginTop: `calc(${themeLayout['--spacing']} * 6)`,
+    display: 'flex',
+    width: '100%',
+    cursor: { default: 'pointer', ':disabled': 'not-allowed' },
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: themeColors['--color-brand'],
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule12: {
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule13: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      },
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    '--tw-shadow': {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover':
+          '0 4px 6px -1px var(--tw-shadow-color, #0000001a), 0 2px 4px -2px var(--tw-shadow-color, #0000001a)',
+      },
+    },
+    boxShadow: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover':
+          'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+      },
+    },
+  },
+  rule14: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 3)`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rule15: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule16: {
+    display: 'flex',
+    width: '100%',
+    cursor: { default: 'pointer', ':disabled': 'not-allowed' },
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule17: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule18: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 3)`,
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-wide)',
+    letterSpacing: 'var(--tracking-wide)',
+    color: themeColors['--color-foreground-alt'],
+    textTransform: 'uppercase',
+  },
+  rule19: {
+    display: 'grid',
+    gridTemplateColumns: {
+      default: 'repeat(1, minmax(0, 1fr))',
+      '@media (min-width: 40rem)': 'repeat(2, minmax(0, 1fr))',
+    },
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule20: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -171,7 +436,7 @@ const E2E_ENCRYPTION_LINK = (
     href="https://www.cloudflare.com/learning/privacy/what-is-end-to-end-encryption/"
     target="_blank"
     rel="noopener noreferrer"
-    className="text-brand hover:underline"
+    sx={stylexStyles2.rule1}
     onClick={(e) => e.stopPropagation()}
   >
     a standard approach to data protection
@@ -398,25 +663,21 @@ export function PlanSelectionPage({
   return (
     <PageWrapper>
       {/* Header */}
-      <div className="mt-4 flex flex-col items-center gap-2">
+      <div sx={stylexStyles2.rule2}>
         <AnimatedLogo followMouse={false} />
-        <h1 className="mt-2 text-xl font-semibold tracking-wide">
-          Welcome to Spacewave
-        </h1>
+        <h1 sx={stylexStyles2.rule3}>Welcome to Spacewave</h1>
       </div>
 
       {/* Cloud card */}
-      <div className="border-brand/40 bg-background-card/50 hover:border-brand/60 hover:shadow-brand/5 relative overflow-hidden rounded-lg border p-6 transition duration-300 hover:shadow-md">
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+      <div sx={stylexStyles2.rule4}>
+        <div sx={stylexStyles2.rule5}>
+          <div sx={stylexStyles2.rule6}>
             <LuCloud sx={stylexStyles.rule1} />
-            <h2 className="text-foreground text-lg font-semibold">Cloud</h2>
+            <h2 sx={stylexStyles2.rule7}>Cloud</h2>
           </div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-foreground text-2xl font-bold">
-              ${PLAN_PRICE_MONTHLY}
-            </span>
-            <span className="text-foreground-alt text-sm">/ month</span>
+          <div sx={stylexStyles2.rule8}>
+            <span sx={stylexStyles2.rule9}>${PLAN_PRICE_MONTHLY}</span>
+            <span sx={stylexStyles2.rule10}>/ month</span>
           </div>
         </div>
 
@@ -430,35 +691,29 @@ export function PlanSelectionPage({
             })
           }
           disabled={state.loading || !session}
-          className={cn(
-            'mt-6 flex w-full cursor-pointer items-center justify-center rounded-md border px-5 py-2.5 text-sm font-medium transition-all duration-300 select-none',
-            'border-brand bg-brand/10 text-foreground hover:bg-brand/20',
-            'disabled:cursor-not-allowed disabled:opacity-50',
-          )}
+          sx={[stylexStyles2.rule11]}
         >
           Start with Cloud
         </button>
       </div>
 
-      {state.error && (
-        <p className="text-destructive text-center text-xs">{state.error}</p>
-      )}
+      {state.error && <p sx={stylexStyles2.rule12}>{state.error}</p>}
 
       {/* Free local option */}
-      <div className="border-foreground/10 bg-background-card/30 hover:border-foreground/20 rounded-lg border p-6 transition duration-300 hover:shadow-md">
-        <div className="mb-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+      <div sx={stylexStyles2.rule13}>
+        <div sx={stylexStyles2.rule14}>
+          <div sx={stylexStyles2.rule6}>
             <LuServer sx={stylexStyles.rule2} />
-            <h2 className="text-foreground text-lg font-semibold">Local</h2>
+            <h2 sx={stylexStyles2.rule7}>Local</h2>
           </div>
-          <span className="text-foreground-alt text-sm">free forever</span>
+          <span sx={stylexStyles2.rule10}>free forever</span>
         </div>
 
-        <div className="mb-4 space-y-2">
+        <div sx={stylexStyles3.rule1}>
           {LOCAL_FEATURES.map((text) => (
-            <div key={text} className="flex items-start gap-2">
+            <div key={text} sx={[nativeChildSpacing.s2, stylexStyles2.rule15]}>
               <LuCheck sx={stylexStyles.rule3} />
-              <span className="text-foreground-alt text-sm">{text}</span>
+              <span sx={stylexStyles2.rule10}>{text}</span>
             </div>
           ))}
         </div>
@@ -467,22 +722,20 @@ export function PlanSelectionPage({
           type="button"
           onClick={() => void handleFreeLocal()}
           disabled={state.loading || !session}
-          className="border-foreground/20 bg-foreground/5 hover:bg-foreground/10 flex w-full cursor-pointer items-center justify-center rounded-md border px-5 py-2.5 text-sm font-medium transition duration-300 select-none disabled:cursor-not-allowed disabled:opacity-50"
+          sx={stylexStyles2.rule16}
         >
           Continue with local storage
         </button>
       </div>
 
       {/* Shared baseline */}
-      <div className="border-foreground/8 bg-background-card/30 rounded-lg border p-4">
-        <p className="text-foreground-alt mb-3 text-center text-xs font-semibold tracking-wide uppercase">
-          Both options include
-        </p>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+      <div sx={stylexStyles2.rule17}>
+        <p sx={stylexStyles2.rule18}>Both options include</p>
+        <div sx={stylexStyles2.rule19}>
           {SHARED_FEATURES.map((feature) => (
-            <div key={feature} className="flex items-start gap-2">
+            <div key={feature} sx={stylexStyles2.rule15}>
               <LuCheck sx={stylexStyles.rule4} />
-              <span className="text-foreground-alt text-xs">{feature}</span>
+              <span sx={stylexStyles2.rule20}>{feature}</span>
             </div>
           ))}
         </div>
@@ -495,3 +748,18 @@ export function PlanSelectionPage({
     </PageWrapper>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

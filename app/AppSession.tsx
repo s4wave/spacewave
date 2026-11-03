@@ -28,6 +28,23 @@ import type { Root } from '@s4wave/sdk/root/root.js'
 import type { Session } from '@s4wave/sdk/session/session.js'
 import { useSessionMount } from './hooks/useSharedMounts.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    minHeight: 0,
+    width: '100%',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule2: { width: '100%', maxWidth: 'var(--container-sm)' },
+})
+
 // useSessionAttachmentVersion changes only when an established Session moves
 // between provider accounts. Initial metadata hydration describes the Session
 // already being mounted and must not restart that mount.
@@ -209,8 +226,8 @@ export function AppSession() {
     )
   } else if (sessionResource.error) {
     content = (
-      <div className="flex h-full min-h-0 w-full flex-1 items-center justify-center p-6">
-        <div className="w-full max-w-sm">
+      <div sx={stylexStyles.rule1}>
+        <div sx={stylexStyles.rule2}>
           <LoadingCard
             view={{
               state: 'error',
@@ -224,8 +241,8 @@ export function AppSession() {
     )
   } else if (sessionResource.loading || !sessionResource.value) {
     content = (
-      <div className="flex h-full min-h-0 w-full flex-1 items-center justify-center p-6">
-        <div className="w-full max-w-sm">
+      <div sx={stylexStyles.rule1}>
+        <div sx={stylexStyles.rule2}>
           <LoadingCard
             view={{
               state: 'loading',

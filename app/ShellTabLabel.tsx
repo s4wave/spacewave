@@ -3,6 +3,12 @@ import { FlexTabNameInput } from '@s4wave/web/layout/FlexTabNameInput.js'
 
 import { useShellTabs } from './ShellTabContext.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: { textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' },
+})
+
 // ShellTabLabelProps are the props for ShellTabLabel.
 interface ShellTabLabelProps {
   tab: ShellTab
@@ -35,7 +41,7 @@ export function ShellTabLabel({ tab }: ShellTabLabelProps) {
 
   return (
     <span
-      className="truncate"
+      sx={stylexStyles.rule1}
       onDoubleClick={(event) => {
         event.preventDefault()
         event.stopPropagation()

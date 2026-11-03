@@ -10,6 +10,108 @@ import {
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-success'],
+  },
+  rule2: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule3: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-warning']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-warning']} 5%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule4: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule5: { minWidth: 0, flex: 1 },
+  rule6: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule7: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule8: { marginTop: `calc(${themeLayout['--spacing']} * 2)` },
+  rule9: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule10: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule11: {
+    marginTop: `calc(${themeLayout['--spacing']} * 1.5)`,
+    maxHeight: `calc(${themeLayout['--spacing']} * 48)`,
+    overflow: 'auto',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 40%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-snug)',
+    '--tw-leading': 'var(--leading-snug)',
+    color: themeColors['--color-foreground'],
+  },
+  rule12: {
+    cursor: 'pointer',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    minHeight: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+    paddingBlock: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 3.5)`,
+    },
+  },
+  rule13: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    overflowWrap: 'break-word',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -39,52 +141,36 @@ export function StorageCheckResult({
 }: StorageCheckResultProps) {
   if (check.ok) {
     return (
-      <p
-        className="text-success flex items-center gap-1.5 text-xs"
-        role="status"
-      >
+      <p sx={stylexStyles2.rule1} role="status">
         <LuCircleCheck sx={stylexStyles.rule1} aria-hidden="true" />
         Connected. A test object was written, read, and deleted.
-        <span className="text-foreground-alt/70">Holds {check.usage}.</span>
+        <span sx={stylexStyles2.rule2}>Holds {check.usage}.</span>
       </p>
     )
   }
 
   return (
-    <div
-      className="border-warning/20 bg-warning/5 rounded-lg border p-3"
-      role="alert"
-    >
-      <div className="flex items-start gap-2">
+    <div sx={stylexStyles2.rule3} role="alert">
+      <div sx={stylexStyles2.rule4}>
         <LuTriangleAlert sx={stylexStyles.rule2} aria-hidden="true" />
-        <div className="min-w-0 flex-1">
-          <h3 className="text-foreground text-xs font-medium">{check.title}</h3>
-          <p className="text-foreground-alt/70 mt-1 text-xs leading-relaxed">
-            {check.action}
-          </p>
+        <div sx={stylexStyles2.rule5}>
+          <h3 sx={stylexStyles2.rule6}>{check.title}</h3>
+          <p sx={stylexStyles2.rule7}>{check.action}</p>
 
           {check.showCors && corsRule && (
-            <div className="mt-2">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-foreground-alt/70 text-xs">
-                  {corsRule.where}
-                </p>
+            <div sx={stylexStyles2.rule8}>
+              <div sx={stylexStyles2.rule9}>
+                <p sx={stylexStyles2.rule10}>{corsRule.where}</p>
                 <CopyButton text={corsRule.text} label="Copy CORS rule" />
               </div>
-              <pre className="bg-background/40 border-foreground/10 text-foreground mt-1.5 max-h-48 overflow-auto rounded-md border p-2 text-xs leading-snug">
-                {corsRule.text}
-              </pre>
+              <pre sx={stylexStyles2.rule11}>{corsRule.text}</pre>
             </div>
           )}
 
           {check.detail && (
-            <details className="mt-2">
-              <summary className="text-foreground-alt hover:text-foreground cursor-pointer text-xs [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-3.5">
-                Details
-              </summary>
-              <p className="text-foreground-alt/60 mt-1 text-xs break-words">
-                {check.detail}
-              </p>
+            <details sx={stylexStyles2.rule8}>
+              <summary sx={stylexStyles2.rule12}>Details</summary>
+              <p sx={stylexStyles2.rule13}>{check.detail}</p>
             </details>
           )}
         </div>

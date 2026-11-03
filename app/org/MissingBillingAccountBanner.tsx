@@ -10,6 +10,91 @@ import { groupMarker } from '../../web/style/relations.stylex.js'
 
 import { groupMarker as groupMarker2 } from '../../web/style/relations.stylex.js'
 
+import {
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+import { groupMarker as groupMarker3 } from '../../web/style/relations.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    position: 'relative',
+    zIndex: 10,
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-warning']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-warning']} 5%, transparent)`,
+  },
+  rule2: {
+    display: 'flex',
+    minWidth: 0,
+    flex: 1,
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule3: { minWidth: 0 },
+  rule4: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: `color-mix(in oklab, ${themeColors['--color-foreground']} 80%, transparent)`,
+  },
+  rule5: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule6: {
+    position: 'relative',
+    zIndex: 10,
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-warning']} 20%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-warning']} 5%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-warning']} 10%, transparent)`,
+      },
+    },
+    textAlign: 'left',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule7: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 70%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker3)]:
+          themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     display: 'flex',
@@ -66,12 +151,12 @@ export function MissingBillingAccountBanner(props: {
 
   if (!props.isOwner) {
     return (
-      <div className="border-warning/20 bg-warning/5 relative z-10 flex w-full items-center border-b">
-        <div className="flex min-w-0 flex-1 items-start gap-2 px-3 py-1.5">
+      <div sx={stylexStyles3.rule1}>
+        <div sx={stylexStyles3.rule2}>
           <LuTriangleAlert sx={stylexStyles.rule1} />
-          <div className="min-w-0">
-            <p className="text-foreground/80 text-xs font-medium">{message}</p>
-            <p className="text-foreground-alt/60 mt-0.5 text-xs">
+          <div sx={stylexStyles3.rule3}>
+            <p sx={stylexStyles3.rule4}>{message}</p>
+            <p sx={stylexStyles3.rule5}>
               Ask an organization admin to assign a billing account.
             </p>
           </div>
@@ -84,22 +169,20 @@ export function MissingBillingAccountBanner(props: {
     <button
       type="button"
       onClick={props.onConfigureBilling}
-      className="border-warning/20 bg-warning/5 hover:bg-warning/10 relative z-10 flex w-full items-center border-b text-left transition-colors"
+      sx={stylexStyles3.rule6}
     >
-      <div className="flex min-w-0 flex-1 items-start gap-2 px-3 py-1.5">
+      <div sx={stylexStyles3.rule2}>
         <LuTriangleAlert sx={stylexStyles.rule1} />
-        <div className="min-w-0">
-          <p className="text-foreground/80 text-xs font-medium">{message}</p>
-          <p className="text-foreground-alt/60 mt-0.5 text-xs">
+        <div sx={stylexStyles3.rule3}>
+          <p sx={stylexStyles3.rule4}>{message}</p>
+          <p sx={stylexStyles3.rule5}>
             Assign one of your managed billing accounts to keep cloud features
             available.
           </p>
         </div>
       </div>
       <div sx={[stylexStyles2.rule1, groupMarker2]}>
-        <span className="text-foreground/70 group-hover:text-foreground text-xs font-medium transition-colors">
-          Configure billing
-        </span>
+        <span sx={stylexStyles3.rule7}>Configure billing</span>
         <LuArrowRight sx={stylexStyles.rule2} />
       </div>
     </button>

@@ -10,7 +10,6 @@ import {
   LuWifi,
 } from '@s4wave/web/images/icons.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import { DirectAnswerStep } from './DirectAnswerStep.js'
 import { DirectOfferStep } from './DirectOfferStep.js'
 import { EnterCodeStep } from './EnterCodeStep.js'
@@ -44,6 +43,206 @@ import {
   motion as themeMotion,
 } from '../../../web/style/tokens.stylex.js'
 import { groupMarker } from '../../../web/style/relations.stylex.js'
+
+import { fonts as themeFonts } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule2: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 12)`,
+    height: `calc(${themeLayout['--spacing']} * 12)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+  },
+  rule3: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule4: {
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule5: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 40%, transparent)`,
+      },
+    },
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+  },
+  rule6: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule7: {
+    width: '100%',
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule8: {
+    paddingInline: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-wide)',
+    letterSpacing: 'var(--tracking-wide)',
+    color: themeColors['--color-foreground-alt'],
+    textTransform: 'uppercase',
+  },
+  rule9: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+      },
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    },
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    textAlign: 'left',
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+      },
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+    },
+    '--tw-outline-style': { default: null, ':focus-visible': 'none' },
+    outlineStyle: { default: null, ':focus-visible': 'none' },
+  },
+  rule10: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 9)`,
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-lg'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+  },
+  rule11: { minWidth: 0 },
+  rule12: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule13: {
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: '10px',
+    lineHeight: 1.5,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-wide)',
+    letterSpacing: 'var(--tracking-wide)',
+    color: themeColors['--color-brand'],
+    textTransform: 'uppercase',
+  },
+  rule14: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule15: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule16: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-lg'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+  },
+  rule17: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule18: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule19: {
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
 
 const stylexStyles3 = stylex.create({
   rule1: {
@@ -328,29 +527,21 @@ function UnsupportedLinkStep({
   onDone,
 }: UnsupportedLinkStepProps) {
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col items-center gap-3">
-        <div className="bg-foreground/5 flex size-12 items-center justify-center rounded-full">
+    <div>
+      <div sx={[nativeChildSpacing.s4, stylexStyles4.rule1]}>
+        <div sx={stylexStyles4.rule2}>
           <LuMonitor sx={stylexStyles.rule1} />
         </div>
-        <h2 className="text-foreground text-sm font-medium">
-          Device linking unavailable
-        </h2>
-        <p className="text-foreground-alt text-center text-xs leading-relaxed">
-          {message}
-        </p>
+        <h2 sx={stylexStyles4.rule3}>Device linking unavailable</h2>
+        <p sx={stylexStyles4.rule4}>{message}</p>
       </div>
 
       <button
         type="button"
         onClick={onDone}
-        className={cn(
-          'w-full rounded-md border transition-all duration-300',
-          'border-foreground/20 hover:border-foreground/40',
-          'flex h-10 items-center justify-center gap-2',
-        )}
+        sx={[nativeChildSpacing.s4, [stylexStyles4.rule5]]}
       >
-        <span className="text-foreground text-sm">{buttonLabel}</span>
+        <span sx={stylexStyles4.rule6}>{buttonLabel}</span>
         <LuArrowRight sx={stylexStyles.rule2} />
       </button>
     </div>
@@ -375,8 +566,12 @@ function ChooseStep({
   onSkip,
 }: ChooseStepProps) {
   return (
-    <div className="space-y-5">
-      <p className="text-foreground-alt text-center text-xs leading-relaxed">
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-5 */ 'space-y-5'
+      }
+    >
+      <p sx={stylexStyles4.rule4}>
         Connect another device to sync your data peer-to-peer.
       </p>
 
@@ -420,11 +615,7 @@ function ChooseStep({
         />
       )}
 
-      <button
-        type="button"
-        onClick={onSkip}
-        className="text-foreground-alt hover:text-foreground w-full text-center text-xs transition-colors"
-      >
+      <button type="button" onClick={onSkip} sx={stylexStyles4.rule7}>
         Skip for now
       </button>
     </div>
@@ -441,10 +632,12 @@ interface OptionGroupProps {
 // flat list of near-identical rows.
 function OptionGroup({ label, children }: OptionGroupProps) {
   return (
-    <div className="space-y-2">
-      <h3 className="text-foreground-alt px-1 text-xs font-medium tracking-wide uppercase">
-        {label}
-      </h3>
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
+      }
+    >
+      <h3 sx={stylexStyles4.rule8}>{label}</h3>
       {children}
     </div>
   )
@@ -459,36 +652,24 @@ interface ChooseOptionProps {
 }
 
 function ChooseOption({
+  sx,
   icon: Icon,
   label,
   description,
   recommended,
   onClick,
-}: ChooseOptionProps) {
+}: ChooseOptionProps & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'w-full rounded-md border transition-all duration-300',
-        'border-foreground/10 hover:border-brand/30 hover:bg-brand/5',
-        'focus-visible:border-brand/30 focus-visible:bg-brand/5 focus-visible:outline-none',
-        'flex items-center gap-3 p-3 text-left',
-      )}
-    >
-      <div className="bg-brand/10 flex size-9 shrink-0 items-center justify-center rounded-lg">
+    <button type="button" onClick={onClick} sx={[[stylexStyles4.rule9], sx]}>
+      <div sx={stylexStyles4.rule10}>
         <Icon sx={stylexStyles2.rule1} />
       </div>
-      <div className="min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="text-foreground text-sm font-medium">{label}</span>
-          {recommended && (
-            <span className="bg-brand/15 text-brand micro-ten rounded-full px-1.5 py-0.5 font-medium tracking-wide uppercase">
-              Recommended
-            </span>
-          )}
+      <div sx={stylexStyles4.rule11}>
+        <div sx={stylexStyles4.rule12}>
+          <span sx={stylexStyles4.rule3}>{label}</span>
+          {recommended && <span sx={stylexStyles4.rule13}>Recommended</span>}
         </div>
-        <p className="text-foreground-alt text-xs">{description}</p>
+        <p sx={stylexStyles4.rule14}>{description}</p>
       </div>
       <LuArrowRight sx={stylexStyles.rule3} />
     </button>
@@ -502,30 +683,36 @@ interface DownloadStepProps {
 
 function DownloadStep({ onContinue, onBack }: DownloadStepProps) {
   return (
-    <div className="space-y-4">
-      <div className="flex items-start gap-3">
-        <div className="bg-brand/10 flex size-10 shrink-0 items-center justify-center rounded-lg">
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4'
+      }
+    >
+      <div sx={stylexStyles4.rule15}>
+        <div sx={stylexStyles4.rule16}>
           <LuMonitor sx={stylexStyles.rule4} />
         </div>
         <div>
-          <h2 className="text-foreground text-sm font-medium">
-            Download the desktop app
-          </h2>
-          <p className="text-foreground-alt mt-1 text-xs leading-relaxed">
+          <h2 sx={stylexStyles4.rule3}>Download the desktop app</h2>
+          <p sx={stylexStyles4.rule17}>
             Choose the installer for your computer, then return here to link
             your account.
           </p>
         </div>
       </div>
 
-      <div className="space-y-2">
+      <div
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
+        }
+      >
         <ExternalLink
           href={`${SPACEWAVE_PUBLIC_BASE_URL}/#/download`}
-          className="border-brand/30 bg-brand/10 text-foreground flex h-10 items-center justify-center rounded-md border text-sm"
+          {...stylex.props(stylexStyles4.rule18)}
         >
           Choose a desktop download
         </ExternalLink>
-        <p className="text-foreground-alt text-center text-xs">
+        <p sx={stylexStyles4.rule19}>
           macOS, Windows, and Linux. Opens in a new tab.
         </p>
       </div>
@@ -535,17 +722,28 @@ function DownloadStep({ onContinue, onBack }: DownloadStepProps) {
         onClick={onContinue}
         sx={[[stylexStyles3.rule1, groupMarker]]}
       >
-        <span className="text-foreground text-sm">I have the desktop app</span>
+        <span sx={stylexStyles4.rule6}>I have the desktop app</span>
         <LuArrowRight sx={stylexStyles.rule2} />
       </button>
 
-      <button
-        type="button"
-        onClick={onBack}
-        className="text-foreground-alt hover:text-foreground w-full text-center text-xs transition-colors"
-      >
+      <button type="button" onClick={onBack} sx={stylexStyles4.rule7}>
         Back
       </button>
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s4: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

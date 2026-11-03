@@ -13,6 +13,97 @@ import { BillingAccountCard } from './BillingAccountCard.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+import {
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+  radii as themeRadii,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    borderRadius: '3.40282e38px',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: `color-mix(in oklab, ${themeColors['--color-brand']} 60%, transparent)`,
+  },
+  rule2: {
+    width: '100%',
+    cursor: 'pointer',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      },
+    },
+    padding: `calc(${themeLayout['--spacing']} * 2.5)`,
+    textAlign: 'left',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule3: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule4: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule5: {
+    width: '100%',
+    cursor: 'pointer',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 12%, transparent)`,
+      },
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 20%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 2.5)`,
+    textAlign: 'left',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule6: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rule7: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-brand']} 60%, transparent)`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -72,14 +163,14 @@ export function BillingSection({
       open={sectionOpen}
       onOpenChange={handleOpenChange}
       badge={
-        hasActive ? (
-          <span className="border-brand/15 text-brand/60 rounded-full border px-1.5 py-0.5 text-xs font-medium">
-            Active
-          </span>
-        ) : undefined
+        hasActive ? <span sx={stylexStyles2.rule1}>Active</span> : undefined
       }
     >
-      <div className="space-y-2">
+      <div
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
+        }
+      >
         {billing && billing.status !== BillingStatus.BillingStatus_NONE && (
           <BillingAccountCard
             label="Personal"
@@ -99,12 +190,10 @@ export function BillingSection({
             onClick={() => {
               handleNavigate('plan')
             }}
-            className="border-brand/20 bg-brand/5 hover:bg-brand/10 w-full cursor-pointer rounded-md border p-2.5 text-left transition-colors"
+            sx={stylexStyles2.rule2}
           >
-            <span className="text-foreground text-xs font-medium">
-              Upgrade to Cloud
-            </span>
-            <p className="text-foreground-alt/50 mt-0.5 text-xs">
+            <span sx={stylexStyles2.rule3}>Upgrade to Cloud</span>
+            <p sx={stylexStyles2.rule4}>
               Subscribe to enable cloud sync and backup
             </p>
           </button>
@@ -121,13 +210,13 @@ export function BillingSection({
                   onClick={() => {
                     handleNavigate(`org/${org.id}/billing`)
                   }}
-                  className="border-foreground/6 bg-background-card/20 hover:border-foreground/12 w-full cursor-pointer rounded-md border p-2.5 text-left transition-colors"
+                  sx={stylexStyles2.rule5}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-foreground text-xs font-medium">
+                  <div sx={stylexStyles2.rule6}>
+                    <span sx={stylexStyles2.rule3}>
                       {org.displayName || org.id}
                     </span>
-                    <span className="text-brand/60 text-xs">Manage</span>
+                    <span sx={stylexStyles2.rule7}>Manage</span>
                   </div>
                 </button>,
               ]

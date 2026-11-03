@@ -17,16 +17,30 @@ import {
   isAccountStatusLoaded,
 } from './account-status.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    minHeight: 0,
+    width: '100%',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule2: { width: '100%', maxWidth: 'var(--container-sm)' },
+})
+
 // RouterLoadingGate renders the shared session loading card for a router gate
 // that is waiting on asynchronous state. Matches AppSession's loading shell so
 // the card reads as a continuous transition into the router.
 function RouterLoadingGate({ detail }: { detail: string }) {
   return (
-    <div
-      data-testid="session-loading"
-      className="flex h-full min-h-0 w-full flex-1 items-center justify-center p-6"
-    >
-      <div className="w-full max-w-sm">
+    <div data-testid="session-loading" sx={stylexStyles.rule1}>
+      <div sx={stylexStyles.rule2}>
         <LoadingCard
           view={{
             state: 'loading',

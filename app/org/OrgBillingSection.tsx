@@ -42,6 +42,128 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+import {
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+  motion as themeMotion,
+  radii as themeRadii,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    borderRadius: '3.40282e38px',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: `color-mix(in oklab, ${themeColors['--color-brand']} 60%, transparent)`,
+  },
+  rule2: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule3: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    columnGap: `calc(${themeLayout['--spacing']} * 4)`,
+    rowGap: themeLayout['--spacing'],
+  },
+  rule4: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: themeLayout['--spacing'],
+  },
+  rule5: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule6: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule7: {
+    display: 'flex',
+    cursor: { default: 'pointer', ':disabled': 'not-allowed' },
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-destructive'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule8: {
+    cursor: { default: 'pointer', ':disabled': 'not-allowed' },
+    borderRadius: '.25rem',
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule9: {
+    display: 'flex',
+    cursor: { default: 'pointer', ':disabled': 'not-allowed' },
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-destructive'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -92,11 +214,7 @@ function OrgBillingBadge() {
   const billing = response?.billingAccount
   const hasActive = billing && isStatusActive(billing.status)
   if (!hasActive) return null
-  return (
-    <span className="border-brand/15 text-brand/60 rounded-full border px-1.5 py-0.5 text-xs font-medium">
-      Active
-    </span>
-  )
+  return <span sx={stylexStyles2.rule1}>Active</span>
 }
 
 function OrgBillingBody({
@@ -116,10 +234,14 @@ function OrgBillingBody({
   }, [navigateSession, billingAccountId])
 
   return (
-    <div className="space-y-2">
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
+      }
+    >
       {!billingAccountId && (
         <InfoCard>
-          <p className="text-foreground-alt text-xs">
+          <p sx={stylexStyles2.rule2}>
             No billing account assigned to this organization.
           </p>
         </InfoCard>
@@ -132,9 +254,7 @@ function OrgBillingBody({
       {billingAccountId &&
         (!billing || billing.status === BillingStatus.BillingStatus_NONE) && (
           <InfoCard>
-            <p className="text-foreground-alt text-xs">
-              No active billing on this account.
-            </p>
+            <p sx={stylexStyles2.rule2}>No active billing on this account.</p>
           </InfoCard>
         )}
       {billingAccountId &&
@@ -146,7 +266,7 @@ function OrgBillingBody({
             onManage={handleManage}
           />
         )}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+      <div sx={stylexStyles2.rule3}>
         <OrgBillingAccountPicker orgId={orgId} currentBaId={billingAccountId} />
         {billingAccountId && <OrgBillingDetachAction orgId={orgId} />}
       </div>
@@ -207,7 +327,7 @@ function OrgBillingAccountPicker({
       : 'Assign billing account'
 
   return (
-    <div className="flex flex-col items-start gap-1">
+    <div sx={stylexStyles2.rule4}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild disabled={!session || assigning}>
           <DropdownTriggerButton triggerStyle="ghost">
@@ -232,13 +352,13 @@ function OrgBillingAccountPicker({
                     isSelected ? stylexStyles.rule3 : stylexStyles.rule4,
                   ]}
                 />
-                <span className="text-xs">{label}</span>
+                <span sx={stylexStyles2.rule5}>{label}</span>
               </DropdownMenuItem>
             )
           })}
         </DropdownMenuContent>
       </DropdownMenu>
-      {error && <span className="text-destructive text-xs">{error}</span>}
+      {error && <span sx={stylexStyles2.rule6}>{error}</span>}
     </div>
   )
 }
@@ -271,17 +391,17 @@ function OrgBillingDetachAction({ orgId }: { orgId: string }) {
   }, [session, detaching, orgId])
 
   return (
-    <div className="flex flex-col items-start gap-1">
+    <div sx={stylexStyles2.rule4}>
       <button
         type="button"
         onClick={() => setOpen(true)}
         disabled={!session}
-        className="text-foreground-alt hover:text-destructive flex cursor-pointer items-center gap-1 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+        sx={stylexStyles2.rule7}
       >
         <LuX sx={stylexStyles.rule2} />
         <span>Detach billing</span>
       </button>
-      {error && <span className="text-destructive text-xs">{error}</span>}
+      {error && <span sx={stylexStyles2.rule6}>{error}</span>}
       <Dialog
         open={open}
         onOpenChange={(next) => {
@@ -303,7 +423,7 @@ function OrgBillingDetachAction({ orgId }: { orgId: string }) {
               type="button"
               onClick={handleCancel}
               disabled={detaching}
-              className="text-foreground-alt hover:text-foreground cursor-pointer rounded px-3 py-1.5 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+              sx={stylexStyles2.rule8}
             >
               Cancel
             </button>
@@ -311,7 +431,7 @@ function OrgBillingDetachAction({ orgId }: { orgId: string }) {
               type="button"
               onClick={() => void handleConfirm()}
               disabled={detaching}
-              className="border-destructive/30 bg-destructive/10 hover:bg-destructive/20 text-destructive flex cursor-pointer items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+              sx={stylexStyles2.rule9}
             >
               <LuX sx={stylexStyles.rule2} />
               <span>{detaching ? 'Detaching…' : 'Detach'}</span>

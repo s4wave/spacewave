@@ -13,14 +13,13 @@ import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { AuthScreenLayout } from '@s4wave/app/auth/AuthScreenLayout.js'
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import {
   AuthCard,
   AuthPrimaryActionButton,
   AuthSecondaryActionButton,
   AuthStatusPanel,
-  authInputClassName,
+  authInputStyles,
   getErrorMessage,
   isUsernameTakenError,
   loginWithEntityPem,
@@ -47,6 +46,100 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
+
+import {
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+  radii as themeRadii,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule2: {
+    display: 'flex',
+    width: '100%',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule3: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule4: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule5: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 11)`,
+    height: `calc(${themeLayout['--spacing']} * 11)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '3.40282e38px',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+  },
+  rule6: { textAlign: 'left' },
+  rule7: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule8: {
+    display: 'flex',
+    width: '100%',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule9: {
+    display: 'grid',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    gridTemplateColumns: {
+      default: null,
+      '@media (min-width: 40rem)': 'repeat(3, minmax(0, 1fr))',
+    },
+  },
+  rule10: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 20%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule11: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule12: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule13: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -216,9 +309,7 @@ export function PasskeyConfirmPage() {
         intro={
           <>
             <AnimatedLogo followMouse={false} />
-            <h2 className="text-foreground text-lg font-semibold">
-              Passkey session expired
-            </h2>
+            <h2 sx={stylexStyles2.rule1}>Passkey session expired</h2>
           </>
         }
       >
@@ -226,7 +317,7 @@ export function PasskeyConfirmPage() {
           icon={<LuCircleAlert sx={stylexStyles.rule1} />}
           message="Your desktop passkey session has expired. Start the passkey flow again."
         >
-          <div className="flex w-full flex-col gap-2">
+          <div sx={stylexStyles2.rule2}>
             <AuthPrimaryActionButton
               onClick={handleRestart}
               icon={<LuFingerprint sx={stylexStyles.rule2} />}
@@ -235,7 +326,7 @@ export function PasskeyConfirmPage() {
             </AuthPrimaryActionButton>
             <AuthSecondaryActionButton
               onClick={handleCancel}
-              className="flex items-center justify-center gap-2"
+              sx={stylexStyles2.rule3}
             >
               <LuArrowLeft sx={stylexStyles.rule2} />
               Back to login
@@ -252,9 +343,7 @@ export function PasskeyConfirmPage() {
         intro={
           <>
             <AnimatedLogo followMouse={false} />
-            <h2 className="text-foreground text-lg font-semibold">
-              Passkey sign-in failed
-            </h2>
+            <h2 sx={stylexStyles2.rule1}>Passkey sign-in failed</h2>
           </>
         }
       >
@@ -262,7 +351,7 @@ export function PasskeyConfirmPage() {
           icon={<LuCircleAlert sx={stylexStyles.rule1} />}
           message={state.message}
         >
-          <div className="flex w-full flex-col gap-2">
+          <div sx={stylexStyles2.rule2}>
             <AuthPrimaryActionButton
               onClick={handleRestart}
               icon={<LuFingerprint sx={stylexStyles.rule2} />}
@@ -271,7 +360,7 @@ export function PasskeyConfirmPage() {
             </AuthPrimaryActionButton>
             <AuthSecondaryActionButton
               onClick={handleCancel}
-              className="flex items-center justify-center gap-2"
+              sx={stylexStyles2.rule3}
             >
               <LuArrowLeft sx={stylexStyles.rule2} />
               Back to login
@@ -295,15 +384,13 @@ export function PasskeyConfirmPage() {
       intro={
         <>
           <AnimatedLogo followMouse={false} />
-          <div className="flex items-center gap-2">
-            <div className="bg-brand/10 border-brand/30 flex size-11 items-center justify-center rounded-full border">
+          <div sx={stylexStyles2.rule4}>
+            <div sx={stylexStyles2.rule5}>
               <LuFingerprint sx={stylexStyles.rule3} />
             </div>
-            <div className="text-left">
-              <h2 className="text-foreground text-lg font-semibold">
-                Finish passkey setup
-              </h2>
-              <p className="text-foreground-alt text-sm">
+            <div sx={stylexStyles2.rule6}>
+              <h2 sx={stylexStyles2.rule1}>Finish passkey setup</h2>
+              <p sx={stylexStyles2.rule7}>
                 Choose your Spacewave username to finish desktop sign-in.
               </p>
             </div>
@@ -311,24 +398,18 @@ export function PasskeyConfirmPage() {
         </>
       }
     >
-      <div className="flex w-full flex-col gap-6">
-        <div className="grid gap-2 sm:grid-cols-3">
+      <div sx={stylexStyles2.rule8}>
+        <div sx={stylexStyles2.rule9}>
           {HIGHLIGHTS.map((item) => (
-            <div
-              key={item}
-              className="border-foreground/10 bg-background/20 text-foreground-alt rounded-md border px-3 py-2 text-xs"
-            >
+            <div key={item} sx={stylexStyles2.rule10}>
               {item}
             </div>
           ))}
         </div>
 
-        <AuthCard className="flex flex-col gap-6">
-          <div className="flex w-full flex-col gap-2">
-            <label
-              htmlFor="desktop-passkey-username"
-              className="text-foreground text-sm font-medium"
-            >
+        <AuthCard sx={stylexStyles2.rule11}>
+          <div sx={stylexStyles2.rule2}>
+            <label htmlFor="desktop-passkey-username" sx={stylexStyles2.rule12}>
               Username
             </label>
             <input
@@ -339,19 +420,16 @@ export function PasskeyConfirmPage() {
               onChange={handleUsernameChange}
               placeholder={pendingState.username || 'your-username'}
               disabled={isBusy}
-              className={cn(
-                authInputClassName,
-                usernameError && 'border-destructive',
-              )}
+              sx={
+                usernameError ? authInputStyles.invalid : authInputStyles.base
+              }
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !isBusy) {
                   void handleCreateAccount()
                 }
               }}
             />
-            {usernameError && (
-              <p className="text-destructive text-xs">{usernameError}</p>
-            )}
+            {usernameError && <p sx={stylexStyles2.rule13}>{usernameError}</p>}
           </div>
 
           <OptionalPinLock
@@ -372,7 +450,7 @@ export function PasskeyConfirmPage() {
             disabled={isBusy}
           />
 
-          <div className="flex w-full flex-col gap-2">
+          <div sx={stylexStyles2.rule2}>
             <AuthPrimaryActionButton
               onClick={() => void handleCreateAccount()}
               disabled={isBusy || !username || !!usernameError || !agreed}
@@ -384,7 +462,7 @@ export function PasskeyConfirmPage() {
             </AuthPrimaryActionButton>
             <AuthSecondaryActionButton
               onClick={handleCancel}
-              className="flex items-center justify-center gap-2"
+              sx={stylexStyles2.rule3}
             >
               <LuArrowLeft sx={stylexStyles.rule2} />
               Back to login
