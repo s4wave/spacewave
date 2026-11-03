@@ -37,6 +37,7 @@ import { writeCodeFixture } from './code-fixture.js'
 import { writeCommandFixture } from './command-fixture.js'
 import { writeLoginFixture } from './login-fixture.js'
 import { writeReferenceFixture } from './reference-fixture.js'
+import { writeFrameFixture } from './frame-fixture.js'
 import { writeLoadingScreenFixture } from './loading-screen-fixture.js'
 import { writeCredentialFixture } from './credential-fixture.js'
 import { writeBadgeFixture } from './badge-fixture.js'
@@ -652,6 +653,7 @@ test(
         await writeCommandFixture(root, version)
         await writeLoginFixture(root, version)
         await writeReferenceFixture(root, version)
+        await writeFrameFixture(root, version)
         await writeLoadingScreenFixture(root, version)
         await writePathFixture(root, version)
         await writeTabsFixture(root, version)
@@ -661,6 +663,7 @@ test(
         main = "import{GroupSamples}from'./GroupSamples';" + main
         main =
           "import{LoadingScreenSamples}from'./LoadingScreenSamples';" + main
+        main = "import{FrameSamples}from'./FrameSamples';" + main
         main = "import{ReferenceSamples}from'./ReferenceSamples';" + main
         main = "import{LoginSamples}from'./LoginSamples';" + main
         main = "import{CommandSamples}from'./CommandSamples';" + main
@@ -675,7 +678,7 @@ test(
         main = "import{SheetSamples}from'./SheetSamples';" + main
         main = main.replace(
           "createRoot(document.getElementById('root')!).render",
-          "if(new URLSearchParams(location.search).has('references'))createRoot(document.getElementById('root')!).render(<ReferenceSamples/>);else if(new URLSearchParams(location.search).has('loading-screen'))createRoot(document.getElementById('root')!).render(<LoadingScreenSamples/>);else if(new URLSearchParams(location.search).has('login'))createRoot(document.getElementById('root')!).render(<LoginSamples/>);else if(new URLSearchParams(location.search).has('command'))createRoot(document.getElementById('root')!).render(<CommandSamples/>);else if(new URLSearchParams(location.search).has('groups'))createRoot(document.getElementById('root')!).render(<GroupSamples/>);else if(new URLSearchParams(location.search).has('code'))createRoot(document.getElementById('root')!).render(<CodeSamples/>);else if(new URLSearchParams(location.search).has('trace'))createRoot(document.getElementById('root')!).render(<TraceSamples/>);else if(new URLSearchParams(location.search).has('credential'))createRoot(document.getElementById('root')!).render(<CredentialSamples/>);else if(new URLSearchParams(location.search).has('icon-defaults'))createRoot(document.getElementById('root')!).render(<IconDefaultsSamples/>);else if(new URLSearchParams(location.search).has('floating'))createRoot(document.getElementById('root')!).render(<FloatingSamples/>);else if(new URLSearchParams(location.search).has('badge'))createRoot(document.getElementById('root')!).render(<BadgeSamples/>);else if(new URLSearchParams(location.search).has('tree'))createRoot(document.getElementById('root')!).render(<TreeSamples/>);else if(new URLSearchParams(location.search).has('tabs'))createRoot(document.getElementById('root')!).render(<TabsSamples/>);else if(new URLSearchParams(location.search).has('path'))createRoot(document.getElementById('root')!).render(<PathSamples/>);else if(new URLSearchParams(location.search).has('dialog'))createRoot(document.getElementById('root')!).render(<DialogSamples/>);else if(new URLSearchParams(location.search).has('buttons'))createRoot(document.getElementById('root')!).render(<ButtonSamples/>);else if(new URLSearchParams(location.search).has('input'))createRoot(document.getElementById('root')!).render(<InputSamples/>);else if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
+          "if(new URLSearchParams(location.search).has('frame'))createRoot(document.getElementById('root')!).render(<FrameSamples/>);else if(new URLSearchParams(location.search).has('owned'))createRoot(document.getElementById('root')!).render(<OwnedStyles/>);else if(new URLSearchParams(location.search).has('references'))createRoot(document.getElementById('root')!).render(<ReferenceSamples/>);else if(new URLSearchParams(location.search).has('loading-screen'))createRoot(document.getElementById('root')!).render(<LoadingScreenSamples/>);else if(new URLSearchParams(location.search).has('login'))createRoot(document.getElementById('root')!).render(<LoginSamples/>);else if(new URLSearchParams(location.search).has('command'))createRoot(document.getElementById('root')!).render(<CommandSamples/>);else if(new URLSearchParams(location.search).has('groups'))createRoot(document.getElementById('root')!).render(<GroupSamples/>);else if(new URLSearchParams(location.search).has('code'))createRoot(document.getElementById('root')!).render(<CodeSamples/>);else if(new URLSearchParams(location.search).has('trace'))createRoot(document.getElementById('root')!).render(<TraceSamples/>);else if(new URLSearchParams(location.search).has('credential'))createRoot(document.getElementById('root')!).render(<CredentialSamples/>);else if(new URLSearchParams(location.search).has('icon-defaults'))createRoot(document.getElementById('root')!).render(<IconDefaultsSamples/>);else if(new URLSearchParams(location.search).has('floating'))createRoot(document.getElementById('root')!).render(<FloatingSamples/>);else if(new URLSearchParams(location.search).has('badge'))createRoot(document.getElementById('root')!).render(<BadgeSamples/>);else if(new URLSearchParams(location.search).has('tree'))createRoot(document.getElementById('root')!).render(<TreeSamples/>);else if(new URLSearchParams(location.search).has('tabs'))createRoot(document.getElementById('root')!).render(<TabsSamples/>);else if(new URLSearchParams(location.search).has('path'))createRoot(document.getElementById('root')!).render(<PathSamples/>);else if(new URLSearchParams(location.search).has('dialog'))createRoot(document.getElementById('root')!).render(<DialogSamples/>);else if(new URLSearchParams(location.search).has('buttons'))createRoot(document.getElementById('root')!).render(<ButtonSamples/>);else if(new URLSearchParams(location.search).has('input'))createRoot(document.getElementById('root')!).render(<InputSamples/>);else if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
         )
         // Discover the actual tree API through its public barrel before converting the caller.
         const treeImports = await readSharedStyleApis(
@@ -923,6 +926,46 @@ void invalidNativeDelegate;
       // Compare default and hovered controls in both engines at every accepted size.
       const manifest = {
         states: [
+          ...['default', 'hovered', 'coarse', 'overlay'].map((mode) => ({
+            id: `frame-${mode}`,
+            path: `/?frame=${mode}`,
+            hasTouch: mode === 'coarse',
+            ready: async (page: import('playwright').Page) => {
+              await page.locator('#frame-fixtures').waitFor({ timeout: 5000 })
+              await page.evaluate(() => document.fonts.ready)
+              assert.equal(
+                await page
+                  .locator('#frame-fixtures > [role="group"]')
+                  .evaluate((element) => getComputedStyle(element).minWidth),
+                '211px',
+              )
+            },
+            setup: async (page: import('playwright').Page) => {
+              if (mode === 'hovered')
+                await page
+                  .getByRole('button', { name: 'Default item', exact: true })
+                  .hover({ timeout: 5000 })
+              if (mode === 'overlay') {
+                await page
+                  .getByRole('button', { name: 'Open overlay', exact: true })
+                  .click()
+                await page
+                  .getByRole('dialog', { name: 'Frame overlay' })
+                  .waitFor({ timeout: 5000 })
+              }
+            },
+          })),
+          {
+            id: 'owned-default',
+            path: '/?owned=default',
+            ready: async (page: import('playwright').Page) => {
+              await page
+                .locator('[aria-label="Default box"]')
+                .first()
+                .waitFor({ timeout: 5000 })
+              await page.evaluate(() => document.fonts.ready)
+            },
+          },
           ...['default', 'dragged', 'resized', 'minimized'].map((mode) => ({
             id: `floating-${mode}`,
             path: `/?floating=${mode}`,
@@ -1595,6 +1638,19 @@ void invalidNativeDelegate;
             'icon-defaults-dropdown-dark',
             'icon-defaults-menubar-dark',
           ],
+        },
+        {
+          name: 'frame controls',
+          ids: [
+            'frame-default',
+            'frame-hovered',
+            'frame-coarse',
+            'frame-overlay',
+          ],
+        },
+        {
+          name: 'owned style inputs',
+          ids: ['owned-default'],
         },
         {
           name: 'shared components',

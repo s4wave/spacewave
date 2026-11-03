@@ -1,3 +1,4 @@
+import type { StyleXStyles as BottomBarStyles } from '@stylexjs/stylex'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { LuBot } from '@s4wave/web/images/icons.js'
 
@@ -31,6 +32,7 @@ import {
 } from './AgentConnectPanel.js'
 
 // AGENT_CONNECT_MENU_ID is the bottom-bar level ID of the connect panel.
+
 const AGENT_CONNECT_MENU_ID = 'agent-connect'
 
 // CODE_TTL_MS is the pairing relay's code lifetime.
@@ -179,7 +181,7 @@ export function AgentConnectButton() {
   }, [session, waiting, code, setOpenMenu])
 
   const buttonRender = useCallback(
-    (selected: boolean, onClick: () => void, className?: string) => {
+    (selected: boolean, onClick: () => void, sx?: BottomBarStyles) => {
       // Opening copies the prompt unless an agent is mid-approval.
       const handleClick = () => {
         if (!selected && !pairing?.remotePeerId) {
@@ -193,7 +195,7 @@ export function AgentConnectButton() {
             <BottomBarItem
               selected={selected}
               onClick={handleClick}
-              className={className}
+              sx={sx}
               aria-label={
                 selected ? 'Close agent connection' : 'Connect an agent'
               }

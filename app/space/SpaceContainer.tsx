@@ -1,3 +1,4 @@
+import type { StyleXStyles as BottomBarStyles } from '@stylexjs/stylex'
 import {
   type ReactNode,
   useMemo,
@@ -94,6 +95,7 @@ import {
 } from '@s4wave/app/hooks/useSharedMounts.js'
 
 // noSpaceObjectTargets stands in for the object targets while they load.
+
 const noSpaceObjectTargets: SpaceObjectTargets = { targets: [], more: false }
 
 // useSpaceContainerController owns Space mounting, route projection, object
@@ -333,11 +335,11 @@ function useSpaceContainerController() {
   )
 
   const sharedObjectButton = useCallback(
-    (selected: boolean, onClick: () => void, className?: string) => (
+    (selected: boolean, onClick: () => void, sx?: BottomBarStyles) => (
       <BottomBarItem
         selected={selected}
         onClick={onClick}
-        className={className}
+        sx={sx}
         aria-label={
           selected ? 'Close shared object menu' : 'Open shared object menu'
         }

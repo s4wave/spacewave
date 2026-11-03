@@ -1,3 +1,4 @@
+import type { StyleXStyles as BottomBarStyles } from '@stylexjs/stylex'
 import {
   lazy,
   useCallback,
@@ -101,11 +102,12 @@ import {
   SessionUploadIndicator,
 } from './SessionUploadManagerContext.js'
 
-import * as stylex from '@stylexjs/stylex'
 import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
+
+import * as stylex from '@stylexjs/stylex'
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -303,7 +305,7 @@ interface AccountButton {
   button: (
     selected: boolean,
     onClick: () => void,
-    className?: string,
+    sx?: BottomBarStyles,
   ) => ReactNode
   label: string
 }
@@ -327,11 +329,11 @@ function useAccountButton(
 
   const badge = accountBadge(isCloudProvider, isDormant)
   const button = useCallback(
-    (selected: boolean, onClick: () => void, className?: string) => (
+    (selected: boolean, onClick: () => void, sx?: BottomBarStyles) => (
       <BottomBarItem
         selected={selected}
         onClick={onClick}
-        className={className}
+        sx={sx}
         data-testid="session-account-menu-button"
         aria-label={selected ? 'Close account menu' : 'Open account menu'}
       >

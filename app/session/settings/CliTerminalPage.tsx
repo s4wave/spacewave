@@ -1,3 +1,4 @@
+import type { StyleXStyles as BottomBarStyles } from '@stylexjs/stylex'
 import { useCallback, useMemo } from 'react'
 import { useBldrContext } from '@aptre/bldr-react'
 import { Client as SRPCClient } from 'starpc'
@@ -22,8 +23,9 @@ import { BottomBarLevel } from '@s4wave/web/frame/bottom-bar-level.js'
 import { BottomBarItem } from '@s4wave/web/frame/bottom-bar-item.js'
 import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'
 
-import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+import * as stylex from '@stylexjs/stylex'
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -90,12 +92,8 @@ export function CliTerminalPage() {
   const connectTerminal = useCliTerminalSession(sessionIndex, openTerminal)
 
   const renderTerminalBarItem = useCallback(
-    (selected: boolean, onClick: () => void, className?: string) => (
-      <BottomBarItem
-        selected={selected}
-        onClick={onClick}
-        className={className}
-      >
+    (selected: boolean, onClick: () => void, sx?: BottomBarStyles) => (
+      <BottomBarItem selected={selected} onClick={onClick} sx={sx}>
         <LuTerminal sx={stylexStyles.rule1} />
         <div className="flex-shrink flex-grow truncate">Terminal</div>
         <div className="bg-border mx-2 h-3 w-px" />

@@ -1,3 +1,4 @@
+import { isDefaultObjectParameter } from './parameters.js'
 import { parseSync, traverse } from '@babel/core'
 import type { Node } from '@babel/types'
 import { dirname, resolve, sep } from 'node:path'
@@ -305,19 +306,25 @@ export function prepareComponentStyles(
       // A partially converted component keeps its existing two inputs for the hand pass.
       if (
         path.scope.hasOwnBinding('sx') &&
-        path.node.params.some(
-          (parameter) =>
+        path.node.params.some((input) => {
+          const parameter = isDefaultObjectParameter(input) ? input.left : input
+          return (
             parameter.type === 'ObjectPattern' &&
             parameter.properties.some(
               (property) =>
                 property.type === 'ObjectProperty' &&
                 property.key.type === 'Identifier' &&
                 property.key.name === 'className',
-            ),
-        )
+            )
+          )
+        })
       )
         return
-      for (const parameter of path.get('params')) {
+      for (const input of path.get('params')) {
+        const parameter =
+          input.isAssignmentPattern() && isDefaultObjectParameter(input.node)
+            ? input.get('left')
+            : input
         if (!parameter.isObjectPattern()) continue
         for (const property of parameter.get('properties')) {
           if (!property.isObjectProperty() || property.node.computed) continue

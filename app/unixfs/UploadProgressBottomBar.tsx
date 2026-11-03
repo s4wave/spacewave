@@ -1,3 +1,4 @@
+import type { StyleXStyles as BottomBarStyles } from '@stylexjs/stylex'
 import type { IconType } from '@s4wave/web/images/icons.js'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
@@ -24,11 +25,12 @@ import type {
   UploadItem,
 } from './useUploadManager.js'
 
-import * as stylex from '@stylexjs/stylex'
 import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
+
+import * as stylex from '@stylexjs/stylex'
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -445,7 +447,7 @@ export function UploadProgressBottomBar({
   }, [lastEvent])
 
   const buttonRender = useCallback(
-    (selected: boolean, onClick: () => void, className?: string) => (
+    (selected: boolean, onClick: () => void, sx?: BottomBarStyles) => (
       <Popover open={feedback !== null}>
         <PopoverAnchor asChild>
           <button
@@ -454,7 +456,7 @@ export function UploadProgressBottomBar({
             className={cn(
               'flex h-full shrink-0 items-center gap-1.5 px-2 text-xs whitespace-nowrap',
               selected && 'text-foreground',
-              className,
+              sx,
             )}
           >
             {activeUploading > 0 ? (

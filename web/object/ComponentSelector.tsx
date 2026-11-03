@@ -1,3 +1,6 @@
+import { useControlStyles } from '@s4wave/web/style/ControlStylesProvider.js'
+import { stylexProps } from '@s4wave/web/style/props.js'
+import { cn } from '@s4wave/web/style/utils.js'
 import React, { useMemo } from 'react'
 import { LuCheck } from '@s4wave/web/images/icons.js'
 
@@ -92,12 +95,16 @@ export function ComponentSelector({
   onSelectComponent,
   children,
 }: ComponentSelectorProps) {
+  // Apply the enclosing bar's touch requirements to the actual trigger button.
+  const requiredStyles = useControlStyles()
+  const attributes = stylexProps(stylexStyles.rule1, {})
+  attributes.className = cn(attributes.className, requiredStyles)
   const groups = useMemo(() => groupComponents(components), [components])
 
   return (
     <DropdownMenu open={open} onOpenChange={onOpenChange}>
       <DropdownMenuTrigger asChild>
-        <button type="button" sx={stylexStyles.rule1}>
+        <button type="button" {...attributes}>
           {children}
         </button>
       </DropdownMenuTrigger>

@@ -1,3 +1,4 @@
+import { isDefaultObjectParameter } from './parameters.js'
 import { parseSync, traverse } from '@babel/core'
 
 type Edit = { start: number; end: number; text: string }
@@ -45,16 +46,20 @@ export function preserveNativeProps(source: string, filename: string): string {
       // Only a component that owns sx may replace its forwarded native-property composition.
       const fn = path.getFunctionParent()?.node
       if (!fn || !('params' in fn)) return
-      const input = fn.params.find(
-        (p) =>
-          p.type === 'ObjectPattern' &&
-          p.properties.some(
-            (q) =>
-              q.type === 'ObjectProperty' &&
-              q.key.type === 'Identifier' &&
-              q.key.name === 'sx',
-          ),
-      )
+      const input = fn.params
+        .map((parameter) =>
+          isDefaultObjectParameter(parameter) ? parameter.left : parameter,
+        )
+        .find(
+          (p) =>
+            p.type === 'ObjectPattern' &&
+            p.properties.some(
+              (q) =>
+                q.type === 'ObjectProperty' &&
+                q.key.type === 'Identifier' &&
+                q.key.name === 'sx',
+            ),
+        )
       if (input?.type !== 'ObjectPattern') return
       const rest = input.properties.find((p) => p.type === 'RestElement')
       if (rest?.type !== 'RestElement' || rest.argument.type !== 'Identifier')

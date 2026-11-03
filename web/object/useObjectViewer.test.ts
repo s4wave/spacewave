@@ -430,7 +430,9 @@ describe('useObjectViewer bottom bar button', () => {
     )
     const onClick = vi.fn()
 
-    const { container } = render(result.current.buttonRender(true, onClick, ''))
+    const { container } = render(
+      result.current.buttonRender(true, onClick, null),
+    )
 
     const buttons = Array.from(container.querySelectorAll('button'))
     expect(buttons).toHaveLength(2)

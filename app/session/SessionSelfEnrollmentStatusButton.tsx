@@ -1,3 +1,4 @@
+import type { StyleXStyles as BottomBarStyles } from '@stylexjs/stylex'
 import { useCallback, useState } from 'react'
 import {
   LuCircleAlert,
@@ -24,8 +25,17 @@ import {
   useSessionSelfEnrollmentStatus,
 } from './SessionSelfEnrollmentStatusContext.js'
 
-import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+import * as stylex from '@stylexjs/stylex'
+
+import { colors as themeColors } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: { color: themeColors['--color-brand'] },
+  rule2: { color: themeColors['--color-destructive'] },
+  rule3: { color: themeColors['--color-warning'] },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -38,18 +48,18 @@ const stylexStyles = stylex.create({
 export function SessionSelfEnrollmentStatusButton() {
   const status = useSessionSelfEnrollmentStatus()
   const buttonRender = useCallback(
-    (selected: boolean, onClick: () => void, className?: string) => (
+    (selected: boolean, onClick: () => void, sx?: BottomBarStyles) => (
       <Popover open={selected}>
         <PopoverAnchor asChild>
           <BottomBarItem
             selected={selected}
             onClick={onClick}
-            className={cn(
-              className,
-              status.running && 'text-brand',
-              status.failed && 'text-destructive',
-              status.credentialRequired && 'text-warning',
-            )}
+            sx={[
+              sx,
+              !!status.running && stylexStyles2.rule1,
+              !!status.failed && stylexStyles2.rule2,
+              !!status.credentialRequired && stylexStyles2.rule3,
+            ]}
             aria-label={status.ariaLabel}
             data-testid="session-self-enrollment-status-button"
           >

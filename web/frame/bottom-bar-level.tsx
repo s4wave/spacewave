@@ -1,3 +1,4 @@
+import type { StyleXStyles as BottomBarStyles } from '@stylexjs/stylex'
 import React, { use, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import {
@@ -14,7 +15,7 @@ export interface BottomBarLevelProps {
   button: (
     selected: boolean,
     onClick: () => void,
-    className?: string,
+    sx?: BottomBarStyles,
   ) => React.ReactNode
   // overlay renders in the frame while this level's menu is open. It is part
   // of this level's tree, so it reads this level's state and contexts.

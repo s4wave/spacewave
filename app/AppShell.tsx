@@ -23,7 +23,7 @@ export function AppShell(props: IAppShellProps) {
   return (
     <StateNamespaceProvider rootAtom={localStateAtom}>
       <WindowFrame
-        className={'dark'}
+        dark
         centerTopBar={isMacElectron || undefined}
         topBarHeight={isMacElectron ? 28 : undefined}
         topBar={{
