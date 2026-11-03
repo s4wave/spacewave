@@ -82,5 +82,8 @@ jobs:
             exit 1
           fi
 
+          # Module loading can update manifests; this job publishes source fixes.
+          git show HEAD:go.mod > go.mod
+          git show HEAD:go.sum > go.sum
           git pull --rebase origin master
           git push origin HEAD:master
