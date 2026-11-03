@@ -508,13 +508,41 @@ func (s *PackfileStore) probeCatalog(
 	visit func(eng *PackReader) (bool, error),
 ) error {
 	// Select the catalog packs that may contain the block key.
-	candidates, err := s.candidates(ctx, view, key)
+	candidates, located, err := s.candidates(ctx, view, key)
 	if err != nil {
 		return err
 	}
+	if err := s.probeList(ctx, candidates, lookup, visit); err != nil || lookup.hit || !located {
+		return err
+	}
+
+	// The locator placed the key in a pack that lacks it, so its answer rules
+	// nothing out: test every filter the first round skipped.
+	tried := make(map[*manifestEntry]struct{}, len(candidates))
+	for _, item := range candidates {
+		tried[item] = struct{}{}
+	}
+	var rest []*manifestEntry
+	for _, item := range view.filterCandidates(bloom.NewKey(key)) {
+		if _, ok := tried[item]; !ok {
+			rest = append(rest, item)
+		}
+	}
+	return s.probeList(ctx, rest, lookup, visit)
+}
+
+// probeList probes candidates in order until one holds the block, setting
+// lookup.hit when one does.
+func (s *PackfileStore) probeList(
+	ctx context.Context,
+	candidates []*manifestEntry,
+	lookup *packLookup,
+	visit func(eng *PackReader) (bool, error),
+) error {
 	lookup.candidates += len(candidates)
 
 	// Probe candidate pack readers until the requested block is found.
+	var misses int
 	for i, item := range candidates {
 		// Validate the candidate pack size before opening its reader.
 		entry := item.entry
@@ -546,6 +574,7 @@ func (s *PackfileStore) probeCatalog(
 			return nil
 		}
 		lookup.negative++
+		misses++
 
 		// The newest candidate usually holds the block. After it misses, each
 		// remaining bloom hit costs an index load, and probing in order pays
@@ -553,7 +582,7 @@ func (s *PackfileStore) probeCatalog(
 		// Packs without a filter match every key and stay in probe order. The
 		// load is best effort: the ordered probe reports the error of any pack
 		// it visits, and a failure in a pack it never reaches stays unseen.
-		if lookup.negative == 1 {
+		if misses == 1 {
 			s.loadBloomHitIndexes(ctx, candidates[i+1:])
 		}
 	}
