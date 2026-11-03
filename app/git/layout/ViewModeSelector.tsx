@@ -12,43 +12,43 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
-    display: 'flex',
-    alignItems: 'center',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
     gap: `calc(${themeLayout['--spacing']} * .5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
+    display: 'flex',
     borderBottomStyle: themeUtilityState['--tw-border-style'],
     borderBottomWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
-    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
-    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
   },
   rule2: {
+    WebkitUserSelect: 'none',
     borderRadius: '.25rem',
-    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
     paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    WebkitUserSelect: 'none',
     userSelect: 'none',
   },
   rule3: {
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-white']} 8%, transparent)`,
     '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-white']} 8%, transparent)`,
     color: themeColors['--color-foreground'],
+    fontWeight: themeFonts['--font-weight-medium'],
   },
   rule4: {
-    color: {
-      default: themeColors['--color-foreground-alt'],
-      '@media (hover: hover)': {
-        default: null,
-        ':hover': themeColors['--color-foreground'],
-      },
-    },
     backgroundColor: {
       default: null,
       '@media (hover: hover)': {
         default: null,
         ':hover': `color-mix(in oklab, ${themeColors['--color-white']} 3%, transparent)`,
+      },
+    },
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
       },
     },
   },

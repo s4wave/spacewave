@@ -14,37 +14,49 @@ import {
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    flexShrink: 0,
-    borderTopStyle: themeUtilityState['--tw-border-style'],
-    borderTopWidth: '1px',
     borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-secondary']} 70%, transparent)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
     paddingInline: {
       default: `calc(${themeLayout['--spacing']} * 3)`,
       '@media (min-width: 40rem)': `calc(${themeLayout['--spacing']} * 4)`,
     },
-    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-secondary']} 70%, transparent)`,
+    flexShrink: 0,
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
   },
   rule2: {
-    display: 'flex',
-    alignItems: 'flex-end',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
-    borderRadius: themeRadii['--radius-md'],
-    borderStyle: themeUtilityState['--tw-border-style'],
-    borderWidth: '1px',
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
     borderColor: {
       default: `color-mix(in oklab, ${themeColors['--color-foreground']} 15%, transparent)`,
       ':focus-within': `color-mix(in oklab, ${themeColors['--color-primary']} 60%, transparent)`,
     },
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'flex-end',
     backgroundColor: themeColors['--color-background-primary'],
-    padding: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'flex',
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
   },
   rule3: {
+    '--tw-leading': `calc(${themeLayout['--spacing']} * 5)`,
+    '--tw-outline-style': 'none',
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
+    flex: 1,
+    backgroundColor: '#0000',
+    color: themeColors['--color-foreground'],
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `calc(${themeLayout['--spacing']} * 5)`,
+    opacity: { default: null, ':disabled': 0.6 },
+    outlineStyle: 'none',
+    resize: 'none',
     maxHeight: `calc(${themeLayout['--spacing']} * 32)`,
     minHeight: {
       default: `calc(${themeLayout['--spacing']} * 11)`,
@@ -54,40 +66,30 @@ const stylexStyles2 = stylex.create({
       },
     },
     minWidth: 0,
-    flex: 1,
-    resize: 'none',
-    backgroundColor: '#0000',
-    padding: `calc(${themeLayout['--spacing']} * 2)`,
-    fontSize: themeFonts['--text-sm'],
-    lineHeight: `calc(${themeLayout['--spacing']} * 5)`,
-    '--tw-leading': `calc(${themeLayout['--spacing']} * 5)`,
-    color: themeColors['--color-foreground'],
-    '--tw-outline-style': 'none',
-    outlineStyle: 'none',
     '::placeholder': { color: themeColors['--color-muted-foreground'] },
-    cursor: { default: null, ':disabled': 'not-allowed' },
-    opacity: { default: null, ':disabled': 0.6 },
   },
   rule4: {
-    display: 'flex',
-    width: {
-      default: `calc(${themeLayout['--spacing']} * 11)`,
-      '@media (min-width: 40rem)': {
-        default: null,
-        '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 9)`,
-      },
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': themeColors['--color-primary'],
     },
-    height: {
-      default: `calc(${themeLayout['--spacing']} * 11)`,
-      '@media (min-width: 40rem)': {
-        default: null,
-        '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 9)`,
-      },
+    '--tw-ring-offset-color': {
+      default: null,
+      ':focus-visible': themeColors['--color-background'],
     },
-    flexShrink: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
+    '--tw-ring-offset-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color)',
+    },
+    '--tw-ring-offset-width': { default: null, ':focus-visible': '2px' },
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
     borderRadius: 'var(--radius-sm)',
+    alignItems: 'center',
     backgroundColor: {
       default: themeColors['--color-primary'],
       '@media (hover: hover)': {
@@ -95,53 +97,51 @@ const stylexStyles2 = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-primary']} 90%, transparent)`,
       },
     },
-    color: themeColors['--color-primary-foreground'],
-    transitionProperty:
-      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
-    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
-    '--tw-ring-shadow': {
-      default: null,
-      ':focus-visible':
-        'var(--tw-ring-inset, ) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
-    },
     boxShadow: {
       default: null,
       ':focus-visible':
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     },
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': themeColors['--color-primary'],
-    },
-    '--tw-ring-offset-width': { default: null, ':focus-visible': '2px' },
-    '--tw-ring-offset-shadow': {
-      default: null,
-      ':focus-visible':
-        'var(--tw-ring-inset, ) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color)',
-    },
-    '--tw-ring-offset-color': {
-      default: null,
-      ':focus-visible': themeColors['--color-background'],
-    },
+    color: themeColors['--color-primary-foreground'],
     cursor: { default: null, ':disabled': 'not-allowed' },
+    display: 'flex',
+    flexShrink: 0,
+    justifyContent: 'center',
     opacity: { default: null, ':disabled': 0.35 },
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    height: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 40rem)': {
+        default: null,
+        '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 9)`,
+      },
+    },
+    width: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 40rem)': {
+        default: null,
+        '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 9)`,
+      },
+    },
   },
   rule5: {
-    marginTop: `calc(${themeLayout['--spacing']} * 1.5)`,
-    display: 'flex',
-    minHeight: `calc(${themeLayout['--spacing']} * 4)`,
-    alignItems: 'center',
-    justifyContent: 'space-between',
     gap: `calc(${themeLayout['--spacing']} * 3)`,
     paddingInline: themeLayout['--spacing'],
+    alignItems: 'center',
+    display: 'flex',
     fontSize: themeFonts['--text-xs'],
+    justifyContent: 'space-between',
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    marginTop: `calc(${themeLayout['--spacing']} * 1.5)`,
+    minHeight: `calc(${themeLayout['--spacing']} * 4)`,
   },
   rule6: { color: themeColors['--color-error-text'] },
   rule7: {
-    marginLeft: 'auto',
+    color: themeColors['--color-muted-foreground'],
     display: {
       default: 'none',
       '@media (min-width: 40rem)': {
@@ -149,14 +149,14 @@ const stylexStyles2 = stylex.create({
         '@media (pointer: fine)': 'inline',
       },
     },
-    color: themeColors['--color-muted-foreground'],
+    marginLeft: 'auto',
   },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 4)`,
     height: `calc(${themeLayout['--spacing']} * 4)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
   },
 })
 

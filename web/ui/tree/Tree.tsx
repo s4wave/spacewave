@@ -29,34 +29,34 @@ import { groupMarker } from '../../style/relations.stylex.js'
 
 const containerStyles = stylex.create({
   container: {
-    display: 'flex',
-    minHeight: 0,
-    flex: 1,
-    flexDirection: 'column',
     '--tw-outline-style': { default: 'none', ':focus': 'none' },
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
     outlineStyle: { default: 'none', ':focus': 'none' },
+    minHeight: 0,
   },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
-    clipPath: 'inset(50%)',
-    whiteSpace: 'nowrap',
-    borderWidth: 0,
-    width: '1px',
-    height: '1px',
     margin: '-1px',
     padding: 0,
-    position: 'absolute',
+    borderWidth: 0,
     overflow: 'hidden',
+    clipPath: 'inset(50%)',
+    position: 'absolute',
+    whiteSpace: 'nowrap',
+    height: '1px',
+    width: '1px',
   },
   rule2: {
-    display: 'flex',
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: `calc(${themeLayout['--spacing']} * 4)`,
     color: themeColors['--color-foreground-alt'],
+    display: 'flex',
+    justifyContent: 'center',
   },
   rule3: { minHeight: 0 },
 })

@@ -1,3 +1,4 @@
+import { keyframeNames } from '../../web/style/tokens.stylex.js'
 import { useCallback, useRef, useEffect, useState } from 'react'
 import { useDocumentVisibility } from '@aptre/bldr-react'
 
@@ -15,30 +16,43 @@ import {
   fonts as themeFonts,
 } from '../../web/style/tokens.stylex.js'
 
-const stylexStyles = stylex.create({
+const stylexStyles2 = stylex.create({
   rule1: {
-    pointerEvents: 'none',
-    position: 'absolute',
-    inset: 0,
-    zIndex: 50,
+    flex: 1,
+    overflow: 'auto',
+    backgroundColor: themeColors['--color-background-landing'],
+    containerType: 'inline-size',
     display: 'flex',
     flexDirection: 'column',
+    position: 'relative',
+    width: '100%',
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    inset: 0,
     alignItems: 'center',
-    justifyContent: 'center',
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 95%, transparent)`,
+    display: 'flex',
+    flexDirection: 'column',
     fontSize: themeFonts['--text-sm'],
+    justifyContent: 'center',
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    pointerEvents: 'none',
+    position: 'absolute',
+    zIndex: 50,
   },
   rule2: {
-    animationName: 'pulse',
-    animationDuration: '2s',
-    animationTimingFunction: 'cubic-bezier(.4, 0, .6, 1)',
-    animationIterationCount: 'infinite',
-    animationDirection: 'normal',
-    animationPlayState: 'running',
     animationDelay: '0s',
+    animationDirection: 'normal',
+    animationDuration: '2s',
     animationFillMode: 'none',
+    animationIterationCount: 'infinite',
+    animationName: keyframeNames['pulse'],
+    animationPlayState: 'running',
     animationTimeline: 'auto',
+    animationTimingFunction: 'cubic-bezier(.4, 0, .6, 1)',
     color: themeColors['--color-foreground-alt'],
   },
   rule3: { color: themeColors['--color-foreground-alt'] },
@@ -220,12 +234,7 @@ export function Landing() {
   )
 
   return (
-    <div
-      ref={containerRef}
-      className={
-        /* TODO(stylex): global or unknown class: landing-finish */ 'bg-background-landing landing-finish @container relative flex w-full flex-1 flex-col overflow-auto'
-      }
-    >
+    <div ref={containerRef} className="landing-finish" sx={stylexStyles2.rule1}>
       <QuickstartCommands onQuickstart={handleQuickstartCommand} />
       {visibility.tooNarrow && (
         <div sx={stylexStyles.rule1}>

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { page, userEvent } from 'vitest/browser'
 import { cleanup, render } from 'vitest-browser-react'
 
-import '@s4wave/web/style/app.css'
+import '@s4wave/web/style/app.js'
 import { StateNamespaceProvider, atom } from '@s4wave/web/state/index.js'
 
 const fixture = vi.hoisted(() => {

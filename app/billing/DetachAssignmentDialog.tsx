@@ -23,16 +23,13 @@ import {
 const stylexStyles2 = stylex.create({
   rule1: {
     '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
     color: themeColors['--color-foreground'],
+    fontWeight: themeFonts['--font-weight-medium'],
   },
   rule2: {
-    cursor: { default: 'pointer', ':disabled': 'not-allowed' },
     borderRadius: '.25rem',
-    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
     paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
     color: {
       default: themeColors['--color-foreground-alt'],
       '@media (hover: hover)': {
@@ -40,22 +37,26 @@ const stylexStyles2 = stylex.create({
         ':hover': themeColors['--color-foreground'],
       },
     },
+    cursor: { default: 'pointer', ':disabled': 'not-allowed' },
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    opacity: { default: null, ':disabled': 0.5 },
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
-    opacity: { default: null, ':disabled': 0.5 },
   },
   rule3: {
-    display: 'flex',
-    cursor: { default: 'pointer', ':disabled': 'not-allowed' },
-    alignItems: 'center',
-    gap: themeLayout['--spacing'],
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
     borderRadius: themeRadii['--radius-md'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+    gap: themeLayout['--spacing'],
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    alignItems: 'center',
     backgroundColor: {
       default: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
       '@media (hover: hover)': {
@@ -63,26 +64,25 @@ const stylexStyles2 = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
       },
     },
-    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
-    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
     color: themeColors['--color-destructive'],
+    cursor: { default: 'pointer', ':disabled': 'not-allowed' },
+    display: 'flex',
+    fontSize: themeFonts['--text-xs'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    opacity: { default: null, ':disabled': 0.5 },
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
-    opacity: { default: null, ':disabled': 0.5 },
   },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 3)`,
     height: `calc(${themeLayout['--spacing']} * 3)`,
+    width: `calc(${themeLayout['--spacing']} * 3)`,
   },
 })
 

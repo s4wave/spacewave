@@ -93,7 +93,7 @@ Bldr shares `webPkgs` through `/b/pkg/...`. Another plugin must supply a package
 
 ## React, resources and routing
 
-Follow `DESIGN.md` and the Tailwind v4 theme in `web/style/app.css`; theme utilities can differ from standard Tailwind pixel sizes. Use `cn()` for conditional classes and Vite imports for static images. Take icons from `react-icons/lu` first, then `ri`, `pi` and `rx`, keeping related components in one family.
+Follow `DESIGN.md` and the StyleX tokens in `web/style/tokens.stylex.ts`. Compose component styles through typed `sx` inputs, with caller overrides last. Import `web/style/app.ts` for the shared theme, reset and opaque CSS skins. Use Vite imports for static images. Take icons from `react-icons/lu` first, then `ri`, `pi` and `rx`, keeping related components in one family.
 
 Load async UI data through the existing resource hooks: `useResource`, `useStreamingResource`, `useMappedResource`, `useWatchStateRpc`, `useGetValueRpc`, `useSetValueRpc`, `useRetryWithAbort` and the local session and app hooks. Use a raw `useEffect` only for a DOM effect that loads no async data and calls no RPC.
 

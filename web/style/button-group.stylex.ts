@@ -22,14 +22,6 @@ export const buttonGroupControlStyles = stylex.create({
         [stylex.when.ancestor(':is(*) >', buttonGroupMarker)]: 10,
       },
     },
-    borderTopLeftRadius: {
-      default: null,
-      ':not(:first-child)': {
-        default: null,
-        [stylex.when.ancestor(':is(*) >', buttonGroupHorizontalMarker)]: 0,
-        [stylex.when.ancestor(':is(*) >', buttonGroupVerticalMarker)]: 0,
-      },
-    },
     borderBottomLeftRadius: {
       default: null,
       ':not(:first-child)': {
@@ -37,17 +29,6 @@ export const buttonGroupControlStyles = stylex.create({
         [stylex.when.ancestor(':is(*) >', buttonGroupHorizontalMarker)]: 0,
       },
       ':not(:last-child)': {
-        default: null,
-        [stylex.when.ancestor(':is(*) >', buttonGroupVerticalMarker)]: 0,
-      },
-    },
-    borderTopRightRadius: {
-      default: null,
-      ':not(:last-child)': {
-        default: null,
-        [stylex.when.ancestor(':is(*) >', buttonGroupHorizontalMarker)]: 0,
-      },
-      ':not(:first-child)': {
         default: null,
         [stylex.when.ancestor(':is(*) >', buttonGroupVerticalMarker)]: 0,
       },
@@ -67,6 +48,25 @@ export const buttonGroupControlStyles = stylex.create({
         [stylex.when.ancestor(':is(*) >', buttonGroupHorizontalMarker)]: 0,
       },
     },
+    borderTopLeftRadius: {
+      default: null,
+      ':not(:first-child)': {
+        default: null,
+        [stylex.when.ancestor(':is(*) >', buttonGroupHorizontalMarker)]: 0,
+        [stylex.when.ancestor(':is(*) >', buttonGroupVerticalMarker)]: 0,
+      },
+    },
+    borderTopRightRadius: {
+      default: null,
+      ':not(:first-child)': {
+        default: null,
+        [stylex.when.ancestor(':is(*) >', buttonGroupVerticalMarker)]: 0,
+      },
+      ':not(:last-child)': {
+        default: null,
+        [stylex.when.ancestor(':is(*) >', buttonGroupHorizontalMarker)]: 0,
+      },
+    },
     borderTopWidth: {
       default: null,
       ':not(:first-child)': {
@@ -76,6 +76,13 @@ export const buttonGroupControlStyles = stylex.create({
     },
   },
   input: {
+    flexBasis: {
+      default: null,
+      ':is(input)': {
+        default: null,
+        [stylex.when.ancestor(':is(*) >', buttonGroupMarker)]: '0%',
+      },
+    },
     flexGrow: {
       default: null,
       ':is(input)': {
@@ -88,13 +95,6 @@ export const buttonGroupControlStyles = stylex.create({
       ':is(input)': {
         default: null,
         [stylex.when.ancestor(':is(*) >', buttonGroupMarker)]: 1,
-      },
-    },
-    flexBasis: {
-      default: null,
-      ':is(input)': {
-        default: null,
-        [stylex.when.ancestor(':is(*) >', buttonGroupMarker)]: '0%',
       },
     },
   },

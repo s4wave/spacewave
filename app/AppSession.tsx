@@ -33,16 +33,16 @@ import { layout as themeLayout } from '../web/style/tokens.stylex.js'
 
 const stylexStyles = stylex.create({
   rule1: {
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+    flex: 1,
+    alignItems: 'center',
     display: 'flex',
+    justifyContent: 'center',
     height: '100%',
     minHeight: 0,
     width: '100%',
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: `calc(${themeLayout['--spacing']} * 6)`,
   },
-  rule2: { width: '100%', maxWidth: 'var(--container-sm)' },
+  rule2: { maxWidth: 'var(--container-sm)', width: '100%' },
 })
 
 // useSessionAttachmentVersion changes only when an established Session moves

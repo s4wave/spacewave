@@ -27,27 +27,27 @@ const stylexStyles2 = stylex.create({
 
 const stylexStyles = stylex.create({
   rule1: {
+    color: themeColors['--color-foreground-alt'],
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors['--color-foreground-alt'],
   },
-  rule2: { display: 'grid', gap: `calc(${themeLayout['--spacing']} * 2)` },
+  rule2: { gap: `calc(${themeLayout['--spacing']} * 2)`, display: 'grid' },
   rule3: {
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
     borderRadius: '.25rem',
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
     backgroundColor: themeColors['--color-background'],
-    padding: `calc(${themeLayout['--spacing']} * 2)`,
   },
   rule4: { textDecorationLine: 'underline' },
   rule5: {
-    width: '100%',
     borderRadius: '.25rem',
-    backgroundColor: themeColors['--color-brand'],
-    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
     paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    backgroundColor: themeColors['--color-brand'],
     color: themeColors['--color-background'],
     opacity: { default: null, ':disabled': 0.5 },
+    width: '100%',
   },
 })
 
@@ -221,13 +221,13 @@ export function useBillingConsent() {
 const nativeChildSpacing = stylex.create({
   s4: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
-    marginBlockStart: {
-      default: null,
-      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
-    },
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
     },
   },
 })

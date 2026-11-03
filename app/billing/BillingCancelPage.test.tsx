@@ -71,11 +71,6 @@ vi.mock('@s4wave/app/landing/AnimatedLogo.js', () => ({
   default: () => null,
 }))
 
-vi.mock('@s4wave/web/style/utils.js', () => ({
-  cn: (...parts: Array<string | false | null | undefined>) =>
-    parts.filter(Boolean).join(' '),
-}))
-
 vi.mock('@s4wave/sdk/provider/spacewave/spacewave.pb.js', () => ({
   AccountLifecycleState: {
     AccountLifecycleState_ACTIVE: 1,

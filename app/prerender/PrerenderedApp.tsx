@@ -5,7 +5,7 @@ import { ROOT_LANDING_SHELL_CLASS } from './root-landing-shell.js'
 import { StaticProvider } from './StaticContext.js'
 import { navigateFromStaticStartup } from './static-navigate.js'
 
-import '@s4wave/web/style/app.css'
+import '@s4wave/web/style/app.js'
 
 // PrerenderedApp renders the root landing page the way the production
 // prerender hydrates it: static mode, with page links loading their routes.
@@ -13,11 +13,7 @@ export function PrerenderedApp() {
   return (
     <RouterProvider path="/" onNavigate={navigateFromStaticStartup}>
       <StaticProvider>
-        <div
-          className={
-            /* TODO(stylex): dynamic class or forwarded className */ ROOT_LANDING_SHELL_CLASS
-          }
-        >
+        <div className={ROOT_LANDING_SHELL_CLASS}>
           <Landing />
         </div>
       </StaticProvider>

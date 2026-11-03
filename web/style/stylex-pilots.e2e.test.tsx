@@ -63,11 +63,11 @@ import {
 
 const styles = stylex.create({
   override: { padding: 19, borderRadius: 9 },
-  headerOverride: { paddingBlock: 19, paddingInline: 19, borderRadius: 9 },
+  headerOverride: { borderRadius: 9, paddingBlock: 19, paddingInline: 19 },
   firstRule: { color: 'rgb(17, 34, 51)' },
   secondRule: { color: 'rgb(68, 85, 102)' },
-  largeIcon: { width: 32, height: 32 },
-  iconDefaults: { width: 20, height: 20, color: 'rgb(68, 85, 102)' },
+  largeIcon: { height: 32, width: 32 },
+  iconDefaults: { color: 'rgb(68, 85, 102)', height: 20, width: 20 },
   minimumWidth: (minWidth: number) => ({ minWidth }),
   pathOverride: { marginTop: 19 },
 })

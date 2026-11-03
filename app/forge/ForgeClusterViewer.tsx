@@ -63,9 +63,7 @@ import { motion as themeMotion } from '../../web/style/tokens.stylex.js'
 
 const stylexStyles4 = stylex.create({
   rule1: {
-    borderRadius: themeRadii['--radius-lg'],
-    borderStyle: themeUtilityState['--tw-border-style'],
-    borderWidth: '1px',
+    '--tw-duration': '.15s',
     borderColor: {
       default: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
       '@media (hover: hover)': {
@@ -73,6 +71,11 @@ const stylexStyles4 = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 12%, transparent)`,
       },
     },
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3.5)`,
     backgroundColor: {
       default: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
       '@media (hover: hover)': {
@@ -80,134 +83,131 @@ const stylexStyles4 = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
       },
     },
-    paddingInline: `calc(${themeLayout['--spacing']} * 3.5)`,
-    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+    transitionDuration: '.15s',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration: '.15s',
-    '--tw-duration': '.15s',
   },
 })
 
 const stylexStyles3 = stylex.create({
   rule1: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
   },
   rule2: {
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
     display: 'grid',
     gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
   },
   rule3: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
     borderRadius: themeRadii['--radius-lg'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
-    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
     paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
   },
   rule4: {
-    fontSize: '.6rem',
-    lineHeight: 1.5,
     '--tw-tracking': 'var(--tracking-widest)',
-    letterSpacing: 'var(--tracking-widest)',
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+    fontSize: '.6rem',
+    letterSpacing: 'var(--tracking-widest)',
+    lineHeight: 1.5,
     textTransform: 'uppercase',
   },
   rule5: {
-    marginTop: themeLayout['--spacing'],
-    fontSize: 'var(--text-lg)',
-    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
     '--tw-font-weight': 'var(--font-weight-semibold)',
-    fontWeight: 'var(--font-weight-semibold)',
     color: themeColors['--color-foreground'],
+    fontSize: 'var(--text-lg)',
+    fontWeight: 'var(--font-weight-semibold)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    marginTop: themeLayout['--spacing'],
   },
   rule6: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     gap: `calc(${themeLayout['--spacing']} * 3)`,
+    alignItems: 'center',
+    display: 'flex',
+    justifyContent: 'space-between',
   },
   rule7: {
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
     display: 'flex',
     flexWrap: 'wrap',
-    gap: `calc(${themeLayout['--spacing']} * 3)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
   },
   rule8: { display: 'flex', justifyContent: 'flex-end' },
   rule9: { minWidth: 0 },
   rule10: {
-    marginTop: themeLayout['--spacing'],
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    marginTop: themeLayout['--spacing'],
   },
   rule11: {
+    borderRadius: '3.40282e38px',
+    overflow: 'hidden',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
     height: `calc(${themeLayout['--spacing']} * 1.5)`,
     width: '100%',
-    overflow: 'hidden',
-    borderRadius: '3.40282e38px',
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
   },
   rule12: {
     transition: 'width 200ms',
-    width: 'var(--forge-progress-width)',
-    height: '100%',
     backgroundColor: themeColors['--color-brand'],
+    height: '100%',
+    width: 'var(--forge-progress-width)',
   },
   rule13: {
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: 'var(--leading-relaxed)',
     '--tw-leading': 'var(--leading-relaxed)',
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
   },
 })
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    minWidth: 0,
-    fontSize: themeFonts['--text-sm'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
     color: themeColors['--color-foreground'],
+    fontSize: themeFonts['--text-sm'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    minWidth: 0,
   },
   rule2: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    overflow: 'hidden',
+    color: themeColors['--color-foreground'],
+    fontSize: themeFonts['--text-sm'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    fontSize: themeFonts['--text-sm'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
-    color: themeColors['--color-foreground'],
   },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 3.5)`,
-    height: `calc(${themeLayout['--spacing']} * 3.5)`,
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
   rule2: {
-    width: `calc(${themeLayout['--spacing']} * 3)`,
-    height: `calc(${themeLayout['--spacing']} * 3)`,
     flexShrink: 0,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    width: `calc(${themeLayout['--spacing']} * 3)`,
   },
   rule3: {
-    width: `calc(${themeLayout['--spacing']} * 3.5)`,
     height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
   rule4: {
-    width: `calc(${themeLayout['--spacing']} * 4)`,
     height: `calc(${themeLayout['--spacing']} * 4)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
   },
 })
 
@@ -631,24 +631,24 @@ export function ForgeClusterViewer({
 const nativeChildSpacing = stylex.create({
   s3: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
-    marginBlockStart: {
-      default: null,
-      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
-    },
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
     },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
   },
   s2: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
-    marginBlockStart: {
-      default: null,
-      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
-    },
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
     },
   },
 })
@@ -657,13 +657,13 @@ const nativeChildSpacing = stylex.create({
 const nativeChildSpacingNext = stylex.create({
   s2: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
-    marginBlockStart: {
-      default: null,
-      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
-    },
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
     },
   },
 })
@@ -672,13 +672,13 @@ const nativeChildSpacingNext = stylex.create({
 const nativeChildSpacingNextNext = stylex.create({
   s3: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
-    marginBlockStart: {
-      default: null,
-      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
-    },
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
     },
   },
 })

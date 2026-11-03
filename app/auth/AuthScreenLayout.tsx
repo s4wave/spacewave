@@ -13,124 +13,108 @@ import {
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    containerType: 'inline-size',
-    position: 'relative',
-    display: 'flex',
-    width: '100%',
+    '--tw-outline-style': 'none',
     flex: 1,
-    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 6)`,
     alignItems: 'center',
+    backgroundColor: themeColors['--color-background-landing'],
+    containerType: 'inline-size',
+    display: 'flex',
+    flexDirection: 'column',
     justifyContent: {
       default: 'center',
       '@container (max-height: 580px)': 'flex-start',
     },
-    gap: `calc(${themeLayout['--spacing']} * 6)`,
-    overflowY: 'auto',
-    backgroundColor: themeColors['--color-background-landing'],
-    '--tw-outline-style': 'none',
     outlineStyle: 'none',
+    position: 'relative',
+    overflowY: 'auto',
+    width: '100%',
   },
   rule2: {
     position: 'absolute',
-    top: `calc(${themeLayout['--spacing']} * 4)`,
-    left: `calc(${themeLayout['--spacing']} * 4)`,
     zIndex: 20,
+    left: `calc(${themeLayout['--spacing']} * 4)`,
+    top: `calc(${themeLayout['--spacing']} * 4)`,
   },
   rule3: {
     position: 'absolute',
-    top: `calc(${themeLayout['--spacing']} * 4)`,
-    right: `calc(${themeLayout['--spacing']} * 4)`,
     zIndex: 20,
+    right: `calc(${themeLayout['--spacing']} * 4)`,
+    top: `calc(${themeLayout['--spacing']} * 4)`,
   },
   rule4: {
     position: 'absolute',
-    right: `calc(${themeLayout['--spacing']} * 4)`,
-    bottom: `calc(${themeLayout['--spacing']} * 4)`,
     zIndex: 20,
+    bottom: `calc(${themeLayout['--spacing']} * 4)`,
+    right: `calc(${themeLayout['--spacing']} * 4)`,
   },
   rule5: {
+    gap: `calc(${themeLayout['--spacing']} * 6)`,
+    alignItems: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: {
+      default: null,
+      '@container (max-height: 580px)': 'flex-start',
+      '@container (max-height: 740px)': 'center',
+    },
     position: 'relative',
     zIndex: 10,
-    display: 'flex',
-    width: { default: '100%', '@container (max-height: 740px)': '100%' },
     maxWidth: {
       default: 'var(--container-5xl)',
       '@container (max-height: 740px)': 'none',
     },
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 6)`,
     minHeight: { default: null, '@container (max-height: 740px)': '100%' },
-    justifyContent: {
+    paddingBottom: {
       default: null,
-      '@container (max-height: 740px)': 'center',
-      '@container (max-height: 580px)': 'flex-start',
+      '@container (max-height: 580px)': `calc(${themeLayout['--spacing']} * 8)`,
     },
     paddingTop: {
       default: null,
       '@container (max-height: 580px)': `calc(${themeLayout['--spacing']} * 16)`,
     },
-    paddingBottom: {
-      default: null,
-      '@container (max-height: 580px)': `calc(${themeLayout['--spacing']} * 8)`,
-    },
+    width: { default: '100%', '@container (max-height: 740px)': '100%' },
   },
   rule6: {
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    alignItems: 'center',
     display: {
       default: 'flex',
       '@container (max-height: 740px)': 'none',
       '@container (max-height: 740px) and (max-width: 950px)': 'none',
     },
-    width: '100%',
-    maxWidth: 'var(--container-sm)',
     flexDirection: 'column',
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 3)`,
     textAlign: 'center',
-  },
-  rule7: {
-    display: { default: 'flex', '@container (max-height: 740px)': 'none' },
-    width: '100%',
     maxWidth: 'var(--container-sm)',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 3)`,
-    textAlign: 'center',
-  },
-  rule8: {
-    display: {
-      default: 'flex',
-      '@container (max-height: 740px) and (max-width: 950px)': 'none',
-    },
     width: '100%',
-    maxWidth: 'var(--container-sm)',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 3)`,
-    textAlign: 'center',
   },
   rule9: {
-    display: 'flex',
-    width: '100%',
-    maxWidth: 'var(--container-sm)',
-    flexDirection: 'column',
-    alignItems: 'center',
     gap: `calc(${themeLayout['--spacing']} * 3)`,
+    alignItems: 'center',
+    display: 'flex',
+    flexDirection: 'column',
     textAlign: 'center',
+    maxWidth: 'var(--container-sm)',
+    width: '100%',
   },
   rule10: {
-    width: '100%',
+    marginInline: { default: null, '@container (max-height: 740px)': 'auto' },
+    flexShrink: 0,
     maxWidth: {
       default: 'var(--container-sm)',
       '@container (max-height: 740px)': 'var(--container-md)',
     },
-    flexShrink: 0,
-    marginInline: { default: null, '@container (max-height: 740px)': 'auto' },
+    width: '100%',
   },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
+    gap: {
+      default: null,
+      '@container (max-height: 740px)': `calc(${themeLayout['--spacing']} * 2)`,
+    },
+    alignItems: { default: null, '@container (max-height: 740px)': 'center' },
     display: {
       default: 'none',
       '@container (max-height: 740px)': 'flex',
@@ -145,25 +129,20 @@ const stylexStyles = stylex.create({
       default: null,
       '@container (max-height: 740px)': `calc(${themeLayout['--spacing']} * 4)`,
     },
-    alignItems: { default: null, '@container (max-height: 740px)': 'center' },
-    gap: {
-      default: null,
-      '@container (max-height: 740px)': `calc(${themeLayout['--spacing']} * 2)`,
-    },
   },
   rule2: {
-    width: `calc(${themeLayout['--spacing']} * 4)`,
-    height: `calc(${themeLayout['--spacing']} * 4)`,
     borderRadius: 'var(--radius-sm)',
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
   },
   rule3: {
-    fontSize: themeFonts['--text-sm'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
     '--tw-tracking': 'var(--tracking-wide)',
-    letterSpacing: 'var(--tracking-wide)',
     color: themeColors['--color-foreground'],
+    fontSize: themeFonts['--text-sm'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    letterSpacing: 'var(--tracking-wide)',
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
   },
 })
 
@@ -247,13 +226,13 @@ export function AuthScreenLayout({
 // authCornerStyles applies coarse-pointer sizing at each actual corner button.
 const authCornerStyles = stylex.create({
   button: {
-    minHeight: {
-      default: null,
-      '@media (pointer: coarse)': 'calc(var(--spacing) * 11)',
-    },
     paddingInline: {
       default: null,
       '@media (pointer: coarse)': 'calc(var(--spacing) * 2)',
+    },
+    minHeight: {
+      default: null,
+      '@media (pointer: coarse)': 'calc(var(--spacing) * 11)',
     },
   },
 })

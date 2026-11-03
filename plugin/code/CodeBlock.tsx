@@ -19,16 +19,10 @@ import { codeGroupMarker as codeGroupMarker3 } from '../../web/style/relations.s
 
 const stylexStyles2 = ownerStylex.create({
   rule1: {
-    position: 'absolute',
-    top: `calc(${themeLayout['--spacing']} * 2.5)`,
-    right: `calc(${themeLayout['--spacing']} * 2.5)`,
-    zIndex: 10,
-    display: 'flex',
-    width: `calc(${themeLayout['--spacing']} * 7)`,
-    height: `calc(${themeLayout['--spacing']} * 7)`,
-    alignItems: 'center',
-    justifyContent: 'center',
     borderRadius: themeRadii['--radius-md'],
+    alignItems: 'center',
+    display: 'flex',
+    justifyContent: 'center',
     opacity: {
       default: 0,
       '@media (hover: hover)': {
@@ -36,10 +30,16 @@ const stylexStyles2 = ownerStylex.create({
         [ownerStylex.when.ancestor(':is(:hover)', codeGroupMarker3)]: 1,
       },
     },
-    transitionProperty: 'all',
-    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    position: 'absolute',
     transitionDuration:
       'var(--tw-duration, var(--default-transition-duration))',
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    zIndex: 10,
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    right: `calc(${themeLayout['--spacing']} * 2.5)`,
+    top: `calc(${themeLayout['--spacing']} * 2.5)`,
+    width: `calc(${themeLayout['--spacing']} * 7)`,
   },
   rule2: {
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
@@ -65,8 +65,8 @@ const stylexStyles2 = ownerStylex.create({
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 3.5)`,
     height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
 })
 

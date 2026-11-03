@@ -15,12 +15,11 @@ import {
 
 const styles = stylex.create({
   chevron: {
-    width: `calc(${themeLayout['--spacing']} * 3)`,
     height: `calc(${themeLayout['--spacing']} * 3)`,
+    width: `calc(${themeLayout['--spacing']} * 3)`,
   },
   base: { gap: `calc(${themeLayout2['--spacing']} * 1.5)` },
   outline: {
-    height: 'auto',
     borderColor: {
       default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
       '@media (hover: hover)': {
@@ -28,6 +27,8 @@ const styles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
       },
     },
+    paddingBlock: themeLayout2['--spacing'],
+    paddingInline: `calc(${themeLayout2['--spacing']} * 2.5)`,
     backgroundColor: {
       default: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
       '@media (hover: hover)': {
@@ -35,10 +36,6 @@ const styles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
       },
     },
-    paddingInline: `calc(${themeLayout2['--spacing']} * 2.5)`,
-    paddingBlock: themeLayout2['--spacing'],
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     color: {
       default: themeColors['--color-foreground-alt'],
       '@media (hover: hover)': {
@@ -46,22 +43,21 @@ const styles = stylex.create({
         ':hover': themeColors['--color-brand'],
       },
     },
-  },
-  ghost: {
-    height: 'auto',
-    paddingInline: 0,
-    paddingBlock: 0,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    height: 'auto',
+  },
+  ghost: {
     '--tw-font-weight': 'var(--font-weight-normal)',
-    fontWeight: 'var(--font-weight-normal)',
     '--tw-shadow': '0 0 #0000',
-    boxShadow:
-      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    paddingBlock: 0,
+    paddingInline: 0,
     backgroundColor: {
       default: null,
       '@media (hover: hover)': { default: null, ':hover': '#0000' },
     },
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     color: {
       default: null,
       '@media (hover: hover)': {
@@ -69,6 +65,10 @@ const styles = stylex.create({
         ':hover': themeColors['--color-brand'],
       },
     },
+    fontSize: themeFonts['--text-xs'],
+    fontWeight: 'var(--font-weight-normal)',
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    height: 'auto',
   },
 })
 

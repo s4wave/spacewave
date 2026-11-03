@@ -47,33 +47,33 @@ import {
 
 const stylexStyles3 = stylex.create({
   rule1: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
     paddingBlock: `calc(${themeLayout['--spacing']} * 4)`,
+    alignItems: 'center',
+    display: 'flex',
+    justifyContent: 'center',
   },
   rule2: {
-    display: 'flex',
-    alignItems: 'center',
     gap: `calc(${themeLayout['--spacing']} * 2)`,
     paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
+    display: 'flex',
   },
   rule3: {
-    fontSize: themeFonts['--text-sm'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
     color: themeColors['--color-foreground'],
+    fontSize: themeFonts['--text-sm'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
   },
   rule4: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
     borderRadius: themeRadii['--radius-md'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
     paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    alignItems: 'center',
+    display: 'flex',
   },
   rule5: {
     borderColor: `color-mix(in oklab, ${themeColors['--color-green-500']} 20%, transparent)`,
@@ -84,43 +84,43 @@ const stylexStyles3 = stylex.create({
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-yellow-500']} 5%, transparent)`,
   },
   rule7: {
+    color: themeColors['--color-foreground-alt'],
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors['--color-foreground-alt'],
   },
   rule8: {
+    color: themeColors['--color-destructive'],
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors['--color-destructive'],
   },
 })
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 4)`,
     height: `calc(${themeLayout['--spacing']} * 4)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
   },
   rule2: {
-    width: `calc(${themeLayout['--spacing']} * 5)`,
-    height: `calc(${themeLayout['--spacing']} * 5)`,
     color: themeColors['--color-green-500'],
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    width: `calc(${themeLayout['--spacing']} * 5)`,
   },
   rule3: {
-    width: `calc(${themeLayout['--spacing']} * 4)`,
-    height: `calc(${themeLayout['--spacing']} * 4)`,
-    flexShrink: 0,
     color: themeColors['--color-green-500'],
+    flexShrink: 0,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
   },
   rule4: {
-    width: `calc(${themeLayout['--spacing']} * 4)`,
-    height: `calc(${themeLayout['--spacing']} * 4)`,
-    flexShrink: 0,
     color: themeColors['--color-yellow-500'],
+    flexShrink: 0,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
   },
 })
 
 const stylexStyles = stylex.create({
-  rule1: { width: '100%', justifyContent: 'center' },
+  rule1: { justifyContent: 'center', width: '100%' },
 })
 
 export interface PasskeySectionProps {
@@ -335,13 +335,13 @@ export function PasskeySection({
 const nativeChildSpacing = stylex.create({
   s2: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
-    marginBlockStart: {
-      default: null,
-      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
-    },
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
     },
   },
 })
@@ -350,13 +350,13 @@ const nativeChildSpacing = stylex.create({
 const nativeChildSpacingNext = stylex.create({
   s3: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
-    marginBlockStart: {
-      default: null,
-      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
-    },
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
     },
   },
 })

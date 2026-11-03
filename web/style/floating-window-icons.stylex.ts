@@ -6,19 +6,19 @@ export const floatingWindowIconMarker = stylex.defineMarker()
 /** floatingWindowHeaderIconStyles preserves the header slot and its direct SVG dimensions. */
 export const floatingWindowHeaderIconStyles = stylex.create({
   slot: {
-    display: 'flex',
-    width: 12,
-    height: 12,
     alignItems: 'center',
-    justifyContent: 'center',
     color: themeColors['--color-brand'],
+    display: 'flex',
+    justifyContent: 'center',
+    height: 12,
+    width: 12,
   },
   icon: {
-    width: {
+    height: {
       default: null,
       [stylex.when.ancestor(':is(*) >', floatingWindowIconMarker)]: '12px',
     },
-    height: {
+    width: {
       default: null,
       [stylex.when.ancestor(':is(*) >', floatingWindowIconMarker)]: '12px',
     },

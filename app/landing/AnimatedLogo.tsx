@@ -15,49 +15,21 @@ import { motion as themeMotion } from '../../web/style/tokens.stylex.js'
 import { groupMarker as groupMarker3 } from '../../web/style/relations.stylex.js'
 
 const stylexStyles2 = ownerStylex.create({
-  rule1: { position: 'relative', perspective: 1000 },
+  rule1: { perspective: 1000, position: 'relative' },
   rule2: {
     position: 'relative',
-    width: {
+    height: {
       default: `calc(${themeLayout['--spacing']} * 20)`,
       '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 28)`,
     },
-    height: {
+    width: {
       default: `calc(${themeLayout['--spacing']} * 20)`,
       '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 28)`,
     },
   },
   rule3: {
-    position: 'absolute',
-    inset: `calc(${themeLayout['--spacing']} * -.5)`,
-    zIndex: 1,
-    borderRadius: 'var(--radius-3xl)',
-    opacity: {
-      default: 0.5,
-      '@media (hover: hover)': {
-        default: null,
-        [ownerStylex.when.ancestor(':is(:hover)', groupMarker3)]: 0.55,
-      },
-    },
     '--tw-blur': 'blur(var(--blur-md))',
-    filter:
-      'var(--tw-blur, ) var(--tw-brightness, ) var(--tw-contrast, ) var(--tw-grayscale, ) var(--tw-hue-rotate, ) var(--tw-invert, ) var(--tw-saturate, ) var(--tw-sepia, ) var(--tw-drop-shadow, )',
-    transitionProperty:
-      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
-    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration: '.8s',
     '--tw-duration': '.8s',
-    willChange: 'transform',
-    backgroundColor: 'transparent',
-    backgroundImage:
-      'radial-gradient(circle farthest-corner at 100% 0, var(--color-brand), transparent), radial-gradient(circle farthest-corner at 0 100%, var(--color-logo-blue), transparent), radial-gradient(circle farthest-corner at 0 0, var(--color-brand), transparent), radial-gradient(circle at 50% 50%, var(--color-logo-base) 10%, var(--color-logo-dark) 80%)',
-    backgroundPositionX: '0%',
-    backgroundPositionY: '0%',
-    backgroundSize: 'auto',
-    backgroundRepeat: 'repeat',
-    backgroundAttachment: 'scroll',
-    backgroundOrigin: 'padding-box',
-    backgroundClip: 'border-box',
     '--tw-scale-x': {
       default: null,
       '@media (hover: hover)': {
@@ -79,6 +51,28 @@ const stylexStyles2 = ownerStylex.create({
         [ownerStylex.when.ancestor(':is(:hover)', groupMarker3)]: '105%',
       },
     },
+    inset: `calc(${themeLayout['--spacing']} * -.5)`,
+    borderRadius: 'var(--radius-3xl)',
+    backgroundAttachment: 'scroll, scroll, scroll, scroll',
+    backgroundClip: 'border-box, border-box, border-box, border-box',
+    backgroundColor: 'transparent',
+    backgroundImage:
+      'radial-gradient(circle farthest-corner at 100% 0, var(--color-brand), transparent), radial-gradient(circle farthest-corner at 0 100%, var(--color-logo-blue), transparent), radial-gradient(circle farthest-corner at 0 0, var(--color-brand), transparent), radial-gradient(circle at 50% 50%, var(--color-logo-base) 10%, var(--color-logo-dark) 80%)',
+    backgroundOrigin: 'padding-box, padding-box, padding-box, padding-box',
+    backgroundPositionX: '0%, 0%, 0%, 0%',
+    backgroundPositionY: '0%, 0%, 0%, 0%',
+    backgroundRepeat: 'repeat, repeat, repeat, repeat',
+    backgroundSize: 'auto, auto, auto, auto',
+    filter:
+      'var(--tw-blur, ) var(--tw-brightness, ) var(--tw-contrast, ) var(--tw-grayscale, ) var(--tw-hue-rotate, ) var(--tw-invert, ) var(--tw-saturate, ) var(--tw-sepia, ) var(--tw-drop-shadow, )',
+    opacity: {
+      default: 0.5,
+      '@media (hover: hover)': {
+        default: null,
+        [ownerStylex.when.ancestor(':is(:hover)', groupMarker3)]: 0.55,
+      },
+    },
+    position: 'absolute',
     scale: {
       default: null,
       '@media (hover: hover)': {
@@ -87,36 +81,42 @@ const stylexStyles2 = ownerStylex.create({
           'var(--tw-scale-x) var(--tw-scale-y)',
       },
     },
+    transitionDuration: '.8s',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    willChange: 'transform',
+    zIndex: 1,
   },
   rule4: {
+    borderRadius: 'var(--radius-3xl)',
+    overflow: 'hidden',
     position: 'relative',
     zIndex: 10,
     height: '100%',
     width: '100%',
-    overflow: 'hidden',
-    borderRadius: 'var(--radius-3xl)',
   },
 })
 
 const stylexStyles = ownerStylex.create({
   rule1: {
-    position: 'absolute',
     inset: `calc(${themeLayout['--spacing']} * -.25)`,
-    zIndex: 2,
     borderRadius: 'var(--radius-3xl)',
-    willChange: 'transform',
+    backgroundAttachment: 'scroll, scroll, scroll, scroll',
+    backgroundClip: 'border-box, border-box, border-box, border-box',
     backgroundColor: 'transparent',
     backgroundImage:
       'radial-gradient(circle farthest-corner at 100% 0, var(--color-brand), transparent), radial-gradient(circle farthest-corner at 0 100%, var(--color-logo-blue), transparent), radial-gradient(circle farthest-corner at 0 0, var(--color-brand), transparent), radial-gradient(circle at 50% 50%, var(--color-logo-base) 10%, var(--color-logo-dark) 80%)',
-    backgroundPositionX: '0%',
-    backgroundPositionY: '0%',
-    backgroundSize: 'auto',
-    backgroundRepeat: 'repeat',
-    backgroundAttachment: 'scroll',
-    backgroundOrigin: 'padding-box',
-    backgroundClip: 'border-box',
+    backgroundOrigin: 'padding-box, padding-box, padding-box, padding-box',
+    backgroundPositionX: '0%, 0%, 0%, 0%',
+    backgroundPositionY: '0%, 0%, 0%, 0%',
+    backgroundRepeat: 'repeat, repeat, repeat, repeat',
+    backgroundSize: 'auto, auto, auto, auto',
+    position: 'absolute',
+    willChange: 'transform',
+    zIndex: 2,
   },
-  rule2: { height: '100%', width: '100%', maxWidth: 'none' },
+  rule2: { height: '100%', maxWidth: 'none', width: '100%' },
 })
 
 function rectEquals(a: DOMRect | null, b: DOMRect): boolean {
@@ -324,15 +324,15 @@ export default AnimatedLogo
 // logoNative owns the fixed dimensions and dynamic tilt without utility strings.
 const logoNative = ownerStylex.create({
   fixed: {
-    width: 'var(--animated-logo-size)',
     height: 'var(--animated-logo-size)',
+    width: 'var(--animated-logo-size)',
   },
   tilt: {
     transform: 'var(--animated-logo-transform)',
-    transitionProperty: 'transform',
-    transitionDuration: '0.8s',
-    transitionTimingFunction: 'ease-out',
     transitionDelay: '0s',
+    transitionDuration: '0.8s',
+    transitionProperty: 'transform',
+    transitionTimingFunction: 'ease-out',
   },
   still: { transitionProperty: 'none' },
 })

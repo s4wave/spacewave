@@ -27,21 +27,21 @@ import {
 } from '../../web/style/tokens.stylex.js'
 
 const stylexStyles3 = stylex.create({
-  rule1: { display: 'flex', minHeight: 0, flex: 1, flexDirection: 'column' },
+  rule1: { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 },
   rule2: {
-    minHeight: 0,
     flex: 1,
     overflow: 'auto',
     paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    minHeight: 0,
     paddingBottom: `calc(${themeLayout['--spacing']} * 4)`,
   },
 })
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 7)`,
-    height: `calc(${themeLayout['--spacing']} * 7)`,
     color: themeColors['--color-foreground-alt'],
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    width: `calc(${themeLayout['--spacing']} * 7)`,
   },
 })
 

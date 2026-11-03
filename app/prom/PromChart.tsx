@@ -17,21 +17,21 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
+    WebkitUserSelect: 'none',
     display: 'block',
     touchAction: 'none',
-    WebkitUserSelect: 'none',
     userSelect: 'none',
   },
   rule2: {
     stroke: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
   },
   rule3: {
+    '--tw-numeric-spacing': 'tabular-nums',
     fill: themeColors['--color-foreground-alt'],
     fontSize: themeLayout['--text-metadata'],
-    lineHeight: `var(--tw-leading, ${themeLayout['--text-metadata--line-height']})`,
-    '--tw-numeric-spacing': 'tabular-nums',
     fontVariantNumeric:
       'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-metadata--line-height']})`,
   },
   rule4: {
     stroke: `color-mix(in oklab, ${themeColors['--color-foreground']} 40%, transparent)`,

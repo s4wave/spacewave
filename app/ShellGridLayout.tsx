@@ -64,20 +64,20 @@ import { colors as themeColors } from '../web/style/tokens.stylex.js'
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    display: 'flex',
+    padding: themeLayout['--spacing'],
     flex: 1,
-    flexDirection: 'column',
     gap: themeLayout['--spacing'],
     overflow: 'hidden',
     backgroundColor: themeColors['--color-editor-border'],
-    padding: themeLayout['--spacing'],
+    display: 'flex',
+    flexDirection: 'column',
   },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 3)`,
     height: `calc(${themeLayout['--spacing']} * 3)`,
+    width: `calc(${themeLayout['--spacing']} * 3)`,
   },
 })
 
@@ -378,9 +378,7 @@ function useShellGridController() {
         <button
           type="button"
           key="close-tab"
-          className={
-            /* TODO(stylex): global or unknown class: flexlayout__tab_toolbar_button */ 'flexlayout__tab_toolbar_button'
-          }
+          className={'flexlayout__tab_toolbar_button'}
           onClick={() => selectedTabId && handleCloseTab(selectedTabId)}
           title="Close tab"
           disabled={tabCount <= 1}
@@ -390,9 +388,7 @@ function useShellGridController() {
         <button
           type="button"
           key="add-tab"
-          className={
-            /* TODO(stylex): global or unknown class: flexlayout__tab_toolbar_button */ 'flexlayout__tab_toolbar_button'
-          }
+          className={'flexlayout__tab_toolbar_button'}
           onClick={handleAddTab}
           title="Add tab"
         >
@@ -401,9 +397,7 @@ function useShellGridController() {
         <button
           type="button"
           key="popout-tab"
-          className={
-            /* TODO(stylex): global or unknown class: flexlayout__tab_toolbar_button */ 'flexlayout__tab_toolbar_button'
-          }
+          className={'flexlayout__tab_toolbar_button'}
           onClick={() => selectedTabId && handlePopoutTab(selectedTabId)}
           title="Open in new tab"
         >
@@ -517,12 +511,7 @@ export function ShellGridLayout() {
   }
 
   return (
-    <div
-      className={
-        /* TODO(stylex): global or unknown class: shell-flexlayout */ 'shell-flexlayout'
-      }
-      sx={stylexStyles2.rule1}
-    >
+    <div className={'shell-flexlayout'} sx={stylexStyles2.rule1}>
       <OptimizedLayout
         model={model}
         renderTab={renderTab}

@@ -10,41 +10,41 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
     display: 'flex',
     flexDirection: 'column',
-    gap: `calc(${themeLayout['--spacing']} * 4)`,
   },
   rule2: {
+    gap: themeLayout['--spacing'],
     display: 'flex',
     flexDirection: 'column',
-    gap: themeLayout['--spacing'],
   },
   rule3: {
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    WebkitUserSelect: 'none',
+    color: themeColors['--color-foreground'],
     fontSize: {
       default: 'var(--text-2xl)',
       '@container (min-width: 32rem)': 'var(--text-3xl)',
     },
+    fontWeight: 'var(--font-weight-semibold)',
     lineHeight: {
       default: 'var(--tw-leading, var(--text-2xl--line-height))',
       '@container (min-width: 32rem)':
         'var(--tw-leading, var(--text-3xl--line-height))',
     },
-    '--tw-font-weight': 'var(--font-weight-semibold)',
-    fontWeight: 'var(--font-weight-semibold)',
-    color: themeColors['--color-foreground'],
-    WebkitUserSelect: 'none',
     userSelect: 'none',
   },
   rule4: {
+    WebkitUserSelect: 'none',
+    color: themeColors['--color-foreground-alt'],
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors['--color-foreground-alt'],
-    WebkitUserSelect: 'none',
     userSelect: 'none',
   },
   rule5: {
-    display: 'grid',
     gap: `calc(${themeLayout['--spacing']} * 4)`,
+    display: 'grid',
     gridTemplateColumns: {
       default: null,
       '@container (min-width: 32rem)': 'repeat(2, minmax(0, 1fr))',

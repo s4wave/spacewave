@@ -1,3 +1,4 @@
+import { keyframeNames } from '../../web/style/tokens.stylex.js'
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import {
   LuArrowDown,
@@ -39,74 +40,73 @@ import {
 
 const stylexStyles4 = stylex.create({
   rule1: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
     maxHeight: `calc(${themeLayout['--spacing']} * 24)`,
     overflowY: 'auto',
-    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
     paddingTop: themeLayout['--spacing'],
   },
 })
 
 const stylexStyles3 = stylex.create({
   rule1: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
     borderTopStyle: themeUtilityState['--tw-border-style'],
     borderTopWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
-    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
-    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
   },
 })
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    display: 'flex',
-    minWidth: 0,
-    flexDirection: 'column',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
     borderRadius: themeRadii['--radius-md'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    display: 'flex',
+    flexDirection: 'column',
+    minWidth: 0,
   },
   rule2: {
-    display: 'flex',
-    height: `calc(${themeLayout['--spacing']} * 8)`,
-    alignItems: 'center',
     gap: `calc(${themeLayout['--spacing']} * 2)`,
     paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    alignItems: 'center',
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 8)`,
   },
   rule3: {
-    minWidth: 0,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
     flex: 1,
+    overflow: 'hidden',
+    color: themeColors['--color-foreground'],
+    fontSize: themeFonts['--text-xs'],
+    fontWeight: 'var(--font-weight-semibold)',
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    '--tw-font-weight': 'var(--font-weight-semibold)',
-    fontWeight: 'var(--font-weight-semibold)',
-    color: themeColors['--color-foreground'],
+    minWidth: 0,
   },
   rule4: {
-    width: `calc(${themeLayout['--spacing']} * 1.5)`,
-    height: `calc(${themeLayout['--spacing']} * 1.5)`,
     borderRadius: '3.40282e38px',
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+    height: `calc(${themeLayout['--spacing']} * 1.5)`,
+    width: `calc(${themeLayout['--spacing']} * 1.5)`,
   },
   rule5: {
-    minWidth: 0,
     paddingInline: themeLayout['--spacing'],
+    minWidth: 0,
     paddingBottom: `calc(${themeLayout['--spacing']} * 2)`,
   },
   rule6: {
-    display: 'flex',
-    alignItems: 'center',
     gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    alignItems: 'center',
+    color: themeColors['--color-foreground-alt'],
+    display: 'flex',
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors['--color-foreground-alt'],
   },
   rule7: {
-    textUnderlineOffset: '2px',
     color: {
       default: null,
       '@media (hover: hover)': {
@@ -118,46 +118,54 @@ const stylexStyles2 = stylex.create({
       default: null,
       '@media (hover: hover)': { default: null, ':hover': 'underline' },
     },
+    textUnderlineOffset: '2px',
   },
   rule8: {
-    marginInline: `calc(${themeLayout['--spacing']} * 2)`,
-    height: `calc(${themeLayout['--spacing']} * 40)`,
-    animationName: 'pulse',
-    animationDuration: '2s',
-    animationTimingFunction: 'cubic-bezier(.4, 0, .6, 1)',
-    animationIterationCount: 'infinite',
-    animationDirection: 'normal',
-    animationPlayState: 'running',
-    animationDelay: '0s',
-    animationFillMode: 'none',
-    animationTimeline: 'auto',
     borderRadius: '.25rem',
+    marginInline: `calc(${themeLayout['--spacing']} * 2)`,
+    animationDelay: '0s',
+    animationDirection: 'normal',
+    animationDuration: '2s',
+    animationFillMode: 'none',
+    animationIterationCount: 'infinite',
+    animationName: keyframeNames['pulse'],
+    animationPlayState: 'running',
+    animationTimeline: 'auto',
+    animationTimingFunction: 'cubic-bezier(.4, 0, .6, 1)',
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 3%, transparent)`,
+    height: `calc(${themeLayout['--spacing']} * 40)`,
   },
   rule9: { color: themeColors['--color-foreground'] },
   rule10: {
-    marginTop: themeLayout['--spacing'],
+    color: themeColors['--color-foreground-alt'],
     display: 'block',
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     wordBreak: 'break-all',
-    color: themeColors['--color-foreground-alt'],
+    marginTop: themeLayout['--spacing'],
   },
   rule11: { opacity: 0.9 },
   rule12: { height: `calc(${themeLayout['--spacing']} * 40)` },
   rule13: {
-    display: 'flex',
-    height: `calc(${themeLayout['--spacing']} * 40)`,
-    flexDirection: 'column',
-    justifyContent: 'center',
     paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    display: 'flex',
+    flexDirection: 'column',
     fontSize: themeFonts['--text-sm'],
+    justifyContent: 'center',
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    height: `calc(${themeLayout['--spacing']} * 40)`,
   },
-  rule14: { display: 'flex', alignItems: 'center' },
+  rule14: { alignItems: 'center', display: 'flex' },
   rule15: {
-    borderRadius: '.25rem',
     padding: themeLayout['--spacing'],
+    borderRadius: '.25rem',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
     color: {
       default: themeColors['--color-foreground-alt'],
       '@media (hover: hover)': {
@@ -165,25 +173,13 @@ const stylexStyles2 = stylex.create({
         ':hover': themeColors['--color-foreground'],
       },
     },
-    backgroundColor: {
-      default: null,
-      '@media (hover: hover)': {
-        default: null,
-        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
-      },
-    },
     opacity: { default: null, ':disabled': 0.3 },
   },
   rule16: {
-    display: 'flex',
-    width: '100%',
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
     borderRadius: '.25rem',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
     paddingInline: themeLayout['--spacing'],
-    textAlign: 'left',
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    alignItems: 'center',
     backgroundColor: {
       default: null,
       '@media (hover: hover)': {
@@ -191,80 +187,85 @@ const stylexStyles2 = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
       },
     },
+    display: 'flex',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    textAlign: 'left',
+    width: '100%',
   },
   rule17: { opacity: 0.4 },
   rule18: {
+    flexShrink: 0,
     height: `calc(${themeLayout['--spacing']} * .5)`,
     width: `calc(${themeLayout['--spacing']} * 3)`,
-    flexShrink: 0,
   },
   rule19: {
-    minWidth: 0,
     flex: 1,
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
     overflow: 'hidden',
     color: themeColors['--color-foreground-alt'],
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    minWidth: 0,
   },
   rule20: {
-    color: themeColors['--color-foreground'],
     '--tw-numeric-spacing': 'tabular-nums',
+    color: themeColors['--color-foreground'],
     fontVariantNumeric:
       'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
   },
   rule21: {
-    paddingInline: themeLayout['--spacing'],
-    fontSize: themeLayout['--text-metadata'],
-    lineHeight: `var(--tw-leading, ${themeLayout['--text-metadata--line-height']})`,
-    color: themeColors['--color-foreground-alt'],
     '--tw-numeric-spacing': 'tabular-nums',
+    paddingInline: themeLayout['--spacing'],
+    color: themeColors['--color-foreground-alt'],
+    fontSize: themeLayout['--text-metadata'],
     fontVariantNumeric:
       'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-metadata--line-height']})`,
   },
   rule22: {
-    display: 'flex',
-    minHeight: `calc(${themeLayout['--spacing']} * 40)`,
-    flexDirection: 'column',
-    justifyContent: 'center',
     gap: themeLayout['--spacing'],
     paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    minHeight: `calc(${themeLayout['--spacing']} * 40)`,
   },
   rule23: {
-    display: 'flex',
-    alignItems: 'baseline',
     gap: `calc(${themeLayout['--spacing']} * 3)`,
+    alignItems: 'baseline',
+    display: 'flex',
   },
   rule24: {
-    minWidth: 0,
     flex: 1,
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
     overflow: 'hidden',
+    color: themeColors['--color-foreground-alt'],
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors['--color-foreground-alt'],
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    minWidth: 0,
   },
   rule25: {
-    fontSize: 'var(--text-lg)',
-    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
     '--tw-font-weight': 'var(--font-weight-semibold)',
-    fontWeight: 'var(--font-weight-semibold)',
-    color: themeColors['--color-foreground'],
     '--tw-numeric-spacing': 'tabular-nums',
+    color: themeColors['--color-foreground'],
+    fontSize: 'var(--text-lg)',
     fontVariantNumeric:
       'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+    fontWeight: 'var(--font-weight-semibold)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
   },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 3)`,
-    height: `calc(${themeLayout['--spacing']} * 3)`,
     color: themeColors['--color-amber-500'],
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    width: `calc(${themeLayout['--spacing']} * 3)`,
   },
   rule2: {
-    width: `calc(${themeLayout['--spacing']} * 3.5)`,
     height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
 })
 
@@ -593,13 +594,13 @@ function ValueRows({
 const nativeChildSpacing = stylex.create({
   s0_5: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
-    marginBlockStart: {
-      default: null,
-      ':not(:last-child)': `calc(var(--spacing) * 0.5 * var(--tw-space-y-reverse))`,
-    },
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 0.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 0.5 * var(--tw-space-y-reverse))`,
     },
   },
 })
@@ -607,7 +608,7 @@ const nativeChildSpacing = stylex.create({
 // legendRowStyles keeps the one-pixel gap at the physical legend rows.
 const legendRowStyles = stylex.create({
   row: {
-    marginBlockStart: { default: null, ':not(:last-child)': 0 },
     marginBlockEnd: { default: null, ':not(:last-child)': '1px' },
+    marginBlockStart: { default: null, ':not(:last-child)': 0 },
   },
 })

@@ -22,37 +22,37 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
     borderTopStyle: themeUtilityState['--tw-border-style'],
     borderTopWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
-    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
-    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
   },
   rule2: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
     borderTopStyle: themeUtilityState['--tw-border-style'],
     borderTopWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
   },
   rule3: {
-    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
     paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    color: themeColors['--color-destructive'],
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors['--color-destructive'],
   },
   rule4: {
-    display: 'flex',
-    width: '100%',
-    alignItems: 'center',
-    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
     paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
-    textAlign: 'left',
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    alignItems: 'center',
+    display: 'flex',
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    textAlign: 'left',
     textDecorationLine: {
       default: null,
       '@media (hover: hover)': { default: null, ':hover': 'underline' },
     },
+    width: '100%',
   },
   rule5: { color: themeColors['--color-brand'] },
 })

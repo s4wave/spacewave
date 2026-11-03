@@ -12,36 +12,36 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
-    marginBottom: `calc(${themeLayout['--spacing']} * 1.5)`,
+    WebkitUserSelect: 'none',
+    color: themeColors['--color-foreground-alt'],
     display: 'block',
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors['--color-foreground-alt'],
-    WebkitUserSelect: 'none',
     userSelect: 'none',
+    marginBottom: `calc(${themeLayout['--spacing']} * 1.5)`,
   },
   rule2: {
-    width: '100%',
-    borderRadius: themeRadii['--radius-md'],
-    borderStyle: themeUtilityState['--tw-border-style'],
-    borderWidth: '1px',
+    '--tw-outline-style': 'none',
     borderColor: {
       default: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
       ':focus': `color-mix(in oklab, ${themeColors['--color-destructive']} 50%, transparent)`,
     },
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 30%, transparent)`,
-    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
     paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 30%, transparent)`,
+    color: themeColors['--color-foreground'],
     fontSize: themeFonts['--text-sm'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
-    color: themeColors['--color-foreground'],
+    outlineStyle: 'none',
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
-    '--tw-outline-style': 'none',
-    outlineStyle: 'none',
+    width: '100%',
     '::placeholder': {
       color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
     },

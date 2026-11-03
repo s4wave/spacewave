@@ -39,49 +39,42 @@ import { utilityState as themeUtilityState } from '../../web/style/tokens.stylex
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: themeLayout['--spacing'],
-    borderRightStyle: themeUtilityState['--tw-border-style'],
-    borderRightWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-dark']} 80%, transparent)`,
-    padding: `calc(${themeLayout['--spacing']} * 1.5)`,
     '--tw-backdrop-blur': 'blur(var(--blur-sm))',
     WebkitBackdropFilter:
       'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    padding: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    gap: themeLayout['--spacing'],
+    alignItems: 'center',
     backdropFilter:
       'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-dark']} 80%, transparent)`,
+    display: 'flex',
+    flexDirection: 'column',
+    borderRightStyle: themeUtilityState['--tw-border-style'],
+    borderRightWidth: '1px',
   },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
-    display: 'flex',
-    height: `calc(${themeLayout['--spacing']} * 8)`,
-    width: `calc(${themeLayout['--spacing']} * 8)`,
-    alignItems: 'center',
-    justifyContent: 'center',
+    '--tw-duration': '.15s',
     borderRadius: themeRadii['--radius-md'],
+    alignItems: 'center',
+    display: 'flex',
+    justifyContent: 'center',
+    transitionDuration: '.15s',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration: '.15s',
-    '--tw-duration': '.15s',
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    width: `calc(${themeLayout['--spacing']} * 8)`,
   },
   rule2: {
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
     color: themeColors['--color-foreground'],
   },
   rule3: {
-    color: {
-      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
-      '@media (hover: hover)': {
-        default: null,
-        ':hover': themeColors['--color-foreground-alt'],
-      },
-    },
     backgroundColor: {
       default: null,
       '@media (hover: hover)': {
@@ -89,12 +82,19 @@ const stylexStyles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
       },
     },
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground-alt'],
+      },
+    },
   },
   rule4: {
     marginBlock: themeLayout['--spacing'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
     height: '1px',
     width: `calc(${themeLayout['--spacing']} * 6)`,
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
   },
 })
 

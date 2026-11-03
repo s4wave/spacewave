@@ -34,10 +34,8 @@ const stylexStyles = stylex.create({
   },
   rule2: {
     borderRadius: themeRadii['--radius-md'],
-    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
     paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
-    fontSize: themeFonts['--text-sm'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
     color: {
       default: themeColors['--color-foreground-alt'],
       '@media (hover: hover)': {
@@ -45,16 +43,15 @@ const stylexStyles = stylex.create({
         ':hover': themeColors['--color-foreground'],
       },
     },
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
   },
   rule3: {
-    borderRadius: themeRadii['--radius-md'],
-    borderStyle: themeUtilityState['--tw-border-style'],
-    borderWidth: '1px',
     borderColor: {
       default: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
       '@media (hover: hover)': {
@@ -62,6 +59,11 @@ const stylexStyles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
       },
     },
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
     backgroundColor: {
       default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
       '@media (hover: hover)': {
@@ -69,15 +71,13 @@ const stylexStyles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
       },
     },
-    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
-    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    color: themeColors['--color-brand'],
     fontSize: themeFonts['--text-sm'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
-    color: themeColors['--color-brand'],
-    transitionProperty: 'all',
-    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
     transitionDuration:
       'var(--tw-duration, var(--default-transition-duration))',
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
   },
 })
 

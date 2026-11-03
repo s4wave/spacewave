@@ -20,21 +20,21 @@ import * as stylex from '@stylexjs/stylex'
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    position: 'relative',
-    display: 'flex',
-    minHeight: 0,
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
     overflow: 'hidden',
+    alignItems: 'center',
     backgroundColor: 'var(--color-black)',
+    display: 'flex',
+    justifyContent: 'center',
+    position: 'relative',
+    minHeight: 0,
   },
   rule2: {
-    maxHeight: '100%',
-    maxWidth: '100%',
-    touchAction: 'none',
     '--tw-outline-style': 'none',
     outlineStyle: 'none',
+    touchAction: 'none',
+    maxHeight: '100%',
+    maxWidth: '100%',
   },
   rule3: { visibility: 'hidden' },
 })
@@ -42,8 +42,8 @@ const stylexStyles2 = stylex.create({
 const stylexStyles = stylex.create({
   rule1: {
     position: 'absolute',
-    width: '100%',
     maxWidth: 'var(--container-sm)',
+    width: '100%',
   },
 })
 

@@ -1,6 +1,6 @@
 import { useControlStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import { stylexProps } from '@s4wave/web/style/props.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import React, { useMemo } from 'react'
 import { LuCheck } from '@s4wave/web/images/icons.js'
 
@@ -22,25 +22,25 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
+    alignItems: 'center',
+    cursor: 'pointer',
     display: 'flex',
     maxWidth: '100%',
-    minWidth: {
-      default: 0,
-      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
-    },
-    cursor: 'pointer',
-    alignItems: 'center',
     minHeight: {
       default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+    minWidth: {
+      default: 0,
       '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
     },
   },
   rule2: { minWidth: `calc(${themeLayout['--spacing']} * 50)` },
   rule3: {
+    color: themeColors['--color-brand'],
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
     marginLeft: 'auto',
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
-    height: `calc(${themeLayout['--spacing']} * 3.5)`,
-    color: themeColors['--color-brand'],
   },
 })
 
@@ -105,7 +105,9 @@ export function ComponentSelector({
   // Apply the enclosing bar's touch requirements to the actual trigger button.
   const requiredStyles = useControlStyles()
   const attributes = stylexProps([stylexStyles.rule1, sx], {})
-  attributes.className = cn(attributes.className, requiredStyles)
+  attributes.className = [attributes.className, requiredStyles]
+    .filter(Boolean)
+    .join(' ')
   const groups = useMemo(() => groupComponents(components), [components])
 
   return (

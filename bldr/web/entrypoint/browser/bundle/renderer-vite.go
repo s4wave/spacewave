@@ -55,7 +55,6 @@ func configFreeRendererRequest(bldrDistRoot, workingPath string, opts ConfigFree
 		sourcemapMode = "external"
 	}
 	external := slices.Clone(web_pkg_external.BldrExternal)
-	external = append(external, "tailwindcss")
 	external = append(external, opts.ExtraExternal...)
 	return &bldr_vite.BuildRequest{
 		Mode:           "production",

@@ -6,7 +6,7 @@ import { decodeCanvasGeometry } from './geometry.js'
 import * as stylex from '@stylexjs/stylex'
 
 const stylexStyles = stylex.create({
-  rule1: { height: '100%', width: '100%', overflow: 'visible' },
+  rule1: { overflow: 'visible', height: '100%', width: '100%' },
 })
 
 interface CanvasGeometryNodeProps {

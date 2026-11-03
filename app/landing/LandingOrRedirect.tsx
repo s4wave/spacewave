@@ -19,16 +19,16 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
-    display: 'flex',
-    height: '100%',
-    width: '100%',
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
     backgroundColor: themeColors['--color-background-landing'],
-    padding: `calc(${themeLayout['--spacing']} * 6)`,
+    display: 'flex',
+    justifyContent: 'center',
+    height: '100%',
+    width: '100%',
   },
-  rule2: { width: '100%', maxWidth: 'var(--container-sm)' },
+  rule2: { maxWidth: 'var(--container-sm)', width: '100%' },
 })
 
 // LandingOrRedirect checks for existing sessions and redirects accordingly.

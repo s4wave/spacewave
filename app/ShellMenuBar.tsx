@@ -39,113 +39,113 @@ import {
 
 const stylexStyles5 = stylex.create({
   rule1: {
-    display: 'flex',
-    height: '100%',
-    flexShrink: 0,
-    alignItems: 'center',
     gap: '1px',
-    paddingRight: themeLayout['--spacing'],
+    alignItems: 'center',
+    display: 'flex',
+    flexShrink: 0,
+    height: '100%',
     paddingLeft: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingRight: themeLayout['--spacing'],
   },
   rule2: {
-    marginTop: '-1px',
-    display: 'flex',
-    width: `calc(${themeLayout['--spacing']} * 7)`,
-    height: `calc(${themeLayout['--spacing']} * 7)`,
+    alignItems: 'center',
     cursor: 'pointer',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rule3: { display: 'none', height: '100%', alignItems: 'center' },
-  rule4: {
     display: 'flex',
-    height: '100%',
-    alignItems: 'center',
-    gap: '1px',
-    overflow: 'hidden',
-    transitionProperty: 'all',
-    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration: '.2s',
+    justifyContent: 'center',
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    marginTop: '-1px',
+    width: `calc(${themeLayout['--spacing']} * 7)`,
+  },
+  rule3: { alignItems: 'center', display: 'none', height: '100%' },
+  rule4: {
     '--tw-duration': '.2s',
     WebkitUserSelect: 'none',
-    userSelect: 'none',
-    width: { default: null, '@media (max-width: 640px)': 0 },
+    gap: '1px',
+    overflow: 'hidden',
+    alignItems: 'center',
+    display: 'flex',
     opacity: { default: null, '@media (max-width: 640px)': 0 },
+    transitionDuration: '.2s',
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    userSelect: 'none',
+    height: '100%',
+    width: { default: null, '@media (max-width: 640px)': 0 },
   },
 })
 
 const stylexStyles4 = stylex.create({
   rule1: {
-    display: 'flex',
-    width: {
-      default: `calc(${themeLayout['--spacing']} * 7)`,
-      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    borderRadius: themeRadii['--radius-menu-button'],
+    alignItems: 'center',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-pulldown-hover'],
+      },
     },
+    color: {
+      default: themeColors['--color-topbar-button-text'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-topbar-button-text-hi'],
+      },
+    },
+    display: 'flex',
+    fontSize: themeLayout['--text-ui'],
+    justifyContent: 'center',
+    letterSpacing: `var(--tw-tracking, ${themeLayout['--text-ui--letter-spacing']})`,
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-ui--line-height']})`,
     height: {
       default: `calc(${themeLayout['--spacing']} * 7)`,
       '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
     },
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: themeRadii['--radius-menu-button'],
-    color: {
-      default: themeColors['--color-topbar-button-text'],
-      '@media (hover: hover)': {
-        default: null,
-        ':hover': themeColors['--color-topbar-button-text-hi'],
-      },
+    width: {
+      default: `calc(${themeLayout['--spacing']} * 7)`,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
     },
+  },
+  rule2: {
+    borderRadius: themeRadii['--radius-menu-button'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.75)`,
+    alignItems: 'center',
     backgroundColor: {
       default: null,
+      ':is([data-state="open"])': themeColors['--color-pulldown-hover'],
       '@media (hover: hover)': {
         default: null,
         ':hover': themeColors['--color-pulldown-hover'],
       },
     },
-    fontSize: themeLayout['--text-ui'],
-    lineHeight: `var(--tw-leading, ${themeLayout['--text-ui--line-height']})`,
-    letterSpacing: `var(--tw-tracking, ${themeLayout['--text-ui--letter-spacing']})`,
-  },
-  rule2: {
-    display: 'flex',
-    height: `calc(${themeLayout['--spacing']} * 5)`,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: themeRadii['--radius-menu-button'],
-    paddingInline: `calc(${themeLayout['--spacing']} * 1.75)`,
-    whiteSpace: 'nowrap',
     color: {
       default: themeColors['--color-topbar-button-text'],
+      ':is([data-state="open"])': themeColors['--color-topbar-button-text-hi'],
       '@media (hover: hover)': {
         default: null,
         ':hover': themeColors['--color-topbar-button-text-hi'],
       },
-      ':is([data-state="open"])': themeColors['--color-topbar-button-text-hi'],
     },
+    display: 'flex',
+    fontSize: themeLayout['--text-ui'],
+    justifyContent: 'center',
+    letterSpacing: `var(--tw-tracking, ${themeLayout['--text-ui--letter-spacing']})`,
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-ui--line-height']})`,
+    textShadow: themeLayout['--text-shadow-glow'],
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
-    textShadow: themeLayout['--text-shadow-glow'],
-    backgroundColor: {
-      default: null,
-      '@media (hover: hover)': {
-        default: null,
-        ':hover': themeColors['--color-pulldown-hover'],
-      },
-      ':is([data-state="open"])': themeColors['--color-pulldown-hover'],
-    },
-    fontSize: themeLayout['--text-ui'],
-    lineHeight: `var(--tw-leading, ${themeLayout['--text-ui--line-height']})`,
-    letterSpacing: `var(--tw-tracking, ${themeLayout['--text-ui--letter-spacing']})`,
+    whiteSpace: 'nowrap',
+    height: `calc(${themeLayout['--spacing']} * 5)`,
   },
 })
 
 const stylexStyles3 = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 7)`,
     height: `calc(${themeLayout['--spacing']} * 7)`,
+    width: `calc(${themeLayout['--spacing']} * 7)`,
   },
 })
 
@@ -161,8 +161,8 @@ const stylexStyles2 = stylex.create({
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 5)`,
     height: `calc(${themeLayout['--spacing']} * 5)`,
+    width: `calc(${themeLayout['--spacing']} * 5)`,
   },
 })
 
@@ -370,16 +370,9 @@ export function ShellMenuBar() {
   }, [openCommand])
 
   return (
-    <div
-      className={
-        /* TODO(stylex): global or unknown class: shell-menu-bar */ 'shell-menu-bar'
-      }
-      sx={stylexStyles5.rule1}
-    >
+    <div className={'shell-menu-bar'} sx={stylexStyles5.rule1}>
       <button
-        className={
-          /* TODO(stylex): global or unknown class: shell-menu-palette */ 'shell-menu-palette'
-        }
+        className={'shell-menu-palette'}
         type="button"
         aria-label="Open command palette"
         sx={stylexStyles5.rule2}
@@ -388,12 +381,7 @@ export function ShellMenuBar() {
       >
         <AppLogo sx={stylexStyles3.rule1} />
       </button>
-      <div
-        className={
-          /* TODO(stylex): global or unknown class: shell-menu-mobile */ 'shell-menu-mobile'
-        }
-        sx={stylexStyles5.rule3}
-      >
+      <div className={'shell-menu-mobile'} sx={stylexStyles5.rule3}>
         <Menubar variant="shell" sx={stylexStyles2.rule1}>
           <MenubarMenu>
             <MenubarTrigger asChild>
@@ -438,12 +426,7 @@ export function ShellMenuBar() {
           </MenubarMenu>
         </Menubar>
       </div>
-      <div
-        className={
-          /* TODO(stylex): global or unknown class: shell-menu-collapsible */ 'shell-menu-collapsible'
-        }
-        sx={[stylexStyles5.rule4]}
-      >
+      <div className={'shell-menu-collapsible'} sx={[stylexStyles5.rule4]}>
         <Menubar variant="shell" sx={stylexStyles2.rule1}>
           {topLevelMenus.map((name) => {
             const node = menuTree.get(name)

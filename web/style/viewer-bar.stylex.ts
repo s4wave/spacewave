@@ -35,15 +35,15 @@ export const viewerBarStyles = stylex.create({
     },
   },
   required: {
-    minWidth: {
+    flexShrink: {
       default: null,
       '@media (max-width: 640px) and (pointer: coarse), (max-height: 470px) and (hover: none) and (pointer: coarse)':
         {
           default: null,
-          [stylex.when.ancestor(':is(*)', viewerBarMarker)]: {
-            default: null,
-            ':is(button, [role="button"])': '44px',
-          },
+          [stylex.when.ancestor(
+            ':is(*) > div:first-of-type >',
+            viewerBarMarker,
+          )]: { default: null, ':last-child': 1 },
         },
     },
     minHeight: {
@@ -57,15 +57,15 @@ export const viewerBarStyles = stylex.create({
           },
         },
     },
-    flexShrink: {
+    minWidth: {
       default: null,
       '@media (max-width: 640px) and (pointer: coarse), (max-height: 470px) and (hover: none) and (pointer: coarse)':
         {
           default: null,
-          [stylex.when.ancestor(
-            ':is(*) > div:first-of-type >',
-            viewerBarMarker,
-          )]: { default: null, ':last-child': 1 },
+          [stylex.when.ancestor(':is(*)', viewerBarMarker)]: {
+            default: null,
+            ':is(button, [role="button"])': '44px',
+          },
         },
     },
   },

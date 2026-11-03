@@ -13,63 +13,63 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
-    position: 'relative',
-    display: 'flex',
-    width: '100%',
-    touchAction: 'none',
-    alignItems: 'center',
     WebkitUserSelect: 'none',
+    alignItems: 'center',
+    display: 'flex',
+    position: 'relative',
+    touchAction: 'none',
     userSelect: 'none',
+    width: '100%',
   },
   rule2: {
+    borderRadius: '3.40282e38px',
+    overflow: 'hidden',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-primary']} 20%, transparent)`,
+    flexGrow: 1,
     position: 'relative',
     height: `calc(${themeLayout['--spacing']} * 1.5)`,
     width: '100%',
-    flexGrow: 1,
-    overflow: 'hidden',
-    borderRadius: '3.40282e38px',
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-primary']} 20%, transparent)`,
   },
   rule3: {
+    backgroundColor: themeColors['--color-primary'],
     position: 'absolute',
     height: '100%',
-    backgroundColor: themeColors['--color-primary'],
   },
   rule4: {
-    display: 'block',
-    width: `calc(${themeLayout['--spacing']} * 4)`,
-    height: `calc(${themeLayout['--spacing']} * 4)`,
+    '--tw-outline-style': { default: null, ':focus-visible': 'none' },
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': themeColors['--color-ring'],
+    },
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    '--tw-shadow':
+      '0 1px 3px 0 var(--tw-shadow-color, #0000001a), 0 1px 2px -1px var(--tw-shadow-color, #0000001a)',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-primary']} 50%, transparent)`,
     borderRadius: '3.40282e38px',
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-primary']} 50%, transparent)`,
     backgroundColor: themeColors['--color-background'],
-    '--tw-shadow':
-      '0 1px 3px 0 var(--tw-shadow-color, #0000001a), 0 1px 2px -1px var(--tw-shadow-color, #0000001a)',
     boxShadow: {
       default:
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
       ':focus-visible':
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     },
+    display: 'block',
+    opacity: { default: null, ':disabled': 0.5 },
+    outlineStyle: { default: null, ':focus-visible': 'none' },
+    pointerEvents: { default: null, ':disabled': 'none' },
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
-    '--tw-ring-shadow': {
-      default: null,
-      ':focus-visible':
-        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
-    },
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': themeColors['--color-ring'],
-    },
-    '--tw-outline-style': { default: null, ':focus-visible': 'none' },
-    outlineStyle: { default: null, ':focus-visible': 'none' },
-    pointerEvents: { default: null, ':disabled': 'none' },
-    opacity: { default: null, ':disabled': 0.5 },
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
   },
 })
 

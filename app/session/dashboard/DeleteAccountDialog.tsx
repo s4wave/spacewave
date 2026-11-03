@@ -24,10 +24,8 @@ import {
 const stylexStyles = stylex.create({
   rule1: {
     borderRadius: themeRadii['--radius-md'],
-    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
     paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
-    fontSize: themeFonts['--text-sm'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
     color: {
       default: themeColors['--color-foreground-alt'],
       '@media (hover: hover)': {
@@ -35,17 +33,21 @@ const stylexStyles = stylex.create({
         ':hover': themeColors['--color-foreground'],
       },
     },
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
   },
   rule2: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
     borderRadius: themeRadii['--radius-md'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
     backgroundColor: {
       default: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
       '@media (hover: hover)': {
@@ -53,26 +55,26 @@ const stylexStyles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
       },
     },
-    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
-    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    color: themeColors['--color-destructive'],
     fontSize: themeFonts['--text-sm'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
-    color: themeColors['--color-destructive'],
-    transitionProperty: 'all',
-    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
     transitionDuration:
       'var(--tw-duration, var(--default-transition-duration))',
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
   },
   rule3: {
     '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
     color: themeColors['--color-destructive'],
+    fontWeight: themeFonts['--font-weight-medium'],
   },
   rule4: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
     borderRadius: themeRadii['--radius-md'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
     backgroundColor: {
       default: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
       '@media (hover: hover)': {
@@ -80,33 +82,33 @@ const stylexStyles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
       },
     },
-    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
-    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    color: themeColors['--color-destructive'],
+    cursor: { default: null, ':disabled': 'not-allowed' },
     fontSize: themeFonts['--text-sm'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
-    color: themeColors['--color-destructive'],
-    transitionProperty: 'all',
-    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    opacity: { default: null, ':disabled': 0.5 },
     transitionDuration:
       'var(--tw-duration, var(--default-transition-duration))',
-    cursor: { default: null, ':disabled': 'not-allowed' },
-    opacity: { default: null, ':disabled': 0.5 },
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
   },
   rule5: {
+    color: themeColors['--color-destructive'],
     fontSize: themeFonts['--text-sm'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
-    color: themeColors['--color-destructive'],
   },
   rule6: {
+    color: themeColors['--color-destructive'],
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors['--color-destructive'],
   },
   rule7: {
+    borderColor: themeColors['--color-destructive'],
     borderRadius: themeRadii['--radius-md'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: themeColors['--color-destructive'],
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
     backgroundColor: {
       default: `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
       '@media (hover: hover)': {
@@ -114,17 +116,15 @@ const stylexStyles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
       },
     },
-    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
-    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    color: themeColors['--color-destructive'],
+    cursor: { default: null, ':disabled': 'not-allowed' },
     fontSize: themeFonts['--text-sm'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
-    color: themeColors['--color-destructive'],
-    transitionProperty: 'all',
-    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    opacity: { default: null, ':disabled': 0.5 },
     transitionDuration:
       'var(--tw-duration, var(--default-transition-duration))',
-    cursor: { default: null, ':disabled': 'not-allowed' },
-    opacity: { default: null, ':disabled': 0.5 },
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
   },
 })
 

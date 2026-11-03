@@ -13,44 +13,44 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
-    position: 'relative',
-    zIndex: 10,
     marginInline: 'auto',
-    width: '100%',
-    maxWidth: 'var(--container-4xl)',
     paddingInline: {
       default: `calc(${themeLayout['--spacing']} * 4)`,
       '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 8)`,
     },
+    position: 'relative',
+    zIndex: 10,
+    maxWidth: 'var(--container-4xl)',
     paddingBottom: {
       default: `calc(${themeLayout['--spacing']} * 14)`,
       '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 16)`,
     },
+    width: '100%',
   },
   rule2: {
-    borderRadius: themeRadii['--radius-lg'],
-    borderStyle: themeUtilityState['--tw-border-style'],
-    borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
     padding: {
       default: `calc(${themeLayout['--spacing']} * 6)`,
       '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 8)`,
     },
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
   },
   rule3: {
-    marginBottom: `calc(${themeLayout['--spacing']} * 4)`,
-    fontSize: 'var(--text-lg)',
-    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
     '--tw-font-weight': 'var(--font-weight-semibold)',
-    fontWeight: 'var(--font-weight-semibold)',
     color: themeColors['--color-foreground'],
+    fontSize: 'var(--text-lg)',
+    fontWeight: 'var(--font-weight-semibold)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    marginBottom: `calc(${themeLayout['--spacing']} * 4)`,
   },
   rule4: {
-    fontSize: themeFonts['--text-sm'],
-    lineHeight: 'var(--leading-relaxed)',
     '--tw-leading': 'var(--leading-relaxed)',
     color: themeColors['--color-foreground-alt'],
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: 'var(--leading-relaxed)',
   },
 })
 
@@ -107,13 +107,13 @@ export function LegalPolicyContent({ sections }: LegalPolicyContentProps) {
 const nativeChildSpacing = stylex.create({
   s6: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
-    marginBlockStart: {
-      default: null,
-      ':not(:last-child)': `calc(var(--spacing) * 6 * var(--tw-space-y-reverse))`,
-    },
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 6 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 6 * var(--tw-space-y-reverse))`,
     },
   },
 })

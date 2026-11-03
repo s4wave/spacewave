@@ -21,9 +21,9 @@ import { layout as themeLayout } from '../style/tokens.stylex.js'
 
 const stylexStyles = stylex.create({
   rule1: {
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
     display: 'flex',
     flexDirection: 'column',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
   },
   rule2: { maxHeight: `calc(${themeLayout['--spacing']} * 64)` },
 })

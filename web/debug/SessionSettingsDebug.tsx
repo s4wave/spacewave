@@ -29,47 +29,47 @@ const stylexStyles2 = stylex.create({
 const childSpacing = stylex.create({
   s3: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
-    marginBlockStart: {
-      default: null,
-      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
-    },
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
     },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
   },
   s2: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
-    marginBlockStart: {
-      default: null,
-      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
-    },
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
     },
   },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
-    display: 'flex',
-    height: '100%',
-    width: '100%',
-    flexDirection: 'column',
     overflow: 'auto',
     backgroundColor: themeColors['--color-background'],
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+    width: '100%',
   },
   rule2: {
-    display: 'flex',
-    height: `calc(${themeLayout['--spacing']} * 9)`,
-    flexShrink: 0,
-    alignItems: 'center',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
     gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    alignItems: 'center',
+    display: 'flex',
+    flexShrink: 0,
     borderBottomStyle: themeUtilityState['--tw-border-style'],
     borderBottomWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
-    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 9)`,
   },
   rule3: {
     color: {
@@ -79,42 +79,38 @@ const stylexStyles = stylex.create({
         ':hover': themeColors['--color-foreground'],
       },
     },
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
   },
   rule4: {
-    width: `calc(${themeLayout['--spacing']} * 4)`,
     height: `calc(${themeLayout['--spacing']} * 4)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
   },
   rule5: {
-    fontSize: themeFonts['--text-sm'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     '--tw-font-weight': 'var(--font-weight-semibold)',
-    fontWeight: 'var(--font-weight-semibold)',
     '--tw-tracking': 'var(--tracking-tight)',
-    letterSpacing: 'var(--tracking-tight)',
-    color: themeColors['--color-foreground'],
     WebkitUserSelect: 'none',
+    color: themeColors['--color-foreground'],
+    fontSize: themeFonts['--text-sm'],
+    fontWeight: 'var(--font-weight-semibold)',
+    letterSpacing: 'var(--tracking-tight)',
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     userSelect: 'none',
   },
   rule6: {
     flex: 1,
     overflow: 'auto',
-    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
     paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
   },
   rule7: {
-    width: `calc(${themeLayout['--spacing']} * 3.5)`,
     height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
   rule8: {
-    width: '100%',
-    textAlign: 'left',
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     color: {
       default: `color-mix(in oklab, ${themeColors['--color-brand']} 60%, transparent)`,
       '@media (hover: hover)': {
@@ -122,70 +118,74 @@ const stylexStyles = stylex.create({
         ':hover': themeColors['--color-brand'],
       },
     },
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    textAlign: 'left',
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
+    width: '100%',
   },
   rule9: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingBlock: themeLayout['--spacing'],
+    alignItems: 'center',
+    display: 'flex',
+    justifyContent: 'space-between',
   },
   rule10: {
+    color: themeColors['--color-foreground'],
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors['--color-foreground'],
   },
   rule11: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
   },
   rule12: {
+    color: `color-mix(in oklab, ${themeColors['--color-brand']} 60%, transparent)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: `color-mix(in oklab, ${themeColors['--color-brand']} 60%, transparent)`,
   },
   rule13: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 30%, transparent)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 30%, transparent)`,
   },
   rule14: {
+    padding: `calc(${themeLayout['--spacing']} * 2.5)`,
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
     borderRadius: themeRadii['--radius-md'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 20%, transparent)`,
-    padding: `calc(${themeLayout['--spacing']} * 2.5)`,
   },
   rule15: {
-    display: 'flex',
     alignItems: 'center',
+    display: 'flex',
     justifyContent: 'space-between',
   },
   rule16: {
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
     color: themeColors['--color-foreground'],
+    fontSize: themeFonts['--text-xs'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
   },
   rule17: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
     borderRadius: '3.40282e38px',
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
-    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
     paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
     color: `color-mix(in oklab, ${themeColors['--color-brand']} 60%, transparent)`,
+    fontSize: themeFonts['--text-xs'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
   },
 })
 

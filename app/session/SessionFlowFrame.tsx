@@ -10,11 +10,11 @@ import * as stylex from '@stylexjs/stylex'
 
 const stylexStyles = stylex.create({
   rule1: {
-    position: 'relative',
-    display: 'flex',
-    minHeight: 0,
     flex: 1,
     overflow: 'hidden',
+    display: 'flex',
+    position: 'relative',
+    minHeight: 0,
   },
 })
 

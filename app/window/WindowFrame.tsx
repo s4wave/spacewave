@@ -14,20 +14,19 @@ import {
 
 const stylexStyles2 = frameStyles.create({
   rule1: {
-    color: `color-mix(in oklab, ${themeColors['--color-white']} 72%, transparent)`,
     WebkitUserSelect: 'none',
+    color: `color-mix(in oklab, ${themeColors['--color-white']} 72%, transparent)`,
     userSelect: 'none',
   },
   rule2: {
     marginInline: 'auto',
-    display: 'flex',
     alignItems: 'center',
+    display: 'flex',
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
   },
   rule3: {
-    fontSize: 'var(--text-xl)',
-    lineHeight: 'var(--tw-leading, var(--text-xl--line-height))',
+    '--tw-outline-style': { default: null, ':focus': 'none' },
     color: {
       default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
       '@media (hover: hover)': {
@@ -35,10 +34,11 @@ const stylexStyles2 = frameStyles.create({
         ':hover': themeColors['--color-foreground'],
       },
     },
-    '--tw-outline-style': { default: null, ':focus': 'none' },
+    fontSize: 'var(--text-xl)',
+    lineHeight: 'var(--tw-leading, var(--text-xl--line-height))',
     outlineStyle: { default: null, ':focus': 'none' },
   },
-  rule4: { display: 'flex', flex: 1, alignItems: 'center' },
+  rule4: { flex: 1, alignItems: 'center', display: 'flex' },
 })
 
 const stylexStyles = frameStyles.create({

@@ -6,7 +6,7 @@ import { useShellTabs } from './ShellTabContext.js'
 import * as stylex from '@stylexjs/stylex'
 
 const stylexStyles = stylex.create({
-  rule1: { textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' },
+  rule1: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
 })
 
 // ShellTabLabelProps are the props for ShellTabLabel.

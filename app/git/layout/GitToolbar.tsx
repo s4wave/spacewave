@@ -20,19 +20,19 @@ import { utilityState as themeUtilityState } from '../../../web/style/tokens.sty
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    display: 'flex',
-    height: `calc(${themeLayout['--spacing']} * 7)`,
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: themeLayout['--spacing'],
     alignItems: 'center',
+    backgroundColor: themeColors['--color-panel-header'],
+    display: 'flex',
     borderBottomStyle: themeUtilityState['--tw-border-style'],
     borderBottomWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
-    backgroundColor: themeColors['--color-panel-header'],
-    paddingInline: themeLayout['--spacing'],
+    height: `calc(${themeLayout['--spacing']} * 7)`,
   },
   rule2: { display: 'flex' },
   rule3: {
-    borderRadius: '.25rem',
     padding: `calc(${themeLayout['--spacing']} * .5)`,
+    borderRadius: '.25rem',
   },
   rule4: {
     backgroundColor: {
@@ -44,14 +44,14 @@ const stylexStyles2 = stylex.create({
     },
   },
   rule5: { cursor: 'default', opacity: 0.4 },
-  rule6: { minWidth: 0, flex: 1 },
+  rule6: { flex: 1, minWidth: 0 },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 4)`,
-    height: `calc(${themeLayout['--spacing']} * 4)`,
     color: themeColors['--color-foreground-alt'],
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
   },
 })
 

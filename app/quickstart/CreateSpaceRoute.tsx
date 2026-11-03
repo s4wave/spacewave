@@ -46,25 +46,22 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
-    textAlign: 'center',
+    color: themeColors['--color-destructive'],
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors['--color-destructive'],
+    textAlign: 'center',
   },
   rule2: {
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
     display: 'flex',
     flexDirection: 'column',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
   },
   rule3: {
-    display: 'flex',
-    height: `calc(${themeLayout['--spacing']} * 10)`,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
     borderRadius: themeRadii['--radius-md'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    alignItems: 'center',
     backgroundColor: {
       default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
       '@media (hover: hover)': {
@@ -72,22 +69,18 @@ const stylexStyles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
       },
     },
+    display: 'flex',
     fontSize: themeFonts['--text-sm'],
+    justifyContent: 'center',
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
+    height: `calc(${themeLayout['--spacing']} * 10)`,
   },
   rule4: {
-    display: 'flex',
-    height: `calc(${themeLayout['--spacing']} * 10)`,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: themeRadii['--radius-md'],
-    borderStyle: themeUtilityState['--tw-border-style'],
-    borderWidth: '1px',
     borderColor: {
       default: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
       '@media (hover: hover)': {
@@ -95,13 +88,20 @@ const stylexStyles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 40%, transparent)`,
       },
     },
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    alignItems: 'center',
+    display: 'flex',
     fontSize: themeFonts['--text-sm'],
+    justifyContent: 'center',
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
+    height: `calc(${themeLayout['--spacing']} * 10)`,
   },
 })
 

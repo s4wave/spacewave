@@ -17,22 +17,22 @@ import {
 
 const stylexStyles3 = stylex.create({
   rule1: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
     display: 'flex',
     flexShrink: 0,
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
     borderBottomStyle: themeUtilityState['--tw-border-style'],
     borderBottomWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
-    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
-    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
   },
 })
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 3.5)`,
     height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
 })
 

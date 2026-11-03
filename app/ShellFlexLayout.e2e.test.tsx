@@ -19,7 +19,7 @@ import {
   DockLocation,
 } from '@aptre/flex-layout'
 
-import '@s4wave/web/style/app.css'
+import '@s4wave/web/style/app.js'
 
 // Simple model for testing OptimizedLayout directly
 const simpleModel: IJsonModel = {

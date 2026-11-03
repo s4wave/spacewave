@@ -98,7 +98,6 @@ import '@s4wave/web/state/persist.js'
 import '@s4wave/web/state/useStateAtomResource.js'
 
 // style/
-import '@s4wave/web/style/utils.js'
 
 // test/
 import '@s4wave/web/test/e2e-client.js'

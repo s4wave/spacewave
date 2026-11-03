@@ -1,4 +1,3 @@
-import { cn } from '@s4wave/web/style/utils.js'
 import { stylexProps } from '@s4wave/web/style/props.js'
 import * as stylex from '@stylexjs/stylex'
 import React, { CSSProperties, useEffect, useRef } from 'react'
@@ -12,42 +11,42 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
-    position: 'relative',
-    display: 'flex',
     flex: 1,
-    flexDirection: 'column',
-    flexWrap: 'nowrap',
     gap: 0,
     overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
+    flexWrap: 'nowrap',
+    position: 'relative',
   },
   rule2: {
-    position: 'relative',
+    '--tw-border-style': 'solid',
     margin: 0,
-    display: 'flex',
-    maxHeight: 'none',
-    width: '100%',
-    maxWidth: 'none',
+    borderColor: themeColors['--color-frame-overlay'],
+    borderStyle: 'solid',
+    borderWidth: '.21rem',
     flex: 1,
     overflow: 'hidden',
-    borderWidth: '.21rem',
-    borderColor: themeColors['--color-frame-overlay'],
-    '--tw-border-style': 'solid',
-    borderStyle: 'solid',
     backgroundColor: themeColors['--color-frame-overlay'],
-    overflowWrap: 'break-word',
     color: 'inherit',
+    display: 'flex',
+    overflowWrap: 'break-word',
+    position: 'relative',
+    maxHeight: 'none',
+    maxWidth: 'none',
+    width: '100%',
   },
   rule3: {
-    position: 'relative',
-    display: 'flex',
     flex: 1,
     overflow: 'hidden',
-    borderRightStyle: themeUtilityState['--tw-border-style'],
-    borderRightWidth: 0,
+    display: 'flex',
+    position: 'relative',
     borderBottomStyle: themeUtilityState['--tw-border-style'],
     borderBottomWidth: 0,
     borderLeftStyle: themeUtilityState['--tw-border-style'],
     borderLeftWidth: 0,
+    borderRightStyle: themeUtilityState['--tw-border-style'],
+    borderRightWidth: 0,
   },
   rule4: { display: 'none' },
 })
@@ -125,7 +124,9 @@ export function Frame({ sx, innerSx, overlaySx, ...props }: IFrameProps) {
   const attributes = stylexProps([stylexStyles.rule1, sx], {
     style: props.style,
   })
-  attributes.className = cn(attributes.className, props.dark && 'dark')
+  attributes.className = [attributes.className, props.dark && 'dark']
+    .filter(Boolean)
+    .join(' ')
   return (
     <div ref={groupRef} role="group" {...attributes}>
       {topBar}

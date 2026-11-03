@@ -14,7 +14,7 @@ import { EditorShell } from './EditorShell.js'
 import { FileDropGuard } from './FileDropGuard.js'
 
 import './debug/spacewave-global.js'
-import '@s4wave/web/style/app.css'
+import '@s4wave/web/style/app.js'
 
 // AppProps selects the runtime connection. Omitting resourceClient keeps the
 // Bldr WebView transport.

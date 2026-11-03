@@ -16,36 +16,35 @@ import {
 const styles = stylex.create({
   rootBase: { display: 'flex', flexDirection: 'column' },
   listBase: {
-    display: 'inline-flex',
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    gap: themeLayout['--spacing'],
-    borderRadius: themeRadii['--radius-lg'],
     padding: themeLayout['--spacing'],
+    borderRadius: themeRadii['--radius-lg'],
+    gap: themeLayout['--spacing'],
+    alignItems: 'center',
     color: themeColors['--color-muted-foreground'],
+    display: 'inline-flex',
+    justifyContent: 'flex-start',
+    width: '100%',
   },
   triggerBase: {
-    display: 'inline-flex',
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
-    borderRadius: themeRadii['--radius-md'],
-    fontSize: themeFonts['--text-sm'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
-    whiteSpace: 'nowrap',
-    transitionProperty: 'color, box-shadow',
-    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
+    },
     '--tw-ring-shadow': {
       default: null,
       ':focus-visible':
         'var(--tw-ring-inset, ) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
     },
+    '--tw-shadow': {
+      default: null,
+      ':is([data-state="active"])':
+        '0 1px 3px 0 var(--tw-shadow-color, #0000001a), 0 1px 2px -1px var(--tw-shadow-color, #0000001a)',
+    },
+    borderRadius: themeRadii['--radius-md'],
+    flex: 1,
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    alignItems: 'center',
     boxShadow: {
       default: null,
       ':focus-visible':
@@ -53,60 +52,61 @@ const styles = stylex.create({
       ':is([data-state="active"])':
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     },
-    '--tw-ring-color': {
+    color: {
       default: null,
-      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
+      ':is([data-state="active"])': themeColors['--color-foreground'],
+    },
+    display: 'inline-flex',
+    fontSize: themeFonts['--text-sm'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    justifyContent: 'center',
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    opacity: { default: null, ':disabled': 0.5 },
+    outlineColor: {
+      default: null,
+      ':focus-visible': themeColors['--color-ring'],
     },
     outlineStyle: {
       default: null,
       ':focus-visible': themeUtilityState['--tw-outline-style'],
     },
     outlineWidth: { default: null, ':focus-visible': '1px' },
-    outlineColor: {
-      default: null,
-      ':focus-visible': themeColors['--color-ring'],
-    },
     pointerEvents: { default: null, ':disabled': 'none' },
-    opacity: { default: null, ':disabled': 0.5 },
-    color: {
-      default: null,
-      ':is([data-state="active"])': themeColors['--color-foreground'],
-    },
-    '--tw-shadow': {
-      default: null,
-      ':is([data-state="active"])':
-        '0 1px 3px 0 var(--tw-shadow-color, #0000001a), 0 1px 2px -1px var(--tw-shadow-color, #0000001a)',
-    },
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    transitionProperty: 'color, box-shadow',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    whiteSpace: 'nowrap',
   },
-  contentBase: { flex: 1, '--tw-outline-style': 'none', outlineStyle: 'none' },
+  contentBase: { '--tw-outline-style': 'none', flex: 1, outlineStyle: 'none' },
   rootDebug: { gap: `calc(${themeLayout['--spacing']} * 5)` },
   root: { gap: `calc(${themeLayout['--spacing']} * 2)` },
   listDebug: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
     height: 'auto',
     minWidth: 'max-content',
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
   },
   list: {
-    height: `calc(${themeLayout['--spacing']} * 9)`,
     backgroundColor: themeColors['--color-muted'],
+    height: `calc(${themeLayout['--spacing']} * 9)`,
   },
   triggerDebug: {
-    borderStyle: themeUtilityState['--tw-border-style'],
-    borderWidth: '1px',
     borderColor: {
       default: '#0000',
       ':is([data-state="active"])': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
     },
-    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
     paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
     backgroundColor: {
       default: null,
       ':is([data-state="active"])': `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
     },
   },
   trigger: {
-    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
     paddingBlock: themeLayout['--spacing'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
     backgroundColor: {
       default: null,
       ':is([data-state="active"])': themeColors['--color-background'],
@@ -126,15 +126,15 @@ const styles = stylex.create({
 export const tabsContentItemStyles = stylex.create({
   item: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
-    marginBlockStart: {
-      default: null,
-      ':not(:last-child)':
-        'calc(var(--tabs-content-space, 0px) * var(--tw-space-y-reverse))',
-    },
     marginBlockEnd: {
       default: null,
       ':not(:last-child)':
         'calc(var(--tabs-content-space, 0px) * calc(1 - var(--tw-space-y-reverse)))',
+    },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)':
+        'calc(var(--tabs-content-space, 0px) * var(--tw-space-y-reverse))',
     },
   },
 })

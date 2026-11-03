@@ -5,12 +5,12 @@ import * as stylex from '@stylexjs/stylex'
 
 const styles = stylex.create({
   anchor: {
+    pointerEvents: 'none',
     position: 'fixed',
+    height: 0,
     left: 'var(--dropdown-ghost-left)',
     top: 'var(--dropdown-ghost-top)',
     width: 0,
-    height: 0,
-    pointerEvents: 'none',
   },
 })
 

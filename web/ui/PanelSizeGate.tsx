@@ -14,11 +14,11 @@ import * as stylex from '@stylexjs/stylex'
 
 const stylexStyles = stylex.create({
   rule1: {
+    overflow: 'hidden',
     height: '100%',
     minHeight: 0,
-    width: '100%',
     minWidth: 0,
-    overflow: 'hidden',
+    width: '100%',
   },
 })
 

@@ -46,56 +46,56 @@ const stylexStyles3 = stylex.create({
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
   },
   rule2: {
-    width: '100%',
+    padding: `calc(${themeLayout2['--spacing']} * 2)`,
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
     borderRadius: themeRadii['--radius-md'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
     backgroundColor: themeColors['--color-background'],
-    padding: `calc(${themeLayout2['--spacing']} * 2)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     height: {
       default: null,
       '@media (pointer: coarse)': `calc(${themeLayout2['--spacing']} * 11)`,
     },
+    width: '100%',
   },
   rule3: {
+    padding: `calc(${themeLayout2['--spacing']} * 3)`,
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
     borderRadius: themeRadii['--radius-lg'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
-    padding: `calc(${themeLayout2['--spacing']} * 3)`,
   },
   rule4: {
-    cursor: 'pointer',
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
-    minHeight: {
-      default: null,
-      '@media (pointer: coarse)': `calc(${themeLayout2['--spacing']} * 11)`,
-    },
     paddingBlock: {
       default: null,
       '@media (pointer: coarse)': `calc(${themeLayout2['--spacing']} * 3.5)`,
     },
+    cursor: 'pointer',
+    fontSize: themeFonts['--text-xs'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    minHeight: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout2['--spacing']} * 11)`,
+    },
   },
   rule5: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
   },
   rule6: {
+    gap: `calc(${themeLayout2['--spacing']} * 2)`,
     display: 'flex',
     flexWrap: 'wrap',
-    gap: `calc(${themeLayout2['--spacing']} * 2)`,
   },
   rule7: {
+    color: themeColors['--color-destructive'],
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors['--color-destructive'],
   },
 })
 
@@ -506,13 +506,13 @@ function BuildPanel({
 const nativeChildSpacing = stylex.create({
   s1: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
-    marginBlockStart: {
-      default: null,
-      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
-    },
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
     },
   },
 })
@@ -521,13 +521,13 @@ const nativeChildSpacing = stylex.create({
 const nativeChildSpacingNext = stylex.create({
   s3: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
-    marginBlockStart: {
-      default: null,
-      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
-    },
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
     },
   },
 })
@@ -536,15 +536,15 @@ const nativeChildSpacingNext = stylex.create({
 const slotChildren = stylex.create({
   child: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
-    marginBlockStart: {
-      default: null,
-      ':not(:last-child)':
-        'calc(var(--spacing) * 1 * var(--tw-space-y-reverse))',
-    },
     marginBlockEnd: {
       default: null,
       ':not(:last-child)':
         'calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))',
+    },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)':
+        'calc(var(--spacing) * 1 * var(--tw-space-y-reverse))',
     },
   },
 })

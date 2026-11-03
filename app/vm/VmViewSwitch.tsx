@@ -12,59 +12,70 @@ import {
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    display: 'flex',
-    height: `calc(${themeLayout['--spacing']} * 6)`,
-    flexShrink: 0,
-    alignItems: 'center',
-    borderRadius: themeRadii['--radius-md'],
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
     padding: `calc(${themeLayout['--spacing']} * .5)`,
+    borderRadius: themeRadii['--radius-md'],
+    alignItems: 'center',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    display: 'flex',
+    flexShrink: 0,
+    height: `calc(${themeLayout['--spacing']} * 6)`,
   },
   rule2: {
-    display: 'flex',
-    height: `calc(${themeLayout['--spacing']} * 5)`,
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
-    borderRadius: '.25rem',
-    backgroundColor: themeColors['--color-background'],
-    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors['--color-foreground'],
+    '--tw-outline-style': 'none',
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
+    },
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
     '--tw-shadow':
       '0 1px 3px 0 var(--tw-shadow-color, #0000001a), 0 1px 2px -1px var(--tw-shadow-color, #0000001a)',
+    borderRadius: '.25rem',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
+    backgroundColor: themeColors['--color-background'],
     boxShadow: {
       default:
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
       ':focus-visible':
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     },
+    color: themeColors['--color-foreground'],
+    display: 'flex',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    outlineStyle: 'none',
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+  },
+  rule3: {
     '--tw-outline-style': 'none',
-    outlineStyle: 'none',
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
+    },
     '--tw-ring-shadow': {
       default: null,
       ':focus-visible':
         'var(--tw-ring-inset, ) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
     },
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
-    },
-  },
-  rule3: {
-    display: 'flex',
-    height: `calc(${themeLayout['--spacing']} * 5)`,
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
     borderRadius: '.25rem',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
     paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    alignItems: 'center',
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
     color: {
       default: themeColors['--color-foreground-alt'],
       '@media (hover: hover)': {
@@ -72,27 +83,16 @@ const stylexStyles2 = stylex.create({
         ':hover': themeColors['--color-foreground'],
       },
     },
+    display: 'flex',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    outlineStyle: 'none',
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
-    '--tw-outline-style': 'none',
-    outlineStyle: 'none',
-    '--tw-ring-shadow': {
-      default: null,
-      ':focus-visible':
-        'var(--tw-ring-inset, ) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
-    },
-    boxShadow: {
-      default: null,
-      ':focus-visible':
-        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
-    },
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
-    },
+    height: `calc(${themeLayout['--spacing']} * 5)`,
   },
   rule4: {
     display: { default: 'none', '@container (min-width: 32rem)': 'inline' },
@@ -101,8 +101,8 @@ const stylexStyles2 = stylex.create({
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 3.5)`,
     height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
 })
 

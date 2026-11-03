@@ -21,27 +21,27 @@ const stylexStyles2 = stylex.create({
 
 const stylexStyles = stylex.create({
   rule1: {
+    WebkitUserSelect: 'none',
+    color: themeColors['--color-foreground-alt'],
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors['--color-foreground-alt'],
-    WebkitUserSelect: 'none',
     userSelect: 'none',
   },
   rule2: {
+    color: themeColors['--color-foreground-alt'],
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors['--color-foreground-alt'],
   },
   rule3: {
+    columnGap: `calc(${themeLayout['--spacing']} * 2)`,
     display: 'flex',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    columnGap: `calc(${themeLayout['--spacing']} * 2)`,
   },
   rule4: { color: themeColors['--color-foreground'] },
   rule5: { color: themeColors['--color-foreground-alt'] },
   rule6: { color: themeColors['--color-warning'] },
-  rule7: { overflowWrap: 'break-word', color: themeColors['--color-warning'] },
+  rule7: { color: themeColors['--color-warning'], overflowWrap: 'break-word' },
 })
 
 // SyncPeerList shows this device's sync stream with each other device that
@@ -122,13 +122,13 @@ function peerStatus(peer: SOSyncPeer): string {
 const nativeChildSpacing = stylex.create({
   s0_5: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
-    marginBlockStart: {
-      default: null,
-      ':not(:last-child)': `calc(var(--spacing) * 0.5 * var(--tw-space-y-reverse))`,
-    },
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 0.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 0.5 * var(--tw-space-y-reverse))`,
     },
   },
 })
@@ -137,13 +137,13 @@ const nativeChildSpacing = stylex.create({
 const nativeChildSpacingNext = stylex.create({
   s1: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
-    marginBlockStart: {
-      default: null,
-      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
-    },
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
     },
   },
 })
@@ -152,13 +152,13 @@ const nativeChildSpacingNext = stylex.create({
 const nativeChildSpacingNextNext = stylex.create({
   s1: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
-    marginBlockStart: {
-      default: null,
-      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
-    },
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
     },
   },
 })

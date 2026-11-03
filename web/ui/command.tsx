@@ -1,4 +1,3 @@
-import { cn } from '@s4wave/web/style/utils.js'
 import {
   commandDialogMarker,
   commandGroupMarker,
@@ -15,7 +14,6 @@ import {
 import * as React from 'react'
 import { Command as CommandPrimitive } from 'cmdk'
 import { LuSearch } from '@s4wave/web/images/icons.js'
-import { type VariantProps } from 'class-variance-authority'
 
 import {
   Dialog,
@@ -37,100 +35,100 @@ import {
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    display: 'flex',
-    maxHeight: 'inherit',
-    width: '100%',
-    flexDirection: 'column',
     overflow: 'hidden',
     backgroundColor: themeColors['--color-popover'],
     color: themeColors['--color-popover-foreground'],
+    display: 'flex',
+    flexDirection: 'column',
+    maxHeight: 'inherit',
+    width: '100%',
   },
   rule2: {
-    top: 'auto',
-    bottom: `calc(${themeLayout['--spacing']} * 4)`,
-    '--tw-translate-y': '0px',
-    translate: 'var(--tw-translate-x) var(--tw-translate-y)',
-    overflow: 'hidden',
-    borderRadius: themeRadii['--radius-md'],
-    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 95%, transparent)`,
     '--tw-shadow': '0 0 #0000',
+    '--tw-translate-y': '0px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    borderRadius: themeRadii['--radius-md'],
+    overflow: 'hidden',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 95%, transparent)`,
     boxShadow:
       'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    translate: 'var(--tw-translate-x) var(--tw-translate-y)',
+    bottom: `calc(${themeLayout['--spacing']} * 4)`,
     maxWidth: { default: null, '@media (min-width: 40rem)': 'none' },
+    top: 'auto',
   },
   rule3: { borderRadius: themeRadii['--radius-md'], backgroundColor: '#0000' },
   rule4: {
-    position: 'relative',
-    maxHeight: themeLayout['--max-height-dashboard-list'],
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    '--tw-shadow':
+      '0 20px 25px -5px var(--tw-shadow-color, #0000001a), 0 8px 10px -6px var(--tw-shadow-color, #0000001a)',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    borderColor: themeColors['--color-ui-outline'],
     borderRadius: themeRadii['--radius-lg'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: themeColors['--color-ui-outline'],
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-get-started']} 95%, transparent)`,
-    '--tw-shadow':
-      '0 20px 25px -5px var(--tw-shadow-color, #0000001a), 0 8px 10px -6px var(--tw-shadow-color, #0000001a)',
-    boxShadow:
-      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
-    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
-    WebkitBackdropFilter:
-      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
     backdropFilter:
       'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-get-started']} 95%, transparent)`,
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    position: 'relative',
+    maxHeight: themeLayout['--max-height-dashboard-list'],
   },
   rule5: {
-    position: 'relative',
-    minHeight: `calc(${themeLayout['--spacing']} * 50)`,
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    '--tw-shadow': `inset 0 1px 0 var(--tw-shadow-color, color-mix(in oklab, ${themeColors['--color-foreground']} 7%, transparent)), 0 0 0 1px var(--tw-shadow-color, oklch(0% 0 0 / .35)), 0 48px 96px -40px var(--tw-shadow-color, oklch(0% 0 0 / .8)), 0 14px 32px -18px var(--tw-shadow-color, oklch(0% 0 0 / .55))`,
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 11%, transparent)`,
     borderRadius: themeRadii['--radius-landing-launcher'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 11%, transparent)`,
-    backgroundColor: themeColors['--color-background-get-started'],
-    '--tw-shadow': `inset 0 1px 0 var(--tw-shadow-color, color-mix(in oklab, ${themeColors['--color-foreground']} 7%, transparent)), 0 0 0 1px var(--tw-shadow-color, oklch(0% 0 0 / .35)), 0 48px 96px -40px var(--tw-shadow-color, oklch(0% 0 0 / .8)), 0 14px 32px -18px var(--tw-shadow-color, oklch(0% 0 0 / .55))`,
-    boxShadow:
-      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
-    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
-    WebkitBackdropFilter:
-      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
     backdropFilter:
       'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backgroundColor: themeColors['--color-background-get-started'],
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    position: 'relative',
+    minHeight: `calc(${themeLayout['--spacing']} * 50)`,
   },
   rule6: { borderRadius: themeRadii['--radius-md'] },
   rule7: {
-    display: 'flex',
-    height: `calc(${themeLayout['--spacing']} * 10)`,
-    alignItems: 'center',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-border']} 60%, transparent)`,
     gap: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
+    display: 'flex',
     borderBottomStyle: themeUtilityState['--tw-border-style'],
     borderBottomWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-border']} 60%, transparent)`,
-    paddingRight: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
     paddingLeft: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingRight: `calc(${themeLayout['--spacing']} * 3)`,
   },
   rule8: {
-    height: `calc(${themeLayout['--spacing']} * 12)`,
     borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 7%, transparent)`,
-    paddingRight: `calc(${themeLayout['--spacing']} * 4.5)`,
+    height: `calc(${themeLayout['--spacing']} * 12)`,
     paddingLeft: `calc(${themeLayout['--spacing']} * 4.5)`,
+    paddingRight: `calc(${themeLayout['--spacing']} * 4.5)`,
   },
   rule9: {
-    display: 'flex',
-    height: `calc(${themeLayout['--spacing']} * 10)`,
-    width: '100%',
-    backgroundColor: '#0000',
     '--tw-outline-style': 'none',
+    backgroundColor: '#0000',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    display: 'flex',
+    opacity: { default: null, ':disabled': 0.5 },
+    outlineColor: { default: null, '@media (forced-colors: active)': '#0000' },
+    outlineOffset: { default: null, '@media (forced-colors: active)': '2px' },
     outlineStyle: {
       default: 'none',
       '@media (forced-colors: active)': 'solid',
     },
-    outlineOffset: { default: null, '@media (forced-colors: active)': '2px' },
     outlineWidth: { default: null, '@media (forced-colors: active)': '2px' },
-    outlineColor: { default: null, '@media (forced-colors: active)': '#0000' },
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    width: '100%',
     '::placeholder': {
       color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
     },
-    cursor: { default: null, ':disabled': 'not-allowed' },
-    opacity: { default: null, ':disabled': 0.5 },
   },
   rule10: {
     borderStyle: themeUtilityState['--tw-border-style'],
@@ -139,12 +137,12 @@ const stylexStyles2 = stylex.create({
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
   },
   rule11: {
-    height: `calc(${themeLayout['--spacing']} * 11)`,
-    borderBottomStyle: themeUtilityState['--tw-border-style'],
-    borderBottomWidth: '1px',
     borderColor: themeColors['--color-ui-outline'],
     fontSize: themeFonts['--text-sm'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    height: `calc(${themeLayout['--spacing']} * 11)`,
     '::placeholder': {
       color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
     },
@@ -160,9 +158,9 @@ const stylexStyles2 = stylex.create({
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
   },
   rule14: {
-    minHeight: 0,
     flex: 1,
     scrollPaddingBlock: themeLayout['--spacing'],
+    minHeight: 0,
     overflowX: 'hidden',
     overflowY: 'auto',
   },
@@ -174,72 +172,50 @@ const stylexStyles2 = stylex.create({
   },
   rule18: {
     paddingBlock: `calc(${themeLayout['--spacing']} * 8)`,
-    textAlign: 'center',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
     fontSize: themeFonts['--text-sm'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+    textAlign: 'center',
   },
   rule19: {
     paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
-    paddingRight: `calc(${themeLayout['--spacing']} * 3)`,
-    paddingLeft: `calc(${themeLayout['--spacing']} * 3)`,
-    textAlign: 'left',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+    textAlign: 'left',
+    paddingLeft: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingRight: `calc(${themeLayout['--spacing']} * 3)`,
   },
   rule20: {
     paddingBlock: `calc(${themeLayout['--spacing']} * 8)`,
-    textAlign: 'center',
+    color: themeColors['--color-foreground-alt'],
     fontSize: themeFonts['--text-sm'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
-    color: themeColors['--color-foreground-alt'],
+    textAlign: 'center',
   },
   rule21: {
-    overflow: 'hidden',
     padding: themeLayout['--spacing'],
+    overflow: 'hidden',
     color: themeColors['--color-foreground'],
   },
   rule22: { paddingBlock: 0 },
-  rule23: { paddingRight: 0, paddingLeft: 0 },
+  rule23: { paddingLeft: 0, paddingRight: 0 },
   rule24: { paddingBlock: themeLayout['--spacing'] },
   rule25: {
     marginInline: `calc(${themeLayout['--spacing']} * -1)`,
-    height: '1px',
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-border']} 60%, transparent)`,
+    height: '1px',
   },
   rule26: {
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
   },
   rule27: {
-    position: 'relative',
-    display: 'flex',
-    cursor: 'default',
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
-    borderRadius: themeRadii['--radius-md'],
-    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
-    paddingRight: `calc(${themeLayout['--spacing']} * 2)`,
-    paddingLeft: `calc(${themeLayout['--spacing']} * 2)`,
-    fontSize: themeFonts['--text-sm'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     '--tw-outline-style': 'none',
-    outlineStyle: {
-      default: 'none',
-      '@media (forced-colors: active)': 'solid',
-    },
-    outlineOffset: { default: null, '@media (forced-colors: active)': '2px' },
-    outlineWidth: { default: null, '@media (forced-colors: active)': '2px' },
-    outlineColor: { default: null, '@media (forced-colors: active)': '#0000' },
-    transitionProperty:
-      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
-    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
     WebkitUserSelect: 'none',
-    userSelect: 'none',
-    pointerEvents: { default: null, ':is([data-disabled="true"])': 'none' },
-    opacity: { default: null, ':is([data-disabled="true"])': 0.5 },
+    borderRadius: themeRadii['--radius-md'],
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    alignItems: 'center',
     backgroundColor: {
       default: null,
       ':is([data-selected="true"])': themeColors['--color-menu-selected'],
@@ -248,36 +224,36 @@ const stylexStyles2 = stylex.create({
       default: null,
       ':is([data-selected="true"])': themeColors['--color-foreground'],
     },
+    cursor: 'default',
+    display: 'flex',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    opacity: { default: null, ':is([data-disabled="true"])': 0.5 },
+    outlineColor: { default: null, '@media (forced-colors: active)': '#0000' },
+    outlineOffset: { default: null, '@media (forced-colors: active)': '2px' },
+    outlineStyle: {
+      default: 'none',
+      '@media (forced-colors: active)': 'solid',
+    },
+    outlineWidth: { default: null, '@media (forced-colors: active)': '2px' },
+    pointerEvents: { default: null, ':is([data-disabled="true"])': 'none' },
+    position: 'relative',
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    userSelect: 'none',
+    paddingLeft: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingRight: `calc(${themeLayout['--spacing']} * 2)`,
   },
   rule28: {
-    position: 'relative',
-    display: 'flex',
-    cursor: 'default',
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
-    borderRadius: themeRadii['--radius-md'],
-    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
-    paddingRight: `calc(${themeLayout['--spacing']} * 2)`,
-    paddingLeft: `calc(${themeLayout['--spacing']} * 2)`,
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     '--tw-outline-style': 'none',
-    outlineStyle: {
-      default: 'none',
-      '@media (forced-colors: active)': 'solid',
-    },
-    outlineOffset: { default: null, '@media (forced-colors: active)': '2px' },
-    outlineWidth: { default: null, '@media (forced-colors: active)': '2px' },
-    outlineColor: { default: null, '@media (forced-colors: active)': '#0000' },
-    transitionProperty:
-      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
-    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
     WebkitUserSelect: 'none',
-    userSelect: 'none',
-    pointerEvents: { default: null, ':is([data-disabled="true"])': 'none' },
-    opacity: { default: null, ':is([data-disabled="true"])': 0.5 },
+    borderRadius: themeRadii['--radius-md'],
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    alignItems: 'center',
     backgroundColor: {
       default: null,
       ':is([data-selected="true"])': themeColors['--color-menu-selected'],
@@ -286,158 +262,155 @@ const stylexStyles2 = stylex.create({
       default: null,
       ':is([data-selected="true"])': themeColors['--color-foreground'],
     },
+    cursor: 'default',
+    display: 'flex',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    opacity: { default: null, ':is([data-disabled="true"])': 0.5 },
+    outlineColor: { default: null, '@media (forced-colors: active)': '#0000' },
+    outlineOffset: { default: null, '@media (forced-colors: active)': '2px' },
+    outlineStyle: {
+      default: 'none',
+      '@media (forced-colors: active)': 'solid',
+    },
+    outlineWidth: { default: null, '@media (forced-colors: active)': '2px' },
+    pointerEvents: { default: null, ':is([data-disabled="true"])': 'none' },
+    position: 'relative',
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    userSelect: 'none',
+    paddingLeft: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingRight: `calc(${themeLayout['--spacing']} * 2)`,
   },
   rule29: {
-    position: 'relative',
-    display: 'flex',
-    cursor: 'default',
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    '--tw-outline-style': 'none',
+    WebkitUserSelect: 'none',
     borderRadius: themeRadii['--radius-md'],
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
     paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
-    paddingRight: `calc(${themeLayout['--spacing']} * 2)`,
-    paddingLeft: `calc(${themeLayout['--spacing']} * 2)`,
-    fontSize: themeFonts['--text-sm'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    alignItems: 'center',
+    backgroundColor: {
+      default: null,
+      ':is([data-selected="true"])': themeColors['--color-menu-selected'],
+    },
     color: {
       default: themeColors['--color-warning'],
       ':is([data-selected="true"])': themeColors['--color-foreground'],
     },
-    '--tw-outline-style': 'none',
+    cursor: 'default',
+    display: 'flex',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    opacity: { default: null, ':is([data-disabled="true"])': 0.5 },
+    outlineColor: { default: null, '@media (forced-colors: active)': '#0000' },
+    outlineOffset: { default: null, '@media (forced-colors: active)': '2px' },
     outlineStyle: {
       default: 'none',
       '@media (forced-colors: active)': 'solid',
     },
-    outlineOffset: { default: null, '@media (forced-colors: active)': '2px' },
     outlineWidth: { default: null, '@media (forced-colors: active)': '2px' },
-    outlineColor: { default: null, '@media (forced-colors: active)': '#0000' },
+    pointerEvents: { default: null, ':is([data-disabled="true"])': 'none' },
+    position: 'relative',
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
-    WebkitUserSelect: 'none',
     userSelect: 'none',
-    pointerEvents: { default: null, ':is([data-disabled="true"])': 'none' },
-    opacity: { default: null, ':is([data-disabled="true"])': 0.5 },
+    paddingLeft: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingRight: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule30: {
+    '--tw-outline-style': 'none',
+    WebkitUserSelect: 'none',
+    borderRadius: themeRadii['--radius-md'],
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    alignItems: 'center',
     backgroundColor: {
       default: null,
       ':is([data-selected="true"])': themeColors['--color-menu-selected'],
     },
-  },
-  rule30: {
-    position: 'relative',
-    display: 'flex',
-    cursor: 'default',
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
-    borderRadius: themeRadii['--radius-md'],
-    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
-    paddingRight: `calc(${themeLayout['--spacing']} * 2)`,
-    paddingLeft: `calc(${themeLayout['--spacing']} * 2)`,
-    fontSize: themeFonts['--text-sm'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     color: {
       default: themeColors['--color-foreground-alt'],
       ':is([data-selected="true"])': themeColors['--color-foreground'],
     },
-    '--tw-outline-style': 'none',
+    cursor: 'default',
+    display: 'flex',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    opacity: { default: null, ':is([data-disabled="true"])': 0.5 },
+    outlineColor: { default: null, '@media (forced-colors: active)': '#0000' },
+    outlineOffset: { default: null, '@media (forced-colors: active)': '2px' },
     outlineStyle: {
       default: 'none',
       '@media (forced-colors: active)': 'solid',
     },
-    outlineOffset: { default: null, '@media (forced-colors: active)': '2px' },
     outlineWidth: { default: null, '@media (forced-colors: active)': '2px' },
-    outlineColor: { default: null, '@media (forced-colors: active)': '#0000' },
+    pointerEvents: { default: null, ':is([data-disabled="true"])': 'none' },
+    position: 'relative',
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
-    WebkitUserSelect: 'none',
     userSelect: 'none',
-    pointerEvents: { default: null, ':is([data-disabled="true"])': 'none' },
-    opacity: { default: null, ':is([data-disabled="true"])': 0.5 },
-    backgroundColor: {
-      default: null,
-      ':is([data-selected="true"])': themeColors['--color-menu-selected'],
-    },
+    paddingLeft: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingRight: `calc(${themeLayout['--spacing']} * 2)`,
   },
   rule31: {
-    position: 'relative',
-    display: 'flex',
-    minHeight: `calc(${themeLayout['--spacing']} * 12)`,
-    cursor: 'default',
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
-    borderRadius: 0,
-    borderBottomStyle: themeUtilityState['--tw-border-style'],
-    borderBottomWidth: '1px',
+    '--tw-outline-style': 'none',
+    WebkitUserSelect: 'none',
     borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    borderRadius: 0,
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
     paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
-    paddingRight: `calc(${themeLayout['--spacing']} * 3)`,
-    paddingLeft: `calc(${themeLayout['--spacing']} * 3)`,
+    alignItems: 'center',
+    backgroundColor: {
+      default: null,
+      ':is([data-selected="true"])': `color-mix(in oklab, ${themeColors['--color-brand']} 25%, transparent)`,
+    },
+    color: {
+      default: null,
+      ':is([data-selected="true"])': themeColors['--color-foreground'],
+    },
+    cursor: 'default',
+    display: 'flex',
     fontSize: themeFonts['--text-sm'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     opacity: { default: 0.5, ':is([data-disabled="true"])': 0.5 },
-    '--tw-outline-style': 'none',
+    outlineColor: { default: null, '@media (forced-colors: active)': '#0000' },
+    outlineOffset: { default: null, '@media (forced-colors: active)': '2px' },
     outlineStyle: {
       default: 'none',
       '@media (forced-colors: active)': 'solid',
     },
-    outlineOffset: { default: null, '@media (forced-colors: active)': '2px' },
     outlineWidth: { default: null, '@media (forced-colors: active)': '2px' },
-    outlineColor: { default: null, '@media (forced-colors: active)': '#0000' },
+    pointerEvents: { default: null, ':is([data-disabled="true"])': 'none' },
+    position: 'relative',
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
-    WebkitUserSelect: 'none',
     userSelect: 'none',
-    pointerEvents: { default: null, ':is([data-disabled="true"])': 'none' },
-    backgroundColor: {
-      default: null,
-      ':is([data-selected="true"])': `color-mix(in oklab, ${themeColors['--color-brand']} 25%, transparent)`,
-    },
-    color: {
-      default: null,
-      ':is([data-selected="true"])': themeColors['--color-foreground'],
-    },
-  },
-  rule32: {
-    position: 'relative',
-    display: 'flex',
-    minHeight: `calc(${themeLayout['--spacing']} * 12)`,
-    cursor: 'default',
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
-    borderRadius: 0,
     borderBottomStyle: themeUtilityState['--tw-border-style'],
     borderBottomWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
-    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
-    paddingRight: `calc(${themeLayout['--spacing']} * 3)`,
+    minHeight: `calc(${themeLayout['--spacing']} * 12)`,
     paddingLeft: `calc(${themeLayout['--spacing']} * 3)`,
-    fontSize: themeFonts['--text-sm'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    paddingRight: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule32: {
     '--tw-outline-style': 'none',
-    outlineStyle: {
-      default: 'none',
-      '@media (forced-colors: active)': 'solid',
-    },
-    outlineOffset: { default: null, '@media (forced-colors: active)': '2px' },
-    outlineWidth: { default: null, '@media (forced-colors: active)': '2px' },
-    outlineColor: { default: null, '@media (forced-colors: active)': '#0000' },
-    transitionProperty:
-      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
-    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
     WebkitUserSelect: 'none',
-    userSelect: 'none',
-    pointerEvents: { default: null, ':is([data-disabled="true"])': 'none' },
-    opacity: { default: null, ':is([data-disabled="true"])': 0.5 },
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    borderRadius: 0,
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
     backgroundColor: {
       default: null,
       ':is([data-selected="true"])': `color-mix(in oklab, ${themeColors['--color-brand']} 25%, transparent)`,
@@ -446,136 +419,161 @@ const stylexStyles2 = stylex.create({
       default: null,
       ':is([data-selected="true"])': themeColors['--color-foreground'],
     },
+    cursor: 'default',
+    display: 'flex',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    opacity: { default: null, ':is([data-disabled="true"])': 0.5 },
+    outlineColor: { default: null, '@media (forced-colors: active)': '#0000' },
+    outlineOffset: { default: null, '@media (forced-colors: active)': '2px' },
+    outlineStyle: {
+      default: 'none',
+      '@media (forced-colors: active)': 'solid',
+    },
+    outlineWidth: { default: null, '@media (forced-colors: active)': '2px' },
+    pointerEvents: { default: null, ':is([data-disabled="true"])': 'none' },
+    position: 'relative',
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    userSelect: 'none',
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    minHeight: `calc(${themeLayout['--spacing']} * 12)`,
+    paddingLeft: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingRight: `calc(${themeLayout['--spacing']} * 3)`,
   },
   rule33: {
-    position: 'relative',
-    display: 'flex',
-    cursor: 'pointer',
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    '--tw-outline-style': 'none',
+    WebkitUserSelect: 'none',
     borderRadius: themeRadii['--radius-md'],
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    alignItems: 'center',
     backgroundColor: {
       default: '#0000',
       ':is([data-selected="true"])': themeColors['--color-menu-selected'],
     },
-    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    color: {
+      default: null,
+      ':is([data-selected="true"])': themeColors['--color-foreground'],
+    },
+    cursor: 'pointer',
+    display: 'flex',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    opacity: { default: null, ':is([data-disabled="true"])': 0.5 },
+    outlineColor: { default: null, '@media (forced-colors: active)': '#0000' },
+    outlineOffset: { default: null, '@media (forced-colors: active)': '2px' },
+    outlineStyle: {
+      default: 'none',
+      '@media (forced-colors: active)': 'solid',
+    },
+    outlineWidth: { default: null, '@media (forced-colors: active)': '2px' },
+    pointerEvents: { default: null, ':is([data-disabled="true"])': 'none' },
+    position: 'relative',
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    userSelect: 'none',
+    paddingLeft: `calc(${themeLayout['--spacing']} * 3)`,
     paddingRight: {
       default: `calc(${themeLayout['--spacing']} * 14)`,
       '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 11)`,
     },
-    paddingLeft: `calc(${themeLayout['--spacing']} * 3)`,
-    fontSize: themeFonts['--text-sm'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
-    '--tw-outline-style': 'none',
-    outlineStyle: {
-      default: 'none',
-      '@media (forced-colors: active)': 'solid',
-    },
-    outlineOffset: { default: null, '@media (forced-colors: active)': '2px' },
-    outlineWidth: { default: null, '@media (forced-colors: active)': '2px' },
-    outlineColor: { default: null, '@media (forced-colors: active)': '#0000' },
-    transitionProperty:
-      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
-    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
-    WebkitUserSelect: 'none',
-    userSelect: 'none',
-    pointerEvents: { default: null, ':is([data-disabled="true"])': 'none' },
-    opacity: { default: null, ':is([data-disabled="true"])': 0.5 },
-    color: {
-      default: null,
-      ':is([data-selected="true"])': themeColors['--color-foreground'],
-    },
   },
   rule34: {
-    position: 'relative',
-    display: 'flex',
-    cursor: 'pointer',
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    '--tw-outline-style': 'none',
+    WebkitUserSelect: 'none',
     borderRadius: themeRadii['--radius-md'],
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    alignItems: 'center',
     backgroundColor: {
       default: '#0000',
       ':is([data-selected="true"])': themeColors['--color-menu-selected'],
     },
-    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
-    paddingRight: `calc(${themeLayout['--spacing']} * 3)`,
-    paddingLeft: `calc(${themeLayout['--spacing']} * 3)`,
-    fontSize: themeFonts['--text-sm'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
-    '--tw-outline-style': 'none',
-    outlineStyle: {
-      default: 'none',
-      '@media (forced-colors: active)': 'solid',
-    },
-    outlineOffset: { default: null, '@media (forced-colors: active)': '2px' },
-    outlineWidth: { default: null, '@media (forced-colors: active)': '2px' },
-    outlineColor: { default: null, '@media (forced-colors: active)': '#0000' },
-    transitionProperty:
-      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
-    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
-    WebkitUserSelect: 'none',
-    userSelect: 'none',
-    pointerEvents: { default: null, ':is([data-disabled="true"])': 'none' },
-    opacity: { default: null, ':is([data-disabled="true"])': 0.5 },
     color: {
       default: null,
       ':is([data-selected="true"])': themeColors['--color-foreground'],
     },
-  },
-  rule35: {
-    position: 'relative',
-    marginInline: themeLayout['--spacing'],
-    display: 'flex',
     cursor: 'pointer',
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 3)`,
-    borderRadius: themeRadii['--radius-lg'],
-    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
-    paddingRight: `calc(${themeLayout['--spacing']} * 3)`,
-    paddingLeft: `calc(${themeLayout['--spacing']} * 3)`,
+    display: 'flex',
     fontSize: themeFonts['--text-sm'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
-    color: {
-      default: themeColors['--color-foreground-alt'],
-      ':is([data-selected="true"])': themeColors['--color-foreground'],
-    },
-    '--tw-outline-style': 'none',
+    opacity: { default: null, ':is([data-disabled="true"])': 0.5 },
+    outlineColor: { default: null, '@media (forced-colors: active)': '#0000' },
+    outlineOffset: { default: null, '@media (forced-colors: active)': '2px' },
     outlineStyle: {
       default: 'none',
       '@media (forced-colors: active)': 'solid',
     },
-    outlineOffset: { default: null, '@media (forced-colors: active)': '2px' },
     outlineWidth: { default: null, '@media (forced-colors: active)': '2px' },
-    outlineColor: { default: null, '@media (forced-colors: active)': '#0000' },
+    pointerEvents: { default: null, ':is([data-disabled="true"])': 'none' },
+    position: 'relative',
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration: '.2s',
-    '--tw-duration': '.2s',
-    WebkitUserSelect: 'none',
     userSelect: 'none',
-    pointerEvents: { default: null, ':is([data-disabled="true"])': 'none' },
-    opacity: { default: null, ':is([data-disabled="true"])': 0.5 },
+    paddingLeft: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingRight: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule35: {
+    '--tw-duration': '.2s',
+    '--tw-outline-style': 'none',
+    WebkitUserSelect: 'none',
+    borderRadius: themeRadii['--radius-lg'],
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    marginInline: themeLayout['--spacing'],
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    alignItems: 'center',
     backgroundColor: {
       default: null,
       ':is([data-selected="true"])': themeColors['--color-menu-selected'],
     },
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      ':is([data-selected="true"])': themeColors['--color-foreground'],
+    },
+    cursor: 'pointer',
+    display: 'flex',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    opacity: { default: null, ':is([data-disabled="true"])': 0.5 },
+    outlineColor: { default: null, '@media (forced-colors: active)': '#0000' },
+    outlineOffset: { default: null, '@media (forced-colors: active)': '2px' },
+    outlineStyle: {
+      default: 'none',
+      '@media (forced-colors: active)': 'solid',
+    },
+    outlineWidth: { default: null, '@media (forced-colors: active)': '2px' },
+    pointerEvents: { default: null, ':is([data-disabled="true"])': 'none' },
+    position: 'relative',
+    transitionDuration: '.2s',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    userSelect: 'none',
+    paddingLeft: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingRight: `calc(${themeLayout['--spacing']} * 3)`,
   },
   rule36: {
-    marginLeft: 'auto',
-    fontFamily: themeFonts['--font-mono'],
-    WebkitFontSmoothing: 'subpixel-antialiased',
+    '--tw-tracking': 'var(--tracking-wide)',
     MozOsxFontSmoothing: 'auto',
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    fontFamily: themeFonts['--font-mono'],
+    fontSize: themeLayout['--text-metadata'],
+    letterSpacing: 'var(--tracking-wide)',
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-metadata--line-height']})`,
     textRendering: 'auto',
     textShadow: '0 0 0.25px currentColor',
-    fontSize: themeLayout['--text-metadata'],
-    lineHeight: `var(--tw-leading, ${themeLayout['--text-metadata--line-height']})`,
-    '--tw-tracking': 'var(--tracking-wide)',
-    letterSpacing: 'var(--tracking-wide)',
+    marginLeft: 'auto',
   },
   rule37: {
     color: themeColors['--color-warning'],
@@ -583,97 +581,97 @@ const stylexStyles2 = stylex.create({
     lineHeight: 'inherit',
   },
   rule38: {
+    color: `color-mix(in oklab, ${themeColors['--color-brand']} 90%, transparent)`,
+    flexShrink: 0,
     fontSize: 'inherit',
     lineHeight: 'inherit',
-    flexShrink: 0,
     paddingLeft: `calc(${themeLayout['--spacing']} * 4)`,
-    color: `color-mix(in oklab, ${themeColors['--color-brand']} 90%, transparent)`,
   },
   rule39: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-border']} 60%, transparent)`,
     gap: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    alignItems: 'center',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    display: 'flex',
+    fontSize: '10px',
+    justifyContent: 'center',
+    lineHeight: 1.5,
     borderTopStyle: themeUtilityState['--tw-border-style'],
     borderTopWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-border']} 60%, transparent)`,
-    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
-    paddingRight: `calc(${themeLayout['--spacing']} * 3)`,
     paddingLeft: `calc(${themeLayout['--spacing']} * 3)`,
-    fontSize: '10px',
-    lineHeight: 1.5,
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    paddingRight: `calc(${themeLayout['--spacing']} * 3)`,
   },
 })
 
 const commandDialogStyles = stylex.create({
   palette: {
-    top: 'auto',
-    bottom: `calc(${themeLayout['--spacing']} * 4)`,
-    maxHeight: themeLayout['--max-height-command-palette'],
-    width: themeLayout['--width-command-editor'],
-    '--tw-translate-y': '0px',
-    translate: 'var(--tw-translate-x) var(--tw-translate-y)',
-    overflow: 'hidden',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 95%, transparent)`,
-    padding: 0,
     '--tw-shadow': '0 0 #0000',
+    '--tw-translate-y': '0px',
+    padding: 0,
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    overflow: 'hidden',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 95%, transparent)`,
     boxShadow:
       'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    translate: 'var(--tw-translate-x) var(--tw-translate-y)',
+    bottom: `calc(${themeLayout['--spacing']} * 4)`,
+    maxHeight: themeLayout['--max-height-command-palette'],
     maxWidth: {
       default: 'calc(100% - 2rem)',
       '@media (min-width: 40rem)': 'none',
     },
+    top: 'auto',
+    width: themeLayout['--width-command-editor'],
   },
   default: {
-    top: '38%',
-    maxHeight: 'min(28rem, 100vh - 6rem)',
-    overflow: 'hidden',
     padding: 0,
+    overflow: 'hidden',
+    maxHeight: 'min(28rem, 100vh - 6rem)',
     maxWidth: {
       default: 'calc(100% - 2rem)',
       '@media (min-width: 40rem)': 'var(--container-xl)',
     },
+    top: '38%',
   },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
-    clipPath: 'inset(50%)',
-    whiteSpace: 'nowrap',
-    borderWidth: 0,
-    width: '1px',
-    height: '1px',
     margin: '-1px',
     padding: 0,
-    position: 'absolute',
+    borderWidth: 0,
     overflow: 'hidden',
+    clipPath: 'inset(50%)',
+    position: 'absolute',
+    whiteSpace: 'nowrap',
+    height: '1px',
+    width: '1px',
   },
   rule2: {
-    width: `calc(${themeLayout['--spacing']} * 4)`,
-    height: `calc(${themeLayout['--spacing']} * 4)`,
-    flexShrink: 0,
     color: themeColors['--color-foreground-alt'],
+    flexShrink: 0,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
   },
   rule3: {
-    display: 'flex',
-    alignItems: 'center',
     gap: themeLayout['--spacing'],
+    alignItems: 'center',
+    display: 'flex',
   },
   rule4: {
-    borderRadius: '.25rem',
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-muted']} 50%, transparent)`,
-    paddingInline: themeLayout['--spacing'],
-    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
-    fontFamily: themeFonts['--font-mono'],
-    WebkitFontSmoothing: 'subpixel-antialiased',
+    '--tw-leading': '1',
     MozOsxFontSmoothing: 'auto',
-    textRendering: 'auto',
-    textShadow: '0 0 0.25px currentColor',
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    borderRadius: '.25rem',
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    paddingInline: themeLayout['--spacing'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-muted']} 50%, transparent)`,
+    fontFamily: themeFonts['--font-mono'],
     fontSize: '10px',
     lineHeight: 1,
-    '--tw-leading': '1',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
   },
 })
 
@@ -868,39 +866,39 @@ const commandShortcutVariants = (props?: {
 
 const headingStyles = stylex.create({
   rule1: {
-    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
-    paddingTop: `calc(${themeLayout['--spacing']} * 2.5)`,
-    paddingBottom: themeLayout['--spacing'],
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
     '--tw-tracking': 'var(--tracking-wide)',
-    letterSpacing: 'var(--tracking-wide)',
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
     color: `color-mix(in oklab, ${themeColors['--color-foreground']} 50%, transparent)`,
+    fontSize: themeFonts['--text-xs'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    letterSpacing: 'var(--tracking-wide)',
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    paddingBottom: themeLayout['--spacing'],
+    paddingTop: `calc(${themeLayout['--spacing']} * 2.5)`,
   },
   rule2: {
-    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
-    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
-    fontSize: '10px',
-    lineHeight: 1.5,
     '--tw-font-weight': 'var(--font-weight-semibold)',
-    fontWeight: 'var(--font-weight-semibold)',
     '--tw-tracking': 'var(--tracking-widest)',
-    letterSpacing: 'var(--tracking-widest)',
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+    fontSize: '10px',
+    fontWeight: 'var(--font-weight-semibold)',
+    letterSpacing: 'var(--tracking-widest)',
+    lineHeight: 1.5,
     textTransform: 'uppercase',
   },
   rule3: {
-    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
-    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
-    fontSize: '10px',
-    lineHeight: 1.5,
     '--tw-font-weight': 'var(--font-weight-semibold)',
-    fontWeight: 'var(--font-weight-semibold)',
     '--tw-tracking': 'var(--tracking-widest)',
-    letterSpacing: 'var(--tracking-widest)',
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+    fontSize: '10px',
+    fontWeight: 'var(--font-weight-semibold)',
+    letterSpacing: 'var(--tracking-widest)',
+    lineHeight: 1.5,
     textTransform: 'uppercase',
   },
 })
@@ -956,6 +954,10 @@ const dialogPartStyles = stylex.create({
     },
   },
   item: {
+    paddingBottom: {
+      default: null,
+      [stylex.when.ancestor(':is(*)', commandDialogMarker)]: '6px',
+    },
     paddingLeft: {
       default: null,
       [stylex.when.ancestor(':is(*)', commandDialogMarker)]: '8px',
@@ -971,27 +973,23 @@ const dialogPartStyles = stylex.create({
       default: null,
       [stylex.when.ancestor(':is(*)', commandDialogMarker)]: '6px',
     },
-    paddingBottom: {
-      default: null,
-      [stylex.when.ancestor(':is(*)', commandDialogMarker)]: '6px',
-    },
   },
   plainHeading: {
-    color: {
+    '--tw-font-weight': {
       default: null,
       [stylex.when.ancestor(':is(*)', commandDialogMarker)]:
-        themeColors['--color-foreground-alt'],
+        themeFonts['--font-weight-medium'],
     },
     paddingInline: {
       default: null,
       [stylex.when.ancestor(':is(*)', commandDialogMarker)]: '8px',
     },
-    fontWeight: {
+    color: {
       default: null,
       [stylex.when.ancestor(':is(*)', commandDialogMarker)]:
-        themeFonts['--font-weight-medium'],
+        themeColors['--color-foreground-alt'],
     },
-    '--tw-font-weight': {
+    fontWeight: {
       default: null,
       [stylex.when.ancestor(':is(*)', commandDialogMarker)]:
         themeFonts['--font-weight-medium'],
@@ -1019,7 +1017,7 @@ function Command({
   ...props
 }: Omit<
   React.ComponentProps<typeof CommandPrimitive> &
-    VariantProps<typeof commandVariants>,
+    NonNullable<Parameters<typeof commandVariants>[0]>,
   'className'
 > & { sx?: ComponentStyles; className?: never }) {
   return (
@@ -1078,24 +1076,28 @@ function CommandInput({
   ...props
 }: Omit<
   React.ComponentProps<typeof CommandPrimitive.Input> &
-    VariantProps<typeof commandInputVariants>,
+    NonNullable<Parameters<typeof commandInputVariants>[0]>,
   'className'
 > & { sx?: ComponentStyles; className?: never }) {
   const attributes = stylexProps(
     [stylexStyles2.rule9, commandInputVariants({ variant }), sx],
     props,
   )
-  attributes.className = cn(attributes.className, dialogInputClass)
+  attributes.className = [attributes.className, dialogInputClass]
+    .filter(Boolean)
+    .join(' ')
   return (
     <div
       data-slot="command-input-wrapper"
-      className={cn(
+      className={[
         stylex.props([
           stylexStyles2.rule7,
           commandInputWrapperVariants({ variant }),
         ]).className,
         dialogWrapperClass,
-      )}
+      ]
+        .filter(Boolean)
+        .join(' ')}
     >
       <LuSearch sx={stylexStyles.rule2} />
       <CommandPrimitive.Input data-slot="command-input" {...attributes} />
@@ -1111,7 +1113,7 @@ function CommandList({
   ...props
 }: Omit<
   React.ComponentProps<typeof CommandPrimitive.List> &
-    VariantProps<typeof commandListVariants>,
+    NonNullable<Parameters<typeof commandListVariants>[0]>,
   'className' | 'sizerProps'
 > & { sx?: ComponentStyles; sizerSx?: ComponentStyles; className?: never }) {
   return (
@@ -1133,7 +1135,7 @@ function CommandEmpty({
   ...props
 }: Omit<
   React.ComponentProps<typeof CommandPrimitive.Empty> &
-    VariantProps<typeof commandEmptyVariants>,
+    NonNullable<Parameters<typeof commandEmptyVariants>[0]>,
   'className'
 > & { sx?: ComponentStyles; className?: never }) {
   return (
@@ -1155,7 +1157,7 @@ function CommandGroup({
   ...props
 }: Omit<
   React.ComponentProps<typeof CommandPrimitive.Group> &
-    VariantProps<typeof commandGroupVariants>,
+    NonNullable<Parameters<typeof commandGroupVariants>[0]>,
   'className' | 'headingProps'
 > & { sx?: ComponentStyles; headingSx?: ComponentStyles; className?: never }) {
   const attributes = stylexProps(
@@ -1167,7 +1169,9 @@ function CommandGroup({
     ],
     props,
   )
-  attributes.className = cn(attributes.className, dialogGroupClass)
+  attributes.className = [attributes.className, dialogGroupClass]
+    .filter(Boolean)
+    .join(' ')
 
   return (
     <CommandPrimitive.Group
@@ -1219,14 +1223,16 @@ function CommandItem({
   ...props
 }: Omit<
   React.ComponentProps<typeof CommandPrimitive.Item> &
-    VariantProps<typeof commandItemVariants>,
+    NonNullable<Parameters<typeof commandItemVariants>[0]>,
   'className'
 > & { sx?: ComponentStyles; className?: never }) {
   const attributes = stylexProps(
     [commandIconMarker, commandItemVariants({ variant }), sx],
     props,
   )
-  attributes.className = cn(attributes.className, dialogItemClass)
+  attributes.className = [attributes.className, dialogItemClass]
+    .filter(Boolean)
+    .join(' ')
   return (
     <IconStylesProvider
       sx={[iconDefaults.command]}
@@ -1243,7 +1249,8 @@ function CommandShortcut({
   variant,
   ...props
 }: Omit<
-  React.ComponentProps<'span'> & VariantProps<typeof commandShortcutVariants>,
+  React.ComponentProps<'span'> &
+    NonNullable<Parameters<typeof commandShortcutVariants>[0]>,
   'className'
 > & { sx?: ComponentStyles; className?: never }) {
   return (

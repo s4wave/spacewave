@@ -3,7 +3,7 @@ import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
 import { buttonGroupControlStyles } from '../style/button-group.stylex.js'
 import { useControlStyles } from '@s4wave/web/style/ControlStylesProvider.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { Slot } from '@radix-ui/react-slot'
 import { IconStylesProvider } from '@s4wave/web/images/icons.js'
 
@@ -20,49 +20,59 @@ import {
 
 const styles = stylex.create({
   base: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    '--tw-outline-style': { default: null, ':focus-visible': 'none' },
     gap: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
+    display: 'inline-flex',
     fontSize: themeFonts['--text-sm'],
+    justifyContent: 'center',
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
-    whiteSpace: 'nowrap',
+    opacity: { default: null, ':disabled': 0.5 },
+    outlineStyle: { default: null, ':focus-visible': 'none' },
+    pointerEvents: { default: null, ':disabled': 'none' },
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
-    '--tw-outline-style': { default: null, ':focus-visible': 'none' },
-    outlineStyle: { default: null, ':focus-visible': 'none' },
-    pointerEvents: { default: null, ':disabled': 'none' },
-    opacity: { default: null, ':disabled': 0.5 },
+    whiteSpace: 'nowrap',
     minHeight: {
       default: null,
       '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
     },
   },
   unselected: {
-    borderRadius: themeRadii['--radius-md'],
     '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': themeColors['--color-ring'],
+    },
     '--tw-ring-shadow': {
       default: null,
       ':focus-visible':
         'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
     },
+    borderRadius: themeRadii['--radius-md'],
     boxShadow: {
       default: null,
       ':focus-visible':
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     },
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  category: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
     '--tw-ring-color': {
       default: null,
       ':focus-visible': themeColors['--color-ring'],
     },
-  },
-  category: {
-    borderRadius: themeRadii['--radius-md'],
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
     borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    borderRadius: themeRadii['--radius-md'],
     backgroundColor: {
       default: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
       '@media (hover: hover)': {
@@ -70,31 +80,29 @@ const styles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
       },
     },
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
-    color: themeColors['--color-foreground'],
-    '--tw-ring-shadow': {
-      default: null,
-      ':focus-visible':
-        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
-    },
     boxShadow: {
       default: null,
       ':focus-visible':
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     },
+    color: themeColors['--color-foreground'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  unselectedFinder: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
     '--tw-ring-color': {
       default: null,
       ':focus-visible': themeColors['--color-ring'],
     },
-  },
-  unselectedFinder: {
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    borderColor: '#0000',
     borderRadius: themeRadii['--radius-lg'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: '#0000',
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
     backgroundColor: {
       default: null,
       '@media (hover: hover)': {
@@ -102,26 +110,28 @@ const styles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 4%, transparent)`,
       },
     },
-    '--tw-ring-shadow': {
-      default: null,
-      ':focus-visible':
-        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
-    },
     boxShadow: {
       default: null,
       ':focus-visible':
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     },
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  selectedFinder: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
     '--tw-ring-color': {
       default: null,
       ':focus-visible': themeColors['--color-ring'],
     },
-  },
-  selectedFinder: {
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
     borderRadius: themeRadii['--radius-lg'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
     backgroundColor: {
       default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
       '@media (hover: hover)': {
@@ -129,27 +139,30 @@ const styles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
       },
     },
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
-    '--tw-ring-shadow': {
-      default: null,
-      ':focus-visible':
-        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
-    },
     boxShadow: {
       default: null,
       ':focus-visible':
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     },
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  errorGhost: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
     '--tw-ring-color': {
       default: null,
       ':focus-visible': themeColors['--color-ring'],
     },
-  },
-  errorGhost: {
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
     borderRadius: themeRadii['--radius-md'],
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
     color: {
       default: themeColors['--color-error'],
       '@media (hover: hover)': {
@@ -157,25 +170,19 @@ const styles = stylex.create({
         ':hover': themeColors['--color-error'],
       },
     },
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  destructiveSubtle: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': themeColors['--color-ring'],
+    },
     '--tw-ring-shadow': {
       default: null,
       ':focus-visible':
         'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
     },
-    boxShadow: {
-      default: null,
-      ':focus-visible':
-        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
-    },
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': themeColors['--color-ring'],
-    },
-  },
-  destructiveSubtle: {
-    borderRadius: themeRadii['--radius-md'],
-    borderStyle: themeUtilityState['--tw-border-style'],
-    borderWidth: '1px',
     borderColor: {
       default: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
       '@media (hover: hover)': {
@@ -183,6 +190,9 @@ const styles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
       },
     },
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
     backgroundColor: {
       default: '#0000',
       '@media (hover: hover)': {
@@ -190,8 +200,11 @@ const styles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
       },
     },
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
     color: {
       default: null,
       '@media (hover: hover)': {
@@ -199,25 +212,20 @@ const styles = stylex.create({
         ':hover': themeColors['--color-destructive'],
       },
     },
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  debugGhost: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': themeColors['--color-ring'],
+    },
     '--tw-ring-shadow': {
       default: null,
       ':focus-visible':
         'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
     },
-    boxShadow: {
-      default: null,
-      ':focus-visible':
-        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
-    },
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': themeColors['--color-ring'],
-    },
-  },
-  debugGhost: {
     borderRadius: themeRadii['--radius-md'],
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
     backgroundColor: {
       default: null,
       '@media (hover: hover)': {
@@ -225,23 +233,24 @@ const styles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 3%, transparent)`,
       },
     },
-    '--tw-ring-shadow': {
-      default: null,
-      ':focus-visible':
-        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
-    },
     boxShadow: {
       default: null,
       ':focus-visible':
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     },
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  debugOutline: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
     '--tw-ring-color': {
       default: null,
       ':focus-visible': themeColors['--color-ring'],
     },
-  },
-  debugOutline: {
-    borderRadius: themeRadii['--radius-md'],
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
     borderColor: {
       default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
       '@media (hover: hover)': {
@@ -249,6 +258,7 @@ const styles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 40%, transparent)`,
       },
     },
+    borderRadius: themeRadii['--radius-md'],
     backgroundColor: {
       default: `color-mix(in oklab, ${themeColors['--color-background']} 30%, transparent)`,
       '@media (hover: hover)': {
@@ -256,28 +266,28 @@ const styles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
       },
     },
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
-    '--tw-ring-shadow': {
-      default: null,
-      ':focus-visible':
-        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
-    },
     boxShadow: {
       default: null,
       ':focus-visible':
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     },
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  selectedRow: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
     '--tw-ring-color': {
       default: null,
       ':focus-visible': themeColors['--color-ring'],
     },
-  },
-  selectedRow: {
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
     borderRadius: themeRadii['--radius-md'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
     backgroundColor: {
       default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
       '@media (hover: hover)': {
@@ -285,27 +295,24 @@ const styles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
       },
     },
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
-    '--tw-ring-shadow': {
-      default: null,
-      ':focus-visible':
-        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
-    },
     boxShadow: {
       default: null,
       ':focus-visible':
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     },
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  unselectedRow: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
     '--tw-ring-color': {
       default: null,
       ':focus-visible': themeColors['--color-ring'],
     },
-  },
-  unselectedRow: {
-    borderRadius: themeRadii['--radius-md'],
-    borderStyle: themeUtilityState['--tw-border-style'],
-    borderWidth: '1px',
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
     borderColor: {
       default: '#0000',
       '@media (hover: hover)': {
@@ -313,8 +320,9 @@ const styles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
       },
     },
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
     backgroundColor: {
       default: null,
       '@media (hover: hover)': {
@@ -322,37 +330,20 @@ const styles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 3%, transparent)`,
       },
     },
-    '--tw-ring-shadow': {
-      default: null,
-      ':focus-visible':
-        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
-    },
     boxShadow: {
       default: null,
       ':focus-visible':
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     },
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  capture: {
+    '--tw-font-weight': 'var(--font-weight-normal)',
     '--tw-ring-color': {
       default: null,
       ':focus-visible': themeColors['--color-ring'],
+      ':is([data-capturing="true"])': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
     },
-  },
-  capture: {
-    borderRadius: themeRadii['--radius-md'],
-    borderColor: {
-      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
-      '@media (hover: hover)': {
-        default: null,
-        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
-      },
-      ':is([data-capturing="true"])': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
-    },
-    backgroundColor: {
-      default: `color-mix(in oklab, ${themeColors['--color-background']} 40%, transparent)`,
-      ':is([data-capturing="true"])': `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
-    },
-    '--tw-font-weight': 'var(--font-weight-normal)',
-    fontWeight: 'var(--font-weight-normal)',
     '--tw-ring-shadow': {
       default: null,
       ':focus-visible':
@@ -360,6 +351,19 @@ const styles = stylex.create({
       ':is([data-capturing="true"])':
         'var(--tw-ring-inset, ) 0 0 0 calc(4px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
     },
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      ':is([data-capturing="true"])': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      },
+    },
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-background']} 40%, transparent)`,
+      ':is([data-capturing="true"])': `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    },
     boxShadow: {
       default: null,
       ':focus-visible':
@@ -367,21 +371,27 @@ const styles = stylex.create({
       ':is([data-capturing="true"])':
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     },
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': themeColors['--color-ring'],
-      ':is([data-capturing="true"])': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
-    },
     color: {
       default: null,
       ':is([data-capturing="true"])': themeColors['--color-brand'],
     },
+    fontWeight: 'var(--font-weight-normal)',
   },
   selectedBrand: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': themeColors['--color-ring'],
+    },
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
     borderRadius: themeRadii['--radius-md'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
     backgroundColor: {
       default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
       '@media (hover: hover)': {
@@ -389,27 +399,24 @@ const styles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
       },
     },
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
-    '--tw-ring-shadow': {
-      default: null,
-      ':focus-visible':
-        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
-    },
     boxShadow: {
       default: null,
       ':focus-visible':
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     },
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  brandSoft: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
     '--tw-ring-color': {
       default: null,
       ':focus-visible': themeColors['--color-ring'],
     },
-  },
-  brandSoft: {
-    borderRadius: themeRadii['--radius-md'],
-    borderStyle: themeUtilityState['--tw-border-style'],
-    borderWidth: '1px',
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
     borderColor: {
       default: `color-mix(in oklab, ${themeColors['--color-brand']} 60%, transparent)`,
       '@media (hover: hover)': {
@@ -417,6 +424,9 @@ const styles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 80%, transparent)`,
       },
     },
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
     backgroundColor: {
       default: `color-mix(in oklab, ${themeColors['--color-brand']} 25%, transparent)`,
       '@media (hover: hover)': {
@@ -424,28 +434,31 @@ const styles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 35%, transparent)`,
       },
     },
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
-    color: themeColors['--color-foreground'],
-    '--tw-ring-shadow': {
-      default: null,
-      ':focus-visible':
-        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
-    },
     boxShadow: {
       default: null,
       ':focus-visible':
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     },
+    color: themeColors['--color-foreground'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  muted: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
     '--tw-ring-color': {
       default: null,
       ':focus-visible': themeColors['--color-ring'],
     },
-  },
-  muted: {
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
     borderRadius: themeRadii['--radius-md'],
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
     color: {
       default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
       '@media (hover: hover)': {
@@ -453,22 +466,19 @@ const styles = stylex.create({
         ':hover': themeColors['--color-foreground'],
       },
     },
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  brandGhost: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': themeColors['--color-ring'],
+    },
     '--tw-ring-shadow': {
       default: null,
       ':focus-visible':
         'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
     },
-    boxShadow: {
-      default: null,
-      ':focus-visible':
-        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
-    },
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': themeColors['--color-ring'],
-    },
-  },
-  brandGhost: {
     borderRadius: themeRadii['--radius-md'],
     backgroundColor: {
       default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
@@ -477,35 +487,26 @@ const styles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
       },
     },
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
-    color: themeColors['--color-brand'],
-    '--tw-ring-shadow': {
-      default: null,
-      ':focus-visible':
-        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
-    },
     boxShadow: {
       default: null,
       ':focus-visible':
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     },
+    color: themeColors['--color-brand'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  dangerGhost: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
     '--tw-ring-color': {
       default: null,
       ':focus-visible': themeColors['--color-ring'],
     },
-  },
-  dangerGhost: {
-    borderRadius: themeRadii['--radius-md'],
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
-    color: {
-      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 70%, transparent)`,
-      '@media (hover: hover)': {
-        default: null,
-        ':hover': themeColors['--color-destructive'],
-      },
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
     },
+    borderRadius: themeRadii['--radius-md'],
     backgroundColor: {
       default: null,
       '@media (hover: hover)': {
@@ -513,26 +514,35 @@ const styles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
       },
     },
-    '--tw-ring-shadow': {
-      default: null,
-      ':focus-visible':
-        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
-    },
     boxShadow: {
       default: null,
       ':focus-visible':
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     },
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 70%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-destructive'],
+      },
+    },
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  destructiveOutline: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
     '--tw-ring-color': {
       default: null,
       ':focus-visible': themeColors['--color-ring'],
     },
-  },
-  destructiveOutline: {
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
     borderRadius: themeRadii['--radius-md'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
     backgroundColor: {
       default: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
       '@media (hover: hover)': {
@@ -540,26 +550,25 @@ const styles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 15%, transparent)`,
       },
     },
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
-    color: themeColors['--color-destructive'],
-    '--tw-ring-shadow': {
-      default: null,
-      ':focus-visible':
-        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
-    },
     boxShadow: {
       default: null,
       ':focus-visible':
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     },
+    color: themeColors['--color-destructive'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  quiet: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
     '--tw-ring-color': {
       default: null,
       ':focus-visible': themeColors['--color-ring'],
     },
-  },
-  quiet: {
-    borderRadius: themeRadii['--radius-md'],
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
     borderColor: {
       default: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
       '@media (hover: hover)': {
@@ -567,6 +576,7 @@ const styles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 15%, transparent)`,
       },
     },
+    borderRadius: themeRadii['--radius-md'],
     backgroundColor: {
       default: '#0000',
       '@media (hover: hover)': {
@@ -574,8 +584,11 @@ const styles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
       },
     },
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
     color: {
       default: themeColors['--color-foreground-alt'],
       '@media (hover: hover)': {
@@ -583,25 +596,19 @@ const styles = stylex.create({
         ':hover': themeColors['--color-foreground'],
       },
     },
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  brandOutline: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': themeColors['--color-ring'],
+    },
     '--tw-ring-shadow': {
       default: null,
       ':focus-visible':
         'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
     },
-    boxShadow: {
-      default: null,
-      ':focus-visible':
-        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
-    },
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': themeColors['--color-ring'],
-    },
-  },
-  brandOutline: {
-    borderRadius: themeRadii['--radius-md'],
-    borderStyle: themeUtilityState['--tw-border-style'],
-    borderWidth: '1px',
     borderColor: {
       default: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
       '@media (hover: hover)': {
@@ -609,6 +616,9 @@ const styles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
       },
     },
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
     backgroundColor: {
       default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
       '@media (hover: hover)': {
@@ -616,59 +626,62 @@ const styles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
       },
     },
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
-    color: themeColors['--color-foreground'],
-    '--tw-ring-shadow': {
-      default: null,
-      ':focus-visible':
-        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
-    },
     boxShadow: {
       default: null,
       ':focus-visible':
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     },
+    color: themeColors['--color-foreground'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  link: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
     '--tw-ring-color': {
       default: null,
       ':focus-visible': themeColors['--color-ring'],
     },
-  },
-  link: {
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
     borderRadius: themeRadii['--radius-md'],
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
     color: themeColors['--color-primary'],
-    textUnderlineOffset: '4px',
+    fontWeight: themeFonts['--font-weight-medium'],
     textDecorationLine: {
       default: null,
       '@media (hover: hover)': { default: null, ':hover': 'underline' },
     },
+    textUnderlineOffset: '4px',
+  },
+  ghost: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': themeColors['--color-ring'],
+    },
     '--tw-ring-shadow': {
       default: null,
       ':focus-visible':
         'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
     },
-    boxShadow: {
-      default: null,
-      ':focus-visible':
-        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
-    },
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': themeColors['--color-ring'],
-    },
-  },
-  ghost: {
     borderRadius: themeRadii['--radius-md'],
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
     backgroundColor: {
       default: null,
       '@media (hover: hover)': {
         default: null,
         ':hover': themeColors['--color-accent'],
       },
+    },
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     },
     color: {
       default: null,
@@ -677,22 +690,21 @@ const styles = stylex.create({
         ':hover': themeColors['--color-accent-foreground'],
       },
     },
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  secondary: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': themeColors['--color-ring'],
+    },
     '--tw-ring-shadow': {
       default: null,
       ':focus-visible':
         'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
     },
-    boxShadow: {
-      default: null,
-      ':focus-visible':
-        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
-    },
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': themeColors['--color-ring'],
-    },
-  },
-  secondary: {
+    '--tw-shadow':
+      '0 1px 3px 0 var(--tw-shadow-color, #0000001a), 0 1px 2px -1px var(--tw-shadow-color, #0000001a)',
     borderRadius: themeRadii['--radius-md'],
     backgroundColor: {
       default: themeColors['--color-secondary'],
@@ -701,32 +713,32 @@ const styles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-secondary']} 80%, transparent)`,
       },
     },
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
-    color: themeColors['--color-secondary-foreground'],
-    '--tw-shadow':
-      '0 1px 3px 0 var(--tw-shadow-color, #0000001a), 0 1px 2px -1px var(--tw-shadow-color, #0000001a)',
     boxShadow: {
       default:
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
       ':focus-visible':
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     },
+    color: themeColors['--color-secondary-foreground'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  outline: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': themeColors['--color-ring'],
+    },
     '--tw-ring-shadow': {
       default: null,
       ':focus-visible':
         'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
     },
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': themeColors['--color-ring'],
-    },
-  },
-  outline: {
+    '--tw-shadow':
+      '0 1px 3px 0 var(--tw-shadow-color, #0000001a), 0 1px 2px -1px var(--tw-shadow-color, #0000001a)',
+    borderColor: themeColors['--color-input'],
     borderRadius: themeRadii['--radius-md'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: themeColors['--color-input'],
     backgroundColor: {
       default: themeColors['--color-background'],
       '@media (hover: hover)': {
@@ -734,10 +746,6 @@ const styles = stylex.create({
         ':hover': themeColors['--color-accent'],
       },
     },
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
-    '--tw-shadow':
-      '0 1px 3px 0 var(--tw-shadow-color, #0000001a), 0 1px 2px -1px var(--tw-shadow-color, #0000001a)',
     boxShadow: {
       default:
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
@@ -751,17 +759,21 @@ const styles = stylex.create({
         ':hover': themeColors['--color-accent-foreground'],
       },
     },
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  destructive: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': themeColors['--color-ring'],
+    },
     '--tw-ring-shadow': {
       default: null,
       ':focus-visible':
         'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
     },
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': themeColors['--color-ring'],
-    },
-  },
-  destructive: {
+    '--tw-shadow':
+      '0 1px 3px 0 var(--tw-shadow-color, #0000001a), 0 1px 2px -1px var(--tw-shadow-color, #0000001a)',
     borderRadius: themeRadii['--radius-md'],
     backgroundColor: {
       default: themeColors['--color-destructive'],
@@ -770,28 +782,28 @@ const styles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 90%, transparent)`,
       },
     },
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
-    color: themeColors['--color-destructive-foreground'],
-    '--tw-shadow':
-      '0 1px 3px 0 var(--tw-shadow-color, #0000001a), 0 1px 2px -1px var(--tw-shadow-color, #0000001a)',
     boxShadow: {
       default:
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
       ':focus-visible':
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     },
+    color: themeColors['--color-destructive-foreground'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  default: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': themeColors['--color-ring'],
+    },
     '--tw-ring-shadow': {
       default: null,
       ':focus-visible':
         'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
     },
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': themeColors['--color-ring'],
-    },
-  },
-  default: {
+    '--tw-shadow':
+      '0 1px 3px 0 var(--tw-shadow-color, #0000001a), 0 1px 2px -1px var(--tw-shadow-color, #0000001a)',
     borderRadius: themeRadii['--radius-md'],
     backgroundColor: {
       default: themeColors['--color-primary'],
@@ -800,139 +812,127 @@ const styles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-primary']} 90%, transparent)`,
       },
     },
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
-    color: themeColors['--color-primary-foreground'],
-    '--tw-shadow':
-      '0 1px 3px 0 var(--tw-shadow-color, #0000001a), 0 1px 2px -1px var(--tw-shadow-color, #0000001a)',
     boxShadow: {
       default:
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
       ':focus-visible':
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     },
-    '--tw-ring-shadow': {
-      default: null,
-      ':focus-visible':
-        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
-    },
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': themeColors['--color-ring'],
-    },
+    color: themeColors['--color-primary-foreground'],
+    fontWeight: themeFonts['--font-weight-medium'],
   },
 })
 
 const sizeStyles = stylex.create({
   default: {
-    height: `calc(${themeLayout['--spacing']} * 9)`,
-    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
     paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 9)`,
   },
   sm: {
-    height: `calc(${themeLayout['--spacing']} * 8)`,
     borderRadius: themeRadii['--radius-md'],
     paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
   },
   lg: {
-    height: `calc(${themeLayout['--spacing']} * 10)`,
     borderRadius: themeRadii['--radius-md'],
     paddingInline: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
   },
   icon: {
     height: `calc(${themeLayout['--spacing']} * 9)`,
-    width: `calc(${themeLayout['--spacing']} * 9)`,
     minWidth: {
       default: null,
       '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
     },
+    width: `calc(${themeLayout['--spacing']} * 9)`,
   },
   xs: {
-    height: `calc(${themeLayout['--spacing']} * 6)`,
     gap: themeLayout['--spacing'],
     paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    height: `calc(${themeLayout['--spacing']} * 6)`,
   },
   toolbar: {
-    height: `calc(${themeLayout['--spacing']} * 7)`,
     gap: themeLayout['--spacing'],
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    height: `calc(${themeLayout['--spacing']} * 7)`,
   },
   toolbarSm: {
-    height: `calc(${themeLayout['--spacing']} * 7)`,
     paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    height: `calc(${themeLayout['--spacing']} * 7)`,
   },
   toolbarWide: {
-    height: `calc(${themeLayout['--spacing']} * 7)`,
     paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    height: `calc(${themeLayout['--spacing']} * 7)`,
   },
   brandWide: {
-    height: `calc(${themeLayout['--spacing']} * 7)`,
     gap: `calc(${themeLayout['--spacing']} * 1.5)`,
     paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    height: `calc(${themeLayout['--spacing']} * 7)`,
   },
   toolbarText: {
-    height: `calc(${themeLayout['--spacing']} * 7)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    height: `calc(${themeLayout['--spacing']} * 7)`,
   },
   compact8: {
-    height: `calc(${themeLayout['--spacing']} * 8)`,
     paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
   },
   iconSm: {
     height: `calc(${themeLayout['--spacing']} * 8)`,
-    width: `calc(${themeLayout['--spacing']} * 8)`,
     minWidth: {
       default: null,
       '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
     },
+    width: `calc(${themeLayout['--spacing']} * 8)`,
   },
   iconXs: {
-    height: `calc(${themeLayout['--spacing']} * 6)`,
-    width: `calc(${themeLayout['--spacing']} * 6)`,
     padding: 0,
+    height: `calc(${themeLayout['--spacing']} * 6)`,
     minWidth: {
       default: null,
       '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
     },
+    width: `calc(${themeLayout['--spacing']} * 6)`,
   },
   row: {
-    height: 'auto',
-    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
     borderRadius: themeRadii['--radius-lg'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    height: 'auto',
   },
   finderRow: {
-    height: 'auto',
     borderRadius: themeRadii['--radius-lg'],
-    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
     paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    height: 'auto',
   },
   commandRow: {
-    height: 'auto',
-    paddingInline: `calc(${themeLayout['--spacing']} * 2.5)`,
     paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2.5)`,
+    height: 'auto',
   },
   category: {
-    height: 'auto',
     borderRadius: 0,
-    paddingInline: `calc(${themeLayout['--spacing']} * 3.5)`,
     paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3.5)`,
+    height: 'auto',
   },
 })
 
@@ -1007,7 +1007,9 @@ function Button({ sx, variant, size, asChild = false, ...props }: ButtonProps) {
 
   // Keep DOM-gated control rules independent of the button's overridable defaults.
   const relationshipClass = useControlStyles()
-  attributes.className = cn(attributes.className, groupClass, relationshipClass)
+  attributes.className = [attributes.className, groupClass, relationshipClass]
+    .filter(Boolean)
+    .join(' ')
   const Comp = asChild ? Slot : 'button'
   return (
     <IconStylesProvider requiredSx={buttonIconStyles.icon}>

@@ -19,11 +19,8 @@ import {
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    display: 'flex',
-    alignItems: 'center',
     gap: `calc(${themeLayout['--spacing']} * 2)`,
-    fontSize: themeFonts['--text-sm'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    alignItems: 'center',
     color: {
       default: themeColors['--color-foreground-alt'],
       '@media (hover: hover)': {
@@ -31,33 +28,36 @@ const stylexStyles2 = stylex.create({
         ':hover': themeColors['--color-brand'],
       },
     },
+    display: 'flex',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
   },
   rule2: { WebkitUserSelect: 'none', userSelect: 'none' },
   rule3: {
-    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
-    fontSize: 'var(--text-xl)',
-    lineHeight: 'var(--tw-leading, var(--text-xl--line-height))',
     '--tw-font-weight': 'var(--font-weight-semibold)',
-    fontWeight: 'var(--font-weight-semibold)',
     '--tw-tracking': 'var(--tracking-wide)',
+    fontSize: 'var(--text-xl)',
+    fontWeight: 'var(--font-weight-semibold)',
     letterSpacing: 'var(--tracking-wide)',
+    lineHeight: 'var(--tw-leading, var(--text-xl--line-height))',
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
   },
   rule4: {
+    gap: `calc(${themeLayout['--spacing']} * 6)`,
     display: 'flex',
     flexDirection: 'column',
-    gap: `calc(${themeLayout['--spacing']} * 6)`,
   },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 4)`,
     height: `calc(${themeLayout['--spacing']} * 4)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
   },
 })
 

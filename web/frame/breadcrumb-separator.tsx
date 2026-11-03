@@ -7,11 +7,11 @@ import { layout as themeLayout } from '../style/tokens.stylex.js'
 
 const stylexStyles = stylex.create({
   rule1: { paddingInline: 0 },
-  rule2: { display: 'flex', alignItems: 'center' },
+  rule2: { alignItems: 'center', display: 'flex' },
   rule3: {
-    width: `calc(${themeLayout['--spacing']} * 3)`,
-    height: `calc(${themeLayout['--spacing']} * 3)`,
     opacity: 0.5,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    width: `calc(${themeLayout['--spacing']} * 3)`,
   },
 })
 

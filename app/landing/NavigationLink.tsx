@@ -17,15 +17,15 @@ import { groupMarker as groupMarker2 } from '../../web/style/relations.stylex.js
 
 const stylexStyles2 = ownerStylex.create({
   rule1: {
+    padding: 0,
     backgroundColor: {
       default: '#0000',
+      ':focus': themeColors['--color-navlink-selection'],
       '@media (hover: hover)': {
         default: null,
         ':hover': themeColors['--color-navlink-selection'],
       },
-      ':focus': themeColors['--color-navlink-selection'],
     },
-    padding: 0,
     fontFamily: themeFonts['--font-heading'],
     fontSize: {
       default: themeFonts['--text-sm'],
@@ -36,12 +36,12 @@ const stylexStyles2 = ownerStylex.create({
       '@container (min-width: 32rem)':
         'var(--tw-leading, var(--text-base--line-height))',
     },
-    whiteSpace: 'nowrap',
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
+    whiteSpace: 'nowrap',
   },
   rule2: {
     color: {
@@ -52,17 +52,16 @@ const stylexStyles2 = ownerStylex.create({
           themeColors['--color-navlink-text-hover'],
       },
     },
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
   },
 })
 
 const stylexStyles = ownerStylex.create({
   rule1: {
-    paddingRight: themeLayout['--spacing-navlink-bracket'],
     color: themeColors['--color-navlink-bracket'],
     textDecorationLine: {
       default: null,
@@ -72,9 +71,9 @@ const stylexStyles = ownerStylex.create({
       },
       [ownerStylex.when.ancestor(':is(:focus)', groupMarker3)]: 'none',
     },
+    paddingRight: themeLayout['--spacing-navlink-bracket'],
   },
   rule2: {
-    paddingLeft: themeLayout['--spacing-navlink-bracket'],
     color: themeColors['--color-navlink-bracket'],
     textDecorationLine: {
       default: null,
@@ -84,6 +83,7 @@ const stylexStyles = ownerStylex.create({
       },
       [ownerStylex.when.ancestor(':is(:focus)', groupMarker3)]: 'none',
     },
+    paddingLeft: themeLayout['--spacing-navlink-bracket'],
   },
 })
 

@@ -32,20 +32,20 @@ import {
 import { groupMarker } from '../../../web/style/relations.stylex.js'
 
 const stylexStyles3 = stylex.create({
-  rule1: { display: 'flex', minWidth: 0, flex: 1, flexDirection: 'column' },
+  rule1: { flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 },
   rule2: {
-    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
-    display: 'flex',
     alignItems: 'center',
+    display: 'flex',
     justifyContent: 'space-between',
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
   },
   rule3: {
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
-    color: themeColors['--color-foreground-alt'],
     WebkitUserSelect: 'none',
+    color: themeColors['--color-foreground-alt'],
+    fontSize: themeFonts['--text-xs'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     userSelect: 'none',
   },
 })
@@ -163,19 +163,19 @@ const stylexStyles2 = stylex.create({
   },
   rule13: {
     color: themeColors['--color-destructive'],
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
   },
   rule14: {
     color: `color-mix(in oklab, ${themeColors['--color-destructive']} 80%, transparent)`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
   },
   rule15: {
     borderColor: {
@@ -219,11 +219,11 @@ const stylexStyles2 = stylex.create({
           themeColors['--color-destructive-foreground'],
       },
     },
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
   },
   rule18: {
     color: {
@@ -234,28 +234,26 @@ const stylexStyles2 = stylex.create({
           `color-mix(in oklab, ${themeColors['--color-destructive-foreground']} 80%, transparent)`,
       },
     },
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
   },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 3.5)`,
-    height: `calc(${themeLayout['--spacing']} * 3.5)`,
     color: themeColors['--color-foreground-alt'],
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
   rule2: {
-    width: `calc(${themeLayout['--spacing']} * 3.5)`,
-    height: `calc(${themeLayout['--spacing']} * 3.5)`,
     color: {
       default: themeColors['--color-foreground-alt'],
       '@media (hover: hover)': {
@@ -264,30 +262,30 @@ const stylexStyles = stylex.create({
           themeColors['--color-brand'],
       },
     },
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
   rule3: {
-    width: `calc(${themeLayout['--spacing']} * 3.5)`,
-    height: `calc(${themeLayout['--spacing']} * 3.5)`,
     color: themeColors['--color-warning'],
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
   rule4: {
-    width: `calc(${themeLayout['--spacing']} * 3.5)`,
-    height: `calc(${themeLayout['--spacing']} * 3.5)`,
     color: themeColors['--color-destructive'],
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
   rule5: {
-    width: `calc(${themeLayout['--spacing']} * 3.5)`,
-    height: `calc(${themeLayout['--spacing']} * 3.5)`,
     color: {
       default: themeColors['--color-destructive'],
       '@media (hover: hover)': {
@@ -296,56 +294,58 @@ const stylexStyles = stylex.create({
           themeColors['--color-destructive-foreground'],
       },
     },
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
   rule6: {
-    display: 'flex',
-    width: '100%',
-    cursor: 'pointer',
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
     borderRadius: themeRadii['--radius-md'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    padding: `calc(${themeLayout['--spacing']} * 2)`,
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    alignItems: 'center',
+    cursor: 'pointer',
+    display: 'flex',
     textAlign: 'left',
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
+    width: '100%',
   },
   rule7: { cursor: 'not-allowed', opacity: 0.5 },
   rule8: {
-    display: 'flex',
-    width: `calc(${themeLayout['--spacing']} * 7)`,
-    height: `calc(${themeLayout['--spacing']} * 7)`,
-    flexShrink: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
     borderRadius: themeRadii['--radius-md'],
+    alignItems: 'center',
+    display: 'flex',
+    flexShrink: 0,
+    justifyContent: 'center',
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    width: `calc(${themeLayout['--spacing']} * 7)`,
   },
   rule9: {
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
     WebkitUserSelect: 'none',
+    fontSize: themeFonts['--text-xs'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     userSelect: 'none',
   },
   rule10: {
+    WebkitUserSelect: 'none',
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    WebkitUserSelect: 'none',
     userSelect: 'none',
   },
 })
@@ -630,13 +630,13 @@ export function SessionActionsSection({
 const nativeChildSpacing = stylex.create({
   s2: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
-    marginBlockStart: {
-      default: null,
-      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
-    },
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
     },
   },
 })

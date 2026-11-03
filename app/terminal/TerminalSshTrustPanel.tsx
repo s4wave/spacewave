@@ -20,82 +20,82 @@ const stylexStyles4 = stylex.create({ rule1: { minWidth: 0 } })
 
 const stylexStyles3 = stylex.create({
   rule1: {
-    position: 'static',
     margin: 0,
-    width: '100%',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-warning']} 30%, transparent)`,
     borderRadius: themeRadii['--radius-lg'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-warning']} 30%, transparent)`,
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 80%, transparent)`,
-    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
     paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 80%, transparent)`,
+    color: themeColors['--color-foreground'],
     fontSize: themeFonts['--text-sm'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
-    color: themeColors['--color-foreground'],
+    position: 'static',
+    width: '100%',
   },
   rule2: {
-    display: 'flex',
-    flexDirection: { default: 'column', '@media (min-width: 48rem)': 'row' },
     gap: `calc(${themeLayout['--spacing']} * 3)`,
     alignItems: { default: null, '@media (min-width: 48rem)': 'flex-start' },
+    display: 'flex',
+    flexDirection: { default: 'column', '@media (min-width: 48rem)': 'row' },
     justifyContent: {
       default: null,
       '@media (min-width: 48rem)': 'space-between',
     },
   },
   rule3: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     '--tw-font-weight': 'var(--font-weight-semibold)',
-    fontWeight: 'var(--font-weight-semibold)',
-    color: themeColors['--color-warning'],
     WebkitUserSelect: 'none',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    alignItems: 'center',
+    color: themeColors['--color-warning'],
+    display: 'flex',
+    fontSize: themeFonts['--text-xs'],
+    fontWeight: 'var(--font-weight-semibold)',
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     userSelect: 'none',
   },
   rule4: {
-    display: 'grid',
     gap: themeLayout['--spacing'],
+    display: 'grid',
     fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     gridTemplateColumns: {
       default: null,
       '@media (min-width: 48rem)': 'minmax(8rem, .35fr) minmax(0, 1fr)',
     },
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
   },
   rule5: {
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
     WebkitUserSelect: 'none',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
     userSelect: 'none',
   },
   rule6: {
-    fontFamily: themeFonts['--font-mono'],
-    WebkitFontSmoothing: 'subpixel-antialiased',
     MozOsxFontSmoothing: 'auto',
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    color: themeColors['--color-foreground'],
+    fontFamily: themeFonts['--font-mono'],
     textRendering: 'auto',
     textShadow: '0 0 0.25px currentColor',
     wordBreak: 'break-all',
-    color: themeColors['--color-foreground'],
   },
   rule7: {
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
     display: 'flex',
     flexShrink: 0,
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
   },
 })
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 3.5)`,
-    height: `calc(${themeLayout['--spacing']} * 3.5)`,
     flexShrink: 0,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
   rule2: {
-    width: `calc(${themeLayout['--spacing']} * 3.5)`,
     height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
 })
 
@@ -166,13 +166,13 @@ export function TerminalSshTrustPanel({
 const nativeChildSpacing = stylex.create({
   s2: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
-    marginBlockStart: {
-      default: null,
-      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
-    },
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
     },
   },
 })

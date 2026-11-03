@@ -6,11 +6,7 @@ import { MarkdownLink } from './MarkdownLink.js'
 // page to scroll sideways on narrow displays.
 function DocsTable(props: React.TableHTMLAttributes<HTMLTableElement>) {
   return (
-    <div
-      className={
-        /* TODO(stylex): global or unknown class: docs-table-scroll */ 'docs-table-scroll'
-      }
-    >
+    <div className={'docs-table-scroll'}>
       <table {...props} />
     </div>
   )

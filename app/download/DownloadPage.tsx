@@ -19,48 +19,48 @@ import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    position: 'relative',
-    zIndex: 10,
-    marginInline: 'auto',
-    display: 'flex',
-    width: '100%',
-    maxWidth: 'var(--container-4xl)',
-    flexDirection: 'column',
-    alignItems: 'center',
     gap: `calc(${themeLayout['--spacing']} * 14)`,
+    marginInline: 'auto',
     paddingInline: {
       default: `calc(${themeLayout['--spacing']} * 4)`,
       '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 8)`,
     },
+    alignItems: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+    position: 'relative',
+    zIndex: 10,
+    maxWidth: 'var(--container-4xl)',
     paddingBottom: {
       default: `calc(${themeLayout['--spacing']} * 14)`,
       '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 16)`,
     },
+    width: '100%',
   },
   rule2: {
-    display: 'flex',
-    width: '100%',
-    flexDirection: 'column',
-    alignItems: 'center',
     gap: `calc(${themeLayout['--spacing']} * 10)`,
+    alignItems: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+    width: '100%',
   },
   rule3: {
-    display: 'flex',
-    width: '100%',
-    flexDirection: 'column',
     gap: `calc(${themeLayout['--spacing']} * 10)`,
+    display: 'flex',
+    flexDirection: 'column',
+    width: '100%',
   },
   rule4: {
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
     display: 'flex',
     flexDirection: 'column',
-    gap: `calc(${themeLayout['--spacing']} * 4)`,
   },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 6)`,
     height: `calc(${themeLayout['--spacing']} * 6)`,
+    width: `calc(${themeLayout['--spacing']} * 6)`,
   },
 })
 

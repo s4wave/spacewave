@@ -29,33 +29,17 @@ import {
 const stylexStyles4 = stylex.create({
   rule1: { marginTop: `calc(${themeLayout['--spacing']} * 4)` },
   rule2: {
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
     display: 'flex',
     flexDirection: 'column',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
   },
   rule3: {
-    fontSize: themeFonts['--text-sm'],
-    lineHeight: 'var(--leading-relaxed)',
     '--tw-leading': 'var(--leading-relaxed)',
     color: themeColors['--color-foreground-alt'],
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: 'var(--leading-relaxed)',
   },
   rule4: {
-    borderRadius: themeRadii['--radius-lg'],
-    borderStyle: themeUtilityState['--tw-border-style'],
-    borderWidth: '1px',
-    borderColor: {
-      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
-      '@media (hover: hover)': {
-        default: null,
-        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
-      },
-    },
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
-    padding: `calc(${themeLayout['--spacing']} * 5)`,
-    transitionProperty:
-      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
-    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration: '.3s',
     '--tw-duration': '.3s',
     '--tw-shadow': {
       default: null,
@@ -65,6 +49,25 @@ const stylexStyles4 = stylex.create({
           '0 4px 6px -1px var(--tw-shadow-color, #0000001a), 0 2px 4px -2px var(--tw-shadow-color, #0000001a)',
       },
     },
+    '--tw-shadow-color': {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent) var(--tw-shadow-alpha), transparent)`,
+      },
+    },
+    padding: `calc(${themeLayout['--spacing']} * 5)`,
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      },
+    },
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
     boxShadow: {
       default: null,
       '@media (hover: hover)': {
@@ -73,32 +76,24 @@ const stylexStyles4 = stylex.create({
           'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
       },
     },
-    '--tw-shadow-color': {
-      default: null,
-      '@media (hover: hover)': {
-        default: null,
-        ':hover': `color-mix(in oklab, color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent) var(--tw-shadow-alpha), transparent)`,
-      },
-    },
+    transitionDuration: '.3s',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
   },
   rule5: {
-    display: 'flex',
     alignItems: 'flex-start',
+    display: 'flex',
     justifyContent: 'space-between',
   },
   rule6: {
-    fontSize: 'var(--text-lg)',
-    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
     '--tw-font-weight': 'var(--font-weight-semibold)',
-    fontWeight: 'var(--font-weight-semibold)',
     color: themeColors['--color-foreground'],
+    fontSize: 'var(--text-lg)',
+    fontWeight: 'var(--font-weight-semibold)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
   },
   rule7: {
-    transitionProperty:
-      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
-    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
     color: {
       default: null,
       '@media (hover: hover)': {
@@ -106,25 +101,29 @@ const stylexStyles4 = stylex.create({
         ':hover': themeColors['--color-brand'],
       },
     },
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
   },
   rule8: {
-    marginTop: themeLayout['--spacing'],
+    color: themeColors['--color-foreground-alt'],
     fontSize: themeFonts['--text-sm'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
-    color: themeColors['--color-foreground-alt'],
+    marginTop: themeLayout['--spacing'],
   },
   rule9: {
-    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
-    fontSize: themeFonts['--text-sm'],
-    lineHeight: 'var(--leading-relaxed)',
     '--tw-leading': 'var(--leading-relaxed)',
     color: themeColors['--color-foreground-alt'],
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: 'var(--leading-relaxed)',
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
   },
 })
 
 const stylexStyles3 = stylex.create({
   rule1: {
-    flexShrink: 0,
     color: {
       default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
       '@media (hover: hover)': {
@@ -132,18 +131,19 @@ const stylexStyles3 = stylex.create({
         ':hover': themeColors['--color-foreground'],
       },
     },
+    flexShrink: 0,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
   },
 })
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 5)`,
     height: `calc(${themeLayout['--spacing']} * 5)`,
+    width: `calc(${themeLayout['--spacing']} * 5)`,
   },
 })
 
@@ -255,7 +255,6 @@ const changelogLinkStyles = stylex.create({
       default: 'var(--color-foreground)',
       '@media (hover:hover)': { default: null, ':hover': 'var(--color-white)' },
     },
-    textDecorationLine: 'underline',
     textDecorationColor: {
       default: 'color-mix(in oklab, var(--color-white) 20%, transparent)',
       '@media (hover:hover)': {
@@ -263,12 +262,13 @@ const changelogLinkStyles = stylex.create({
         ':hover': 'color-mix(in oklab, var(--color-white) 60%, transparent)',
       },
     },
+    textDecorationLine: 'underline',
     textUnderlineOffset: '3px',
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction:
       'var(--tw-ease, var(--default-transition-timing-function))',
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
   },
 })

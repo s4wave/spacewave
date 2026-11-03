@@ -24,11 +24,11 @@ export const tileSurfaceStyles = stylex.create({
   },
   iconWrap: { flexShrink: 0 },
   icon: {
-    width: {
+    height: {
       default: null,
       [stylex.when.ancestor(':is(*) >', tileIconMarker)]: 14,
     },
-    height: {
+    width: {
       default: null,
       [stylex.when.ancestor(':is(*) >', tileIconMarker)]: 14,
     },

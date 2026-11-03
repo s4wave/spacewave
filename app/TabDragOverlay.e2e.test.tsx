@@ -18,7 +18,7 @@ import { useState } from 'react'
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { render, cleanup } from 'vitest-browser-react'
 
-import '@s4wave/web/style/app.css'
+import '@s4wave/web/style/app.js'
 
 import { AppShell } from './AppShell.js'
 import { EditorShell } from './EditorShell.js'

@@ -53,34 +53,34 @@ import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    maxWidth: 'var(--container-xl)',
-    textAlign: 'center',
-    fontFamily: themeFonts['--font-mono'],
-    WebkitFontSmoothing: 'subpixel-antialiased',
+    '--tw-leading': 'var(--leading-relaxed)',
     MozOsxFontSmoothing: 'auto',
-    textRendering: 'auto',
-    textShadow: '0 0 0.25px currentColor',
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+    fontFamily: themeFonts['--font-mono'],
     fontSize: themeFonts['--text-xs'],
     lineHeight: 'var(--leading-relaxed)',
-    '--tw-leading': 'var(--leading-relaxed)',
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+    textAlign: 'center',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    maxWidth: 'var(--container-xl)',
   },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
-    display: 'flex',
-    minHeight: 0,
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
     flex: 1,
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
     gap: `calc(${themeLayout['--spacing']} * 3)`,
     overflow: 'hidden',
+    alignItems: 'center',
     backgroundColor: themeColors['--color-file-back'],
-    padding: `calc(${themeLayout['--spacing']} * 6)`,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    minHeight: 0,
   },
-  rule2: { width: '100%', maxWidth: 'var(--container-sm)' },
+  rule2: { maxWidth: 'var(--container-sm)', width: '100%' },
 })
 
 export interface UnixFSBrowserBodyProps {
@@ -658,13 +658,13 @@ export function UnixFSBrowser(props: UnixFSBrowserProps) {
 const nativeChildSpacing = stylex.create({
   s1: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
-    marginBlockStart: {
-      default: null,
-      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
-    },
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
     },
   },
 })

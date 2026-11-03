@@ -14,34 +14,15 @@ import {
 
 const stylexStyles2 = stylex.create({
   rule1: {
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
     display: 'flex',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 3)`,
   },
   rule2: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
-    borderRadius: themeRadii['--radius-landing-control'],
-    borderStyle: themeUtilityState['--tw-border-style'],
-    borderWidth: '1px',
-    paddingInline: `calc(${themeLayout['--spacing']} * 5)`,
-    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
-    fontSize: themeFonts['--text-sm'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
-    textDecorationLine: 'none',
-    '--tw-shadow': `inset 0 1px 0 var(--tw-shadow-color, color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)), 0 1px 2px var(--tw-shadow-color, oklch(0% 0 0 / .3)), 0 10px 24px -14px var(--tw-shadow-color, oklch(0% 0 0 / .6))`,
-    boxShadow:
-      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
-    transitionProperty: 'all',
-    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration: '.3s',
     '--tw-duration': '.3s',
-    WebkitUserSelect: 'none',
-    userSelect: 'none',
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    '--tw-shadow': `inset 0 1px 0 var(--tw-shadow-color, color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)), 0 1px 2px var(--tw-shadow-color, oklch(0% 0 0 / .3)), 0 10px 24px -14px var(--tw-shadow-color, oklch(0% 0 0 / .6))`,
     '--tw-translate-y': {
       default: null,
       '@media (hover: hover)': {
@@ -49,6 +30,24 @@ const stylexStyles2 = stylex.create({
         ':hover': `calc(${themeLayout['--spacing']} * -.5)`,
       },
     },
+    WebkitUserSelect: 'none',
+    borderRadius: themeRadii['--radius-landing-control'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 5)`,
+    alignItems: 'center',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    display: 'flex',
+    fontSize: themeFonts['--text-sm'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    textDecorationLine: 'none',
+    transitionDuration: '.3s',
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
     translate: {
       default: null,
       '@media (hover: hover)': {
@@ -56,6 +55,7 @@ const stylexStyles2 = stylex.create({
         ':hover': 'var(--tw-translate-x) var(--tw-translate-y)',
       },
     },
+    userSelect: 'none',
     minHeight: {
       default: null,
       '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
@@ -99,8 +99,8 @@ const stylexStyles2 = stylex.create({
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 4)`,
     height: `calc(${themeLayout['--spacing']} * 4)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
   },
 })
 

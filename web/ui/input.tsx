@@ -1,4 +1,3 @@
-import { cn } from '@s4wave/web/style/utils.js'
 import { buttonGroupControlStyles } from '../style/button-group.stylex.js'
 import { useControlStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import { stylexProps } from '@s4wave/web/style/props.js'
@@ -17,8 +16,7 @@ import {
 
 const styles = stylex.create({
   base: {
-    width: '100%',
-    minWidth: 0,
+    '--tw-outline-style': 'none',
     borderRadius: themeRadii['--radius-md'],
     borderStyle: themeUtilityState['--tw-border-style'],
     paddingBlock: themeLayout['--spacing'],
@@ -28,30 +26,31 @@ const styles = stylex.create({
       ':focus-visible':
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     },
-    transitionProperty: 'color, box-shadow',
-    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
-    '--tw-outline-style': 'none',
-    outlineStyle: 'none',
-    '::file-selector-button': {
-      display: 'inline-flex',
-      height: `calc(${themeLayout['--spacing']} * 7)`,
-      borderStyle: themeUtilityState['--tw-border-style'],
-      borderWidth: 0,
-      backgroundColor: '#0000',
-      fontSize: themeFonts['--text-sm'],
-      lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
-      '--tw-font-weight': themeFonts['--font-weight-medium'],
-      fontWeight: themeFonts['--font-weight-medium'],
-      color: themeColors['--color-foreground'],
-    },
-    pointerEvents: { default: null, ':disabled': 'none' },
     cursor: { default: null, ':disabled': 'not-allowed' },
     opacity: { default: null, ':disabled': 0.5 },
+    outlineStyle: 'none',
+    pointerEvents: { default: null, ':disabled': 'none' },
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    transitionProperty: 'color, box-shadow',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
     minHeight: {
       default: null,
       '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+    minWidth: 0,
+    width: '100%',
+    '::file-selector-button': {
+      '--tw-font-weight': themeFonts['--font-weight-medium'],
+      borderStyle: themeUtilityState['--tw-border-style'],
+      borderWidth: 0,
+      backgroundColor: '#0000',
+      color: themeColors['--color-foreground'],
+      display: 'inline-flex',
+      fontSize: themeFonts['--text-sm'],
+      fontWeight: themeFonts['--font-weight-medium'],
+      lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+      height: `calc(${themeLayout['--spacing']} * 7)`,
     },
     '::selection': {
       backgroundColor: themeColors['--color-primary'],
@@ -59,18 +58,32 @@ const styles = stylex.create({
     },
   },
   default: {
-    height: `calc(${themeLayout['--spacing']} * 9)`,
-    borderWidth: '1px',
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
+      ':is(.dark *)': {
+        default: null,
+        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      },
+      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+    },
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    '--tw-shadow': '0 1px 2px 0 var(--tw-shadow-color, #0000000d)',
     borderColor: {
       default: themeColors['--color-input'],
       ':focus-visible': themeColors['--color-ring'],
       ':is([aria-invalid="true"])': themeColors['--color-destructive'],
     },
+    borderWidth: '1px',
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
     backgroundColor: {
       default: '#0000',
       ':is(.dark *)': `color-mix(in oklab, ${themeColors['--color-input']} 30%, transparent)`,
     },
-    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
     fontSize: {
       default: 'var(--text-base)',
       '@media (min-width: 48rem)': themeFonts['--text-sm'],
@@ -79,41 +92,40 @@ const styles = stylex.create({
       default: 'var(--tw-leading, var(--text-base--line-height))',
       '@media (min-width: 48rem)': `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     },
-    '--tw-shadow': '0 1px 2px 0 var(--tw-shadow-color, #0000000d)',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
     '::placeholder': { color: themeColors['--color-muted-foreground'] },
+  },
+  mono: {
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
+      ':is(.dark *)': {
+        default: null,
+        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      },
+      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+    },
     '--tw-ring-shadow': {
       default: null,
       ':focus-visible':
         'var(--tw-ring-inset, ) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
     },
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
-      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
-      ':is(.dark *)': {
-        default: null,
-        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
-      },
-    },
-  },
-  mono: {
-    height: `calc(${themeLayout['--spacing']} * 9)`,
-    borderWidth: '1px',
+    '--tw-shadow': '0 1px 2px 0 var(--tw-shadow-color, #0000000d)',
+    MozOsxFontSmoothing: 'auto',
+    WebkitFontSmoothing: 'subpixel-antialiased',
     borderColor: {
       default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
       ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
       ':is([aria-invalid="true"])': themeColors['--color-destructive'],
     },
+    borderWidth: '1px',
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
     backgroundColor: {
       default: `color-mix(in oklab, ${themeColors['--color-background']} 20%, transparent)`,
       ':is(.dark *)': `color-mix(in oklab, ${themeColors['--color-input']} 30%, transparent)`,
     },
-    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    color: themeColors['--color-foreground'],
     fontFamily: themeFonts['--font-mono'],
-    WebkitFontSmoothing: 'subpixel-antialiased',
-    MozOsxFontSmoothing: 'auto',
-    textRendering: 'auto',
-    textShadow: '0 0 0.25px currentColor',
     fontSize: {
       default: themeFonts['--text-xs'],
       '@media (min-width: 48rem)': themeFonts['--text-sm'],
@@ -122,39 +134,41 @@ const styles = stylex.create({
       default: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
       '@media (min-width: 48rem)': `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     },
-    color: themeColors['--color-foreground'],
-    '--tw-shadow': '0 1px 2px 0 var(--tw-shadow-color, #0000000d)',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
     '::placeholder': {
       color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+    },
+  },
+  wizardError: {
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
+      ':is(.dark *)': {
+        default: null,
+        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      },
+      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
     },
     '--tw-ring-shadow': {
       default: null,
       ':focus-visible':
         'var(--tw-ring-inset, ) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
     },
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
-      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
-      ':is(.dark *)': {
-        default: null,
-        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
-      },
-    },
-  },
-  wizardError: {
-    height: `calc(${themeLayout['--spacing']} * 9)`,
-    borderWidth: '1px',
+    '--tw-shadow': '0 1px 2px 0 var(--tw-shadow-color, #0000000d)',
     borderColor: {
       default: `color-mix(in oklab, ${themeColors['--color-destructive']} 50%, transparent)`,
       ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
       ':is([aria-invalid="true"])': themeColors['--color-destructive'],
     },
+    borderWidth: '1px',
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
     backgroundColor: {
       default: `color-mix(in oklab, ${themeColors['--color-background']} 20%, transparent)`,
       ':is(.dark *)': `color-mix(in oklab, ${themeColors['--color-input']} 30%, transparent)`,
     },
-    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    color: themeColors['--color-foreground'],
     fontSize: {
       default: themeFonts['--text-xs'],
       '@media (min-width: 48rem)': themeFonts['--text-sm'],
@@ -163,39 +177,39 @@ const styles = stylex.create({
       default: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
       '@media (min-width: 48rem)': `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     },
-    color: themeColors['--color-foreground'],
-    '--tw-shadow': '0 1px 2px 0 var(--tw-shadow-color, #0000000d)',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
     '::placeholder': {
       color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
-    },
-    '--tw-ring-shadow': {
-      default: null,
-      ':focus-visible':
-        'var(--tw-ring-inset, ) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
-    },
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
-      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
-      ':is(.dark *)': {
-        default: null,
-        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
-      },
     },
   },
   compact: {
-    height: `calc(${themeLayout['--spacing']} * 9)`,
-    borderWidth: '1px',
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
+      ':is(.dark *)': {
+        default: null,
+        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      },
+      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+    },
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    '--tw-shadow': '0 1px 2px 0 var(--tw-shadow-color, #0000000d)',
     borderColor: {
       default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
       ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
       ':is([aria-invalid="true"])': themeColors['--color-destructive'],
     },
+    borderWidth: '1px',
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
     backgroundColor: {
       default: `color-mix(in oklab, ${themeColors['--color-background']} 20%, transparent)`,
       ':is(.dark *)': `color-mix(in oklab, ${themeColors['--color-input']} 30%, transparent)`,
     },
-    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    color: themeColors['--color-foreground'],
     fontSize: {
       default: themeFonts['--text-xs'],
       '@media (min-width: 48rem)': themeFonts['--text-sm'],
@@ -204,39 +218,39 @@ const styles = stylex.create({
       default: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
       '@media (min-width: 48rem)': `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     },
-    color: themeColors['--color-foreground'],
-    '--tw-shadow': '0 1px 2px 0 var(--tw-shadow-color, #0000000d)',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
     '::placeholder': {
       color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
-    },
-    '--tw-ring-shadow': {
-      default: null,
-      ':focus-visible':
-        'var(--tw-ring-inset, ) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
-    },
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
-      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
-      ':is(.dark *)': {
-        default: null,
-        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
-      },
     },
   },
   toolbar: {
-    height: `calc(${themeLayout['--spacing']} * 7)`,
-    borderWidth: '1px',
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
+      ':is(.dark *)': {
+        default: null,
+        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      },
+      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+    },
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    '--tw-shadow': '0 1px 2px 0 var(--tw-shadow-color, #0000000d)',
     borderColor: {
       default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
       ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
       ':is([aria-invalid="true"])': themeColors['--color-destructive'],
     },
+    borderWidth: '1px',
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
     backgroundColor: {
       default: `color-mix(in oklab, ${themeColors['--color-background']} 20%, transparent)`,
       ':is(.dark *)': `color-mix(in oklab, ${themeColors['--color-input']} 30%, transparent)`,
     },
-    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    color: themeColors['--color-foreground'],
     fontSize: {
       default: themeFonts['--text-xs'],
       '@media (min-width: 48rem)': themeFonts['--text-sm'],
@@ -245,44 +259,42 @@ const styles = stylex.create({
       default: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
       '@media (min-width: 48rem)': `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     },
-    color: themeColors['--color-foreground'],
-    '--tw-shadow': '0 1px 2px 0 var(--tw-shadow-color, #0000000d)',
+    height: `calc(${themeLayout['--spacing']} * 7)`,
     '::placeholder': {
       color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
-    },
-    '--tw-ring-shadow': {
-      default: null,
-      ':focus-visible':
-        'var(--tw-ring-inset, ) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
-    },
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
-      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
-      ':is(.dark *)': {
-        default: null,
-        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
-      },
     },
   },
   plugin: {
-    height: `calc(${themeLayout['--spacing']} * 8)`,
-    borderWidth: '1px',
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
+      ':is(.dark *)': {
+        default: null,
+        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      },
+      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+    },
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    '--tw-shadow': '0 1px 2px 0 var(--tw-shadow-color, #0000000d)',
+    MozOsxFontSmoothing: 'auto',
+    WebkitFontSmoothing: 'subpixel-antialiased',
     borderColor: {
       default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
       ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
       ':is([aria-invalid="true"])': themeColors['--color-destructive'],
     },
+    borderWidth: '1px',
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
     backgroundColor: {
       default: `color-mix(in oklab, ${themeColors['--color-background']} 20%, transparent)`,
       ':is(.dark *)': `color-mix(in oklab, ${themeColors['--color-input']} 30%, transparent)`,
     },
-    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    color: themeColors['--color-foreground'],
     fontFamily: themeFonts['--font-mono'],
-    WebkitFontSmoothing: 'subpixel-antialiased',
-    MozOsxFontSmoothing: 'auto',
-    textRendering: 'auto',
-    textShadow: '0 0 0.25px currentColor',
     fontSize: {
       default: themeFonts['--text-xs'],
       '@media (min-width: 48rem)': themeFonts['--text-sm'],
@@ -291,39 +303,40 @@ const styles = stylex.create({
       default: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
       '@media (min-width: 48rem)': `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     },
-    color: themeColors['--color-foreground'],
-    '--tw-shadow': '0 1px 2px 0 var(--tw-shadow-color, #0000000d)',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    height: `calc(${themeLayout['--spacing']} * 8)`,
     '::placeholder': {
       color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+    },
+  },
+  displayName: {
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
+      ':is(.dark *)': {
+        default: null,
+        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      },
+      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
     },
     '--tw-ring-shadow': {
       default: null,
       ':focus-visible':
         'var(--tw-ring-inset, ) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
     },
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
-      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
-      ':is(.dark *)': {
-        default: null,
-        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
-      },
-    },
-  },
-  displayName: {
-    height: `calc(${themeLayout['--spacing']} * 9)`,
-    borderWidth: '1px',
+    '--tw-shadow': '0 1px 2px 0 var(--tw-shadow-color, #0000000d)',
     borderColor: {
       default: themeColors['--color-input'],
       ':focus-visible': themeColors['--color-ring'],
       ':is([aria-invalid="true"])': themeColors['--color-destructive'],
     },
+    borderWidth: '1px',
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
     backgroundColor: {
       default: '#0000',
       ':is(.dark *)': `color-mix(in oklab, ${themeColors['--color-input']} 30%, transparent)`,
     },
-    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
     fontSize: {
       default: themeFonts['--text-sm'],
       '@media (min-width: 48rem)': themeFonts['--text-sm'],
@@ -332,75 +345,74 @@ const styles = stylex.create({
       default: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
       '@media (min-width: 48rem)': `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     },
-    '--tw-shadow': '0 1px 2px 0 var(--tw-shadow-color, #0000000d)',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
     '::placeholder': { color: themeColors['--color-muted-foreground'] },
-    '--tw-ring-shadow': {
-      default: null,
-      ':focus-visible':
-        'var(--tw-ring-inset, ) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
-    },
+  },
+  command: {
     '--tw-ring-color': {
       default: null,
       ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
-      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
       ':is(.dark *)': {
         default: null,
         ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
       },
+      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
     },
-  },
-  command: {
-    height: 'auto',
-    borderWidth: 0,
-    borderColor: {
-      default: themeColors['--color-input'],
-      ':focus-visible': themeColors['--color-ring'],
-      ':is([aria-invalid="true"])': themeColors['--color-destructive'],
-    },
-    backgroundColor: {
-      default: '#0000',
-      ':is(.dark *)': `color-mix(in oklab, ${themeColors['--color-input']} 30%, transparent)`,
-    },
-    paddingInline: 0,
-    fontSize: {
-      default: 'var(--text-base)',
-      '@media (min-width: 48rem)': themeFonts['--text-sm'],
-    },
-    lineHeight: {
-      default: 'var(--tw-leading, var(--text-base--line-height))',
-      '@media (min-width: 48rem)': `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
-    },
-    '--tw-shadow': '0 0 #0000',
-    '::placeholder': { color: themeColors['--color-muted-foreground'] },
     '--tw-ring-shadow': {
       default: null,
       ':focus-visible':
         'var(--tw-ring-inset, ) 0 0 0 calc(0px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
     },
+    '--tw-shadow': '0 0 #0000',
+    borderColor: {
+      default: themeColors['--color-input'],
+      ':focus-visible': themeColors['--color-ring'],
+      ':is([aria-invalid="true"])': themeColors['--color-destructive'],
+    },
+    borderWidth: 0,
+    paddingInline: 0,
+    backgroundColor: {
+      default: '#0000',
+      ':is(.dark *)': `color-mix(in oklab, ${themeColors['--color-input']} 30%, transparent)`,
+    },
+    fontSize: {
+      default: 'var(--text-base)',
+      '@media (min-width: 48rem)': themeFonts['--text-sm'],
+    },
+    lineHeight: {
+      default: 'var(--tw-leading, var(--text-base--line-height))',
+      '@media (min-width: 48rem)': `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    },
+    height: 'auto',
+    '::placeholder': { color: themeColors['--color-muted-foreground'] },
+  },
+  searchPanel: {
     '--tw-ring-color': {
       default: null,
-      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
-      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
       ':is(.dark *)': {
         default: null,
         ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
       },
+      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
     },
-  },
-  searchPanel: {
-    height: `calc(${themeLayout['--spacing']} * 9)`,
-    borderWidth: '1px',
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    '--tw-shadow': '0 1px 2px 0 var(--tw-shadow-color, #0000000d)',
     borderColor: {
       default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
       ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
       ':is([aria-invalid="true"])': themeColors['--color-destructive'],
     },
+    borderWidth: '1px',
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
     backgroundColor: {
       default: `color-mix(in oklab, ${themeColors['--color-background']} 30%, transparent)`,
       ':is(.dark *)': `color-mix(in oklab, ${themeColors['--color-input']} 30%, transparent)`,
     },
-    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
-    paddingLeft: `calc(${themeLayout['--spacing']} * 9)`,
     fontSize: {
       default: 'var(--text-base)',
       '@media (min-width: 48rem)': themeFonts['--text-sm'],
@@ -409,37 +421,37 @@ const styles = stylex.create({
       default: 'var(--tw-leading, var(--text-base--line-height))',
       '@media (min-width: 48rem)': `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     },
-    '--tw-shadow': '0 1px 2px 0 var(--tw-shadow-color, #0000000d)',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    paddingLeft: `calc(${themeLayout['--spacing']} * 9)`,
     '::placeholder': { color: themeColors['--color-muted-foreground'] },
+  },
+  search: {
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
+      ':is(.dark *)': {
+        default: null,
+        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      },
+      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+    },
     '--tw-ring-shadow': {
       default: null,
       ':focus-visible':
         'var(--tw-ring-inset, ) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
     },
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
-      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
-      ':is(.dark *)': {
-        default: null,
-        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
-      },
-    },
-  },
-  search: {
-    height: `calc(${themeLayout['--spacing']} * 9)`,
-    borderWidth: '1px',
+    '--tw-shadow': '0 1px 2px 0 var(--tw-shadow-color, #0000000d)',
     borderColor: {
       default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
       ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
       ':is([aria-invalid="true"])': themeColors['--color-destructive'],
     },
+    borderWidth: '1px',
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
     backgroundColor: {
       default: `color-mix(in oklab, ${themeColors['--color-background']} 40%, transparent)`,
       ':is(.dark *)': `color-mix(in oklab, ${themeColors['--color-input']} 30%, transparent)`,
     },
-    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
-    paddingLeft: `calc(${themeLayout['--spacing']} * 9)`,
     fontSize: {
       default: 'var(--text-base)',
       '@media (min-width: 48rem)': themeFonts['--text-sm'],
@@ -448,36 +460,38 @@ const styles = stylex.create({
       default: 'var(--tw-leading, var(--text-base--line-height))',
       '@media (min-width: 48rem)': `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     },
-    '--tw-shadow': '0 1px 2px 0 var(--tw-shadow-color, #0000000d)',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    paddingLeft: `calc(${themeLayout['--spacing']} * 9)`,
     '::placeholder': { color: themeColors['--color-muted-foreground'] },
+  },
+  config: {
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
+      ':is(.dark *)': {
+        default: null,
+        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      },
+      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+    },
     '--tw-ring-shadow': {
       default: null,
       ':focus-visible':
         'var(--tw-ring-inset, ) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
     },
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
-      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
-      ':is(.dark *)': {
-        default: null,
-        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
-      },
-    },
-  },
-  config: {
-    height: `calc(${themeLayout['--spacing']} * 9)`,
-    borderWidth: '1px',
+    '--tw-shadow': '0 1px 2px 0 var(--tw-shadow-color, #0000000d)',
     borderColor: {
       default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
       ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
       ':is([aria-invalid="true"])': themeColors['--color-destructive'],
     },
+    borderWidth: '1px',
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
     backgroundColor: {
       default: `color-mix(in oklab, ${themeColors['--color-background']} 20%, transparent)`,
       ':is(.dark *)': `color-mix(in oklab, ${themeColors['--color-input']} 30%, transparent)`,
     },
-    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    color: themeColors['--color-foreground'],
     fontSize: {
       default: 'var(--text-base)',
       '@media (min-width: 48rem)': themeFonts['--text-sm'],
@@ -486,24 +500,9 @@ const styles = stylex.create({
       default: 'var(--tw-leading, var(--text-base--line-height))',
       '@media (min-width: 48rem)': `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     },
-    color: themeColors['--color-foreground'],
-    '--tw-shadow': '0 1px 2px 0 var(--tw-shadow-color, #0000000d)',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
     '::placeholder': {
       color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
-    },
-    '--tw-ring-shadow': {
-      default: null,
-      ':focus-visible':
-        'var(--tw-ring-inset, ) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
-    },
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
-      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
-      ':is(.dark *)': {
-        default: null,
-        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
-      },
     },
   },
 })
@@ -543,7 +542,9 @@ function Input({ sx, type, variant, ...props }: InputProps) {
     props,
   )
   const inheritedClass = useControlStyles()
-  attributes.className = cn(attributes.className, groupClass, inheritedClass)
+  attributes.className = [attributes.className, groupClass, inheritedClass]
+    .filter(Boolean)
+    .join(' ')
   return <input type={type} data-slot="input" {...attributes} />
 }
 

@@ -13,7 +13,8 @@ export function expandBackground(value: string, colorVariable = false): string {
       ),
     )
   ) {
-    return `.background { background-color: transparent; background-image: ${value}; background-position-x: 0%; background-position-y: 0%; background-size: auto; background-repeat: repeat; background-attachment: scroll; background-origin: padding-box; background-clip: border-box; }`
+    const repeated = (value: string) => layers.map(() => value).join(', ')
+    return `.background { background-color: transparent; background-image: ${value}; background-position-x: ${repeated('0%')}; background-position-y: ${repeated('0%')}; background-size: ${repeated('auto')}; background-repeat: ${repeated('repeat')}; background-attachment: ${repeated('scroll')}; background-origin: ${repeated('padding-box')}; background-clip: ${repeated('border-box')}; }`
   }
 
   // Parse known color variables through a color placeholder; other unresolved shorthands stay manual.

@@ -10,27 +10,27 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
-    display: 'flex',
-    height: '100%',
     alignItems: 'center',
-    justifyContent: 'center',
     color: themeColors['--color-muted-foreground'],
+    display: 'flex',
+    justifyContent: 'center',
+    height: '100%',
   },
   rule2: {
-    display: 'flex',
-    height: '100%',
     alignItems: 'center',
-    justifyContent: 'center',
     color: themeColors['--color-destructive'],
+    display: 'flex',
+    justifyContent: 'center',
+    height: '100%',
   },
   rule3: {
-    display: 'flex',
-    height: '100%',
     alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     color: themeColors['--color-muted-foreground'],
+    display: 'flex',
+    fontSize: themeFonts['--text-xs'],
+    justifyContent: 'center',
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    height: '100%',
   },
 })
 

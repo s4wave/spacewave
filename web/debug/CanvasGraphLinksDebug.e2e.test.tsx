@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { render, cleanup } from 'vitest-browser-react'
-import '@s4wave/web/style/app.css'
+import '@s4wave/web/style/app.js'
 
 import { CanvasGraphLinksDebug } from '@s4wave/web/debug/CanvasGraphLinksDebug.js'
 import { RouterProvider } from '@s4wave/web/router/router.js'

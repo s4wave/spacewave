@@ -21,61 +21,61 @@ import { utilityState as themeUtilityState } from '../../../web/style/tokens.sty
 
 const stylexStyles3 = stylex.create({
   rule1: {
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
     borderRadius: themeRadii['--radius-lg'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 2%, transparent)`,
-    padding: `calc(${themeLayout['--spacing']} * 4)`,
   },
 })
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    display: 'flex',
-    alignItems: 'center',
     gap: `calc(${themeLayout['--spacing']} * 3)`,
+    alignItems: 'center',
+    display: 'flex',
   },
   rule2: {
-    display: 'flex',
-    width: `calc(${themeLayout['--spacing']} * 9)`,
-    height: `calc(${themeLayout['--spacing']} * 9)`,
-    flexShrink: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
     borderRadius: themeRadii['--radius-lg'],
+    alignItems: 'center',
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
     color: themeColors['--color-brand'],
+    display: 'flex',
+    flexShrink: 0,
+    justifyContent: 'center',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    width: `calc(${themeLayout['--spacing']} * 9)`,
   },
   rule3: { minWidth: 0 },
   rule4: {
-    fontSize: themeFonts['--text-sm'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
     color: themeColors['--color-foreground'],
+    fontSize: themeFonts['--text-sm'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
   },
   rule5: {
-    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: 'var(--leading-relaxed)',
     '--tw-leading': 'var(--leading-relaxed)',
     color: themeColors['--color-foreground-alt'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
   },
   rule6: {
-    marginTop: themeLayout['--spacing'],
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+    marginTop: themeLayout['--spacing'],
   },
   rule7: { paddingInline: 0 },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 4)`,
-    height: `calc(${themeLayout['--spacing']} * 4)`,
     color: themeColors['--color-brand'],
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
   },
 })
 
@@ -171,13 +171,13 @@ export function PairingChannelProgress({
 const nativeChildSpacing = stylex.create({
   s4: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
-    marginBlockStart: {
-      default: null,
-      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
-    },
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
     },
   },
 })

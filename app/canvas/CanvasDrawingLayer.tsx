@@ -12,8 +12,8 @@ import {
 import * as stylex from '@stylexjs/stylex'
 
 const stylexStyles = stylex.create({
-  rule1: { position: 'absolute', inset: 0, height: '100%', width: '100%' },
-  rule2: { pointerEvents: 'auto', cursor: 'crosshair' },
+  rule1: { inset: 0, position: 'absolute', height: '100%', width: '100%' },
+  rule2: { cursor: 'crosshair', pointerEvents: 'auto' },
   rule3: { pointerEvents: 'none' },
 })
 

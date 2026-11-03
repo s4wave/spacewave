@@ -48,19 +48,19 @@ import {
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    display: 'flex',
-    height: '100%',
-    width: '100%',
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
     backgroundColor: themeColors['--color-background-primary'],
-    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    display: 'flex',
+    justifyContent: 'center',
+    height: '100%',
+    width: '100%',
   },
 })
 
 const stylexStyles = stylex.create({
-  rule1: { width: '100%', maxWidth: 'var(--container-sm)' },
+  rule1: { maxWidth: 'var(--container-sm)', width: '100%' },
 })
 
 // jsonModelToModel converts a json model to a model

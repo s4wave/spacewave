@@ -13,8 +13,8 @@ import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    display: 'grid',
     gap: `calc(${themeLayout['--spacing']} * 3)`,
+    display: 'grid',
     gridTemplateColumns: {
       default: null,
       '@container (min-width: 48rem)': 'repeat(2, minmax(0, 1fr))',
@@ -25,8 +25,8 @@ const stylexStyles2 = stylex.create({
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 3.5)`,
     height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
 })
 

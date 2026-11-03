@@ -64,38 +64,38 @@ import {
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    display: 'flex',
-    minHeight: 0,
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
     flex: 1,
     alignItems: 'center',
+    display: 'flex',
     justifyContent: 'center',
-    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    minHeight: 0,
   },
   rule2: {
     display: { default: 'none', '@container (min-width: 28rem)': 'inline' },
   },
   rule3: {
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    alignItems: 'center',
+    backgroundColor: themeColors['--color-background-primary'],
     display: 'flex',
+    justifyContent: 'center',
     height: '100%',
     width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: themeColors['--color-background-primary'],
-    padding: `calc(${themeLayout['--spacing']} * 4)`,
   },
   rule4: {
-    display: 'flex',
-    height: '100%',
-    width: '100%',
-    flexDirection: 'column',
     overflow: 'hidden',
     backgroundColor: themeColors['--color-background-primary'],
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+    width: '100%',
   },
-  rule5: { flexShrink: 0, padding: `calc(${themeLayout['--spacing']} * 3)` },
+  rule5: { padding: `calc(${themeLayout['--spacing']} * 3)`, flexShrink: 0 },
 })
 
 const stylexStyles = stylex.create({
-  rule1: { width: '100%', maxWidth: 'var(--container-sm)' },
+  rule1: { maxWidth: 'var(--container-sm)', width: '100%' },
 })
 
 // readLinkedKey reads the key of the first object the VM at objectKey links to

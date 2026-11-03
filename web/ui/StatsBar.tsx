@@ -11,16 +11,16 @@ import {
 
 const styles = stylex.create({
   root: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    borderColor: themeColors['--color-ui-outline'],
     borderRadius: '.25rem',
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: themeColors['--color-ui-outline'],
-    backgroundColor: themeColors['--color-background-secondary'],
-    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
     paddingBlock: themeLayout['--spacing'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
+    backgroundColor: themeColors['--color-background-secondary'],
+    display: 'flex',
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
   },

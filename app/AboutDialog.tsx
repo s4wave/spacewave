@@ -33,62 +33,60 @@ const stylexStyles3 = stylex.create({
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    position: 'absolute',
-    top: `calc(${themeLayout['--spacing']} * 5)`,
-    right: `calc(${themeLayout['--spacing']} * 6)`,
-    textAlign: 'right',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+    position: 'absolute',
+    textAlign: 'right',
+    right: `calc(${themeLayout['--spacing']} * 6)`,
+    top: `calc(${themeLayout['--spacing']} * 5)`,
   },
   rule2: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 6)`,
+    alignItems: 'center',
     display: 'flex',
     flexDirection: 'column',
-    alignItems: 'center',
-    paddingInline: `calc(${themeLayout['--spacing']} * 6)`,
-    paddingTop: `calc(${themeLayout['--spacing']} * 8)`,
     paddingBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingTop: `calc(${themeLayout['--spacing']} * 8)`,
   },
   rule3: {
-    fontSize: 'var(--text-xl)',
-    lineHeight: 'var(--tw-leading, var(--text-xl--line-height))',
     '--tw-font-weight': 'var(--font-weight-semibold)',
-    fontWeight: 'var(--font-weight-semibold)',
     '--tw-tracking': 'var(--tracking-tight)',
+    fontSize: 'var(--text-xl)',
+    fontWeight: 'var(--font-weight-semibold)',
     letterSpacing: 'var(--tracking-tight)',
+    lineHeight: 'var(--tw-leading, var(--text-xl--line-height))',
   },
   rule4: {
-    marginTop: themeLayout['--spacing'],
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+    marginTop: themeLayout['--spacing'],
   },
   rule5: {
     paddingInline: `calc(${themeLayout['--spacing']} * 6)`,
-    paddingBottom: `calc(${themeLayout['--spacing']} * 4)`,
     textAlign: 'center',
+    paddingBottom: `calc(${themeLayout['--spacing']} * 4)`,
   },
   rule6: {
+    '--tw-leading': 'var(--leading-relaxed)',
     paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    color: themeColors['--color-foreground-alt'],
     fontSize: themeFonts['--text-sm'],
     lineHeight: 'var(--leading-relaxed)',
-    '--tw-leading': 'var(--leading-relaxed)',
-    color: themeColors['--color-foreground-alt'],
   },
   rule7: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: themeColors['--color-border'],
     gap: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 6)`,
+    alignItems: 'center',
+    display: 'flex',
+    justifyContent: 'center',
     borderTopStyle: themeUtilityState['--tw-border-style'],
     borderTopWidth: '1px',
-    borderColor: themeColors['--color-border'],
-    paddingInline: `calc(${themeLayout['--spacing']} * 6)`,
-    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
   },
   rule8: {
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     color: {
       default: themeColors['--color-foreground-alt'],
       '@media (hover: hover)': {
@@ -96,40 +94,42 @@ const stylexStyles2 = stylex.create({
         ':hover': themeColors['--color-foreground'],
       },
     },
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
   },
   rule9: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 30%, transparent)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 30%, transparent)`,
   },
   rule10: {
-    display: 'block',
+    borderColor: themeColors['--color-border'],
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 6)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-muted']} 30%, transparent)`,
     cursor: 'pointer',
+    display: 'block',
+    textAlign: 'center',
     borderTopStyle: themeUtilityState['--tw-border-style'],
     borderTopWidth: '1px',
-    borderColor: themeColors['--color-border'],
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-muted']} 30%, transparent)`,
-    paddingInline: `calc(${themeLayout['--spacing']} * 6)`,
-    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
-    textAlign: 'center',
   },
   rule11: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
   },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
+    height: `calc(${themeLayout['--spacing']} * 20)`,
     marginBottom: `calc(${themeLayout['--spacing']} * 4)`,
     width: `calc(${themeLayout['--spacing']} * 20)`,
-    height: `calc(${themeLayout['--spacing']} * 20)`,
   },
 })
 
@@ -142,15 +142,15 @@ const dialogStyles = stylex.create({
     },
   },
   accessibleOnly: {
-    clipPath: 'inset(50%)',
-    whiteSpace: 'nowrap',
-    borderWidth: 0,
-    width: '1px',
-    height: '1px',
     margin: '-1px',
     padding: 0,
-    position: 'absolute',
+    borderWidth: 0,
     overflow: 'hidden',
+    clipPath: 'inset(50%)',
+    position: 'absolute',
+    whiteSpace: 'nowrap',
+    height: '1px',
+    width: '1px',
   },
 })
 
@@ -255,13 +255,13 @@ export function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
 const nativeChildSpacing = stylex.create({
   s1: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
-    marginBlockStart: {
-      default: null,
-      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
-    },
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
     },
   },
 })

@@ -15,53 +15,53 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
-    position: 'relative',
-    minHeight: 0,
-    flex: 1,
-    cursor: 'text',
-    overflow: 'hidden',
-    backgroundColor: 'var(--color-black)',
     '--tw-outline-style': 'none',
-    outlineStyle: 'none',
-    '--tw-ring-shadow': {
-      default: null,
-      ':focus-visible':
-        'var(--tw-ring-inset, ) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
-    },
-    boxShadow: {
-      default: null,
-      ':focus-visible':
-        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
-    },
     '--tw-ring-color': {
       default: null,
       ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 40%, transparent)`,
     },
     '--tw-ring-inset': { default: null, ':focus-visible': 'inset' },
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    flex: 1,
+    overflow: 'hidden',
+    backgroundColor: 'var(--color-black)',
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    cursor: 'text',
+    outlineStyle: 'none',
+    position: 'relative',
+    minHeight: 0,
   },
   rule2: { display: 'none' },
   rule3: {
-    pointerEvents: 'none',
-    position: 'absolute',
-    top: `calc(${themeLayout['--spacing']} * 2)`,
-    right: `calc(${themeLayout['--spacing']} * 2)`,
-    borderRadius: themeRadii['--radius-md'],
-    borderStyle: themeUtilityState['--tw-border-style'],
-    borderWidth: '1px',
-    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
-    paddingBlock: themeLayout['--spacing'],
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     '--tw-backdrop-blur': 'blur(var(--blur-sm))',
     WebkitBackdropFilter:
       'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    paddingBlock: themeLayout['--spacing'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
     backdropFilter:
       'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    pointerEvents: 'none',
+    position: 'absolute',
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
+    right: `calc(${themeLayout['--spacing']} * 2)`,
+    top: `calc(${themeLayout['--spacing']} * 2)`,
   },
   rule4: {
     borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 40%, transparent)`,
@@ -155,7 +155,7 @@ export function VmScreen({ objectKey, hidden }: VmScreenProps) {
       <div
         ref={displayRef}
         className={
-          /* TODO(stylex): global or unknown class: v86-screen */ 'v86-screen'
+          'v86-screen'
         }
         sx={screenContainerStyles.root}
       />
@@ -192,10 +192,10 @@ function toKeyEvent(e: React.KeyboardEvent): KeyEvent {
 // screenContainerStyles sizes the mount whose children the VGA adapter owns.
 const screenContainerStyles = stylex.create({
   root: {
-    display: 'flex',
-    width: '100%',
-    height: '100%',
     alignItems: 'center',
+    display: 'flex',
     justifyContent: 'center',
+    height: '100%',
+    width: '100%',
   },
 })

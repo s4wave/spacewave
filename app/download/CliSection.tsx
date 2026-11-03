@@ -15,39 +15,40 @@ import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    display: 'flex',
-    width: '100%',
-    scrollMarginTop: `calc(${themeLayout['--spacing']} * 24)`,
-    flexDirection: 'column',
     gap: `calc(${themeLayout['--spacing']} * 8)`,
+    display: 'flex',
+    flexDirection: 'column',
+    scrollMarginTop: `calc(${themeLayout['--spacing']} * 24)`,
+    width: '100%',
   },
   rule2: {
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
     display: 'flex',
     flexDirection: 'column',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
   },
   rule3: {
-    display: 'flex',
-    alignItems: 'center',
     gap: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
+    display: 'flex',
   },
   rule4: {
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    WebkitUserSelect: 'none',
+    color: themeColors['--color-foreground'],
     fontSize: {
       default: 'var(--text-2xl)',
       '@container (min-width: 32rem)': 'var(--text-3xl)',
     },
+    fontWeight: 'var(--font-weight-semibold)',
     lineHeight: {
       default: 'var(--tw-leading, var(--text-2xl--line-height))',
       '@container (min-width: 32rem)':
         'var(--tw-leading, var(--text-3xl--line-height))',
     },
-    '--tw-font-weight': 'var(--font-weight-semibold)',
-    fontWeight: 'var(--font-weight-semibold)',
-    color: themeColors['--color-foreground'],
-    WebkitUserSelect: 'none',
     userSelect: 'none',
   },
   rule5: {
+    color: themeColors['--color-foreground-alt'],
     fontSize: {
       default: themeFonts['--text-sm'],
       '@container (min-width: 32rem)': 'var(--text-base)',
@@ -57,37 +58,36 @@ const stylexStyles2 = stylex.create({
       '@container (min-width: 32rem)':
         'var(--tw-leading, var(--text-base--line-height))',
     },
-    color: themeColors['--color-foreground-alt'],
   },
   rule6: {
+    gap: `calc(${themeLayout['--spacing']} * 8)`,
     display: 'flex',
     flexDirection: 'column',
-    gap: `calc(${themeLayout['--spacing']} * 8)`,
   },
   rule7: {
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
     display: 'flex',
     flexDirection: 'column',
-    gap: `calc(${themeLayout['--spacing']} * 4)`,
   },
   rule8: {
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    WebkitUserSelect: 'none',
+    color: themeColors['--color-foreground'],
     fontSize: {
       default: 'var(--text-lg)',
       '@container (min-width: 32rem)': 'var(--text-xl)',
     },
+    fontWeight: 'var(--font-weight-semibold)',
     lineHeight: {
       default: 'var(--tw-leading, var(--text-lg--line-height))',
       '@container (min-width: 32rem)':
         'var(--tw-leading, var(--text-xl--line-height))',
     },
-    '--tw-font-weight': 'var(--font-weight-semibold)',
-    fontWeight: 'var(--font-weight-semibold)',
-    color: themeColors['--color-foreground'],
-    WebkitUserSelect: 'none',
     userSelect: 'none',
   },
   rule9: {
-    display: 'grid',
     gap: `calc(${themeLayout['--spacing']} * 4)`,
+    display: 'grid',
     gridTemplateColumns: {
       default: null,
       '@container (min-width: 32rem)': 'repeat(2, minmax(0, 1fr))',
@@ -97,9 +97,9 @@ const stylexStyles2 = stylex.create({
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 5)`,
-    height: `calc(${themeLayout['--spacing']} * 5)`,
     color: themeColors['--color-foreground-alt'],
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    width: `calc(${themeLayout['--spacing']} * 5)`,
   },
 })
 

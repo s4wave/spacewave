@@ -22,19 +22,19 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 4)`,
-    height: `calc(${themeLayout['--spacing']} * 4)`,
     color: themeColors['--color-brand'],
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
   },
   rule2: {
-    display: 'grid',
-    minHeight: 0,
     flex: 1,
+    overflow: 'hidden',
+    display: 'grid',
     gridTemplateColumns: {
       default: 'repeat(1, minmax(0, 1fr))',
       '@media (min-width: 40rem)': 'minmax(18rem, .9fr) minmax(22rem, 1.1fr)',
     },
-    overflow: 'hidden',
+    minHeight: 0,
   },
 })
 

@@ -14,107 +14,107 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
-    display: 'flex',
     alignItems: 'center',
+    display: 'flex',
     justifyContent: 'space-between',
   },
   rule2: {
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
-    color: themeColors['--color-foreground'],
     WebkitUserSelect: 'none',
+    color: themeColors['--color-foreground'],
+    fontSize: themeFonts['--text-xs'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     userSelect: 'none',
   },
   rule3: {
-    width: '100%',
-    borderRadius: themeRadii['--radius-md'],
-    borderStyle: themeUtilityState['--tw-border-style'],
-    borderWidth: '1px',
+    '--tw-outline-style': { default: null, ':focus-visible': 'none' },
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
+    },
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    MozOsxFontSmoothing: 'auto',
+    WebkitFontSmoothing: 'subpixel-antialiased',
     borderColor: {
       default: `color-mix(in oklab, ${themeColors['--color-destructive']} 60%, transparent)`,
       ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
     },
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 20%, transparent)`,
-    paddingInline: `calc(${themeLayout['--spacing']} * 2.5)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
     paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2.5)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 20%, transparent)`,
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    color: themeColors['--color-foreground'],
+    cursor: { default: null, ':disabled': 'not-allowed' },
     fontFamily: themeFonts['--font-mono'],
-    WebkitFontSmoothing: 'subpixel-antialiased',
-    MozOsxFontSmoothing: 'auto',
-    textRendering: 'auto',
-    textShadow: '0 0 0.25px currentColor',
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors['--color-foreground'],
+    opacity: { default: null, ':disabled': 0.5 },
+    outlineStyle: { default: null, ':focus-visible': 'none' },
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    width: '100%',
     '::placeholder': {
       color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+    },
+  },
+  rule4: {
+    '--tw-outline-style': { default: null, ':focus-visible': 'none' },
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
     },
     '--tw-ring-shadow': {
       default: null,
       ':focus-visible':
         'var(--tw-ring-inset, ) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
     },
-    boxShadow: {
-      default: null,
-      ':focus-visible':
-        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
-    },
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
-    },
-    '--tw-outline-style': { default: null, ':focus-visible': 'none' },
-    outlineStyle: { default: null, ':focus-visible': 'none' },
-    cursor: { default: null, ':disabled': 'not-allowed' },
-    opacity: { default: null, ':disabled': 0.5 },
-  },
-  rule4: {
-    width: '100%',
-    borderRadius: themeRadii['--radius-md'],
-    borderStyle: themeUtilityState['--tw-border-style'],
-    borderWidth: '1px',
+    MozOsxFontSmoothing: 'auto',
+    WebkitFontSmoothing: 'subpixel-antialiased',
     borderColor: {
       default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
       ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
     },
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 20%, transparent)`,
-    paddingInline: `calc(${themeLayout['--spacing']} * 2.5)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
     paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
-    fontFamily: themeFonts['--font-mono'],
-    WebkitFontSmoothing: 'subpixel-antialiased',
-    MozOsxFontSmoothing: 'auto',
-    textRendering: 'auto',
-    textShadow: '0 0 0.25px currentColor',
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors['--color-foreground'],
-    '::placeholder': {
-      color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
-    },
-    '--tw-ring-shadow': {
-      default: null,
-      ':focus-visible':
-        'var(--tw-ring-inset, ) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
-    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 2.5)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 20%, transparent)`,
     boxShadow: {
       default: null,
       ':focus-visible':
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     },
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
-    },
-    '--tw-outline-style': { default: null, ':focus-visible': 'none' },
-    outlineStyle: { default: null, ':focus-visible': 'none' },
+    color: themeColors['--color-foreground'],
     cursor: { default: null, ':disabled': 'not-allowed' },
-    opacity: { default: null, ':disabled': 0.5 },
-  },
-  rule5: {
+    fontFamily: themeFonts['--font-mono'],
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    opacity: { default: null, ':disabled': 0.5 },
+    outlineStyle: { default: null, ':focus-visible': 'none' },
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    width: '100%',
+    '::placeholder': {
+      color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+    },
+  },
+  rule5: {
     color: themeColors['--color-destructive'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
   },
 })
 
@@ -185,13 +185,13 @@ export function KvValueEditor({
 const nativeChildSpacing = stylex.create({
   s1_5: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
-    marginBlockStart: {
-      default: null,
-      ':not(:last-child)': `calc(var(--spacing) * 1.5 * var(--tw-space-y-reverse))`,
-    },
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 1.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * var(--tw-space-y-reverse))`,
     },
   },
 })

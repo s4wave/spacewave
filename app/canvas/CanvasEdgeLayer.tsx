@@ -16,13 +16,13 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
-    zIndex: 0,
+    inset: 0,
+    overflow: 'visible',
     pointerEvents: 'none',
     position: 'absolute',
-    inset: 0,
+    zIndex: 0,
     height: '100%',
     width: '100%',
-    overflow: 'visible',
   },
   rule2: {
     fill: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,

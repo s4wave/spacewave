@@ -16,25 +16,25 @@ import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
 const stylexStyles3 = stylex.create({
   rule1: {
-    display: 'flex',
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
     flex: 1,
     alignItems: 'center',
+    display: 'flex',
     justifyContent: 'center',
-    padding: `calc(${themeLayout['--spacing']} * 4)`,
   },
 })
 
 const stylexStyles2 = stylex.create({
   rule1: {
+    flexShrink: 0,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
     marginRight: `calc(${themeLayout['--spacing']} * 2)`,
     width: `calc(${themeLayout['--spacing']} * 4)`,
-    height: `calc(${themeLayout['--spacing']} * 4)`,
-    flexShrink: 0,
   },
 })
 
 const stylexStyles = stylex.create({
-  rule1: { width: '100%', maxWidth: 'var(--container-sm)' },
+  rule1: { maxWidth: 'var(--container-sm)', width: '100%' },
 })
 
 export const ForgeTaskWizardTypeID = 'wizard/forge/task'

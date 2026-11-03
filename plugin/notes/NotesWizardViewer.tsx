@@ -18,13 +18,13 @@ import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
 const stylexStyles = stylex.create({
   rule1: {
-    display: 'flex',
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
     flex: 1,
     alignItems: 'center',
+    display: 'flex',
     justifyContent: 'center',
-    padding: `calc(${themeLayout['--spacing']} * 6)`,
   },
-  rule2: { width: '100%', maxWidth: 'var(--container-sm)' },
+  rule2: { maxWidth: 'var(--container-sm)', width: '100%', },
 })
 
 export const NotesNotebookWizardTypeID = 'wizard/notes/notebook'

@@ -14,64 +14,64 @@ import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
     padding: themeLayout['--spacing'],
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+    display: 'flex',
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
   },
   rule2: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     gap: `calc(${themeLayout['--spacing']} * 2)`,
     paddingBlock: themeLayout['--spacing'],
-  },
-  rule3: { minWidth: 0, flex: 1 },
-  rule4: {
-    display: 'flex',
     alignItems: 'center',
+    display: 'flex',
+    justifyContent: 'space-between',
+  },
+  rule3: { flex: 1, minWidth: 0 },
+  rule4: {
     gap: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
+    display: 'flex',
   },
   rule5: {
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    fontFamily: themeFonts['--font-mono'],
-    WebkitFontSmoothing: 'subpixel-antialiased',
     MozOsxFontSmoothing: 'auto',
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    overflow: 'hidden',
+    color: themeColors['--color-foreground'],
+    fontFamily: themeFonts['--font-mono'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    textOverflow: 'ellipsis',
     textRendering: 'auto',
     textShadow: '0 0 0.25px currentColor',
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors['--color-foreground'],
+    whiteSpace: 'nowrap',
   },
   rule6: {
-    marginLeft: `calc(${themeLayout['--spacing']} * 5)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    marginLeft: `calc(${themeLayout['--spacing']} * 5)`,
   },
-  rule7: { display: 'flex', flexShrink: 0, gap: themeLayout['--spacing'] },
+  rule7: { gap: themeLayout['--spacing'], display: 'flex', flexShrink: 0 },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 3.5)`,
-    height: `calc(${themeLayout['--spacing']} * 3.5)`,
     flexShrink: 0,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
   rule2: {
-    width: `calc(${themeLayout['--spacing']} * 3)`,
-    height: `calc(${themeLayout['--spacing']} * 3)`,
-    flexShrink: 0,
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    flexShrink: 0,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    width: `calc(${themeLayout['--spacing']} * 3)`,
   },
   rule3: {
-    width: `calc(${themeLayout['--spacing']} * 3)`,
     height: `calc(${themeLayout['--spacing']} * 3)`,
+    width: `calc(${themeLayout['--spacing']} * 3)`,
   },
   rule4: { color: themeColors['--color-green-500'] },
 })
@@ -175,13 +175,13 @@ function InviteRow(
 const nativeChildSpacing = stylex.create({
   s1: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
-    marginBlockStart: {
-      default: null,
-      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
-    },
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
     },
   },
 })

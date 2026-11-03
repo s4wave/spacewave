@@ -4,7 +4,6 @@ import '@fontsource-variable/manrope'
 import { LuArrowLeft, LuRotateCw } from '@s4wave/web/images/icons.js'
 
 import spacewaveIcon from '@s4wave/web/images/spacewave-icon.png'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import type { LoadingView } from './types.js'
 import { useReducedMotion } from './useReducedMotion.js'
@@ -43,7 +42,7 @@ export function LoadingScreen({
   return (
     <div
       {...attributes}
-      className={cn('swl-canvas', attributes.className)}
+      className={['swl-canvas', attributes.className].filter(Boolean).join(' ')}
       data-state={view.state}
       data-sw-reduced-motion={reducedMotion ? 'true' : undefined}
     >
@@ -56,7 +55,7 @@ export function LoadingScreen({
           <div className="swl-brand" aria-hidden="true">
             Spacewave
           </div>
-          <div className="swl-head" aria-live="polite" aria-atomic="true">
+          <div aria-live="polite" aria-atomic="true">
             <h1 className="swl-title">{view.title}</h1>
           </div>
           {view.error ? (
@@ -122,7 +121,7 @@ export function LoadingScreen({
 const styles = stylex.create({
   progress: {
     backgroundColor: 'var(--color-brand)',
-    width: 'var(--progress-width)',
     height: '100%',
+    width: 'var(--progress-width)',
   },
 })

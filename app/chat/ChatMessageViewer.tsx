@@ -18,33 +18,33 @@ import {
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    display: 'flex',
-    height: '100%',
-    width: '100%',
-    flexDirection: 'column',
     overflow: 'auto',
     backgroundColor: themeColors['--color-background-primary'],
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+    width: '100%',
   },
   rule2: {
-    display: 'flex',
-    height: `calc(${themeLayout['--spacing']} * 9)`,
-    flexShrink: 0,
-    alignItems: 'center',
-    borderBottomStyle: themeUtilityState['--tw-border-style'],
-    borderBottomWidth: '1px',
     borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
     paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    alignItems: 'center',
+    display: 'flex',
+    flexShrink: 0,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
   },
   rule3: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
-    fontSize: themeFonts['--text-sm'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     '--tw-font-weight': 'var(--font-weight-semibold)',
-    fontWeight: 'var(--font-weight-semibold)',
-    color: themeColors['--color-foreground'],
     WebkitUserSelect: 'none',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
+    color: themeColors['--color-foreground'],
+    display: 'flex',
+    fontSize: themeFonts['--text-sm'],
+    fontWeight: 'var(--font-weight-semibold)',
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     userSelect: 'none',
   },
   rule4: {
@@ -54,15 +54,15 @@ const stylexStyles2 = stylex.create({
   rule5: {
     flex: 1,
     overflow: 'auto',
-    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
     paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
   },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 4)`,
     height: `calc(${themeLayout['--spacing']} * 4)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
   },
 })
 
@@ -127,13 +127,13 @@ export function ChatMessageViewer({ objectState }: ObjectViewerComponentProps) {
 const nativeChildSpacing = stylex.create({
   s2: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
-    marginBlockStart: {
-      default: null,
-      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
-    },
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
     },
   },
 })

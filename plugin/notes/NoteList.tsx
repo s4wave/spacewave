@@ -57,25 +57,20 @@ import {
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    display: 'flex',
-    minWidth: 0,
-    alignItems: 'center',
+    borderColor: themeColors['--color-border'],
     gap: themeLayout['--spacing'],
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
+    display: 'flex',
     borderBottomStyle: themeUtilityState['--tw-border-style'],
     borderBottomWidth: '1px',
-    borderColor: themeColors['--color-border'],
-    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
-    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    minWidth: 0,
   },
   rule2: {
-    display: 'flex',
-    minWidth: 0,
-    flex: 1,
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
     borderRadius: '.25rem',
-    backgroundColor: themeColors['--color-muted'],
-    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    flex: 1,
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
     paddingBlock: {
       default: null,
       '@media (min-width: 48rem)': {
@@ -83,8 +78,21 @@ const stylexStyles2 = stylex.create({
         '@media (pointer: fine)': themeLayout['--spacing'],
       },
     },
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
+    backgroundColor: themeColors['--color-muted'],
+    display: 'flex',
+    minWidth: 0,
   },
   rule3: {
+    '--tw-border-style': 'none',
+    '--tw-outline-style': 'none',
+    borderStyle: 'none',
+    backgroundColor: '#0000',
+    color: themeColors['--color-foreground'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    outlineStyle: 'none',
     minHeight: {
       default: `calc(${themeLayout['--spacing']} * 11)`,
       '@media (min-width: 48rem)': {
@@ -92,52 +100,11 @@ const stylexStyles2 = stylex.create({
         '@media (pointer: fine)': 0,
       },
     },
-    width: '100%',
     minWidth: 0,
-    '--tw-border-style': 'none',
-    borderStyle: 'none',
-    backgroundColor: '#0000',
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors['--color-foreground'],
-    '--tw-outline-style': 'none',
-    outlineStyle: 'none',
+    width: '100%',
     '::placeholder': { color: themeColors['--color-muted-foreground'] },
   },
   rule4: {
-    display: 'flex',
-    width: {
-      default: `calc(${themeLayout['--spacing']} * 11)`,
-      '@media (min-width: 48rem)': {
-        default: null,
-        '@media (pointer: fine)': 'auto',
-      },
-    },
-    height: {
-      default: `calc(${themeLayout['--spacing']} * 11)`,
-      '@media (min-width: 48rem)': {
-        default: null,
-        '@media (pointer: fine)': 'auto',
-      },
-    },
-    flexShrink: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: '.25rem',
-    color: {
-      default: themeColors['--color-foreground-alt'],
-      '@media (hover: hover)': {
-        default: null,
-        ':hover': themeColors['--color-foreground'],
-      },
-    },
-    backgroundColor: {
-      default: null,
-      '@media (hover: hover)': {
-        default: null,
-        ':hover': themeColors['--color-list-hover-background'],
-      },
-    },
     padding: {
       default: null,
       '@media (min-width: 48rem)': {
@@ -145,31 +112,15 @@ const stylexStyles2 = stylex.create({
         '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 1.5)`,
       },
     },
-  },
-  rule5: {
-    display: 'flex',
-    width: {
-      default: `calc(${themeLayout['--spacing']} * 11)`,
-      '@media (min-width: 48rem)': {
-        default: null,
-        '@media (pointer: fine)': 'auto',
-      },
-    },
-    height: {
-      default: `calc(${themeLayout['--spacing']} * 11)`,
-      '@media (min-width: 48rem)': {
-        default: null,
-        '@media (pointer: fine)': 'auto',
-      },
-    },
-    flexShrink: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
     borderRadius: '.25rem',
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
+    alignItems: 'center',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-list-hover-background'],
+      },
+    },
     color: {
       default: themeColors['--color-foreground-alt'],
       '@media (hover: hover)': {
@@ -177,11 +128,32 @@ const stylexStyles2 = stylex.create({
         ':hover': themeColors['--color-foreground'],
       },
     },
-    backgroundColor: {
-      default: null,
-      '@media (hover: hover)': {
+    display: 'flex',
+    flexShrink: 0,
+    justifyContent: 'center',
+    height: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
         default: null,
-        ':hover': themeColors['--color-list-hover-background'],
+        '@media (pointer: fine)': 'auto',
+      },
+    },
+    width: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 'auto',
+      },
+    },
+  },
+  rule5: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    borderRadius: '.25rem',
+    paddingBlock: {
+      default: null,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': themeLayout['--spacing'],
       },
     },
     paddingInline: {
@@ -191,146 +163,7 @@ const stylexStyles2 = stylex.create({
         '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 1.5)`,
       },
     },
-    paddingBlock: {
-      default: null,
-      '@media (min-width: 48rem)': {
-        default: null,
-        '@media (pointer: fine)': themeLayout['--spacing'],
-      },
-    },
-  },
-  rule6: {
-    display: 'flex',
-    flexWrap: 'wrap',
     alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
-    borderBottomStyle: themeUtilityState['--tw-border-style'],
-    borderBottomWidth: '1px',
-    borderColor: themeColors['--color-border'],
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
-    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
-    paddingBlock: themeLayout['--spacing'],
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-  },
-  rule7: { color: themeColors['--color-muted-foreground'] },
-  rule8: {
-    display: 'inline-flex',
-    minHeight: {
-      default: `calc(${themeLayout['--spacing']} * 11)`,
-      '@media (min-width: 48rem)': {
-        default: null,
-        '@media (pointer: fine)': 0,
-      },
-    },
-    minWidth: {
-      default: `calc(${themeLayout['--spacing']} * 11)`,
-      '@media (min-width: 48rem)': {
-        default: null,
-        '@media (pointer: fine)': 0,
-      },
-    },
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: themeLayout['--spacing'],
-    borderRadius: '3.40282e38px',
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
-    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
-    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
-    color: themeColors['--color-brand'],
-  },
-  rule9: {
-    display: 'inline-flex',
-    minHeight: {
-      default: `calc(${themeLayout['--spacing']} * 11)`,
-      '@media (min-width: 48rem)': {
-        default: null,
-        '@media (pointer: fine)': 0,
-      },
-    },
-    minWidth: {
-      default: `calc(${themeLayout['--spacing']} * 11)`,
-      '@media (min-width: 48rem)': {
-        default: null,
-        '@media (pointer: fine)': 0,
-      },
-    },
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: themeLayout['--spacing'],
-    borderRadius: '3.40282e38px',
-    backgroundColor: themeColors['--color-muted'],
-    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
-    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
-    color: themeColors['--color-foreground-alt'],
-  },
-  rule10: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 3)`,
-    padding: `calc(${themeLayout['--spacing']} * 6)`,
-    textAlign: 'center',
-    color: themeColors['--color-muted-foreground'],
-  },
-  rule11: {
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-  },
-  rule12: {
-    minHeight: {
-      default: `calc(${themeLayout['--spacing']} * 11)`,
-      '@media (min-width: 48rem)': {
-        default: null,
-        '@media (pointer: fine)': 0,
-      },
-    },
-    borderRadius: themeRadii['--radius-md'],
-    backgroundColor: themeColors['--color-brand'],
-    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
-    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
-    color: themeColors['--color-brand-foreground'],
-    opacity: {
-      default: null,
-      '@media (hover: hover)': { default: null, ':hover': 0.9 },
-    },
-  },
-  rule13: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: themeLayout['--spacing'],
-    paddingRight: themeLayout['--spacing'],
-  },
-  rule14: {
-    backgroundColor: themeColors['--color-list-active-selection-background'],
-    color: themeColors['--color-list-active-selection-foreground'],
-  },
-  rule15: {
-    display: 'flex',
-    minHeight: {
-      default: `calc(${themeLayout['--spacing']} * 11)`,
-      '@media (min-width: 48rem)': {
-        default: null,
-        '@media (pointer: fine)': 0,
-      },
-    },
-    minWidth: 0,
-    flex: 1,
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
-    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
-    textAlign: 'left',
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     backgroundColor: {
       default: null,
       '@media (hover: hover)': {
@@ -338,41 +171,6 @@ const stylexStyles2 = stylex.create({
         ':hover': themeColors['--color-list-hover-background'],
       },
     },
-    paddingBlock: {
-      default: null,
-      '@media (min-width: 48rem)': {
-        default: null,
-        '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 1.5)`,
-      },
-    },
-  },
-  rule16: {
-    minWidth: 0,
-    flex: 1,
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-  },
-  rule17: {
-    display: 'flex',
-    width: {
-      default: `calc(${themeLayout['--spacing']} * 11)`,
-      '@media (min-width: 48rem)': {
-        default: null,
-        '@media (pointer: fine)': 'auto',
-      },
-    },
-    height: {
-      default: `calc(${themeLayout['--spacing']} * 11)`,
-      '@media (min-width: 48rem)': {
-        default: null,
-        '@media (pointer: fine)': 'auto',
-      },
-    },
-    flexShrink: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: '.25rem',
     color: {
       default: themeColors['--color-foreground-alt'],
       '@media (hover: hover)': {
@@ -380,30 +178,12 @@ const stylexStyles2 = stylex.create({
         ':hover': themeColors['--color-foreground'],
       },
     },
-    backgroundColor: {
-      default: null,
-      '@media (hover: hover)': {
-        default: null,
-        ':hover': themeColors['--color-list-hover-background'],
-      },
-    },
-    padding: {
-      default: null,
-      '@media (min-width: 48rem)': {
-        default: null,
-        '@media (pointer: fine)': themeLayout['--spacing'],
-      },
-    },
-  },
-  rule18: {
     display: 'flex',
-    width: {
-      default: `calc(${themeLayout['--spacing']} * 11)`,
-      '@media (min-width: 48rem)': {
-        default: null,
-        '@media (pointer: fine)': 'auto',
-      },
-    },
+    flexShrink: 0,
+    fontSize: themeFonts['--text-xs'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    justifyContent: 'center',
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     height: {
       default: `calc(${themeLayout['--spacing']} * 11)`,
       '@media (min-width: 48rem)': {
@@ -411,17 +191,141 @@ const stylexStyles2 = stylex.create({
         '@media (pointer: fine)': 'auto',
       },
     },
-    flexShrink: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: '.25rem',
-    color: {
-      default: themeColors['--color-foreground-alt'],
-      '@media (hover: hover)': {
+    width: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
         default: null,
-        ':hover': themeColors['--color-destructive'],
+        '@media (pointer: fine)': 'auto',
       },
     },
+  },
+  rule6: {
+    borderColor: themeColors['--color-border'],
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    alignItems: 'center',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+    display: 'flex',
+    flexWrap: 'wrap',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+  },
+  rule7: { color: themeColors['--color-muted-foreground'] },
+  rule8: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    borderRadius: '3.40282e38px',
+    gap: themeLayout['--spacing'],
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    color: themeColors['--color-brand'],
+    display: 'inline-flex',
+    fontWeight: themeFonts['--font-weight-medium'],
+    justifyContent: 'center',
+    minHeight: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
+    minWidth: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
+  },
+  rule9: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    borderRadius: '3.40282e38px',
+    gap: themeLayout['--spacing'],
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
+    backgroundColor: themeColors['--color-muted'],
+    color: themeColors['--color-foreground-alt'],
+    display: 'inline-flex',
+    fontWeight: themeFonts['--font-weight-medium'],
+    justifyContent: 'center',
+    minHeight: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
+    minWidth: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
+  },
+  rule10: {
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    alignItems: 'center',
+    color: themeColors['--color-muted-foreground'],
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    textAlign: 'center',
+  },
+  rule11: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule12: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    borderRadius: themeRadii['--radius-md'],
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    backgroundColor: themeColors['--color-brand'],
+    color: themeColors['--color-brand-foreground'],
+    fontSize: themeFonts['--text-xs'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    opacity: {
+      default: null,
+      '@media (hover: hover)': { default: null, ':hover': 0.9 },
+    },
+    minHeight: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
+  },
+  rule13: {
+    gap: themeLayout['--spacing'],
+    alignItems: 'center',
+    display: 'flex',
+    paddingRight: themeLayout['--spacing'],
+  },
+  rule14: {
+    backgroundColor: themeColors['--color-list-active-selection-background'],
+    color: themeColors['--color-list-active-selection-foreground'],
+  },
+  rule15: {
+    flex: 1,
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: {
+      default: null,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 1.5)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    alignItems: 'center',
     backgroundColor: {
       default: null,
       '@media (hover: hover)': {
@@ -429,6 +333,27 @@ const stylexStyles2 = stylex.create({
         ':hover': themeColors['--color-list-hover-background'],
       },
     },
+    display: 'flex',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    textAlign: 'left',
+    minHeight: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
+    minWidth: 0,
+  },
+  rule16: {
+    flex: 1,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    minWidth: 0,
+  },
+  rule17: {
     padding: {
       default: null,
       '@media (min-width: 48rem)': {
@@ -436,9 +361,104 @@ const stylexStyles2 = stylex.create({
         '@media (pointer: fine)': themeLayout['--spacing'],
       },
     },
+    borderRadius: '.25rem',
+    alignItems: 'center',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-list-hover-background'],
+      },
+    },
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    display: 'flex',
+    flexShrink: 0,
+    justifyContent: 'center',
+    height: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 'auto',
+      },
+    },
+    width: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 'auto',
+      },
+    },
+  },
+  rule18: {
+    padding: {
+      default: null,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': themeLayout['--spacing'],
+      },
+    },
+    borderRadius: '.25rem',
+    alignItems: 'center',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-list-hover-background'],
+      },
+    },
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-destructive'],
+      },
+    },
+    display: 'flex',
+    flexShrink: 0,
+    justifyContent: 'center',
+    height: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 'auto',
+      },
+    },
+    width: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 'auto',
+      },
+    },
   },
   rule19: {
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: {
+      default: null,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 1.5)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    alignItems: 'center',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-list-hover-background'],
+      },
+    },
     display: 'flex',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    textAlign: 'left',
     minHeight: {
       default: `calc(${themeLayout['--spacing']} * 11)`,
       '@media (min-width: 48rem)': {
@@ -447,34 +467,14 @@ const stylexStyles2 = stylex.create({
       },
     },
     width: '100%',
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
-    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
-    textAlign: 'left',
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    backgroundColor: {
-      default: null,
-      '@media (hover: hover)': {
-        default: null,
-        ':hover': themeColors['--color-list-hover-background'],
-      },
-    },
-    paddingBlock: {
-      default: null,
-      '@media (min-width: 48rem)': {
-        default: null,
-        '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 1.5)`,
-      },
-    },
   },
   rule20: {
-    display: 'flex',
-    height: '100%',
     alignItems: 'center',
-    justifyContent: 'center',
+    display: 'flex',
     fontSize: themeFonts['--text-xs'],
+    justifyContent: 'center',
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    height: '100%',
   },
   rule21: { color: themeColors['--color-destructive'] },
   rule22: {
@@ -483,54 +483,54 @@ const stylexStyles2 = stylex.create({
   },
   rule23: {
     display: 'flex',
-    height: '100%',
     flexDirection: 'column',
+    height: '100%',
     overflowY: 'auto',
   },
   rule24: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: themeLayout['--spacing'],
-    borderBottomStyle: themeUtilityState['--tw-border-style'],
-    borderBottomWidth: '1px',
     borderColor: themeColors['--color-border'],
-    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    gap: themeLayout['--spacing'],
     paddingBlock: themeLayout['--spacing'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
+    display: 'flex',
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
   },
   rule25: {
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
     overflow: 'hidden',
     color: themeColors['--color-muted-foreground'],
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
   },
   rule26: { flex: 1, overflowY: 'auto' },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 3)`,
-    height: `calc(${themeLayout['--spacing']} * 3)`,
-    flexShrink: 0,
     color: themeColors['--color-muted-foreground'],
+    flexShrink: 0,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    width: `calc(${themeLayout['--spacing']} * 3)`,
   },
   rule2: {
-    width: `calc(${themeLayout['--spacing']} * 3.5)`,
     height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
   rule3: {
-    width: `calc(${themeLayout['--spacing']} * 2.5)`,
     height: `calc(${themeLayout['--spacing']} * 2.5)`,
+    width: `calc(${themeLayout['--spacing']} * 2.5)`,
   },
   rule4: {
-    width: `calc(${themeLayout['--spacing']} * 3)`,
-    height: `calc(${themeLayout['--spacing']} * 3)`,
     flexShrink: 0,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    width: `calc(${themeLayout['--spacing']} * 3)`,
   },
   rule5: {
-    width: `calc(${themeLayout['--spacing']} * 3)`,
     height: `calc(${themeLayout['--spacing']} * 3)`,
+    width: `calc(${themeLayout['--spacing']} * 3)`,
   },
 })
 

@@ -15,8 +15,8 @@ import * as stylex from '@stylexjs/stylex'
 const stylexStyles = stylex.create({
   rule1: {
     marginInline: 'auto',
-    width: '100%',
     maxWidth: 'var(--container-sm)',
+    width: '100%',
   },
 })
 

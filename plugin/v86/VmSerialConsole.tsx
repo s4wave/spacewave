@@ -16,28 +16,28 @@ import {
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    position: 'relative',
-    minHeight: 0,
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
     flex: 1,
     overflow: 'hidden',
     backgroundColor: themeColors['--color-zinc-950'],
-    padding: `calc(${themeLayout['--spacing']} * 2)`,
+    position: 'relative',
+    minHeight: 0,
   },
   rule2: { display: 'none' },
-  rule3: { width: '100%', height: '100%', overflow: 'hidden' },
+  rule3: { overflow: 'hidden', height: '100%', width: '100%' },
   rule4: {
-    position: 'absolute',
     inset: 0,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-dark']} 95%, transparent)`,
     padding: `calc(${themeLayout['--spacing']} * 4)`,
+    alignItems: 'center',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-dark']} 95%, transparent)`,
+    display: 'flex',
+    justifyContent: 'center',
+    position: 'absolute',
   },
 })
 
 const stylexStyles = stylex.create({
-  rule1: { width: '100%', maxWidth: 'var(--container-sm)' },
+  rule1: { maxWidth: 'var(--container-sm)', width: '100%' },
 })
 
 // VmSerialConsoleProps configures the serial console of one VM.

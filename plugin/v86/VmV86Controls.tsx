@@ -14,10 +14,10 @@ import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
 const stylexStyles = stylex.create({
   rule1: {
+    gap: themeLayout['--spacing'],
+    alignItems: 'center',
     display: 'flex',
     flexShrink: 0,
-    alignItems: 'center',
-    gap: themeLayout['--spacing'],
   },
   rule2: {
     display: { default: 'none', '@container (min-width: 42rem)': 'inline' },

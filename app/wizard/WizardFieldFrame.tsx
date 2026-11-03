@@ -9,19 +9,19 @@ import {
 const stylexStyles = stylex.create({
   rule1: { display: 'block', minWidth: 0 },
   rule2: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
     display: 'block',
     fontSize: '.65rem',
-    lineHeight: 1.5,
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
     fontWeight: themeFonts['--font-weight-medium'],
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+    lineHeight: 1.5,
   },
   rule3: {
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
     display: 'block',
     fontSize: '.65rem',
-    '--tw-leading': 'var(--leading-relaxed)',
     lineHeight: 'var(--leading-relaxed)',
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
   },
 })
 
@@ -59,15 +59,15 @@ export function WizardFieldFrame({
 const fieldChildren = stylex.create({
   child: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
-    marginBlockStart: {
-      default: null,
-      ':not(:last-child)':
-        'calc(var(--spacing) * 1.5 * var(--tw-space-y-reverse))',
-    },
     marginBlockEnd: {
       default: null,
       ':not(:last-child)':
         'calc(var(--spacing) * 1.5 * calc(1 - var(--tw-space-y-reverse)))',
+    },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)':
+        'calc(var(--spacing) * 1.5 * var(--tw-space-y-reverse))',
     },
   },
 })

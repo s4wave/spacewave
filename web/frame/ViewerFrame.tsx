@@ -46,16 +46,16 @@ const stylexStyles = stylex.create({
   rule1: { paddingInline: `calc(${themeLayout['--spacing']} * 1.5)` },
   rule2: { backgroundColor: themeColors['--color-bar-item-selected'] },
   rule3: { maxWidth: `calc(${themeLayout['--spacing']} * 72)` },
-  rule4: { textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' },
+  rule4: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   rule5: {
     maxWidth: `calc(${themeLayout['--spacing']} * 72)`,
     minWidth: `calc(${themeLayout['--spacing']} * 44)`,
   },
   rule6: {
-    width: `calc(${themeLayout['--spacing']} * 3.5)`,
     height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
-  rule7: { minWidth: 0, flexShrink: 1 },
+  rule7: { flexShrink: 1, minWidth: 0 },
   rule8: { display: 'contents' },
 })
 

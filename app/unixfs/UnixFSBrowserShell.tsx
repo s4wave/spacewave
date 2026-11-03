@@ -6,11 +6,11 @@ import * as stylex from '@stylexjs/stylex'
 
 const stylexStyles = stylex.create({
   rule1: {
+    overflow: 'hidden',
     display: 'flex',
+    flexDirection: 'column',
     height: '100%',
     width: '100%',
-    flexDirection: 'column',
-    overflow: 'hidden',
   },
 })
 

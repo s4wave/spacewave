@@ -29,11 +29,11 @@ import * as stylex from '@stylexjs/stylex'
 
 const stylexStyles = stylex.create({
   rule1: {
-    display: 'flex',
-    height: '100%',
     flex: 1,
-    flexDirection: 'column',
     overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
   },
 })
 

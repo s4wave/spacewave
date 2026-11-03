@@ -5,14 +5,6 @@ export const buttonMarker = stylex.defineMarker()
 /** buttonIconStyles preserves the button's SVG rules at each inherited icon. */
 export const buttonIconStyles = stylex.create({
   icon: {
-    width: {
-      default: null,
-      [stylex.when.ancestor(':is(*)', buttonMarker)]: '16px',
-    },
-    height: {
-      default: null,
-      [stylex.when.ancestor(':is(*)', buttonMarker)]: '16px',
-    },
     flexShrink: {
       default: null,
       [stylex.when.ancestor(':is(*)', buttonMarker)]: 0,
@@ -20,6 +12,14 @@ export const buttonIconStyles = stylex.create({
     pointerEvents: {
       default: null,
       [stylex.when.ancestor(':is(*)', buttonMarker)]: 'none',
+    },
+    height: {
+      default: null,
+      [stylex.when.ancestor(':is(*)', buttonMarker)]: '16px',
+    },
+    width: {
+      default: null,
+      [stylex.when.ancestor(':is(*)', buttonMarker)]: '16px',
     },
   },
 })

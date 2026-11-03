@@ -457,6 +457,32 @@ rules still apply.
 - Motion is functional: hover lifts, reveal fades, loading shine borders, logo
   parallax, and progress animation. Respect reduced motion.
 
+## Native style authoring
+
+Components declare styles with `stylex.create` and take a typed `sx` input.
+Compose their default, state and caller styles in that order. Theme values
+come from `web/style/tokens.stylex.ts`; viewport and motion conditions come
+from `web/style/media.stylex.ts`. The CSS variable names remain public so
+native CSS skins and markup rendered before React use the same palette.
+
+Import `web/style/app.ts` at an application entry. Vite follows its theme and
+CSS dependencies, extracts styles into normal CSS assets and links them before
+hydration. Plugins keep separate assets with stable StyleX priority layers.
+The reset, fonts, keyframes and opaque vendor/bootstrap skins remain plain CSS.
+
+Write property conditions inside the property they affect. A later StyleX
+value replaces that property's complete conditional set, so retain a base
+component's hover and breakpoint values when overriding it. DOM roots with
+caller inline properties use `stylexProps` from `web/style/props.ts` to retain
+the variables emitted by dynamic styles. Wrappers pass `sx` to that root.
+
+Literal classes are reserved for the opaque CSS skins. Component variants are
+ordinary typed functions returning compiled styles. Icons receive `sx` on the
+SVG, and render callbacks receive styles for the element they actually render.
+`bun run check` validates StyleX declarations, ordering, unused rules and class
+producers. Token labels below describe the design values and their opacity;
+they are not class strings to paste into JSX.
+
 ## Colors
 
 > **Source surfaces:** `web/style/app.css`, `app/landing/*`,
@@ -768,9 +794,8 @@ description.
 - Text `text-foreground text-xs`.
 - Height usually `h-7` in wizards and `h-9` on focused pages.
 - Do not use a solid brand fill for ordinary app actions.
-- `web/ui/Button.tsx` is a shadcn-compatible low-level primitive. App surfaces
-  should pass this class set, or use a wrapper/owner component that does, when
-  they need the polished `primary-action` pattern.
+- `web/ui/button.tsx` is the shared primitive. App surfaces use its variants
+  and typed `sx` input, or a wrapper that composes the primary-action styles.
 
 ### Text Input
 
@@ -782,9 +807,8 @@ description.
 - Focus `focus-visible:border-brand/50 focus-visible:ring-brand/15`.
 - Use `font-mono` only when the input is a token, URL, hash, path, or object
   reference.
-- `web/ui/Input.tsx` is a shadcn-compatible low-level primitive. App-owned
-  forms should apply this class set or use a surface-specific wrapper for the
-  polished `text-input` pattern.
+- `web/ui/input.tsx` is the shared primitive. Forms use its variants and typed
+  `sx` input, or a wrapper that composes the text-input styles.
 
 ### Radio Option
 
@@ -967,11 +991,12 @@ Spacewave uses container queries and viewport-height variants heavily.
 
 ## References
 
-- `web/style/app.css`: Tailwind v4 theme variables, fonts, HDR/P3 variants,
-  shell styles, scrollbars, and hero button class.
-- `web/ui/Button.tsx` and `web/ui/Input.tsx`: shadcn-compatible low-level
-  primitives; polished app action/input patterns are applied through wrappers
-  or source-owned class overrides.
+- `web/style/tokens.stylex.ts`: theme variables and shared animation names.
+- `web/style/media.stylex.ts`: viewport and reduced-motion conditions.
+- `web/style/app.ts` and `web/style/app.css`: native theme entry, reset, fonts,
+  shared keyframes, shell skins and scrollbars.
+- `web/ui/button.tsx` and `web/ui/input.tsx`: shared primitives with typed
+  variants and `sx` composition.
 - `web/ui/InfoCard.tsx`: standard static card.
 - `web/ui/DashboardButton.tsx`: compact panel action button.
 - `web/ui/RadioOption.tsx`: selected/unselected choice row.

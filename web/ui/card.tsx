@@ -12,28 +12,28 @@ import {
 
 const styles = stylex.create({
   card: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: `calc(${themeLayout['--spacing']} * 6)`,
+    '--tw-shadow':
+      '0 1px 3px 0 var(--tw-shadow-color, #0000001a), 0 1px 2px -1px var(--tw-shadow-color, #0000001a)',
     borderRadius: 'var(--radius-xl)',
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    backgroundColor: themeColors['--color-card'],
+    gap: `calc(${themeLayout['--spacing']} * 6)`,
     paddingBlock: `calc(${themeLayout['--spacing']} * 6)`,
-    color: themeColors['--color-card-foreground'],
-    '--tw-shadow':
-      '0 1px 3px 0 var(--tw-shadow-color, #0000001a), 0 1px 2px -1px var(--tw-shadow-color, #0000001a)',
+    backgroundColor: themeColors['--color-card'],
     boxShadow:
       'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    color: themeColors['--color-card-foreground'],
+    display: 'flex',
+    flexDirection: 'column',
   },
   header: {
     container: 'card-header / inline-size',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 6)`,
+    alignItems: 'flex-start',
     display: 'grid',
     gridAutoRows: 'min-content',
     gridTemplateRows: 'auto auto',
-    alignItems: 'flex-start',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
-    paddingInline: `calc(${themeLayout['--spacing']} * 6)`,
   },
   headerBorder: {
     borderBottomStyle: themeUtilityState['--tw-border-style'],
@@ -41,28 +41,28 @@ const styles = stylex.create({
     paddingBottom: `calc(${themeLayout['--spacing']} * 6)`,
   },
   title: {
-    '--tw-leading': '1',
-    lineHeight: 1,
     '--tw-font-weight': 'var(--font-weight-semibold)',
+    '--tw-leading': '1',
     fontWeight: 'var(--font-weight-semibold)',
+    lineHeight: 1,
   },
   description: {
+    color: themeColors['--color-muted-foreground'],
     fontSize: themeFonts['--text-sm'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
-    color: themeColors['--color-muted-foreground'],
   },
   action: {
-    gridColumnStart: 2,
-    gridRow: 'span 2 / span 2',
-    gridRowStart: 1,
     alignSelf: 'flex-start',
+    gridColumnStart: 2,
+    gridRowEnd: 'span 2',
+    gridRowStart: 1,
     justifySelf: 'flex-end',
   },
   content: { paddingInline: `calc(${themeLayout['--spacing']} * 6)` },
   footer: {
-    display: 'flex',
-    alignItems: 'center',
     paddingInline: `calc(${themeLayout['--spacing']} * 6)`,
+    alignItems: 'center',
+    display: 'flex',
   },
   footerBorder: {
     borderTopStyle: themeUtilityState['--tw-border-style'],

@@ -18,17 +18,17 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
-    display: 'flex',
-    minHeight: 0,
-    flex: 1,
-    overflow: 'hidden',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
     borderRadius: themeRadii['--radius-lg'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    flex: 1,
+    overflow: 'hidden',
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    display: 'flex',
+    minHeight: 0,
   },
-  rule2: { minWidth: 0, flex: 1, overflow: 'auto' },
+  rule2: { flex: 1, overflow: 'auto', minWidth: 0 },
 })
 
 // UnderTheHoodInspector embeds the devtools trees: the SDK resources this app

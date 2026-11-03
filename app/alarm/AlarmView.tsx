@@ -20,14 +20,14 @@ import {
 
 const stylexStyles4 = stylex.create({
   rule1: {
-    borderRadius: '.25rem',
-    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
-    paddingBlock: '1px',
-    fontSize: themeLayout['--text-metadata'],
-    '--tw-leading': themeLayout['--text-metadata--line-height'],
-    lineHeight: themeLayout['--text-metadata--line-height'],
     '--tw-font-weight': themeFonts['--font-weight-medium'],
+    '--tw-leading': themeLayout['--text-metadata--line-height'],
+    borderRadius: '.25rem',
+    paddingBlock: '1px',
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeLayout['--text-metadata'],
     fontWeight: themeFonts['--font-weight-medium'],
+    lineHeight: themeLayout['--text-metadata--line-height'],
   },
   rule2: {
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 15%, transparent)`,
@@ -45,86 +45,86 @@ const stylexStyles4 = stylex.create({
 
 const stylexStyles3 = stylex.create({
   rule1: {
-    minHeight: 0,
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
     flex: 1,
     overflow: 'auto',
-    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    minHeight: 0,
   },
   rule2: { maxWidth: 'var(--container-xl)' },
 })
 
 const stylexStyles2 = stylex.create({
   rule1: {
+    backgroundColor: themeColors['--color-background-primary'],
     display: 'flex',
+    flexDirection: 'column',
     height: '100%',
     width: '100%',
-    flexDirection: 'column',
-    backgroundColor: themeColors['--color-background-primary'],
   },
   rule2: {
-    display: 'flex',
-    height: `calc(${themeLayout['--spacing']} * 9)`,
-    flexShrink: 0,
-    alignItems: 'center',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
     gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    alignItems: 'center',
+    display: 'flex',
+    flexShrink: 0,
     borderBottomStyle: themeUtilityState['--tw-border-style'],
     borderBottomWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
-    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 9)`,
   },
   rule3: {
-    fontSize: themeFonts['--text-sm'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     '--tw-font-weight': 'var(--font-weight-semibold)',
-    fontWeight: 'var(--font-weight-semibold)',
     '--tw-tracking': 'var(--tracking-tight)',
+    fontSize: themeFonts['--text-sm'],
+    fontWeight: 'var(--font-weight-semibold)',
     letterSpacing: 'var(--tracking-tight)',
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
   },
   rule4: { color: themeColors['--color-destructive'] },
   rule5: { color: themeColors['--color-foreground'] },
   rule6: {
+    color: themeColors['--color-foreground'],
     fontSize: themeFonts['--text-sm'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
-    color: themeColors['--color-foreground'],
   },
   rule7: {
+    color: themeColors['--color-foreground-alt'],
     fontSize: themeFonts['--text-sm'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
-    color: themeColors['--color-foreground-alt'],
   },
   rule8: {
+    color: themeColors['--color-foreground-alt'],
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors['--color-foreground-alt'],
   },
   rule9: {
+    color: themeColors['--color-warning'],
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors['--color-warning'],
   },
   rule10: {
-    display: 'flex',
-    alignItems: 'center',
     gap: `calc(${themeLayout['--spacing']} * 3)`,
+    alignItems: 'center',
+    display: 'flex',
   },
   rule11: {
+    color: themeColors['--color-destructive'],
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors['--color-destructive'],
   },
   rule12: {
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
     color: themeColors['--color-foreground-alt'],
+    fontSize: themeFonts['--text-xs'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
   },
   rule13: {
     borderRadius: '.25rem',
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
     paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
     fontSize: themeFonts['--text-sm'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
   },
@@ -136,22 +136,22 @@ const stylexStyles2 = stylex.create({
     borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
   },
   rule16: {
-    display: 'flex',
-    alignItems: 'center',
     gap: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
     color: themeColors['--color-foreground'],
+    display: 'flex',
   },
   rule17: {
+    color: themeColors['--color-foreground-alt'],
     fontSize: themeLayout['--text-metadata'],
     lineHeight: `var(--tw-leading, ${themeLayout['--text-metadata--line-height']})`,
-    color: themeColors['--color-foreground-alt'],
   },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 3.5)`,
     height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
   rule2: { color: themeColors['--color-destructive'] },
   rule3: { color: themeColors['--color-foreground-alt'] },
@@ -353,24 +353,24 @@ export function AlarmBadge({
 const nativeChildSpacing = stylex.create({
   s1: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
-    marginBlockStart: {
-      default: null,
-      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
-    },
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
     },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
+    },
   },
   s1_5: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
-    marginBlockStart: {
-      default: null,
-      ':not(:last-child)': `calc(var(--spacing) * 1.5 * var(--tw-space-y-reverse))`,
-    },
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 1.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * var(--tw-space-y-reverse))`,
     },
   },
 })
@@ -379,24 +379,24 @@ const nativeChildSpacing = stylex.create({
 const nativeChildSpacingNext = stylex.create({
   s4: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
-    marginBlockStart: {
-      default: null,
-      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
-    },
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
     },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
+    },
   },
   s1_5: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
-    marginBlockStart: {
-      default: null,
-      ':not(:last-child)': `calc(var(--spacing) * 1.5 * var(--tw-space-y-reverse))`,
-    },
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 1.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * var(--tw-space-y-reverse))`,
     },
   },
 })

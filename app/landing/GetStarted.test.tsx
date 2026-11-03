@@ -43,11 +43,6 @@ vi.mock('../prerender/StaticContext.js', () => ({
   useIsStaticMode: mockUseIsStaticMode,
 }))
 
-vi.mock('@s4wave/web/style/utils.js', () => ({
-  cn: (...values: Array<string | false | null | undefined>) =>
-    values.filter(Boolean).join(' '),
-}))
-
 vi.mock('@s4wave/web/ui/command.js', () => ({
   Command: ({ children }: { children: React.ReactNode }) => (
     <div>{children}</div>

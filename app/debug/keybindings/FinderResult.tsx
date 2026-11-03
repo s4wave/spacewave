@@ -24,13 +24,13 @@ import {
 
 const stylexStyles3 = stylex.create({
   rule1: {
-    display: 'inline-flex',
-    width: `calc(${themeLayout['--spacing']} * 7)`,
-    height: `calc(${themeLayout['--spacing']} * 7)`,
-    flexShrink: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
     borderRadius: themeRadii['--radius-md'],
+    alignItems: 'center',
+    display: 'inline-flex',
+    flexShrink: 0,
+    justifyContent: 'center',
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    width: `calc(${themeLayout['--spacing']} * 7)`,
   },
   rule2: {
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
@@ -40,46 +40,46 @@ const stylexStyles3 = stylex.create({
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
   },
-  rule4: { minWidth: 0, flex: 1 },
+  rule4: { flex: 1, minWidth: 0 },
   rule5: {
-    display: 'flex',
-    alignItems: 'center',
     gap: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
+    display: 'flex',
   },
   rule6: {
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
     overflow: 'hidden',
     fontSize: themeFonts['--text-sm'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
     fontWeight: themeFonts['--font-weight-medium'],
-  },
-  rule7: {
-    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
-    display: 'block',
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    fontSize: themeLayout['--text-metadata'],
-    lineHeight: `var(--tw-leading, ${themeLayout['--text-metadata--line-height']})`,
+  },
+  rule7: {
     '--tw-font-weight': 'var(--font-weight-normal)',
-    fontWeight: 'var(--font-weight-normal)',
+    overflow: 'hidden',
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 45%, transparent)`,
+    display: 'block',
+    fontSize: themeLayout['--text-metadata'],
+    fontWeight: 'var(--font-weight-normal)',
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-metadata--line-height']})`,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
   },
 })
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 3.5)`,
-    height: `calc(${themeLayout['--spacing']} * 3.5)`,
-    flexShrink: 0,
     color: themeColors['--color-destructive'],
+    flexShrink: 0,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
 })
 
 const stylexStyles = stylex.create({
-  rule1: { width: '100%', justifyContent: 'flex-start', textAlign: 'left' },
+  rule1: { justifyContent: 'flex-start', textAlign: 'left', width: '100%' },
 })
 
 interface FinderResultProps {

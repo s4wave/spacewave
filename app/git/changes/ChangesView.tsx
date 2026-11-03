@@ -12,15 +12,15 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
-    display: 'flex',
-    height: '100%',
     alignItems: 'center',
+    display: 'flex',
     justifyContent: 'center',
+    height: '100%',
   },
   rule2: {
+    color: themeColors['--color-foreground-alt'],
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors['--color-foreground-alt'],
   },
   rule3: { overflow: 'auto' },
 })

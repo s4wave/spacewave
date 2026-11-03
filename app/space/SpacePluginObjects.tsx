@@ -18,14 +18,14 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
     display: 'flex',
     flexWrap: 'wrap',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
   },
   rule2: {
+    color: themeColors['--color-destructive'],
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors['--color-destructive'],
   },
 })
 

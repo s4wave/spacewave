@@ -16,43 +16,43 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
-    display: 'inline-flex',
-    overflow: 'hidden',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
     borderRadius: themeRadii['--radius-md'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    overflow: 'hidden',
+    display: 'inline-flex',
   },
   rule2: {
-    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
-    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
-    fontSize: '.6rem',
-    lineHeight: 1.5,
     '--tw-font-weight': themeFonts['--font-weight-medium'],
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: '.6rem',
     fontWeight: themeFonts['--font-weight-medium'],
+    lineHeight: 1.5,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
   },
   rule3: {
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
     color: themeColors['--color-foreground'],
   },
   rule4: {
-    color: {
-      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
-      '@media (hover: hover)': {
-        default: null,
-        ':hover': themeColors['--color-foreground'],
-      },
-    },
     backgroundColor: {
       default: null,
       '@media (hover: hover)': {
         default: null,
         ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
       },
     },
   },

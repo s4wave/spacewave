@@ -1,3 +1,4 @@
+import { keyframeNames } from '../../web/style/tokens.stylex.js'
 import { useEffect, useReducer, useRef } from 'react'
 
 import * as stylex from '@stylexjs/stylex'
@@ -10,43 +11,43 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
-    pointerEvents: 'none',
-    position: 'absolute',
-    bottom: `calc(${themeLayout['--spacing']} * 10)`,
-    left: `calc(${themeLayout['--spacing']} * 4)`,
-    display: 'flex',
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
-    fontFamily: themeFonts['--font-mono'],
-    WebkitFontSmoothing: 'subpixel-antialiased',
     MozOsxFontSmoothing: 'auto',
-    textRendering: 'auto',
-    textShadow: '0 0 0.25px currentColor',
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    alignItems: 'center',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    display: 'flex',
+    fontFamily: themeFonts['--font-mono'],
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    pointerEvents: 'none',
+    position: 'absolute',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty: 'opacity',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    bottom: `calc(${themeLayout['--spacing']} * 10)`,
+    left: `calc(${themeLayout['--spacing']} * 4)`,
   },
   rule2: { opacity: 0 },
   rule3: {
-    width: `calc(${themeLayout['--spacing']} * 3)`,
-    height: `calc(${themeLayout['--spacing']} * 3)`,
-    animationName: 'spin',
-    animationDuration: '1s',
-    animationTimingFunction: 'linear',
-    animationIterationCount: 'infinite',
-    animationDirection: 'normal',
-    animationPlayState: 'running',
     animationDelay: '0s',
+    animationDirection: 'normal',
+    animationDuration: '1s',
     animationFillMode: 'none',
+    animationIterationCount: 'infinite',
+    animationName: keyframeNames['spin'],
+    animationPlayState: 'running',
     animationTimeline: 'auto',
+    animationTimingFunction: 'linear',
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    width: `calc(${themeLayout['--spacing']} * 3)`,
   },
   rule4: {
-    width: `calc(${themeLayout['--spacing']} * 3)`,
     height: `calc(${themeLayout['--spacing']} * 3)`,
+    width: `calc(${themeLayout['--spacing']} * 3)`,
   },
 })
 

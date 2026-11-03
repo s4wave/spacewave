@@ -1,3 +1,4 @@
+import { keyframeNames } from '../style/tokens.stylex.js'
 import { stylexProps } from '@s4wave/web/style/props.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
@@ -19,15 +20,15 @@ import * as stylex from '@stylexjs/stylex'
 
 const stylexStyles = stylex.create({
   rule1: {
-    animationName: 'spin',
-    animationDuration: '1s',
-    animationTimingFunction: 'linear',
-    animationIterationCount: 'infinite',
-    animationDirection: 'normal',
-    animationPlayState: 'running',
     animationDelay: '0s',
+    animationDirection: 'normal',
+    animationDuration: '1s',
     animationFillMode: 'none',
+    animationIterationCount: 'infinite',
+    animationName: keyframeNames['spin'],
+    animationPlayState: 'running',
     animationTimeline: 'auto',
+    animationTimingFunction: 'linear',
   },
   rule2: { whiteSpace: 'pre-wrap' },
 })

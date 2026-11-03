@@ -10,32 +10,32 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
-    display: 'flex',
-    minHeight: '100vh',
-    width: '100%',
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
     backgroundColor: themeColors['--color-background-landing'],
-    padding: `calc(${themeLayout['--spacing']} * 6)`,
+    display: 'flex',
+    justifyContent: 'center',
+    minHeight: '100vh',
+    width: '100%',
   },
   rule2: {
-    width: '100%',
-    maxWidth: 'var(--container-md)',
+    '--tw-shadow':
+      '0 1px 3px 0 var(--tw-shadow-color, #0000001a), 0 1px 2px -1px var(--tw-shadow-color, #0000001a)',
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
     borderRadius: 'var(--radius-2xl)',
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 90%, transparent)`,
-    padding: `calc(${themeLayout['--spacing']} * 6)`,
-    '--tw-shadow':
-      '0 1px 3px 0 var(--tw-shadow-color, #0000001a), 0 1px 2px -1px var(--tw-shadow-color, #0000001a)',
     boxShadow:
       'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    maxWidth: 'var(--container-md)',
+    width: '100%',
   },
   rule3: {
-    marginTop: `calc(${themeLayout['--spacing']} * 6)`,
     display: 'flex',
     justifyContent: 'center',
+    marginTop: `calc(${themeLayout['--spacing']} * 6)`,
   },
 })
 

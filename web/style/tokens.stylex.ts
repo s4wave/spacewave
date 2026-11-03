@@ -98,6 +98,23 @@ export const layout = stylex.defineVars({
   '--spacing-app-logo-inset': '3.5px',
   '--text-shadow-bar-item-selected': '0 0 3px oklch(0 0 0 / 0.8)',
   '--spacing': '0.25rem',
+
+  '--default-mono-font-family': 'var(--font-mono)',
+  '--container-md': '28rem',
+  '--container-2xl': '42rem',
+  '--container-sm': '24rem',
+  '--container-xs': '20rem',
+  '--container-5xl': '64rem',
+  '--blur-sm': '8px',
+  '--container-xl': '36rem',
+  '--container-4xl': '56rem',
+  '--container-6xl': '72rem',
+  '--blur-xs': '4px',
+  '--container-3xl': '48rem',
+  '--container-lg': '32rem',
+  '--blur-md': '12px',
+  '--aspect-video': '16 / 9',
+  '--container-7xl': '80rem',
 })
 
 /** radii keeps the theme's public CSS variable names and values. */
@@ -110,6 +127,12 @@ export const radii = stylex.defineVars({
   '--radius-menu-button': '3px',
   '--radius-md': '0.375rem',
   '--radius-lg': '0.5rem',
+
+  '--radius-xl': '0.75rem',
+  '--radius-sm': '0.25rem',
+  '--radius-3xl': '1.5rem',
+  '--radius-2xl': '1rem',
+  '--radius-xs': '0.125rem',
 })
 
 /** shadows keeps the theme's public CSS variable names and values. */
@@ -139,6 +162,35 @@ export const fonts = stylex.defineVars({
   '--text-sm': '0.875rem',
   '--text-sm--line-height': 'calc(1.25 / 0.875)',
   '--font-weight-medium': '500',
+
+  '--font-weight-bold': '700',
+  '--leading-tight': '1.25',
+  '--font-weight-semibold': '600',
+  '--tracking-tight': '-0.025em',
+  '--text-lg': '1.125rem',
+  '--text-lg--line-height': 'calc(1.75 / 1.125)',
+  '--text-base': '1rem',
+  '--text-base--line-height': 'calc(1.5 / 1)',
+  '--leading-relaxed': '1.625',
+  '--leading-snug': '1.375',
+  '--text-xl': '1.25rem',
+  '--text-xl--line-height': 'calc(1.75 / 1.25)',
+  '--text-4xl': '2.25rem',
+  '--text-4xl--line-height': 'calc(2.5 / 2.25)',
+  '--text-2xl': '1.5rem',
+  '--text-3xl': '1.875rem',
+  '--text-2xl--line-height': 'calc(2 / 1.5)',
+  '--text-3xl--line-height': 'calc(2.25 / 1.875)',
+  '--tracking-wider': '0.05em',
+  '--tracking-wide': '0.025em',
+  '--tracking-widest': '0.1em',
+  '--font-weight-normal': '400',
+  '--text-5xl': '3rem',
+  '--text-5xl--line-height': '1',
+  '--tracking-normal': '0em',
+  '--font-weight-light': '300',
+  '--font-sans':
+    '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",\n      "Noto Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",\n      "Segoe UI Symbol", "Noto Color Emoji"',
 })
 
 /** colors keeps the theme's public CSS variable names and values. */
@@ -338,15 +390,50 @@ export const colors = stylex.defineVars({
   '--color-frame-overlay-border': 'var(--color-primary)',
   '--color-object-viewer-overlay': 'oklch(0.1776 0 0)',
   '--color-white': '#fff',
+
+  '--color-black': '#000',
+  '--color-rose-400': 'oklch(71.2% 0.194 13.428)',
+  '--color-amber-300': 'oklch(87.9% 0.169 91.605)',
+  '--color-amber-400': 'oklch(82.8% 0.189 84.429)',
+  '--color-orange-400': 'oklch(75% 0.183 55.934)',
+  '--color-blue-900': 'oklch(37.9% 0.146 265.522)',
+  '--color-red-950': 'oklch(25.8% 0.092 26.042)',
+  '--color-red-200': 'oklch(88.5% 0.062 18.334)',
+  '--color-amber-950': 'oklch(27.9% 0.077 45.635)',
+  '--color-amber-200': 'oklch(92.4% 0.12 95.746)',
+  '--color-zinc-900': 'oklch(21% 0.006 285.885)',
+  '--color-emerald-950': 'oklch(26.2% 0.051 172.552)',
+  '--color-emerald-200': 'oklch(90.5% 0.093 164.15)',
+  '--color-purple-500': 'oklch(62.7% 0.265 303.9)',
+  '--color-pink-500': 'oklch(65.6% 0.241 354.308)',
 })
 
 /** motion preserves the shared transition timing used by interactive controls. */
 export const motion = stylex.defineVars({
   '--default-transition-timing-function': 'cubic-bezier(0.4, 0, 0.2, 1)',
+
+  '--default-transition-duration': '150ms',
+  '--ease-in-out': 'cubic-bezier(0.4, 0, 0.2, 1)',
+  '--ease-out': 'cubic-bezier(0, 0, 0.2, 1)',
 })
 
 /** utilityState types the enum variables shared by border and outline declarations. */
 export const utilityState = stylex.defineVars({
   '--tw-border-style': 'solid' as const,
   '--tw-outline-style': 'solid' as const,
+})
+
+/** keyframeNames links native styles to animations in the shared CSS skins. */
+export const keyframeNames = stylex.defineConsts({
+  'accordion-down': 'accordion-down',
+  'accordion-up': 'accordion-up',
+  'hdr-flash': 'hdr-flash',
+  ping: 'ping',
+  'progress-indeterminate': 'progress-indeterminate',
+  pulse: 'pulse',
+  'shadcn-enter': 'shadcn-enter',
+  'shadcn-exit': 'shadcn-exit',
+  shine: 'shine',
+  spin: 'spin',
+  'tw-shimmer': 'tw-shimmer',
 })

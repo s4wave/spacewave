@@ -98,11 +98,11 @@ import * as stylex from '@stylexjs/stylex'
 
 const stylexStyles = stylex.create({
   rule1: {
-    flexShrink: 1,
+    overflow: 'hidden',
     flexGrow: 1,
+    flexShrink: 1,
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    overflow: 'hidden',
   },
 })
 
