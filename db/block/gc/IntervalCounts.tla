@@ -428,11 +428,14 @@ Commit ==
      /\ \E O \in OverflowSets(C) :
         LET E == O \cup IF Shadow /\ save.on THEN save.entries ELSE {}
             h == IF Shadow /\ save.on THEN save.roots ELSE wrapper
-        IN \E refills \in IF Shadow THEN SUBSET (E \cap stored) ELSE {{}},
+        IN \E countInput \in {IF counting /\ doubt /\ E # {} THEN Zero
+               ELSE IF Shadow THEN TLCEval(ClassCounts(E, O, {}, h))
+               ELSE TLCEval(PutCounts(O, {}, {}))} :
+           \E refills \in IF Shadow THEN SUBSET (E \cap stored) ELSE {{}},
               cached \in IF Shadow THEN SUBSET (E \ stored) ELSE {{}} :
            /\ steps' = AppendJoinedStep(steps, cur, r, Rp, C)
            /\ kept' = kept \cup (C \ O)
-           /\ extra' = IF counting /\ (doubt \/ cached # {}) /\ E # {} THEN Zero ELSE IF Shadow THEN ClassCounts(E, O, {}, h) ELSE PutCounts(O, {}, {})
+           /\ extra' = IF counting /\ (doubt \/ cached # {}) /\ E # {} THEN Zero ELSE countInput
            /\ stored' = stored \cup E
            /\ SelectedInputs(E, O, {}, refills, cached, HoldKids(h), O # {})
            /\ \E certified \in BOOLEAN :
@@ -478,9 +481,12 @@ Discard ==
      /\ \E O \in OverflowSets(C) \ {{}} :
         LET E == O \cup IF Shadow /\ save.on THEN save.entries ELSE {}
             h == IF Shadow /\ save.on THEN save.roots ELSE wrapper
-        IN \E refills \in IF Shadow THEN SUBSET (E \cap stored) ELSE {{}},
+        IN \E countInput \in {IF counting /\ doubt /\ E # {} THEN Zero
+               ELSE IF Shadow THEN TLCEval(ClassCounts(E, O, {}, h))
+               ELSE TLCEval(PutCounts(O, {}, {}))} :
+           \E refills \in IF Shadow THEN SUBSET (E \cap stored) ELSE {{}},
               cached \in IF Shadow THEN SUBSET (E \ stored) ELSE {{}} :
-           /\ extra' = IF counting /\ (doubt \/ cached # {}) /\ E # {} THEN Zero ELSE IF Shadow THEN ClassCounts(E, O, {}, h) ELSE PutCounts(O, {}, {})
+           /\ extra' = IF counting /\ (doubt \/ cached # {}) /\ E # {} THEN Zero ELSE countInput
            /\ stored' = stored \cup E
            /\ kept' = kept
            /\ SelectedInputs(E, O, {}, refills, cached, HoldKids(h), O # {})
@@ -1436,65 +1442,67 @@ SealCheckpoint ==
                         ELSE Append(pendingWorlds, [epoch |-> curEpoch, root |-> cur])
          h == IF early THEN wrapper ELSE RootOrder(base, written, checkpoints,
                 IF forfeit THEN waiting ELSE Append(waiting, [from |-> named]))
-         gathered == Gather(h)
-         E == IF early THEN {} ELSE gathered.entries
-         K == {p \in E : IsOriginal(chain, p) /\ p # chain[1].from}
-     IN \E N \in IF early THEN {{}} ELSE SUBSET (gathered.kept \cap kept) :
-        \E certified \in IF early THEN {TRUE} ELSE BOOLEAN :
-        \E refills \in IF Shadow THEN SUBSET (E \cap stored) ELSE {{}},
-           cached \in IF Shadow THEN SUBSET (E \ stored) ELSE {{}} :
-        LET rawFound == (((N \ K) \cap stored) \ refills) \cup ((N \ K) \cap cached)
-            P == putSet \cup (N \ K)
-         fresh == freshSet \cup ((N \ K) \ rawFound)
-         foundAll == P \ fresh
-         foundAny == foundSet \cup rawFound
-         F == IF FoundRule = "every" THEN foundAll ELSE foundAny
-         modes == IF Unfunded = "steps" THEN {TRUE}
-                  ELSE IF ~early /\ (~basisCurrent \/ ~Ready \/ ~certified
-                            \/ refills # {} \/ cached # {}) THEN {FALSE}
-                  ELSE IF early /\ ~receiptSeen THEN {FALSE}
-                  ELSE IF ~basisCurrent THEN BOOLEAN
-                  ELSE {funded /\ lineageCurrent}
-     IN \E netted \in modes :
-        \E net \in {IF netted THEN TLCEval(Net(chain, F, P)) ELSE Idle},
-           fallback \in {TLCEval(NetPuts(P, fresh))} :
-        LET foundHolds(p) == IF CountRule = "hold"
-                    THEN foundPuts[p] + (IF p \in rawFound THEN 1 ELSE 0)
-                    ELSE 0
-         raw == TLCEval([id |-> curEpoch, superseded |-> FALSE, current |-> FALSE,
-                 transfer |-> FALSE, parts |-> {}, large |-> FALSE,
-                 from |-> IF netted THEN net.from ELSE None,
-                 replaced |-> IF netted THEN net.replaced ELSE {},
-                 dropped |-> IF netted THEN net.dropped ELSE {},
-                 removed |-> IF netted THEN net.removed ELSE {},
-                 kept |-> IF netted THEN net.kept ELSE {},
-                 existed |-> IF netted THEN net.existed ELSE {},
-                 held |-> IF netted THEN net.held ELSE fallback,
-                 found |-> [p \in Pages |-> foundHolds(p)]])
-     IN \E material \in {[record |-> raw, fallback |-> fallback,
-                           saved |-> TLCEval(ClassCounts(E, N, K, h))]} :
-        \E layout \in IF Shadow THEN Layouts(ListData(material.record, material.fallback))
-                      ELSE {[large |-> FALSE, parts |-> {}]} :
-        LET current == (receiptSeen \/ ~early) /\ basisCurrent /\ Ready
-                         /\ (early \/ certified) /\ refills = {} /\ cached = {}
-            recovery == (forfeit /\ Recount) \/ (counting /\ (doubt \/ cached # {}))
-            rec == [material.record EXCEPT !.current = current,
-                     !.parts = layout.parts, !.large = layout.large]
-            entry == [id |-> curEpoch, from |-> named, to |-> cur,
-                      record |-> rec, fallback |-> material.fallback, prepared |-> {}]
-            freshRoot == ~forfeit /\ (cur \in firstCurrent \/
-              (Ready /\ certified /\ refills = {} /\ cached = {} /\ cur \in (((N \ K) \ rawFound) \ putSet)))
-        IN /\ WrapperAvailable(h, E)
-           /\ stored' = stored \cup E /\ kept' = kept \ N
-           /\ staged' = (staged \cup E) \ (UNION {Kids(p) : p \in E} \cup HoldKids(h))
-           /\ wrapper' = h /\ wrappers' = wrappers \cup {h}
-           /\ wrapperReleases' = QueueWrapper(h)
-           /\ pendingWorlds' = checkpoints
-           /\ ShadowPublication(recovery, material.saved, rel,
-                 IF forfeit THEN waiting ELSE Append(waiting, entry), queue,
-                 ~forfeit /\ (freshRoot \/ (cur = named /\ lineage)),
-                 freshRoot, forfeit \/ ~funded \/ ~current, {})
-           /\ funded' = freshRoot
+     IN \E checkpointRoots \in {TLCEval(h)} :
+        \E checkpointInput \in {TLCEval(IF early
+              THEN [entries |-> {}, kept |-> {}] ELSE Gather(checkpointRoots))} :
+        LET E == checkpointInput.entries
+            K == {p \in E : IsOriginal(chain, p) /\ p # chain[1].from}
+        IN /\ WrapperAvailable(checkpointRoots, E)
+           /\ \E N \in IF early THEN {{}} ELSE SUBSET (checkpointInput.kept \cap kept) :
+                 \E certified \in IF early THEN {TRUE} ELSE BOOLEAN :
+                 \E refills \in IF Shadow THEN SUBSET (E \cap stored) ELSE {{}},
+                    cached \in IF Shadow THEN SUBSET (E \ stored) ELSE {{}} :
+                 LET rawFound == (((N \ K) \cap stored) \ refills) \cup ((N \ K) \cap cached)
+                     P == putSet \cup (N \ K)
+                  fresh == freshSet \cup ((N \ K) \ rawFound)
+                  foundAll == P \ fresh
+                  foundAny == foundSet \cup rawFound
+                  F == IF FoundRule = "every" THEN foundAll ELSE foundAny
+                  modes == IF Unfunded = "steps" THEN {TRUE}
+                           ELSE IF ~early /\ (~basisCurrent \/ ~Ready \/ ~certified
+                                     \/ refills # {} \/ cached # {}) THEN {FALSE}
+                           ELSE IF early /\ ~receiptSeen THEN {FALSE}
+                           ELSE IF ~basisCurrent THEN BOOLEAN
+                           ELSE {funded /\ lineageCurrent}
+              IN \E netted \in modes :
+                 \E net \in {IF netted THEN TLCEval(Net(chain, F, P)) ELSE Idle},
+                    fallback \in {TLCEval(NetPuts(P, fresh))} :
+                 LET foundHolds(p) == IF CountRule = "hold"
+                             THEN foundPuts[p] + (IF p \in rawFound THEN 1 ELSE 0)
+                             ELSE 0
+                  raw == TLCEval([id |-> curEpoch, superseded |-> FALSE, current |-> FALSE,
+                          transfer |-> FALSE, parts |-> {}, large |-> FALSE,
+                          from |-> IF netted THEN net.from ELSE None,
+                          replaced |-> IF netted THEN net.replaced ELSE {},
+                          dropped |-> IF netted THEN net.dropped ELSE {},
+                          removed |-> IF netted THEN net.removed ELSE {},
+                          kept |-> IF netted THEN net.kept ELSE {},
+                          existed |-> IF netted THEN net.existed ELSE {},
+                          held |-> IF netted THEN net.held ELSE fallback,
+                          found |-> [p \in Pages |-> foundHolds(p)]])
+              IN \E material \in {[record |-> raw, fallback |-> fallback,
+                                    saved |-> TLCEval(ClassCounts(E, N, K, checkpointRoots))]} :
+                 \E layout \in IF Shadow THEN Layouts(ListData(material.record, material.fallback))
+                               ELSE {[large |-> FALSE, parts |-> {}]} :
+                 LET current == (receiptSeen \/ ~early) /\ basisCurrent /\ Ready
+                                  /\ (early \/ certified) /\ refills = {} /\ cached = {}
+                     recovery == (forfeit /\ Recount) \/ (counting /\ (doubt \/ cached # {}))
+                     rec == [material.record EXCEPT !.current = current,
+                              !.parts = layout.parts, !.large = layout.large]
+                     entry == [id |-> curEpoch, from |-> named, to |-> cur,
+                               record |-> rec, fallback |-> material.fallback, prepared |-> {}]
+                     freshRoot == ~forfeit /\ (cur \in firstCurrent \/
+                       (Ready /\ certified /\ refills = {} /\ cached = {} /\ cur \in (((N \ K) \ rawFound) \ putSet)))
+                 IN /\ stored' = stored \cup E /\ kept' = kept \ N
+                    /\ staged' = (staged \cup E) \ (UNION {Kids(p) : p \in E} \cup HoldKids(checkpointRoots))
+                    /\ wrapper' = checkpointRoots /\ wrappers' = wrappers \cup {checkpointRoots}
+                    /\ wrapperReleases' = QueueWrapper(checkpointRoots)
+                    /\ pendingWorlds' = checkpoints
+                    /\ ShadowPublication(recovery, material.saved, rel,
+                          IF forfeit THEN waiting ELSE Append(waiting, entry), queue,
+                          ~forfeit /\ (freshRoot \/ (cur = named /\ lineage)),
+                          freshRoot, forfeit \/ ~funded \/ ~current, {})
+                    /\ funded' = freshRoot
   /\ save' = Idle /\ receiptSeen' = FALSE
   /\ named' = cur /\ hold' = cur /\ checkpointEpoch' = curEpoch
   /\ steps' = <<>>
