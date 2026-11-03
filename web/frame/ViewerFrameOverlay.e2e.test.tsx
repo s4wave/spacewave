@@ -8,6 +8,28 @@ import { BottomBarLevel } from './bottom-bar-level.js'
 import { BottomBarRoot } from './bottom-bar-root.js'
 import { ViewerFrame } from './ViewerFrame.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
+    position: 'relative',
+    height: `calc(${themeLayout['--spacing']} * 150)`,
+    width: `calc(${themeLayout['--spacing']} * 225)`,
+  },
+  rule2: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    position: 'relative',
+    height: '100%',
+    width: '100%',
+  },
+})
+
 function ObjectDetailsButton(selected: boolean, onClick: () => void) {
   return (
     <BottomBarItem
@@ -25,17 +47,18 @@ function EmbeddedViewer() {
 
   return (
     <div
-      className="space-flexlayout relative flex h-150 w-225 flex-col overflow-hidden"
+      sx={stylexStyles.rule1}
+      className="space-flexlayout"
       data-testid="object-layout"
     >
-      <div className="relative flex h-full w-full flex-1 flex-col">
-        <div className="flexlayout__optimized_layout">
+      <div sx={stylexStyles.rule2}>
+        <div className={'flexlayout__optimized_layout'}>
           <div
-            className="flexlayout__optimized_layout_tab_container"
+            className={'flexlayout__optimized_layout_tab_container'}
             data-layout-path="/tab-container"
           >
             <div
-              className="flexlayout__tab"
+              className={'flexlayout__tab'}
               role="tabpanel"
               data-tab-id="markdown"
             >

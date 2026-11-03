@@ -160,19 +160,9 @@ export const annotations: Record<string, DependencyAnnotation> = {
     purpose: 'Icon library with Lucide, Remix, and Phosphor icon sets',
     internal: false,
   },
-  'class-variance-authority': {
-    category: 'ui-components',
-    purpose: 'Type-safe component variant management',
-    internal: false,
-  },
   clsx: {
     category: 'ui-components',
     purpose: 'Conditional CSS class name composition',
-    internal: false,
-  },
-  cnfast: {
-    category: 'ui-components',
-    purpose: 'Fast Tailwind CSS class name composition and deduplication',
     internal: false,
   },
 

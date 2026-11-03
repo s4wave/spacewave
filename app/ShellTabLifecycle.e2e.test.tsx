@@ -11,6 +11,18 @@ import { ShellTabStrip } from './ShellFlexLayout.js'
 import { useTabId } from './ShellTabContext.js'
 import { readShellTabsSnapshot, seedShellTabs } from './ShellTabTestHarness.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: { height: '100%', width: '100%' },
+  rule2: {
+    inset: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    position: 'fixed',
+  },
+})
+
 // Keep account startup outside this shell test while using the real tab store,
 // panel router, FlexLayout model, render lifecycle, and stylesheet.
 vi.mock('./routes/AppRoutes.js', () => ({
@@ -22,7 +34,7 @@ vi.mock('./routes/AppRoutes.js', () => ({
 
     // Retain a draft so tab changes also check the viewer's mount lifetime.
     return (
-      <div className="h-full w-full" data-viewer-id={tabId}>
+      <div sx={stylexStyles.rule1} data-viewer-id={tabId}>
         <output>{path}</output>
         <input aria-label="Draft" defaultValue="" />
         <button
@@ -80,7 +92,7 @@ function activePanel(): HTMLElement | undefined {
 /** mountShell restores the document's tab selection with the real shell. */
 async function mountShell() {
   await render(
-    <div className="fixed inset-0 flex flex-col">
+    <div sx={stylexStyles.rule2}>
       <ShellTabStrip entry={entry} />
     </div>,
   )

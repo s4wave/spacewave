@@ -20,7 +20,6 @@ export default defineConfig({
       '@radix-ui/react-slot',
       'react-icons',
       'react-icons/lu',
-      'cnfast',
     ],
   },
   test: {

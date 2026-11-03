@@ -11,6 +11,16 @@ import type {
   CanvasCallbacks,
 } from './types.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    height: `calc(${themeLayout['--spacing']} * 150)`,
+    width: `calc(${themeLayout['--spacing']} * 200)`,
+  },
+})
+
 // makeNode creates a CanvasNodeData with sensible defaults.
 function makeNode(
   overrides: Partial<CanvasNodeData> & { id: string },
@@ -54,7 +64,7 @@ function TestCanvas({ initialNodes }: { initialNodes: CanvasNodeData[] }) {
   }
 
   return (
-    <div className="h-150 w-200">
+    <div sx={stylexStyles.rule1}>
       <Canvas state={state} callbacks={callbacks} />
     </div>
   )

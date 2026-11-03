@@ -12,6 +12,12 @@ import { LoadingScreen } from '@s4wave/web/ui/loading/LoadingScreen.js'
 
 import { resetBrowserStartupMarksForTest } from './boot-status.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: { inset: 0, display: 'flex', position: 'fixed' },
+})
+
 beforeEach(() => {
   globalThis.__swBootStatus = undefined
   resetBootDownloadsForTest()
@@ -41,7 +47,7 @@ describe('startup surfaces', () => {
         detail: '',
       }
       await render(
-        <div className="fixed inset-0 flex">
+        <div sx={stylexStyles.rule1}>
           <AppLoadingScreen />
         </div>,
       )
@@ -83,7 +89,7 @@ describe('startup surfaces', () => {
   it('shows quickstart progress without requiring a disclosure', async () => {
     await page.viewport(320, 568)
     await render(
-      <div className="fixed inset-0 flex">
+      <div sx={stylexStyles.rule1}>
         <QuickstartSetupScreen
           quickstartId="drive"
           progress={{
@@ -133,7 +139,7 @@ describe('startup surfaces', () => {
     vi.stubGlobal('WebGL2RenderingContext', undefined)
     const retry = vi.fn()
     await render(
-      <div className="fixed inset-0 flex">
+      <div sx={stylexStyles.rule1}>
         <LoadingScreen
           view={{
             state: 'error',
@@ -170,7 +176,7 @@ it('reports only measured current-download bytes', async () => {
     },
   ]
   await render(
-    <div className="fixed inset-0 flex">
+    <div sx={stylexStyles.rule1}>
       <AppLoadingScreen />
     </div>,
   )
@@ -201,7 +207,7 @@ it('retains startup feedback under reduced motion', async () => {
   })
   await page.viewport(390, 844)
   await render(
-    <div className="fixed inset-0 flex">
+    <div sx={stylexStyles.rule1}>
       <AppLoadingScreen />
     </div>,
   )
@@ -218,7 +224,7 @@ it('keeps recovery reachable when an error wraps on a tiny screen', async () => 
   await page.viewport(320, 568)
   const back = vi.fn()
   await render(
-    <div className="fixed inset-0 flex">
+    <div sx={stylexStyles.rule1}>
       <LoadingScreen
         view={{
           state: 'error',

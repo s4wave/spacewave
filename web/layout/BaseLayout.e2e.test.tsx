@@ -33,13 +33,27 @@ import type {
 } from '@s4wave/sdk/layout/layout.pb.js'
 import { BASE_MODEL } from './layout.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
+    position: 'relative',
+    height: `calc(${themeLayout['--spacing']} * 150)`,
+    width: `calc(${themeLayout['--spacing']} * 200)`,
+  },
+})
+
 // Test wrapper component that provides necessary context
 function TestBaseLayout(
   props: Omit<IBaseLayoutProps, 'layoutHost'> & { layoutHost: LayoutHost },
 ) {
   return (
     <BaseLayoutContextProvider>
-      <div className="relative flex h-150 w-200 flex-col overflow-hidden">
+      <div sx={stylexStyles.rule1}>
         <BaseLayout {...props} />
       </div>
     </BaseLayoutContextProvider>
@@ -782,7 +796,7 @@ describe('BaseLayout E2E', () => {
 
     await render(
       <BaseLayoutContextProvider>
-        <div className="relative flex h-150 w-200 flex-col overflow-hidden">
+        <div sx={stylexStyles.rule1}>
           <BaseLayout
             ref={ref}
             layoutHost={layoutHost}
@@ -837,7 +851,7 @@ describe('BaseLayout E2E', () => {
 
     const view = await render(
       <BaseLayoutContextProvider>
-        <div className="relative flex h-150 w-200 flex-col overflow-hidden">
+        <div sx={stylexStyles.rule1}>
           <BaseLayout
             key="initial"
             ref={ref}
@@ -905,7 +919,7 @@ describe('BaseLayout E2E', () => {
 
     await view.rerender(
       <BaseLayoutContextProvider>
-        <div className="relative flex h-150 w-200 flex-col overflow-hidden">
+        <div sx={stylexStyles.rule1}>
           <BaseLayout
             key="reloaded"
             layoutHost={buildStaticLayoutHost(request.body.value)}

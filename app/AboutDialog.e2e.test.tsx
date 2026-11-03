@@ -5,10 +5,14 @@ import '@s4wave/web/style/app.js'
 
 import { AboutDialog } from './AboutDialog.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({ rule1: { minHeight: '100dvh' } })
+
 function AboutDialogInAppFrame() {
   return (
     <>
-      <div className="min-h-dvh">App frame</div>
+      <div sx={stylexStyles.rule1}>App frame</div>
       <AboutDialog open={true} onOpenChange={() => {}} />
     </>
   )

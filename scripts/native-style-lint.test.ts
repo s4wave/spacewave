@@ -55,7 +55,9 @@ void valid;void skin;`,
     await writeFile(
       source,
       `import * as stylex from '@stylexjs/stylex';
-const classes='p-2';const direct=<div className="flex"/>;const forwarded={className:classes};
+import type {EditorThemeClasses} from 'lexical';
+const theme:EditorThemeClasses={text:{bold:'font-bold'}};
+const classes='p-2';const direct=<div className="flex font-mono"/>;const forwarded={className:classes};
 document.body.className='rounded-md';const bad=stylex.create({root:{colro:'red'}});`,
     )
     const result = await execute(
@@ -70,7 +72,7 @@ document.body.className='rounded-md';const bad=stylex.create({root:{colro:'red'}
     )
     const output = result.stdout + result.stderr
     assert.match(output, /native-classes/)
-    for (const value of ['p-2', 'flex', 'rounded-md'])
+    for (const value of ['p-2', 'flex', 'font-mono', 'rounded-md', 'font-bold'])
       assert(output.includes(value), value)
     assert.match(output, /valid-styles/)
   } finally {

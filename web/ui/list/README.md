@@ -12,6 +12,14 @@ A generic, virtualized list component with keyboard navigation, multi-selection,
 - **Customizable rows** - Pass your own row component
 - **Accessible** - Full ARIA support
 
+## Native styles
+
+Declare `styles` with `stylex.create` and shared theme tokens. Pass `sx` to the
+list or its rendered row; caller styles compose after the component defaults.
+For example, `styles.row` can declare `{display: 'flex'}` and `styles.selected`
+can use the selected background token. Custom renderers apply the supplied
+native geometry to the element they render.
+
 ## Basic Usage
 
 ```tsx
@@ -23,6 +31,13 @@ import {
   useListState,
 } from '@s4wave/web/ui/list'
 import { useStateNamespace } from '@s4wave/web/state/persist.js'
+import * as stylex from '@stylexjs/stylex'
+import { colors } from '@s4wave/web/style/tokens.stylex.js'
+
+const styles = stylex.create({
+  selected: { backgroundColor: colors['--color-ui-selected'] },
+  row: { display: 'flex' },
+})
 
 interface MyData {
   name: string
@@ -44,7 +59,7 @@ function MyRow({
   const selected = context?.selectedIds?.includes(item.id) ?? false
 
   return (
-    <div style={style} className={selected ? 'bg-ui-selected' : ''}>
+    <div style={style} sx={selected && styles.selected}>
       {item.data?.name} - {item.data?.value}
     </div>
   )
@@ -97,7 +112,7 @@ function MyComponent() {
       dispatch({ type: 'SET_SORT', sortKey: key })
 
     return (
-      <div className="flex">
+      <div sx={styles.row}>
         <div onClick={() => handleSort('name')}>
           Name{' '}
           {state.sortKey === 'name' &&
@@ -141,7 +156,7 @@ function MyComponent() {
 - `rowComponent: React.ComponentType<RowComponentProps<T>>` - Component to render each row
 - `rowHeight?: number` - Height of each row in pixels (default: 24)
 - `placeholder?: React.ReactNode` - Content to show when list is empty
-- `className?: string` - Additional CSS classes
+- `sx?: StyleXStyles` - Native styles composed after the list defaults
 - `header?: React.ReactNode` - Static header content
 - `renderHeader?: (props: RenderHeaderProps) => React.ReactNode` - Dynamic header with state/dispatch access
 - `sortFn?: ListSortFn<T>` - Sorting function (required for sortable lists)

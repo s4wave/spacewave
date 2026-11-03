@@ -9,6 +9,18 @@ import { SharedObject } from '@s4wave/sdk/sobject/sobject.js'
 
 import { SharedObjectDetails } from './SharedObjectDetails.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { colors as themeColors } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    inset: 0,
+    backgroundColor: themeColors['--color-background-primary'],
+    color: themeColors['--color-foreground'],
+    position: 'fixed',
+  },
+})
+
 const mockMeta: MountSharedObjectResponse = {
   sharedObjectId: 'test-object-id',
   blockStoreId: 'test-blockstore-id',
@@ -36,10 +48,7 @@ const mockSharedObject = {
 // CopyableField, and SpaceMembersPanel off the provided context resources.
 function SpaceDetailsSurface() {
   return (
-    <div
-      data-testid="space-details-surface"
-      className="bg-background-primary text-foreground fixed inset-0"
-    >
+    <div data-testid="space-details-surface" sx={stylexStyles.rule1}>
       <SpaceContainerContext.Provider
         spaceId="test-space"
         spaceState={{ ready: true }}

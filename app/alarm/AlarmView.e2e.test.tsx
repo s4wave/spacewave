@@ -9,6 +9,31 @@ import { AlarmState, type Alarm } from '@s4wave/sdk/alarm/alarm.pb.js'
 import { AlarmChips } from './AlarmStrip.js'
 import { AlarmView } from './AlarmView.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    height: `calc(${themeLayout['--spacing']} * 105)`,
+    width: `calc(${themeLayout['--spacing']} * 180)`,
+  },
+  rule2: {
+    backgroundColor: themeColors['--color-background-primary'],
+    height: `calc(${themeLayout['--spacing']} * 40)`,
+    width: `calc(${themeLayout['--spacing']} * 180)`,
+  },
+  rule3: {
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-foreground-alt'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+})
+
 // at is a time today at hh:mm local.
 function at(hh: number, mm: number): bigint {
   const d = new Date()
@@ -108,7 +133,7 @@ describe('Alarm states', () => {
     await page.viewport(720, 420)
     for (const [name, alarm, opts] of states) {
       const screen = await render(
-        <div className="h-105 w-180">
+        <div sx={stylexStyles.rule1}>
           <AlarmView
             alarm={alarm}
             nowMs={nowMs}
@@ -159,9 +184,9 @@ describe('Alarm states', () => {
     ]
     for (const [name, alarms] of sets) {
       const screen = await render(
-        <div className="bg-background-primary h-40 w-180">
+        <div sx={stylexStyles.rule2}>
           <AlarmChips alarms={alarms} nowMs={nowMs} onOpen={() => {}} />
-          <div className="text-foreground-alt p-4 text-xs">Panels</div>
+          <div sx={stylexStyles.rule3}>Panels</div>
         </div>,
       )
       await expect.element(page.getByText('Forge down')).toBeVisible()

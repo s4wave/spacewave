@@ -5,6 +5,12 @@ import { cleanup, render } from 'vitest-browser-react'
 import '@s4wave/web/style/app.js'
 import { StateNamespaceProvider, atom } from '@s4wave/web/state/index.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: { height: '100dvh', width: '100%' },
+})
+
 const fixture = vi.hoisted(() => {
   const content =
     '# Welcome to your notebook\n\nA note you can read on a phone.'
@@ -89,7 +95,7 @@ const rootAtom = atom<Record<string, unknown>>({})
 /** NotebookFixture mounts the production viewer contract with disposable note resources. */
 function NotebookFixture() {
   return (
-    <div className="h-dvh w-full">
+    <div sx={stylexStyles.rule1}>
       <StateNamespaceProvider rootAtom={rootAtom} namespace={['phone-fixture']}>
         <NotebookViewer
           objectInfo={

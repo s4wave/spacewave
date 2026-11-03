@@ -15,6 +15,7 @@ import { Window } from '../ui/Window.js'
 import { Input } from '../ui/input.js'
 import { Label } from '../ui/label.js'
 import { groupMarker, peerMarker } from './relations.stylex.js'
+import { keyframeNames } from './tokens.stylex.js'
 import {
   Trace,
   TraceLine,
@@ -693,4 +694,25 @@ it('composes shared, app and plugin styles through the browser build', async () 
   await expect
     .element(page.getByRole('link', { name: 'Native link', exact: true }))
     .toHaveAttribute('href', '#native-link')
+})
+
+// Shared CSS must close every animation reference after utility compilation is removed.
+it('ships every shared native animation and the default theme variables', () => {
+  // Walk the actual CSSOM, including keyframes inside layers and media rules.
+  const animations = new Set<string>()
+  const visit = (rules: CSSRuleList) => {
+    for (const rule of rules) {
+      if (rule instanceof CSSKeyframesRule) animations.add(rule.name)
+      if ('cssRules' in rule) visit((rule as CSSGroupingRule).cssRules)
+    }
+  }
+  for (const sheet of document.styleSheets) visit(sheet.cssRules)
+
+  // A missing CSS animation silently renders as a static element.
+  for (const name of Object.values(keyframeNames))
+    expect(animations.has(name), name).toBe(true)
+  const root = getComputedStyle(document.documentElement)
+  expect(root.getPropertyValue('--container-sm').trim()).toBe('24rem')
+  expect(root.getPropertyValue('--font-weight-semibold').trim()).toBe('600')
+  expect(root.getPropertyValue('--text-xl').trim()).toBe('1.25rem')
 })

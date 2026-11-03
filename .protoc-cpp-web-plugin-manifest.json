@@ -9,9 +9,7 @@
         "bldr/web/plugin/plugin.pb.cc",
         "bldr/web/plugin/plugin.pb.h"
       ],
-      "protoFiles": [
-        "bldr/web/plugin/plugin.proto"
-      ]
+      "protoFiles": ["bldr/web/plugin/plugin.proto"]
     }
   }
 }

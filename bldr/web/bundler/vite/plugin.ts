@@ -515,7 +515,7 @@ export function createWebPkgRemapPlugin(
 }
 
 // webAssetExts are import extensions that stay in the bundle so Vite's CSS and
-// asset pipeline (Tailwind, PostCSS, etc.) processes them, even when they live
+// native CSS asset pipeline processes them, even when they live
 // in a web package.
 const webAssetExts = [
   'css',

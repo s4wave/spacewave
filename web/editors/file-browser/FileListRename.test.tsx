@@ -18,6 +18,31 @@ import { FileList, useFileListState } from './FileList.js'
 import type { FileEntry } from './types.js'
 import type { RenderEntryCallback } from './FileListEntry.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+} from '../../style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    flex: 1,
+    gap: `calc(${themeLayout['--spacing']} * .5)`,
+    alignItems: 'center',
+    display: 'flex',
+  },
+  rule2: {
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    flex: 1,
+    paddingInline: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+})
+
 const mockEntries: FileEntry[] = [
   { id: '1', name: 'Documents', isDir: true },
   { id: '2', name: 'hello.txt', isDir: false },
@@ -87,7 +112,7 @@ function RenameTestHarness({
       return (
         <div
           role="presentation"
-          className="flex flex-1 items-center gap-0.5"
+          sx={stylexStyles.rule1}
           data-rename-actions="true"
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
@@ -95,7 +120,7 @@ function RenameTestHarness({
           <input
             ref={handleRenameInputRef}
             data-testid="rename-input"
-            className="flex-1 rounded border px-1 text-xs"
+            sx={stylexStyles.rule2}
             defaultValue={renameRef.current}
             onChange={(e) => {
               renameRef.current = e.target.value

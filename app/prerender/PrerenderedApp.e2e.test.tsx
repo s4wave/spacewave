@@ -4,12 +4,22 @@ import { render, cleanup } from 'vitest-browser-react'
 
 import { PrerenderedApp } from './PrerenderedApp.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
+    position: 'relative',
+    height: `calc(${themeLayout['--spacing']} * 192)`,
+    width: `calc(${themeLayout['--spacing']} * 256)`,
+  },
+})
+
 function TestContainer({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="relative flex h-192 w-256 flex-col overflow-hidden">
-      {children}
-    </div>
-  )
+  return <div sx={stylexStyles.rule1}>{children}</div>
 }
 
 describe('PrerenderedApp E2E', () => {

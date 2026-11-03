@@ -127,7 +127,7 @@ const stylexStyles = stylex.create({
   },
 })
 
-// XL_BREAKPOINT is the container width threshold for the xl tailwind breakpoint.
+// XL_BREAKPOINT is the container width threshold for the xl container condition.
 const XL_BREAKPOINT = 1280
 
 // DEFAULT_TEXT_NODE_WIDTH is the default width for new text nodes.

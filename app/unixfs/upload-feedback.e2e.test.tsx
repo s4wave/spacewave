@@ -15,6 +15,60 @@ import {
 import { IntroWizardOverlay } from '@s4wave/app/wizard/IntroWizardOverlay.js'
 import { driveIntroConfig } from '@s4wave/app/wizard/intro.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+    flex: 1,
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    alignContent: 'flex-start',
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+  },
+  rule2: {
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    borderColor: themeColors['--color-frame-overlay-border'],
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    backgroundColor: themeColors['--color-frame-overlay'],
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'flex-end',
+    height: `calc(${themeLayout['--spacing']} * 24)`,
+  },
+  rule3: {
+    color: themeColors['--color-foreground'],
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+  },
+  rule4: {
+    color: themeColors['--color-foreground-alt'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule5: {
+    inset: 0,
+    backgroundColor: themeColors['--color-background'],
+    color: themeColors['--color-foreground'],
+    display: 'flex',
+    flexDirection: 'column',
+    position: 'fixed',
+  },
+  rule6: {
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+    color: themeColors['--color-foreground'],
+  },
+})
+
 // recordingHandle stands in for a UnixFS handle. It records each entry's abort
 // signal so a test can prove the writes were, or were not, aborted. When
 // resolveUpload is false each upload never settles; when true each resolves and
@@ -57,15 +111,12 @@ function DriveViewerStub({ handle }: { handle: FSHandle }) {
     ])
   }, [manager, handle])
   return (
-    <div className="grid flex-1 grid-cols-4 content-start gap-4 p-6">
+    <div sx={stylexStyles.rule1}>
       {['Documents', 'Photos', 'Music', 'Projects', 'Archive', 'Shared'].map(
         (name) => (
-          <div
-            key={name}
-            className="border-frame-overlay-border bg-frame-overlay flex h-24 flex-col justify-end rounded-md border p-3"
-          >
-            <span className="text-foreground text-sm">{name}</span>
-            <span className="text-foreground-alt text-xs">Folder</span>
+          <div key={name} sx={stylexStyles.rule2}>
+            <span sx={stylexStyles.rule3}>{name}</span>
+            <span sx={stylexStyles.rule4}>Folder</span>
           </div>
         ),
       )}
@@ -101,7 +152,7 @@ function UploadFeedbackSurface({
   return (
     <SessionRouteContext.Provider value={testSessionRoute}>
       <SessionUploadManagerProvider>
-        <div className="bg-background text-foreground fixed inset-0 flex flex-col">
+        <div sx={stylexStyles.rule5}>
           <BottomBarRoot openMenu="" setOpenMenu={() => {}}>
             <SessionUploadIndicator />
             <CancelAllControl />
@@ -109,7 +160,7 @@ function UploadFeedbackSurface({
               {showViewer ? (
                 <DriveViewerStub handle={handle} />
               ) : (
-                <div className="text-foreground p-6">A different object</div>
+                <div sx={stylexStyles.rule6}>A different object</div>
               )}
             </ViewerFrame>
           </BottomBarRoot>
@@ -134,14 +185,14 @@ function IntroUploadFeedbackSurface({ handle }: { handle: FSHandle }) {
   return (
     <SessionRouteContext.Provider value={testSessionRoute}>
       <SessionUploadManagerProvider>
-        <div className="bg-background text-foreground fixed inset-0 flex flex-col">
+        <div sx={stylexStyles.rule5}>
           <BottomBarRoot openMenu="" setOpenMenu={() => {}}>
             <SessionUploadIndicator />
             <ViewerFrame>
               {showViewer ? (
                 <DriveViewerStub handle={handle} />
               ) : (
-                <div className="text-foreground p-6">A different object</div>
+                <div sx={stylexStyles.rule6}>A different object</div>
               )}
             </ViewerFrame>
             {showViewer && (

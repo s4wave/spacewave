@@ -9,6 +9,18 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { render, cleanup } from 'vitest-browser-react'
 import '@s4wave/web/style/app.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from './tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: { position: 'relative', height: '100%', width: '100%' },
+  rule2: { flex: 1 },
+  rule3: {
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 /**
  * Builds a mock DOM structure matching FlexLayout's real output.
  * This is the hierarchy from .shell-flexlayout down to tab buttons.
@@ -19,54 +31,66 @@ function MockShellFlexLayout({ withMenu = true }: { withMenu?: boolean }) {
     : 'shell-flexlayout'
 
   return (
-    <div className={`${shellClass} h-100 w-200`} data-testid="shell">
-      <div className="flexlayout__optimized_layout">
-        <div className="flexlayout__layout relative size-full">
-          <div className="flexlayout__layout_main">
-            <div className="flexlayout__row">
-              <div className="flexlayout__tabset_container">
-                <div className="flexlayout__tabset" data-testid="tabset">
+    <div className={shellClass} sx={shellFrameStyles.root} data-testid="shell">
+      <div className={'flexlayout__optimized_layout'}>
+        <div sx={stylexStyles.rule1} className="flexlayout__layout">
+          <div className={'flexlayout__layout_main'}>
+            <div className={'flexlayout__row'}>
+              <div className={'flexlayout__tabset_container'}>
+                <div className={'flexlayout__tabset'} data-testid="tabset">
                   {/* Tab bar outer */}
                   <div
-                    className="flexlayout__tabset_tabbar_outer flexlayout__tabset_tabbar_outer_top flexlayout__tabset-selected"
+                    className={
+                      'flexlayout__tabset_tabbar_outer flexlayout__tabset_tabbar_outer_top flexlayout__tabset-selected'
+                    }
                     data-testid="tabbar-outer"
                   >
                     {/* Tab bar inner */}
                     <div
-                      className="flexlayout__tabset_tabbar_inner flexlayout__tabset_tabbar_inner_top"
+                      className={
+                        'flexlayout__tabset_tabbar_inner flexlayout__tabset_tabbar_inner_top'
+                      }
                       data-testid="tabbar-inner"
                     >
                       {/* Tab container */}
                       <div
-                        className="flexlayout__tabset_tabbar_inner_tab_container flexlayout__tabset_tabbar_inner_tab_container_top"
+                        className={
+                          'flexlayout__tabset_tabbar_inner_tab_container flexlayout__tabset_tabbar_inner_tab_container_top'
+                        }
                         data-testid="tab-container"
                       >
                         {/* Inactive tab */}
                         <div
-                          className="flexlayout__tab_button flexlayout__tab_button--unselected flexlayout__tab_button_top"
+                          className={
+                            'flexlayout__tab_button flexlayout__tab_button--unselected flexlayout__tab_button_top'
+                          }
                           data-testid="tab-inactive"
                         >
-                          <div className="flexlayout__tab_button_content">
+                          <div className={'flexlayout__tab_button_content'}>
                             Home
                           </div>
                         </div>
 
                         {/* Active/selected tab */}
                         <div
-                          className="flexlayout__tab_button flexlayout__tab_button--selected flexlayout__tab_button_top"
+                          className={
+                            'flexlayout__tab_button flexlayout__tab_button--selected flexlayout__tab_button_top'
+                          }
                           data-testid="tab-active"
                         >
-                          <div className="flexlayout__tab_button_content">
+                          <div className={'flexlayout__tab_button_content'}>
                             main.tsx
                           </div>
                         </div>
 
                         {/* Another inactive tab */}
                         <div
-                          className="flexlayout__tab_button flexlayout__tab_button--unselected flexlayout__tab_button_top"
+                          className={
+                            'flexlayout__tab_button flexlayout__tab_button--unselected flexlayout__tab_button_top'
+                          }
                           data-testid="tab-inactive-2"
                         >
-                          <div className="flexlayout__tab_button_content">
+                          <div className={'flexlayout__tab_button_content'}>
                             Terminal
                           </div>
                         </div>
@@ -75,12 +99,12 @@ function MockShellFlexLayout({ withMenu = true }: { withMenu?: boolean }) {
 
                     {/* Toolbar */}
                     <div
-                      className="flexlayout__tab_toolbar"
+                      className={'flexlayout__tab_toolbar'}
                       data-testid="toolbar"
                     >
                       <button
                         type="button"
-                        className="flexlayout__tab_toolbar_button"
+                        className={'flexlayout__tab_toolbar_button'}
                       >
                         +
                       </button>
@@ -89,10 +113,10 @@ function MockShellFlexLayout({ withMenu = true }: { withMenu?: boolean }) {
 
                   {/* Content area */}
                   <div
-                    className="flexlayout__tabset_content"
+                    className={'flexlayout__tabset_content'}
                     data-testid="content"
                   >
-                    <div className="flexlayout__tab flex-1">
+                    <div sx={stylexStyles.rule2} className="flexlayout__tab">
                       <div>Tab content</div>
                     </div>
                   </div>
@@ -119,7 +143,7 @@ describe('Heavy Frost Tab CSS (baked-in)', () => {
   afterEach(() => void cleanup())
 
   it('pins the app rem scale to 16px', async () => {
-    await render(<div className="h-4 w-4" data-testid="rem-probe" />)
+    await render(<div sx={stylexStyles.rule3} data-testid="rem-probe" />)
     await expect.poll(() => getEl('rem-probe')).not.toBeNull()
 
     expect(window.getComputedStyle(document.documentElement).fontSize).toBe(
@@ -268,4 +292,11 @@ describe('Heavy Frost Tab CSS (baked-in)', () => {
     // Active border should be more opaque (different color)
     expect(activeStyle.borderTopColor).not.toBe(inactiveStyle.borderTopColor)
   })
+})
+
+const shellFrameStyles = stylex.create({
+  root: {
+    height: `calc(${themeLayout['--spacing']} * 100)`,
+    width: `calc(${themeLayout['--spacing']} * 200)`,
+  },
 })

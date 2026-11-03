@@ -7,10 +7,32 @@ import { RouterProvider } from '@s4wave/web/router/router.js'
 import GetStarted from './GetStarted.js'
 import { Landing } from './Landing.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    padding: `calc(${themeLayout['--spacing']} * 8)`,
+    backgroundColor: themeColors['--color-background-dark'],
+    height: `calc(${themeLayout['--spacing']} * 135)`,
+    width: `calc(${themeLayout['--spacing']} * 160)`,
+  },
+  rule2: {
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    backgroundColor: themeColors['--color-background-dark'],
+    height: `calc(${themeLayout['--spacing']} * 135)`,
+    width: `calc(${themeLayout['--spacing']} * 67.5)`,
+  },
+  rule3: { display: 'flex', height: '100dvh', width: '100dvw' },
+})
+
 function renderGetStarted() {
   return render(
     <RouterProvider path="/" onNavigate={() => {}}>
-      <div className="bg-background-dark h-135 w-160 p-8">
+      <div sx={stylexStyles.rule1}>
         <GetStarted />
       </div>
     </RouterProvider>,
@@ -65,7 +87,7 @@ describe('GetStarted browser layout', () => {
   it('keeps quickstart icon boxes square and distinct from the palette surface', async () => {
     await render(
       <RouterProvider path="/" onNavigate={() => {}}>
-        <div className="bg-background-dark h-135 w-67.5 p-4">
+        <div sx={stylexStyles.rule2}>
           <GetStarted />
         </div>
       </RouterProvider>,
@@ -127,7 +149,7 @@ describe('GetStarted browser layout', () => {
     await page.viewport(710, 600)
     await render(
       <RouterProvider path="/" onNavigate={() => {}}>
-        <div className="flex h-dvh w-dvw">
+        <div sx={stylexStyles.rule3}>
           <Landing />
         </div>
       </RouterProvider>,
@@ -165,7 +187,7 @@ describe('GetStarted browser layout', () => {
     await page.viewport(1280, 800)
     await render(
       <RouterProvider path="/" onNavigate={() => {}}>
-        <div className="flex h-dvh w-dvw">
+        <div sx={stylexStyles.rule3}>
           <Landing />
         </div>
       </RouterProvider>,
@@ -192,7 +214,7 @@ describe('GetStarted browser layout', () => {
     await page.viewport(1280, 800)
     await render(
       <RouterProvider path="/" onNavigate={() => {}}>
-        <div data-testid="landing-hierarchy-host" className="flex h-dvh w-dvw">
+        <div data-testid="landing-hierarchy-host" sx={stylexStyles.rule3}>
           <Landing />
         </div>
       </RouterProvider>,
