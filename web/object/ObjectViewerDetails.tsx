@@ -13,7 +13,7 @@ import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { CollapsibleSection } from '@s4wave/web/ui/CollapsibleSection.js'
 import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
 import { downloadURL } from '@s4wave/web/download.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { toast } from '@s4wave/web/ui/toaster.js'
 import {
   Tooltip,
@@ -44,6 +44,111 @@ import {
 import { groupMarker } from '../style/relations.stylex.js'
 
 import { groupMarker as groupMarker2 } from '../style/relations.stylex.js'
+
+const stylexStyles5 = stylex.create({
+  rule1: {
+    display: 'flex',
+    width: '100%',
+    cursor: 'pointer',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+    padding: `calc(${themeLayout['--spacing']} * 2.5)`,
+    textAlign: 'left',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule2: {
+    display: 'flex',
+    width: '100%',
+    cursor: 'pointer',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      },
+    },
+    padding: `calc(${themeLayout['--spacing']} * 2.5)`,
+    textAlign: 'left',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+  },
+})
+
+const stylexStyles4 = stylex.create({ rule1: { minWidth: 0 } })
+
+const childSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s1_5: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
 
 const stylexStyles3 = stylex.create({
   rule1: {
@@ -514,11 +619,11 @@ export function ObjectViewerDetails({
         <div sx={stylexStyles.rule9}>
           <div sx={stylexStyles.rule10}>
             <div
-              className={
-                /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'min-w-0 space-y-3'
+              sx={
+                /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ stylexStyles4.rule1
               }
             >
-              <section>
+              <section sx={childSpacing.s3}>
                 <div sx={stylexStyles.rule11}>
                   <h2 sx={stylexStyles.rule12}>
                     <LuInfo sx={stylexStyles.rule13} />
@@ -527,14 +632,15 @@ export function ObjectViewerDetails({
                 </div>
 
                 <InfoCard>
-                  <div
-                    className={
-                      /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
-                    }
-                  >
-                    <CopyableField label="Object key" value={objectKey} />
+                  <div>
+                    <CopyableField
+                      sx={childSpacing.s3}
+                      label="Object key"
+                      value={objectKey}
+                    />
                     {missingComponentID && (
                       <CopyableField
+                        sx={childSpacing.s3}
                         label="Missing Component ID"
                         value={missingComponentID}
                       />
@@ -544,33 +650,40 @@ export function ObjectViewerDetails({
               </section>
 
               <CollapsibleSection
+                sx={childSpacing.s3}
                 title="Technical details"
                 icon={<LuInfo sx={stylexStyles.rule13} />}
                 open={technicalDetailsOpen}
                 onOpenChange={setTechnicalDetailsOpen}
               >
-                <div
-                  className={
-                    /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-                  }
-                >
-                  <CopyableField label="Type ID" value={typeID} />
+                <div>
+                  <CopyableField
+                    sx={childSpacing.s2}
+                    label="Type ID"
+                    value={typeID}
+                  />
                   {rootRef && (
-                    <CopyableField label="Root Ref" value={rootRef} />
+                    <CopyableField
+                      sx={childSpacing.s2}
+                      label="Root Ref"
+                      value={rootRef}
+                    />
                   )}
                 </div>
               </CollapsibleSection>
             </div>
 
             <div
-              className={
-                /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'min-w-0 space-y-3'
+              sx={
+                /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ stylexStyles4.rule1
               }
             >
-              {exportUrl && <ExportDataSection exportUrl={exportUrl} />}
+              {exportUrl && (
+                <ExportDataSection sx={childSpacing.s3} exportUrl={exportUrl} />
+              )}
 
               {availableComponents.length > 0 && (
-                <section>
+                <section sx={childSpacing.s3}>
                   <div sx={stylexStyles.rule11}>
                     <h2 sx={stylexStyles.rule12}>
                       <LuEye sx={stylexStyles.rule13} />
@@ -579,11 +692,7 @@ export function ObjectViewerDetails({
                   </div>
 
                   <InfoCard>
-                    <div
-                      className={
-                        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ 'space-y-1.5'
-                      }
-                    >
+                    <div>
                       {availableComponents.map((component) => {
                         const isSelected =
                           displayedSelectedComponentID === component.componentID
@@ -593,12 +702,12 @@ export function ObjectViewerDetails({
                             type="button"
                             aria-pressed={isSelected}
                             onClick={() => handleComponentSelect(component)}
-                            className={
-                              /* TODO(stylex): conditional property composition: borderColor */ cn(
-                                'border-foreground/10 hover:border-foreground/20 hover:bg-foreground/5 flex w-full cursor-pointer items-start justify-between gap-3 rounded-lg border p-2.5 text-left transition-colors',
-                                isSelected && 'border-brand/30 bg-brand/10',
-                              )
-                            }
+                            sx={[
+                              isSelected
+                                ? stylexStyles5.rule1
+                                : stylexStyles5.rule2,
+                              childSpacing.s1_5,
+                            ]}
                           >
                             <div sx={stylexStyles.rule14}>
                               <div sx={stylexStyles.rule15}>
@@ -632,6 +741,7 @@ export function ObjectViewerDetails({
 
               {onDeleteConfirm && (
                 <DangerZoneSection
+                  sx={childSpacing.s3}
                   objectKey={objectKey}
                   onDeleteConfirm={onDeleteConfirm}
                 />
@@ -645,7 +755,13 @@ export function ObjectViewerDetails({
 }
 
 // ExportDataSection renders a download button for exporting object data.
-function ExportDataSection({ exportUrl }: { exportUrl: string }) {
+function ExportDataSection({
+  exportUrl,
+  sx,
+}: {
+  exportUrl: string
+  sx?: stylex.StyleXStyles
+}) {
   const [status, setStatus] = useState<'idle' | 'busy' | 'success' | 'failure'>(
     'idle',
   )
@@ -665,7 +781,7 @@ function ExportDataSection({ exportUrl }: { exportUrl: string }) {
   }, [exportUrl, status])
 
   return (
-    <section>
+    <section sx={sx}>
       <div sx={stylexStyles.rule11}>
         <h2 sx={stylexStyles.rule12}>
           <LuDownload sx={stylexStyles.rule13} />
@@ -673,17 +789,13 @@ function ExportDataSection({ exportUrl }: { exportUrl: string }) {
         </h2>
       </div>
 
-      <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-        }
-      >
+      <div>
         <button
           type="button"
           onClick={() => void handleExport()}
           disabled={status === 'busy' || status === 'success'}
           aria-busy={status === 'busy'}
-          sx={stylexStyles.rule20}
+          sx={[stylexStyles.rule20, childSpacing.s2]}
         >
           <div sx={stylexStyles.rule21}>
             <LuDownload sx={stylexStyles.rule22} />
@@ -711,7 +823,7 @@ function ExportDataSection({ exportUrl }: { exportUrl: string }) {
         </button>
 
         {status === 'failure' && (
-          <div sx={stylexStyles.rule25}>
+          <div sx={[stylexStyles.rule25, childSpacing.s2]}>
             <p sx={stylexStyles.rule26}>Export could not be prepared.</p>
             <button
               type="button"
@@ -730,11 +842,13 @@ function ExportDataSection({ exportUrl }: { exportUrl: string }) {
 interface DangerZoneSectionProps {
   objectKey: string
   onDeleteConfirm: () => Promise<void>
+  sx?: stylex.StyleXStyles
 }
 
 function DangerZoneSection({
   objectKey,
   onDeleteConfirm,
+  sx,
 }: DangerZoneSectionProps) {
   // Retain the destructive-action disclosure and its current submission feedback.
   const [open, setOpen] = useState(false)
@@ -768,6 +882,7 @@ function DangerZoneSection({
   return (
     <>
       <CollapsibleSection
+        sx={sx}
         title="Danger Zone"
         open={open}
         onOpenChange={setOpen}

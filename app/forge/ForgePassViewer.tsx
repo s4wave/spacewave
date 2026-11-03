@@ -28,6 +28,24 @@ import { useForgeDecodedLinkedEntities } from './useForgeDecodedLinkedEntities.j
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3)`,
@@ -150,7 +168,7 @@ export function ForgePassViewer({
                     <div className="min-w-0">
                       <ForgeEntityLink
                         objectKey={execution.entity.objectKey}
-                        className="text-foreground truncate text-sm font-medium"
+                        sx={stylexStyles2.rule1}
                       />
                       <div className="text-foreground-alt/50 truncate text-xs">
                         {execution.data.peerId || 'Worker pending'}

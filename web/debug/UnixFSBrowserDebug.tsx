@@ -33,6 +33,86 @@ import { groupMarker } from '../style/relations.stylex.js'
 
 import { groupMarker as groupMarker2 } from '../style/relations.stylex.js'
 
+const stylexStyles4 = ownerStylex.create({
+  rule1: { marginInline: 'auto', maxWidth: 'var(--container-3xl)' },
+  rule2: {
+    marginTop: themeLayout['--spacing'],
+    listStyleType: 'disc',
+    paddingLeft: `calc(${themeLayout['--spacing']} * 5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule3: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule4: { padding: `calc(${themeLayout['--spacing']} * 2)` },
+})
+
+const childSpacing = stylex.create({
+  s6: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 6 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 6 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s0_5: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 0.5 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 0.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s1_5: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
 const stylexStyles3 = ownerStylex.create({
   rule1: {
     display: 'flex',
@@ -1009,26 +1089,26 @@ export function UnixFSBrowserDebug() {
 
       <div sx={stylexStyles.rule6}>
         <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-6 */ 'mx-auto max-w-3xl space-y-6'
+          sx={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-6 */ stylexStyles4.rule1
           }
         >
-          <Intro />
-          <FileRowSection />
-          <ToolbarSection />
-          <EmptyStateSection />
-          <DragOverlaySection />
-          <ErrorStateSection />
-          <DestructiveDialogSection />
+          <Intro sx={childSpacing.s6} />
+          <FileRowSection sx={childSpacing.s6} />
+          <ToolbarSection sx={childSpacing.s6} />
+          <EmptyStateSection sx={childSpacing.s6} />
+          <DragOverlaySection sx={childSpacing.s6} />
+          <ErrorStateSection sx={childSpacing.s6} />
+          <DestructiveDialogSection sx={childSpacing.s6} />
         </div>
       </div>
     </div>
   )
 }
 
-function Intro() {
+function Intro({ sx }: { sx?: stylex.StyleXStyles } = {}) {
   return (
-    <div sx={stylexStyles.rule7}>
+    <div sx={[stylexStyles.rule7, sx]}>
       <p sx={stylexStyles.rule8}>UnixFS browser variant gallery</p>
       <p sx={stylexStyles.rule9}>
         Side-by-side variants for the surfaces that compose UnixFSBrowser (file
@@ -1038,25 +1118,29 @@ function Intro() {
       </p>
       <p sx={stylexStyles.rule10}>Decisions live in production code:</p>
       <ul
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-0.5 */ 'text-foreground-alt/70 mt-1 list-disc space-y-0.5 pl-5 text-xs leading-relaxed'
+        sx={
+          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-0.5 */ stylexStyles4.rule2
         }
       >
-        <li>
+        <li sx={childSpacing.s0_5}>
           File row: B (compact dense, modern tokens, brand left bar on selected)
           in web/editors/file-browser/FileListEntry.tsx.
         </li>
-        <li>
+        <li sx={childSpacing.s0_5}>
           Toolbar: B (modern, NavIconButton-style buttons) in
           web/editors/file-browser/Toolbar.tsx.
         </li>
-        <li>Empty state: A (current centered three-line) kept as-is.</li>
-        <li>Drag overlay: A (current dashed border) kept as-is.</li>
-        <li>
+        <li sx={childSpacing.s0_5}>
+          Empty state: A (current centered three-line) kept as-is.
+        </li>
+        <li sx={childSpacing.s0_5}>
+          Drag overlay: A (current dashed border) kept as-is.
+        </li>
+        <li sx={childSpacing.s0_5}>
           Error state: C (inline strip under toolbar) in
           app/unixfs/UnixFSBrowser.tsx.
         </li>
-        <li>
+        <li sx={childSpacing.s0_5}>
           Delete dialog buttons: B (tinted destructive outline) in
           app/unixfs/UnixFSBrowser.tsx.
         </li>
@@ -1073,16 +1157,17 @@ interface SectionProps {
   title: string
   description: string
   children: ReactNode
+  sx?: stylex.StyleXStyles
 }
 
-function Section({ title, description, children }: SectionProps) {
+function Section({ title, description, children, sx }: SectionProps) {
   return (
     <section
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
+      sx={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ sx
       }
     >
-      <div>
+      <div sx={childSpacing.s3}>
         <h2 sx={stylexStyles.rule5}>{title}</h2>
         <p sx={stylexStyles.rule11}>{description}</p>
       </div>
@@ -1095,20 +1180,17 @@ interface VariantProps {
   label: string
   note?: string
   children: ReactNode
+  sx?: stylex.StyleXStyles
 }
 
-function Variant({ label, note, children }: VariantProps) {
+function Variant({ label, note, children, sx }: VariantProps) {
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'border-foreground/6 bg-background-card/30 space-y-2 rounded-lg border p-3.5'
-      }
-    >
-      <div sx={stylexStyles.rule12}>
+    <div sx={[stylexStyles4.rule3, sx]}>
+      <div sx={[stylexStyles.rule12, childSpacing.s2]}>
         <span sx={stylexStyles.rule13}>{label}</span>
         {note && <span sx={stylexStyles.rule14}>{note}</span>}
       </div>
-      <div sx={stylexStyles.rule15}>{children}</div>
+      <div sx={[stylexStyles.rule15, childSpacing.s2]}>{children}</div>
     </div>
   )
 }
@@ -1163,17 +1245,19 @@ const FILE_ROWS: FileRowSample[] = [
   },
 ]
 
-function FileRowSection() {
+function FileRowSection({ sx }: { sx?: stylex.StyleXStyles } = {}) {
   const [selectedA, setSelectedA] = useState<string | null>('c')
   const [selectedB, setSelectedB] = useState<string | null>('c')
   const [selectedC, setSelectedC] = useState<string | null>('c')
 
   return (
     <Section
+      sx={sx}
       title="File row (FileListEntry)"
       description="Each row in the directory list. Current rows use deprecated tokens, alternating row backgrounds, and a focus ring; design-system rows use the modern token set with hover/selection on /5 and /10 opacities."
     >
       <Variant
+        sx={childSpacing.s3}
         label="A. Current (alternating rows + legacy tokens)"
         note="text-file-browser-row, bg-ui-selected, bg-file-row-alternate"
       >
@@ -1191,6 +1275,7 @@ function FileRowSection() {
       </Variant>
 
       <Variant
+        sx={childSpacing.s3}
         label="B. Compact dense (modern tokens, no alternating)"
         note="hover bg-foreground/5, selection bg-brand/10 + brand left bar"
       >
@@ -1207,16 +1292,18 @@ function FileRowSection() {
       </Variant>
 
       <Variant
+        sx={childSpacing.s3}
         label="C. Card rows (rounded, gapped)"
         note="Each row a glass card; readable in lists < 12 entries"
       >
         <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ 'space-y-1.5 p-2'
+          sx={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ stylexStyles4.rule4
           }
         >
           {FILE_ROWS.map((row) => (
             <CardRow
+              sx={childSpacing.s1_5}
               key={row.id}
               row={row}
               selected={selectedC === row.id}
@@ -1329,10 +1416,12 @@ function CardRow({
   row,
   selected,
   onSelect,
+  sx,
 }: {
   row: FileRowSample
   selected: boolean
   onSelect: () => void
+  sx?: stylex.StyleXStyles
 }) {
   return (
     <div
@@ -1345,8 +1434,11 @@ function CardRow({
         onSelect()
       }}
       sx={[
-        [stylexStyles2.rule4, groupMarker],
-        selected ? stylexStyles2.rule5 : stylexStyles2.rule6,
+        [
+          [stylexStyles2.rule4, groupMarker],
+          selected ? stylexStyles2.rule5 : stylexStyles2.rule6,
+        ],
+        sx,
       ]}
     >
       <span
@@ -1384,13 +1476,15 @@ function CardRow({
 // Toolbar
 // -----------------------------------------------------------------------
 
-function ToolbarSection() {
+function ToolbarSection({ sx }: { sx?: stylex.StyleXStyles } = {}) {
   return (
     <Section
+      sx={sx}
       title="Toolbar (Toolbar.tsx + PanelHeader)"
       description="Top-of-browser nav. Current bar uses bg-panel-header and bg-pulldown-hover button states (legacy). Design-system bars use border-foreground/8 dividers and DashboardButton-style action chips."
     >
       <Variant
+        sx={childSpacing.s3}
         label="A. Current (PanelHeader + bg-pulldown-hover)"
         note="Native button hover, no tooltips on the path bar"
       >
@@ -1398,6 +1492,7 @@ function ToolbarSection() {
       </Variant>
 
       <Variant
+        sx={childSpacing.s3}
         label="B. Modern toolbar"
         note="border-foreground/8 row, foreground-alt -> foreground hover, action chips"
       >
@@ -1502,13 +1597,15 @@ function NavIconButton({
 // Empty states
 // -----------------------------------------------------------------------
 
-function EmptyStateSection() {
+function EmptyStateSection({ sx }: { sx?: stylex.StyleXStyles } = {}) {
   return (
     <Section
+      sx={sx}
       title="Empty state (no UnixFS object)"
       description="Shown when rootHandle has no value. Current state stacks three muted lines centered on bg-file-back. Design-system pattern is a compact card with muted icon + headline."
     >
       <Variant
+        sx={childSpacing.s3}
         label="A. Current (centered three-line)"
         note="text-foreground-alt + text-foreground-alt/70, no icon"
       >
@@ -1524,6 +1621,7 @@ function EmptyStateSection() {
       </Variant>
 
       <Variant
+        sx={childSpacing.s3}
         label="B. Compact card (design-system)"
         note="border-foreground/6 bg-background-card/30, muted icon + headline + helper"
       >
@@ -1546,6 +1644,7 @@ function EmptyStateSection() {
       </Variant>
 
       <Variant
+        sx={childSpacing.s3}
         label="C. Single-line muted"
         note="Matches design-system 'compact empty state', text-foreground-alt/40"
       >
@@ -1564,13 +1663,15 @@ function EmptyStateSection() {
 // Drag overlay
 // -----------------------------------------------------------------------
 
-function DragOverlaySection() {
+function DragOverlaySection({ sx }: { sx?: stylex.StyleXStyles } = {}) {
   return (
     <Section
+      sx={sx}
       title="Drag overlay (drop-to-upload)"
       description="Shown over the file list while files are being dragged in. Current overlay uses border-2 border-dashed and a large icon. Design-system tightens the chrome and uses the glass stack."
     >
       <Variant
+        sx={childSpacing.s3}
         label="A. Current (large dashed border + h-8 icon)"
         note="border-brand/50, bg-brand/5, text-sm"
       >
@@ -1586,6 +1687,7 @@ function DragOverlaySection() {
       </Variant>
 
       <Variant
+        sx={childSpacing.s3}
         label="B. Glass card overlay"
         note="border-brand/30 dashed, glass background, compact icon + caption"
       >
@@ -1631,13 +1733,15 @@ function DummyRows() {
 // Error state
 // -----------------------------------------------------------------------
 
-function ErrorStateSection() {
+function ErrorStateSection({ sx }: { sx?: stylex.StyleXStyles } = {}) {
   return (
     <Section
+      sx={sx}
       title="Error state (load failure)"
       description="Shown when any of root/path/stat/entries resources error. Current state is plain text + an underline retry link; design-system patterns use a tinted destructive callout with a button."
     >
       <Variant
+        sx={childSpacing.s3}
         label="A. Current (plain text + underline link)"
         note="text-destructive headline, text-brand underline retry"
       >
@@ -1653,6 +1757,7 @@ function ErrorStateSection() {
       </Variant>
 
       <Variant
+        sx={childSpacing.s3}
         label="B. Tinted destructive callout"
         note="border-destructive/20 bg-destructive/5 + LuCircleAlert + retry chip"
       >
@@ -1678,6 +1783,7 @@ function ErrorStateSection() {
       </Variant>
 
       <Variant
+        sx={childSpacing.s3}
         label="C. Inline strip (one-line)"
         note="Slim banner, fits under the toolbar without disrupting the file list"
       >
@@ -1703,13 +1809,15 @@ function ErrorStateSection() {
 // Destructive (delete) dialog buttons
 // -----------------------------------------------------------------------
 
-function DestructiveDialogSection() {
+function DestructiveDialogSection({ sx }: { sx?: stylex.StyleXStyles } = {}) {
   return (
     <Section
+      sx={sx}
       title="Delete confirmation buttons"
       description="DialogFooter buttons for the delete dialog. Current uses a solid destructive fill ('bg-destructive text-destructive-foreground'); design-system primary actions use tinted outlines with /30 borders and /10 fills."
     >
       <Variant
+        sx={childSpacing.s3}
         label="A. Current (solid destructive)"
         note="bg-destructive + text-destructive-foreground"
       >
@@ -1724,6 +1832,7 @@ function DestructiveDialogSection() {
       </Variant>
 
       <Variant
+        sx={childSpacing.s3}
         label="B. Tinted destructive outline"
         note="border-destructive/30 bg-destructive/10 hover:bg-destructive/15"
       >

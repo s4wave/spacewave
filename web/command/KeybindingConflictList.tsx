@@ -13,6 +13,24 @@ import {
   fonts as themeFonts,
 } from '../style/tokens.stylex.js'
 
+const stylexStyles2 = stylex.create({
+  rule1: { marginTop: themeLayout['--spacing'] },
+})
+
+const childSpacing = stylex.create({
+  s1: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     borderRadius: '.25rem',
@@ -47,23 +65,25 @@ const stylexStyles = stylex.create({
 
 export interface KeybindingConflictListProps {
   conflicts: KeybindingConflict[]
+  sx?: stylex.StyleXStyles
 }
 
 export function KeybindingConflictList({
   conflicts,
+  sx,
 }: KeybindingConflictListProps) {
   return (
-    <div sx={stylexStyles.rule1}>
+    <div sx={[stylexStyles.rule1, sx]}>
       <div sx={stylexStyles.rule2}>Conflict</div>
       <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1 */ 'mt-1 space-y-1'
+        sx={
+          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1 */ stylexStyles2.rule1
         }
       >
         {conflicts.map((conflict) => (
           <div
             key={`${conflict.context}:${conflict.kind}:${conflict.key}`}
-            sx={stylexStyles.rule3}
+            sx={[stylexStyles.rule3, childSpacing.s1]}
           >
             {focusContextLabel(conflict.context)} {conflict.kind}{' '}
             <span sx={stylexStyles.rule4}>

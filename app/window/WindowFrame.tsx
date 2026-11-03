@@ -4,7 +4,14 @@ import React, { CSSProperties } from 'react'
 import { Frame } from '@s4wave/web/frame/frame.js'
 import { IBarProps } from '@s4wave/web/frame/bar.js'
 import { AppLogo } from '@s4wave/web/images/AppLogo.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = frameStyles.create({
+  rule1: { WebkitUserSelect: 'none', userSelect: 'none' },
+  rule2: { maxHeight: themeLayout['--spacing-bar'] },
+  rule3: { maxHeight: 'var(--window-topbar-height)' },
+})
 
 const frameBodyStyles = frameStyles.create({
   column: { flexDirection: 'column' },
@@ -42,11 +49,11 @@ export function WindowFrame({ sx, ...props }: IWindowFrameProps) {
   let header: React.ReactNode = (
     <>
       <AppLogo
-        className={cn(
-          'select-none',
-          !props.topBarHeight && 'max-h-bar',
-          props.topBarHeight && 'max-h-(--window-topbar-height)',
-        )}
+        sx={[
+          stylexStyles.rule1,
+          !props.topBarHeight && stylexStyles.rule2,
+          !!props.topBarHeight && stylexStyles.rule3,
+        ]}
         topbarHeight={props.topBarHeight}
       />
       <span className="text-white/72 select-none">{props.title}</span>

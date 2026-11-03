@@ -32,6 +32,13 @@ import { useKeybindingGraph } from '@s4wave/web/command/useKeybindingGraph.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../web/style/tokens.stylex.js'
 
+const stylexStyles3 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 7)`,
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: { height: '100%' },
   rule2: {
@@ -261,7 +268,7 @@ export function ShellMenuBar() {
         onClick={handleLogoClick}
         title="Open command palette"
       >
-        <AppLogo className="size-7" />
+        <AppLogo sx={stylexStyles3.rule1} />
       </button>
       <div className="shell-menu-mobile hidden h-full items-center">
         <Menubar variant="shell" sx={stylexStyles2.rule1}>

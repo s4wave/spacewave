@@ -28,6 +28,89 @@ import { groupMarker } from '../style/relations.stylex.js'
 
 import { groupMarker as groupMarker2 } from '../style/relations.stylex.js'
 
+const stylexStyles4 = stylex.create({
+  rule1: { marginInline: 'auto', maxWidth: 'var(--container-3xl)' },
+  rule2: {
+    marginTop: themeLayout['--spacing'],
+    listStyleType: 'disc',
+    paddingLeft: `calc(${themeLayout['--spacing']} * 5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule3: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule4: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
+const childSpacing = stylex.create({
+  s6: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 6 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 6 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s0_5: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 0.5 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 0.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s1: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
 const stylexStyles3 = stylex.create({
   rule1: {
     display: 'flex',
@@ -823,17 +906,17 @@ export function ForgeViewerDebug() {
 
       <div sx={stylexStyles.rule6}>
         <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-6 */ 'mx-auto max-w-3xl space-y-6'
+          sx={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-6 */ stylexStyles4.rule1
           }
         >
-          <Intro />
-          <StateBadgeSection />
-          <EntityRowSection />
-          <StatTileSection />
-          <EmptyStateSection />
-          <TabBarSection />
-          <ViewerShellSection />
+          <Intro sx={childSpacing.s6} />
+          <StateBadgeSection sx={childSpacing.s6} />
+          <EntityRowSection sx={childSpacing.s6} />
+          <StatTileSection sx={childSpacing.s6} />
+          <EmptyStateSection sx={childSpacing.s6} />
+          <TabBarSection sx={childSpacing.s6} />
+          <ViewerShellSection sx={childSpacing.s6} />
         </div>
       </div>
     </div>
@@ -844,9 +927,9 @@ export function ForgeViewerDebug() {
 // Intro
 // -----------------------------------------------------------------------
 
-function Intro() {
+function Intro({ sx }: { sx?: stylex.StyleXStyles } = {}) {
   return (
-    <div sx={stylexStyles.rule7}>
+    <div sx={[stylexStyles.rule7, sx]}>
       <p sx={stylexStyles.rule8}>Forge ObjectViewer variant gallery</p>
       <p sx={stylexStyles.rule9}>
         Side-by-side variants for the primitives that compose every Forge viewer
@@ -856,20 +939,26 @@ function Intro() {
       </p>
       <p sx={stylexStyles.rule10}>Decisions live in production code:</p>
       <ul
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-0.5 */ 'text-foreground-alt/70 mt-1 list-disc space-y-0.5 pl-5 text-xs leading-relaxed'
+        sx={
+          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-0.5 */ stylexStyles4.rule2
         }
       >
-        <li>
+        <li sx={childSpacing.s0_5}>
           State badge: B (tinted pill) is default, C (dot + label) is the list
           variant via prop.
         </li>
-        <li>Entity rows: C (compact dense single-line) for ForgeEntityList.</li>
-        <li>
+        <li sx={childSpacing.s0_5}>
+          Entity rows: C (compact dense single-line) for ForgeEntityList.
+        </li>
+        <li sx={childSpacing.s0_5}>
           Stat tile: one figure strip (FigureStrip, web/ui/FigureStrip.tsx).
         </li>
-        <li>Empty state: B (compact single-line, foreground-alt/40).</li>
-        <li>Tab bar: C (pill tabs) in ForgeViewerShell.</li>
+        <li sx={childSpacing.s0_5}>
+          Empty state: B (compact single-line, foreground-alt/40).
+        </li>
+        <li sx={childSpacing.s0_5}>
+          Tab bar: C (pill tabs) in ForgeViewerShell.
+        </li>
       </ul>
     </div>
   )
@@ -883,16 +972,17 @@ interface SectionProps {
   title: string
   description: string
   children: ReactNode
+  sx?: stylex.StyleXStyles
 }
 
-function Section({ title, description, children }: SectionProps) {
+function Section({ title, description, children, sx }: SectionProps) {
   return (
     <section
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
+      sx={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ sx
       }
     >
-      <div>
+      <div sx={childSpacing.s3}>
         <h2 sx={stylexStyles.rule5}>{title}</h2>
         <p sx={stylexStyles.rule11}>{description}</p>
       </div>
@@ -905,20 +995,17 @@ interface VariantProps {
   label: string
   note?: string
   children: ReactNode
+  sx?: stylex.StyleXStyles
 }
 
-function Variant({ label, note, children }: VariantProps) {
+function Variant({ label, note, children, sx }: VariantProps) {
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'border-foreground/6 bg-background-card/30 space-y-2 rounded-lg border p-3.5'
-      }
-    >
-      <div sx={stylexStyles.rule12}>
+    <div sx={[stylexStyles4.rule3, sx]}>
+      <div sx={[stylexStyles.rule12, childSpacing.s2]}>
         <span sx={stylexStyles.rule13}>{label}</span>
         {note && <span sx={stylexStyles.rule14}>{note}</span>}
       </div>
-      <div sx={stylexStyles.rule15}>{children}</div>
+      <div sx={[stylexStyles.rule15, childSpacing.s2]}>{children}</div>
     </div>
   )
 }
@@ -942,13 +1029,15 @@ const STATES: StateSpec[] = [
   { label: 'RETRY', tone: 'error' },
 ]
 
-function StateBadgeSection() {
+function StateBadgeSection({ sx }: { sx?: stylex.StyleXStyles } = {}) {
   return (
     <Section
+      sx={sx}
       title="State badges"
       description="Forge enums (TaskState, PassState, ExecutionState, JobState) all render through StateBadge. Heavy solid colors fight the rest of the UI; opacity-tinted pills match billing/session badges."
     >
       <Variant
+        sx={childSpacing.s3}
         label="A. Current (web/forge/StateBadge.tsx)"
         note="bg-blue-600 / bg-green-600 / bg-red-600 + white text"
       >
@@ -960,6 +1049,7 @@ function StateBadgeSection() {
       </Variant>
 
       <Variant
+        sx={childSpacing.s3}
         label="B. Tinted opacity pill"
         note="border-{tone}/15 bg-{tone}/5 text-{tone}-tone, matches billing status pills"
       >
@@ -971,6 +1061,7 @@ function StateBadgeSection() {
       </Variant>
 
       <Variant
+        sx={childSpacing.s3}
         label="C. Dot + label minimal"
         note="text-foreground-alt/70 with semantic dot, lowest visual weight"
       >
@@ -1083,43 +1174,39 @@ const ROW_SAMPLES: RowSample[] = [
   },
 ]
 
-function EntityRowSection() {
+function EntityRowSection({ sx }: { sx?: stylex.StyleXStyles } = {}) {
   return (
     <Section
+      sx={sx}
       title="Entity rows (linked entity lists)"
       description="ForgeEntityList renders Task, Pass, Execution, Worker, Job rows. Current rows use rounded-px-3 with no hover; design-system cards use rounded-lg with /6 to /12 hover."
     >
       <Variant
+        sx={childSpacing.s3}
         label="A. Current (border-foreground/6 bg-background-card/20 rounded px-3 py-2)"
         note="No hover state, tight radius"
       >
-        <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-          }
-        >
+        <div>
           {ROW_SAMPLES.map((s) => (
-            <CurrentRow key={s.name} sample={s} />
+            <CurrentRow sx={childSpacing.s2} key={s.name} sample={s} />
           ))}
         </div>
       </Variant>
 
       <Variant
+        sx={childSpacing.s3}
         label="B. Glass card with hover (rounded-lg, /30 -> /50)"
         note="Matches InfoCard radius, design-system hover transitions"
       >
-        <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-          }
-        >
+        <div>
           {ROW_SAMPLES.map((s) => (
-            <GlassRow key={s.name} sample={s} />
+            <GlassRow sx={childSpacing.s2} key={s.name} sample={s} />
           ))}
         </div>
       </Variant>
 
       <Variant
+        sx={childSpacing.s3}
         label="C. Compact dense single-line"
         note="One line, leading icon, brand divider, badge tail"
       >
@@ -1137,9 +1224,15 @@ function EntityRowSection() {
   )
 }
 
-function CurrentRow({ sample }: { sample: RowSample }) {
+function CurrentRow({
+  sample,
+  sx,
+}: {
+  sample: RowSample
+  sx?: stylex.StyleXStyles
+}) {
   return (
-    <div sx={stylexStyles.rule24}>
+    <div sx={[stylexStyles.rule24, sx]}>
       <div sx={stylexStyles.rule25}>
         <div sx={stylexStyles.rule26}>{sample.name}</div>
         <div sx={stylexStyles.rule27}>{sample.meta}</div>
@@ -1149,9 +1242,15 @@ function CurrentRow({ sample }: { sample: RowSample }) {
   )
 }
 
-function GlassRow({ sample }: { sample: RowSample }) {
+function GlassRow({
+  sample,
+  sx,
+}: {
+  sample: RowSample
+  sx?: stylex.StyleXStyles
+}) {
   return (
-    <div sx={[stylexStyles2.rule1, groupMarker]}>
+    <div sx={[[stylexStyles2.rule1, groupMarker], sx]}>
       <div sx={stylexStyles.rule28}>
         <span sx={stylexStyles3.rule1}>
           <LuListTodo sx={stylexStyles.rule29} />
@@ -1181,13 +1280,15 @@ function DenseRow({ sample }: { sample: RowSample }) {
 // Stat tiles
 // -----------------------------------------------------------------------
 
-function StatTileSection() {
+function StatTileSection({ sx }: { sx?: stylex.StyleXStyles } = {}) {
   return (
     <Section
+      sx={sx}
       title="Stat tiles (Job progress, Task counts, Capacity)"
       description="Current viewers stack large numeric tiles using InfoCard. Compact stat groups (billing) and StatCard (session dashboard) are lighter."
     >
       <Variant
+        sx={childSpacing.s3}
         label="A. Current (InfoCard text-2xl)"
         note="As used in ForgeJobViewer / ForgeTaskViewer overview"
       >
@@ -1208,6 +1309,7 @@ function StatTileSection() {
       </Variant>
 
       <Variant
+        sx={childSpacing.s3}
         label="B. Compact stat group (billing-style)"
         note="Uppercase label, no card per metric"
       >
@@ -1218,6 +1320,7 @@ function StatTileSection() {
       </Variant>
 
       <Variant
+        sx={childSpacing.s3}
         label="C. Inline StatCard (session dashboard)"
         note="Brand icon box, tiny label, single-line value"
       >
@@ -1267,14 +1370,10 @@ function CompactStat({
   detail: string
 }) {
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1 */ 'space-y-1'
-      }
-    >
-      <div sx={stylexStyles.rule42}>{label}</div>
-      <div sx={stylexStyles.rule43}>{value}</div>
-      <div sx={stylexStyles.rule14}>{detail}</div>
+    <div>
+      <div sx={[stylexStyles.rule42, childSpacing.s1]}>{label}</div>
+      <div sx={[stylexStyles.rule43, childSpacing.s1]}>{value}</div>
+      <div sx={[stylexStyles.rule14, childSpacing.s1]}>{detail}</div>
     </div>
   )
 }
@@ -1305,13 +1404,15 @@ function InlineStat({
 // Empty states
 // -----------------------------------------------------------------------
 
-function EmptyStateSection() {
+function EmptyStateSection({ sx }: { sx?: stylex.StyleXStyles } = {}) {
   return (
     <Section
+      sx={sx}
       title="Empty states"
       description="Forge viewers use centered hero blocks ('No tasks in job', py-4 text-center). Design system prefers compact single-line states with muted icon + text."
     >
       <Variant
+        sx={childSpacing.s3}
         label="A. Current (text-muted-foreground py-4 text-center)"
         note="Centered, no icon, deprecated text-muted-foreground token"
       >
@@ -1319,6 +1420,7 @@ function EmptyStateSection() {
       </Variant>
 
       <Variant
+        sx={childSpacing.s3}
         label="B. Compact single-line (design-system)"
         note="Muted icon + text, text-foreground-alt/40"
       >
@@ -1339,17 +1441,19 @@ function EmptyStateSection() {
 
 const TABS = ['Overview', 'Tasks', 'Pass History', 'Outputs']
 
-function TabBarSection() {
+function TabBarSection({ sx }: { sx?: stylex.StyleXStyles } = {}) {
   const [activeA, setActiveA] = useState(0)
   const [activeB, setActiveB] = useState(0)
   const [activeC, setActiveC] = useState(0)
 
   return (
     <Section
+      sx={sx}
       title="Tab bar (ForgeViewerShell)"
       description="Current bar uses bg-foreground underline. Brand-tinted underline ties it to the rest of the UI; pill tabs read better when there are 3+ short labels."
     >
       <Variant
+        sx={childSpacing.s3}
         label="A. Current (foreground underline, h-8 row)"
         note="From web/forge/ForgeViewerShell.tsx"
       >
@@ -1357,6 +1461,7 @@ function TabBarSection() {
       </Variant>
 
       <Variant
+        sx={childSpacing.s3}
         label="B. Brand underline + softer inactive"
         note="bg-brand/80 underline, text-foreground-alt/50 -> /80 inactive"
       >
@@ -1364,6 +1469,7 @@ function TabBarSection() {
       </Variant>
 
       <Variant
+        sx={childSpacing.s3}
         label="C. Pill tabs"
         note="bg-foreground/5 pill row with bg-brand/10 selected"
       >
@@ -1457,14 +1563,15 @@ function PillTabs({
 // Combined viewer shell
 // -----------------------------------------------------------------------
 
-function ViewerShellSection() {
+function ViewerShellSection({ sx }: { sx?: stylex.StyleXStyles } = {}) {
   const [tab, setTab] = useState(0)
   return (
     <Section
+      sx={sx}
       title="Combined viewer mock"
       description="Full ForgeViewerShell layout using the candidate variants: brand underline tabs, tinted state badge, glass entity rows, compact empty state. Compare against ForgeJobViewer in repos/spacewave/app/forge/."
     >
-      <div sx={stylexStyles.rule64}>
+      <div sx={[stylexStyles.rule64, childSpacing.s3]}>
         <div sx={stylexStyles.rule65}>
           <div sx={stylexStyles.rule66}>
             <LuBriefcase sx={stylexStyles.rule4} />
@@ -1492,13 +1599,13 @@ function ViewerShellSection() {
         </div>
 
         <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3 px-4 py-3'
+          sx={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ stylexStyles4.rule4
           }
         >
           {tab === 0 && (
             <>
-              <div sx={stylexStyles.rule35}>
+              <div sx={[stylexStyles.rule35, childSpacing.s3]}>
                 <InlineStat
                   icon={LuListTodo}
                   label="Tasks complete"
@@ -1506,7 +1613,7 @@ function ViewerShellSection() {
                 />
                 <InlineStat icon={LuPlay} label="Passes" value="4" />
               </div>
-              <div sx={stylexStyles.rule70}>
+              <div sx={[stylexStyles.rule70, childSpacing.s3]}>
                 <MiniStat
                   icon={LuActivity}
                   label="Active"
@@ -1530,17 +1637,17 @@ function ViewerShellSection() {
           )}
           {tab === 1 && (
             <div
-              className={
-                /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
+              sx={
+                /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ childSpacing.s3
               }
             >
               {ROW_SAMPLES.map((s) => (
-                <GlassRow key={s.name} sample={s} />
+                <GlassRow sx={childSpacing.s2} key={s.name} sample={s} />
               ))}
             </div>
           )}
           {tab === 2 && (
-            <div sx={stylexStyles.rule7}>
+            <div sx={[stylexStyles.rule7, childSpacing.s3]}>
               <div sx={stylexStyles.rule49}>
                 <LuPlay sx={stylexStyles.rule50} />
                 <span>No passes recorded yet</span>

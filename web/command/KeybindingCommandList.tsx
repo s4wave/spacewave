@@ -6,8 +6,6 @@ import {
   LuSettings2,
 } from '@s4wave/web/images/icons.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
-
 import { formatKeybindingHint } from './CommandPalette.js'
 import { KeybindingDiscoverySettings } from './KeybindingDiscoverySettings.js'
 import { useKeybindingEditorContext } from './KeybindingEditorContext.js'
@@ -23,6 +21,85 @@ import {
   radii as themeRadii,
   motion as themeMotion,
 } from '../style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'flex',
+    minHeight: `calc(${themeLayout['--spacing']} * 11)`,
+    width: '100%',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 2.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    textAlign: 'left',
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule2: {
+    display: 'flex',
+    minHeight: `calc(${themeLayout['--spacing']} * 11)`,
+    width: '100%',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: '#0000',
+    paddingInline: `calc(${themeLayout['--spacing']} * 2.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    textAlign: 'left',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+  },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
+const childSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -244,11 +321,11 @@ export function KeybindingCommandList() {
       ]}
     >
       <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'border-foreground/8 space-y-3 border-b p-3'
+        sx={
+          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ stylexStyles2.rule1
         }
       >
-        <div>
+        <div sx={childSpacing.s3}>
           <div sx={stylexStyles.rule4}>Save changes to</div>
           <div sx={stylexStyles.rule5}>
             {scopes.map((scope) => {
@@ -283,7 +360,7 @@ export function KeybindingCommandList() {
             })}
           </div>
         </div>
-        <details sx={groupMarker}>
+        <details sx={[groupMarker, childSpacing.s3]}>
           <summary sx={stylexStyles.rule9}>
             <LuSettings2 sx={stylexStyles.rule10} />
             Discovery settings
@@ -326,12 +403,10 @@ export function KeybindingCommandList() {
           <button
             key={row.commandId}
             type="button"
-            className={
-              /* TODO(stylex): conditional property composition: backgroundColor */ cn(
-                'hover:bg-foreground/5 flex min-h-11 w-full items-center gap-3 rounded-md border border-transparent px-2.5 py-2 text-left transition-colors',
-                row.commandId === selectedRow?.commandId &&
-                  'border-brand/20 bg-brand/10 text-foreground',
-              )
+            sx={
+              row.commandId === selectedRow?.commandId
+                ? stylexStyles3.rule1
+                : stylexStyles3.rule2
             }
             onClick={() => setSelectedCommandId(row.commandId)}
           >

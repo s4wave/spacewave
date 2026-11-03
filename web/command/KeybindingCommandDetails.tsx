@@ -13,6 +13,24 @@ import {
   radii as themeRadii,
 } from '../style/tokens.stylex.js'
 
+const stylexStyles2 = stylex.create({
+  rule1: { marginInline: 'auto', maxWidth: 'var(--container-2xl)' },
+})
+
+const childSpacing = stylex.create({
+  s4: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     display: { default: 'none', '@media (min-width: 40rem)': 'grid' },
@@ -157,16 +175,21 @@ export function KeybindingCommandDetails() {
       </div>
       <div sx={stylexStyles.rule10}>
         <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'mx-auto max-w-2xl space-y-4'
+          sx={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ stylexStyles2.rule1
           }
         >
           {selectedLayerStatus && (
-            <div sx={stylexStyles.rule11}>{selectedLayerStatus}</div>
+            <div sx={[stylexStyles.rule11, childSpacing.s4]}>
+              {selectedLayerStatus}
+            </div>
           )}
-          <KeybindingBindingsSection />
+          <KeybindingBindingsSection sx={childSpacing.s4} />
           {conflicts.length > 0 && (
-            <KeybindingConflictList conflicts={conflicts} />
+            <KeybindingConflictList
+              sx={childSpacing.s4}
+              conflicts={conflicts}
+            />
           )}
         </div>
       </div>

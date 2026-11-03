@@ -21,6 +21,58 @@ import {
   radii as themeRadii,
 } from '../style/tokens.stylex.js'
 
+const stylexStyles3 = stylex.create({
+  rule1: { marginInline: 'auto', maxWidth: 'var(--container-3xl)' },
+  rule2: { textAlign: 'center' },
+})
+
+const childSpacing = stylex.create({
+  s6: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 6 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 6 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s4: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s1: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     width: 'var(--progress-width)',
@@ -488,25 +540,25 @@ export function LoadingDebug() {
 
       <div sx={stylexStyles.rule6}>
         <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-6 */ 'mx-auto max-w-3xl space-y-6'
+          sx={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-6 */ stylexStyles3.rule1
           }
         >
-          <Intro />
-          <SpinnerSection />
-          <ProgressBarSection />
-          <LoadingCardSection />
-          <LoadingInlineSection />
-          <LoadingScreenSection />
+          <Intro sx={childSpacing.s6} />
+          <SpinnerSection sx={childSpacing.s6} />
+          <ProgressBarSection sx={childSpacing.s6} />
+          <LoadingCardSection sx={childSpacing.s6} />
+          <LoadingInlineSection sx={childSpacing.s6} />
+          <LoadingScreenSection sx={childSpacing.s6} />
         </div>
       </div>
     </div>
   )
 }
 
-function Intro() {
+function Intro({ sx }: { sx?: stylex.StyleXStyles } = {}) {
   return (
-    <div sx={stylexStyles.rule7}>
+    <div sx={[stylexStyles.rule7, sx]}>
       <p sx={stylexStyles.rule8}>Unified loading primitive gallery</p>
       <p sx={stylexStyles.rule9}>
         Five primitives (Spinner, ProgressBar, LoadingCard, LoadingInline,
@@ -532,20 +584,21 @@ interface SectionProps {
   title: string
   description: string
   children: React.ReactNode
+  sx?: stylex.StyleXStyles
 }
 
-function Section({ title, description, children }: SectionProps) {
+function Section({ title, description, children, sx }: SectionProps) {
   return (
     <section
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
+      sx={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ sx
       }
     >
-      <div>
+      <div sx={childSpacing.s3}>
         <h2 sx={stylexStyles.rule5}>{title}</h2>
         <p sx={stylexStyles.rule10}>{description}</p>
       </div>
-      <div sx={stylexStyles.rule11}>{children}</div>
+      <div sx={[stylexStyles.rule11, childSpacing.s3]}>{children}</div>
     </section>
   )
 }
@@ -559,9 +612,10 @@ function Label({ children }: { children: React.ReactNode }) {
 // -----------------------------------------------------------------------
 
 // Spinner uses the shared SVG owner for the loading gallery's size and tone controls.
-function SpinnerSection() {
+function SpinnerSection({ sx }: { sx?: stylex.StyleXStyles } = {}) {
   return (
     <Section
+      sx={sx}
       title="Spinner"
       description="Atomic loading indicator. Inherits text color from parent; sized h-3.5 / h-4 / h-6 / h-8. Replaces LoadingSpinner and ~20 inline LuLoader animate-spin sites."
     >
@@ -647,7 +701,7 @@ function ProgressBar({
   )
 }
 
-function ProgressBarSection() {
+function ProgressBarSection({ sx }: { sx?: stylex.StyleXStyles } = {}) {
   // Animate a demo determinate bar so motion is visible.
   const [value, setValue] = useState(12)
   useEffect(() => {
@@ -659,39 +713,36 @@ function ProgressBarSection() {
 
   return (
     <Section
+      sx={sx}
       title="ProgressBar"
       description="Determinate (with percent or rate label) and indeterminate variants. Uses bg-brand (fixes today's bg-primary drift). Height h-1.5; full-width; tabular-nums labels."
     >
-      <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4'
-        }
-      >
-        <div>
+      <div>
+        <div sx={childSpacing.s4}>
           <Label>Determinate (0 - 100, animated)</Label>
           <div sx={stylexStyles.rule21}>
             <ProgressBar value={value} />
           </div>
         </div>
-        <div>
+        <div sx={childSpacing.s4}>
           <Label>Determinate + rate label</Label>
           <div sx={stylexStyles.rule21}>
             <ProgressBar value={62} rate="1.5 MiB/s" />
           </div>
         </div>
-        <div>
+        <div sx={childSpacing.s4}>
           <Label>Indeterminate</Label>
           <div sx={stylexStyles.rule21}>
             <ProgressBar indeterminate />
           </div>
         </div>
-        <div>
+        <div sx={childSpacing.s4}>
           <Label>Indeterminate + rate label</Label>
           <div sx={stylexStyles.rule21}>
             <ProgressBar indeterminate rate="Uploading" />
           </div>
         </div>
-        <div sx={stylexStyles.rule22}>
+        <div sx={[stylexStyles.rule22, childSpacing.s4]}>
           {[10, 35, 65, 92].map((v) => (
             <div key={v}>
               <ProgressBar value={v} />
@@ -826,7 +877,7 @@ function RatePill({ label, value }: { label: string; value: string }) {
   )
 }
 
-function LoadingCardSection() {
+function LoadingCardSection({ sx }: { sx?: stylex.StyleXStyles } = {}) {
   const examples: Array<{ label: string; view: LoadingView }> = [
     {
       label: 'loading (awaiting first status)',
@@ -889,16 +940,13 @@ function LoadingCardSection() {
 
   return (
     <Section
+      sx={sx}
       title="LoadingCard"
       description="The primary loading surface. Glass card with size-8 icon box + title + detail. Four states. Optionally renders a ProgressBar, rate pills, last-activity footer, error box, and retry/cancel buttons. Lifts the shape from SessionSyncStatusSummary."
     >
-      <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
-        }
-      >
+      <div>
         {examples.map(({ label, view }) => (
-          <div key={label}>
+          <div sx={childSpacing.s3} key={label}>
             <Label>{label}</Label>
             <div sx={stylexStyles.rule21}>
               <LoadingCard view={view} />
@@ -940,24 +988,21 @@ function LoadingInline({
   )
 }
 
-function LoadingInlineSection() {
+function LoadingInlineSection({ sx }: { sx?: stylex.StyleXStyles } = {}) {
   return (
     <Section
+      sx={sx}
       title="LoadingInline"
       description="Spinner + one-line label. Replaces ~15 ad-hoc <LuLoader/> + text sites (button labels, row pending states, single-line loaders)."
     >
-      <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
-        }
-      >
-        <div>
+      <div>
+        <div sx={childSpacing.s3}>
           <Label>In place of bare text</Label>
           <div sx={stylexStyles.rule43}>
             <LoadingInline label="Loading messages..." />
           </div>
         </div>
-        <div>
+        <div sx={childSpacing.s3}>
           <Label>As a button label (pending action)</Label>
           <div sx={stylexStyles.rule44}>
             <button type="button" sx={stylexStyles.rule45} disabled>
@@ -970,7 +1015,7 @@ function LoadingInlineSection() {
             </button>
           </div>
         </div>
-        <div>
+        <div sx={childSpacing.s3}>
           <Label>Tones</Label>
           <div sx={stylexStyles.rule47}>
             <LoadingInline label="Muted" tone="muted" />
@@ -987,7 +1032,7 @@ function LoadingInlineSection() {
 // 5. LoadingScreen (mini preview)
 // -----------------------------------------------------------------------
 
-function LoadingScreenSection() {
+function LoadingScreenSection({ sx }: { sx?: stylex.StyleXStyles } = {}) {
   const [progress, setProgress] = useState(0)
   useEffect(() => {
     const id = setInterval(() => {
@@ -998,6 +1043,7 @@ function LoadingScreenSection() {
 
   return (
     <Section
+      sx={sx}
       title="LoadingScreen (mini preview)"
       description="Full-screen boot state. The real component keeps its animated logo + shine border; only the title / detail / progress treatment gets refreshed to match the other primitives. Mini-preview here to avoid taking over the viewport."
     >
@@ -1007,12 +1053,16 @@ function LoadingScreenSection() {
             <Spinner size="xl" variant="brand" />
           </div>
           <div
-            className={
-              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1 */ 'space-y-1 text-center'
+            sx={
+              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1 */ stylexStyles3.rule2
             }
           >
-            <div sx={stylexStyles.rule51}>Loading Spacewave</div>
-            <div sx={stylexStyles.rule52}>Setting up your session…</div>
+            <div sx={[stylexStyles.rule51, childSpacing.s1]}>
+              Loading Spacewave
+            </div>
+            <div sx={[stylexStyles.rule52, childSpacing.s1]}>
+              Setting up your session…
+            </div>
           </div>
           <div sx={stylexStyles.rule53}>
             <ProgressBar value={progress} />

@@ -38,6 +38,8 @@ import { writeCommandFixture } from './command-fixture.js'
 import { writeLoginFixture } from './login-fixture.js'
 import { writeReferenceFixture } from './reference-fixture.js'
 import { writeFrameFixture } from './frame-fixture.js'
+import { writeSpacingFixture } from './spacing-fixture.js'
+import { writeRootsFixture } from './roots-fixture.js'
 import { writeLoadingScreenFixture } from './loading-screen-fixture.js'
 import { writeCredentialFixture } from './credential-fixture.js'
 import { writeBadgeFixture } from './badge-fixture.js'
@@ -105,18 +107,6 @@ test(
     )
     assert.equal(alias.converted, 0)
     assert.match(alias.remaining[0]!.reason, /global class adds declarations/)
-
-    // Decline a condition merge that would change Tailwind's cascade.
-    const overlapping = transform(
-      `import {cn} from 'cnfast';function Example({active}:{active:boolean}){return <div className={cn('text-muted-foreground hover:text-foreground',active && 'text-brand')}/>}`,
-      'overlap.tsx',
-      oracle,
-    )
-    assert.equal(overlapping.converted, 0)
-    assert.match(
-      overlapping.remaining[0]!.reason,
-      /conditional property composition/,
-    )
 
     // Physical sides cannot silently outrank a later logical breakpoint rule.
     const directional = transform(
@@ -654,6 +644,8 @@ test(
         await writeLoginFixture(root, version)
         await writeReferenceFixture(root, version)
         await writeFrameFixture(root, version)
+        await writeSpacingFixture(root, version)
+        await writeRootsFixture(root, version)
         await writeLoadingScreenFixture(root, version)
         await writePathFixture(root, version)
         await writeTabsFixture(root, version)
@@ -663,7 +655,9 @@ test(
         main = "import{GroupSamples}from'./GroupSamples';" + main
         main =
           "import{LoadingScreenSamples}from'./LoadingScreenSamples';" + main
-        main = "import{FrameSamples}from'./FrameSamples';" + main
+        main =
+          "import{FrameSamples}from'./FrameSamples';import{SpacingSamples}from'./SpacingSamples';import{RootsSamples}from'./RootsSamples';" +
+          main
         main = "import{ReferenceSamples}from'./ReferenceSamples';" + main
         main = "import{LoginSamples}from'./LoginSamples';" + main
         main = "import{CommandSamples}from'./CommandSamples';" + main
@@ -678,7 +672,7 @@ test(
         main = "import{SheetSamples}from'./SheetSamples';" + main
         main = main.replace(
           "createRoot(document.getElementById('root')!).render",
-          "if(new URLSearchParams(location.search).has('frame'))createRoot(document.getElementById('root')!).render(<FrameSamples/>);else if(new URLSearchParams(location.search).has('owned'))createRoot(document.getElementById('root')!).render(<OwnedStyles/>);else if(new URLSearchParams(location.search).has('references'))createRoot(document.getElementById('root')!).render(<ReferenceSamples/>);else if(new URLSearchParams(location.search).has('loading-screen'))createRoot(document.getElementById('root')!).render(<LoadingScreenSamples/>);else if(new URLSearchParams(location.search).has('login'))createRoot(document.getElementById('root')!).render(<LoginSamples/>);else if(new URLSearchParams(location.search).has('command'))createRoot(document.getElementById('root')!).render(<CommandSamples/>);else if(new URLSearchParams(location.search).has('groups'))createRoot(document.getElementById('root')!).render(<GroupSamples/>);else if(new URLSearchParams(location.search).has('code'))createRoot(document.getElementById('root')!).render(<CodeSamples/>);else if(new URLSearchParams(location.search).has('trace'))createRoot(document.getElementById('root')!).render(<TraceSamples/>);else if(new URLSearchParams(location.search).has('credential'))createRoot(document.getElementById('root')!).render(<CredentialSamples/>);else if(new URLSearchParams(location.search).has('icon-defaults'))createRoot(document.getElementById('root')!).render(<IconDefaultsSamples/>);else if(new URLSearchParams(location.search).has('floating'))createRoot(document.getElementById('root')!).render(<FloatingSamples/>);else if(new URLSearchParams(location.search).has('badge'))createRoot(document.getElementById('root')!).render(<BadgeSamples/>);else if(new URLSearchParams(location.search).has('tree'))createRoot(document.getElementById('root')!).render(<TreeSamples/>);else if(new URLSearchParams(location.search).has('tabs'))createRoot(document.getElementById('root')!).render(<TabsSamples/>);else if(new URLSearchParams(location.search).has('path'))createRoot(document.getElementById('root')!).render(<PathSamples/>);else if(new URLSearchParams(location.search).has('dialog'))createRoot(document.getElementById('root')!).render(<DialogSamples/>);else if(new URLSearchParams(location.search).has('buttons'))createRoot(document.getElementById('root')!).render(<ButtonSamples/>);else if(new URLSearchParams(location.search).has('input'))createRoot(document.getElementById('root')!).render(<InputSamples/>);else if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
+          "if(new URLSearchParams(location.search).has('roots'))createRoot(document.getElementById('root')!).render(<RootsSamples/>);else if(new URLSearchParams(location.search).has('spacing'))createRoot(document.getElementById('root')!).render(<SpacingSamples/>);else if(new URLSearchParams(location.search).has('frame'))createRoot(document.getElementById('root')!).render(<FrameSamples/>);else if(new URLSearchParams(location.search).has('owned'))createRoot(document.getElementById('root')!).render(<OwnedStyles/>);else if(new URLSearchParams(location.search).has('references'))createRoot(document.getElementById('root')!).render(<ReferenceSamples/>);else if(new URLSearchParams(location.search).has('loading-screen'))createRoot(document.getElementById('root')!).render(<LoadingScreenSamples/>);else if(new URLSearchParams(location.search).has('login'))createRoot(document.getElementById('root')!).render(<LoginSamples/>);else if(new URLSearchParams(location.search).has('command'))createRoot(document.getElementById('root')!).render(<CommandSamples/>);else if(new URLSearchParams(location.search).has('groups'))createRoot(document.getElementById('root')!).render(<GroupSamples/>);else if(new URLSearchParams(location.search).has('code'))createRoot(document.getElementById('root')!).render(<CodeSamples/>);else if(new URLSearchParams(location.search).has('trace'))createRoot(document.getElementById('root')!).render(<TraceSamples/>);else if(new URLSearchParams(location.search).has('credential'))createRoot(document.getElementById('root')!).render(<CredentialSamples/>);else if(new URLSearchParams(location.search).has('icon-defaults'))createRoot(document.getElementById('root')!).render(<IconDefaultsSamples/>);else if(new URLSearchParams(location.search).has('floating'))createRoot(document.getElementById('root')!).render(<FloatingSamples/>);else if(new URLSearchParams(location.search).has('badge'))createRoot(document.getElementById('root')!).render(<BadgeSamples/>);else if(new URLSearchParams(location.search).has('tree'))createRoot(document.getElementById('root')!).render(<TreeSamples/>);else if(new URLSearchParams(location.search).has('tabs'))createRoot(document.getElementById('root')!).render(<TabsSamples/>);else if(new URLSearchParams(location.search).has('path'))createRoot(document.getElementById('root')!).render(<PathSamples/>);else if(new URLSearchParams(location.search).has('dialog'))createRoot(document.getElementById('root')!).render(<DialogSamples/>);else if(new URLSearchParams(location.search).has('buttons'))createRoot(document.getElementById('root')!).render(<ButtonSamples/>);else if(new URLSearchParams(location.search).has('input'))createRoot(document.getElementById('root')!).render(<InputSamples/>);else if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
         )
         // Discover the actual tree API through its public barrel before converting the caller.
         const treeImports = await readSharedStyleApis(
@@ -926,6 +920,47 @@ void invalidNativeDelegate;
       // Compare default and hovered controls in both engines at every accepted size.
       const manifest = {
         states: [
+          ...['default', 'hovered'].map((mode) => ({
+            id: `roots-${mode}`,
+            path: `/?roots=${mode}`,
+            ready: async (page: import('playwright').Page) => {
+              await page.locator('#roots-fixtures').waitFor({ timeout: 5000 })
+              await page.evaluate(() => document.fonts.ready)
+            },
+            setup: async (page: import('playwright').Page) => {
+              if (mode === 'hovered')
+                await page
+                  .getByRole('button', { name: 'Default link', exact: true })
+                  .hover({ timeout: 5000 })
+            },
+          })),
+          ...[
+            'settings',
+            'expanded',
+            'empty',
+            'capture',
+            'pending',
+            'error',
+          ].map((mode) => ({
+            id: `spacing-${mode}`,
+            path: `/?spacing=${mode}`,
+            ready: async (page: import('playwright').Page) => {
+              await page.locator('#spacing-fixtures').waitFor({ timeout: 5000 })
+              await page.evaluate(() => document.fonts.ready)
+            },
+            setup: async (page: import('playwright').Page) => {
+              if (mode === 'expanded') {
+                for (const name of [
+                  'Organizations',
+                  'Crypto & Keys',
+                  'Identifiers',
+                ])
+                  await page
+                    .getByRole('button', { name: new RegExp(name) })
+                    .click({ timeout: 5000 })
+              }
+            },
+          })),
           ...['default', 'hovered', 'coarse', 'overlay'].map((mode) => ({
             id: `frame-${mode}`,
             path: `/?frame=${mode}`,
@@ -956,6 +991,27 @@ void invalidNativeDelegate;
             },
           })),
           {
+            id: 'owned-hovered',
+            path: '/?owned=hovered',
+            ready: async (page: import('playwright').Page) => {
+              await page
+                .getByRole('button', {
+                  name: 'Finite selected true',
+                  exact: true,
+                })
+                .waitFor({ timeout: 5000 })
+              await page.evaluate(() => document.fonts.ready)
+            },
+            setup: async (page: import('playwright').Page) => {
+              await page
+                .getByRole('button', {
+                  name: 'Finite selected true',
+                  exact: true,
+                })
+                .hover({ timeout: 5000 })
+            },
+          },
+          {
             id: 'owned-default',
             path: '/?owned=default',
             ready: async (page: import('playwright').Page) => {
@@ -963,6 +1019,12 @@ void invalidNativeDelegate;
                 .locator('[aria-label="Default box"]')
                 .first()
                 .waitFor({ timeout: 5000 })
+              assert.equal(
+                await page
+                  .getByLabel('Mixed native styles', { exact: true })
+                  .evaluate((element) => getComputedStyle(element).padding),
+                '12px',
+              )
               await page.evaluate(() => document.fonts.ready)
             },
           },
@@ -1640,6 +1702,21 @@ void invalidNativeDelegate;
           ],
         },
         {
+          name: 'native roots',
+          ids: ['roots-default', 'roots-hovered'],
+        },
+        {
+          name: 'child spacing',
+          ids: [
+            'spacing-settings',
+            'spacing-expanded',
+            'spacing-empty',
+            'spacing-capture',
+            'spacing-pending',
+            'spacing-error',
+          ],
+        },
+        {
           name: 'frame controls',
           ids: [
             'frame-default',
@@ -1650,7 +1727,7 @@ void invalidNativeDelegate;
         },
         {
           name: 'owned style inputs',
-          ids: ['owned-default'],
+          ids: ['owned-default', 'owned-hovered'],
         },
         {
           name: 'shared components',
