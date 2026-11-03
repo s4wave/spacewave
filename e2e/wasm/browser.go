@@ -321,15 +321,21 @@ func pageErrorMessage(err error) string {
 }
 
 func shouldLogBrowserConsole(msgType, text string) bool {
+	// Honor explicit full browser logging.
 	v := strings.ToLower(os.Getenv("E2E_WASM_BROWSER_LOGS"))
 	if v == "true" || v == "1" {
 		return true
 	}
+
+	// Preserve browser failures regardless of the full-log setting.
 	switch msgType {
 	case "error", "warning":
 		return true
 	}
-	return strings.Contains(text, "level=error") || strings.Contains(text, "level=warning")
+
+	// Retain scoped DEX serving facts alongside structured runtime failures.
+	return strings.Contains(text, "level=error") || strings.Contains(text, "level=warning") ||
+		strings.Contains(text, "DEX source local block read incomplete")
 }
 
 func (h *Harness) loadAppPageURL(s *TestSession, targetURL string) error {

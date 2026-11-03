@@ -217,7 +217,7 @@ func TestAccountPairingExchange(t *testing.T) {
 					p.localNetwork = transport.WithInprocNetwork(network)
 				}
 			}
-			_, _, source, sourceSession, releaseSource := setupProviderAndSessionInternal(ctx, t, shareNetwork)
+			sourceTB, _, source, sourceSession, releaseSource := setupProviderAndSessionInternal(ctx, t, shareNetwork)
 			defer releaseSource()
 			tb, _, receiver, receivingSession, releaseReceiver := setupProviderAndSessionInternal(ctx, t, shareNetwork)
 			defer releaseReceiver()
@@ -256,7 +256,11 @@ func TestAccountPairingExchange(t *testing.T) {
 			var payloadRef *block.BlockRef
 			var payload []byte
 			if approve {
-				payloadRef, payload = seedAccountReplicaPayload(ctx, t, source, spaceRef)
+				if mode.direct {
+					payloadRef, payload = seedPairingWorldPayload(ctx, t, sourceTB, source, spaceRef, "payload", true)
+				} else {
+					payloadRef, payload = seedAccountReplicaPayload(ctx, t, source, spaceRef)
+				}
 			}
 
 			// Resolve both engines and the existing stream-completion channel.
@@ -394,6 +398,16 @@ func TestAccountPairingExchange(t *testing.T) {
 				t.Fatalf("paired replica cannot read the original Space: %v", err)
 			}
 
+			// Observe the source's advertised graph again after enrollment.
+			if mode.direct {
+				sourceSO, release, err := source.MountSharedObject(ctx, spaceRef, nil)
+				if err != nil {
+					t.Fatal(err)
+				}
+				logPairingStoredRoots(ctx, t, sourceTB, sourceSO)
+				release()
+			}
+
 			// Background replication must copy the nested payload before a file
 			// read can request it. The final read bypasses the network store.
 			for {
@@ -441,7 +455,7 @@ func TestAccountPairingExchange(t *testing.T) {
 			// The receiving client can publish new bytes and the original Session
 			// copies them through the retained direct connection in reverse.
 			if mode.direct {
-				reverse, want := seedProviderReplicaPayload(ctx, t, replica, replica, spaceRef, "receiving replica payload\n")
+				reverse, want := seedPairingWorldPayload(ctx, t, tb, replica, spaceRef, "reverse-payload", false)
 				sourceSO, releaseSO, err := source.MountSharedObject(ctx, spaceRef, nil)
 				if err != nil {
 					t.Fatal(err)
