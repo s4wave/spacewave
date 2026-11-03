@@ -84,6 +84,12 @@ export async function capture(
             const networkFailures: string[] = []
             const consoleFailures: string[] = []
             let stage = 'create-context'
+            let expired = false
+            // Page evaluations can wait forever on a resource; close their context at the state deadline.
+            const deadline = setTimeout(() => {
+              expired = true
+              void context?.close().catch(() => {})
+            }, 180_000)
             try {
               context = await browser.newContext({
                 viewport,
@@ -170,8 +176,11 @@ export async function capture(
               signal?.throwIfAborted()
 
               // Retain failed states and continue so one broken screen cannot hide others.
-              const message =
-                error instanceof Error ? error.message : String(error)
+              const message = expired
+                ? `State exceeded its 180s deadline at ${stage}`
+                : error instanceof Error
+                  ? error.message
+                  : String(error)
               // Retry a transient browser operation once, retaining its failure before rebuilding the state.
               const networkChanged = networkFailures.some((failure) =>
                 failure.includes('net::ERR_NETWORK_CHANGED'),
@@ -240,6 +249,7 @@ export async function capture(
                 break
               }
             } finally {
+              clearTimeout(deadline)
               if (!signal?.aborted) await context?.close()
             }
           }
