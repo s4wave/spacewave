@@ -82,6 +82,12 @@ func (r *attachedResourceRef) Done() <-chan struct{} {
 	return r.done
 }
 
+// ReleasedByServer reports false: the attached resource context reports no
+// release by the other side.
+func (r *attachedResourceRef) ReleasedByServer() bool {
+	return false
+}
+
 var _ ResourceClient = (*AttachedResourceClient)(nil)
 
 var _ resource_client.ResourceRef = (*attachedResourceRef)(nil)

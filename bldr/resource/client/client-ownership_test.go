@@ -194,19 +194,32 @@ func TestResourceRefDoneClosesOnEveryRelease(t *testing.T) {
 	if !isDone(local) || isDone(other) {
 		t.Fatalf("after local release: local done=%v other done=%v", isDone(local), isDone(other))
 	}
-
-	// Verify the server releasing a resource closes Done for its references.
-	lifetime.releaseFromServer(2)
-	if !isDone(other) {
-		t.Fatal("Done open after server release")
+	if local.ReleasedByServer() || other.ReleasedByServer() {
+		t.Fatal("ReleasedByServer set before any server release")
 	}
 
-	// Verify ending the lifetime closes Done for the remaining references.
+	// Verify the server releasing a resource closes Done for its references
+	// and marks them released by the server.
+	lifetime.releaseFromServer(2)
+	if !isDone(other) || !other.ReleasedByServer() {
+		t.Fatalf("after server release: done=%v by server=%v", isDone(other), other.ReleasedByServer())
+	}
+
+	// Verify a refused route closes Done without reading as a server release.
+	refused := lifetime.createReference(5)
+	defer refused.Release()
+	lifetime.retireResource(5, false)
+	if !isDone(refused) || refused.ReleasedByServer() {
+		t.Fatalf("after refused route: done=%v by server=%v", isDone(refused), refused.ReleasedByServer())
+	}
+
+	// Verify ending the lifetime closes Done for the remaining references
+	// without reading as a server release.
 	remaining := lifetime.createReference(3)
 	defer remaining.Release()
 	lifetime.releaseAll()
-	if !isDone(remaining) {
-		t.Fatal("Done open after the lifetime ended")
+	if !isDone(remaining) || remaining.ReleasedByServer() {
+		t.Fatalf("after the lifetime ended: done=%v by server=%v", isDone(remaining), remaining.ReleasedByServer())
 	}
 
 	// Verify a reference created after the lifetime ended is already done.

@@ -24,6 +24,12 @@ type ResourceRef interface {
 	// Done closes when this reference is released, whether by Release, by the
 	// server releasing the resource, or by the end of the client.
 	Done() <-chan struct{}
+	// ReleasedByServer reports whether the server released the resource with
+	// a ResourceReleased message. It is false while the reference is live and
+	// after a local Release, a refused route or the end of the client, so a
+	// caller can tell the server ending the resource from losing the
+	// connection.
+	ReleasedByServer() bool
 }
 
 // Client manages one immutable remote ResourceClient generation.

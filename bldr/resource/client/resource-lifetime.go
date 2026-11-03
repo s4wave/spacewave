@@ -111,8 +111,18 @@ func (l *resourceLifetime) releaseAll() {
 	}
 }
 
+// releaseFromServer retires every local reference to a resource the server
+// released with a ResourceReleased message, marking each one released by
+// the server.
 func (l *resourceLifetime) releaseFromServer(resourceID uint32) {
-	// Retire every local reference to a server-released resource.
+	l.retireResource(resourceID, true)
+}
+
+// retireResource retires every local reference to resourceID. byServer marks
+// the references released by the server; a refused route leaves it false,
+// since a server that is shutting down refuses routes too.
+func (l *resourceLifetime) retireResource(resourceID uint32, byServer bool) {
+	// Retire all references while their lifetime is locked.
 	l.mtx.Lock()
 	defer l.mtx.Unlock()
 	set := l.resources[resourceID]
@@ -120,6 +130,9 @@ func (l *resourceLifetime) releaseFromServer(resourceID uint32) {
 		return
 	}
 	for ref := range set.refs {
+		if !ref.released {
+			ref.serverReleased = byServer
+		}
 		ref.retireLocked()
 	}
 	l.clearResourceLocked(resourceID)
@@ -316,7 +329,7 @@ func (c *orderedResourceClient) retireRefused(err error) error {
 	if errors.Is(err, resource.ErrResourceNotFound) ||
 		errors.Is(err, resource.ErrInvalidResourceID) ||
 		errors.Is(err, resource.ErrResourceOrClientReleased) {
-		c.lifetime.releaseFromServer(c.resourceID)
+		c.lifetime.retireResource(c.resourceID, false)
 	}
 	return err
 }
@@ -350,11 +363,14 @@ func (c *resourceRPCClientWithContext) Close() error {
 }
 
 // resourceRef is one local reference to a remote resource. The lifetime's
-// mutex guards released.
+// mutex guards released and serverReleased.
 type resourceRef struct {
 	lifetime   *resourceLifetime
 	resourceID uint32
 	released   bool
+	// serverReleased is set when a ResourceReleased message retired the
+	// reference, and never changes after released becomes true.
+	serverReleased bool
 	// done closes when released becomes true.
 	done chan struct{}
 }
@@ -370,6 +386,13 @@ func (r *resourceRef) Release() { r.lifetime.releaseRef(r) }
 
 // Done returns a channel that closes when the reference is released.
 func (r *resourceRef) Done() <-chan struct{} { return r.done }
+
+// ReleasedByServer reports whether the server released the resource.
+func (r *resourceRef) ReleasedByServer() bool {
+	r.lifetime.mtx.Lock()
+	defer r.lifetime.mtx.Unlock()
+	return r.serverReleased
+}
 
 // retireLocked marks the reference released and closes done once.
 func (r *resourceRef) retireLocked() {
