@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -25,6 +26,94 @@ type replicaDestination struct {
 
 func (r *replicaDestination) GetBlockStore() bstore.BlockStore {
 	return r.store
+}
+
+// TestAccountReplicaCopyFollowsParticipantGrants resumes an incomplete graph
+// when the existing peer grants access without publishing another World.
+func TestAccountReplicaCopyFollowsParticipantGrants(t *testing.T) {
+	// Retain both authenticated providers and their existing DEX stream.
+	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
+	defer cancel()
+	peers := newDEXRolePeers(t, ctx)
+	owner, replica := peers.objects[0], peers.objects[1]
+	requester := peers.sessions[1].GetPeerId().String()
+
+	// Revoke only the Session, leaving the replica's storage grant to sync state.
+	removed, err := sobject.RemoveSOParticipant(ctx, owner.soHost, requester, owner.GetPrivKey(), nil)
+	if err != nil || !removed {
+		t.Fatalf("remove requester = %v/%v", removed, err)
+	}
+	states, releaseStates, err := replica.soHost.GetSOStateCtr(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseStates()
+	if _, err := states.WaitValueWithValidator(ctx, func(state *sobject.SOState) (bool, error) {
+		return !slices.ContainsFunc(state.GetConfig().GetParticipants(), func(p *sobject.SOParticipantConfig) bool {
+			return p.GetPeerId() == requester
+		}), nil
+	}, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	// Publish a graph that the revoked requester cannot fetch yet.
+	entries := peers.accounts[0].soListCtr.GetValue().GetSharedObjects()
+	i := slices.IndexFunc(entries, func(entry *sobject.SharedObjectListEntry) bool {
+		return entry.GetRef().GetProviderResourceRef().GetId() == owner.GetSharedObjectID()
+	})
+	if i == -1 {
+		t.Fatal("source object is absent from account")
+	}
+	leaf, payload := seedProviderReplicaPayload(ctx, t, peers.accounts[0], peers.accounts[0], entries[i].GetRef())
+	state := &p2pSyncState{}
+	done := make(chan error, 1)
+	go func() {
+		done <- peers.accounts[1].runAccountReplicaCopy(ctx, replica, state, peers.exchanges[1])
+	}()
+	defer func() {
+		cancel()
+		<-done
+	}()
+
+	// Observe the completed denied walk before restoring its authority.
+	waitProgress := func(complete bool) *AccountReplicaCopyState {
+		for {
+			// Read progress and subscribe to its next change under one lock.
+			var progress *AccountReplicaCopyState
+			var wait <-chan struct{}
+			state.bcast.HoldLock(func(_ func(), getWait func() <-chan struct{}) {
+				progress = state.copyProgress[replica.GetSharedObjectID()].CloneVT()
+				wait = getWait()
+			})
+
+			// Finish only after the walk publishes the requested outcome.
+			if progress != nil && (complete && progress.GetComplete() || !complete && progress.GetError() != "") {
+				return progress
+			}
+
+			// Await a real progress transition or the test's failure deadline.
+			select {
+			case <-ctx.Done():
+				t.Fatalf("wait for copy complete=%v: %v; progress=%v", complete, ctx.Err(), progress)
+			case <-wait:
+			}
+		}
+	}
+	denied := waitProgress(false)
+	starts := peers.exchanges[1].GetSessionStarts()
+
+	// Restore the same Session's grant on the same published graph and stream.
+	if _, err := sobject.AddSOParticipant(ctx, owner.soHost, owner.GetSharedObjectID(), owner.GetPrivKey(), owner.GetPeerID().String(), requester, peers.sessions[1].GetPrivKey().GetPublic(), sobject.SOParticipantRole_SOParticipantRole_WRITER, "", ""); err != nil {
+		t.Fatal(err)
+	}
+	completed := waitProgress(true)
+	if !denied.GetHead().EqualVT(completed.GetHead()) || peers.exchanges[1].GetSessionStarts() != starts {
+		t.Fatal("copy required another World or DEX session")
+	}
+	data, found, err := replica.GetBlockStore().GetBlock(ctx, leaf)
+	if err != nil || !found || string(data) != string(payload) {
+		t.Fatalf("replica leaf after grant: found=%v err=%v", found, err)
+	}
 }
 
 // TestAccountReplicaCopyRetainsCompletedSubtrees copies a complete graph from a

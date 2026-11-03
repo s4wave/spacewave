@@ -1,6 +1,7 @@
 package provider_local
 
 import (
+	"bytes"
 	"context"
 	"time"
 
@@ -28,7 +29,8 @@ import (
 // publishes faster than a copy completes does not restart it. A block that no
 // connected peer holds, or holds only without its refs, is not a failure: the
 // copy logs it once and waits for a newer head, which replaces it, or for a peer
-// session to start on exchange that may hold the block. So a missing old block
+// session to start on exchange that may hold the block, or an accepted config
+// change that may grant access on the existing session. So a missing old block
 // cannot pin replication to an old head. exchange is nil when the bucket has no
 // DEX controller. Any other failure is published as the object's copy error
 // before the routine retries.
@@ -74,9 +76,11 @@ func (a *ProviderAccount) runAccountReplicaCopy(
 		}
 	}()
 
-	// Hand each new published graph to the copier as its state arrives.
+	// Hand each new graph or authority configuration to the copier. A grant
+	// can make missing blocks readable on the existing peer session.
 	var snapshot sobject.SharedObjectStateSnapshot
 	var previous *block.BlockRef
+	var configHead []byte
 	for {
 		snapshot, err = states.WaitValueChange(ctx, snapshot, nil)
 		if err != nil {
@@ -89,10 +93,17 @@ func (a *ProviderAccount) runAccountReplicaCopy(
 		if err != nil {
 			return err
 		}
-		if root.GetEmpty() || root.EqualsRef(previous) {
+		if root.GetEmpty() {
 			continue
 		}
-		previous = root
+		config, err := snapshot.GetConfig(ctx)
+		if err != nil {
+			return err
+		}
+		if root.EqualsRef(previous) && bytes.Equal(config.GetConfigChainHash(), configHead) {
+			continue
+		}
+		previous, configHead = root, bytes.Clone(config.GetConfigChainHash())
 		latest.SetValue(&replicaHead{span: span, head: &bucket.ObjectRef{RootRef: root}})
 	}
 }
@@ -141,8 +152,8 @@ func (a *ProviderAccount) copyAccountWorldHeads(
 // head. A block that no reachable source holds or serves, such as one every
 // peer refuses, or holds only without its refs, does not appear by retrying the
 // same head: the copy logs it once and retries when a peer session starts on
-// exchange. A retry first reads the blocks the walk found missing and walks
-// again only once one of them arrives.
+// exchange or the authority config changes. A session retry first reads the
+// blocks the walk found missing and walks again only once one of them arrives.
 // It returns nil when a newer head arrives first, which the caller copies next.
 func (a *ProviderAccount) copyAccountWorldHead(
 	ctx context.Context,
