@@ -14,6 +14,43 @@ import {
   radii as themeRadii,
 } from '../style/tokens.stylex.js'
 
+const stylexStyles3 = stylex.create({
+  rule1: {
+    color: themeColors['--color-text-secondary'],
+    fontSize: themeLayout['--text-ui'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-ui--line-height']})`,
+    letterSpacing: `var(--tw-tracking, ${themeLayout['--text-ui--letter-spacing']})`,
+  },
+  rule2: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-wider)',
+    color: themeColors['--color-text-secondary'],
+    textTransform: 'uppercase',
+    fontSize: themeLayout['--text-ui'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-ui--line-height']})`,
+    letterSpacing: `var(--tw-tracking, ${themeLayout['--text-ui--letter-spacing']})`,
+  },
+  rule3: {
+    marginTop: `calc(${themeLayout['--spacing']} * 4)`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-wider)',
+    color: themeColors['--color-text-secondary'],
+    textTransform: 'uppercase',
+    fontSize: themeLayout['--text-ui'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-ui--line-height']})`,
+    letterSpacing: `var(--tw-tracking, ${themeLayout['--text-ui--letter-spacing']})`,
+  },
+  rule4: {
+    color: themeColors['--color-text-secondary'],
+    fontSize: themeLayout['--text-ui'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-ui--line-height']})`,
+    letterSpacing: `var(--tw-tracking, ${themeLayout['--text-ui--letter-spacing']})`,
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     dynamicRangeLimit: 'var(--hdr-dynamic-range)',
@@ -569,13 +606,7 @@ export function HDRDebug() {
                   /* TODO(stylex): global or unknown class: hdr-debug-gamut-p3 */ 'hdr-debug-gamut-p3 flex items-center gap-2'
                 }
               >
-                <span
-                  className={
-                    /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary text-xs'
-                  }
-                >
-                  Wide Gamut (P3)
-                </span>
+                <span sx={stylexStyles3.rule1}>Wide Gamut (P3)</span>
                 <span
                   className={
                     /* TODO(stylex): global or unknown class: cap-no */ 'cap-no rounded bg-red-500/20 px-2 py-0.5 text-xs font-semibold text-red-400'
@@ -597,11 +628,7 @@ export function HDRDebug() {
                   /* TODO(stylex): global or unknown class: hdr-debug-gamut-rec2020 */ 'hdr-debug-gamut-rec2020 flex items-center gap-2'
                 }
               >
-                <span
-                  className={
-                    /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary text-xs'
-                  }
-                >
+                <span sx={stylexStyles3.rule1}>
                   Ultra Wide Gamut (Rec.2020)
                 </span>
                 <span
@@ -627,13 +654,7 @@ export function HDRDebug() {
                   /* TODO(stylex): global or unknown class: hdr-debug-dynamic-range */ 'hdr-debug-dynamic-range flex items-center gap-2'
                 }
               >
-                <span
-                  className={
-                    /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary text-xs'
-                  }
-                >
-                  HDR Dynamic Range
-                </span>
+                <span sx={stylexStyles3.rule1}>HDR Dynamic Range</span>
                 <span
                   className={
                     /* TODO(stylex): global or unknown class: cap-no */ 'cap-no rounded bg-red-500/20 px-2 py-0.5 text-xs font-semibold text-red-400'
@@ -657,13 +678,7 @@ export function HDRDebug() {
                   /* TODO(stylex): global or unknown class: hdr-debug-dynamic-range-sdr */ 'hdr-debug-dynamic-range-sdr flex items-center gap-2'
                 }
               >
-                <span
-                  className={
-                    /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary text-xs'
-                  }
-                >
-                  SDR Dynamic Range
-                </span>
+                <span sx={stylexStyles3.rule1}>SDR Dynamic Range</span>
                 <span
                   className={
                     /* TODO(stylex): global or unknown class: cap-no */ 'cap-no rounded bg-red-500/20 px-2 py-0.5 text-xs font-semibold text-red-400'
@@ -693,13 +708,7 @@ export function HDRDebug() {
             </p>
             <div sx={stylexStyles.rule20}>
               <div>
-                <h3
-                  className={
-                    /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary mb-2 text-xs font-semibold tracking-wider uppercase'
-                  }
-                >
-                  Brand
-                </h3>
+                <h3 sx={stylexStyles3.rule2}>Brand</h3>
                 <div sx={stylexStyles.rule21}>
                   <Swatch label="brand" color="var(--color-brand)" />
                   <Swatch
@@ -716,13 +725,7 @@ export function HDRDebug() {
                 </div>
               </div>
               <div>
-                <h3
-                  className={
-                    /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary mb-2 text-xs font-semibold tracking-wider uppercase'
-                  }
-                >
-                  Status
-                </h3>
+                <h3 sx={stylexStyles3.rule2}>Status</h3>
                 <div sx={stylexStyles.rule21}>
                   <Swatch label="success" color="var(--color-success)" />
                   <Swatch label="warning" color="var(--color-warning)" />
@@ -730,13 +733,7 @@ export function HDRDebug() {
                 </div>
               </div>
               <div>
-                <h3
-                  className={
-                    /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary mb-2 text-xs font-semibold tracking-wider uppercase'
-                  }
-                >
-                  Console
-                </h3>
+                <h3 sx={stylexStyles3.rule2}>Console</h3>
                 <div sx={stylexStyles.rule21}>
                   <Swatch label="output" color="var(--color-console-output)" />
                   <Swatch label="info" color="var(--color-console-info)" />
@@ -744,13 +741,7 @@ export function HDRDebug() {
                 </div>
               </div>
               <div>
-                <h3
-                  className={
-                    /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary mb-2 text-xs font-semibold tracking-wider uppercase'
-                  }
-                >
-                  Logo
-                </h3>
+                <h3 sx={stylexStyles3.rule2}>Logo</h3>
                 <div sx={stylexStyles.rule21}>
                   <Swatch label="blue" color="var(--color-logo-blue)" />
                   <Swatch label="pink" color="var(--color-logo-pink)" />
@@ -758,13 +749,7 @@ export function HDRDebug() {
                 </div>
               </div>
               <div>
-                <h3
-                  className={
-                    /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary mb-2 text-xs font-semibold tracking-wider uppercase'
-                  }
-                >
-                  Backgrounds
-                </h3>
+                <h3 sx={stylexStyles3.rule2}>Backgrounds</h3>
                 <div sx={stylexStyles.rule21}>
                   <Swatch label="bg" color="var(--color-background)" />
                   <Swatch
@@ -790,13 +775,7 @@ export function HDRDebug() {
                 </div>
               </div>
               <div>
-                <h3
-                  className={
-                    /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary mb-2 text-xs font-semibold tracking-wider uppercase'
-                  }
-                >
-                  Borders & UI
-                </h3>
+                <h3 sx={stylexStyles3.rule2}>Borders & UI</h3>
                 <div sx={stylexStyles.rule21}>
                   <Swatch label="border" color="var(--color-border)" />
                   <Swatch label="ui-outline" color="var(--color-ui-outline)" />
@@ -841,11 +820,7 @@ export function HDRDebug() {
               />
             </div>
 
-            <h3
-              className={
-                /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary mt-4 text-xs font-semibold tracking-wider uppercase'
-              }
-            >
+            <h3 sx={stylexStyles3.rule3}>
               Same test with brand color (--color-brand)
             </h3>
             <div sx={stylexStyles.rule22}>
@@ -869,11 +844,7 @@ export function HDRDebug() {
               />
             </div>
 
-            <h3
-              className={
-                /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary mt-4 text-xs font-semibold tracking-wider uppercase'
-              }
-            >
+            <h3 sx={stylexStyles3.rule3}>
               Deep primary color (--color-primary)
             </h3>
             <div sx={stylexStyles.rule22}>
@@ -897,13 +868,7 @@ export function HDRDebug() {
               />
             </div>
 
-            <h3
-              className={
-                /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary mt-4 text-xs font-semibold tracking-wider uppercase'
-              }
-            >
-              Success / Warning / Error glow
-            </h3>
+            <h3 sx={stylexStyles3.rule3}>Success / Warning / Error glow</h3>
             <div sx={stylexStyles.rule22}>
               <GlowBox
                 label="Success"
@@ -1039,23 +1004,11 @@ export function HDRDebug() {
                 <span sx={stylexStyles.rule25}>no-limit + glow</span>
               </div>
               <div sx={stylexStyles2.rule13}>
-                <span
-                  className={
-                    /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary text-sm'
-                  }
-                >
-                  Inactive Panel
-                </span>
+                <span sx={stylexStyles3.rule4}>Inactive Panel</span>
                 <span sx={stylexStyles.rule25}>standard + recede</span>
               </div>
               <div sx={stylexStyles2.rule14}>
-                <span
-                  className={
-                    /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary text-sm'
-                  }
-                >
-                  Inactive (no shadow)
-                </span>
+                <span sx={stylexStyles3.rule4}>Inactive (no shadow)</span>
                 <span sx={stylexStyles.rule25}>standard, flat</span>
               </div>
             </div>
@@ -1184,35 +1137,17 @@ export function HDRDebug() {
                   /* TODO(stylex): global or unknown class: hdr-window-glow */ 'hdr-window-glow border-window-border bg-background-primary flex h-24 flex-1 items-center justify-center rounded-lg border'
                 }
               >
-                <span
-                  className={
-                    /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary text-xs'
-                  }
-                >
-                  Hover me (window glow)
-                </span>
+                <span sx={stylexStyles3.rule1}>Hover me (window glow)</span>
               </div>
               <div
                 className={
                   /* TODO(stylex): global or unknown class: hdr-window-glow */ 'hdr-window-glow border-ui-outline bg-background-secondary flex h-24 flex-1 items-center justify-center rounded-lg border'
                 }
               >
-                <span
-                  className={
-                    /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary text-xs'
-                  }
-                >
-                  Hover me (outline glow)
-                </span>
+                <span sx={stylexStyles3.rule1}>Hover me (outline glow)</span>
               </div>
               <div sx={stylexStyles.rule29}>
-                <span
-                  className={
-                    /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary text-xs'
-                  }
-                >
-                  No glow (control)
-                </span>
+                <span sx={stylexStyles3.rule1}>No glow (control)</span>
               </div>
             </div>
           </Section>

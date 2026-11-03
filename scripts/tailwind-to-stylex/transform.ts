@@ -389,6 +389,18 @@ export function transform(
         }),
       )
 
+    // Conditional cn color overrides can remove an alias and its unlayered typography together.
+    for (const [classes, entry] of namespaces) {
+      if (
+        !references.has(entry.name) ||
+        !classes.split(/\s+/).some((name) => oracle.fontAliases.has(name))
+      )
+        continue
+      for (const name of references.keys())
+        if (name !== entry.name && canCompose(entry.name, name))
+          throw Error('conditional property composition: font alias')
+    }
+
     // StyleX composition owns every condition of a property; Tailwind's cascade merges them separately.
     const seen = new Map<
       string,
@@ -472,6 +484,26 @@ export function transform(
             `conditional direction composition: ${logical},${physical.join(',')}`,
           )
       }
+    }
+
+    // Unlayered typography overrides utilities on this element, while pseudo-elements retain their own rules.
+    const candidates = new Set(value.trim().split(/\s+/))
+    for (const [candidate, font] of oracle.fontAliases) {
+      if (!candidates.has(candidate)) continue
+      const properties = new Set(Object.keys(font))
+      const clear = (target: StyleRule) => {
+        for (const [property, declaration] of Object.entries(target)) {
+          if (properties.has(property)) delete target[property]
+          else if (
+            !property.startsWith('::') &&
+            declaration !== null &&
+            typeof declaration === 'object'
+          )
+            clear(declaration)
+        }
+      }
+      clear(style)
+      mergeStyle(style, font)
     }
 
     // Reuse this complete outcome across matching source expressions.

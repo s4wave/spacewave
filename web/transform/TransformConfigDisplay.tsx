@@ -1,3 +1,4 @@
+import { rowDividers } from '@s4wave/web/style/row-dividers.stylex.js'
 import { useMemo } from 'react'
 import {
   LuHardDrive,
@@ -22,7 +23,6 @@ import {
 import type { StepConfig } from '@go/github.com/s4wave/spacewave/db/block/transform/transform.pb.js'
 import type { TransformInfo } from '@s4wave/sdk/space/space.pb.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import {
   Tooltip,
   TooltipContent,
@@ -38,6 +38,29 @@ import {
   colors as themeColors,
   fonts as themeFonts,
 } from '../style/tokens.stylex.js'
+
+import { utilityState as themeUtilityState } from '../style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    boxShadow: '0 4px 20px rgb(0 0 0 / 25%), 0 0 40px rgb(200 80 60 / 4%)',
+  },
+  rule2: { boxShadow: '0 2px 8px rgb(0 0 0 / 15%)' },
+  rule3: {
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+  },
+  rule4: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 12%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 40%, transparent)`,
+  },
+  rule5: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+  },
+})
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -351,10 +374,16 @@ function parseStep(step: StepConfig): StepInfo {
 
 export interface TransformConfigDisplayProps {
   info: TransformInfo
+
+  sx?: stylex.StyleXStyles
+  className?: never
 }
 
 // TransformConfigDisplay renders transform pipeline info as an integrated card with rows.
-export function TransformConfigDisplay({ info }: TransformConfigDisplayProps) {
+export function TransformConfigDisplay({
+  info,
+  sx,
+}: TransformConfigDisplayProps) {
   // Separate encryption from content transforms and resolve their storage summary.
   const steps = useMemo(() => (info.steps ?? []).map(parseStep), [info.steps])
   const encryptionStep = steps.find((s) => s.isEncryption)
@@ -365,24 +394,21 @@ export function TransformConfigDisplay({ info }: TransformConfigDisplayProps) {
 
   return (
     <div
-      className={
-        /* TODO(stylex): global or unknown class: transform-config-shadow-encryption */ cn(
-          hasEncryption
-            ? 'transform-config-shadow-encryption'
-            : 'transform-config-shadow-default',
-          'divide-foreground/6 divide-y overflow-hidden rounded-lg border',
-          hasEncryption
-            ? 'border-brand/12 bg-background-card/40'
-            : 'border-foreground/6 bg-background-card/30',
-        )
-      }
+      sx={[
+        [
+          hasEncryption ? stylexStyles3.rule1 : stylexStyles3.rule2,
+          stylexStyles3.rule3,
+          hasEncryption ? stylexStyles3.rule4 : stylexStyles3.rule5,
+        ],
+        sx,
+      ]}
     >
       {contentSteps.map((step) => {
         const Icon = step.icon
         return (
           <Tooltip key={`${step.label}-${step.detail}`}>
             <TooltipTrigger asChild>
-              <div sx={stylexStyles2.rule1}>
+              <div sx={[stylexStyles2.rule1, rowDividers.regular]}>
                 <div sx={[stylexStyles2.rule2]}>
                   <Icon sx={stylexStyles2.rule3} />
                 </div>
@@ -402,7 +428,7 @@ export function TransformConfigDisplay({ info }: TransformConfigDisplayProps) {
       {storageBytes > 0n && (
         <Tooltip>
           <TooltipTrigger asChild>
-            <div sx={stylexStyles2.rule1}>
+            <div sx={[stylexStyles2.rule1, rowDividers.regular]}>
               <div sx={stylexStyles2.rule2}>
                 <LuHardDrive sx={stylexStyles2.rule3} />
               </div>

@@ -9,7 +9,7 @@ import {
 } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import { usePromise } from '@s4wave/web/hooks/usePromise.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import type { DebugDb } from '@s4wave/sdk/debugdb/debugdb.js'
 import type {
   BenchmarkConfig,
@@ -30,6 +30,83 @@ import {
   radii as themeRadii,
   motion as themeMotion,
 } from '../style/tokens.stylex.js'
+
+const stylexStyles5 = stylex.create({
+  rule1: {
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingRight: `calc(${themeLayout['--spacing']} * 4)`,
+    textAlign: 'right',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule2: {
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    textAlign: 'right',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+})
+
+const stylexStyles4 = stylex.create({
+  rule1: { color: themeColors['--color-green-400'] },
+  rule2: { color: themeColors['--color-yellow-400'] },
+  rule3: { color: themeColors['--color-red-400'] },
+})
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'flex',
+    cursor: 'pointer',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    color: {
+      default: themeColors['--color-text-secondary'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-text-primary'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    fontSize: themeLayout['--text-ui'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-ui--line-height']})`,
+    letterSpacing: `var(--tw-tracking, ${themeLayout['--text-ui--letter-spacing']})`,
+  },
+  rule2: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-wider)',
+    color: themeColors['--color-text-secondary'],
+    textTransform: 'uppercase',
+    fontSize: themeLayout['--text-ui'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-ui--line-height']})`,
+    letterSpacing: `var(--tw-tracking, ${themeLayout['--text-ui--letter-spacing']})`,
+  },
+  rule3: {
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-wider)',
+    color: themeColors['--color-text-secondary'],
+    textTransform: 'uppercase',
+    fontSize: themeLayout['--text-ui'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-ui--line-height']})`,
+    letterSpacing: `var(--tw-tracking, ${themeLayout['--text-ui--letter-spacing']})`,
+  },
+})
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -361,11 +438,11 @@ const stylexStyles = stylex.create({
   },
 })
 
-// latencyColor returns a Tailwind text color class based on latency value.
-function latencyColor(ms: number): string {
-  if (ms < 1) return 'text-green-400'
-  if (ms <= 10) return 'text-yellow-400'
-  return 'text-red-400'
+// latencyColor selects a native text tone for measured latency.
+function latencyColor(ms: number): stylex.StyleXStyles {
+  if (ms < 1) return [stylexStyles4.rule1]
+  if (ms <= 10) return [stylexStyles4.rule2]
+  return [stylexStyles4.rule3]
 }
 
 // fmtMs formats a millisecond value with appropriate precision.
@@ -385,44 +462,16 @@ function MetricRow({ metric }: { metric: BenchmarkMetric }) {
       <td sx={stylexStyles.rule2}>{metric.name}</td>
       <td sx={stylexStyles.rule3}>{metric.count?.toString() ?? '-'}</td>
       <td sx={stylexStyles.rule3}>{fmtMs(metric.totalMs)}</td>
-      <td
-        className={
-          /* TODO(stylex): computed class helper */ cn(
-            'py-1.5 pr-4 text-right font-mono text-xs',
-            latencyColor(metric.minMs ?? 0),
-          )
-        }
-      >
+      <td sx={[[stylexStyles5.rule1], [latencyColor(metric.minMs ?? 0)]]}>
         {fmtMs(metric.minMs)}
       </td>
-      <td
-        className={
-          /* TODO(stylex): computed class helper */ cn(
-            'py-1.5 pr-4 text-right font-mono text-xs',
-            latencyColor(metric.p50Ms ?? 0),
-          )
-        }
-      >
+      <td sx={[[stylexStyles5.rule1], [latencyColor(metric.p50Ms ?? 0)]]}>
         {fmtMs(metric.p50Ms)}
       </td>
-      <td
-        className={
-          /* TODO(stylex): computed class helper */ cn(
-            'py-1.5 pr-4 text-right font-mono text-xs',
-            latencyColor(metric.p99Ms ?? 0),
-          )
-        }
-      >
+      <td sx={[[stylexStyles5.rule1], [latencyColor(metric.p99Ms ?? 0)]]}>
         {fmtMs(metric.p99Ms)}
       </td>
-      <td
-        className={
-          /* TODO(stylex): computed class helper */ cn(
-            'py-1.5 text-right font-mono text-xs',
-            latencyColor(metric.maxMs ?? 0),
-          )
-        }
-      >
+      <td sx={[[stylexStyles5.rule2], [latencyColor(metric.maxMs ?? 0)]]}>
         {fmtMs(metric.maxMs)}
       </td>
     </tr>
@@ -490,9 +539,7 @@ function ResultsDisplay({ results }: { results: BenchmarkResults }) {
         <button
           type="button"
           onClick={downloadResults}
-          className={
-            /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary hover:text-text-primary flex cursor-pointer items-center gap-1.5 text-xs transition-colors'
-          }
+          sx={stylexStyles3.rule1}
         >
           <LuDownload sx={stylexStyles.rule15} />
           Download JSON
@@ -509,13 +556,7 @@ function ResultsDisplay({ results }: { results: BenchmarkResults }) {
 function StorageInfoPanel({ info }: { info: StorageInfo }) {
   return (
     <div sx={stylexStyles.rule16}>
-      <h3
-        className={
-          /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary mb-2 text-xs font-semibold tracking-wider uppercase'
-        }
-      >
-        Current Backend
-      </h3>
+      <h3 sx={stylexStyles3.rule2}>Current Backend</h3>
       <p sx={stylexStyles.rule17}>
         These values describe the app&apos;s current storage backend, not the
         temporary benchmark run configuration below.
@@ -599,13 +640,7 @@ function BenchmarkPanel({ debugDb }: { debugDb: Resource<DebugDb> }) {
   return (
     <div sx={stylexStyles.rule12}>
       <div sx={stylexStyles.rule25}>
-        <h3
-          className={
-            /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary text-xs font-semibold tracking-wider uppercase'
-          }
-        >
-          Benchmark Run
-        </h3>
+        <h3 sx={stylexStyles3.rule3}>Benchmark Run</h3>
         <p sx={stylexStyles.rule14}>
           These options apply only to the throwaway benchmark volume and engine
           created for this run. They do not change the app&apos;s current

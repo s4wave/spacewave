@@ -19,6 +19,17 @@ import {
   fonts as themeFonts,
 } from '../style/tokens.stylex.js'
 
+const stylexStyles2 = stylex.create({
+  rule1: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-text-secondary'],
+    fontSize: themeLayout['--text-ui'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-ui--line-height']})`,
+    letterSpacing: `var(--tw-tracking, ${themeLayout['--text-ui--letter-spacing']})`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     display: 'flex',
@@ -131,13 +142,7 @@ export function StateDetailsPanel({ entry }: StateDetailsPanelProps) {
   return (
     <div sx={[stylexStyles.rule1]} data-testid="state-details-panel">
       <div sx={stylexStyles.rule2}>
-        <span
-          className={
-            /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary text-xs font-medium'
-          }
-        >
-          {entry.label}
-        </span>
+        <span sx={stylexStyles2.rule1}>{entry.label}</span>
         <button type="button" onClick={handleClose} sx={stylexStyles.rule3}>
           Close
         </button>

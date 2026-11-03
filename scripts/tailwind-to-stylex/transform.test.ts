@@ -40,6 +40,8 @@ import { writeReferenceFixture } from './reference-fixture.js'
 import { writeFrameFixture } from './frame-fixture.js'
 import { writeSpacingFixture } from './spacing-fixture.js'
 import { writeRootsFixture } from './roots-fixture.js'
+import { writeHelpersFixture } from './helpers-fixture.js'
+import { writeDividersFixture } from './dividers-fixture.js'
 import { writeLoadingScreenFixture } from './loading-screen-fixture.js'
 import { writeCredentialFixture } from './credential-fixture.js'
 import { writeBadgeFixture } from './badge-fixture.js'
@@ -98,15 +100,6 @@ test(
     )
     assert.equal(shadowed.converted, 0)
     assert.equal(shadowed.remaining.length, 1)
-
-    // A global @apply alias must not silently become only the utility's color declaration.
-    const alias = transform(
-      '<div className="text-text-secondary"/>',
-      'alias.tsx',
-      oracle,
-    )
-    assert.equal(alias.converted, 0)
-    assert.match(alias.remaining[0]!.reason, /global class adds declarations/)
 
     // Physical sides cannot silently outrank a later logical breakpoint rule.
     const directional = transform(
@@ -646,6 +639,8 @@ test(
         await writeFrameFixture(root, version)
         await writeSpacingFixture(root, version)
         await writeRootsFixture(root, version)
+        await writeHelpersFixture(root, version)
+        await writeDividersFixture(root, version)
         await writeLoadingScreenFixture(root, version)
         await writePathFixture(root, version)
         await writeTabsFixture(root, version)
@@ -656,7 +651,7 @@ test(
         main =
           "import{LoadingScreenSamples}from'./LoadingScreenSamples';" + main
         main =
-          "import{FrameSamples}from'./FrameSamples';import{SpacingSamples}from'./SpacingSamples';import{RootsSamples}from'./RootsSamples';" +
+          "import{FrameSamples}from'./FrameSamples';import{SpacingSamples}from'./SpacingSamples';import{RootsSamples}from'./RootsSamples';import{HelpersSamples}from'./HelpersSamples';import{DividerSamples}from'./DividerSamples';" +
           main
         main = "import{ReferenceSamples}from'./ReferenceSamples';" + main
         main = "import{LoginSamples}from'./LoginSamples';" + main
@@ -672,7 +667,7 @@ test(
         main = "import{SheetSamples}from'./SheetSamples';" + main
         main = main.replace(
           "createRoot(document.getElementById('root')!).render",
-          "if(new URLSearchParams(location.search).has('roots'))createRoot(document.getElementById('root')!).render(<RootsSamples/>);else if(new URLSearchParams(location.search).has('spacing'))createRoot(document.getElementById('root')!).render(<SpacingSamples/>);else if(new URLSearchParams(location.search).has('frame'))createRoot(document.getElementById('root')!).render(<FrameSamples/>);else if(new URLSearchParams(location.search).has('owned'))createRoot(document.getElementById('root')!).render(<OwnedStyles/>);else if(new URLSearchParams(location.search).has('references'))createRoot(document.getElementById('root')!).render(<ReferenceSamples/>);else if(new URLSearchParams(location.search).has('loading-screen'))createRoot(document.getElementById('root')!).render(<LoadingScreenSamples/>);else if(new URLSearchParams(location.search).has('login'))createRoot(document.getElementById('root')!).render(<LoginSamples/>);else if(new URLSearchParams(location.search).has('command'))createRoot(document.getElementById('root')!).render(<CommandSamples/>);else if(new URLSearchParams(location.search).has('groups'))createRoot(document.getElementById('root')!).render(<GroupSamples/>);else if(new URLSearchParams(location.search).has('code'))createRoot(document.getElementById('root')!).render(<CodeSamples/>);else if(new URLSearchParams(location.search).has('trace'))createRoot(document.getElementById('root')!).render(<TraceSamples/>);else if(new URLSearchParams(location.search).has('credential'))createRoot(document.getElementById('root')!).render(<CredentialSamples/>);else if(new URLSearchParams(location.search).has('icon-defaults'))createRoot(document.getElementById('root')!).render(<IconDefaultsSamples/>);else if(new URLSearchParams(location.search).has('floating'))createRoot(document.getElementById('root')!).render(<FloatingSamples/>);else if(new URLSearchParams(location.search).has('badge'))createRoot(document.getElementById('root')!).render(<BadgeSamples/>);else if(new URLSearchParams(location.search).has('tree'))createRoot(document.getElementById('root')!).render(<TreeSamples/>);else if(new URLSearchParams(location.search).has('tabs'))createRoot(document.getElementById('root')!).render(<TabsSamples/>);else if(new URLSearchParams(location.search).has('path'))createRoot(document.getElementById('root')!).render(<PathSamples/>);else if(new URLSearchParams(location.search).has('dialog'))createRoot(document.getElementById('root')!).render(<DialogSamples/>);else if(new URLSearchParams(location.search).has('buttons'))createRoot(document.getElementById('root')!).render(<ButtonSamples/>);else if(new URLSearchParams(location.search).has('input'))createRoot(document.getElementById('root')!).render(<InputSamples/>);else if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
+          "if(new URLSearchParams(location.search).has('dividers'))createRoot(document.getElementById('root')!).render(<DividerSamples/>);else if(new URLSearchParams(location.search).has('helpers'))createRoot(document.getElementById('root')!).render(<HelpersSamples/>);else if(new URLSearchParams(location.search).has('roots'))createRoot(document.getElementById('root')!).render(<RootsSamples/>);else if(new URLSearchParams(location.search).has('spacing'))createRoot(document.getElementById('root')!).render(<SpacingSamples/>);else if(new URLSearchParams(location.search).has('frame'))createRoot(document.getElementById('root')!).render(<FrameSamples/>);else if(new URLSearchParams(location.search).has('owned'))createRoot(document.getElementById('root')!).render(<OwnedStyles/>);else if(new URLSearchParams(location.search).has('references'))createRoot(document.getElementById('root')!).render(<ReferenceSamples/>);else if(new URLSearchParams(location.search).has('loading-screen'))createRoot(document.getElementById('root')!).render(<LoadingScreenSamples/>);else if(new URLSearchParams(location.search).has('login'))createRoot(document.getElementById('root')!).render(<LoginSamples/>);else if(new URLSearchParams(location.search).has('command'))createRoot(document.getElementById('root')!).render(<CommandSamples/>);else if(new URLSearchParams(location.search).has('groups'))createRoot(document.getElementById('root')!).render(<GroupSamples/>);else if(new URLSearchParams(location.search).has('code'))createRoot(document.getElementById('root')!).render(<CodeSamples/>);else if(new URLSearchParams(location.search).has('trace'))createRoot(document.getElementById('root')!).render(<TraceSamples/>);else if(new URLSearchParams(location.search).has('credential'))createRoot(document.getElementById('root')!).render(<CredentialSamples/>);else if(new URLSearchParams(location.search).has('icon-defaults'))createRoot(document.getElementById('root')!).render(<IconDefaultsSamples/>);else if(new URLSearchParams(location.search).has('floating'))createRoot(document.getElementById('root')!).render(<FloatingSamples/>);else if(new URLSearchParams(location.search).has('badge'))createRoot(document.getElementById('root')!).render(<BadgeSamples/>);else if(new URLSearchParams(location.search).has('tree'))createRoot(document.getElementById('root')!).render(<TreeSamples/>);else if(new URLSearchParams(location.search).has('tabs'))createRoot(document.getElementById('root')!).render(<TabsSamples/>);else if(new URLSearchParams(location.search).has('path'))createRoot(document.getElementById('root')!).render(<PathSamples/>);else if(new URLSearchParams(location.search).has('dialog'))createRoot(document.getElementById('root')!).render(<DialogSamples/>);else if(new URLSearchParams(location.search).has('buttons'))createRoot(document.getElementById('root')!).render(<ButtonSamples/>);else if(new URLSearchParams(location.search).has('input'))createRoot(document.getElementById('root')!).render(<InputSamples/>);else if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
         )
         // Discover the actual tree API through its public barrel before converting the caller.
         const treeImports = await readSharedStyleApis(
@@ -920,6 +915,67 @@ void invalidNativeDelegate;
       // Compare default and hovered controls in both engines at every accepted size.
       const manifest = {
         states: [
+          ...['default', 'hovered', 'forge', 'forge-rows'].map((mode) => ({
+            id: `dividers-${mode}`,
+            path: `/?dividers=${mode}`,
+            ready: async (page: import('playwright').Page) => {
+              await page.locator('#divider-fixtures').waitFor({ timeout: 5000 })
+              await page.evaluate(() => document.fonts.ready)
+            },
+            setup: async (page: import('playwright').Page) => {
+              if (mode === 'hovered')
+                await page
+                  .getByText('task/first', { exact: true })
+                  .last()
+                  .hover({ timeout: 5000 })
+              if (mode === 'forge-rows')
+                await page
+                  .getByRole('heading', {
+                    name: 'Entity rows (linked entity lists)',
+                    exact: true,
+                  })
+                  .scrollIntoViewIfNeeded({ timeout: 5000 })
+            },
+          })),
+          ...[
+            'badges',
+            'resources',
+            'resources-hovered',
+            'file-default',
+            'file-selected',
+            'file-coarse',
+            'file-hovered',
+          ].map((mode) => ({
+            id: `helpers-${mode}`,
+            path: `/?helpers=${mode}`,
+            hasTouch: mode === 'file-coarse',
+            ready: async (page: import('playwright').Page) => {
+              await page.locator('#helpers-fixtures').waitFor({ timeout: 5000 })
+              if (mode.startsWith('file'))
+                await page
+                  .getByRole('row')
+                  .filter({ hasText: 'README.md' })
+                  .waitFor({ timeout: 5000 })
+              await page.evaluate(() => document.fonts.ready)
+            },
+            setup: async (page: import('playwright').Page) => {
+              if (mode === 'resources-hovered')
+                await page
+                  .getByRole('button', { name: 'Copy', exact: true })
+                  .first()
+                  .hover({ timeout: 5000 })
+              if (mode === 'file-selected')
+                await page
+                  .getByRole('row')
+                  .filter({ hasText: 'README.md' })
+                  .click({ timeout: 5000 })
+              if (mode === 'file-hovered')
+                await page
+                  .getByRole('row')
+                  .filter({ hasText: 'README.md' })
+                  .hover({ timeout: 5000 })
+            },
+          })),
           ...['default', 'hovered'].map((mode) => ({
             id: `roots-${mode}`,
             path: `/?roots=${mode}`,
@@ -1019,6 +1075,12 @@ void invalidNativeDelegate;
                 .locator('[aria-label="Default box"]')
                 .first()
                 .waitFor({ timeout: 5000 })
+              assert.equal(
+                await page
+                  .getByLabel('Unlayered font alias', { exact: true })
+                  .evaluate((element) => getComputedStyle(element).fontSize),
+                '12px',
+              )
               assert.equal(
                 await page
                   .getByLabel('Mixed native styles', { exact: true })
@@ -1699,6 +1761,27 @@ void invalidNativeDelegate;
             'icon-defaults-menubar-forced',
             'icon-defaults-dropdown-dark',
             'icon-defaults-menubar-dark',
+          ],
+        },
+        {
+          name: 'native row dividers',
+          ids: [
+            'dividers-default',
+            'dividers-hovered',
+            'dividers-forge',
+            'dividers-forge-rows',
+          ],
+        },
+        {
+          name: 'native helper values',
+          ids: [
+            'helpers-badges',
+            'helpers-resources',
+            'helpers-resources-hovered',
+            'helpers-file-default',
+            'helpers-file-selected',
+            'helpers-file-coarse',
+            'helpers-file-hovered',
           ],
         },
         {

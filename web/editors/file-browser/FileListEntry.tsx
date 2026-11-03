@@ -1,6 +1,3 @@
-import * as ownerStylex from '@stylexjs/stylex'
-import { cn as ownerClasses } from '@s4wave/web/style/utils.js'
-import { groupMarker as ownergroupMarker } from '@s4wave/web/style/relations.stylex.js'
 import {
   type ReactNode,
   useCallback,
@@ -14,7 +11,7 @@ import {
 import { format } from 'date-fns'
 import { LuFolder, LuFile, LuEllipsis } from '@s4wave/web/images/icons.js'
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { RowComponentProps, ListStateContext } from '@s4wave/web/ui/list'
 import { usePromise } from '@s4wave/web/hooks/usePromise.js'
 import {
@@ -43,6 +40,157 @@ import {
 
 import { motion as themeMotion } from '../../style/tokens.stylex.js'
 import { groupMarker } from '../../style/relations.stylex.js'
+
+import { groupMarker as groupMarker3 } from '../../style/relations.stylex.js'
+
+const stylexStyles5 = stylex.create({
+  rule1: {
+    position: 'relative',
+    display: 'flex',
+    cursor: 'pointer',
+    alignItems: 'center',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: {
+      default: `calc(${themeLayout['--spacing']} * 1.5)`,
+      '@media (pointer: coarse)': 0,
+    },
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+    '--tw-ring-shadow':
+      'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    '--tw-ring-color': `color-mix(in oklab, ${themeColors['--color-brand']} 40%, transparent)`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    '--tw-ring-inset': 'inset',
+  },
+  rule3: {
+    position: 'relative',
+    display: 'flex',
+    cursor: 'pointer',
+    alignItems: 'center',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: {
+      default: `calc(${themeLayout['--spacing']} * 1.5)`,
+      '@media (pointer: coarse)': 0,
+    },
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule4: {
+    position: 'relative',
+    display: 'flex',
+    cursor: 'pointer',
+    alignItems: 'center',
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: {
+      default: `calc(${themeLayout['--spacing']} * 1.5)`,
+      '@media (pointer: coarse)': 0,
+    },
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground']} 90%, transparent)`,
+    '--tw-ring-shadow':
+      'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    '--tw-ring-color': `color-mix(in oklab, ${themeColors['--color-brand']} 40%, transparent)`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    '--tw-ring-inset': 'inset',
+  },
+  rule5: {
+    position: 'relative',
+    display: 'flex',
+    cursor: 'pointer',
+    alignItems: 'center',
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: {
+      default: `calc(${themeLayout['--spacing']} * 1.5)`,
+      '@media (pointer: coarse)': 0,
+    },
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground']} 90%, transparent)`,
+    '--tw-ring-shadow':
+      'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    '--tw-ring-color': `color-mix(in oklab, ${themeColors['--color-brand']} 25%, transparent)`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    '--tw-ring-inset': 'inset',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+  },
+  rule6: {
+    position: 'relative',
+    display: 'flex',
+    cursor: 'pointer',
+    alignItems: 'center',
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: {
+      default: `calc(${themeLayout['--spacing']} * 1.5)`,
+      '@media (pointer: coarse)': 0,
+    },
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground']} 90%, transparent)`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+  },
+})
 
 const stylexStyles4 = stylex.create({
   rule1: {
@@ -486,21 +634,7 @@ function FileEntryRow({
       aria-posinset={ariaAttributes['aria-posinset']}
       aria-setsize={ariaAttributes['aria-setsize']}
       style={style}
-      className={
-        /* TODO(stylex): global or unknown class: group */ cn(
-          ownerClasses(
-            'group relative flex items-center px-3 py-1.5 text-xs [@media(pointer:coarse)]:py-0',
-            ownerStylex.props(ownergroupMarker).className,
-          ),
-          'cursor-pointer transition-colors select-none',
-          selected
-            ? 'bg-brand/10 text-foreground'
-            : 'text-foreground/90 hover:bg-foreground/5',
-          focused && !selected && 'ring-brand/25 ring-1 ring-inset',
-          entry.id === dropTargetEntryId &&
-            'bg-brand/10 ring-brand/40 ring-1 ring-inset',
-        )
-      }
+      sx={fileEntryStyles(selected, focused, entry.id === dropTargetEntryId)}
       draggable={drag.draggable}
       onClick={row.select}
       onKeyDown={row.keyDown}
@@ -541,4 +675,24 @@ function FileEntryRow({
       </button>
     </div>
   )
+}
+
+// fileEntryStyles keeps drop emphasis ahead of focus and selection styling.
+function fileEntryStyles(
+  selected: boolean,
+  focused: boolean,
+  dropTarget: boolean,
+): stylex.StyleXStyles {
+  // Selected rows suppress the ordinary focus ring; drop emphasis still wins.
+  if (selected)
+    return [
+      dropTarget ? stylexStyles5.rule1 : stylexStyles5.rule3,
+      groupMarker3,
+    ]
+
+  // Unselected drop targets use their stronger ring independently of keyboard focus.
+  if (dropTarget) return [stylexStyles5.rule4, groupMarker3]
+
+  // Ordinary rows retain the focused and hovered outcomes from the list's state.
+  return [focused ? stylexStyles5.rule5 : stylexStyles5.rule6, groupMarker3]
 }
