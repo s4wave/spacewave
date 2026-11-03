@@ -43,6 +43,33 @@ import {
 
 import { groupMarker } from '../style/relations.stylex.js'
 
+import { groupMarker as groupMarker2 } from '../style/relations.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker2)]:
+          `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     display: 'flex',
@@ -439,11 +466,13 @@ export function ObjectViewerDetails({
   onCloseClick,
   onDeleteConfirm,
 }: ObjectViewerDetailsProps) {
+  // Retain local disclosure and the pending viewer selection.
   const [technicalDetailsOpen, setTechnicalDetailsOpen] = useState(false)
   const [selectedComponentOverride, setSelectedComponentOverride] = useState<
     string | undefined
   >()
 
+  // Keep the chosen viewer visible until its owner publishes the selection.
   const displayedSelectedComponentID =
     selectedComponentOverride ?? selectedComponent?.componentID
   const displayedSelectedComponent =
@@ -451,6 +480,7 @@ export function ObjectViewerDetails({
       (component) => component.componentID === displayedSelectedComponentID,
     ) ?? selectedComponent
 
+  // Publish the selected viewer while retaining its immediate local presentation.
   const handleComponentSelect = useCallback(
     (component: ObjectViewerComponent) => {
       setSelectedComponentOverride(component.componentID)
@@ -706,11 +736,13 @@ function DangerZoneSection({
   objectKey,
   onDeleteConfirm,
 }: DangerZoneSectionProps) {
+  // Retain the destructive-action disclosure and its current submission feedback.
   const [open, setOpen] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string>()
 
+  // Clear stale feedback when the confirmation dialog closes.
   const handleDialogOpenChange = useCallback((next: boolean) => {
     if (!next) {
       setError(undefined)
@@ -719,6 +751,7 @@ function DangerZoneSection({
     setDialogOpen(next)
   }, [])
 
+  // Invoke the existing deletion owner and retain a retryable failure state.
   const handleDelete = useCallback(async () => {
     setSubmitting(true)
     setError(undefined)
@@ -744,11 +777,7 @@ function DangerZoneSection({
           onClick={() => setDialogOpen(true)}
           sx={[stylexStyles2.rule1, groupMarker]}
         >
-          <div
-            className={
-              /* TODO(stylex): a descendant, group, peer or compound selector: group-hover:bg-destructive/30 */ 'bg-destructive/20 group-hover:bg-destructive/30 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors'
-            }
-          >
+          <div sx={stylexStyles3.rule1}>
             <LuTrash2 sx={stylexStyles.rule28} />
           </div>
           <div sx={stylexStyles.rule23}>

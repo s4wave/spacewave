@@ -26,6 +26,55 @@ import {
 
 import { groupMarker } from '../style/relations.stylex.js'
 
+import { groupMarker as groupMarker2 } from '../style/relations.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 7)`,
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker2)]:
+          `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule2: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 9)`,
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '.25rem',
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker2)]:
+          `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     display: 'flex',
@@ -1104,11 +1153,7 @@ function GlassRow({ sample }: { sample: RowSample }) {
   return (
     <div sx={[stylexStyles2.rule1, groupMarker]}>
       <div sx={stylexStyles.rule28}>
-        <span
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: group-hover:bg-foreground/8 */ 'bg-foreground/5 group-hover:bg-foreground/8 flex size-7 shrink-0 items-center justify-center rounded-md transition-colors'
-          }
-        >
+        <span sx={stylexStyles3.rule1}>
           <LuListTodo sx={stylexStyles.rule29} />
         </span>
         <div sx={stylexStyles.rule25}>
@@ -1245,11 +1290,7 @@ function InlineStat({
 }) {
   return (
     <div sx={[stylexStyles2.rule2, groupMarker]}>
-      <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: group-hover:bg-brand/15 */ 'bg-brand/10 group-hover:bg-brand/15 flex size-9 shrink-0 items-center justify-center rounded transition duration-150'
-        }
-      >
+      <div sx={stylexStyles3.rule2}>
         <Icon sx={stylexStyles.rule44} />
       </div>
       <div sx={stylexStyles.rule45}>

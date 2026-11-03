@@ -1,3 +1,4 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import { useCallback, useMemo, useState } from 'react'
 import { LuCheck, LuCopy, LuExternalLink } from '@s4wave/web/images/icons.js'
 
@@ -11,7 +12,7 @@ import {
   getObjectTypeIcon,
   getObjectTypeLabel,
 } from '@s4wave/web/space/object-tree.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import {
   Tooltip,
   TooltipContent,
@@ -30,6 +31,28 @@ import {
   fonts as themeFonts,
   utilityState as themeUtilityState,
 } from '../style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'inline-flex',
+    maxWidth: '100%',
+    alignItems: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    verticalAlign: 'middle',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 80%, transparent)`,
+  },
+  rule2: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-warning']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-warning']} 5%, transparent)`,
+    color: themeColors['--color-warning'],
+  },
+  rule3: { minHeight: `calc(${themeLayout['--spacing']} * 6)` },
+  rule4: { minHeight: `calc(${themeLayout['--spacing']} * 7)` },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -152,8 +175,10 @@ const stylexStyles = stylex.create({
       default: null,
       '@media (hover: hover)': {
         default: null,
-        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
-        ':disabled:hover': '#0000',
+        ':hover': {
+          default: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+          ':disabled': '#0000',
+        },
       },
     },
     cursor: { default: null, ':disabled': 'not-allowed' },
@@ -165,6 +190,7 @@ const stylexStyles = stylex.create({
 })
 
 export interface ObjectLinkProps {
+  className?: never
   objectKey?: string
   objectType?: string
   label?: string
@@ -172,7 +198,7 @@ export interface ObjectLinkProps {
   status?: string
   componentID?: string
   path?: string
-  className?: string
+  sx?: ComponentStyles
   compact?: boolean
 }
 
@@ -374,9 +400,12 @@ export function ObjectLink({
   status,
   componentID,
   path,
-  className,
+  sx,
   compact = false,
-}: ObjectLinkProps) {
+}: Omit<ObjectLinkProps, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
   // Bind actions to the normalized target before deriving its label.
   const targetKey = objectKey?.trim() ?? ''
   const missing = targetKey === ''
@@ -399,14 +428,12 @@ export function ObjectLink({
 
   return (
     <span
-      className={
-        /* TODO(stylex): dynamic class or forwarded className */ cn(
-          'border-foreground/8 bg-foreground/5 text-foreground-alt/80 inline-flex max-w-full items-center rounded-md border align-middle',
-          missing && 'border-warning/20 bg-warning/5 text-warning',
-          compact ? 'min-h-6' : 'min-h-7',
-          className,
-        )
-      }
+      sx={[
+        stylexStyles2.rule1,
+        !!missing && stylexStyles2.rule2,
+        compact ? stylexStyles2.rule3 : stylexStyles2.rule4,
+        sx,
+      ]}
       data-object-link={targetKey || undefined}
       data-missing-object-link={missing ? 'true' : undefined}
     >
