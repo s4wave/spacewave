@@ -11,6 +11,7 @@
     ".#*",
     ".*.swp",
     ".vs",
-    "lean/lake-manifest.json"
+    "lean/lake-manifest.json",
+    "core/sobject/testdata/operation-log-vectors.json"
   ]
 }

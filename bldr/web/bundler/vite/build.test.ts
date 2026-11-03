@@ -5,6 +5,7 @@ import os from 'node:os'
 import type { Rollup } from 'vite'
 
 import { analyzeManifest, buildAndAnalyze, buildConfig } from './build.js'
+import { stylexCss } from './stylex.js'
 import { makeModulePreloadHelperWorkerSafe } from './module-preload.js'
 
 describe('Vite Build - Transitive Dependency Tracking', () => {
@@ -553,7 +554,20 @@ describe('Vite build input tracking', () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), 'vite-lazy-inputs-'))
     try {
       const entry = path.join(root, 'entry.ts')
-      await fs.writeFile(entry, "export const load = () => import('./lazy')")
+      await fs.symlink(
+        path.resolve('node_modules'),
+        path.join(root, 'node_modules'),
+        'dir',
+      )
+      await fs.writeFile(
+        entry,
+        "import './plain.css'; import './theme.stylex'; export const load = () => import('./lazy')",
+      )
+      await fs.writeFile(path.join(root, 'plain.css'), 'body { color: red }')
+      await fs.writeFile(
+        path.join(root, 'theme.stylex.ts'),
+        "import * as stylex from '@stylexjs/stylex'; export const theme = stylex.defineVars({'--cache-theme':'red'})",
+      )
       await fs.writeFile(
         path.join(root, 'lazy.ts'),
         "export { value } from './shared'",
@@ -581,24 +595,34 @@ describe('Vite build input tracking', () => {
         {
           ...config,
           root,
+          plugins: [...(config.plugins ?? []), stylexCss()],
           build: {
             ...config.build,
             outDir: path.join(root, 'dist'),
             manifest: true,
-            lib: { entry, formats: ['es'] },
+            lib: { entry, formats: ['es'], cssFileName: 'cache-inputs' },
           },
         },
         root,
         new Map(),
       )
 
-      expect(result.inputFiles.sort()).toEqual([
+      // The cache can fingerprint every input, including the theme with no retained JS export.
+      for (const file of [
         'build-policy.mjs',
         'entry.ts',
         'lazy.ts',
+        'plain.css',
         'shared.ts',
+        'theme.stylex.ts',
         'vite.config.mjs',
-      ])
+      ]) {
+        expect(result.inputFiles).toContain(file)
+      }
+      for (const file of result.inputFiles) {
+        expect(file).not.toContain('.bldr-stylex.css')
+        await fs.access(path.resolve(root, file))
+      }
 
       // A build cache replay restores only the recorded outputs, so the Vite
       // manifest that plugin backends read must be one of them.

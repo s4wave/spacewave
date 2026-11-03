@@ -82,36 +82,39 @@ function* classLiterals(node, scope, visited = new Set()) {
   }
 }
 
-// nativeClasses keeps utility strings out of DOM, library and imperative class producers.
+// nativeClasses restricts DOM classes and simple class selectors to opaque skins.
 const nativeClasses = {
   meta: {
     type: 'problem',
     schema: [],
     messages: {
       utility:
-        'Use sx for "{{classes}}". Literal classes must belong to an opaque CSS skin.',
+        '"{{classes}}" has no opaque CSS owner. Use sx for styles and DOM state for selectors.',
     },
   },
   create(context) {
     // Check each literal once, even when a constant reaches several DOM elements.
     const reported = new Set()
     const themeTypes = new Set()
+    const reportClasses = (literal, classes) => {
+      const invalid = classes
+        .split(/\s+/)
+        .filter((value) => value && !skinClasses.has(value))
+      if (invalid.length && !reported.has(literal)) {
+        context.report({
+          node: literal,
+          messageId: 'utility',
+          data: { classes: invalid.join(' ') },
+        })
+        reported.add(literal)
+      }
+    }
     const check = (node) => {
       for (const literal of classLiterals(
         node,
         context.sourceCode.getScope(node),
       )) {
-        const invalid = literal.value
-          .split(/\s+/)
-          .filter((value) => value && !skinClasses.has(value))
-        if (invalid.length && !reported.has(literal)) {
-          context.report({
-            node: literal,
-            messageId: 'utility',
-            data: { classes: invalid.join(' ') },
-          })
-          reported.add(literal)
-        }
+        reportClasses(literal, literal.value)
       }
     }
     // Lexical owns its DOM classes through a nested theme instead of JSX props.
@@ -144,6 +147,25 @@ const nativeClasses = {
       },
       Property(node) {
         if ((node.key.name ?? node.key.value) === 'className') check(node.value)
+      },
+      CallExpression(node) {
+        // A behavior selector must survive removal of utility generation too.
+        if (
+          node.callee.type !== 'MemberExpression' ||
+          ![
+            'querySelector',
+            'querySelectorAll',
+            'closest',
+            'matches',
+            'locator',
+          ].includes(node.callee.property.name)
+        )
+          return
+        const selector = node.arguments[0]
+        if (selector?.type !== 'Literal' || typeof selector.value !== 'string')
+          return
+        const simpleClass = /^\.([\w-]+)$/.exec(selector.value)
+        if (simpleClass) reportClasses(selector, simpleClass[1])
       },
       AssignmentExpression(node) {
         if (

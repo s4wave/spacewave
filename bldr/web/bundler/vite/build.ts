@@ -11,6 +11,8 @@ import { existsSync, promises as fs } from 'node:fs'
 import path from 'node:path'
 import type { ConfigEnv } from 'vitest/config'
 
+import { type stylexCss, stylexCssSuffix } from './stylex.js'
+
 // isBundleError checks if an unknown error is a Vite 8 BundleError with an errors array.
 export function isBundleError(
   err: unknown,
@@ -205,11 +207,13 @@ function synthesizeManifest(
 // isVirtualModuleId reports whether a module id names a plugin-generated
 // module rather than a source file. Vite and Rolldown builtin plugins emit ids
 // such as __vite-browser-external and builtin:esm-external-require-react.
+// Native StyleX CSS ids also identify generated content rather than disk files.
 export function isVirtualModuleId(id: string): boolean {
   return (
     id.startsWith('\x00') ||
     id.startsWith('__vite-browser-external') ||
-    id.startsWith('builtin:')
+    id.startsWith('builtin:') ||
+    id.split('?')[0].endsWith(stylexCssSuffix)
   )
 }
 
@@ -448,7 +452,9 @@ export async function buildAndAnalyze(
   rootDir: string,
   webPkgRefs: Map<string, { root: string; subPaths: Set<string> }>,
 ) {
+  // Track configuration and extraction reads while Vite owns the build.
   const allInputFiles = new Set<string>()
+  let nativeStyles: ReturnType<typeof stylexCss> | undefined
   const buildOptions: InlineConfig = {
     ...config,
     configFile: false,
@@ -458,11 +464,22 @@ export async function buildAndAnalyze(
         name: 'bldr-build-inputs',
         enforce: 'post',
         configResolved(resolvedConfig) {
+          // The native compiler owns inputs read only for CSS extraction.
+          nativeStyles = resolvedConfig.plugins.find(
+            (plugin) => plugin.name === 'bldr-stylex-css',
+          ) as ReturnType<typeof stylexCss> | undefined
           for (const file of resolvedConfig.configFileDependencies) {
             const normalized = normalizeModuleId(file, rootDir)
             if (normalized) {
               allInputFiles.add(normalized)
             }
+          }
+        },
+        generateBundle() {
+          // Keep compiler-read themes even when their JavaScript is tree-shaken.
+          for (const file of nativeStyles?.api.sources() ?? []) {
+            const normalized = normalizeModuleId(file, rootDir)
+            if (normalized) allInputFiles.add(normalized)
           }
         },
       },
@@ -474,6 +491,7 @@ export async function buildAndAnalyze(
     customLogger: config.customLogger ?? createSilentViteLogger(),
   }
 
+  // Run the native build once and retain every output chunk.
   const viteOutput = (await viteBuild(buildOptions)) as
     | Rollup.RollupOutput[]
     | Rollup.RollupOutput
@@ -481,15 +499,19 @@ export async function buildAndAnalyze(
     ? viteOutput
     : [viteOutput]
 
+  // Flatten the output groups for manifest analysis.
   const outputChunks = rollupOutputs.flatMap((output) => output.output)
 
+  // Require the output root before attributing emitted assets.
   const outDir = config.build?.outDir
   if (!outDir) {
     throw new Error('outDir is required')
   }
 
+  // Attribute each entrypoint to its assets and source dependencies.
   const analysis = await analyzeManifest(outDir, outputChunks, rootDir)
 
+  // Publish source-relative entrypoint metadata to the build owner.
   const entrypointOutputs = analysis.entrypointOutputs.map((entry) => ({
     entrypoint: entry.entrypoint
       ? path.isAbsolute(entry.entrypoint)
@@ -504,12 +526,15 @@ export async function buildAndAnalyze(
     cssOutputs: entry.outputs.css,
   }))
 
+  // Include each entrypoint closure in the shared cache fingerprint.
   entrypointOutputs.forEach((entry) => {
     entry.inputFiles?.forEach((file) => allInputFiles.add(file))
   })
 
+  // Retain standalone stylesheets alongside entrypoint assets.
   const allGlobalCssFiles = new Set<string>()
   analysis.globalCssFiles?.forEach((file) => allGlobalCssFiles.add(file))
+
   // Record every file the build wrote, including the Vite manifest, which
   // plugin backends read at runtime. A build cache replay restores only these.
   const outputFiles = new Set<string>()
@@ -525,6 +550,7 @@ export async function buildAndAnalyze(
     }
   }
 
+  // Return the complete build result and its emitted chunks.
   const result = {
     success: true,
     entrypointOutputs,

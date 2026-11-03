@@ -125,7 +125,7 @@ function DocsToc({ content, format }: DocsTocProps) {
   const handleClick = useCallback((heading: TocHeading) => {
     // Lexical renders headings as <h1>-<h4> elements. Find the matching
     // heading in the editor content area by walking the DOM.
-    const container = containerRef.current?.closest('.bg-background-primary')
+    const container = containerRef.current?.closest('[data-docs-viewer]')
     if (!container) return
 
     const editorArea = container.querySelector('[contenteditable]')

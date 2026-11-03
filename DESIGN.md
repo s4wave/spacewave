@@ -471,12 +471,21 @@ CSS dependencies, extracts styles into normal CSS assets and links them before
 hydration. Plugins keep separate assets with stable StyleX priority layers.
 The reset, fonts, keyframes and opaque vendor/bootstrap skins remain plain CSS.
 
+Static token imports need their shared package's source metadata even when its
+JavaScript is external. Bldr package builds use the package source index.
+Standalone Vite projects map `@s4wave/web` to their actual SDK source through
+`resolve.alias`; in a Space build that root is
+`resolve(process.env.BLDR_DIST_ROOT, 'web')`. Runtime shared imports remain
+external.
+
 Write property conditions inside the property they affect. A later StyleX
 value replaces that property's complete conditional set, so retain a base
 component's hover and breakpoint values when overriding it. DOM roots with
 caller inline properties use `stylexProps` from `web/style/props.ts` to retain
 the variables emitted by dynamic styles. Wrappers pass `sx` to that root.
 
+Intrinsic `sx` preserves explicit inline styles and opaque skin classes in
+either attribute order. Behavior selectors use refs or semantic data attributes.
 Literal classes are reserved for the opaque CSS skins. Component variants are
 ordinary typed functions returning compiled styles. Icons receive `sx` on the
 SVG, and render callbacks receive styles for the element they actually render.
