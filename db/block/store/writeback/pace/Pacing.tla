@@ -10,7 +10,7 @@ Init == /\ phase = "ready" /\ cancelled = FALSE /\ paused \in BOOLEAN
 Start == /\ phase = "ready" /\ phase' = "serial"
          /\ UNCHANGED <<cancelled,paused,due,pressure,waited>>
 Acquire == /\ phase = "serial"
-         /\ phase' = IF paused THEN "paused" ELSE IF due THEN "rate" ELSE "pressure"
+         /\ phase' = (IF paused THEN "paused" ELSE IF due THEN "rate" ELSE "pressure")
          /\ UNCHANGED <<cancelled,paused,due,pressure,waited>>
 RatePass == /\ phase = "rate" /\ ~cancelled /\ due' = FALSE /\ phase' = "pressure"
             /\ UNCHANGED <<paused,pressure,waited,cancelled>>
