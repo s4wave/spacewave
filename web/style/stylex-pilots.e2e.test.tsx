@@ -5,7 +5,7 @@ import * as stylex from '@stylexjs/stylex'
 import { expect, it, onTestFinished } from 'vitest'
 import { page, server, userEvent } from 'vitest/browser'
 
-import { CanvasColorPicker } from '../../app/canvas/CanvasColorPicker.js'
+import { CanvasToolbar } from '../../app/canvas/CanvasToolbar.js'
 import { CommandTableRow } from '../../app/debug/keybindings/CommandTableRow.js'
 import { MOCK_KEYBINDING_COMMANDS } from '../../app/debug/keybindings/keybindings-model.js'
 
@@ -75,6 +75,7 @@ const styles = stylex.create({
   iconDefaults: { color: 'rgb(68, 85, 102)', height: 20, width: 20 },
   minimumWidth: (minWidth: number) => ({ minWidth }),
   pathOverride: { marginTop: 19 },
+  shortToolbar: { height: 120, width: 'fit-content' },
 })
 
 // IconScopeSamples covers default composition and a control's portal boundary.
@@ -293,7 +294,31 @@ function PilotJourney() {
           </SheetFooter>
         </SheetContent>
       </Sheet>
-      <CanvasColorPicker color={drawingColor} onColorChange={setDrawingColor} />
+      <div data-testid="short-canvas-toolbar" sx={styles.shortToolbar}>
+        <CanvasToolbar
+          tool="select"
+          color={drawingColor}
+          onColorChange={setDrawingColor}
+          onToolChange={() => {}}
+          actions={{
+            delete: () => {},
+            copy: () => {},
+            paste: () => {},
+            undo: () => {},
+            redo: () => {},
+            'select-all': () => {},
+            deselect: () => {},
+            'zoom-in': () => {},
+            'zoom-out': () => {},
+            'zoom-reset': () => {},
+            'fit-view': () => {},
+            'bring-to-front': () => {},
+            'send-to-back': () => {},
+            'organize-nodes': () => {},
+          }}
+          sx={styles.shortToolbar}
+        />
+      </div>
       <table data-testid="native-command-table">
         <tbody>
           {MOCK_KEYBINDING_COMMANDS.slice(0, 2).map((command) => (
@@ -358,6 +383,21 @@ it('composes shared, app and plugin styles through the browser build', async () 
   expect(swatchBox.height).toBeGreaterThanOrEqual(targetFloor)
   await redSwatch.click()
   await expect.element(redSwatch).toHaveAttribute('aria-pressed', 'true')
+
+  // A short toolbar scrolls to its final action without shrinking any hit area.
+  const toolbar = document.querySelector(
+    '[data-testid="short-canvas-toolbar"] > div',
+  )!
+  expect(toolbar.scrollHeight).toBeGreaterThan(toolbar.clientHeight)
+  for (const button of toolbar.querySelectorAll('button')) {
+    const box = button.getBoundingClientRect()
+    expect(box.width).toBeGreaterThanOrEqual(targetFloor)
+    expect(box.height).toBeGreaterThanOrEqual(targetFloor)
+  }
+  await page
+    .getByRole('button', { name: 'Organize Nodes', exact: true })
+    .click()
+  expect(toolbar.scrollTop).toBeGreaterThan(0)
 
   // Native label activation and marker conditions retain their direction and caller properties.
   const ancestorLabel = document.querySelector(

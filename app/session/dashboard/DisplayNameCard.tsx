@@ -1,3 +1,4 @@
+import { controlTargetStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import { useEffect, useId, useState } from 'react'
 import { LuPencil, LuSave, LuUserCog, LuX } from '@s4wave/web/images/icons.js'
 
@@ -194,7 +195,7 @@ export function DisplayNameCard({
               <div sx={stylexStyles2.rule2}>
                 <button
                   type="button"
-                  sx={stylexStyles2.rule3}
+                  sx={[stylexStyles2.rule3, controlTargetStyles.minimum]}
                   onClick={editor.start}
                 >
                   {currentDisplayName || 'Unnamed account'}

@@ -1,3 +1,4 @@
+import { controlTargetStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import { memo, use, useCallback } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { stylexProps } from '@s4wave/web/style/props.js'
@@ -271,7 +272,11 @@ function TreeRowToggle<T>({
   return (
     <button
       type="button"
-      sx={[stylexStyles.rule3, rowTargetStyles.touch]}
+      sx={[
+        stylexStyles.rule3,
+        rowTargetStyles.touch,
+        controlTargetStyles.minimum,
+      ]}
       onClick={onToggle}
       tabIndex={-1}
       aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${node.name}`}
@@ -301,7 +306,11 @@ function TreeRowContent<T>({ node }: { node: TreeNode<T> }) {
             <button
               type="button"
               key={iconIndex}
-              sx={[rowStyles.action, rowTargetStyles.touch]}
+              sx={[
+                rowStyles.action,
+                rowTargetStyles.touch,
+                controlTargetStyles.minimum,
+              ]}
               onClick={(e) => {
                 e.stopPropagation()
                 iconData.onClick?.(e)

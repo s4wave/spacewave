@@ -1,3 +1,4 @@
+import { controlTargetStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
 
 import type { NotebookSource } from './proto/notebook.pb.js'
@@ -900,7 +901,7 @@ function NoteListToolbar({
       </label>
       <button
         type="button"
-        sx={stylexStyles2.rule4}
+        sx={[stylexStyles2.rule4, controlTargetStyles.minimum]}
         onClick={() => handleCreateFolder()}
         title="New folder"
       >
@@ -908,7 +909,7 @@ function NoteListToolbar({
       </button>
       <button
         type="button"
-        sx={stylexStyles2.rule4}
+        sx={[stylexStyles2.rule4, controlTargetStyles.minimum]}
         onClick={() => void handleCreateNote()}
         title="New note"
       >
@@ -917,7 +918,7 @@ function NoteListToolbar({
       {canCreateOrg && (
         <button
           type="button"
-          sx={stylexStyles2.rule5}
+          sx={[stylexStyles2.rule5, controlTargetStyles.minimum]}
           onClick={() => void handleCreateNoteDefault('org')}
           title="New Org note"
         >
@@ -946,7 +947,7 @@ function NoteListFilters({
       {filterTag && (
         <button
           type="button"
-          sx={stylexStyles2.rule8}
+          sx={[stylexStyles2.rule8, controlTargetStyles.minimum]}
           onClick={() => onFilterTagChange?.(undefined)}
           title="Clear tag filter"
         >
@@ -957,7 +958,7 @@ function NoteListFilters({
       {filterStatus && (
         <button
           type="button"
-          sx={stylexStyles2.rule9}
+          sx={[stylexStyles2.rule9, controlTargetStyles.minimum]}
           onClick={() => onFilterStatusChange?.(undefined)}
           title="Clear status filter"
         >
@@ -984,7 +985,7 @@ function NoteListEmptyState({
           <span sx={stylexStyles2.rule11}>No notes yet</span>
           <button
             type="button"
-            sx={stylexStyles2.rule12}
+            sx={[stylexStyles2.rule12, controlTargetStyles.minimum]}
             onClick={onCreateNote}
           >
             Create your first note
@@ -1022,7 +1023,7 @@ function NoteListNoteRow({
         data-testid="notes-note-row"
         data-note-path={notePath}
         aria-current={selected ? 'true' : undefined}
-        sx={stylexStyles2.rule15}
+        sx={[stylexStyles2.rule15, controlTargetStyles.minimum]}
         onClick={() => onSelect(notePath)}
       >
         <LuFile sx={stylexStyles.rule4} />
@@ -1031,7 +1032,7 @@ function NoteListNoteRow({
       </button>
       <button
         type="button"
-        sx={stylexStyles2.rule17}
+        sx={[stylexStyles2.rule17, controlTargetStyles.minimum]}
         onClick={() => onRename(entry.name)}
         title="Rename note"
       >
@@ -1039,7 +1040,7 @@ function NoteListNoteRow({
       </button>
       <button
         type="button"
-        sx={stylexStyles2.rule18}
+        sx={[stylexStyles2.rule18, controlTargetStyles.minimum]}
         onClick={() => onDelete(entry.name)}
         title="Delete note"
       >
@@ -1084,7 +1085,7 @@ function NoteListEntries({
         <button
           key={entry.name}
           type="button"
-          sx={stylexStyles2.rule19}
+          sx={[stylexStyles2.rule19, controlTargetStyles.minimum]}
           onClick={() => onChangePath?.(joinNotePath(currentPath, entry.name))}
         >
           <LuFolder sx={stylexStyles.rule4} />
@@ -1206,7 +1207,7 @@ function NoteListView({ controller }: { controller: NoteListController }) {
           <div sx={stylexStyles2.rule24}>
             <button
               type="button"
-              sx={stylexStyles2.rule17}
+              sx={[stylexStyles2.rule17, controlTargetStyles.minimum]}
               onClick={() => onChangePath?.(getParentPath(currentPath))}
               title="Up one level"
             >

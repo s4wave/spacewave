@@ -1,3 +1,4 @@
+import { controlTargetStyles } from '../style/ControlStylesProvider.js'
 import { keyframeNames } from '../style/tokens.stylex.js'
 import { stylexProps } from '@s4wave/web/style/props.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
@@ -411,7 +412,7 @@ function DialogClose({
   return (
     <DialogPrimitive.Close
       data-slot="dialog-close"
-      {...stylexProps(sx, props)}
+      {...stylexProps([controlTargetStyles.minimum, sx], props)}
     />
   )
 }
@@ -472,7 +473,7 @@ function DialogContent({
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
-            {...stylex.props(styles.close)}
+            {...stylex.props(styles.close, controlTargetStyles.minimum)}
           >
             <LuX sx={styles.closeIcon} />
             <span sx={styles.closeLabel}>Close</span>

@@ -101,14 +101,14 @@ const stylexStyles2 = stylex.create({
       default: `calc(${themeLayout['--spacing']} * 11)`,
       '@media (min-width: 48rem)': {
         default: null,
-        '@media (pointer: fine)': 0,
+        '@media (pointer: fine)': '24px',
       },
     },
     minWidth: {
       default: `calc(${themeLayout['--spacing']} * 11)`,
       '@media (min-width: 48rem)': {
         default: null,
-        '@media (pointer: fine)': 0,
+        '@media (pointer: fine)': '24px',
       },
     },
   },
@@ -137,14 +137,14 @@ const stylexStyles2 = stylex.create({
       default: `calc(${themeLayout['--spacing']} * 11)`,
       '@media (min-width: 48rem)': {
         default: null,
-        '@media (pointer: fine)': 0,
+        '@media (pointer: fine)': '24px',
       },
     },
     minWidth: {
       default: `calc(${themeLayout['--spacing']} * 11)`,
       '@media (min-width: 48rem)': {
         default: null,
-        '@media (pointer: fine)': 0,
+        '@media (pointer: fine)': '24px',
       },
     },
   },
@@ -204,7 +204,7 @@ const stylexStyles2 = stylex.create({
       default: `calc(${themeLayout['--spacing']} * 11)`,
       '@media (min-width: 48rem)': {
         default: null,
-        '@media (pointer: fine)': 0,
+        '@media (pointer: fine)': '24px',
       },
     },
     width: '100%',
@@ -239,14 +239,14 @@ const stylexStyles2 = stylex.create({
       default: `calc(${themeLayout['--spacing']} * 11)`,
       '@media (min-width: 48rem)': {
         default: null,
-        '@media (pointer: fine)': 0,
+        '@media (pointer: fine)': '24px',
       },
     },
     minWidth: {
       default: `calc(${themeLayout['--spacing']} * 11)`,
       '@media (min-width: 48rem)': {
         default: null,
-        '@media (pointer: fine)': 0,
+        '@media (pointer: fine)': '24px',
       },
     },
   },

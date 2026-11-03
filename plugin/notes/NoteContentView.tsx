@@ -1,3 +1,4 @@
+import { controlTargetStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import { Component, useMemo, type ErrorInfo, type ReactNode } from 'react'
 import { LuCode, LuPenLine } from '@s4wave/web/images/icons.js'
 
@@ -307,7 +308,11 @@ function SaveStatus({ state, error, onRetry }: SaveStatusProps) {
         <span sx={stylexStyles2.rule2}>
           Failed to save note: {error?.message}
         </span>
-        <button type="button" sx={stylexStyles2.rule3} onClick={onRetry}>
+        <button
+          type="button"
+          sx={[stylexStyles2.rule3, controlTargetStyles.minimum]}
+          onClick={onRetry}
+        >
           Retry
         </button>
       </div>
@@ -338,7 +343,11 @@ function NoteReadError({ error, onRetry }: NoteReadErrorProps) {
     <div sx={stylexStyles2.rule7} role="alert">
       <span>Failed to load note</span>
       <span sx={stylexStyles2.rule8}>{error.message}</span>
-      <button type="button" sx={stylexStyles2.rule9} onClick={onRetry}>
+      <button
+        type="button"
+        sx={[stylexStyles2.rule9, controlTargetStyles.minimum]}
+        onClick={onRetry}
+      >
         Retry
       </button>
     </div>
@@ -392,6 +401,7 @@ function NoteHeader({
         sx={[
           stylexStyles2.rule14,
           editing ? stylexStyles2.rule15 : stylexStyles2.rule16,
+          controlTargetStyles.minimum,
         ]}
         onClick={onToggle}
         onPointerDown={onTogglePointerDown}

@@ -18,6 +18,7 @@ const stylexStyles = stylex.create({
     borderBlockWidth: '1px',
     display: 'flex',
     flexDirection: 'column',
+    flexShrink: 0,
   },
   rule2: {
     borderRadius: '3.40282e38px',

@@ -123,7 +123,7 @@ const stylexStyles4 = stylex.create({
     borderRadius: '3.40282e38px',
     paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
     paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
-    fontSize: '9px',
+    fontSize: '10px',
     fontWeight: 'var(--font-weight-semibold)',
     letterSpacing: 'var(--tracking-wider)',
     lineHeight: 1.5,

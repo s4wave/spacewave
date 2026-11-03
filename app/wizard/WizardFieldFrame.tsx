@@ -12,7 +12,7 @@ const stylexStyles = stylex.create({
     '--tw-font-weight': themeFonts['--font-weight-medium'],
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
     display: 'block',
-    fontSize: '.65rem',
+    fontSize: '12px',
     fontWeight: themeFonts['--font-weight-medium'],
     lineHeight: 1.5,
   },
@@ -20,7 +20,7 @@ const stylexStyles = stylex.create({
     '--tw-leading': 'var(--leading-relaxed)',
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
     display: 'block',
-    fontSize: '.65rem',
+    fontSize: '12px',
     lineHeight: 'var(--leading-relaxed)',
   },
 })

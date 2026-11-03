@@ -1,3 +1,4 @@
+import { controlTargetStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import { useCallback, type ReactNode } from 'react'
 import {
@@ -53,6 +54,8 @@ const stylexStyles2 = stylex.create({
     flexDirection: 'column',
     borderRightStyle: themeUtilityState['--tw-border-style'],
     borderRightWidth: '1px',
+    minHeight: 0,
+    overflowY: 'auto',
   },
 })
 
@@ -62,6 +65,7 @@ const stylexStyles = stylex.create({
     borderRadius: themeRadii['--radius-md'],
     alignItems: 'center',
     display: 'flex',
+    flexShrink: 0,
     justifyContent: 'center',
     transitionDuration: '.15s',
     transitionProperty:
@@ -130,6 +134,7 @@ function ToolButton({
           sx={[
             stylexStyles.rule1,
             active ? stylexStyles.rule2 : stylexStyles.rule3,
+            controlTargetStyles.minimum,
           ]}
           onClick={onClick}
           aria-label={label}

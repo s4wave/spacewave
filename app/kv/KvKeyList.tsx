@@ -79,7 +79,7 @@ const stylexStyles2 = stylex.create({
     '--tw-numeric-spacing': 'tabular-nums',
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
     flexShrink: 0,
-    fontSize: '.6rem',
+    fontSize: '12px',
     fontVariantNumeric:
       'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
     lineHeight: 1.5,
