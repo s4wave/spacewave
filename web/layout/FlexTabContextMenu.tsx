@@ -1,3 +1,4 @@
+import * as stylex from '@stylexjs/stylex'
 import { useRef, type ReactNode } from 'react'
 
 import {
@@ -32,6 +33,8 @@ export type FlexTabContextMenuEntry =
 
 // FlexTabContextMenuProps configures the shared FlexLayout tab context menu.
 export interface FlexTabContextMenuProps {
+  sx?: stylex.StyleXStyles
+  className?: never
   state: FlexTabContextMenuState | null
   items: FlexTabContextMenuEntry[]
   onClose: () => void
@@ -48,6 +51,7 @@ export function FlexTabContextMenu({
   state,
   items,
   onClose,
+  sx,
 }: FlexTabContextMenuProps) {
   // chosenRef holds the selected action until the menu has closed. Radix
   // commits a selection while the menu still traps focus, so an action that
@@ -70,6 +74,7 @@ export function FlexTabContextMenu({
       {/* The ghost-anchor trigger is not focusable, so skip Radix's return
           of focus to it and run the chosen action instead. */}
       <DropdownMenuContent
+        sx={sx}
         align="start"
         side="bottom"
         onCloseAutoFocus={(event) => {

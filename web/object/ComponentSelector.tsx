@@ -51,6 +51,8 @@ interface CategoryGroup {
 }
 
 interface ComponentSelectorProps {
+  sx?: stylex.StyleXStyles
+  className?: never
   open: boolean
   placement?: 'above' | 'below'
   onOpenChange: (open: boolean) => void
@@ -63,8 +65,11 @@ interface ComponentSelectorProps {
 // groupComponents lists the uncategorized components first, then each category
 // in the order it first appears.
 function groupComponents(components: ObjectViewerComponent[]): CategoryGroup[] {
+  // Accumulate each viewer once in its visible category.
   const ungrouped: ObjectViewerComponent[] = []
   const categories = new Map<string, ObjectViewerComponent[]>()
+
+  // Keep each category in its first-seen order while separating ungrouped viewers.
   for (const comp of components) {
     if (!comp.category) {
       ungrouped.push(comp)
@@ -75,6 +80,7 @@ function groupComponents(components: ObjectViewerComponent[]): CategoryGroup[] {
     else categories.set(comp.category, [comp])
   }
 
+  // Place uncategorized viewers before the ordered categories.
   const groups: CategoryGroup[] = []
   if (ungrouped.length > 0) groups.push({ category: null, items: ungrouped })
   for (const [category, items] of categories) groups.push({ category, items })
@@ -94,10 +100,11 @@ export function ComponentSelector({
   selectedComponent,
   onSelectComponent,
   children,
+  sx,
 }: ComponentSelectorProps) {
   // Apply the enclosing bar's touch requirements to the actual trigger button.
   const requiredStyles = useControlStyles()
-  const attributes = stylexProps(stylexStyles.rule1, {})
+  const attributes = stylexProps([stylexStyles.rule1, sx], {})
   attributes.className = cn(attributes.className, requiredStyles)
   const groups = useMemo(() => groupComponents(components), [components])
 
