@@ -400,16 +400,14 @@ export function SessionsSection({
         ) : undefined
       }
     >
-      <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-        }
-      >
+      <div>
         {sessionsResource.loading && (
-          <p sx={stylexStyles3.rule2}>Loading sessions…</p>
+          <p sx={[nativeChildSpacingNext.s2, stylexStyles3.rule2]}>
+            Loading sessions…
+          </p>
         )}
         {!sessionsResource.loading && rows.length === 0 && (
-          <div sx={stylexStyles3.rule3}>
+          <div sx={[nativeChildSpacingNext.s2, stylexStyles3.rule3]}>
             <p sx={stylexStyles3.rule2}>
               {isLocal ? 'No linked sessions yet.' : 'No other sessions found.'}
             </p>
@@ -425,7 +423,7 @@ export function SessionsSection({
           </div>
         )}
         {!sessionsResource.loading && rows.length > 0 && (
-          <div>
+          <div sx={nativeChildSpacingNext.s2}>
             {rows.map((row) => (
               <SessionRow
                 sx={nativeChildSpacing.s2}
@@ -620,6 +618,21 @@ function SessionRow({
 
 // nativeChildSpacing preserves the original margins at each rendered child.
 const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
   s2: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
     marginBlockStart: {

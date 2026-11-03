@@ -601,6 +601,7 @@ function defaultTabFor(hasOrgTab: boolean, isCloudProvider: boolean): string {
 
 /** InviteCopyButton copies the invite text and flashes a copied state. */
 function InviteCopyButton({
+  sx,
   copied,
   label,
   onClick,
@@ -608,12 +609,12 @@ function InviteCopyButton({
   copied: boolean
   label: string
   onClick: () => void
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      sx={copied ? stylexStyles2.rule1 : stylexStyles2.rule2}
+      sx={[copied ? stylexStyles2.rule1 : stylexStyles2.rule2, sx]}
     >
       {copied ? (
         <>

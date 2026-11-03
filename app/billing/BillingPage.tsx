@@ -6,7 +6,7 @@ import {
   LuSave,
   LuX,
 } from '@s4wave/web/images/icons.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
@@ -44,6 +44,40 @@ import {
   fonts as themeFonts,
   motion as themeMotion,
 } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    borderRadius: '3.40282e38px',
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: '10px',
+    lineHeight: 1.5,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-wider)',
+    letterSpacing: 'var(--tracking-wider)',
+    textTransform: 'uppercase',
+  },
+})
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-green-500']} 15%, transparent)`,
+    color: themeColors['--color-green-500'],
+  },
+  rule2: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-yellow-500']} 15%, transparent)`,
+    color: themeColors['--color-yellow-500'],
+  },
+  rule3: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 15%, transparent)`,
+    color: themeColors['--color-destructive'],
+  },
+  rule4: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+})
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -199,12 +233,12 @@ const stylexStyles = stylex.create({
   },
 })
 
-function statusBadgeColor(status?: BillingStatus): string {
-  if (isStatusActive(status)) return 'bg-green-500/15 text-green-500'
-  if (isStatusPastDue(status)) return 'bg-yellow-500/15 text-yellow-500'
+function statusBadgeStyles(status?: BillingStatus): stylex.StyleXStyles {
+  if (isStatusActive(status)) return stylexStyles3.rule1
+  if (isStatusPastDue(status)) return stylexStyles3.rule2
   if (status === BillingStatus.BillingStatus_CANCELED)
-    return 'bg-destructive/15 text-destructive'
-  return 'bg-foreground/10 text-foreground-alt/70'
+    return stylexStyles3.rule3
+  return stylexStyles3.rule4
 }
 
 function formatBillingDate(timestampMs: number | string | bigint): string {
@@ -409,14 +443,7 @@ function BillingStatusRow({ billing }: { billing: BillingAccountInfo }) {
   return (
     <>
       <div sx={stylexStyles2.rule7}>
-        <span
-          className={
-            /* TODO(stylex): computed class helper */ cn(
-              'micro-ten rounded-full px-2 py-0.5 font-semibold tracking-wider uppercase',
-              statusBadgeColor(status),
-            )
-          }
-        >
+        <span sx={[[stylexStyles4.rule1], [statusBadgeStyles(status)]]}>
           {statusLabel(status)}
         </span>
         {intLabel && <span sx={stylexStyles2.rule8}>{intLabel}</span>}

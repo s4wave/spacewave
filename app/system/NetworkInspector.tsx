@@ -147,15 +147,11 @@ export function NetworkInspector({
         {peers.length === 0 ? (
           <p sx={stylexStyles.rule2}>No peers are connected.</p>
         ) : (
-          <ul
-            className={
-              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
-            }
-          >
+          <ul>
             {peers.map((peer) => {
               const links = peer.links ?? []
               return (
-                <li key={peer.peerId}>
+                <li sx={nativeChildSpacing.s3} key={peer.peerId}>
                   <div sx={stylexStyles.rule3}>
                     <span sx={stylexStyles.rule4} aria-hidden="true" />
                     <span sx={stylexStyles.rule5}>{peer.peerId}</span>
@@ -196,3 +192,18 @@ export function NetworkInspector({
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

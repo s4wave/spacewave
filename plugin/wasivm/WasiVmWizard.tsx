@@ -20,7 +20,7 @@ import { buildObjectKey } from '@s4wave/app/space/create-op-builders.js'
 import { useWizardState } from '@s4wave/app/wizard/useWizardState.js'
 import { WizardField } from '@s4wave/app/wizard/WizardField.js'
 import { WizardFieldFrame } from '@s4wave/app/wizard/WizardFieldFrame.js'
-import { wizardInputClassName } from '@s4wave/app/wizard/wizard-field-styles.js'
+import { wizardFieldStyles } from '@s4wave/app/wizard/wizard-field-styles.js'
 import { WizardShell } from '@s4wave/app/wizard/WizardShell.js'
 
 import {
@@ -177,34 +177,36 @@ export default function WasiVmWizard(props: ObjectViewerComponentProps) {
             : 'The VM runs on a copy of this filesystem; its writes are discarded when it stops.'
         }
       >
-        <select
-          value={choice}
-          disabled={!choice}
-          onChange={(e) => setRootfsChoice(e.target.value)}
-          className={`${wizardInputClassName} w-full rounded-md border px-2`}
-        >
-          {cdnImages.length !== 0 && (
-            <optgroup label="Published images">
-              {cdnImages.map((entry) => (
-                <option
-                  key={entry.objectKey}
-                  value={imageChoicePrefix + entry.objectKey}
-                >
-                  {formatWasiVmImageLabel(entry.image)}
-                </option>
-              ))}
-            </optgroup>
-          )}
-          {unixfsKeys.length !== 0 && (
-            <optgroup label="Filesystems in this Space">
-              {unixfsKeys.map((key) => (
-                <option key={key} value={fsChoicePrefix + key}>
-                  {key}
-                </option>
-              ))}
-            </optgroup>
-          )}
-        </select>
+        {(controlSx) => (
+          <select
+            value={choice}
+            disabled={!choice}
+            onChange={(e) => setRootfsChoice(e.target.value)}
+            sx={[controlSx, wizardFieldStyles.select]}
+          >
+            {cdnImages.length !== 0 && (
+              <optgroup label="Published images">
+                {cdnImages.map((entry) => (
+                  <option
+                    key={entry.objectKey}
+                    value={imageChoicePrefix + entry.objectKey}
+                  >
+                    {formatWasiVmImageLabel(entry.image)}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {unixfsKeys.length !== 0 && (
+              <optgroup label="Filesystems in this Space">
+                {unixfsKeys.map((key) => (
+                  <option key={key} value={fsChoicePrefix + key}>
+                    {key}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+          </select>
+        )}
       </WizardFieldFrame>
       <WizardField
         label="Init program"

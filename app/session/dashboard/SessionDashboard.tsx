@@ -1100,12 +1100,9 @@ function InlineSecureAccountSection(props: {
                   </p>
                 </div>
               </div>
-              <div
-                className={
-                  /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-                }
-              >
+              <div>
                 <RadioOption
+                  sx={nativeChildSpacingNext.s2}
                   selected={lock.mode === 'auto'}
                   onSelect={() =>
                     dispatchLock({ type: 'set-mode', mode: 'auto' })
@@ -1115,6 +1112,7 @@ function InlineSecureAccountSection(props: {
                   description="Key stored on disk. No PIN needed on launch."
                 />
                 <RadioOption
+                  sx={nativeChildSpacingNext.s2}
                   selected={lock.mode === 'pin'}
                   onSelect={() =>
                     dispatchLock({ type: 'set-mode', mode: 'pin' })
@@ -1849,6 +1847,21 @@ function DashboardItem({
 
 // nativeChildSpacing preserves the original margins at each rendered child.
 const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
   s2: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
     marginBlockStart: {

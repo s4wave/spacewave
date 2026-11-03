@@ -1,15 +1,15 @@
+import { tileIconMarker, tileSurfaceStyles } from './system-tile.stylex.js'
+import { IconStylesProvider } from '@s4wave/web/images/icons.js'
+
 import * as ownerStylex from '@stylexjs/stylex'
-import { cn as ownerClasses } from '@s4wave/web/style/utils.js'
-import { groupMarker as ownergroupMarker } from '@s4wave/web/style/relations.stylex.js'
+
 import * as stylex from '@stylexjs/stylex'
 import { groupMarker } from '../../web/style/relations.stylex.js'
 import { colors } from '../../web/style/tokens.stylex.js'
 import type { ReactNode, Ref } from 'react'
 import { LuMaximize2 } from '@s4wave/web/images/icons.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
-
-import { toneDotClass, toneLabel } from './tone.js'
+import { toneDotStyles, toneLabel } from './tone.js'
 import type { SystemTone } from './useSystemModel.js'
 
 import {
@@ -17,6 +17,52 @@ import {
   radii as themeRadii,
   fonts as themeFonts,
 } from '../../web/style/tokens.stylex.js'
+
+import {
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+import { groupMarker as groupMarker2 } from '../../web/style/relations.stylex.js'
+
+const stylexStyles3 = ownerStylex.create({
+  rule1: {
+    position: 'relative',
+    display: 'flex',
+    minHeight: `calc(${themeLayout['--spacing']} * 36)`,
+    flexDirection: 'column',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${colors['--color-foreground']} 8%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${colors['--color-foreground']} 15%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${colors['--color-background-card']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${colors['--color-background-card']} 60%, transparent)`,
+      },
+    },
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+  },
+})
+
+const stylexStyles2 = ownerStylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 1.5)`,
+    height: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: '3.40282e38px',
+  },
+})
 
 const stylexStyles = ownerStylex.create({
   rule1: {
@@ -89,7 +135,7 @@ export function SystemTile({
   icon,
   tone,
   headline,
-  className,
+  sx,
   buttonRef,
   onOpen,
   children,
@@ -98,35 +144,28 @@ export function SystemTile({
   icon: ReactNode
   tone: SystemTone
   headline: ReactNode
-  className?: string
+  sx?: stylex.StyleXStyles
+  className?: never
   buttonRef?: Ref<HTMLButtonElement>
   onOpen: () => void
   children?: ReactNode
 }) {
   return (
     <section
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: has-[button:focus-visible]:ring-2 */ cn(
-          ownerClasses(
-            'group border-foreground/8 bg-background-card/30 relative flex min-h-36 flex-col rounded-lg border p-4 transition-colors duration-150',
-            ownerStylex.props(ownergroupMarker).className,
-          ),
-          'hover:border-foreground/15 hover:bg-background-card/60',
-          'has-[button:focus-visible]:ring-brand/50 has-[button:focus-visible]:ring-2',
-          className,
-          stylex.props(groupMarker).className,
-        )
-      }
+      sx={[
+        [[stylexStyles3.rule1, groupMarker2]],
+        [tileSurfaceStyles.focus, sx],
+      ]}
     >
       <h2 sx={stylexStyles.rule1}>
-        <span
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: [&>svg]:size-3.5 */ 'shrink-0 [&>svg]:size-3.5'
-          }
-          aria-hidden="true"
-        >
-          {icon}
-        </span>
+        <IconStylesProvider requiredSx={tileSurfaceStyles.icon}>
+          <span
+            sx={[tileSurfaceStyles.iconWrap, tileIconMarker]}
+            aria-hidden="true"
+          >
+            {icon}
+          </span>
+        </IconStylesProvider>
         <button
           ref={buttonRef}
           type="button"
@@ -139,12 +178,7 @@ export function SystemTile({
           </span>
         </button>
         <span
-          className={
-            /* TODO(stylex): dynamic class or forwarded className */ cn(
-              'size-1.5 rounded-full',
-              toneDotClass[tone],
-            )
-          }
+          sx={[[stylexStyles2.rule1], [toneDotStyles[tone]]]}
           aria-hidden="true"
         />
         <LuMaximize2 sx={tileIconStyles.icon} aria-hidden="true" />

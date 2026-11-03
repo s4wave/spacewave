@@ -181,13 +181,10 @@ function SecurityLevelSectionContent({
             </div>
             <p sx={stylexStyles2.rule5}>{level.description}</p>
 
-            <div
-              className={
-                /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ 'space-y-1.5'
-              }
-            >
+            <div>
               {securityLevels(keypairCount).map((opt) => (
                 <RadioOption
+                  sx={nativeChildSpacing.s1_5}
                   key={opt.value}
                   selected={opt.value === threshold}
                   onSelect={() => {
@@ -296,3 +293,18 @@ function securityLevels(count: number): SecurityLevelOption[] {
   }
   return levels
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s1_5: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

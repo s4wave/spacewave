@@ -4,6 +4,28 @@ import {
   BillingStatus,
 } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { colors as themeColors } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-green-500']} 15%, transparent)`,
+    color: themeColors['--color-green-500'],
+  },
+  rule2: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-yellow-500']} 15%, transparent)`,
+    color: themeColors['--color-yellow-500'],
+  },
+  rule3: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 15%, transparent)`,
+    color: themeColors['--color-destructive'],
+  },
+  rule4: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+})
+
 // statusLabel returns a human-readable label for a billing status.
 export function statusLabel(status?: BillingStatus): string {
   switch (status) {
@@ -98,20 +120,22 @@ export function lifecycleStateLabel(state?: AccountLifecycleState): string {
   }
 }
 
-// subscriptionStatusBadgeColor returns a tailwind class pair for the badge
+// subscriptionStatusBadgeStyles returns native color rules for the badge
 // chip on a billing status.
-export function subscriptionStatusBadgeColor(status?: BillingStatus): string {
+export function subscriptionStatusBadgeStyles(
+  status?: BillingStatus,
+): stylex.StyleXStyles {
   switch (status) {
     case BillingStatus.BillingStatus_ACTIVE:
-      return 'bg-green-500/15 text-green-500'
+      return stylexStyles.rule1
     case BillingStatus.BillingStatus_PAST_DUE:
     case BillingStatus.BillingStatus_PAST_DUE_READONLY:
-      return 'bg-yellow-500/15 text-yellow-500'
+      return stylexStyles.rule2
     case BillingStatus.BillingStatus_CANCELED:
     case BillingStatus.BillingStatus_LAPSED:
     case BillingStatus.BillingStatus_DELETED:
-      return 'bg-destructive/15 text-destructive'
+      return stylexStyles.rule3
     default:
-      return 'bg-foreground/10 text-foreground-alt/70'
+      return stylexStyles.rule4
   }
 }

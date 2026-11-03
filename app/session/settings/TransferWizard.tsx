@@ -822,13 +822,10 @@ function SelectStep({
     <>
       <div>
         <span sx={stylexStyles2.rule12}>Source session (merge from)</span>
-        <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ 'space-y-1.5'
-          }
-        >
+        <div>
           {sessionOptions.map((s) => (
             <RadioOption
+              sx={nativeChildSpacing.s1_5}
               key={`src-${s.index}`}
               selected={sourceIdx === s.index}
               onSelect={() => onSourceChange(s.index)}
@@ -843,15 +840,12 @@ function SelectStep({
 
       <div>
         <span sx={stylexStyles2.rule12}>Target session (merge into)</span>
-        <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ 'space-y-1.5'
-          }
-        >
+        <div>
           {sessionOptions.flatMap((s) =>
             s.index !== sourceIdx
               ? [
                   <RadioOption
+                    sx={nativeChildSpacing.s1_5}
                     key={`tgt-${s.index}`}
                     selected={targetIdx === s.index}
                     onSelect={() => onTargetChange(s.index)}
@@ -870,12 +864,9 @@ function SelectStep({
 
       <div>
         <span sx={stylexStyles2.rule12}>Transfer mode</span>
-        <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ 'space-y-1.5'
-          }
-        >
+        <div>
           <RadioOption
+            sx={nativeChildSpacing.s1_5}
             selected={mode === TransferMode.TransferMode_MERGE}
             onSelect={() => onModeChange(TransferMode.TransferMode_MERGE)}
             icon={<LuMerge sx={stylexStyles.rule1} />}
@@ -883,6 +874,7 @@ function SelectStep({
             description="Move all spaces to the target and delete the source session"
           />
           <RadioOption
+            sx={nativeChildSpacing.s1_5}
             selected={mode === TransferMode.TransferMode_MIGRATE}
             onSelect={() => onModeChange(TransferMode.TransferMode_MIGRATE)}
             icon={<LuMoveRight sx={stylexStyles.rule1} />}
@@ -890,6 +882,7 @@ function SelectStep({
             description="Move all spaces to a different provider and transfer the keypair"
           />
           <RadioOption
+            sx={nativeChildSpacing.s1_5}
             selected={mode === TransferMode.TransferMode_MIRROR}
             onSelect={() => onModeChange(TransferMode.TransferMode_MIRROR)}
             icon={<LuCopy sx={stylexStyles.rule1} />}
@@ -936,11 +929,7 @@ function InventoryStep({
         {selectedCount} of {spaces.length} space
         {spaces.length !== 1 ? 's' : ''} selected for transfer:
       </p>
-      <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ 'space-y-1.5'
-        }
-      >
+      <div>
         {spaces.map((sp) => {
           const id = sp.entry?.ref?.providerResourceRef?.id ?? ''
           const name = sp.spaceMeta?.name || id || 'Unnamed'
@@ -951,8 +940,11 @@ function InventoryStep({
               type="button"
               onClick={() => onToggle(id)}
               sx={[
-                stylexStyles2.rule16,
-                checked ? stylexStyles2.rule17 : stylexStyles2.rule18,
+                nativeChildSpacing.s1_5,
+                [
+                  stylexStyles2.rule16,
+                  checked ? stylexStyles2.rule17 : stylexStyles2.rule18,
+                ],
               ]}
             >
               <div sx={stylexStyles2.rule19}>
@@ -1034,11 +1026,7 @@ function ProgressStep({
       </div>
 
       {spaceStates.length > 0 && (
-        <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-          }
-        >
+        <div>
           {spaceStates.map((sp) => {
             const spPhase = sp.phase ?? TransferPhase.TransferPhase_IDLE
             const copied = Number(sp.blocksCopied ?? 0n)
@@ -1046,7 +1034,10 @@ function ProgressStep({
             const pct = total > 0 ? Math.round((copied / total) * 100) : 0
 
             return (
-              <div key={sp.sharedObjectId} sx={stylexStyles2.rule23}>
+              <div
+                key={sp.sharedObjectId}
+                sx={[nativeChildSpacing.s2, stylexStyles2.rule23]}
+              >
                 <div sx={stylexStyles2.rule24}>
                   <p sx={stylexStyles2.rule25}>{sp.sharedObjectId}</p>
                   <p sx={stylexStyles2.rule26}>{phaseLabel(spPhase)}</p>
@@ -1085,3 +1076,29 @@ function CompleteStep({ spaceCount }: { spaceCount: number }) {
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s1_5: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

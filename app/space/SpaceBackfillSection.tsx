@@ -83,14 +83,9 @@ export function SpaceBackfillSection() {
     <div sx={stylexStyles2.rule1}>
       <h3 sx={stylexStyles2.rule2}>Storage on this device</h3>
       <InfoCard>
-        <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ 'space-y-1.5'
-          }
-          role="radiogroup"
-          aria-label="Storage on this device"
-        >
+        <div role="radiogroup" aria-label="Storage on this device">
           <RadioOption
+            sx={nativeChildSpacing.s1_5}
             selected={!backfill}
             onSelect={() => backfill && void choose(false)}
             disabled={pending}
@@ -99,6 +94,7 @@ export function SpaceBackfillSection() {
             description="Download items when you open them, and keep what you open or edit."
           />
           <RadioOption
+            sx={nativeChildSpacing.s1_5}
             selected={backfill}
             onSelect={() => !backfill && void choose(true)}
             disabled={pending}
@@ -111,3 +107,18 @@ export function SpaceBackfillSection() {
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s1_5: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

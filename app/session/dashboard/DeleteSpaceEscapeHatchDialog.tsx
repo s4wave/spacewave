@@ -43,6 +43,14 @@ import {
   utilityState as themeUtilityState,
 } from '../../../web/style/tokens.stylex.js'
 
+const stylexStyles3 = stylex.create({
+  rule1: {
+    maxHeight: `calc(${themeLayout['--spacing']} * 72)`,
+    overflowY: 'auto',
+    paddingRight: themeLayout['--spacing'],
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     fontSize: themeFonts['--text-xs'],
@@ -819,13 +827,7 @@ function SpaceSelectList({
     )
   }
   return (
-    <div
-      role="radiogroup"
-      aria-label="Spaces"
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ 'max-h-72 space-y-1.5 overflow-y-auto pr-1'
-      }
-    >
+    <div role="radiogroup" aria-label="Spaces" sx={stylexStyles3.rule1}>
       {choices.map((choice) => {
         const isSelected = choice.id === selectedId
         return (
@@ -836,8 +838,11 @@ function SpaceSelectList({
             aria-checked={isSelected}
             onClick={() => onSelect(choice.id)}
             sx={[
-              stylexStyles2.rule10,
-              isSelected ? stylexStyles2.rule11 : stylexStyles2.rule12,
+              nativeChildSpacingNext.s1_5,
+              [
+                stylexStyles2.rule10,
+                isSelected ? stylexStyles2.rule11 : stylexStyles2.rule12,
+              ],
             ]}
           >
             <LuBoxes
@@ -939,6 +944,21 @@ const nativeChildSpacing = stylex.create({
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s1_5: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * calc(1 - var(--tw-space-y-reverse)))`,
     },
   },
 })

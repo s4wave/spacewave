@@ -1185,12 +1185,8 @@ function Step1Unlock({
   const ready = unlockedCount >= required
 
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
-      }
-    >
-      <div sx={stylexStyles2.rule28}>
+    <div>
+      <div sx={[nativeChildSpacingNextNext.s3, stylexStyles2.rule28]}>
         <span sx={stylexStyles2.rule25}>
           {unlockedCount} of {required} unlocked
         </span>
@@ -1204,7 +1200,7 @@ function Step1Unlock({
         </div>
       </div>
 
-      <div sx={stylexStyles2.rule32}>
+      <div sx={[nativeChildSpacingNextNext.s3, stylexStyles2.rule32]}>
         <div
           sx={stylexStyles2.rule33}
           style={{
@@ -1213,10 +1209,14 @@ function Step1Unlock({
         />
       </div>
 
-      {loading && <p sx={stylexStyles2.rule25}>Loading keypairs…</p>}
+      {loading && (
+        <p sx={[nativeChildSpacingNextNext.s3, stylexStyles2.rule25]}>
+          Loading keypairs…
+        </p>
+      )}
 
       {!loading && keypairs.length > 0 && (
-        <div>
+        <div sx={nativeChildSpacingNextNext.s3}>
           {keypairs.map((kp) => (
             <UnlockRow
               sx={nativeChildSpacingNext.s1_5}
@@ -1425,16 +1425,15 @@ function Step2Confirm({
       {signers.length > 0 && (
         <div sx={nativeChildSpacing.s3}>
           <p sx={stylexStyles2.rule49}>Signing keypairs ({signers.length})</p>
-          <div
-            className={
-              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1 */ 'space-y-1'
-            }
-          >
+          <div>
             {signers.map((kp) => {
               const pid = kp.keypair?.peerId ?? ''
               const truncated = truncatePeerId(pid)
               return (
-                <div key={pid} sx={stylexStyles2.rule51}>
+                <div
+                  key={pid}
+                  sx={[nativeChildSpacingNextNext.s1, stylexStyles2.rule51]}
+                >
                   <LuCheck sx={stylexStyles.rule8} />
                   <span sx={stylexStyles2.rule20}>
                     {methodLabel(kp.keypair?.authMethod ?? '')}
@@ -1518,6 +1517,32 @@ const nativeChildSpacingNext = stylex.create({
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 1.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNextNext = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s1: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
     },
   },
 })

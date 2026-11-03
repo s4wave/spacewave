@@ -35,6 +35,10 @@ import {
   utilityState as themeUtilityState,
 } from '../../web/style/tokens.stylex.js'
 
+const stylexStyles8 = stylex.create({
+  rule1: { padding: `calc(${themeLayout['--spacing']} * 3)` },
+})
+
 const stylexStyles7 = stylex.create({
   rule1: {
     borderTopStyle: themeUtilityState['--tw-border-style'],
@@ -307,13 +311,8 @@ function SessionSyncStatusGlyph({ status }: { status: SessionSyncSummary }) {
 function SessionSyncStatusPopover() {
   const status = useSessionSyncStatus()
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3 p-3'
-      }
-      data-testid="session-sync-status-popover"
-    >
-      <div sx={stylexStyles4.rule2}>
+    <div sx={stylexStyles8.rule1} data-testid="session-sync-status-popover">
+      <div sx={[nativeChildSpacingNextNextNext.s3, stylexStyles4.rule2]}>
         <div
           sx={[
             stylexStyles4.rule3,
@@ -331,7 +330,7 @@ function SessionSyncStatusPopover() {
         </div>
       </div>
 
-      <div sx={stylexStyles4.rule11}>
+      <div sx={[nativeChildSpacingNextNextNext.s3, stylexStyles4.rule11]}>
         <SyncMetric label="Upload" value={status.uploadRateLabel} />
         <SyncMetric label="Download" value={status.downloadRateLabel} />
         {status.local ? (
@@ -361,7 +360,7 @@ function SessionSyncStatusPopover() {
       </div>
 
       {status.localCopies.length > 0 && (
-        <div sx={stylexStyles5.rule1}>
+        <div sx={[nativeChildSpacingNextNextNext.s3, stylexStyles5.rule1]}>
           {status.localCopies.map((copy) => (
             <div sx={nativeChildSpacing.s3} key={copy.id}>
               <SyncRow label={copy.name} value={copy.status} />
@@ -378,7 +377,7 @@ function SessionSyncStatusPopover() {
       )}
 
       {!status.local && (
-        <details sx={stylexStyles7.rule1}>
+        <details sx={[nativeChildSpacingNextNextNext.s3, stylexStyles7.rule1]}>
           <summary sx={[nativeChildSpacingNextNext.s1_5, stylexStyles4.rule16]}>
             Storage diagnostics
           </summary>
@@ -406,7 +405,7 @@ function SessionSyncStatusPopover() {
       )}
 
       {status.peers.length > 0 && (
-        <details sx={stylexStyles6.rule1}>
+        <details sx={[nativeChildSpacingNextNextNext.s3, stylexStyles6.rule1]}>
           <summary sx={[nativeChildSpacingNext.s2, stylexStyles4.rule16]}>
             Linked Sessions
           </summary>
@@ -419,7 +418,7 @@ function SessionSyncStatusPopover() {
         </details>
       )}
 
-      <div sx={stylexStyles7.rule1}>
+      <div sx={[nativeChildSpacingNextNextNext.s3, stylexStyles7.rule1]}>
         <SyncRow
           sx={nativeChildSpacingNextNext.s1_5}
           label="Transport"
@@ -523,6 +522,21 @@ const nativeChildSpacingNextNext = stylex.create({
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 1.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNextNextNext = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
     },
   },
 })

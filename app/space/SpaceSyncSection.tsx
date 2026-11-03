@@ -364,14 +364,9 @@ function SyncChoice({
       c === SpaceSequencer.SpaceSequencer_THIS_DEVICE,
   )
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ 'space-y-1.5'
-      }
-      role="radiogroup"
-      aria-label="How edits sync"
-    >
+    <div role="radiogroup" aria-label="How edits sync">
       <RadioOption
+        sx={nativeChildSpacingNext.s1_5}
         selected={merged}
         onSelect={() => onChoose(SpaceSequencer.SpaceSequencer_MERGE)}
         disabled={disabled || merged}
@@ -380,6 +375,7 @@ function SyncChoice({
         description="Everyone keeps working and edits combine."
       />
       <RadioOption
+        sx={nativeChildSpacingNext.s1_5}
         selected={!merged}
         onSelect={() => oneOrder && onChoose(oneOrder)}
         disabled={disabled || !merged || !oneOrder}
@@ -551,6 +547,21 @@ function switchingStatus(to: SpaceSequencer): string {
 
 // nativeChildSpacing preserves the original margins at each rendered child.
 const nativeChildSpacing = stylex.create({
+  s1_5: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
   s1_5: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
     marginBlockStart: {

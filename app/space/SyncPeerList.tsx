@@ -57,18 +57,16 @@ export function SyncPeerList({
   showDetails: boolean
 }) {
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1 */ 'space-y-1'
-      }
-    >
-      <h4 sx={stylexStyles.rule1}>Other devices</h4>
+    <div>
+      <h4 sx={[nativeChildSpacingNextNext.s1, stylexStyles.rule1]}>
+        Other devices
+      </h4>
       {peers.length === 0 ? (
-        <p sx={stylexStyles.rule2}>
+        <p sx={[nativeChildSpacingNextNext.s1, stylexStyles.rule2]}>
           No other device has synced since this device started.
         </p>
       ) : (
-        <ul aria-label="Other devices">
+        <ul sx={nativeChildSpacingNextNext.s1} aria-label="Other devices">
           {peers.map((peer) => (
             <li
               key={peer.peerId}
@@ -136,6 +134,21 @@ const nativeChildSpacing = stylex.create({
 
 // nativeChildSpacing preserves the original margins at each rendered child.
 const nativeChildSpacingNext = stylex.create({
+  s1: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNextNext = stylex.create({
   s1: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
     marginBlockStart: {

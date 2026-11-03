@@ -33,6 +33,15 @@ import {
   utilityState as themeUtilityState,
 } from '../../web/style/tokens.stylex.js'
 
+const stylexStyles4 = stylex.create({
+  rule1: {
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingTop: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+})
+
 const stylexStyles3 = stylex.create({
   rule1: {
     fontSize: themeFonts['--text-sm'],
@@ -247,18 +256,18 @@ function SessionBackgroundPluginsPopover({
       </div>
 
       {spaces.map((space) => (
-        <div
-          key={space.spaceId}
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ 'border-foreground/8 space-y-1.5 border-t pt-2'
-          }
-        >
-          <div sx={stylexStyles3.rule3}>{space.name}</div>
+        <div key={space.spaceId} sx={stylexStyles4.rule1}>
+          <div sx={[nativeChildSpacing.s1_5, stylexStyles3.rule3]}>
+            {space.name}
+          </div>
           {space.plugins.map((entry) => {
             const key = `${entry.spaceId}/${entry.pluginId}`
             const name = knownSpacePlugin(entry.pluginId ?? '').name
             return (
-              <div key={key} sx={stylexStyles3.rule4}>
+              <div
+                key={key}
+                sx={[nativeChildSpacing.s1_5, stylexStyles3.rule4]}
+              >
                 <span sx={stylexStyles3.rule5}>{name}</span>
                 <span
                   sx={[
@@ -296,3 +305,18 @@ function SessionBackgroundPluginsPopover({
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s1_5: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

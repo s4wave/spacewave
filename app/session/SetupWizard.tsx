@@ -588,12 +588,9 @@ function PinLockCard({
       subtitle="Require a PIN each time you open the app"
       doneSubtitle="PIN lock enabled"
     >
-      <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-        }
-      >
+      <div>
         <RadioOption
+          sx={nativeChildSpacingNext.s2}
           selected={wiz.lockMode === 'auto'}
           onSelect={() => wiz.setLockMode('auto')}
           icon={<LuLockOpen sx={stylexStyles.rule1} />}
@@ -601,6 +598,7 @@ function PinLockCard({
           description="Key stored on disk. No PIN needed."
         />
         <RadioOption
+          sx={nativeChildSpacingNext.s2}
           selected={wiz.lockMode === 'pin'}
           onSelect={() => wiz.setLockMode('pin')}
           icon={<LuLock sx={stylexStyles.rule1} />}
@@ -636,6 +634,21 @@ const nativeChildSpacing = stylex.create({
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
     },
   },
 })

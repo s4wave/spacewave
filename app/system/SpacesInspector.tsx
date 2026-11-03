@@ -228,13 +228,10 @@ export function SpacesInspector({
         {!sessions ? (
           <p sx={stylexStyles3.rule2}>Reading sessions…</p>
         ) : (
-          <ul
-            className={
-              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
-            }
-          >
+          <ul>
             {sessions.map((session) => (
               <SessionRow
+                sx={nativeChildSpacing.s3}
                 key={session.sessionIndex}
                 sessionIndex={session.sessionIndex ?? 0}
                 current={session.sessionIndex === sessionIndex}
@@ -295,6 +292,7 @@ export function SpacesInspector({
 
 // SessionRow is one account session with its provider facts and actions.
 function SessionRow({
+  sx,
   sessionIndex,
   current,
   onClose,
@@ -302,7 +300,7 @@ function SessionRow({
   sessionIndex: number
   current: boolean
   onClose: () => void
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   const metadata = useSessionMetadata(sessionIndex)
   const navigate = useNavigate()
   const setOpenMenu = useBottomBarSetOpenMenu()
@@ -312,8 +310,11 @@ function SessionRow({
   return (
     <li
       sx={[
-        stylexStyles3.rule7,
-        current ? stylexStyles3.rule8 : stylexStyles3.rule9,
+        [
+          stylexStyles3.rule7,
+          current ? stylexStyles3.rule8 : stylexStyles3.rule9,
+        ],
+        sx,
       ]}
     >
       <div sx={stylexStyles3.rule10}>
@@ -383,3 +384,18 @@ function SessionRow({
     </li>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

@@ -63,6 +63,22 @@ import { buildCreateSshHostTerminalOpData } from './terminal-action.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: { minHeight: `calc(${themeLayout['--spacing']} * 28)` },
+  rule2: {
+    minHeight: `calc(${themeLayout['--spacing']} * 16)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -944,7 +960,7 @@ function SshCredentialCard({
             value={credentialDraft.privateKey}
             onChange={(e) => onCredentialChange({ privateKey: e.target.value })}
             placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
-            className="min-h-28"
+            sx={stylexStyles3.rule1}
             help={fieldError(credentialError)}
           />
           <WizardField
@@ -1003,8 +1019,8 @@ function SshHostKeyTrustCard({
         value={config.hostKeyPublicKey ?? ''}
         onChange={(e) => onConfigChange({ hostKeyPublicKey: e.target.value })}
         placeholder="[host]:22 ssh-ed25519 AAAA… or ssh-ed25519 AAAA…"
-        className="min-h-16 font-mono text-xs"
-        fieldClassName="mt-2"
+        sx={stylexStyles3.rule2}
+        fieldSx={deviceWizardFieldStyles.publicKey}
       />
     </details>
   )
@@ -1658,3 +1674,8 @@ function decodeUTF8(bytes: Uint8Array | undefined): string {
   if (!bytes?.length) return ''
   return new TextDecoder().decode(bytes)
 }
+
+// deviceWizardFieldStyles separates the public-key field from the preceding control.
+const deviceWizardFieldStyles = stylex.create({
+  publicKey: { marginTop: 'calc(var(--spacing) * 2)' },
+})

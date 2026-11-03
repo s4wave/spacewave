@@ -223,16 +223,19 @@ export function OrganizationsSection({
         count > 0 ? <span sx={stylexStyles2.rule1}>{count}</span> : undefined
       }
     >
-      <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-        }
-      >
+      <div>
         {loading && (
-          <LoadingInline label="Loading organizations" tone="muted" size="sm" />
+          <LoadingInline
+            sx={nativeChildSpacingNext.s2}
+            label="Loading organizations"
+            tone="muted"
+            size="sm"
+          />
         )}
         {!loading && orgs.length === 0 && !showCreate && (
-          <p sx={stylexStyles2.rule2}>No organizations yet.</p>
+          <p sx={[nativeChildSpacingNext.s2, stylexStyles2.rule2]}>
+            No organizations yet.
+          </p>
         )}
         {!loading &&
           orgs.map((org) => (
@@ -240,7 +243,7 @@ export function OrganizationsSection({
               type="button"
               key={org.id}
               onClick={() => handleOpenOrganization(org.id ?? '')}
-              sx={stylexStyles2.rule3}
+              sx={[nativeChildSpacingNext.s2, stylexStyles2.rule3]}
             >
               <span sx={stylexStyles2.rule4}>{org.displayName || org.id}</span>
               <span sx={stylexStyles2.rule5}>Open &gt;</span>
@@ -249,6 +252,7 @@ export function OrganizationsSection({
 
         {showCreate ? (
           <CreateOrganizationForm
+            sx={nativeChildSpacingNext.s2}
             session={session}
             onClose={() => setShowCreate(false)}
           />
@@ -256,7 +260,7 @@ export function OrganizationsSection({
           <button
             type="button"
             onClick={() => setShowCreate(true)}
-            sx={stylexStyles2.rule6}
+            sx={[nativeChildSpacingNext.s2, stylexStyles2.rule6]}
           >
             <LuPlus sx={stylexStyles.rule2} />
             Create Organization
@@ -355,6 +359,21 @@ function CreateOrganizationForm({
 
 // nativeChildSpacing preserves the original margins at each rendered child.
 const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
   s2: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
     marginBlockStart: {
