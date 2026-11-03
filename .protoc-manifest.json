@@ -511,15 +511,18 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/resource": {
-      "hash": "5db70827ddfa6fbbc618c8d1780e9038e76215a6c4b9a67582c41728e6caed69",
+      "hash": "49156a557d5bcec2e938c2ffed8ac3a8e34c9b3940d78067bee6e56d40b1dcb3",
       "generatedFiles": [
         "bldr/resource/resource.pb.go",
         "bldr/resource/resource.pb.ts",
         "bldr/resource/resource_srpc.pb.go",
-        "bldr/resource/resource_srpc.pb.ts"
+        "bldr/resource/resource_srpc.pb.ts",
+        "bldr/resource/view.pb.go",
+        "bldr/resource/view.pb.ts"
       ],
       "protoFiles": [
-        "bldr/resource/resource.proto"
+        "bldr/resource/resource.proto",
+        "bldr/resource/view.proto"
       ]
     },
     "github.com/s4wave/spacewave/bldr/resource/state": {

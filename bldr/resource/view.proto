@@ -1,0 +1,24 @@
+syntax = "proto3";
+package resource;
+
+option go_package = "github.com/s4wave/spacewave/bldr/resource";
+
+// ViewVersion names the view a feed's message carries. Every versioned view
+// message holds it as field 1000, after the view's own fields, so the server
+// encodes a view once and appends the version for every stream. A request
+// names the version its client holds as string field 1000, held_version.
+message ViewVersion {
+  // Version names the view's content: equal views share it, across backends
+  // and restarts.
+  string version = 1;
+  // Revision is a World revision the view reflects every write up to, so a
+  // client that wrote at revision R knows a message at R or later shows it.
+  uint64 revision = 2;
+  // Unchanged reports that the view is the one the request held, so the
+  // message carries no view fields and the client keeps what it holds.
+  bool unchanged = 3;
+  // Changes reports that the message carries only the records that changed
+  // since the version the stream last delivered, for a watch that asked for
+  // changes; the client applies them to the view it holds.
+  bool changes = 4;
+}
