@@ -307,8 +307,10 @@ export const PutOpts: MessageType<PutOpts> =
 
 /**
  * Deadlist is one block of the record of what died between two named Worlds
- * of one engine. It declares only its parts as refs, so a mark keeps the record
- * without reaching the pages it lists.
+ * of one engine. A header holds metadata and Parts; indexes hold only Parts;
+ * list leaves hold historical fields. Each block declares its distinct Parts
+ * and Found as ordinary child refs. From and other historical pages are values,
+ * so they do not become mark roots.
  *
  * protobuf-go-lite:disable-json
  *
@@ -341,14 +343,14 @@ export interface Deadlist {
    */
   kept?: BlockRef[]
   /**
-   * Parts are further Deadlist blocks with the rest of the refs, set only on
-   * the first block.
+   * Parts are bounded children of a header or index. List leaves have none;
+   * repeated occurrences preserve list multiplicity despite physical reuse.
    */
   parts?: BlockRef[]
   /**
    * Held are live stored pages that may have gained a holder, each listed
-   * once per new parent. Naming the record adds one shared count to each
-   * entry.
+   * once per new parent. A small record with a current complete basis adds
+   * one shared count per entry at naming; large records request recount.
    */
   held?: BlockRef[]
   /**
@@ -364,10 +366,29 @@ export interface Deadlist {
   dropped?: BlockRef[]
   /**
    * Found are the pages an interval's puts found stored, listed once per
-   * put. Each such put held its page with one shared count until the record
-   * is named; naming the record takes one count from each entry.
+   * put. Puts add provisional scalar holders; bucket/stage owners retain bytes.
+   * A leaf declares distinct Found as ordinary child refs, separately funded
+   * when that physical leaf is fresh. Precise application returns provisional
+   * multiplicity only with an unchanged complete basis; uncertainty skips it.
    */
   found?: BlockRef[]
+  /**
+   * CountingGeneration is the Volume-wide count generation of every put.
+   * It is trustworthy only with counts_complete and a matching current basis.
+   */
+  countingGeneration?: bigint
+  /**
+   * CountsComplete certifies that every successful interval put used the
+   * same complete, non-doubtful counting generation, including From's first
+   * lineage receipt. Missing or mixed bases are uncertain.
+   */
+  countsComplete?: boolean
+  /**
+   * FallbackHeld counts fresh-parent edges from all successful puts, including
+   * discarded pages. It replaces Held for a small uncertain record; large
+   * records request recount from the graph instead of replaying this list.
+   */
+  fallbackHeld?: BlockRef[]
 }
 
 export const Deadlist: MessageType<Deadlist> =
@@ -383,4 +404,7 @@ export const Deadlist: MessageType<Deadlist> =
     [9, 'existed', 11, 1, BlockRef.codec],
     [10, 'dropped', 11, 1, BlockRef.codec],
     [11, 'found', 11, 1, BlockRef.codec],
+    [12, 'counting_generation', 4],
+    [13, 'counts_complete', 8],
+    [14, 'fallback_held', 11, 1, BlockRef.codec],
   ])

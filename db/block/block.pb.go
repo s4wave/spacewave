@@ -361,8 +361,10 @@ func (x *PutOpts) GetRefsKnown() bool {
 }
 
 // Deadlist is one block of the record of what died between two named Worlds
-// of one engine. It declares only its parts as refs, so a mark keeps the record
-// without reaching the pages it lists.
+// of one engine. A header holds metadata and Parts; indexes hold only Parts;
+// list leaves hold historical fields. Each block declares its distinct Parts
+// and Found as ordinary child refs. From and other historical pages are values,
+// so they do not become mark roots.
 //
 // protobuf-go-lite:disable-json
 type Deadlist struct {
@@ -380,12 +382,12 @@ type Deadlist struct {
 	Removed []*BlockRef `protobuf:"bytes,5,rep,name=removed,proto3" json:"removed,omitempty"`
 	// Kept are live pages that stop the expansion of Removed.
 	Kept []*BlockRef `protobuf:"bytes,6,rep,name=kept,proto3" json:"kept,omitempty"`
-	// Parts are further Deadlist blocks with the rest of the refs, set only on
-	// the first block.
+	// Parts are bounded children of a header or index. List leaves have none;
+	// repeated occurrences preserve list multiplicity despite physical reuse.
 	Parts []*BlockRef `protobuf:"bytes,7,rep,name=parts,proto3" json:"parts,omitempty"`
 	// Held are live stored pages that may have gained a holder, each listed
-	// once per new parent. Naming the record adds one shared count to each
-	// entry.
+	// once per new parent. A small record with a current complete basis adds
+	// one shared count per entry at naming; large records request recount.
 	Held []*BlockRef `protobuf:"bytes,8,rep,name=held,proto3" json:"held,omitempty"`
 	// Existed are live pages whose edge from the new tree was counted already:
 	// a put found them stored, or only pages that existed name them. The old
@@ -395,9 +397,22 @@ type Deadlist struct {
 	// edges to their children no put counted.
 	Dropped []*BlockRef `protobuf:"bytes,10,rep,name=dropped,proto3" json:"dropped,omitempty"`
 	// Found are the pages an interval's puts found stored, listed once per
-	// put. Each such put held its page with one shared count until the record
-	// is named; naming the record takes one count from each entry.
+	// put. Puts add provisional scalar holders; bucket/stage owners retain bytes.
+	// A leaf declares distinct Found as ordinary child refs, separately funded
+	// when that physical leaf is fresh. Precise application returns provisional
+	// multiplicity only with an unchanged complete basis; uncertainty skips it.
 	Found []*BlockRef `protobuf:"bytes,11,rep,name=found,proto3" json:"found,omitempty"`
+	// CountingGeneration is the Volume-wide count generation of every put.
+	// It is trustworthy only with counts_complete and a matching current basis.
+	CountingGeneration uint64 `protobuf:"varint,12,opt,name=counting_generation,json=countingGeneration,proto3" json:"countingGeneration,omitempty"`
+	// CountsComplete certifies that every successful interval put used the
+	// same complete, non-doubtful counting generation, including From's first
+	// lineage receipt. Missing or mixed bases are uncertain.
+	CountsComplete bool `protobuf:"varint,13,opt,name=counts_complete,json=countsComplete,proto3" json:"countsComplete,omitempty"`
+	// FallbackHeld counts fresh-parent edges from all successful puts, including
+	// discarded pages. It replaces Held for a small uncertain record; large
+	// records request recount from the graph instead of replaying this list.
+	FallbackHeld []*BlockRef `protobuf:"bytes,14,rep,name=fallback_held,json=fallbackHeld,proto3" json:"fallbackHeld,omitempty"`
 }
 
 func (x *Deadlist) Reset() {
@@ -479,6 +494,27 @@ func (x *Deadlist) GetDropped() []*BlockRef {
 func (x *Deadlist) GetFound() []*BlockRef {
 	if x != nil {
 		return x.Found
+	}
+	return nil
+}
+
+func (x *Deadlist) GetCountingGeneration() uint64 {
+	if x != nil {
+		return x.CountingGeneration
+	}
+	return 0
+}
+
+func (x *Deadlist) GetCountsComplete() bool {
+	if x != nil {
+		return x.CountsComplete
+	}
+	return false
+}
+
+func (x *Deadlist) GetFallbackHeld() []*BlockRef {
+	if x != nil {
+		return x.FallbackHeld
 	}
 	return nil
 }
@@ -577,6 +613,8 @@ func (m *Deadlist) CloneVT() *Deadlist {
 	}
 	r := new(Deadlist)
 	r.Seq = m.Seq
+	r.CountingGeneration = m.CountingGeneration
+	r.CountsComplete = m.CountsComplete
 	r.From = protobuf_go_lite.CloneVTValue(m.From)
 	r.To = protobuf_go_lite.CloneVTValue(m.To)
 	r.Replaced = protobuf_go_lite.CloneVTSlice(m.Replaced)
@@ -587,6 +625,7 @@ func (m *Deadlist) CloneVT() *Deadlist {
 	r.Existed = protobuf_go_lite.CloneVTSlice(m.Existed)
 	r.Dropped = protobuf_go_lite.CloneVTSlice(m.Dropped)
 	r.Found = protobuf_go_lite.CloneVTSlice(m.Found)
+	r.FallbackHeld = protobuf_go_lite.CloneVTSlice(m.FallbackHeld)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -758,6 +797,15 @@ func (this *Deadlist) EqualVT(that *Deadlist) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.Found, that.Found, func() *BlockRef { return &BlockRef{} }) {
+		return false
+	}
+	if this.CountingGeneration != that.CountingGeneration {
+		return false
+	}
+	if this.CountsComplete != that.CountsComplete {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.FallbackHeld, that.FallbackHeld, func() *BlockRef { return &BlockRef{} }) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1444,6 +1492,28 @@ func (m *Deadlist) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.FallbackHeld) > 0 {
+		for iNdEx := len(m.FallbackHeld) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.FallbackHeld[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x72
+		}
+	}
+	if m.CountsComplete {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.CountsComplete)
+		i--
+		dAtA[i] = 0x68
+	}
+	if m.CountingGeneration != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CountingGeneration))
+		i--
+		dAtA[i] = 0x60
+	}
 	if len(m.Found) > 0 {
 		for iNdEx := len(m.Found) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.Found[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -1696,6 +1766,12 @@ func (m *Deadlist) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.CountingGeneration)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.CountsComplete)
+	for _, e := range m.FallbackHeld {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1936,6 +2012,26 @@ func (x *Deadlist) MarshalProtoText() string {
 	if len(x.Found) > 0 {
 		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "found")
 		for i, v := range x.Found {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &BlockRef{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.CountingGeneration != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "counting_generation")
+		protobuf_go_lite.TextWriteUint(&sb, x.CountingGeneration)
+	}
+	if x.CountsComplete != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "counts_complete")
+		protobuf_go_lite.TextWriteBool(&sb, x.CountsComplete)
+	}
+	if len(x.FallbackHeld) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "fallback_held")
+		for i, v := range x.FallbackHeld {
 			protobuf_go_lite.TextWriteListSeparator(&sb, i)
 			if v == nil {
 				protobuf_go_lite.TextWriteTextMarshaler(&sb, &BlockRef{})
@@ -2478,6 +2574,38 @@ func (m *Deadlist) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Found = append(m.Found, &BlockRef{})
 			if err := m.Found[len(m.Found)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 12:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CountingGeneration", wireType)
+			}
+			m.CountingGeneration = 0
+			m.CountingGeneration, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 13:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CountsComplete", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.CountsComplete = bool(v)
+		case 14:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FallbackHeld", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.FallbackHeld = append(m.FallbackHeld, &BlockRef{})
+			if err := m.FallbackHeld[len(m.FallbackHeld)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
