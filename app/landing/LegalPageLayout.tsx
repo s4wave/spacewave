@@ -1,3 +1,4 @@
+import { controlTargetStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import { LuArrowLeft } from '@s4wave/web/images/icons.js'
 import { LegalFooter } from './LegalFooter.js'
 import { useLandingBackNavigation } from './useLandingBackNavigation.js'
@@ -189,7 +190,11 @@ export function LegalPageLayout({
   return (
     <div sx={stylexStyles2.rule1}>
       <div sx={stylexStyles2.rule2}>
-        <button type="button" onClick={goBack} sx={stylexStyles2.rule3}>
+        <button
+          type="button"
+          onClick={goBack}
+          sx={[stylexStyles2.rule3, controlTargetStyles.minimum]}
+        >
           <LuArrowLeft sx={stylexStyles.rule1} />
           Back
         </button>

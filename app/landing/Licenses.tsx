@@ -162,7 +162,7 @@ const stylexStyles3 = stylex.create({
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
   },
   rule15: {
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
   },
@@ -296,12 +296,12 @@ const stylexStyles3 = stylex.create({
       '@container (min-width: 28rem)': `calc(${themeLayout['--spacing']} * 64)`,
     },
     '::placeholder': {
-      color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+      color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
     },
   },
   rule30: {
     paddingBlock: `calc(${themeLayout['--spacing']} * 12)`,
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
     fontSize: themeFonts['--text-sm'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     textAlign: 'center',
@@ -362,7 +362,7 @@ const stylexStyles = stylex.create({
   },
   rule4: {
     '--tw-translate-y': 'calc(calc(1 / 2 * 100%) * -1)',
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
     pointerEvents: 'none',
     position: 'absolute',
     translate: 'var(--tw-translate-x) var(--tw-translate-y)',

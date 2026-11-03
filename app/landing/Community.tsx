@@ -358,7 +358,7 @@ const stylexStyles5 = ownerStylex.create({
     marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
   },
   rule24: {
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     textAlign: 'center',
@@ -399,7 +399,7 @@ const stylexStyles5 = ownerStylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
       },
     },
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
   },
   rule29: {
     borderRadius: 'var(--radius-sm)',
@@ -451,12 +451,12 @@ const stylexStyles5 = ownerStylex.create({
     paddingRight: `calc(${themeLayout['--spacing']} * 3)`,
     width: '100%',
     '::placeholder': {
-      color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 30%, transparent)`,
+      color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
     },
   },
   rule35: {
     paddingBlock: `calc(${themeLayout['--spacing']} * 8)`,
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     textAlign: 'center',
@@ -477,7 +477,7 @@ const stylexStyles5 = ownerStylex.create({
   },
   rule38: { color: themeColors['--color-foreground'] },
   rule39: {
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
   },
@@ -551,7 +551,7 @@ const stylexStyles5 = ownerStylex.create({
   },
   rule47: {
     overflow: 'hidden',
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: 1.5,
     textOverflow: 'ellipsis',
@@ -572,7 +572,7 @@ const stylexStyles5 = ownerStylex.create({
     borderWidth: '1px',
     paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
     paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
     fontSize: themeFonts['--text-xs'],
     fontWeight: themeFonts['--font-weight-medium'],
     lineHeight: 1.5,
@@ -605,12 +605,12 @@ const stylexStyles5 = ownerStylex.create({
   },
   rule52: {
     '--tw-leading': 'var(--leading-relaxed)',
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: 'var(--leading-relaxed)',
   },
   rule53: {
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     textAlign: 'center',
@@ -657,7 +657,7 @@ const stylexStyles5 = ownerStylex.create({
     paddingBottom: `calc(${themeLayout['--spacing']} * 8)`,
   },
   rule58: {
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
   },
@@ -799,7 +799,7 @@ const stylexStyles = stylex.create({
   },
   rule4: {
     '--tw-translate-y': 'calc(calc(1 / 2 * 100%) * -1)',
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 30%, transparent)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
     pointerEvents: 'none',
     position: 'absolute',
     translate: 'var(--tw-translate-x) var(--tw-translate-y)',
@@ -944,7 +944,11 @@ export function Community() {
     <div sx={stylexStyles5.rule1}>
       {/* Back button */}
       <div sx={stylexStyles5.rule2}>
-        <button type="button" onClick={goBack} sx={stylexStyles5.rule3}>
+        <button
+          type="button"
+          onClick={goBack}
+          sx={[stylexStyles5.rule3, controlTargetStyles.minimum]}
+        >
           <LuArrowLeft sx={stylexStyles.rule1} />
           Back
         </button>
@@ -971,7 +975,7 @@ export function Community() {
           <button
             type="button"
             onClick={handleEmailSupport}
-            sx={stylexStyles5.rule10}
+            sx={[stylexStyles5.rule10, controlTargetStyles.minimum]}
           >
             <LuMessageSquare sx={stylexStyles.rule2} />
             Email Support
@@ -1040,6 +1044,7 @@ export function Community() {
               sx={[
                 stylexStyles5.rule26,
                 showDev ? stylexStyles5.rule27 : stylexStyles5.rule28,
+                controlTargetStyles.minimum,
               ]}
             >
               <span

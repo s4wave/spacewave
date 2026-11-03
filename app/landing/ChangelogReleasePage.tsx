@@ -1,3 +1,4 @@
+import { controlTargetStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import { LuArrowLeft } from '@s4wave/web/images/icons.js'
 
 import type { Release } from '@s4wave/core/changelog/changelog.pb.js'
@@ -140,7 +141,11 @@ export function ChangelogReleasePage({ release }: { release: Release }) {
     <div sx={stylexStyles2.rule1}>
       {/* Back button */}
       <div sx={stylexStyles2.rule2}>
-        <button type="button" onClick={goBack} sx={stylexStyles2.rule3}>
+        <button
+          type="button"
+          onClick={goBack}
+          sx={[stylexStyles2.rule3, controlTargetStyles.minimum]}
+        >
           <LuArrowLeft sx={stylexStyles.rule1} />
           Back
         </button>
