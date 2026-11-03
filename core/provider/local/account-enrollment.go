@@ -9,7 +9,6 @@ import (
 	"github.com/s4wave/spacewave/core/pairing"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_invite "github.com/s4wave/spacewave/core/sobject/invite"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/net/peer"
 )
@@ -26,20 +25,6 @@ func (a *ProviderAccount) buildPairingIdentity(ctx context.Context, offer *pairi
 		return nil, err
 	}
 	return pairing.BuildIdentity(offer, sess.GetSessionRef(), sess.GetPrivKey(), storageKey, sourcePeer, receivingPeer)
-}
-
-// enrollPairingObject grants the approved receiving identities and exports the
-// resulting checkpoint. Its caller must have completed bilateral approval.
-func (a *ProviderAccount) enrollPairingObject(ctx context.Context, entry *sobject.SharedObjectListEntry, identity *pairing.Identity) (*pairing.SharedObject, error) {
-	// Initial enrollment requires signed possession of both independent keys.
-	for _, proof := range []*sobject.SOJoinResponse{identity.GetSessionProof(), identity.GetStorageProof()} {
-		if _, _, err := sobject_invite.ValidateJoinResponse(proof); err != nil {
-			return nil, err
-		}
-	}
-	return a.enrollAccountMemberObject(ctx, entry, &account_settings.AccountSession{
-		PeerId: identity.GetSessionProof().GetResponderPeerId(), StoragePeerId: identity.GetStorageProof().GetResponderPeerId(),
-	})
 }
 
 // installPairingObject accepts a checkpoint only for the offered account. The

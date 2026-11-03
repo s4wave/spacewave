@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"net"
+	"slices"
 	"testing"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/core/space"
+	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
@@ -25,6 +27,7 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_types "github.com/s4wave/spacewave/db/world/types"
+	stream_packet "github.com/s4wave/spacewave/net/stream/packet"
 	stream_srpc "github.com/s4wave/spacewave/net/stream/srpc"
 	"github.com/s4wave/spacewave/net/transport/inproc"
 )
@@ -49,7 +52,13 @@ func TestAccountReplicaEnrollment(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	offer := &pairing.AccountOffer{AccountId: source.GetAccountID(), SettingsId: settingsRef.GetProviderResourceRef().GetId(), OperationId: ulid.NewULID()}
+	if err := source.EnsureConfiguredSessionTransport(ctx, sourceSession.GetPrivKey()); err != nil {
+		t.Fatal(err)
+	}
+	offer, err := source.OfferPairingAccount(ctx, sourceSession.GetPrivKey())
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Prepare a fresh Session in the same logical account on the receiving store.
 	ref := sourceSession.GetSessionRef().CloneVT()
@@ -90,15 +99,58 @@ func TestAccountReplicaEnrollment(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Transfer each authorized checkpoint through the production host contract.
-	for _, entry := range source.GetSOListCtr().GetValue().GetSharedObjects() {
-		object, err := source.enrollPairingObject(ctx, entry, identity)
+	// Only the storage signer owns the Space before pairing starts sync.
+	initial := getSOState(ctx, t, source, spaceRef, spaceRef.GetProviderResourceRef().GetId())
+	if slices.ContainsFunc(initial.GetConfig().GetParticipants(), func(p *sobject.SOParticipantConfig) bool {
+		return p.GetPeerId() == sourceSession.GetPeerId().String()
+	}) {
+		t.Fatal("fixture pre-enrolled the source Session")
+	}
+
+	// Run the approved adapter over its actual framed checkpoint stream.
+	left, right := net.Pipe()
+	defer left.Close()
+	defer right.Close()
+	stop := context.AfterFunc(ctx, func() { left.Close(); right.Close() })
+	defer stop()
+	finished := make(chan error, 1)
+	go func() {
+		defer left.Close()
+		finished <- source.EnrollPairingReceiver(ctx, stream_packet.NewSession(left, 16<<20), &pairing.Enrollment{Offer: offer, Identity: identity}, sourceSession.GetPrivKey(), sourceSession.GetPeerId(), receiverSession.GetPeerId())
+	}()
+
+	// Each exported config must authorize both endpoints before background
+	// hosting starts at the end of the stream.
+	stream := stream_packet.NewSession(right, 16<<20)
+	for {
+		frame, err := pairing.ReceiveFrame(stream)
 		if err != nil {
 			t.Fatal(err)
 		}
+		if frame.GetComplete() {
+			break
+		}
+		object := frame.GetObject()
+		if object == nil {
+			t.Fatal("enrollment sent an unexpected frame")
+		}
+
+		// The same exported snapshot supplies reciprocal DEX authority.
+		for _, id := range []string{sourceSession.GetPeerId().String(), sess.GetPeerId().String(), identity.GetStorageProof().GetResponderPeerId()} {
+			if !slices.ContainsFunc(object.GetState().GetConfig().GetParticipants(), func(p *sobject.SOParticipantConfig) bool {
+				return p.GetPeerId() == id && sobject.CanReadState(p.GetRole())
+			}) {
+				t.Fatalf("exported checkpoint omitted approved Session or storage peer %s", id)
+			}
+		}
+
+		// Install exactly the state the approved adapter exported.
 		if err := replica.installPairingObject(ctx, offer, object); err != nil {
 			t.Fatal(err)
 		}
+	}
+	if err := <-finished; err != nil {
+		t.Fatal(err)
 	}
 
 	// The replica binds the canonical settings and lists both objects.
@@ -386,6 +438,48 @@ func TestAccountPairingExchange(t *testing.T) {
 				t.Fatal("local read was counted as peer traffic")
 			}
 
+			// The receiving client can publish new bytes and the original Session
+			// copies them through the retained direct connection in reverse.
+			if mode.direct {
+				reverse, want := seedProviderReplicaPayload(ctx, t, replica, replica, spaceRef, "receiving replica payload\n")
+				sourceSO, releaseSO, err := source.MountSharedObject(ctx, spaceRef, nil)
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer releaseSO()
+
+				// Identify the receiver's exact new published graph.
+				snapshot, err := so.GetSharedObjectState(ctx)
+				if err != nil {
+					t.Fatal(err)
+				}
+				_, reverseHead, err := sobject_world_engine.PublishedGraph(ctx, snapshot, space_world_optypes.LookupWorldOp)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				// Wait for that graph's copy to finish before reading local bytes.
+				for {
+					progress, changed := source.GetAccountCopyProgress()
+					if slices.ContainsFunc(progress, func(p *AccountReplicaCopyState) bool {
+						return p.GetObjectId() == sourceSO.GetSharedObjectID() && p.GetHead().GetRootRef().EqualsRef(reverseHead) && p.GetComplete()
+					}) {
+						break
+					}
+					select {
+					case <-ctx.Done():
+						t.Fatalf("source did not copy the receiver's payload: %v", progress)
+					case <-changed:
+					}
+				}
+
+				// Bypass DEX so this read proves the reverse copy is physical.
+				got, found, err := sourceSO.GetBlockStore().(*BlockStore).store.GetBlock(ctx, reverse)
+				if err != nil || !found || !bytes.Equal(got, want) {
+					t.Fatalf("source reverse payload is not local: found=%v err=%v", found, err)
+				}
+			}
+
 			// A later Space must arrive through canonical catalog sync and the real
 			// authenticated replica service without reopening the pairing exchange.
 			later, err := source.CreateSharedObject(ctx, ulid.NewULID(), &sobject.SharedObjectMeta{BodyType: "space"}, "", "")
@@ -485,7 +579,7 @@ func seedAccountReplicaPayload(ctx context.Context, t *testing.T, account *Provi
 }
 
 // seedProviderReplicaPayload exercises either native provider on the fixture bus.
-func seedProviderReplicaPayload(ctx context.Context, t *testing.T, fixture *ProviderAccount, account sobject.SharedObjectProvider, ref *sobject.SharedObjectRef) (*block.BlockRef, []byte) {
+func seedProviderReplicaPayload(ctx context.Context, t *testing.T, fixture *ProviderAccount, account sobject.SharedObjectProvider, ref *sobject.SharedObjectRef, contents ...string) (*block.BlockRef, []byte) {
 	// Mount the Space to seed.
 	t.Helper()
 	so, release, err := account.MountSharedObject(ctx, ref, nil)
@@ -514,9 +608,15 @@ func seedProviderReplicaPayload(ctx context.Context, t *testing.T, fixture *Prov
 		t.Fatalf("wait for readable Space before seeding: %v", err)
 	}
 
+	// Give reverse writes different bytes from the original copy.
+	message := "paired account payload\n"
+	if len(contents) != 0 {
+		message = contents[0]
+	}
+
 	// Write a large leaf under a nested root block.
 	store := so.GetBlockStore()
-	data, err := (&block_mock.Example{Msg: string(bytes.Repeat([]byte("paired account payload\n"), 8192))}).MarshalVT()
+	data, err := (&block_mock.Example{Msg: string(bytes.Repeat([]byte(message), 8192))}).MarshalVT()
 	if err != nil {
 		t.Fatal(err)
 	}

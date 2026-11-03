@@ -116,12 +116,14 @@ func (a *ProviderAccount) registerPairingReplicas(ctx context.Context, enrollmen
 	return nil
 }
 
-// enrollAccountMemberObject issues grants only for a stored, approved binding.
-// The caller validates current membership before invoking this host mutation.
-func (a *ProviderAccount) enrollAccountMemberObject(ctx context.Context, entry *sobject.SharedObjectListEntry, member *account_settings.AccountSession) (*pairing.SharedObject, error) {
-	// Require a stored, approved binding.
-	if member == nil || member.GetRevoked() {
-		return nil, errors.New("account Session is not authorized")
+// enrollAccountMemberObject grants stored, approved bindings before exporting
+// one durable checkpoint. The caller validates each member's current membership.
+func (a *ProviderAccount) enrollAccountMemberObject(ctx context.Context, entry *sobject.SharedObjectListEntry, members ...*account_settings.AccountSession) (*pairing.SharedObject, error) {
+	// Require every binding to be approved before issuing any grant.
+	for _, member := range members {
+		if member == nil || member.GetRevoked() {
+			return nil, errors.New("account Session is not authorized")
+		}
 	}
 
 	// Mount the object and resolve the volume's owner key.
@@ -140,14 +142,16 @@ func (a *ProviderAccount) enrollAccountMemberObject(ctx context.Context, entry *
 		return nil, err
 	}
 
-	// Grant OWNER participation to the Session and storage identities.
-	for _, id := range []string{member.GetPeerId(), member.GetStoragePeerId()} {
-		participant, publicKey, err := peer.ParsePeerIDWithPubKey(id)
-		if err != nil {
-			return nil, err
-		}
-		if _, err := sobject.AddSOParticipant(ctx, local.soHost, so.GetSharedObjectID(), key, owner.GetPeerID().String(), participant.String(), publicKey, sobject.SOParticipantRole_SOParticipantRole_OWNER, "", ""); err != nil {
-			return nil, err
+	// Grant each approved Session and its storage identity before the export.
+	for _, member := range members {
+		for _, id := range []string{member.GetPeerId(), member.GetStoragePeerId()} {
+			participant, publicKey, err := peer.ParsePeerIDWithPubKey(id)
+			if err != nil {
+				return nil, err
+			}
+			if _, err := sobject.AddSOParticipant(ctx, local.soHost, so.GetSharedObjectID(), key, owner.GetPeerID().String(), participant.String(), publicKey, sobject.SOParticipantRole_SOParticipantRole_OWNER, "", ""); err != nil {
+				return nil, err
+			}
 		}
 	}
 

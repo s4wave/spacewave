@@ -174,20 +174,19 @@ func (a *ProviderAccount) EnrollPairingReceiver(ctx context.Context, stream *str
 		return err
 	}
 
-	// Enroll and transfer every object's checkpoint to the receiver.
-	for _, entry := range a.soListCtr.GetValue().GetSharedObjects() {
-		// A merge keeps the authenticated receiving key after its temporary
-		// enrollment retires. Grant it before exporting any checkpoint, so
-		// that handoff never depends on background membership propagation.
-		if enrollment.Choice.Merging() {
-			member := &account_settings.AccountSession{PeerId: receivingPeer.String(), StoragePeerId: identity.GetStorageProof().GetResponderPeerId()}
-			if _, err := a.enrollAccountMemberObject(ctx, entry, member); err != nil {
-				return errors.Wrap(err, "enroll merging Session")
-			}
-		}
+	// Both approved Sessions must read blocks from either replica immediately.
+	// Hosting reconciliation may start after these checkpoints are exported.
+	members := []*account_settings.AccountSession{
+		{PeerId: sourcePeer.String(), StoragePeerId: offer.GetStoragePeerId()},
+		{PeerId: identity.GetSessionProof().GetResponderPeerId(), StoragePeerId: identity.GetStorageProof().GetResponderPeerId()},
+	}
+	if enrollment.Choice.Merging() {
+		members = append(members, &account_settings.AccountSession{PeerId: receivingPeer.String(), StoragePeerId: identity.GetStorageProof().GetResponderPeerId()})
+	}
 
-		// Enroll the object and transfer its checkpoint.
-		object, err := a.enrollPairingObject(ctx, entry, identity)
+	// Export once after granting every binding registered by this enrollment.
+	for _, entry := range a.soListCtr.GetValue().GetSharedObjects() {
+		object, err := a.enrollAccountMemberObject(ctx, entry, members...)
 		if err != nil {
 			return errors.Wrap(err, "enroll SharedObject "+entry.GetRef().GetProviderResourceRef().GetId())
 		}
