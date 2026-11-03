@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"flag"
 	"io"
 	"net/http"
 	"os"
@@ -74,8 +75,16 @@ func TestMain(m *testing.M) {
 		le.WithError(err).Fatal("apply release wasm startup trace env")
 	}
 
-	// Bound the release harness lifetime and release its context.
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
+	// Keep the fixture alive for the requested test timeout, including a cold build.
+	flag.Parse()
+	testTimeout := flag.Lookup("test.timeout").Value.(flag.Getter).Get().(time.Duration)
+	var ctx context.Context
+	var cancel context.CancelFunc
+	if testTimeout > 0 {
+		ctx, cancel = context.WithTimeout(context.Background(), testTimeout)
+	} else {
+		ctx, cancel = context.WithCancel(context.Background())
+	}
 	defer cancel()
 
 	// Boot the release harness and expose it to the tests.
