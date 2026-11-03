@@ -236,18 +236,20 @@ describe('Heavy Frost Tab CSS (baked-in)', () => {
     expect(activeColor).not.toBe(inactiveColor)
   })
 
-  it('tabs are 22px tall', async () => {
+  it('tabs keep 24px targets in the compact shell', async () => {
+    // Render both selection states through the native FlexLayout skin.
     await render(<MockShellFlexLayout />)
     await expect.poll(() => getEl('tab-inactive')).not.toBeNull()
 
+    // Measure the hit boxes independently of their text and icon size.
     const inactiveHeight = getEl('tab-inactive').getBoundingClientRect().height
     const activeHeight = getEl('tab-active').getBoundingClientRect().height
 
-    // Tabs should be 22px
-    expect(inactiveHeight).toBeGreaterThanOrEqual(21)
-    expect(inactiveHeight).toBeLessThanOrEqual(23)
-    expect(activeHeight).toBeGreaterThanOrEqual(21)
-    expect(activeHeight).toBeLessThanOrEqual(23)
+    // Tab targets retain the compact 24px control floor.
+    expect(inactiveHeight).toBeGreaterThanOrEqual(24)
+    expect(inactiveHeight).toBeLessThanOrEqual(25)
+    expect(activeHeight).toBeGreaterThanOrEqual(24)
+    expect(activeHeight).toBeLessThanOrEqual(25)
   })
 
   it('tab bar inner is 24px (bottom-hugging)', async () => {

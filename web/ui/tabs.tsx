@@ -77,6 +77,8 @@ const styles = stylex.create({
     transitionProperty: 'color, box-shadow',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
     whiteSpace: 'nowrap',
+    minHeight: { default: '24px', '@media (pointer: coarse)': '44px' },
+    minWidth: { default: '24px', '@media (pointer: coarse)': '44px' },
   },
   contentBase: { '--tw-outline-style': 'none', flex: 1, outlineStyle: 'none' },
   rootDebug: { gap: `calc(${themeLayout['--spacing']} * 5)` },

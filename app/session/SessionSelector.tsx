@@ -368,7 +368,7 @@ const stylexStyles2 = stylex.create({
     paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
     color: themeColors['--color-brand'],
-    fontSize: '9px',
+    fontSize: '10px',
     fontWeight: 'var(--font-weight-semibold)',
     letterSpacing: 'var(--tracking-wider)',
     lineHeight: 1.5,

@@ -26,6 +26,10 @@ import {
 
 const menuStyles = stylex.create({
   root: { alignItems: 'center', display: 'flex' },
+  trigger: {
+    minHeight: { default: '24px', '@media (pointer: coarse)': '44px' },
+    minWidth: { default: '24px', '@media (pointer: coarse)': '44px' },
+  },
   shell: {
     '--tw-shadow': '0 0 #0000',
     padding: 0,
@@ -481,7 +485,7 @@ function MenubarTrigger({
   return (
     <MenubarPrimitive.Trigger
       data-slot="menubar-trigger"
-      {...stylexProps([sx], props)}
+      {...stylexProps([menuStyles.trigger, sx], props)}
     />
   )
 }

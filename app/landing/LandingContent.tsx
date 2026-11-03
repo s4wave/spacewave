@@ -909,7 +909,7 @@ const stylexStyles7 = ownerStylex.create({
   },
   rule73: {
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
-    fontSize: '.6rem',
+    fontSize: '10px',
     lineHeight: 1.5,
   },
   rule74: {
@@ -1054,12 +1054,11 @@ const stylexStyles7 = ownerStylex.create({
   },
   rule90: {
     '--tw-font-weight': themeFonts['--font-weight-medium'],
-    padding: {
-      default: null,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingInline: {
+      default: themeLayout['--spacing'],
       '@container (min-width: 28rem)': `calc(${themeLayout['--spacing']} * 4)`,
     },
-    paddingBlock: `calc(${themeLayout['--spacing']} * 4)`,
-    paddingInline: themeLayout['--spacing'],
     color: themeColors['--color-white'],
     fontSize: {
       default: themeFonts['--text-sm'],
@@ -1075,12 +1074,11 @@ const stylexStyles7 = ownerStylex.create({
   },
   rule91: {
     '--tw-font-weight': themeFonts['--font-weight-medium'],
-    padding: {
-      default: null,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingInline: {
+      default: themeLayout['--spacing'],
       '@container (min-width: 28rem)': `calc(${themeLayout['--spacing']} * 4)`,
     },
-    paddingBlock: `calc(${themeLayout['--spacing']} * 4)`,
-    paddingInline: themeLayout['--spacing'],
     color: themeColors['--color-foreground-alt'],
     fontSize: {
       default: themeFonts['--text-sm'],
@@ -1108,12 +1106,11 @@ const stylexStyles7 = ownerStylex.create({
   },
   rule94: { color: themeColors['--color-foreground-alt'], flexShrink: 0 },
   rule95: {
-    padding: {
-      default: null,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingInline: {
+      default: `calc(${themeLayout['--spacing']} * 2)`,
       '@container (min-width: 28rem)': `calc(${themeLayout['--spacing']} * 4)`,
     },
-    paddingBlock: `calc(${themeLayout['--spacing']} * 4)`,
-    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
     display: 'flex',
     justifyContent: 'center',
   },
