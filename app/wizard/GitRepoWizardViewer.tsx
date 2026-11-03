@@ -301,14 +301,24 @@ export function GitRepoWizardViewer(props: ObjectViewerComponentProps) {
       canNext={!cloneUrlError}
       finalizeStep={1}
     >
-      {currentStep === 0 && (
+      {(childSx) => (
         <>
-          {configEditor.element}
-          {cloneUrlError && <GitCloneUrlError message={cloneUrlError} />}
+          {currentStep === 0 && (
+            <>
+              {configEditor.render(childSx)}
+              {cloneUrlError && (
+                <GitCloneUrlError sx={childSx} message={cloneUrlError} />
+              )}
+            </>
+          )}
+          {currentStep === 2 && (
+            <GitCloneProgressStep
+              sx={childSx}
+              progress={progress}
+              failed={failed}
+            />
+          )}
         </>
-      )}
-      {currentStep === 2 && (
-        <GitCloneProgressStep progress={progress} failed={failed} />
       )}
     </WizardShell>
   )
@@ -330,19 +340,20 @@ async function replaceSpaceIndexIfWizardIsCurrent(
 }
 
 function GitCloneProgressStep({
+  sx,
   progress,
   failed,
 }: {
   progress: GitCloneProgress | undefined
   failed: boolean
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   const message =
     progress?.message ||
     (failed ? 'Clone failed.' : 'Cloning objects into the local block store.')
   const error = getGitCloneProgressError(progress)
 
   return (
-    <section>
+    <section sx={sx}>
       <div sx={stylexStyles2.rule3}>
         <h3 sx={stylexStyles2.rule4}>Clone Progress</h3>
       </div>
@@ -367,9 +378,12 @@ function GitCloneProgressStep({
   )
 }
 
-function GitCloneUrlError({ message }: { message: string }) {
+function GitCloneUrlError({
+  sx,
+  message,
+}: { message: string } & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
-    <div sx={stylexStyles2.rule5}>
+    <div sx={[stylexStyles2.rule5, sx]}>
       <LuTriangleAlert sx={stylexStyles.rule2} />
       <p>{message}</p>
     </div>

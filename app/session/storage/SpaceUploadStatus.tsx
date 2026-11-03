@@ -77,9 +77,10 @@ interface SpaceUploadStatusProps {
 // bucket. When uploads fail it checks the bucket once per distinct failure
 // and shows the classified cause with its fix.
 export function SpaceUploadStatus({
+  sx,
   sharedObjectId,
   preset,
-}: SpaceUploadStatusProps) {
+}: SpaceUploadStatusProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const sessionResource = SessionContext.useContext()
   const session = useResourceValue(sessionResource)
   const storage = useSpaceStorage(sharedObjectId).value
@@ -106,14 +107,14 @@ export function SpaceUploadStatus({
   )
 
   if (!storage) {
-    return <p sx={stylexStyles2.rule1}>Checking upload</p>
+    return <p sx={[stylexStyles2.rule1, sx]}>Checking upload</p>
   }
 
   const pending = Number(storage.pendingBlocks ?? 0n)
   const pendingLabel = `${plural(pending, 'block')} (${formatBytes(storage.pendingBytes)}) waiting to upload`
   if (!uploadError) {
     return (
-      <p sx={stylexStyles2.rule2}>
+      <p sx={[stylexStyles2.rule2, sx]}>
         {pending === 0 ? (
           <>
             <LuCircleCheck sx={stylexStyles.rule1} aria-hidden="true" />
@@ -130,23 +131,35 @@ export function SpaceUploadStatus({
   }
 
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-      }
-    >
-      <p sx={stylexStyles2.rule3}>
+    <div sx={sx}>
+      <p sx={[nativeChildSpacing.s2, stylexStyles2.rule3]}>
         <LuUpload sx={stylexStyles.rule2} aria-hidden="true" />
         {pendingLabel}. Uploads are failing.
       </p>
       {checkView && !checkView.ok ? (
         <StorageCheckResult
+          sx={nativeChildSpacing.s2}
           check={checkView}
           corsRule={buildStorageCorsRule(preset, window.location.origin)}
         />
       ) : (
-        <p sx={stylexStyles2.rule4}>{uploadError}</p>
+        <p sx={[nativeChildSpacing.s2, stylexStyles2.rule4]}>{uploadError}</p>
       )}
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

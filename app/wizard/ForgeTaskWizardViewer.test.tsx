@@ -47,7 +47,7 @@ vi.mock('./useWizardState.js', () => ({
       },
     },
     configEditor: {
-      element: <div>Forge Task Config</div>,
+      render: () => <div>Forge Task Config</div>,
       value: {
         jobKey: 'forge/job/main',
       },

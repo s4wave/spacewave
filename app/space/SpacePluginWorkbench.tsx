@@ -1,3 +1,4 @@
+import { utilityState as paneUtilityState } from '@s4wave/web/style/tokens.stylex.js'
 import { lazy, useId, useMemo, useState } from 'react'
 
 import type { BuildSpacePluginRequest } from '@s4wave/sdk/space/space.pb.js'
@@ -31,6 +32,18 @@ import {
   colors as themeColors,
   fonts as themeFonts,
 } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'grid',
+    minHeight: 0,
+    flex: 1,
+    gridTemplateColumns: {
+      default: 'repeat(1, minmax(0, 1fr))',
+      '@media (min-width: 48rem)': 'repeat(2, minmax(0, 1fr))',
+    },
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: { display: 'flex', minHeight: 0, flex: 1, flexDirection: 'column' },
@@ -197,12 +210,11 @@ export function SpacePluginWorkbench({
         )}
       </div>
 
-      <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: divide-y */ 'grid min-h-0 flex-1 grid-cols-1 divide-y md:grid-cols-2 md:divide-x md:divide-y-0'
-        }
-      >
-        <section sx={stylexStyles.rule4} aria-label="Plugin source">
+      <div sx={stylexStyles2.rule1}>
+        <section
+          sx={[stylexStyles.rule4, paneDivider.first]}
+          aria-label="Plugin source"
+        >
           <h3 sx={stylexStyles.rule5}>Source</h3>
           <div sx={stylexStyles.rule6}>
             <ObjectViewer
@@ -292,3 +304,59 @@ export function SpacePluginWorkbench({
     </div>
   )
 }
+
+// paneDivider follows the source pane from stacked rows to side-by-side columns.
+const paneDivider = stylex.create({
+  first: {
+    '--tw-divide-y-reverse': { default: null, ':not(:last-child)': 0 },
+    '--tw-divide-x-reverse': {
+      default: null,
+      '@media (min-width:48rem)': { default: null, ':not(:last-child)': 0 },
+    },
+    borderTopStyle: {
+      default: null,
+      ':not(:last-child)': paneUtilityState['--tw-border-style'],
+    },
+    borderBottomStyle: {
+      default: null,
+      ':not(:last-child)': paneUtilityState['--tw-border-style'],
+    },
+    borderTopWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * var(--tw-divide-y-reverse))',
+    },
+    borderBottomWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * calc(1 - var(--tw-divide-y-reverse)))',
+      '@media (min-width:48rem)': { default: null, ':not(:last-child)': 0 },
+    },
+    borderInlineStartStyle: {
+      default: null,
+      '@media (min-width:48rem)': {
+        default: null,
+        ':not(:last-child)': paneUtilityState['--tw-border-style'],
+      },
+    },
+    borderInlineEndStyle: {
+      default: null,
+      '@media (min-width:48rem)': {
+        default: null,
+        ':not(:last-child)': paneUtilityState['--tw-border-style'],
+      },
+    },
+    borderInlineStartWidth: {
+      default: null,
+      '@media (min-width:48rem)': {
+        default: null,
+        ':not(:last-child)': 'calc(1px * var(--tw-divide-x-reverse))',
+      },
+    },
+    borderInlineEndWidth: {
+      default: null,
+      '@media (min-width:48rem)': {
+        default: null,
+        ':not(:last-child)': 'calc(1px * calc(1 - var(--tw-divide-x-reverse)))',
+      },
+    },
+  },
+})

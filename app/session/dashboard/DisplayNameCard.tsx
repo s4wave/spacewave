@@ -165,16 +165,18 @@ export interface DisplayNameCardProps {
 // DisplayNameCard renders the local account section with an editable display
 // name.
 export function DisplayNameCard({
+  sx,
   session,
   currentDisplayName,
   open,
   onOpenChange,
-}: DisplayNameCardProps) {
+}: DisplayNameCardProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const inputId = useId()
   const editor = useDisplayNameEditor(session, currentDisplayName)
 
   return (
     <CollapsibleSection
+      sx={sx}
       title="Account"
       icon={<LuUserCog sx={stylexStyles.rule1} />}
       open={open}

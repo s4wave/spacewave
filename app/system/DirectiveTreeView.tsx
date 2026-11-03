@@ -1,3 +1,4 @@
+import { utilityState as listUtilityState } from '@s4wave/web/style/tokens.stylex.js'
 import { useMemo, useState, type ReactNode } from 'react'
 import { LuChevronRight, LuCornerLeftUp } from '@s4wave/web/images/icons.js'
 
@@ -199,17 +200,22 @@ export function DirectiveTreeView({
         empty="No directives were added under this config key."
         count={roots.length}
       >
-        {roots.map((edge) => (
-          <DirectiveTreeRow
-            key={edge.id}
-            tree={tree}
-            edge={edge}
-            depth={0}
-            ancestors={[]}
-            relevant={relevant}
-            query={query}
-          />
-        ))}
+        {(childSx) => (
+          <>
+            {roots.map((edge) => (
+              <DirectiveTreeRow
+                sx={childSx}
+                key={edge.id}
+                tree={tree}
+                edge={edge}
+                depth={0}
+                ancestors={[]}
+                relevant={relevant}
+                query={query}
+              />
+            ))}
+          </>
+        )}
       </TreeList>
     )
   }
@@ -247,17 +253,22 @@ export function DirectiveTreeView({
       empty={query ? 'No directives match.' : 'No directives are active.'}
       count={groups.length}
     >
-      {groups.map((group) => (
-        <OriginGroupRow
-          key={group.key}
-          kind={group.kind}
-          label={group.label}
-          edges={group.edges}
-          tree={tree}
-          relevant={relevant}
-          query={query}
-        />
-      ))}
+      {(childSx) => (
+        <>
+          {groups.map((group) => (
+            <OriginGroupRow
+              sx={childSx}
+              key={group.key}
+              kind={group.kind}
+              label={group.label}
+              edges={group.edges}
+              tree={tree}
+              relevant={relevant}
+              query={query}
+            />
+          ))}
+        </>
+      )}
     </TreeList>
   )
 }
@@ -270,25 +281,18 @@ function TreeList({
 }: {
   empty: string
   count: number
-  children: ReactNode
+  children: (childSx: stylex.StyleXStyles) => ReactNode
 }) {
   if (!count) {
     return <p sx={stylexStyles2.rule1}>{empty}</p>
   }
-  return (
-    <ul
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: divide-y */ 'divide-foreground/6 divide-y'
-      }
-    >
-      {children}
-    </ul>
-  )
+  return <ul sx={false}>{children?.(slotChildren.child)}</ul>
 }
 
 // OriginGroupRow is one origin outside the directives, with the directives it added.
 // A controller's Execute is one such origin.
 function OriginGroupRow({
+  sx,
   kind,
   label,
   edges,
@@ -302,12 +306,12 @@ function OriginGroupRow({
   tree: DirectiveTree
   relevant: Set<number> | null
   query: string
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   const [userOpen, setOpen] = useState(false)
   const open = userOpen || !!query
 
   return (
-    <li>
+    <li sx={sx}>
       <button
         type="button"
         aria-expanded={open}
@@ -342,6 +346,7 @@ function OriginGroupRow({
 // It expands to the directives it added.
 // A filtered tree opens each row on the path to a match.
 function DirectiveTreeRow({
+  sx,
   tree,
   edge,
   depth,
@@ -355,7 +360,7 @@ function DirectiveTreeRow({
   ancestors: number[]
   relevant: Set<number> | null
   query: string
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   const [userOpen, setOpen] = useState(false)
   const node = tree.nodes.get(edge.id)
   if (!node) {
@@ -370,7 +375,7 @@ function DirectiveTreeRow({
     expandable && (userOpen || (!!query && !directiveMatches(node, query)))
 
   return (
-    <li>
+    <li sx={sx}>
       <button
         type="button"
         aria-expanded={expandable ? open : undefined}
@@ -474,3 +479,31 @@ function Chevron({ open, hidden }: { open: boolean; hidden?: boolean }) {
     />
   )
 }
+
+// slotChildren keeps the optional action in the original physical child sequence.
+const slotChildren = stylex.create({
+  child: {
+    '--tw-divide-y-reverse': { default: null, ':not(:last-child)': 0 },
+    borderTopStyle: {
+      default: null,
+      ':not(:last-child)': listUtilityState['--tw-border-style'],
+    },
+    borderBottomStyle: {
+      default: null,
+      ':not(:last-child)': listUtilityState['--tw-border-style'],
+    },
+    borderTopWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * var(--tw-divide-y-reverse))',
+    },
+    borderBottomWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * calc(1 - var(--tw-divide-y-reverse)))',
+    },
+    borderColor: {
+      default: null,
+      ':not(:last-child)':
+        'color-mix(in oklab, var(--color-foreground) 6%, transparent)',
+    },
+  },
+})

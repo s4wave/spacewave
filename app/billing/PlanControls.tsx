@@ -80,11 +80,13 @@ const stylexStyles = stylex.create({
 
 // PlanControls renders the Plan section: the Stripe billing portal, and the
 // cancel and reactivate actions when the viewer may manage the subscription.
-export function PlanControls(props: {
-  status?: BillingStatus
-  cancelAt?: bigint | number
-  showSelfService?: boolean
-}) {
+export function PlanControls(
+  props: {
+    status?: BillingStatus
+    cancelAt?: bigint | number
+    showSelfService?: boolean
+  } & { sx?: stylex.StyleXStyles; className?: never },
+) {
   const navigate = useNavigate()
   const portal = useBillingPortal()
 
@@ -104,14 +106,10 @@ export function PlanControls(props: {
   }, [navigate])
 
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
-      }
-    >
+    <div sx={props.sx}>
       {checkout.consentDialog}
-      <div sx={stylexStyles2.rule1}>Plan</div>
-      <div sx={stylexStyles2.rule2}>
+      <div sx={[nativeChildSpacing.s3, stylexStyles2.rule1]}>Plan</div>
+      <div sx={[nativeChildSpacing.s3, stylexStyles2.rule2]}>
         <DashboardButton
           icon={<LuExternalLink sx={stylexStyles.rule1} />}
           onClick={() => void portal.open()}
@@ -131,15 +129,15 @@ export function PlanControls(props: {
           />
         )}
       </div>
-      <div sx={stylexStyles2.rule3}>
+      <div sx={[nativeChildSpacing.s3, stylexStyles2.rule3]}>
         Payment methods, invoices, and billing history are on Stripe.
         {isCancelScheduled &&
           cancelLabel &&
           ` Cancellation is scheduled for ${cancelLabel}. You keep full access until then.`}
       </div>
-      <ReactivationProgress checkout={checkout} />
+      <ReactivationProgress sx={nativeChildSpacing.s3} checkout={checkout} />
       {(portal.error || reactivation.error || checkout.error) && (
-        <div sx={stylexStyles2.rule4}>
+        <div sx={[nativeChildSpacing.s3, stylexStyles2.rule4]}>
           {portal.error || reactivation.error || checkout.error}
         </div>
       )}
@@ -196,13 +194,15 @@ function SubscriptionActions(props: {
 
 // ReactivationProgress tells the viewer that Stripe checkout is pending and
 // offers to reopen it.
-function ReactivationProgress(props: {
-  checkout: ReturnType<typeof useBillingAccountCheckout>
-}) {
+function ReactivationProgress(
+  props: {
+    checkout: ReturnType<typeof useBillingAccountCheckout>
+  } & { sx?: stylex.StyleXStyles; className?: never },
+) {
   const { checkout } = props
   if (!checkout.polling) return null
   return (
-    <div sx={stylexStyles2.rule5}>
+    <div sx={[stylexStyles2.rule5, props.sx]}>
       Reactivation in progress. This page will update when Stripe confirms.
       {checkout.showRetry && (
         <button
@@ -216,3 +216,18 @@ function ReactivationProgress(props: {
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

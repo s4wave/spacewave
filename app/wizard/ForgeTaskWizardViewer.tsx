@@ -146,7 +146,9 @@ export function ForgeTaskWizardViewer(props: ObjectViewerComponentProps) {
       onFinalize={handleFinalizeClick}
       finalizeStep={1}
     >
-      {(state.step ?? 0) === 0 && configEditor.element}
+      {(childSx) => (
+        <>{(state.step ?? 0) === 0 && configEditor.render(childSx)}</>
+      )}
     </WizardShell>
   )
 }

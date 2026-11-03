@@ -679,13 +679,14 @@ function DeleteFinalStep({
   onDelete,
 }: DeleteFinalStepProps) {
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
-      }
-    >
-      <SelectedSpaceSummary space={space} health={health} />
+    <div>
+      <SelectedSpaceSummary
+        sx={nativeChildSpacingNextNext.s3}
+        space={space}
+        health={health}
+      />
       <TypedConfirmField
+        sx={nativeChildSpacingNextNext.s3}
         label={
           <>
             Type <span sx={stylexStyles2.rule5}>{space.name}</span> to confirm
@@ -959,6 +960,21 @@ const nativeChildSpacingNext = stylex.create({
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 1.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNextNext = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
     },
   },
 })

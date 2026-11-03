@@ -17,6 +17,8 @@ import {
 
 import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
 
+const stylexStyles3 = stylex.create({ rule1: { minWidth: 0 } })
+
 const stylexStyles2 = stylex.create({
   rule1: {
     display: 'flex',
@@ -46,7 +48,9 @@ const stylexStyles = stylex.create({
 
 // SpaceStorageCard shows where the Space stores its data and moves it to
 // another storage. It shows only for accounts with storage backends.
-export function SpaceStorageCard() {
+export function SpaceStorageCard({
+  sx,
+}: { sx?: stylex.StyleXStyles; className?: never } = {}) {
   const { spaceId } = SpaceContainerContext.useContext()
   const resource = useStorageBackends()
   const backends = resource.value?.storageBackends ?? []
@@ -58,28 +62,28 @@ export function SpaceStorageCard() {
     b.placedSpaces?.some((space) => space.spaceId === spaceId),
   )?.backend
   return (
-    <div sx={stylexStyles2.rule1} data-testid="space-storage">
+    <div sx={[stylexStyles2.rule1, sx]} data-testid="space-storage">
       <LuDatabase sx={stylexStyles.rule1} aria-hidden="true" />
-      <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ 'min-w-0 space-y-1.5'
-        }
-      >
-        <div sx={stylexStyles2.rule2}>
+      <div sx={stylexStyles3.rule1}>
+        <div sx={[nativeChildSpacing.s1_5, stylexStyles2.rule2]}>
           {placed
             ? `Stored in ${placed.displayName}`
             : "Stored in the account's own storage"}
         </div>
         {placed && (
           <>
-            <p sx={stylexStyles2.rule3}>{formatStorageLocation(placed.s3)}</p>
+            <p sx={[nativeChildSpacing.s1_5, stylexStyles2.rule3]}>
+              {formatStorageLocation(placed.s3)}
+            </p>
             <SpaceUploadStatus
+              sx={nativeChildSpacing.s1_5}
               sharedObjectId={spaceId}
               preset={guessStoragePreset(placed.s3)}
             />
           </>
         )}
         <SpaceStorageMove
+          sx={nativeChildSpacing.s1_5}
           sharedObjectId={spaceId}
           placedId={placed?.id ?? ''}
           backends={backends}
@@ -88,3 +92,18 @@ export function SpaceStorageCard() {
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s1_5: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

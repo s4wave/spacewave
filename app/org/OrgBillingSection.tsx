@@ -189,14 +189,16 @@ export interface OrgBillingSectionProps {
 // surfaces status/interval/next-date, a Manage link to the BA detail view,
 // and an owner-only picker that reassigns the org to a different managed BA.
 export function OrgBillingSection({
+  sx,
   orgId,
   billingAccountId,
   open,
   onOpenChange,
-}: OrgBillingSectionProps) {
+}: OrgBillingSectionProps & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
     <BillingStateProvider billingAccountId={billingAccountId}>
       <CollapsibleSection
+        sx={sx}
         title="Billing"
         icon={<LuCreditCard sx={stylexStyles.rule1} />}
         open={open}
@@ -234,26 +236,22 @@ function OrgBillingBody({
   }, [navigateSession, billingAccountId])
 
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-      }
-    >
+    <div>
       {!billingAccountId && (
-        <InfoCard>
+        <InfoCard sx={nativeChildSpacing.s2}>
           <p sx={stylexStyles2.rule2}>
             No billing account assigned to this organization.
           </p>
         </InfoCard>
       )}
       {billingAccountId && loading && !billing && (
-        <InfoCard>
+        <InfoCard sx={nativeChildSpacing.s2}>
           <LoadingInline label="Loading billing info" tone="muted" size="sm" />
         </InfoCard>
       )}
       {billingAccountId &&
         (!billing || billing.status === BillingStatus.BillingStatus_NONE) && (
-          <InfoCard>
+          <InfoCard sx={nativeChildSpacing.s2}>
             <p sx={stylexStyles2.rule2}>No active billing on this account.</p>
           </InfoCard>
         )}
@@ -261,12 +259,13 @@ function OrgBillingBody({
         billing &&
         billing.status !== BillingStatus.BillingStatus_NONE && (
           <BillingAccountCard
+            sx={nativeChildSpacing.s2}
             label="Billing account"
             billing={billing}
             onManage={handleManage}
           />
         )}
-      <div sx={stylexStyles2.rule3}>
+      <div sx={[nativeChildSpacing.s2, stylexStyles2.rule3]}>
         <OrgBillingAccountPicker orgId={orgId} currentBaId={billingAccountId} />
         {billingAccountId && <OrgBillingDetachAction orgId={orgId} />}
       </div>
@@ -442,3 +441,18 @@ function OrgBillingDetachAction({ orgId }: { orgId: string }) {
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

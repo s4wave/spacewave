@@ -887,16 +887,12 @@ function CancelNotices({
 /** CancelFaq renders the cancellation questions. */
 function CancelFaq() {
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
-      }
-    >
-      <div sx={stylexStyles3.rule31}>
+    <div>
+      <div sx={[nativeChildSpacingNext.s3, stylexStyles3.rule31]}>
         <h2 sx={stylexStyles3.rule32}>Questions before you cancel?</h2>
         <p sx={stylexStyles3.rule33}>The short version, in plain language.</p>
       </div>
-      <FaqAccordion items={CANCEL_FAQ} />
+      <FaqAccordion sx={nativeChildSpacingNext.s3} items={CANCEL_FAQ} />
     </div>
   )
 }
@@ -984,6 +980,21 @@ const nativeChildSpacing = stylex.create({
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
     },
   },
 })

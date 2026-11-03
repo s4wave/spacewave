@@ -248,13 +248,10 @@ export function DirectAnswerStep({
   })
 
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4'
-      }
-    >
+    <div>
       {scanning && (
         <QRScannerModal
+          sx={nativeChildSpacingNext.s4}
           title="Scan direct pairing QR"
           hint="Point your camera at the QR code on the other device."
           containerId="direct-qr-scanner-container"
@@ -264,7 +261,7 @@ export function DirectAnswerStep({
         />
       )}
 
-      <div sx={stylexStyles2.rule1}>
+      <div sx={[nativeChildSpacingNext.s4, stylexStyles2.rule1]}>
         <div sx={stylexStyles2.rule2}>
           <LuCamera sx={stylexStyles.rule1} />
         </div>
@@ -286,13 +283,13 @@ export function DirectAnswerStep({
             aria-label="Offer payload"
             placeholder="Paste offer payload here…"
             rows={3}
-            sx={[stylexStyles2.rule5]}
+            sx={[nativeChildSpacingNext.s4, [stylexStyles2.rule5]]}
           />
 
           <button
             type="button"
             onClick={() => setScanning(true)}
-            sx={[stylexStyles2.rule6]}
+            sx={[nativeChildSpacingNext.s4, [stylexStyles2.rule6]]}
           >
             <LuCamera sx={stylexStyles.rule2} />
             <span sx={stylexStyles2.rule7}>Scan QR code</span>
@@ -301,22 +298,24 @@ export function DirectAnswerStep({
       )}
 
       {answerPayload && (
-        <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-          }
-        >
-          <CopyablePayloadField value={answerPayload} label="Answer payload" />
-          <div sx={stylexStyles2.rule8}>
+        <div sx={nativeChildSpacingNext.s4}>
+          <CopyablePayloadField
+            sx={nativeChildSpacing.s2}
+            value={answerPayload}
+            label="Answer payload"
+          />
+          <div sx={[nativeChildSpacing.s2, stylexStyles2.rule8]}>
             <span sx={stylexStyles2.rule9} />
             <span sx={stylexStyles2.rule7}>Waiting for connection…</span>
           </div>
         </div>
       )}
 
-      {error && <p sx={stylexStyles2.rule10}>{error}</p>}
+      {error && (
+        <p sx={[nativeChildSpacingNext.s4, stylexStyles2.rule10]}>{error}</p>
+      )}
 
-      <div sx={stylexStyles2.rule11}>
+      <div sx={[nativeChildSpacingNext.s4, stylexStyles2.rule11]}>
         <LinkDeviceBackButton onClick={onBack} />
         {!answerPayload && (
           <button
@@ -339,3 +338,33 @@ export function DirectAnswerStep({
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s4: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

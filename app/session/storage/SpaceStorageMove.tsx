@@ -80,10 +80,11 @@ interface SpaceStorageMoveProps {
 // SpaceStorageMove moves a Space to another storage backend and shows the
 // progress. Leaving the page stops the progress stream; the upload continues.
 export function SpaceStorageMove({
+  sx,
   sharedObjectId,
   placedId,
   backends,
-}: SpaceStorageMoveProps) {
+}: SpaceStorageMoveProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const id = useId()
   const sessionResource = SessionContext.useContext()
   const session = useResourceValue(sessionResource)
@@ -138,13 +139,16 @@ export function SpaceStorageMove({
   }
   if (moving) {
     return (
-      <p sx={stylexStyles2.rule1} data-testid="space-storage-move-progress">
+      <p
+        sx={[stylexStyles2.rule1, sx]}
+        data-testid="space-storage-move-progress"
+      >
         {progress || `Moving to ${selected.name}`}
       </p>
     )
   }
   return (
-    <div sx={stylexStyles2.rule2}>
+    <div sx={[stylexStyles2.rule2, sx]}>
       <label htmlFor={id} sx={stylexStyles2.rule3}>
         Move to
       </label>

@@ -99,10 +99,11 @@ export interface BillingAccountCardProps {
 // BillingAccountCard renders a compact billing account card with status badge,
 // interval, next date, and manage action.
 export function BillingAccountCard({
+  sx,
   label,
   billing,
   onManage,
-}: BillingAccountCardProps) {
+}: BillingAccountCardProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const status = billing.status
 
   const intLabel = intervalLabel(billing.billingInterval)
@@ -118,7 +119,7 @@ export function BillingAccountCard({
     <button
       type="button"
       onClick={onManage}
-      sx={[stylexStyles.rule1, groupMarker]}
+      sx={[[stylexStyles.rule1, groupMarker], sx]}
     >
       <div sx={stylexStyles2.rule1}>
         <div sx={stylexStyles2.rule2}>

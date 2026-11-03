@@ -1,3 +1,4 @@
+import { utilityState as themeUtilityState } from '@s4wave/web/style/tokens.stylex.js'
 import { useState } from 'react'
 import { LuPlus } from '@s4wave/web/images/icons.js'
 
@@ -98,13 +99,10 @@ export function StorageBackendsSection() {
             Backblaze B2, to keep Space data in storage you own.
           </p>
         ) : (
-          <div
-            className={
-              /* TODO(stylex): a descendant, group, peer or compound selector: divide-y */ 'divide-foreground/8 divide-y'
-            }
-          >
+          <div>
             {backends.map((info) => (
               <StorageBackendRow
+                sx={nativeDividers.t8}
                 key={info.backend?.id}
                 info={info}
                 isDefault={info.backend?.id === defaultId}
@@ -122,3 +120,31 @@ export function StorageBackendsSection() {
     </section>
   )
 }
+
+// nativeDividers applies the list border only to its nonfinal physical rows.
+const nativeDividers = stylex.create({
+  t8: {
+    '--tw-divide-y-reverse': { default: null, ':not(:last-child)': 0 },
+    borderBottomStyle: {
+      default: null,
+      ':not(:last-child)': themeUtilityState['--tw-border-style'],
+    },
+    borderTopStyle: {
+      default: null,
+      ':not(:last-child)': themeUtilityState['--tw-border-style'],
+    },
+    borderTopWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * var(--tw-divide-y-reverse))',
+    },
+    borderBottomWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * calc(1 - var(--tw-divide-y-reverse)))',
+    },
+    borderColor: {
+      default: null,
+      ':not(:last-child)':
+        'color-mix(in oklab, var(--color-foreground) 8%, transparent)',
+    },
+  },
+})

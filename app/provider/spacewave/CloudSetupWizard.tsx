@@ -38,6 +38,17 @@ import { groupMarker } from '../../../web/style/relations.stylex.js'
 
 import { fonts as themeFonts } from '../../../web/style/tokens.stylex.js'
 
+const stylexStyles4 = stylex.create({
+  rule1: {
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingTop: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBottom: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 const stylexStyles3 = stylex.create({
   rule1: {
     overflow: 'hidden',
@@ -353,7 +364,7 @@ interface SetupCardProps {
   done: boolean
   expanded: boolean
   onToggle: () => void
-  children: ReactNode
+  children: (childSx: stylex.StyleXStyles) => React.ReactNode
 }
 
 /** SetupCard is a collapsible card whose header shows its completion state. */
@@ -389,13 +400,7 @@ function SetupCard({
         />
       </button>
       {expanded && (
-        <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'border-foreground/10 space-y-3 border-t px-4 pt-3 pb-4'
-          }
-        >
-          {children}
-        </div>
+        <div sx={stylexStyles4.rule1}>{children(setupChildren.child)}</div>
       )}
     </div>
   )
@@ -427,46 +432,57 @@ function BackupKeyCard({ wiz, expanded, onToggle, onDone }: CardActionProps) {
       expanded={expanded}
       onToggle={onToggle}
     >
-      <p sx={stylexStyles3.rule16}>
-        A backup key gives you a second way to recover your account. Verify your
-        identity to generate one.
-      </p>
-      <CredentialProofInput
-        password={wiz.password}
-        onPasswordChange={wiz.setPassword}
-        pemFileName={cred.pemFileName}
-        onFileChange={cred.handleFileChange}
-        fileInputRef={cred.fileInputRef}
-        pemLabel="Existing backup key"
-      />
-      <button
-        type="button"
-        onClick={() => void handleDownload()}
-        disabled={
-          wiz.downloading ||
-          !wiz.accountReady ||
-          (!wiz.password && !cred.pemData)
-        }
-        sx={[[stylexStyles2.rule1, groupMarker]]}
-      >
-        <LuDownload sx={stylexStyles.rule6} />
-        <span sx={stylexStyles3.rule17}>
-          {wiz.downloading ? 'Generating key…' : 'Download backup .pem'}
-        </span>
-      </button>
-      {wiz.error && <p sx={stylexStyles3.rule18}>{wiz.error}</p>}
+      {(childSx) => (
+        <>
+          <p sx={[childSx, stylexStyles3.rule16]}>
+            A backup key gives you a second way to recover your account. Verify
+            your identity to generate one.
+          </p>
+          <CredentialProofInput
+            sx={childSx}
+            password={wiz.password}
+            onPasswordChange={wiz.setPassword}
+            pemFileName={cred.pemFileName}
+            onFileChange={cred.handleFileChange}
+            fileInputRef={cred.fileInputRef}
+            pemLabel="Existing backup key"
+          />
+          <button
+            type="button"
+            onClick={() => void handleDownload()}
+            disabled={
+              wiz.downloading ||
+              !wiz.accountReady ||
+              (!wiz.password && !cred.pemData)
+            }
+            sx={[childSx, [[stylexStyles2.rule1, groupMarker]]]}
+          >
+            <LuDownload sx={stylexStyles.rule6} />
+            <span sx={stylexStyles3.rule17}>
+              {wiz.downloading ? 'Generating key…' : 'Download backup .pem'}
+            </span>
+          </button>
+          {wiz.error && <p sx={[childSx, stylexStyles3.rule18]}>{wiz.error}</p>}
+        </>
+      )}
     </SetupCard>
   )
 }
 
 /** PinFields collects the PIN and its confirmation. */
-function PinFields({ wiz }: { wiz: SetupWizardState }) {
+function PinFields({
+  sx,
+  wiz,
+}: { wiz: SetupWizardState } & {
+  sx?: stylex.StyleXStyles
+  className?: never
+}) {
   const pinInputId = useId()
   const confirmPinInputId = useId()
   const mismatch = wiz.confirmPin.length > 0 && wiz.pin !== wiz.confirmPin
 
   return (
-    <div>
+    <div sx={sx}>
       <div sx={nativeChildSpacing.s3}>
         <label htmlFor={pinInputId} sx={stylexStyles3.rule19}>
           PIN
@@ -517,37 +533,41 @@ function PinLockCard({ wiz, expanded, onToggle, onDone }: CardActionProps) {
       expanded={expanded}
       onToggle={onToggle}
     >
-      <div>
-        <RadioOption
-          sx={nativeChildSpacingNext.s2}
-          selected={wiz.lockMode === 'auto'}
-          onSelect={() => wiz.setLockMode('auto')}
-          icon={<LuLockOpen sx={stylexStyles.rule7} />}
-          label="Auto-unlock"
-          description="Key stored on disk. No PIN needed."
-        />
-        <RadioOption
-          sx={nativeChildSpacingNext.s2}
-          selected={wiz.lockMode === 'pin'}
-          onSelect={() => wiz.setLockMode('pin')}
-          icon={<LuLock sx={stylexStyles.rule7} />}
-          label="PIN lock"
-          description="Enter PIN on each app launch."
-        />
-      </div>
-      {wiz.lockMode === 'pin' && <PinFields wiz={wiz} />}
-      {wiz.error && <p sx={stylexStyles3.rule18}>{wiz.error}</p>}
-      <button
-        type="button"
-        onClick={() => void handleFinishLock()}
-        disabled={wiz.saving}
-        sx={[[stylexStyles2.rule1, groupMarker]]}
-      >
-        <span sx={stylexStyles3.rule17}>
-          {wiz.saving ? 'Saving…' : 'Set lock mode'}
-        </span>
-        {!wiz.saving && <LuArrowRight sx={stylexStyles.rule8} />}
-      </button>
+      {(childSx) => (
+        <>
+          <div sx={childSx}>
+            <RadioOption
+              sx={nativeChildSpacingNext.s2}
+              selected={wiz.lockMode === 'auto'}
+              onSelect={() => wiz.setLockMode('auto')}
+              icon={<LuLockOpen sx={stylexStyles.rule7} />}
+              label="Auto-unlock"
+              description="Key stored on disk. No PIN needed."
+            />
+            <RadioOption
+              sx={nativeChildSpacingNext.s2}
+              selected={wiz.lockMode === 'pin'}
+              onSelect={() => wiz.setLockMode('pin')}
+              icon={<LuLock sx={stylexStyles.rule7} />}
+              label="PIN lock"
+              description="Enter PIN on each app launch."
+            />
+          </div>
+          {wiz.lockMode === 'pin' && <PinFields sx={childSx} wiz={wiz} />}
+          {wiz.error && <p sx={[childSx, stylexStyles3.rule18]}>{wiz.error}</p>}
+          <button
+            type="button"
+            onClick={() => void handleFinishLock()}
+            disabled={wiz.saving}
+            sx={[childSx, [[stylexStyles2.rule1, groupMarker]]]}
+          >
+            <span sx={stylexStyles3.rule17}>
+              {wiz.saving ? 'Saving…' : 'Set lock mode'}
+            </span>
+            {!wiz.saving && <LuArrowRight sx={stylexStyles.rule8} />}
+          </button>
+        </>
+      )}
     </SetupCard>
   )
 }
@@ -639,6 +659,23 @@ const nativeChildSpacingNext = stylex.create({
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// setupChildren preserves the original spacing through the content slot.
+const setupChildren = stylex.create({
+  child: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)':
+        'calc(var(--spacing) * 3 * var(--tw-space-y-reverse))',
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)':
+        'calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))',
     },
   },
 })

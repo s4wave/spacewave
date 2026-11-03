@@ -34,6 +34,17 @@ import { groupMarker } from '../../../web/style/relations.stylex.js'
 
 import { fonts as themeFonts } from '../../../web/style/tokens.stylex.js'
 
+const stylexStyles4 = stylex.create({
+  rule1: {
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingTop: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBottom: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 const stylexStyles3 = stylex.create({
   rule1: {
     display: 'flex',
@@ -474,11 +485,7 @@ function AddEmailCard({
         />
       </button>
       {expanded && (
-        <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'border-foreground/10 space-y-3 border-t px-4 pt-3 pb-4'
-          }
-        >
+        <div sx={stylexStyles4.rule1}>
           <input
             aria-label="New email address"
             ref={handleInputRef}
@@ -492,13 +499,13 @@ function AddEmailCard({
                 void handleAdd()
               }
             }}
-            sx={[credentialInputStyles.input]}
+            sx={[nativeChildSpacing.s3, [credentialInputStyles.input]]}
           />
           <button
             type="button"
             onClick={() => void handleAdd()}
             disabled={busy || !newEmail}
-            sx={[[stylexStyles2.rule1, groupMarker]]}
+            sx={[nativeChildSpacing.s3, [[stylexStyles2.rule1, groupMarker]]]}
           >
             <LuSend sx={stylexStyles.rule5} />
             <span sx={stylexStyles3.rule8}>
@@ -659,12 +666,8 @@ function EmailCodeEntry({
   }, [])
 
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'border-foreground/10 space-y-3 border-t px-4 pt-3 pb-4'
-      }
-    >
-      <p sx={stylexStyles3.rule22}>
+    <div sx={stylexStyles4.rule1}>
+      <p sx={[nativeChildSpacing.s3, stylexStyles3.rule22]}>
         We sent a 6-digit code to{' '}
         <strong sx={stylexStyles3.rule23}>{addr}</strong>. Check your inbox and
         enter it below.
@@ -684,13 +687,16 @@ function EmailCodeEntry({
             void onVerifyCode()
           }
         }}
-        sx={[credentialInputStyles.input, credentialInputStyles.code]}
+        sx={[
+          nativeChildSpacing.s3,
+          [credentialInputStyles.input, credentialInputStyles.code],
+        ]}
       />
       <button
         type="button"
         onClick={() => void onVerifyCode()}
         disabled={busy || code.length !== 6}
-        sx={[[stylexStyles2.rule1, groupMarker]]}
+        sx={[nativeChildSpacing.s3, [[stylexStyles2.rule1, groupMarker]]]}
       >
         <span sx={stylexStyles3.rule8}>
           {busy ? 'Verifying…' : 'Verify email'}
@@ -701,7 +707,7 @@ function EmailCodeEntry({
         type="button"
         onClick={() => void onSendCode(addr)}
         disabled={sending || busy || retryAfter > 0}
-        sx={stylexStyles3.rule24}
+        sx={[nativeChildSpacing.s3, stylexStyles3.rule24]}
       >
         {resendLabel(sending, retryAfter)}
       </button>
@@ -804,3 +810,18 @@ function EmailCard({
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

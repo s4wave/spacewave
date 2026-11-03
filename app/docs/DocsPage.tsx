@@ -37,6 +37,56 @@ import {
 } from '../../web/style/tokens.stylex.js'
 import { groupMarker as groupMarker2 } from '../../web/style/relations.stylex.js'
 
+import {
+  radii as themeRadii,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@container (min-width: 42rem)': `calc(${themeLayout['--spacing']} * 8)`,
+    },
+    minWidth: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@container (min-width: 42rem)': 0,
+    },
+    alignItems: 'center',
+    justifyContent: {
+      default: 'center',
+      '@container (min-width: 42rem)': 'flex-start',
+    },
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: themeRadii['--radius-md'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule2: {
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground-alt'],
+      },
+    },
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     display: 'flex',
@@ -271,7 +321,7 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
 
           <ExternalLink
             href={rawGitHubUrl}
-            className={cn(toolbarActionBase, toolbarActionIdle)}
+            sx={[stylexStyles3.rule1, stylexStyles3.rule2]}
             title="Open raw Markdown on GitHub"
             aria-label="Open raw Markdown on GitHub"
           >

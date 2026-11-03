@@ -383,19 +383,20 @@ export interface ActionCardProps {
 }
 
 export function ActionCard({
+  sx,
   icon,
   label,
   description,
   onClick,
   variant = 'default',
   compact = false,
-}: ActionCardProps) {
+}: ActionCardProps & { sx?: ownerStylex.StyleXStyles; className?: never }) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={!onClick}
-      sx={actionCardStyles(compact, variant === 'destructive', !onClick)}
+      sx={[actionCardStyles(compact, variant === 'destructive', !onClick), sx]}
     >
       <div
         sx={

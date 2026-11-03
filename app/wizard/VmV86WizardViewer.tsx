@@ -566,9 +566,12 @@ function WizardLoading() {
 }
 
 /** OperationErrorAlert shows why VM creation could not proceed. */
-function OperationErrorAlert({ message }: { message: string }) {
+function OperationErrorAlert({
+  sx,
+  message,
+}: { message: string } & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
-    <div sx={stylexStyles2.rule3} role="alert">
+    <div sx={[stylexStyles2.rule3, sx]} role="alert">
       <div sx={stylexStyles2.rule4}>VM could not be created</div>
       <div sx={stylexStyles2.rule5}>{message}</div>
     </div>
@@ -684,27 +687,35 @@ export function VmV86WizardViewer({
         canFinalize={!finalizeBlocker(cfg, cdnImage, sessionPeerId)}
         finalizeStep={1}
       >
-        {step === 0 && (
-          <V86SourceStep
-            cfg={cfg}
-            existingDefault={existingDefault}
-            inSpaceImages={inSpaceImages}
-            pending={pending}
-            onSelectInSpace={source.selectInSpaceImage}
-            onOpenCatalog={() => source.setCatalogOpen(true)}
-          />
+        {(childSx) => (
+          <>
+            {step === 0 && (
+              <V86SourceStep
+                sx={childSx}
+                cfg={cfg}
+                existingDefault={existingDefault}
+                inSpaceImages={inSpaceImages}
+                pending={pending}
+                onSelectInSpace={source.selectInSpaceImage}
+                onOpenCatalog={() => source.setCatalogOpen(true)}
+              />
+            )}
+            {step === 1 && (
+              <V86ConfigStep
+                sx={childSx}
+                cfg={cfg}
+                memoryMb={cfg.memoryMb || DEFAULT_V86_MEMORY_MB}
+                onMemoryChange={handleMemoryChange}
+                inSpaceImages={inSpaceImages}
+                cdnImage={cdnImage}
+                existingDefault={existingDefault}
+              />
+            )}
+            {operationError && (
+              <OperationErrorAlert sx={childSx} message={operationError} />
+            )}
+          </>
         )}
-        {step === 1 && (
-          <V86ConfigStep
-            cfg={cfg}
-            memoryMb={cfg.memoryMb || DEFAULT_V86_MEMORY_MB}
-            onMemoryChange={handleMemoryChange}
-            inSpaceImages={inSpaceImages}
-            cdnImage={cdnImage}
-            existingDefault={existingDefault}
-          />
-        )}
-        {operationError && <OperationErrorAlert message={operationError} />}
       </WizardShell>
       <V86CatalogDialog
         open={source.catalogOpen}

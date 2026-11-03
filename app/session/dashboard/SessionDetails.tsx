@@ -417,12 +417,9 @@ export function SessionDetails({
               sx={stylexStyles2.rule2}
               onScroll={scrollCue.update}
             >
-              <div
-                className={
-                  /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
-                }
-              >
+              <div sx={false}>
                 <SettingsSections
+                  sx={nativeChildSpacing.s3}
                   isLocal={isLocal}
                   accountResource={accountResource}
                   session={session}
@@ -437,6 +434,7 @@ export function SessionDetails({
                 />
 
                 <SessionActionsSection
+                  sx={nativeChildSpacing.s3}
                   session={session}
                   sessionIdx={sessionIdx}
                   isLocal={isLocal}
@@ -510,6 +508,7 @@ interface SettingsSectionsProps {
 // SettingsSections renders the collapsible settings sections for the local or
 // cloud account.
 function SettingsSections({
+  sx,
   isLocal,
   accountResource,
   session,
@@ -518,20 +517,22 @@ function SettingsSections({
   onNavigateToPath,
   onOpenOrganization,
   onOpenLinkDevice,
-}: SettingsSectionsProps) {
+}: SettingsSectionsProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const account = accountResource.value
   const retainStepUp = !isLocal && !!account
 
   return (
     <>
-      <SessionSyncStatusSummary />
+      <SessionSyncStatusSummary sx={sx} />
       <StorageHealthSection
+        sx={sx}
         {...sectionProps('storage')}
         onNavigateToPath={onNavigateToPath}
       />
 
       {isLocal && (
         <DisplayNameCard
+          sx={sx}
           session={session}
           currentDisplayName={currentDisplayName}
           {...sectionProps('account')}
@@ -541,17 +542,20 @@ function SettingsSections({
       {!isLocal && account ? (
         <AccountDashboardStateProvider account={accountResource}>
           <AuthMethodsSection
+            sx={sx}
             account={accountResource}
             retainStepUp={retainStepUp}
             {...sectionProps('auth-methods')}
           />
-          <EmailSection {...sectionProps('email')} />
+          <EmailSection sx={sx} {...sectionProps('email')} />
           <SecuritySection
+            sx={sx}
             account={accountResource}
             retainStepUp={retainStepUp}
             {...sectionProps('security')}
           />
           <SessionsSection
+            sx={sx}
             account={accountResource}
             isLocal={isLocal}
             retainStepUp={retainStepUp}
@@ -562,12 +566,14 @@ function SettingsSections({
       ) : (
         <>
           <SecuritySection
+            sx={sx}
             account={accountResource}
             retainStepUp={retainStepUp}
             {...sectionProps('security')}
           />
           {account && (
             <SessionsSection
+              sx={sx}
               account={accountResource}
               isLocal={isLocal}
               retainStepUp={retainStepUp}
@@ -578,16 +584,33 @@ function SettingsSections({
         </>
       )}
       <OrganizationsSection
+        sx={sx}
         {...sectionProps('orgs')}
         onNavigateToOrganization={onOpenOrganization}
       />
       <BillingSection
+        sx={sx}
         isLocal={isLocal}
         {...sectionProps('billing')}
         onNavigateToPath={onNavigateToPath}
       />
-      <CryptoKeysSection {...sectionProps('crypto')} />
-      <IdentifiersSection {...sectionProps('identifiers')} />
+      <CryptoKeysSection sx={sx} {...sectionProps('crypto')} />
+      <IdentifiersSection sx={sx} {...sectionProps('identifiers')} />
     </>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

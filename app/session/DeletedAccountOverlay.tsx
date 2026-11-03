@@ -22,6 +22,10 @@ import { groupMarker } from '../../web/style/relations.stylex.js'
 
 import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
 
+const stylexStyles4 = stylex.create({
+  rule1: { padding: `calc(${themeLayout['--spacing']} * 6)` },
+})
+
 const stylexStyles3 = stylex.create({
   rule1: {
     position: 'relative',
@@ -178,12 +182,8 @@ export function DeletedAccountOverlay({
         </div>
 
         <div sx={stylexStyles3.rule4}>
-          <div
-            className={
-              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4 p-6'
-            }
-          >
-            <div sx={stylexStyles3.rule3}>
+          <div sx={stylexStyles4.rule1}>
+            <div sx={[nativeChildSpacing.s4, stylexStyles3.rule3]}>
               <div sx={stylexStyles3.rule5}>
                 <LuCircleAlert sx={stylexStyles.rule1} />
               </div>
@@ -195,7 +195,7 @@ export function DeletedAccountOverlay({
               )}
             </div>
 
-            <p sx={stylexStyles3.rule8}>
+            <p sx={[nativeChildSpacing.s4, stylexStyles3.rule8]}>
               This account no longer exists on the cloud. The session cannot
               connect. You can remove it from your session list.
             </p>
@@ -203,7 +203,7 @@ export function DeletedAccountOverlay({
             <button
               type="button"
               onClick={handleRemoveClick}
-              sx={[[stylexStyles2.rule1, groupMarker]]}
+              sx={[nativeChildSpacing.s4, [[stylexStyles2.rule1, groupMarker]]]}
             >
               <span sx={stylexStyles3.rule9}>Remove Session</span>
             </button>
@@ -213,3 +213,18 @@ export function DeletedAccountOverlay({
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s4: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

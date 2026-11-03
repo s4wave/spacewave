@@ -298,11 +298,12 @@ interface SpacePluginImportProps {
 // the plugins it stores that this Space has not installed. Adding one copies
 // its builds into this Space and installs it.
 export function SpacePluginImport({
+  sx,
   spaceId,
   installedIds,
   pending,
   onImport,
-}: SpacePluginImportProps) {
+}: SpacePluginImportProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const spacesList = useWatchSpacesList()
   const [sourceId, setSourceId] = useState('')
 
@@ -316,7 +317,7 @@ export function SpacePluginImport({
   const source = sources.find((space) => space.id === sourceId)
 
   return (
-    <div>
+    <div sx={sx}>
       <span sx={[nativeChildSpacing.s1_5, stylexStyles3.rule1]}>
         From another Space
       </span>

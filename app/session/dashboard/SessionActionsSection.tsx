@@ -410,22 +410,26 @@ interface ActionCardProps {
 
 // ActionCard renders a full-width action with an icon, title, and description.
 function ActionCard({
+  sx,
   tone,
   icon,
   title,
   description,
   onClick,
   disabled,
-}: ActionCardProps) {
+}: ActionCardProps & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
       sx={[
-        [stylexStyles.rule6, groupMarker],
-        tone.card,
-        disabled && stylexStyles.rule7,
+        [
+          [stylexStyles.rule6, groupMarker],
+          tone.card,
+          disabled && stylexStyles.rule7,
+        ],
+        sx,
       ]}
     >
       <div sx={[stylexStyles.rule8, tone.iconBox]}>{icon}</div>
@@ -459,6 +463,7 @@ export interface SessionActionsSectionProps {
 // SessionActionsSection renders the account actions and their confirmation
 // dialogs.
 export function SessionActionsSection({
+  sx,
   session,
   sessionIdx,
   isLocal,
@@ -473,7 +478,10 @@ export function SessionActionsSection({
   onLogoutConfirm,
   onUpgradeToCloud,
   onDeleteAccountRedirect,
-}: SessionActionsSectionProps) {
+}: SessionActionsSectionProps & {
+  sx?: stylex.StyleXStyles
+  className?: never
+}) {
   const navigate = useNavigate()
   const navigateSession = useSessionNavigate()
   const invokeCommand = useInvokeCommand()
@@ -494,18 +502,15 @@ export function SessionActionsSection({
   }
 
   return (
-    <section>
+    <section sx={sx}>
       <div sx={stylexStyles3.rule2}>
         <h2 sx={stylexStyles3.rule3}>Actions</h2>
       </div>
 
-      <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-        }
-      >
+      <div>
         {isLocal && sessionIdx != null && (
           <ActionCard
+            sx={nativeChildSpacing.s2}
             tone={brandTone}
             icon={<LuCloud sx={brandTone.icon} />}
             title="Upgrade to Cloud"
@@ -515,6 +520,7 @@ export function SessionActionsSection({
         )}
 
         <ActionCard
+          sx={nativeChildSpacing.s2}
           tone={neutralTone}
           icon={<LuKeyboard sx={neutralTone.icon} />}
           title="Keyboard Shortcuts"
@@ -527,6 +533,7 @@ export function SessionActionsSection({
         />
 
         <ActionCard
+          sx={nativeChildSpacing.s2}
           tone={neutralTone}
           icon={<LuTerminal sx={neutralTone.icon} />}
           title="Command Line"
@@ -535,6 +542,7 @@ export function SessionActionsSection({
         />
 
         <ActionCard
+          sx={nativeChildSpacing.s2}
           tone={neutralTone}
           icon={<LuGitBranch sx={neutralTone.icon} />}
           title="Plugins"
@@ -544,6 +552,7 @@ export function SessionActionsSection({
 
         {showTransfer && (
           <ActionCard
+            sx={nativeChildSpacing.s2}
             tone={neutralTone}
             icon={<LuMerge sx={neutralTone.icon} />}
             title="Transfer Sessions"
@@ -554,6 +563,7 @@ export function SessionActionsSection({
 
         {showLogout && (
           <ActionCard
+            sx={nativeChildSpacing.s2}
             tone={warningTone}
             icon={<LuLogOut sx={warningTone.icon} />}
             title={loggingOut ? 'Logging out…' : 'Log Out'}
@@ -564,16 +574,14 @@ export function SessionActionsSection({
         )}
 
         <CollapsibleSection
+          sx={nativeChildSpacing.s2}
           title="Danger Zone"
           open={dangerZoneOpen}
           onOpenChange={onDangerZoneOpenChange}
         >
-          <div
-            className={
-              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-            }
-          >
+          <div>
             <ActionCard
+              sx={nativeChildSpacing.s2}
               tone={destructiveTone}
               icon={<LuTrash2 sx={destructiveTone.icon} />}
               title="Delete a Space"
@@ -582,6 +590,7 @@ export function SessionActionsSection({
               disabled={!session}
             />
             <ActionCard
+              sx={nativeChildSpacing.s2}
               tone={destructiveStrongTone}
               icon={<LuTrash2 sx={destructiveStrongTone.icon} />}
               title={isLocal ? 'Delete Local Data' : 'Delete Account'}
@@ -616,3 +625,18 @@ export function SessionActionsSection({
     </section>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

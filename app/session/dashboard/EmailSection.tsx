@@ -36,6 +36,24 @@ import {
   motion as themeMotion,
 } from '../../../web/style/tokens.stylex.js'
 
+const stylexStyles4 = stylex.create({
+  rule1: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+  },
+  rule2: {
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
 const stylexStyles3 = stylex.create({
   rule1: {
     borderTopStyle: themeUtilityState['--tw-border-style'],
@@ -311,7 +329,11 @@ export interface EmailSectionProps {
 // EmailSection lets the user manage the account's email list after onboarding.
 // Mirrors the add / verify / set-primary / remove surface exposed by the
 // onboarding VerifyEmailPage, rendered with the SessionDetails design tokens.
-export function EmailSection({ open, onOpenChange }: EmailSectionProps) {
+export function EmailSection({
+  sx,
+  open,
+  onOpenChange,
+}: EmailSectionProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const ns = useStateNamespace(['session-settings'])
   const [storedOpen, setStoredOpen] = useStateAtom(ns, 'email', false)
   const sectionOpen = open ?? storedOpen
@@ -402,6 +424,7 @@ export function EmailSection({ open, onOpenChange }: EmailSectionProps) {
 
   return (
     <CollapsibleSection
+      sx={sx}
       title="Email"
       icon={<LuMail sx={stylexStyles.rule1} />}
       open={sectionOpen}
@@ -511,12 +534,8 @@ function AddEmailForm({
   const trimmed = value.trim()
   const canSubmit = !adding && isValidEmail(trimmed)
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'border-foreground/6 bg-background-card/30 space-y-2 rounded-lg border px-3 py-2.5'
-      }
-    >
-      <div sx={stylexStyles2.rule7}>
+    <div sx={stylexStyles4.rule1}>
+      <div sx={[nativeChildSpacingNextNext.s2, stylexStyles2.rule7]}>
         <div sx={stylexStyles2.rule5}>
           <LuPlus sx={stylexStyles.rule3} />
         </div>
@@ -542,18 +561,24 @@ function AddEmailForm({
         }}
         disabled={adding}
         sx={[
-          credentialInputStyles.input,
-          !!error && credentialInputStyles.invalid,
+          nativeChildSpacingNextNext.s2,
+          [
+            credentialInputStyles.input,
+            !!error && credentialInputStyles.invalid,
+          ],
         ]}
         aria-invalid={!!error}
         aria-describedby={error ? 'add-email-error' : undefined}
       />
       {error && (
-        <p id="add-email-error" sx={stylexStyles2.rule9}>
+        <p
+          id="add-email-error"
+          sx={[nativeChildSpacingNextNext.s2, stylexStyles2.rule9]}
+        >
           {error}
         </p>
       )}
-      <div sx={stylexStyles2.rule10}>
+      <div sx={[nativeChildSpacingNextNext.s2, stylexStyles2.rule10]}>
         <DashboardButton
           icon={<LuX sx={stylexStyles.rule4} />}
           onClick={() => onOpenChange(false)}
@@ -881,12 +906,8 @@ function VerifyCodePanel({
   }, [])
 
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'border-foreground/6 space-y-3 border-t p-3'
-      }
-    >
-      <p sx={stylexStyles2.rule25}>
+    <div sx={stylexStyles4.rule2}>
+      <p sx={[nativeChildSpacingNextNext.s3, stylexStyles2.rule25]}>
         We sent a 6-digit code to{' '}
         <strong sx={stylexStyles2.rule26}>{addr}</strong>. Check your inbox and
         enter it below.
@@ -905,10 +926,13 @@ function VerifyCodePanel({
             void onVerifyCode()
           }
         }}
-        sx={[credentialInputStyles.input, credentialInputStyles.compactCode]}
+        sx={[
+          nativeChildSpacingNextNext.s3,
+          [credentialInputStyles.input, credentialInputStyles.compactCode],
+        ]}
         aria-label={'Verification code for ' + addr}
       />
-      <div sx={stylexStyles2.rule27}>
+      <div sx={[nativeChildSpacingNextNext.s3, stylexStyles2.rule27]}>
         <button
           type="button"
           onClick={() => void onSendCode(addr)}
@@ -1001,6 +1025,32 @@ const nativeChildSpacingNext = stylex.create({
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNextNext = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
     },
   },
 })

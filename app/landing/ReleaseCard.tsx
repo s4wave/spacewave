@@ -3,7 +3,7 @@ import type { AnchorHTMLAttributes } from 'react'
 import { LuGithub } from '@s4wave/web/images/icons.js'
 
 import { Badge } from '@s4wave/web/ui/badge.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import type {
   Release,
   ChangeEntry,
@@ -14,6 +14,131 @@ import { useStaticHref } from '../prerender/StaticContext.js'
 
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+import {
+  colors as themeColors,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+import {
+  fonts as themeFonts,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles4 = stylex.create({
+  rule1: { marginTop: `calc(${themeLayout['--spacing']} * 4)` },
+  rule2: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule3: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule4: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      },
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 5)`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    '--tw-shadow': {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover':
+          '0 4px 6px -1px var(--tw-shadow-color, #0000001a), 0 2px 4px -2px var(--tw-shadow-color, #0000001a)',
+      },
+    },
+    boxShadow: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover':
+          'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+      },
+    },
+    '--tw-shadow-color': {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent) var(--tw-shadow-alpha), transparent)`,
+      },
+    },
+  },
+  rule5: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  rule6: {
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule7: {
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    color: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-brand'],
+      },
+    },
+  },
+  rule8: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule9: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    flexShrink: 0,
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+})
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -31,18 +156,12 @@ const markdownOptions = {
   overrides: {
     a: {
       component: function ChangelogLink(
-        props: AnchorHTMLAttributes<HTMLAnchorElement>,
+        props: Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'className'> & {
+          sx?: stylex.StyleXStyles
+        },
       ) {
-        const { className, ...rest } = props
-        return (
-          <ExternalLink
-            {...rest}
-            className={cn(
-              'text-foreground underline decoration-white/20 underline-offset-3 transition-colors hover:text-white hover:decoration-white/60',
-              className,
-            )}
-          />
-        )
+        const { sx, ...rest } = props
+        return <ExternalLink {...rest} sx={[changelogLinkStyles.link, sx]} />
       },
     },
   },
@@ -59,15 +178,15 @@ function CategorySection({
   if (!entries || entries.length === 0) return null
 
   return (
-    <div className="mt-4">
+    <div sx={stylexStyles4.rule1}>
       <Badge variant="release" sx={stylexStyles.rule1}>
         {label}
       </Badge>
-      <ul className="flex flex-col gap-2">
+      <ul sx={stylexStyles4.rule2}>
         {entries.map((entry) => (
           <li
             key={entry.descriptionMarkdown || entry.description}
-            className="text-foreground-alt text-sm leading-relaxed"
+            sx={stylexStyles4.rule3}
           >
             <Markdown options={markdownOptions}>
               {entry.descriptionMarkdown || entry.description || ''}
@@ -92,14 +211,11 @@ export function ReleaseCard({
   const detailHref = useStaticHref(`/changelog/v${release.version ?? ''}`)
 
   return (
-    <div
-      id={`v${release.version}`}
-      className="border-foreground/8 bg-background-card/50 hover:border-foreground/20 hover:shadow-foreground/5 rounded-lg border p-5 transition duration-300 hover:shadow-md"
-    >
-      <div className="flex items-start justify-between">
-        <h2 className="text-foreground text-lg font-semibold">
+    <div id={`v${release.version}`} sx={stylexStyles4.rule4}>
+      <div sx={stylexStyles4.rule5}>
+        <h2 sx={stylexStyles4.rule6}>
           {linkToDetail ? (
-            <a href={detailHref} className="hover:text-brand transition-colors">
+            <a href={detailHref} sx={stylexStyles4.rule7}>
               v{release.version}
             </a>
           ) : (
@@ -109,18 +225,16 @@ export function ReleaseCard({
         {release.releaseUrl && (
           <ExternalLink
             href={release.releaseUrl}
-            className="text-foreground-alt/50 hover:text-foreground shrink-0 transition-colors"
+            sx={stylexStyles3.rule1}
             title="View release"
           >
             <LuGithub sx={stylexStyles2.rule1} />
           </ExternalLink>
         )}
       </div>
-      {release.date && (
-        <p className="text-foreground-alt mt-1 text-sm">{release.date}</p>
-      )}
+      {release.date && <p sx={stylexStyles4.rule8}>{release.date}</p>}
       {release.summary && (
-        <div className="text-foreground-alt mt-3 text-sm leading-relaxed">
+        <div sx={stylexStyles4.rule9}>
           <Markdown options={markdownOptions}>
             {release.summaryMarkdown || release.summary}
           </Markdown>
@@ -133,3 +247,28 @@ export function ReleaseCard({
     </div>
   )
 }
+
+// changelogLinkStyles keeps link decoration at the markdown anchor owner.
+const changelogLinkStyles = stylex.create({
+  link: {
+    color: {
+      default: 'var(--color-foreground)',
+      '@media (hover:hover)': { default: null, ':hover': 'var(--color-white)' },
+    },
+    textDecorationLine: 'underline',
+    textDecorationColor: {
+      default: 'color-mix(in oklab, var(--color-white) 20%, transparent)',
+      '@media (hover:hover)': {
+        default: null,
+        ':hover': 'color-mix(in oklab, var(--color-white) 60%, transparent)',
+      },
+    },
+    textUnderlineOffset: '3px',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction:
+      'var(--tw-ease, var(--default-transition-timing-function))',
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+})

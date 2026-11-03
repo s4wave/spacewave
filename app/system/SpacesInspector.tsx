@@ -38,6 +38,10 @@ import { groupMarker as groupMarker2 } from '../../web/style/relations.stylex.js
 
 import { utilityState as themeUtilityState } from '../../web/style/tokens.stylex.js'
 
+const stylexStyles4 = stylex.create({
+  rule1: { marginInline: `calc(${themeLayout['--spacing']} * -2)` },
+})
+
 const stylexStyles3 = stylex.create({
   rule1: {
     display: 'grid',
@@ -251,16 +255,12 @@ export function SpacesInspector({
         ) : spaces.length === 0 ? (
           <p sx={stylexStyles3.rule2}>This session has no Spaces yet.</p>
         ) : (
-          <ul
-            className={
-              /* TODO(stylex): a descendant, group, peer or compound selector: divide-y */ 'divide-foreground/6 -mx-2 divide-y'
-            }
-          >
+          <ul sx={stylexStyles4.rule1}>
             {spaces.map((space) => {
               const id = space.entry?.ref?.providerResourceRef?.id ?? ''
               const name = space.spaceMeta?.name || 'Untitled Space'
               return (
-                <li key={spaceEngineId(space)}>
+                <li sx={nativeDividers.t6} key={spaceEngineId(space)}>
                   <button
                     type="button"
                     disabled={!id}
@@ -396,6 +396,34 @@ const nativeChildSpacing = stylex.create({
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeDividers applies the list border only to its nonfinal physical rows.
+const nativeDividers = stylex.create({
+  t6: {
+    '--tw-divide-y-reverse': { default: null, ':not(:last-child)': 0 },
+    borderBottomStyle: {
+      default: null,
+      ':not(:last-child)': themeUtilityState['--tw-border-style'],
+    },
+    borderTopStyle: {
+      default: null,
+      ':not(:last-child)': themeUtilityState['--tw-border-style'],
+    },
+    borderTopWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * var(--tw-divide-y-reverse))',
+    },
+    borderBottomWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * calc(1 - var(--tw-divide-y-reverse)))',
+    },
+    borderColor: {
+      default: null,
+      ':not(:last-child)':
+        'color-mix(in oklab, var(--color-foreground) 6%, transparent)',
     },
   },
 })

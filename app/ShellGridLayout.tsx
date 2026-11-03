@@ -517,7 +517,12 @@ export function ShellGridLayout() {
   }
 
   return (
-    <div className="shell-flexlayout" sx={stylexStyles2.rule1}>
+    <div
+      className={
+        /* TODO(stylex): global or unknown class: shell-flexlayout */ 'shell-flexlayout'
+      }
+      sx={stylexStyles2.rule1}
+    >
       <OptimizedLayout
         model={model}
         renderTab={renderTab}

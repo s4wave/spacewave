@@ -1,9 +1,12 @@
+import type { StyleXStyles } from '@stylexjs/stylex'
 import type { ComponentType } from 'react'
 import type { Message, MessageType } from '@aptre/protobuf-es-lite'
 
 // ConfigEditorProps are the props passed to config editor components.
 // Config editors are controlled components: the parent owns the state.
 export interface ConfigEditorProps<T> {
+  sx?: StyleXStyles
+  className?: never
   // value is the current config protobuf message.
   value: T
   // onValueChange receives a clone with changes applied.

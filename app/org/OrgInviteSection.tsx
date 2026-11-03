@@ -83,28 +83,31 @@ export function OrgInviteSection(props: {
   onRevoke: (inviteId: string) => Promise<void>
 }) {
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1 */ 'space-y-1'
-      }
-    >
+    <div>
       {props.invites.length === 0 && (
-        <div sx={stylexStyles2.rule1}>
+        <div sx={[nativeChildSpacing.s1, stylexStyles2.rule1]}>
           <LuLink sx={stylexStyles.rule1} />
           <span>No active invites</span>
         </div>
       )}
       {props.invites.map((invite) => (
-        <InviteRow key={invite.id} invite={invite} onRevoke={props.onRevoke} />
+        <InviteRow
+          sx={nativeChildSpacing.s1}
+          key={invite.id}
+          invite={invite}
+          onRevoke={props.onRevoke}
+        />
       ))}
     </div>
   )
 }
 
-function InviteRow(props: {
-  invite: OrgInviteInfo
-  onRevoke: (inviteId: string) => Promise<void>
-}) {
+function InviteRow(
+  props: {
+    invite: OrgInviteInfo
+    onRevoke: (inviteId: string) => Promise<void>
+  } & { sx?: stylex.StyleXStyles; className?: never },
+) {
   const { invite, onRevoke } = props
   const [copied, setCopied] = useState(false)
   const [revoking, setRevoking] = useState(false)
@@ -136,7 +139,7 @@ function InviteRow(props: {
     : `${invite.uses ?? 0} uses`
 
   return (
-    <div sx={stylexStyles2.rule2}>
+    <div sx={[stylexStyles2.rule2, props.sx]}>
       <div sx={stylexStyles2.rule3}>
         <div sx={stylexStyles2.rule4}>
           <LuLink sx={stylexStyles.rule2} />
@@ -167,3 +170,18 @@ function InviteRow(props: {
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s1: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

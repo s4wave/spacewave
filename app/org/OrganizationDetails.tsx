@@ -36,7 +36,7 @@ import {
   SessionContext,
   useSessionNavigate,
 } from '@s4wave/web/contexts/contexts.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import {
   CollapsibleSection,
   collapsibleSectionActionStyles,
@@ -72,6 +72,49 @@ import {
   utilityState as themeUtilityState,
   motion as themeMotion,
 } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles5 = stylex.create({
+  rule1: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule2: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 7)`,
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+  },
+})
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+  },
+  rule2: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+  },
+  rule3: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-warning']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-warning']} 5%, transparent)`,
+  },
+  rule4: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-warning']} 10%, transparent)`,
+  },
+  rule5: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+  },
+  rule6: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+  },
+})
 
 const stylexStyles3 = stylex.create({
   rule1: { display: 'inline-flex' },
@@ -622,19 +665,19 @@ async function tolerateNotFound(
   }
 }
 
-/** recoveryToneClasses maps a recovery tone to its card and icon colors. */
-const recoveryToneClasses = {
+/** recoveryToneStyles maps a recovery tone to its card and icon colors. */
+const recoveryToneStyles = {
   loading: {
-    card: 'border-foreground/8 bg-background-card/30',
-    icon: 'bg-foreground/5',
+    card: stylexStyles4.rule1,
+    icon: stylexStyles4.rule2,
   },
   degraded: {
-    card: 'border-warning/20 bg-warning/5',
-    icon: 'bg-warning/10',
+    card: stylexStyles4.rule3,
+    icon: stylexStyles4.rule4,
   },
   closed: {
-    card: 'border-destructive/20 bg-destructive/5',
-    icon: 'bg-destructive/10',
+    card: stylexStyles4.rule5,
+    icon: stylexStyles4.rule6,
   },
 } as const
 
@@ -651,31 +694,18 @@ function RecoveryToneIcon({ tone }: { tone: RecoverySummary['tone'] }) {
 
 /** RecoverySummaryCard renders the health summary of the org root object. */
 function RecoverySummaryCard({
+  sx,
   summary,
   healthError,
 }: {
   summary: RecoverySummary
   healthError?: string
-}) {
-  const classes = recoveryToneClasses[summary.tone]
+} & { sx?: stylex.StyleXStyles; className?: never }) {
+  const classes = recoveryToneStyles[summary.tone]
   return (
-    <div
-      className={
-        /* TODO(stylex): dynamic class or forwarded className */ cn(
-          'rounded-md border px-3 py-2',
-          classes.card,
-        )
-      }
-    >
+    <div sx={[[[stylexStyles5.rule1], [classes.card]], sx]}>
       <div sx={stylexStyles3.rule2}>
-        <div
-          className={
-            /* TODO(stylex): dynamic class or forwarded className */ cn(
-              'flex size-7 shrink-0 items-center justify-center rounded-md',
-              classes.icon,
-            )
-          }
-        >
+        <div sx={[[stylexStyles5.rule2], [classes.icon]]}>
           <RecoveryToneIcon tone={summary.tone} />
         </div>
         <div sx={stylexStyles3.rule3}>
@@ -828,36 +858,36 @@ function RecoveryRemediation({
 
 /** OrgRecoverySection renders the degraded-mode recovery tools. */
 function OrgRecoverySection({
+  sx,
   orgId,
   rootState,
   isOwner,
   open,
   onOpenChange,
-}: SectionProps & {
+}: (SectionProps & {
   orgId: string
   rootState?: OrganizationRootStateInfo
   isOwner: boolean
-}) {
+}) & { sx?: stylex.StyleXStyles; className?: never }) {
   const session = SessionContext.useContext().value
 
   return (
     <CollapsibleSection
+      sx={sx}
       title="Recovery"
       icon={<LuCircleAlert sx={stylexStyles2.rule3} />}
       open={open}
       onOpenChange={onOpenChange}
     >
       <InfoCard>
-        <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
-          }
-        >
+        <div>
           <RecoverySummaryCard
+            sx={nativeChildSpacingNext.s3}
             summary={getRecoverySummary(rootState?.health)}
             healthError={rootState?.health?.error}
           />
           <RecoveryRemediation
+            sx={nativeChildSpacingNext.s3}
             session={session}
             sharedObjectId={rootState?.sharedObjectId || orgId}
             permission={getRecoveryPermission(
@@ -873,16 +903,17 @@ function OrgRecoverySection({
 
 /** OrgMembersSection lists the members and lets owners remove them. */
 function OrgMembersSection({
+  sx,
   orgId,
   members,
   isOwner,
   open,
   onOpenChange,
-}: SectionProps & {
+}: (SectionProps & {
   orgId: string
   members: OrgMemberInfo[]
   isOwner: boolean
-}) {
+}) & { sx?: stylex.StyleXStyles; className?: never }) {
   const session = SessionContext.useContext().value
 
   const handleRemoveMember = useCallback(
@@ -898,6 +929,7 @@ function OrgMembersSection({
 
   return (
     <CollapsibleSection
+      sx={sx}
       title="Members"
       icon={<LuUsers sx={stylexStyles2.rule3} />}
       open={open}
@@ -997,11 +1029,15 @@ function UsernameInviteForm({
 
 /** OrgInvitesSection lists invites and lets owners create and revoke them. */
 function OrgInvitesSection({
+  sx,
   orgId,
   invites,
   open,
   onOpenChange,
-}: SectionProps & { orgId: string; invites: OrgInviteInfo[] }) {
+}: (SectionProps & { orgId: string; invites: OrgInviteInfo[] }) & {
+  sx?: stylex.StyleXStyles
+  className?: never
+}) {
   // Keep invitation creation tied to the current session and organization.
   const session = SessionContext.useContext().value
   const [creatingInvite, setCreatingInvite] = useState(false)
@@ -1031,6 +1067,7 @@ function OrgInvitesSection({
 
   return (
     <CollapsibleSection
+      sx={sx}
       title="Invites"
       icon={<LuLink sx={stylexStyles2.rule3} />}
       open={open}
@@ -1178,17 +1215,22 @@ function OrgRenameDisplay({
 
 /** OrgSettingsSection lets owners rename the organization. */
 function OrgSettingsSection({
+  sx,
   orgId,
   orgName,
   open,
   onOpenChange,
-}: SectionProps & { orgId: string; orgName: string }) {
+}: (SectionProps & { orgId: string; orgName: string }) & {
+  sx?: stylex.StyleXStyles
+  className?: never
+}) {
   const renameInputId = useId()
   const session = SessionContext.useContext().value
   const rename = useOrgRename(session, orgId, orgName)
 
   return (
     <CollapsibleSection
+      sx={sx}
       title="Settings"
       icon={<LuSettings sx={stylexStyles2.rule3} />}
       open={open}
@@ -1218,6 +1260,7 @@ function OrgSettingsSection({
 
 /** OrgOwnerSections renders the invite, settings, and billing sections. */
 function OrgOwnerSections({
+  sx,
   orgId,
   orgName,
   billingAccountId,
@@ -1229,20 +1272,23 @@ function OrgOwnerSections({
   billingAccountId?: string
   invites: OrgInviteInfo[]
   sectionProps: SectionPropsFor
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
     <>
       <OrgInvitesSection
+        sx={sx}
         orgId={orgId}
         invites={invites}
         {...sectionProps('invites')}
       />
       <OrgSettingsSection
+        sx={sx}
         orgId={orgId}
         orgName={orgName}
         {...sectionProps('settings')}
       />
       <OrgBillingSection
+        sx={sx}
         orgId={orgId}
         billingAccountId={billingAccountId}
         {...sectionProps('billing')}
@@ -1378,13 +1424,10 @@ export function OrganizationDetails({
       />
 
       <div sx={stylexStyles3.rule37}>
-        <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
-          }
-        >
+        <div>
           {degraded && (
             <OrgRecoverySection
+              sx={nativeChildSpacingNextNext.s3}
               orgId={orgId}
               rootState={orgState?.rootState}
               isOwner={isOwner}
@@ -1393,6 +1436,7 @@ export function OrganizationDetails({
           )}
           {orgState && (
             <OrgMembersSection
+              sx={nativeChildSpacingNextNext.s3}
               orgId={orgId}
               members={orgState.members ?? []}
               isOwner={isOwner}
@@ -1401,6 +1445,7 @@ export function OrganizationDetails({
           )}
           {isOwner && orgState && (
             <OrgOwnerSections
+              sx={nativeChildSpacingNextNext.s3}
               orgId={orgId}
               orgName={orgName}
               billingAccountId={info?.billingAccountId}
@@ -1410,6 +1455,7 @@ export function OrganizationDetails({
           )}
 
           <CollapsibleSection
+            sx={nativeChildSpacingNextNext.s3}
             title="Identifiers"
             icon={<LuFingerprint sx={stylexStyles2.rule3} />}
             {...sectionProps('identifiers')}
@@ -1427,6 +1473,7 @@ export function OrganizationDetails({
 
           {isOwner && orgState && (
             <OrgActionsSection
+              sx={nativeChildSpacingNextNext.s3}
               orgId={orgId}
               displayName={orgName}
               spaceCount={orgState.spaces?.length ?? 0}
@@ -1449,6 +1496,36 @@ const nativeChildSpacing = stylex.create({
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNextNext = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
     },
   },
 })

@@ -8,6 +8,72 @@ import {
 import { useAppBuildInfo } from '@s4wave/app/build-info.js'
 import { ExternalLink } from './ExternalLink.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    pointerEvents: 'auto',
+    position: 'fixed',
+    bottom: `calc(${themeLayout['--spacing']} * 2)`,
+    left: `calc(${themeLayout['--spacing']} * 4)`,
+    zIndex: 50,
+    fontSize: '10px',
+    lineHeight: 1.5,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    opacity: 0.3,
+    transitionProperty: 'opacity',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    display: {
+      default: null,
+      '@media (max-width: 640px)': 'none',
+      '@media (pointer: coarse)': 'none',
+    },
+  },
+  rule2: {
+    pointerEvents: 'auto',
+    position: 'fixed',
+    bottom: `calc(${themeLayout['--spacing']} * 2)`,
+    left: `calc(${themeLayout['--spacing']} * 4)`,
+    zIndex: 50,
+    fontSize: '10px',
+    lineHeight: 1.5,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    opacity: 0,
+    transitionProperty: 'opacity',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    display: {
+      default: null,
+      '@media (max-width: 640px)': 'none',
+      '@media (pointer: coarse)': 'none',
+    },
+  },
+})
+
 interface CornerTextProps {
   show: boolean
 }
@@ -47,11 +113,7 @@ export function CornerText({ show }: CornerTextProps) {
 
       <ExternalLink
         href="https://aperture.us"
-        className={cn(
-          baseClasses,
-          'hover:text-foreground pointer-events-auto fixed bottom-2 left-4',
-          opacityClass,
-        )}
+        sx={show ? stylexStyles.rule1 : stylexStyles.rule2}
       >
         {/* The cake is a lie! */}
         <strong>Aperture Robotics</strong>

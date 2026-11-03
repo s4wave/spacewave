@@ -35,9 +35,13 @@ const stylexStyles = stylex.create({
 // ForgeTaskConfigEditor edits the config-specific fields of a ForgeTaskCreateOp.
 // Renders a job picker for selecting which Job to link the new Task to.
 export function ForgeTaskConfigEditor({
+  sx,
   value,
   onValueChange,
-}: ConfigEditorProps<ForgeTaskCreateOp>) {
+}: ConfigEditorProps<ForgeTaskCreateOp> & {
+  sx?: stylex.StyleXStyles
+  className?: never
+}) {
   const { spaceWorldResource } = SpaceContainerContext.useContext()
 
   const jobsResource = useResource(
@@ -54,7 +58,7 @@ export function ForgeTaskConfigEditor({
   }
 
   return (
-    <section>
+    <section sx={sx}>
       <div className="mb-2 flex items-center justify-between">
         <h3 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
           <LuBriefcase sx={stylexStyles.rule1} />

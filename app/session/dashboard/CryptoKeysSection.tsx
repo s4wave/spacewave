@@ -111,9 +111,10 @@ export interface CryptoKeysSectionProps {
 // CryptoKeysSection wraps crypto identity display and entity keypairs into a
 // single collapsible section with a compact layout.
 export function CryptoKeysSection({
+  sx,
   open,
   onOpenChange,
-}: CryptoKeysSectionProps) {
+}: CryptoKeysSectionProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const ns = useStateNamespace(['session-settings'])
   const [storedOpen, setStoredOpen] = useStateAtom(ns, 'crypto', false)
   const sectionOpen = open ?? storedOpen
@@ -129,21 +130,22 @@ export function CryptoKeysSection({
 
   return (
     <CollapsibleSection
+      sx={sx}
       title="Crypto & Keys"
       icon={<LuKey sx={stylexStyles.rule1} />}
       open={sectionOpen}
       onOpenChange={handleOpenChange}
     >
-      <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
-        }
-      >
-        {crypto && <CryptoIdentity crypto={crypto} />}
+      <div sx={false}>
+        {crypto && (
+          <CryptoIdentity sx={nativeChildSpacingNext.s3} crypto={crypto} />
+        )}
         {isLocal && (
           <>
-            {crypto && <div sx={stylexStyles2.rule1} />}
-            <EntityKeypairsSection embedded />
+            {crypto && (
+              <div sx={[nativeChildSpacingNext.s3, stylexStyles2.rule1]} />
+            )}
+            <EntityKeypairsSection sx={nativeChildSpacingNext.s3} embedded />
           </>
         )}
       </div>
@@ -221,6 +223,21 @@ const nativeChildSpacing = stylex.create({
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
     },
   },
 })

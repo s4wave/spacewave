@@ -31,6 +31,7 @@ const stylexStyles = stylex.create({
 
 /** SpacePluginObjects runs an installed plugin's creation action in the open Space. */
 export function SpacePluginObjects({
+  sx,
   space,
   manifestId,
   onCreated,
@@ -38,7 +39,7 @@ export function SpacePluginObjects({
   space: Space
   manifestId: string
   onCreated: (objectKey: string) => void
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   // Discovery follows the installation; execution uses the mounted Space capability.
   const rootResource = RootContext.useContext()
   const root = rootResource.value
@@ -67,7 +68,7 @@ export function SpacePluginObjects({
 
   // Only this plugin's registered actions appear beside its build and preview.
   return (
-    <div sx={stylexStyles.rule1}>
+    <div sx={[stylexStyles.rule1, sx]}>
       {options.flatMap((option) =>
         option.dynamic && option.pluginId === manifestId
           ? [

@@ -41,7 +41,7 @@ vi.mock('@s4wave/web/configtype/useConfigEditor.js', () => ({
   ) => {
     const value = new TextDecoder().decode(configData ?? new Uint8Array())
     return {
-      element: (
+      render: () => (
         <input
           aria-label="Config value"
           value={value}
@@ -179,7 +179,7 @@ function Harness() {
         value={ws.localName}
         onChange={(e) => ws.handleUpdateName(e.target.value)}
       />
-      {ws.configEditor.element}
+      {ws.configEditor.render()}
       <button type="button" onClick={() => void ws.persistDraftState()}>
         Persist
       </button>

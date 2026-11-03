@@ -995,11 +995,19 @@ function ShellTabStripInner({
     <ShellTabStateProvider tabId={activeTabId}>
       <TabContextProvider value={overlayTabContext}>
         <div
-          className="shell-flexlayout shell-flexlayout--with-menu"
+          className={
+            /* TODO(stylex): global or unknown class: shell-flexlayout */ 'shell-flexlayout shell-flexlayout--with-menu'
+          }
           ref={containerRef}
           sx={stylexStyles2.rule1}
         >
-          <div className="shell-menu-bar-overlay" ref={menuBarRef} sx={false}>
+          <div
+            className={
+              /* TODO(stylex): global or unknown class: shell-menu-bar-overlay */ 'shell-menu-bar-overlay'
+            }
+            ref={menuBarRef}
+            sx={false}
+          >
             {children}
           </div>
           <OptimizedLayout

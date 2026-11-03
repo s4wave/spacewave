@@ -28,7 +28,7 @@ import type { OrgMemberInfo } from '@s4wave/sdk/provider/spacewave/spacewave.pb.
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import {
   Dialog,
   DialogContent,
@@ -59,6 +59,64 @@ import {
   fonts as themeFonts,
   motion as themeMotion,
 } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    maxHeight: `calc(${themeLayout['--spacing']} * 48)`,
+    overflowY: 'auto',
+  },
+})
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 20%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule2: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 12%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-background-card']} 20%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule3: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule4: { position: 'relative' },
+})
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -373,7 +431,6 @@ const stylexStyles = stylex.create({
 })
 
 export // Keep the native item class beside these callers until their utility styles convert.
-const tabItemClass = stylex.props(tabsContentItemStyles.item).className
 
 interface AddUserDialogProps {
   open: boolean
@@ -457,12 +514,6 @@ function getOrgMemberSecondaryLabel(member: OrgMemberInfo): string {
 }
 
 /** inputClass styles the read-only and text inputs of the invite tabs. */
-
-const actionButtonClass = cn(
-  'border-foreground/10 bg-background-card/20 flex w-full items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm transition-all duration-150',
-  'hover:border-foreground/12 hover:bg-background-card/50',
-  'disabled:cursor-not-allowed disabled:opacity-50',
-)
 
 /**
  * useInviteFlow owns the invite state of the dialog: creating a code or link,
@@ -637,22 +688,25 @@ function InviteCodeTab({ flow }: { flow: InviteFlow }) {
 
   if (flow.shortCode) {
     return (
-      <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-        }
-      >
-        <label htmlFor={inviteCodeId} sx={stylexStyles2.rule3}>
+      <div>
+        <label
+          htmlFor={inviteCodeId}
+          sx={[nativeChildSpacing.s2, stylexStyles2.rule3]}
+        >
           Invite code
         </label>
         <input
           id={inviteCodeId}
           value={flow.shortCode}
           readOnly
-          sx={[[stylexStyles2.rule4], stylexStyles2.rule5]}
+          sx={[
+            nativeChildSpacing.s2,
+            [[stylexStyles2.rule4], stylexStyles2.rule5],
+          ]}
           onClick={(e) => (e.target as HTMLInputElement).select()}
         />
         <InviteCopyButton
+          sx={nativeChildSpacing.s2}
           copied={flow.copied}
           label="Copy Code"
           onClick={() => void flow.copy(flow.shortCode)}
@@ -687,12 +741,11 @@ function InviteUsernameTab({ flow }: { flow: InviteFlow }) {
   const usernameInputId = useId()
 
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-      }
-    >
-      <label htmlFor={usernameInputId} sx={stylexStyles2.rule3}>
+    <div>
+      <label
+        htmlFor={usernameInputId}
+        sx={[nativeChildSpacing.s2, stylexStyles2.rule3]}
+      >
         Spacewave username
       </label>
       <input
@@ -700,13 +753,16 @@ function InviteUsernameTab({ flow }: { flow: InviteFlow }) {
         value={flow.username}
         onChange={(e) => flow.setUsername(e.target.value)}
         placeholder="alice"
-        sx={[stylexStyles2.rule4]}
+        sx={[nativeChildSpacing.s2, [stylexStyles2.rule4]]}
       />
       <button
         type="button"
         onClick={() => void flow.sendUsernameInvite()}
         disabled={flow.creating || !flow.hasSession || !flow.username.trim()}
-        sx={flow.usernameSent ? stylexStyles2.rule1 : stylexStyles2.rule2}
+        sx={[
+          nativeChildSpacing.s2,
+          flow.usernameSent ? stylexStyles2.rule1 : stylexStyles2.rule2,
+        ]}
       >
         {flow.usernameSent ? (
           <>
@@ -730,14 +786,7 @@ function InviteLinkTab({ flow }: { flow: InviteFlow }) {
 
   return (
     <>
-      <div
-        className={
-          /* TODO(stylex): dynamic class or forwarded className */ cn(
-            tabItemClass,
-            'border-foreground/8 bg-background-card/20 rounded-lg border p-3',
-          )
-        }
-      >
+      <div sx={[[stylexStyles3.rule1], tabsContentItemStyles.item]}>
         <div sx={stylexStyles2.rule7}>Share a Space invite</div>
         <p sx={stylexStyles2.rule8}>
           Create one link for this Space, then send it through a trusted
@@ -745,15 +794,8 @@ function InviteLinkTab({ flow }: { flow: InviteFlow }) {
         </p>
       </div>
       {flow.inviteResp?.inviteMessage ? (
-        <div
-          className={
-            /* TODO(stylex): dynamic class or forwarded className */ cn(
-              tabItemClass,
-              'space-y-2',
-            )
-          }
-        >
-          <div sx={stylexStyles2.rule9}>
+        <div sx={tabsContentItemStyles.item}>
+          <div sx={[nativeChildSpacingNext.s2, stylexStyles2.rule9]}>
             <label htmlFor={inviteLinkId} sx={stylexStyles2.rule10}>
               Invite link
             </label>
@@ -763,10 +805,11 @@ function InviteLinkTab({ flow }: { flow: InviteFlow }) {
             id={inviteLinkId}
             value={flow.inviteLink}
             readOnly
-            sx={[stylexStyles2.rule4]}
+            sx={[nativeChildSpacingNext.s2, [stylexStyles2.rule4]]}
             onClick={(e) => (e.target as HTMLInputElement).select()}
           />
           <InviteCopyButton
+            sx={nativeChildSpacingNext.s2}
             copied={flow.copied}
             label="Copy Link"
             onClick={() => void flow.copy(flow.inviteLink)}
@@ -777,12 +820,8 @@ function InviteLinkTab({ flow }: { flow: InviteFlow }) {
           type="button"
           onClick={() => void flow.createInvite()}
           disabled={flow.creating || !flow.hasSession}
-          className={
-            /* TODO(stylex): dynamic class or forwarded className */ cn(
-              tabItemClass,
-              actionButtonClass,
-            )
-          }
+
+          sx={[[[stylexStyles3.rule2]], tabsContentItemStyles.item]}
         >
           {flow.creating ? 'Creating secure link…' : 'Create Invite Link'}
         </button>
@@ -986,26 +1025,12 @@ function OrgMembersTab({
 
   return (
     <>
-      <p
-        className={
-          /* TODO(stylex): dynamic class or forwarded className */ cn(
-            tabItemClass,
-            'text-foreground-alt/60 text-xs',
-          )
-        }
-      >
+      <p sx={[[stylexStyles3.rule3], tabsContentItemStyles.item]}>
         {isCloudProvider
           ? 'Choose someone already in this organization. Use Username, Code, or Link to share with anyone else.'
           : 'Choose someone already in this organization. Use Code or Link to share with anyone else.'}
       </p>
-      <div
-        className={
-          /* TODO(stylex): dynamic class or forwarded className */ cn(
-            tabItemClass,
-            'relative',
-          )
-        }
-      >
+      <div sx={[[stylexStyles3.rule4], tabsContentItemStyles.item]}>
         <LuSearch sx={stylexStyles.rule2} />
         <input
           aria-label="Search org members"
@@ -1015,19 +1040,14 @@ function OrgMembersTab({
           sx={[stylexStyles2.rule13]}
         />
       </div>
-      <div
-        className={
-          /* TODO(stylex): dynamic class or forwarded className */ cn(
-            tabItemClass,
-            'max-h-48 space-y-0.5 overflow-y-auto',
-          )
-        }
-      >
+      <div sx={[stylexStyles4.rule1, tabsContentItemStyles.item]}>
         {loading && filtered.length === 0 && (
-          <p sx={stylexStyles2.rule14}>Loading org members…</p>
+          <p sx={[nativeChildSpacingNext.s0_5, stylexStyles2.rule14]}>
+            Loading org members…
+          </p>
         )}
         {!loading && filtered.length === 0 && (
-          <p sx={stylexStyles2.rule15}>
+          <p sx={[nativeChildSpacingNext.s0_5, stylexStyles2.rule15]}>
             {search ? 'No matching members' : 'No org members'}
           </p>
         )}
@@ -1044,7 +1064,10 @@ function OrgMembersTab({
               key={member.id}
               disabled={isEnrolled || isEnrolling || !session}
               onClick={() => void handleEnroll(accountId)}
-              sx={isEnrolled ? stylexStyles2.rule16 : stylexStyles2.rule17}
+              sx={[
+                nativeChildSpacingNext.s0_5,
+                isEnrolled ? stylexStyles2.rule16 : stylexStyles2.rule17,
+              ]}
             >
               <div sx={stylexStyles2.rule18}>
                 <div sx={stylexStyles2.rule19}>{primaryLabel}</div>
@@ -1072,3 +1095,44 @@ function OrgMembersTab({
     </>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s0_5: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 0.5 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 0.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

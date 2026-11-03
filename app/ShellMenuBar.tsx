@@ -370,9 +370,16 @@ export function ShellMenuBar() {
   }, [openCommand])
 
   return (
-    <div className="shell-menu-bar" sx={stylexStyles5.rule1}>
+    <div
+      className={
+        /* TODO(stylex): global or unknown class: shell-menu-bar */ 'shell-menu-bar'
+      }
+      sx={stylexStyles5.rule1}
+    >
       <button
-        className="shell-menu-palette"
+        className={
+          /* TODO(stylex): global or unknown class: shell-menu-palette */ 'shell-menu-palette'
+        }
         type="button"
         aria-label="Open command palette"
         sx={stylexStyles5.rule2}
@@ -381,7 +388,12 @@ export function ShellMenuBar() {
       >
         <AppLogo sx={stylexStyles3.rule1} />
       </button>
-      <div className="shell-menu-mobile" sx={stylexStyles5.rule3}>
+      <div
+        className={
+          /* TODO(stylex): global or unknown class: shell-menu-mobile */ 'shell-menu-mobile'
+        }
+        sx={stylexStyles5.rule3}
+      >
         <Menubar variant="shell" sx={stylexStyles2.rule1}>
           <MenubarMenu>
             <MenubarTrigger asChild>
@@ -426,7 +438,12 @@ export function ShellMenuBar() {
           </MenubarMenu>
         </Menubar>
       </div>
-      <div className="shell-menu-collapsible" sx={[stylexStyles5.rule4]}>
+      <div
+        className={
+          /* TODO(stylex): global or unknown class: shell-menu-collapsible */ 'shell-menu-collapsible'
+        }
+        sx={[stylexStyles5.rule4]}
+      >
         <Menubar variant="shell" sx={stylexStyles2.rule1}>
           {topLevelMenus.map((name) => {
             const node = menuTree.get(name)

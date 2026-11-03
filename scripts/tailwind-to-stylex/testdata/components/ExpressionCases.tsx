@@ -58,7 +58,11 @@ export function ExpressionCases() {
         Inherit
       </span>
       <div className="group/code" data-numbered>
-        <span className={"group-data-[numbered]/code:before:content-['#'] group-data-[numbered]/code:before:select-none"}>
+        <span
+          className={
+            "group-data-[numbered]/code:before:content-['#'] group-data-[numbered]/code:before:select-none"
+          }
+        >
           Related pseudo-element
         </span>
         <span className={"after:content-['−']"}>Unicode removal marker</span>

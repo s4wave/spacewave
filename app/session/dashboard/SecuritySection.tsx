@@ -31,11 +31,12 @@ export interface SecuritySectionProps {
 // SecuritySection wraps SessionLockSection and SecurityLevelSection into a
 // single collapsible section.
 export function SecuritySection({
+  sx,
   account,
   retainStepUp = false,
   open,
   onOpenChange,
-}: SecuritySectionProps) {
+}: SecuritySectionProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const ns = useStateNamespace(['session-settings'])
   const [storedOpen, setStoredOpen] = useStateAtom(ns, 'security', true)
   const sectionOpen = open ?? storedOpen
@@ -50,19 +51,17 @@ export function SecuritySection({
 
   return (
     <CollapsibleSection
+      sx={sx}
       title="Security"
       icon={<LuShield sx={stylexStyles.rule1} />}
       open={sectionOpen}
       onOpenChange={handleOpenChange}
     >
-      <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
-        }
-      >
-        <SessionLockSection embedded />
+      <div sx={false}>
+        <SessionLockSection sx={nativeChildSpacing.s3} embedded />
         {!isLocal && accountResource.value && (
           <SecurityLevelSection
+            sx={nativeChildSpacing.s3}
             account={accountResource}
             retainStepUp={retainStepUp}
             embedded
@@ -72,3 +71,18 @@ export function SecuritySection({
     </CollapsibleSection>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

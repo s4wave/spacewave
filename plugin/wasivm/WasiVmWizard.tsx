@@ -33,6 +33,16 @@ import * as stylex from '@stylexjs/stylex'
 
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'flex',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     marginRight: `calc(${themeLayout['--spacing']} * 2)`,
@@ -138,7 +148,7 @@ export default function WasiVmWizard(props: ObjectViewerComponentProps) {
   // Wait for wizard state before showing its configuration controls.
   if (!state) {
     return (
-      <div className="flex flex-1 items-center justify-center p-4">
+      <div sx={stylexStyles3.rule1}>
         <LoadingCard
           view={{
             state: 'active',
@@ -169,53 +179,59 @@ export default function WasiVmWizard(props: ObjectViewerComponentProps) {
       onFinalize={() => void handleFinalize()}
       canFinalize={!!name && (!!image || !!rootfsKey)}
     >
-      <WizardFieldFrame
-        label="Root filesystem"
-        help={
-          !choice
-            ? 'Add a filesystem to this Space first; the VM runs its programs.'
-            : 'The VM runs on a copy of this filesystem; its writes are discarded when it stops.'
-        }
-      >
-        {(controlSx) => (
-          <select
-            value={choice}
-            disabled={!choice}
-            onChange={(e) => setRootfsChoice(e.target.value)}
-            sx={[controlSx, wizardFieldStyles.select]}
+      {(childSx) => (
+        <>
+          <WizardFieldFrame
+            sx={childSx}
+            label="Root filesystem"
+            help={
+              !choice
+                ? 'Add a filesystem to this Space first; the VM runs its programs.'
+                : 'The VM runs on a copy of this filesystem; its writes are discarded when it stops.'
+            }
           >
-            {cdnImages.length !== 0 && (
-              <optgroup label="Published images">
-                {cdnImages.map((entry) => (
-                  <option
-                    key={entry.objectKey}
-                    value={imageChoicePrefix + entry.objectKey}
-                  >
-                    {formatWasiVmImageLabel(entry.image)}
-                  </option>
-                ))}
-              </optgroup>
+            {(controlSx) => (
+              <select
+                value={choice}
+                disabled={!choice}
+                onChange={(e) => setRootfsChoice(e.target.value)}
+                sx={[controlSx, wizardFieldStyles.select]}
+              >
+                {cdnImages.length !== 0 && (
+                  <optgroup label="Published images">
+                    {cdnImages.map((entry) => (
+                      <option
+                        key={entry.objectKey}
+                        value={imageChoicePrefix + entry.objectKey}
+                      >
+                        {formatWasiVmImageLabel(entry.image)}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                {unixfsKeys.length !== 0 && (
+                  <optgroup label="Filesystems in this Space">
+                    {unixfsKeys.map((key) => (
+                      <option key={key} value={fsChoicePrefix + key}>
+                        {key}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+              </select>
             )}
-            {unixfsKeys.length !== 0 && (
-              <optgroup label="Filesystems in this Space">
-                {unixfsKeys.map((key) => (
-                  <option key={key} value={fsChoicePrefix + key}>
-                    {key}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-          </select>
-        )}
-      </WizardFieldFrame>
-      <WizardField
-        label="Init program"
-        help="The WebAssembly program the VM starts first, as a path in its filesystem."
-        variant="compactMono"
-        placeholder={DEFAULT_WASIVM_INIT_PATH}
-        value={initPath}
-        onChange={(e) => setInitPath(e.target.value)}
-      />
+          </WizardFieldFrame>
+          <WizardField
+            fieldSx={childSx}
+            label="Init program"
+            help="The WebAssembly program the VM starts first, as a path in its filesystem."
+            variant="compactMono"
+            placeholder={DEFAULT_WASIVM_INIT_PATH}
+            value={initPath}
+            onChange={(e) => setInitPath(e.target.value)}
+          />
+        </>
+      )}
     </WizardShell>
   )
 }

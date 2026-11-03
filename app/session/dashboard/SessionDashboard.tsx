@@ -50,7 +50,7 @@ import {
   type ObjectTypeMetadataById,
 } from '@s4wave/web/space/object-tree.js'
 import { useStateAtom, useStateNamespace } from '@s4wave/web/state/persist.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { ExperimentalBadge } from '@s4wave/web/ui/ExperimentalBadge.js'
 import { CopyButton } from '@s4wave/web/ui/CopyButton.js'
@@ -82,6 +82,42 @@ import {
 import { groupMarker as groupMarker2 } from '../../../web/style/relations.stylex.js'
 
 import { fonts as themeFonts } from '../../../web/style/tokens.stylex.js'
+
+import { groupMarker as groupMarker3 } from '../../../web/style/relations.stylex.js'
+
+const stylexStyles8 = stylex.create({
+  rule1: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 7)`,
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+})
+
+const stylexStyles7 = stylex.create({
+  rule1: {
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      [stylex.when.ancestor(':is([data-selected="true"])', groupMarker3)]:
+        `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+    },
+  },
+  rule2: {
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      [stylex.when.ancestor(':is([data-selected="true"])', groupMarker3)]:
+        `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    },
+  },
+})
 
 const stylexStyles6 = stylex.create({
   rule1: {
@@ -1019,23 +1055,15 @@ function InlineSecureAccountSection(props: {
           <LuShieldCheck sx={stylexStyles2.rule1} />
           Secure Your Account
         </h2>
-        <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4'
-          }
-        >
+        <div>
           {onboarding.onboarding.backupComplete ? (
-            <div sx={stylexStyles6.rule20}>
+            <div sx={[nativeChildSpacingNextNextNext.s4, stylexStyles6.rule20]}>
               <LuCheck sx={stylexStyles2.rule2} />
               <span>Backup key downloaded</span>
             </div>
           ) : (
-            <div
-              className={
-                /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
-              }
-            >
-              <div sx={stylexStyles6.rule21}>
+            <div sx={nativeChildSpacingNextNextNext.s4}>
+              <div sx={[nativeChildSpacingNextNext.s3, stylexStyles6.rule21]}>
                 <div sx={stylexStyles6.rule22}>
                   <LuDownload sx={stylexStyles2.rule3} />
                 </div>
@@ -1047,7 +1075,7 @@ function InlineSecureAccountSection(props: {
                   </p>
                 </div>
               </div>
-              <div>
+              <div sx={nativeChildSpacingNextNext.s3}>
                 <label htmlFor={passwordInputId} sx={stylexStyles6.rule25}>
                   Account password
                 </label>
@@ -1064,31 +1092,34 @@ function InlineSecureAccountSection(props: {
                 type="button"
                 onClick={() => void handleDownloadPem()}
                 disabled={downloading || !account || !password}
-                sx={[[stylexStyles4.rule1, groupMarker2]]}
+                sx={[
+                  nativeChildSpacingNextNext.s3,
+                  [[stylexStyles4.rule1, groupMarker2]],
+                ]}
               >
                 <LuDownload sx={stylexStyles2.rule4} />
                 <span sx={stylexStyles6.rule27}>
                   {downloading ? 'Generating…' : 'Download backup .pem'}
                 </span>
               </button>
-              {pemError && <p sx={stylexStyles6.rule28}>{pemError}</p>}
+              {pemError && (
+                <p sx={[nativeChildSpacingNextNext.s3, stylexStyles6.rule28]}>
+                  {pemError}
+                </p>
+              )}
             </div>
           )}
 
-          <div sx={stylexStyles6.rule29} />
+          <div sx={[nativeChildSpacingNextNextNext.s4, stylexStyles6.rule29]} />
 
           {onboarding.onboarding.lockComplete ? (
-            <div sx={stylexStyles6.rule20}>
+            <div sx={[nativeChildSpacingNextNextNext.s4, stylexStyles6.rule20]}>
               <LuCheck sx={stylexStyles2.rule2} />
               <span>Session lock configured</span>
             </div>
           ) : (
-            <div
-              className={
-                /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
-              }
-            >
-              <div sx={stylexStyles6.rule21}>
+            <div sx={nativeChildSpacingNextNextNext.s4}>
+              <div sx={[nativeChildSpacingNextNext.s3, stylexStyles6.rule21]}>
                 <div sx={stylexStyles6.rule22}>
                   <LuKeyRound sx={stylexStyles2.rule3} />
                 </div>
@@ -1100,7 +1131,7 @@ function InlineSecureAccountSection(props: {
                   </p>
                 </div>
               </div>
-              <div>
+              <div sx={nativeChildSpacingNextNext.s3}>
                 <RadioOption
                   sx={nativeChildSpacingNext.s2}
                   selected={lock.mode === 'auto'}
@@ -1123,7 +1154,7 @@ function InlineSecureAccountSection(props: {
                 />
               </div>
               {lock.mode === 'pin' && (
-                <div>
+                <div sx={nativeChildSpacingNextNext.s3}>
                   <div sx={nativeChildSpacing.s2}>
                     <label htmlFor={pinInputId} sx={stylexStyles6.rule25}>
                       PIN
@@ -1171,13 +1202,20 @@ function InlineSecureAccountSection(props: {
                 type="button"
                 onClick={() => void handleSetLockMode()}
                 disabled={savingLock}
-                sx={[[stylexStyles4.rule1, groupMarker2]]}
+                sx={[
+                  nativeChildSpacingNextNext.s3,
+                  [[stylexStyles4.rule1, groupMarker2]],
+                ]}
               >
                 <span sx={stylexStyles6.rule27}>
                   {savingLock ? 'Saving…' : 'Set lock mode'}
                 </span>
               </button>
-              {lock.error && <p sx={stylexStyles6.rule28}>{lock.error}</p>}
+              {lock.error && (
+                <p sx={[nativeChildSpacingNextNext.s3, stylexStyles6.rule28]}>
+                  {lock.error}
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -1240,31 +1278,34 @@ function CreateOrgSection() {
           Organizations let you collaborate with others and manage shared
           resources.
         </p>
-        <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
-          }
-        >
+        <div>
           <input
             type="text"
             value={orgName}
             onChange={(e) => setOrgName(e.target.value)}
             placeholder="Organization name"
             aria-label="Organization name"
-            sx={[stylexStyles6.rule26]}
+            sx={[nativeChildSpacingNextNext.s3, [stylexStyles6.rule26]]}
           />
           <button
             type="button"
             onClick={() => void handleCreate()}
             disabled={creating || !orgName.trim()}
-            sx={[[stylexStyles4.rule1, groupMarker2]]}
+            sx={[
+              nativeChildSpacingNextNext.s3,
+              [[stylexStyles4.rule1, groupMarker2]],
+            ]}
           >
             <LuBuilding2 sx={stylexStyles2.rule4} />
             <span sx={stylexStyles6.rule27}>
               {creating ? 'Creating…' : 'Create organization'}
             </span>
           </button>
-          {error && <p sx={stylexStyles6.rule28}>{error}</p>}
+          {error && (
+            <p sx={[nativeChildSpacingNextNext.s3, stylexStyles6.rule28]}>
+              {error}
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -1743,33 +1784,26 @@ function SectionHeading(props: {
 
 type IconTone = 'brand' | 'muted'
 
-const iconToneClasses: Record<
+const iconToneStyles: Record<
   IconTone,
-  { icon: import('@stylexjs/stylex').StyleXStyles; bg: string }
+  { icon: import('@stylexjs/stylex').StyleXStyles; bg: stylex.StyleXStyles }
 > = {
   brand: {
     icon: stylexStyles3.rule1,
-    bg: 'bg-brand/10 group-data-[selected=true]:bg-brand/20',
+    bg: stylexStyles7.rule1,
   },
   muted: {
     icon: stylexStyles3.rule2,
-    bg: 'bg-foreground/5 group-data-[selected=true]:bg-foreground/10',
+    bg: stylexStyles7.rule2,
   },
 }
 
 // IconButton renders the lozenge-shaped icon container shared by every
 // DashboardItem row.
 function IconButton({ icon: Icon, tone }: { icon: IconType; tone: IconTone }) {
-  const tones = iconToneClasses[tone]
+  const tones = iconToneStyles[tone]
   return (
-    <div
-      className={
-        /* TODO(stylex): dynamic class or forwarded className */ cn(
-          'flex size-7 shrink-0 items-center justify-center rounded-md transition-colors',
-          tones.bg,
-        )
-      }
-    >
+    <div sx={[[stylexStyles8.rule1], [tones.bg]]}>
       <Icon sx={[stylexStyles3.rule3, tones.icon]} />
     </div>
   )
@@ -1871,6 +1905,36 @@ const nativeChildSpacingNext = stylex.create({
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNextNext = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNextNextNext = stylex.create({
+  s4: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
     },
   },
 })

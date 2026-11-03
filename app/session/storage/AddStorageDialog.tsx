@@ -304,12 +304,12 @@ export function AddStorageDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
-          }
-        >
-          <Field id={`${formId}-preset`} label="Provider">
+        <div>
+          <Field
+            sx={nativeChildSpacing.s3}
+            id={`${formId}-preset`}
+            label="Provider"
+          >
             <select
               id={`${formId}-preset`}
               value={form.preset}
@@ -326,7 +326,7 @@ export function AddStorageDialog({
             </select>
           </Field>
 
-          <div sx={stylexStyles.rule2}>
+          <div sx={[nativeChildSpacing.s3, stylexStyles.rule2]}>
             <Field id={`${formId}-bucket`} label="Bucket">
               <input
                 id={`${formId}-bucket`}
@@ -363,7 +363,11 @@ export function AddStorageDialog({
             )}
           </div>
 
-          <Field id={`${formId}-endpoint`} label="Endpoint">
+          <Field
+            sx={nativeChildSpacing.s3}
+            id={`${formId}-endpoint`}
+            label="Endpoint"
+          >
             <input
               id={`${formId}-endpoint`}
               value={form.endpoint}
@@ -374,7 +378,7 @@ export function AddStorageDialog({
             />
           </Field>
 
-          <div sx={stylexStyles.rule2}>
+          <div sx={[nativeChildSpacing.s3, stylexStyles.rule2]}>
             <Field id={`${formId}-key`} label="Access key ID">
               <input
                 id={`${formId}-key`}
@@ -396,7 +400,7 @@ export function AddStorageDialog({
             </Field>
           </div>
 
-          <details>
+          <details sx={nativeChildSpacing.s3}>
             <summary sx={stylexStyles.rule3}>Name and key prefix</summary>
             <div sx={stylexStyles.rule4}>
               <Field id={`${formId}-name`} label="Name">
@@ -422,7 +426,7 @@ export function AddStorageDialog({
             </div>
           </details>
 
-          <label sx={stylexStyles.rule5}>
+          <label sx={[nativeChildSpacing.s3, stylexStyles.rule5]}>
             <input
               type="checkbox"
               checked={setDefault}
@@ -433,6 +437,7 @@ export function AddStorageDialog({
 
           {check && (
             <StorageCheckResult
+              sx={nativeChildSpacing.s3}
               check={check}
               corsRule={buildStorageCorsRule(
                 form.preset,
@@ -440,7 +445,9 @@ export function AddStorageDialog({
               )}
             />
           )}
-          {error && <p sx={stylexStyles.rule6}>{error}</p>}
+          {error && (
+            <p sx={[nativeChildSpacing.s3, stylexStyles.rule6]}>{error}</p>
+          )}
         </div>
 
         <DialogFooter>
@@ -486,3 +493,18 @@ function Field({
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

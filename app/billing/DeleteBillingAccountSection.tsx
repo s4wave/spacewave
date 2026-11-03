@@ -169,13 +169,17 @@ export interface DeleteBillingAccountSectionProps {
 // DeleteBillingAccountSection renders the billing-account delete action and its
 // confirmation dialog.
 export function DeleteBillingAccountSection({
+  sx,
   billingAccountId,
   displayName,
   status,
   assigneeCount,
   disabledReasonOverride,
   onDeleted,
-}: DeleteBillingAccountSectionProps) {
+}: DeleteBillingAccountSectionProps & {
+  sx?: stylex.StyleXStyles
+  className?: never
+}) {
   // Keep the confirmation dialog, typed acknowledgement and deletion result together.
   const session = SessionContext.useContext().value
   const [open, setOpen] = useState(false)
@@ -232,6 +236,7 @@ export function DeleteBillingAccountSection({
   // Expose the deletion trigger with the current eligibility reason.
   const button = (
     <DashboardButton
+      sx={!disabledReason && deleteChildren.child}
       icon={<LuTrash2 sx={stylexStyles2.rule1} />}
       onClick={() => handleOpenChange(true)}
       disabled={deleteDisabled}
@@ -242,16 +247,14 @@ export function DeleteBillingAccountSection({
   )
 
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-      }
-    >
-      <div sx={stylexStyles3.rule1}>Danger Zone</div>
+    <div sx={sx}>
+      <div sx={[stylexStyles3.rule1, deleteChildren.child]}>Danger Zone</div>
       {disabledReason ? (
         <Tooltip>
           <TooltipTrigger asChild>
-            <span sx={stylexStyles3.rule2}>{button}</span>
+            <span sx={[stylexStyles3.rule2, deleteChildren.child]}>
+              {button}
+            </span>
           </TooltipTrigger>
           <TooltipContent side="top" sx={stylexStyles.rule1}>
             {disabledReason}
@@ -260,7 +263,7 @@ export function DeleteBillingAccountSection({
       ) : (
         button
       )}
-      <div sx={stylexStyles3.rule3}>
+      <div sx={[stylexStyles3.rule3, deleteChildren.child]}>
         Permanently removes this billing account record after cancellation and
         detach are complete.
       </div>
@@ -320,3 +323,20 @@ export function DeleteBillingAccountSection({
     </div>
   )
 }
+
+// deleteChildren preserves spacing on the actual trigger or tooltip span.
+const deleteChildren = stylex.create({
+  child: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)':
+        'calc(var(--spacing) * 2 * var(--tw-space-y-reverse))',
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)':
+        'calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))',
+    },
+  },
+})

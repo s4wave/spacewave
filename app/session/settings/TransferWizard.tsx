@@ -41,6 +41,10 @@ import {
   utilityState as themeUtilityState,
 } from '../../../web/style/tokens.stylex.js'
 
+const stylexStyles3 = stylex.create({
+  rule1: { padding: `calc(${themeLayout['--spacing']} * 6)` },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     display: 'flex',
@@ -596,12 +600,9 @@ function TransferWizardSteps({
         </div>
 
         <div sx={stylexStyles2.rule7}>
-          <div
-            className={
-              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4 p-6'
-            }
-          >
+          <div sx={stylexStyles3.rule1}>
             <WizardBody
+              sx={nativeChildSpacingNext.s4}
               step={shownStep}
               draft={draft}
               spaces={spaces}
@@ -664,6 +665,7 @@ function resolveShownStep(
 
 // WizardBody renders the content of a wizard step.
 function WizardBody({
+  sx,
   step,
   draft,
   spaces,
@@ -681,7 +683,7 @@ function WizardBody({
   onToggleSpace: (id: string) => void
   transferState: TransferState
   error: string | null
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   const sessions = useSessionList().value?.sessions
   const sessionOptions = useMemo(
     () =>
@@ -697,6 +699,7 @@ function WizardBody({
     case 'select':
       return (
         <SelectStep
+          sx={sx}
           sessionOptions={sessionOptions}
           sourceIdx={draft.sourceIdx}
           targetIdx={draft.targetIdx}
@@ -709,6 +712,7 @@ function WizardBody({
     case 'inventory':
       return (
         <InventoryStep
+          sx={sx}
           spaces={spaces}
           loading={inventoryLoading}
           selectedSpaces={selectedSpaces}
@@ -716,10 +720,13 @@ function WizardBody({
         />
       )
     case 'progress':
-      return <ProgressStep transferState={transferState} error={error} />
+      return (
+        <ProgressStep sx={sx} transferState={transferState} error={error} />
+      )
     case 'complete':
       return (
         <CompleteStep
+          sx={sx}
           spaceCount={transferState?.spaces?.length ?? spaces.length}
         />
       )
@@ -802,6 +809,7 @@ function WizardAction({
 
 // SelectStep renders the source/target session picker and mode selector.
 function SelectStep({
+  sx,
   sessionOptions,
   sourceIdx,
   targetIdx,
@@ -817,10 +825,10 @@ function SelectStep({
   onSourceChange: (idx: number) => void
   onTargetChange: (idx: number) => void
   onModeChange: (mode: TransferMode) => void
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
     <>
-      <div>
+      <div sx={sx}>
         <span sx={stylexStyles2.rule12}>Source session (merge from)</span>
         <div>
           {sessionOptions.map((s) => (
@@ -838,7 +846,7 @@ function SelectStep({
         </div>
       </div>
 
-      <div>
+      <div sx={sx}>
         <span sx={stylexStyles2.rule12}>Target session (merge into)</span>
         <div>
           {sessionOptions.flatMap((s) =>
@@ -862,7 +870,7 @@ function SelectStep({
         </div>
       </div>
 
-      <div>
+      <div sx={sx}>
         <span sx={stylexStyles2.rule12}>Transfer mode</span>
         <div>
           <RadioOption
@@ -897,6 +905,7 @@ function SelectStep({
 
 // InventoryStep shows the spaces that will be transferred with selection checkboxes.
 function InventoryStep({
+  sx,
   spaces,
   loading,
   selectedSpaces,
@@ -906,10 +915,10 @@ function InventoryStep({
   loading: boolean
   selectedSpaces: ReadonlySet<string>
   onToggle: (id: string) => void
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   if (loading) {
     return (
-      <div sx={stylexStyles2.rule13}>
+      <div sx={[stylexStyles2.rule13, sx]}>
         <Spinner size="md" variant="muted" />
       </div>
     )
@@ -917,14 +926,16 @@ function InventoryStep({
 
   if (spaces.length === 0) {
     return (
-      <p sx={stylexStyles2.rule14}>No spaces found on the source session.</p>
+      <p sx={[stylexStyles2.rule14, sx]}>
+        No spaces found on the source session.
+      </p>
     )
   }
 
   const selectedCount = selectedSpaces.size
 
   return (
-    <div>
+    <div sx={sx}>
       <p sx={stylexStyles2.rule15}>
         {selectedCount} of {spaces.length} space
         {spaces.length !== 1 ? 's' : ''} selected for transfer:
@@ -987,6 +998,7 @@ function phaseLabel(phase: TransferPhase): string {
 
 // ProgressStep shows the transfer progress with per-space details.
 function ProgressStep({
+  sx,
   transferState,
   error,
 }: {
@@ -1005,12 +1017,12 @@ function ProgressStep({
     | null
     | undefined
   error: string | null
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   const phase = transferState?.phase ?? TransferPhase.TransferPhase_IDLE
   const spaceStates = transferState?.spaces ?? []
 
   return (
-    <div>
+    <div sx={sx}>
       <div sx={stylexStyles2.rule21}>
         {phase !== TransferPhase.TransferPhase_COMPLETE &&
           phase !== TransferPhase.TransferPhase_FAILED && (
@@ -1062,9 +1074,12 @@ function ProgressStep({
 }
 
 // CompleteStep shows the transfer completion message.
-function CompleteStep({ spaceCount }: { spaceCount: number }) {
+function CompleteStep({
+  sx,
+  spaceCount,
+}: { spaceCount: number } & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
-    <div sx={stylexStyles2.rule29}>
+    <div sx={[stylexStyles2.rule29, sx]}>
       <div sx={stylexStyles2.rule30}>
         <LuCheck sx={stylexStyles.rule7} />
       </div>
@@ -1099,6 +1114,21 @@ const nativeChildSpacing = stylex.create({
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s4: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
     },
   },
 })

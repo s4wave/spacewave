@@ -26,6 +26,10 @@ import { groupMarker } from '../../web/style/relations.stylex.js'
 
 import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
 
+const stylexStyles4 = stylex.create({
+  rule1: { padding: `calc(${themeLayout['--spacing']} * 6)` },
+})
+
 const stylexStyles3 = stylex.create({
   rule1: {
     position: 'relative',
@@ -313,12 +317,9 @@ export function ReAuthOverlay({
         </div>
 
         <div sx={stylexStyles3.rule9}>
-          <div
-            className={
-              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4 p-6'
-            }
-          >
+          <div sx={stylexStyles4.rule1}>
             <CredentialProofInput
+              sx={nativeChildSpacing.s4}
               password={cred.password}
               onPasswordChange={cred.setPassword}
               pemFileName={cred.pemFileName}
@@ -334,7 +335,7 @@ export function ReAuthOverlay({
               type="button"
               onClick={() => void handleSubmit()}
               disabled={submitting || !cred.hasCredential}
-              sx={[[stylexStyles2.rule1, groupMarker]]}
+              sx={[nativeChildSpacing.s4, [[stylexStyles2.rule1, groupMarker]]]}
             >
               <LuKeyRound sx={stylexStyles.rule1} />
               <span sx={stylexStyles3.rule10}>
@@ -345,12 +346,12 @@ export function ReAuthOverlay({
             <button
               type="button"
               onClick={() => navigate({ path: '/recover' })}
-              sx={stylexStyles3.rule11}
+              sx={[nativeChildSpacing.s4, stylexStyles3.rule11]}
             >
               Forgot password?
             </button>
 
-            <div sx={stylexStyles3.rule12}>
+            <div sx={[nativeChildSpacing.s4, stylexStyles3.rule12]}>
               <button
                 type="button"
                 onClick={() => setLogoutOpen(true)}
@@ -373,3 +374,18 @@ export function ReAuthOverlay({
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s4: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

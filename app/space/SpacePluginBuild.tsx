@@ -36,6 +36,10 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+const stylexStyles4 = stylex.create({
+  rule1: { marginTop: `calc(${themeLayout2['--spacing']} * 3)` },
+})
+
 const stylexStyles3 = stylex.create({
   rule1: {
     fontSize: themeFonts['--text-xs'],
@@ -260,11 +264,12 @@ interface BuildSelectProps {
   placeholder: string
   disabled: boolean
   onChange: (value: string) => void
-  children?: ReactNode
+  children?: (childSx: stylex.StyleXStyles) => ReactNode
 }
 
 /** BuildSelect is a labeled select over object keys, with optional trailing actions. */
 function BuildSelect({
+  sx,
   label,
   value,
   options,
@@ -272,21 +277,17 @@ function BuildSelect({
   disabled,
   onChange,
   children,
-}: BuildSelectProps) {
+}: BuildSelectProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const id = useId()
 
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1 */ 'space-y-1'
-      }
-    >
-      <label htmlFor={id} sx={stylexStyles3.rule1}>
+    <div sx={[false, sx]}>
+      <label htmlFor={id} sx={[slotChildren.child, stylexStyles3.rule1]}>
         {label}
       </label>
       <select
         id={id}
-        sx={stylexStyles3.rule2}
+        sx={[slotChildren.child, stylexStyles3.rule2]}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         disabled={disabled}
@@ -298,7 +299,7 @@ function BuildSelect({
           </option>
         ))}
       </select>
-      {children}
+      {children?.(slotChildren.child)}
     </div>
   )
 }
@@ -365,16 +366,13 @@ function BuildPanel({
   return (
     <details sx={stylexStyles3.rule3}>
       <summary sx={stylexStyles3.rule4}>Build a TypeScript plugin</summary>
-      <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'mt-3 space-y-3'
-        }
-      >
-        <p sx={stylexStyles3.rule5}>
+      <div sx={stylexStyles4.rule1}>
+        <p sx={[nativeChildSpacingNext.s3, stylexStyles3.rule5]}>
           Choose a source folder with bldr.yaml and a registered build device. A
           completed build installs into this Space.
         </p>
         <BuildSelect
+          sx={nativeChildSpacingNext.s3}
           label="Source folder"
           value={sourceKey}
           options={sources}
@@ -386,18 +384,23 @@ function BuildPanel({
           disabled={locked}
           onChange={setSourceKey}
         >
-          {sourceKey && (
-            <Button
-              size="sm"
-              variant="ghost"
-              sx={stylexStyles2.rule1}
-              onClick={() => navigateToObjects([sourceKey])}
-            >
-              Edit source
-            </Button>
+          {(childSx) => (
+            <>
+              {sourceKey && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  sx={[childSx, stylexStyles2.rule1]}
+                  onClick={() => navigateToObjects([sourceKey])}
+                >
+                  Edit source
+                </Button>
+              )}
+            </>
           )}
         </BuildSelect>
         <BuildSelect
+          sx={nativeChildSpacingNext.s3}
           label="Build device"
           value={deviceKey}
           options={devices}
@@ -409,7 +412,7 @@ function BuildPanel({
           disabled={locked}
           onChange={setDeviceKey}
         />
-        <div>
+        <div sx={nativeChildSpacingNext.s3}>
           <label
             htmlFor={`${id}-manifest`}
             sx={[nativeChildSpacing.s1, stylexStyles3.rule1]}
@@ -426,7 +429,7 @@ function BuildPanel({
             disabled={locked}
           />
         </div>
-        <div sx={stylexStyles3.rule6}>
+        <div sx={[nativeChildSpacingNext.s3, stylexStyles3.rule6]}>
           <Button
             size="sm"
             variant="brandOutline"
@@ -456,21 +459,28 @@ function BuildPanel({
             </Button>
           )}
         </div>
-        <div role="status" sx={stylexStyles3.rule5}>
+        <div
+          role="status"
+          sx={[nativeChildSpacingNext.s3, stylexStyles3.rule5]}
+        >
           {message}
         </div>
         <SpacePluginObjects
+          sx={nativeChildSpacingNext.s3}
           space={space}
           manifestId={request.manifestId}
           onCreated={(key) => navigateToObjects([key])}
         />
         {error && (
-          <p role="alert" sx={stylexStyles3.rule7}>
+          <p role="alert" sx={[nativeChildSpacingNext.s3, stylexStyles3.rule7]}>
             {error}
           </p>
         )}
         {status.error && (
-          <div role="alert" sx={stylexStyles3.rule7}>
+          <div
+            role="alert"
+            sx={[nativeChildSpacingNext.s3, stylexStyles3.rule7]}
+          >
             {status.error.message}
             <Button
               size="sm"
@@ -503,6 +513,38 @@ const nativeChildSpacing = stylex.create({
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// slotChildren keeps the optional action in the original physical child sequence.
+const slotChildren = stylex.create({
+  child: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)':
+        'calc(var(--spacing) * 1 * var(--tw-space-y-reverse))',
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)':
+        'calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))',
     },
   },
 })

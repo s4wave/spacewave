@@ -48,7 +48,7 @@ vi.mock('./useWizardState.js', () => ({
     },
     navigateToObjects: h.navigateToObjects,
     wizardResource: { value: {} },
-    configEditor: { element: null, value: undefined },
+    configEditor: { render: () => null, value: undefined },
     configData: undefined,
     persistDraftState: vi.fn().mockResolvedValue(undefined),
     handleConfigDataChange: vi.fn(),

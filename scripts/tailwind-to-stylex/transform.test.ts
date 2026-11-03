@@ -41,6 +41,7 @@ import { writeFrameFixture } from './frame-fixture.js'
 import { writeSpacingFixture } from './spacing-fixture.js'
 import { writeRootsFixture } from './roots-fixture.js'
 import { writeHelpersFixture } from './helpers-fixture.js'
+import { writeAppHelperFixture } from './app-helper-fixture.js'
 import { writeWizardFixture } from './wizard-fixture.js'
 import { writeSystemFixture } from './system-fixture.js'
 import { writeSessionFixture } from './session-fixture.js'
@@ -647,6 +648,7 @@ test(
         await writeSessionFixture(root, version)
         await writeSystemFixture(root, version)
         await writeWizardFixture(root, version)
+        await writeAppHelperFixture(root, version)
         await writeLoadingScreenFixture(root, version)
         await writePathFixture(root, version)
         await writeTabsFixture(root, version)
@@ -659,6 +661,7 @@ test(
         main =
           "import{FrameSamples}from'./FrameSamples';import{SpacingSamples}from'./SpacingSamples';import{RootsSamples}from'./RootsSamples';import{HelpersSamples}from'./HelpersSamples';import{DividerSamples}from'./DividerSamples';" +
           main
+        main = "import{AppHelperSamples}from'./AppHelperSamples';" + main
         main = "import{WizardSamples}from'./WizardSamples';" + main
         main = "import{SystemSamples}from'./SystemSamples';" + main
         main = "import{SessionSamples}from'./SessionSamples';" + main
@@ -676,7 +679,7 @@ test(
         main = "import{SheetSamples}from'./SheetSamples';" + main
         main = main.replace(
           "createRoot(document.getElementById('root')!).render",
-          "if(new URLSearchParams(location.search).has('wizard'))createRoot(document.getElementById('root')!).render(<WizardSamples/>);else if(new URLSearchParams(location.search).has('system'))createRoot(document.getElementById('root')!).render(<SystemSamples/>);else if(new URLSearchParams(location.search).has('session'))createRoot(document.getElementById('root')!).render(<SessionSamples/>);else if(new URLSearchParams(location.search).has('dividers'))createRoot(document.getElementById('root')!).render(<DividerSamples/>);else if(new URLSearchParams(location.search).has('helpers'))createRoot(document.getElementById('root')!).render(<HelpersSamples/>);else if(new URLSearchParams(location.search).has('roots'))createRoot(document.getElementById('root')!).render(<RootsSamples/>);else if(new URLSearchParams(location.search).has('spacing'))createRoot(document.getElementById('root')!).render(<SpacingSamples/>);else if(new URLSearchParams(location.search).has('frame'))createRoot(document.getElementById('root')!).render(<FrameSamples/>);else if(new URLSearchParams(location.search).has('owned'))createRoot(document.getElementById('root')!).render(<OwnedStyles/>);else if(new URLSearchParams(location.search).has('references'))createRoot(document.getElementById('root')!).render(<ReferenceSamples/>);else if(new URLSearchParams(location.search).has('loading-screen'))createRoot(document.getElementById('root')!).render(<LoadingScreenSamples/>);else if(new URLSearchParams(location.search).has('login'))createRoot(document.getElementById('root')!).render(<LoginSamples/>);else if(new URLSearchParams(location.search).has('command'))createRoot(document.getElementById('root')!).render(<CommandSamples/>);else if(new URLSearchParams(location.search).has('groups'))createRoot(document.getElementById('root')!).render(<GroupSamples/>);else if(new URLSearchParams(location.search).has('code'))createRoot(document.getElementById('root')!).render(<CodeSamples/>);else if(new URLSearchParams(location.search).has('trace'))createRoot(document.getElementById('root')!).render(<TraceSamples/>);else if(new URLSearchParams(location.search).has('credential'))createRoot(document.getElementById('root')!).render(<CredentialSamples/>);else if(new URLSearchParams(location.search).has('icon-defaults'))createRoot(document.getElementById('root')!).render(<IconDefaultsSamples/>);else if(new URLSearchParams(location.search).has('floating'))createRoot(document.getElementById('root')!).render(<FloatingSamples/>);else if(new URLSearchParams(location.search).has('badge'))createRoot(document.getElementById('root')!).render(<BadgeSamples/>);else if(new URLSearchParams(location.search).has('tree'))createRoot(document.getElementById('root')!).render(<TreeSamples/>);else if(new URLSearchParams(location.search).has('tabs'))createRoot(document.getElementById('root')!).render(<TabsSamples/>);else if(new URLSearchParams(location.search).has('path'))createRoot(document.getElementById('root')!).render(<PathSamples/>);else if(new URLSearchParams(location.search).has('dialog'))createRoot(document.getElementById('root')!).render(<DialogSamples/>);else if(new URLSearchParams(location.search).has('buttons'))createRoot(document.getElementById('root')!).render(<ButtonSamples/>);else if(new URLSearchParams(location.search).has('input'))createRoot(document.getElementById('root')!).render(<InputSamples/>);else if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
+          "if(new URLSearchParams(location.search).has('app-helper'))createRoot(document.getElementById('root')!).render(<AppHelperSamples/>);else if(new URLSearchParams(location.search).has('wizard'))createRoot(document.getElementById('root')!).render(<WizardSamples/>);else if(new URLSearchParams(location.search).has('system'))createRoot(document.getElementById('root')!).render(<SystemSamples/>);else if(new URLSearchParams(location.search).has('session'))createRoot(document.getElementById('root')!).render(<SessionSamples/>);else if(new URLSearchParams(location.search).has('dividers'))createRoot(document.getElementById('root')!).render(<DividerSamples/>);else if(new URLSearchParams(location.search).has('helpers'))createRoot(document.getElementById('root')!).render(<HelpersSamples/>);else if(new URLSearchParams(location.search).has('roots'))createRoot(document.getElementById('root')!).render(<RootsSamples/>);else if(new URLSearchParams(location.search).has('spacing'))createRoot(document.getElementById('root')!).render(<SpacingSamples/>);else if(new URLSearchParams(location.search).has('frame'))createRoot(document.getElementById('root')!).render(<FrameSamples/>);else if(new URLSearchParams(location.search).has('owned'))createRoot(document.getElementById('root')!).render(<OwnedStyles/>);else if(new URLSearchParams(location.search).has('references'))createRoot(document.getElementById('root')!).render(<ReferenceSamples/>);else if(new URLSearchParams(location.search).has('loading-screen'))createRoot(document.getElementById('root')!).render(<LoadingScreenSamples/>);else if(new URLSearchParams(location.search).has('login'))createRoot(document.getElementById('root')!).render(<LoginSamples/>);else if(new URLSearchParams(location.search).has('command'))createRoot(document.getElementById('root')!).render(<CommandSamples/>);else if(new URLSearchParams(location.search).has('groups'))createRoot(document.getElementById('root')!).render(<GroupSamples/>);else if(new URLSearchParams(location.search).has('code'))createRoot(document.getElementById('root')!).render(<CodeSamples/>);else if(new URLSearchParams(location.search).has('trace'))createRoot(document.getElementById('root')!).render(<TraceSamples/>);else if(new URLSearchParams(location.search).has('credential'))createRoot(document.getElementById('root')!).render(<CredentialSamples/>);else if(new URLSearchParams(location.search).has('icon-defaults'))createRoot(document.getElementById('root')!).render(<IconDefaultsSamples/>);else if(new URLSearchParams(location.search).has('floating'))createRoot(document.getElementById('root')!).render(<FloatingSamples/>);else if(new URLSearchParams(location.search).has('badge'))createRoot(document.getElementById('root')!).render(<BadgeSamples/>);else if(new URLSearchParams(location.search).has('tree'))createRoot(document.getElementById('root')!).render(<TreeSamples/>);else if(new URLSearchParams(location.search).has('tabs'))createRoot(document.getElementById('root')!).render(<TabsSamples/>);else if(new URLSearchParams(location.search).has('path'))createRoot(document.getElementById('root')!).render(<PathSamples/>);else if(new URLSearchParams(location.search).has('dialog'))createRoot(document.getElementById('root')!).render(<DialogSamples/>);else if(new URLSearchParams(location.search).has('buttons'))createRoot(document.getElementById('root')!).render(<ButtonSamples/>);else if(new URLSearchParams(location.search).has('input'))createRoot(document.getElementById('root')!).render(<InputSamples/>);else if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
         )
         // Discover the actual tree API through its public barrel before converting the caller.
         const treeImports = await readSharedStyleApis(
@@ -742,7 +745,7 @@ test(
           if (version === 'after' && file.endsWith('/OwnedStyles.tsx')) {
             output = output.replace(
               /(<Box\s+label="Dynamic native caller"\s+)sx=\{[^}]+\}/,
-              '$1sx={compiledStyles.dynamic(123)}',
+              '$1sx={compiledStyles.dynamic(123,3)}',
             )
             assert.notEqual(
               output,
@@ -926,7 +929,38 @@ void invalidNativeDelegate;
       // Compare default and hovered controls in both engines at every accepted size.
       const manifest = {
         states: [
-          ...['default', 'focused', 'disabled'].map((mode) => ({
+          ...[
+            'values',
+            'callout-top',
+            'callout-left',
+            'callout-bottom',
+            'callout-center',
+            'setup',
+            'setup-empty',
+            'members',
+            'actions',
+            'build',
+            'lists',
+            'workbench',
+            'credentials',
+          ].map((mode) => ({
+            id: 'app-helper-' + mode,
+            path: '/?app-helper=' + mode,
+            ready: async (page: import('playwright').Page) => {
+              await page
+                .locator('#app-helper-fixtures')
+                .waitFor({ timeout: 5000 })
+              await page.evaluate(() => document.fonts.ready)
+            },
+          })),
+          ...[
+            'default',
+            'focused',
+            'disabled',
+            'shell-name',
+            'shell-next',
+            'shell-wide',
+          ].map((mode) => ({
             id: 'wizard-' + mode,
             path: '/?wizard=' + mode,
             ready: async (page: import('playwright').Page) => {
@@ -1885,8 +1919,33 @@ void invalidNativeDelegate;
           ],
         },
         {
+          name: 'native application helper values',
+          ids: [
+            'app-helper-values',
+            'app-helper-callout-top',
+            'app-helper-callout-left',
+            'app-helper-callout-bottom',
+            'app-helper-callout-center',
+            'app-helper-setup',
+            'app-helper-setup-empty',
+            'app-helper-members',
+            'app-helper-actions',
+            'app-helper-build',
+            'app-helper-lists',
+            'app-helper-workbench',
+            'app-helper-credentials',
+          ],
+        },
+        {
           name: 'native wizard fields',
-          ids: ['wizard-default', 'wizard-focused', 'wizard-disabled'],
+          ids: [
+            'wizard-default',
+            'wizard-focused',
+            'wizard-disabled',
+            'wizard-shell-name',
+            'wizard-shell-next',
+            'wizard-shell-wide',
+          ],
         },
         {
           name: 'native system tiles',

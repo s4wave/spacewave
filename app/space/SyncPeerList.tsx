@@ -48,6 +48,7 @@ const stylexStyles = stylex.create({
 // has synced the Space since this device started, and whether it still runs.
 // Peer IDs show only with the technical details.
 export function SyncPeerList({
+  sx,
   state,
   peers,
   showDetails,
@@ -55,9 +56,9 @@ export function SyncPeerList({
   state: SpaceSharingState
   peers: SOSyncPeer[]
   showDetails: boolean
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
-    <div>
+    <div sx={sx}>
       <h4 sx={[nativeChildSpacingNextNext.s1, stylexStyles.rule1]}>
         Other devices
       </h4>

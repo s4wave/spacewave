@@ -54,6 +54,18 @@ import {
   utilityState as themeUtilityState,
 } from '../../web/style/tokens.stylex.js'
 
+const stylexStyles4 = stylex.create({
+  rule1: {
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+  },
+})
+
+const stylexStyles3 = stylex.create({
+  rule1: { width: '100%', maxWidth: 'var(--container-md)' },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     position: 'relative',
@@ -508,13 +520,10 @@ export function SessionSelector() {
         </p>
 
         {sessions.length > 0 && (
-          <div
-            className={
-              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'w-full max-w-md space-y-2'
-            }
-          >
+          <div sx={stylexStyles3.rule1}>
             {sessions.map((session) => (
               <SessionCard
+                sx={nativeChildSpacing.s2}
                 key={session.sessionIndex}
                 session={session}
                 accountStatus={accountStatuses.get(session.sessionIndex ?? 0)}
@@ -572,13 +581,10 @@ function StateRootList(props: {
   return (
     <div sx={stylexStyles2.rule9}>
       {props.showHeading && <h2 sx={stylexStyles2.rule10}>State roots</h2>}
-      <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-        }
-      >
+      <div>
         {records.map((record) => (
           <SpaceRootCard
+            sx={nativeChildSpacing.s2}
             key={record.aliasId}
             record={record}
             open={record.aliasId === selectedAliasId}
@@ -632,12 +638,14 @@ function SelectorActions(props: {
 }
 
 // SpaceRootCard renders a configured state root and, when open, its accounts.
-function SpaceRootCard(props: {
-  record: SpaceRootAliasRecord
-  open: boolean
-  runtime?: WatchSpaceRootRuntimeResponse | null
-  onOpenChange: (aliasId: string | null) => void
-}) {
+function SpaceRootCard(
+  props: {
+    record: SpaceRootAliasRecord
+    open: boolean
+    runtime?: WatchSpaceRootRuntimeResponse | null
+    onOpenChange: (aliasId: string | null) => void
+  } & { sx?: stylex.StyleXStyles; className?: never },
+) {
   const { record, open, runtime, onOpenChange } = props
   const rootResource = useRootResource()
   const root = rootResource.value
@@ -664,7 +672,7 @@ function SpaceRootCard(props: {
   }, [aliasId, onOpenChange, open, ready])
 
   return (
-    <div sx={stylexStyles2.rule13} data-testid="space-root-card">
+    <div sx={[stylexStyles2.rule13, props.sx]} data-testid="space-root-card">
       <div sx={stylexStyles2.rule14}>
         <button
           type="button"
@@ -758,13 +766,10 @@ function SpaceRootAccounts(props: {
   }
 
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: divide-y */ 'border-foreground/10 divide-foreground/10 divide-y border-t'
-      }
-    >
+    <div sx={stylexStyles4.rule1}>
       {runtimeSessions.map((runtimeSession) => (
         <SpaceRootAccount
+          sx={nativeDividers.t10}
           key={runtimeSession.session?.sessionIndex}
           runtimeSession={runtimeSession}
         />
@@ -774,7 +779,12 @@ function SpaceRootAccounts(props: {
 }
 
 // SpaceRootAccount renders one account and its spaces in a state root.
-function SpaceRootAccount(props: { runtimeSession: SpaceRootRuntimeSession }) {
+function SpaceRootAccount(
+  props: { runtimeSession: SpaceRootRuntimeSession } & {
+    sx?: stylex.StyleXStyles
+    className?: never
+  },
+) {
   const { runtimeSession } = props
   const meta = runtimeSession.metadata
   const provider =
@@ -786,7 +796,7 @@ function SpaceRootAccount(props: { runtimeSession: SpaceRootRuntimeSession }) {
   const spaces = runtimeSession.spaces ?? []
 
   return (
-    <div sx={stylexStyles2.rule25}>
+    <div sx={[stylexStyles2.rule25, props.sx]}>
       <div sx={stylexStyles2.rule26}>
         <div sx={stylexStyles2.rule16}>
           <LuUser sx={stylexStyles.rule1} />
@@ -831,10 +841,12 @@ function SpaceRootAccount(props: { runtimeSession: SpaceRootRuntimeSession }) {
 }
 
 // SessionCard renders a single session entry in the selector list.
-function SessionCard(props: {
-  session: SessionListEntry
-  accountStatus?: ProviderAccountStatus
-}) {
+function SessionCard(
+  props: {
+    session: SessionListEntry
+    accountStatus?: ProviderAccountStatus
+  } & { sx?: stylex.StyleXStyles; className?: never },
+) {
   const selectAccount = useSelectAccount()
   const meta = useSessionMetadata(props.session.sessionIndex ?? null)
   const isCloudProvider = meta?.providerId === 'spacewave'
@@ -866,7 +878,10 @@ function SessionCard(props: {
       data-session-index={props.session.sessionIndex ?? ''}
       onClick={handleSessionSelect}
       onKeyDown={handleSessionSelectKeyDown}
-      sx={[stylexStyles2.rule34, !!isLinked && stylexStyles2.rule35]}
+      sx={[
+        [stylexStyles2.rule34, !!isLinked && stylexStyles2.rule35],
+        props.sx,
+      ]}
     >
       <div sx={stylexStyles2.rule36}>
         <LuUser sx={stylexStyles.rule1} />
@@ -884,3 +899,46 @@ function SessionCard(props: {
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeDividers applies the list border only to its nonfinal physical rows.
+const nativeDividers = stylex.create({
+  t10: {
+    '--tw-divide-y-reverse': { default: null, ':not(:last-child)': 0 },
+    borderBottomStyle: {
+      default: null,
+      ':not(:last-child)': themeUtilityState['--tw-border-style'],
+    },
+    borderTopStyle: {
+      default: null,
+      ':not(:last-child)': themeUtilityState['--tw-border-style'],
+    },
+    borderTopWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * var(--tw-divide-y-reverse))',
+    },
+    borderBottomWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * calc(1 - var(--tw-divide-y-reverse)))',
+    },
+    borderColor: {
+      default: null,
+      ':not(:last-child)':
+        'color-mix(in oklab, var(--color-foreground) 10%, transparent)',
+    },
+  },
+})

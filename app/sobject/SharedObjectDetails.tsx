@@ -21,7 +21,7 @@ import { SharedObjectContext } from '@s4wave/web/contexts/contexts.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import {
   CollapsibleSection,
   collapsibleSectionActionStyles,
@@ -278,12 +278,12 @@ export interface SharedObjectDetailsProps {
   onDeleteClick?: () => void
   onRenameStart?: () => void
   orgIndicator?: ReactNode
-  orgInfoSection?: ReactNode
+  renderOrgInfoSection?: (childSx: stylex.StyleXStyles) => ReactNode
   objectsBadge?: ReactNode
   objectsActions?: ReactNode
   objectsSection?: ReactNode
   settingsSection?: ReactNode
-  dataSection?: ReactNode
+  renderDataSection?: (childSx: stylex.StyleXStyles) => ReactNode
   pluginsSection?: ReactNode
 }
 
@@ -408,12 +408,17 @@ function SharedObjectHeader({
 
 /** SharedObjectSharingSection renders the member list and the add user action. */
 function SharedObjectSharingSection({
+  sx,
   canShare,
   onSharingClick,
   ...section
-}: SectionProps & { canShare: boolean; onSharingClick?: () => void }) {
+}: (SectionProps & { canShare: boolean; onSharingClick?: () => void }) & {
+  sx?: stylex.StyleXStyles
+  className?: never
+}) {
   return (
     <CollapsibleSection
+      sx={sx}
       title="Sharing"
       icon={<LuUsers sx={stylexStyles.rule1} />}
       {...section}
@@ -446,29 +451,31 @@ function SharedObjectSharingSection({
 
 /** SharedObjectDataSection renders the export action and extra data controls. */
 function SharedObjectDataSection({
+  sx,
   onExportClick,
-  dataSection,
+  renderDataSection,
   ...section
-}: SectionProps & { onExportClick?: () => void; dataSection?: ReactNode }) {
+}: (SectionProps & {
+  onExportClick?: () => void
+  renderDataSection?: (childSx: stylex.StyleXStyles) => ReactNode
+}) & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
     <CollapsibleSection
+      sx={sx}
       title="Data"
       icon={<LuDatabase sx={stylexStyles.rule1} />}
       {...section}
     >
-      <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-        }
-      >
+      <div>
         <ActionCard
+          sx={detailsChildren.child}
           icon={<LuDownload sx={stylexStyles.rule2} />}
           label="Export Data"
           description="Download object contents"
           onClick={onExportClick}
           compact={section.compact}
         />
-        {dataSection}
+        {renderDataSection?.(detailsChildren.child)}
       </div>
     </CollapsibleSection>
   )
@@ -476,33 +483,43 @@ function SharedObjectDataSection({
 
 /** SharedObjectIdentifiersSection renders the copyable object identifiers. */
 function SharedObjectIdentifiersSection({
+  sx,
   sharedObjectId,
   blockStoreId,
   peerId,
-  orgInfoSection,
+  renderOrgInfoSection,
   ...section
-}: SectionProps & {
+}: (SectionProps & {
   sharedObjectId: string
   blockStoreId: string
   peerId: string
-  orgInfoSection?: ReactNode
-}) {
+  renderOrgInfoSection?: (childSx: stylex.StyleXStyles) => ReactNode
+}) & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
     <CollapsibleSection
+      sx={sx}
       title="Identifiers"
       icon={<LuCpu sx={stylexStyles.rule1} />}
       {...section}
     >
       <InfoCard compact={section.compact}>
-        <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-          }
-        >
-          <CopyableField label="Object ID" value={sharedObjectId} />
-          <CopyableField label="Block Store" value={blockStoreId} />
-          <CopyableField label="Peer ID" value={peerId} />
-          {orgInfoSection}
+        <div>
+          <CopyableField
+            sx={detailsChildren.child}
+            label="Object ID"
+            value={sharedObjectId}
+          />
+          <CopyableField
+            sx={detailsChildren.child}
+            label="Block Store"
+            value={blockStoreId}
+          />
+          <CopyableField
+            sx={detailsChildren.child}
+            label="Peer ID"
+            value={peerId}
+          />
+          {renderOrgInfoSection?.(detailsChildren.child)}
         </div>
       </InfoCard>
     </CollapsibleSection>
@@ -511,13 +528,17 @@ function SharedObjectIdentifiersSection({
 
 /** SharedObjectDangerSection renders the delete action. */
 function SharedObjectDangerSection({
+  sx,
   onDeleteClick,
   ...section
-}: SectionProps & { onDeleteClick?: () => void }) {
+}: (SectionProps & { onDeleteClick?: () => void }) & {
+  sx?: stylex.StyleXStyles
+  className?: never
+}) {
   const { compact } = section
 
   return (
-    <CollapsibleSection title="Danger Zone" {...section}>
+    <CollapsibleSection sx={sx} title="Danger Zone" {...section}>
       <button
         type="button"
         onClick={onDeleteClick}
@@ -560,12 +581,12 @@ export function SharedObjectDetails({
   onDeleteClick,
   onRenameStart,
   orgIndicator,
-  orgInfoSection,
+  renderOrgInfoSection,
   objectsBadge,
   objectsActions,
   objectsSection,
   settingsSection,
-  dataSection,
+  renderDataSection,
   pluginsSection,
 }: SharedObjectDetailsProps) {
   // Read the panel density and the live object's metadata.
@@ -599,6 +620,9 @@ export function SharedObjectDetails({
     [displayName, bodyMeta],
   )
 
+  // Choose spacing once for every physical section.
+  const sectionSpacing = compact ? nativeChildSpacing.s2 : nativeChildSpacing.s3
+
   return (
     <div ref={containerRef} sx={stylexStyles4.rule18}>
       <SharedObjectHeader
@@ -618,15 +642,10 @@ export function SharedObjectDetails({
           compact ? stylexStyles4.rule20 : stylexStyles4.rule21,
         ]}
       >
-        <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ cn(
-              compact ? 'space-y-2' : 'space-y-3',
-            )
-          }
-        >
+        <div sx={[compact ? false : false]}>
           {objectsSection && (
             <CollapsibleSection
+              sx={sectionSpacing}
               title="Objects"
               icon={<LuBox sx={stylexStyles.rule1} />}
               {...sectionProps('objects')}
@@ -637,6 +656,7 @@ export function SharedObjectDetails({
             </CollapsibleSection>
           )}
           <SharedObjectSharingSection
+            sx={sectionSpacing}
             canShare={canShare}
             onSharingClick={onSharingClick}
             {...sectionProps('sharing')}
@@ -644,6 +664,7 @@ export function SharedObjectDetails({
 
           {settingsSection && (
             <CollapsibleSection
+              sx={sectionSpacing}
               title="Settings"
               icon={<LuSettings sx={stylexStyles.rule1} />}
               {...sectionProps('settings')}
@@ -653,13 +674,15 @@ export function SharedObjectDetails({
           )}
 
           <SharedObjectDataSection
+            sx={sectionSpacing}
             onExportClick={onExportClick}
-            dataSection={dataSection}
+            renderDataSection={renderDataSection}
             {...sectionProps('data')}
           />
 
           {pluginsSection && (
             <CollapsibleSection
+              sx={sectionSpacing}
               title="Plugins"
               icon={<LuPuzzle sx={stylexStyles.rule1} />}
               {...sectionProps('plugins')}
@@ -669,14 +692,16 @@ export function SharedObjectDetails({
           )}
 
           <SharedObjectIdentifiersSection
+            sx={sectionSpacing}
             sharedObjectId={meta?.sharedObjectId ?? 'Unknown'}
             blockStoreId={meta?.blockStoreId ?? 'Unknown'}
             peerId={meta?.peerId ?? 'Unknown'}
-            orgInfoSection={orgInfoSection}
+            renderOrgInfoSection={renderOrgInfoSection}
             {...sectionProps('identifiers')}
           />
 
           <SharedObjectDangerSection
+            sx={sectionSpacing}
             onDeleteClick={onDeleteClick}
             {...sectionProps('danger')}
           />
@@ -685,3 +710,46 @@ export function SharedObjectDetails({
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// detailsChildren preserves spacing across data and identifier content slots.
+const detailsChildren = stylex.create({
+  child: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)':
+        'calc(var(--spacing) * 2 * var(--tw-space-y-reverse))',
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)':
+        'calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))',
+    },
+  },
+})

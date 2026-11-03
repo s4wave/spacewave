@@ -82,25 +82,31 @@ const stylexStyles = stylex.create({
 // OrgSpaceList renders the list of spaces owned by an organization.
 export function OrgSpaceList(props: { orgId: string; spaces: OrgSpaceInfo[] }) {
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1 */ 'space-y-1'
-      }
-    >
+    <div>
       {props.spaces.length === 0 && (
-        <div sx={stylexStyles2.rule1}>
+        <div sx={[nativeChildSpacing.s1, stylexStyles2.rule1]}>
           <LuBox sx={stylexStyles.rule1} />
           <span>No spaces yet</span>
         </div>
       )}
       {props.spaces.map((space) => (
-        <OrgSpaceRow key={space.id} orgId={props.orgId} space={space} />
+        <OrgSpaceRow
+          sx={nativeChildSpacing.s1}
+          key={space.id}
+          orgId={props.orgId}
+          space={space}
+        />
       ))}
     </div>
   )
 }
 
-function OrgSpaceRow(props: { orgId: string; space: OrgSpaceInfo }) {
+function OrgSpaceRow(
+  props: { orgId: string; space: OrgSpaceInfo } & {
+    sx?: stylex.StyleXStyles
+    className?: never
+  },
+) {
   const { orgId, space } = props
   const navigateSession = useSessionNavigate()
 
@@ -109,7 +115,11 @@ function OrgSpaceRow(props: { orgId: string; space: OrgSpaceInfo }) {
   }, [navigateSession, orgId, space.id])
 
   return (
-    <button type="button" onClick={handleSpaceSelect} sx={stylexStyles2.rule2}>
+    <button
+      type="button"
+      onClick={handleSpaceSelect}
+      sx={[stylexStyles2.rule2, props.sx]}
+    >
       <LuBox sx={stylexStyles.rule2} />
       <div sx={stylexStyles2.rule3}>
         <div sx={stylexStyles2.rule4}>{space.displayName || space.id}</div>
@@ -120,3 +130,18 @@ function OrgSpaceRow(props: { orgId: string; space: OrgSpaceInfo }) {
     </button>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s1: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

@@ -10,7 +10,7 @@ import {
 } from '@s4wave/web/images/icons.js'
 
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
@@ -35,6 +35,25 @@ import {
 import { groupMarker } from '../../web/style/relations.stylex.js'
 
 import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles5 = stylex.create({
+  rule1: {
+    height: '100%',
+    flex: 1,
+    borderRadius: '3.40282e38px',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+})
+
+const stylexStyles4 = stylex.create({
+  rule1: { backgroundColor: themeColors['--color-destructive'] },
+  rule2: { backgroundColor: themeColors['--color-yellow-500'] },
+  rule3: { backgroundColor: themeColors['--color-green-500'] },
+})
 
 const stylexStyles3 = stylex.create({
   rule1: {
@@ -659,12 +678,8 @@ function RequestRecoveryForm({
 
   if (requestSent) {
     return (
-      <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4'
-        }
-      >
-        <div sx={stylexStyles3.rule6}>
+      <div>
+        <div sx={[nativeChildSpacingNextNextNext.s4, stylexStyles3.rule6]}>
           <div sx={stylexStyles3.rule7}>
             <LuCircleCheck sx={stylexStyles.rule2} />
           </div>
@@ -677,7 +692,10 @@ function RequestRecoveryForm({
         <button
           type="button"
           onClick={onGoToLogin}
-          sx={[[stylexStyles2.rule1, groupMarker]]}
+          sx={[
+            nativeChildSpacingNextNextNext.s4,
+            [[stylexStyles2.rule1, groupMarker]],
+          ]}
         >
           <span sx={stylexStyles3.rule10}>Back to login</span>
           <LuArrowRight sx={stylexStyles.rule3} />
@@ -687,12 +705,8 @@ function RequestRecoveryForm({
   }
 
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4'
-      }
-    >
-      <div sx={stylexStyles3.rule6}>
+    <div>
+      <div sx={[nativeChildSpacingNextNextNext.s4, stylexStyles3.rule6]}>
         <div sx={stylexStyles3.rule7}>
           <LuKeyRound sx={stylexStyles.rule2} />
         </div>
@@ -702,12 +716,8 @@ function RequestRecoveryForm({
           a password reset link.
         </p>
       </div>
-      <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
-        }
-      >
-        <div>
+      <div sx={nativeChildSpacingNextNextNext.s4}>
+        <div sx={nativeChildSpacingNextNext.s3}>
           <label htmlFor={emailInputId} sx={stylexStyles3.rule11}>
             Email
           </label>
@@ -722,14 +732,25 @@ function RequestRecoveryForm({
           />
         </div>
         {!isDesktop && turnstileSiteKey !== '' && (
-          <Turnstile ref={turnstileRef} siteKey={turnstileSiteKey} />
+          <Turnstile
+            sx={nativeChildSpacingNextNext.s3}
+            ref={turnstileRef}
+            siteKey={turnstileSiteKey}
+          />
         )}
       </div>
-      {error && <p sx={stylexStyles3.rule13}>{error}</p>}
+      {error && (
+        <p sx={[nativeChildSpacingNextNextNext.s4, stylexStyles3.rule13]}>
+          {error}
+        </p>
+      )}
       <button
         type="button"
         onClick={() => void onSubmit()}
-        sx={[[stylexStyles2.rule2, groupMarker]]}
+        sx={[
+          nativeChildSpacingNextNextNext.s4,
+          [[stylexStyles2.rule2, groupMarker]],
+        ]}
         disabled={loading}
       >
         {loading ? (
@@ -741,7 +762,11 @@ function RequestRecoveryForm({
           {loading ? 'Sending recovery link…' : 'Send recovery link'}
         </span>
       </button>
-      <button type="button" onClick={onGoToLogin} sx={stylexStyles3.rule14}>
+      <button
+        type="button"
+        onClick={onGoToLogin}
+        sx={[nativeChildSpacingNextNextNext.s4, stylexStyles3.rule14]}
+      >
         Back to login
       </button>
     </div>
@@ -768,12 +793,8 @@ function VerifyingStep({ loading, error, onGoToLogin }: VerifyingStepProps) {
 
   if (error) {
     return (
-      <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4'
-        }
-      >
-        <div sx={stylexStyles3.rule6}>
+      <div>
+        <div sx={[nativeChildSpacingNextNextNext.s4, stylexStyles3.rule6]}>
           <div sx={stylexStyles3.rule16}>
             <LuKeyRound sx={stylexStyles.rule5} />
           </div>
@@ -786,7 +807,10 @@ function VerifyingStep({ loading, error, onGoToLogin }: VerifyingStepProps) {
         <button
           type="button"
           onClick={onGoToLogin}
-          sx={[[stylexStyles2.rule1, groupMarker]]}
+          sx={[
+            nativeChildSpacingNextNextNext.s4,
+            [[stylexStyles2.rule1, groupMarker]],
+          ]}
         >
           <span sx={stylexStyles3.rule10}>Back to login</span>
           <LuArrowRight sx={stylexStyles.rule3} />
@@ -833,12 +857,8 @@ function PasswordForm({
   )
 
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4'
-      }
-    >
-      <div sx={stylexStyles3.rule6}>
+    <div>
+      <div sx={[nativeChildSpacingNextNextNext.s4, stylexStyles3.rule6]}>
         <div sx={stylexStyles3.rule7}>
           <LuShieldCheck sx={stylexStyles.rule2} />
         </div>
@@ -846,7 +866,7 @@ function PasswordForm({
         <p sx={stylexStyles3.rule18}>Choose a new password for your account.</p>
       </div>
 
-      <div>
+      <div sx={nativeChildSpacingNextNextNext.s4}>
         <div sx={nativeChildSpacingNext.s3}>
           <label htmlFor={usernameInputId} sx={stylexStyles3.rule11}>
             Username
@@ -901,13 +921,20 @@ function PasswordForm({
         )}
       </div>
 
-      {error && <p sx={stylexStyles3.rule13}>{error}</p>}
+      {error && (
+        <p sx={[nativeChildSpacingNextNextNext.s4, stylexStyles3.rule13]}>
+          {error}
+        </p>
+      )}
 
       <button
         type="button"
         onClick={() => void onSubmit()}
         disabled={!canSubmit}
-        sx={[[stylexStyles2.rule2, groupMarker]]}
+        sx={[
+          nativeChildSpacingNextNextNext.s4,
+          [[stylexStyles2.rule2, groupMarker]],
+        ]}
       >
         <LuRefreshCw sx={stylexStyles.rule4} />
         <span sx={stylexStyles3.rule10}>Reset password</span>
@@ -929,7 +956,12 @@ function PasswordStrength({
           ? 2
           : 3
   const labels = ['', 'Weak', 'Fair', 'Strong']
-  const colors = ['', 'bg-destructive', 'bg-yellow-500', 'bg-green-500']
+  const colors: stylex.StyleXStyles[] = [
+    false,
+    stylexStyles4.rule1,
+    stylexStyles4.rule2,
+    stylexStyles4.rule3,
+  ]
 
   if (password.length === 0) return null
 
@@ -939,12 +971,14 @@ function PasswordStrength({
         {[1, 2, 3].map((level) => (
           <div
             key={level}
-            className={
-              /* TODO(stylex): dynamic class or forwarded className */ cn(
-                'h-full flex-1 rounded-full transition-colors',
-                level <= strength ? colors[strength] : 'bg-transparent',
-              )
-            }
+            sx={[
+              [stylexStyles5.rule1],
+              [
+                level <= strength
+                  ? colors[strength]
+                  : passwordStrengthStyles.empty,
+              ],
+            ]}
           />
         ))}
       </div>
@@ -971,12 +1005,8 @@ function ExecutingStep() {
 
 function DoneStep({ onGoToLogin }: { onGoToLogin: () => void }) {
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4'
-      }
-    >
-      <div sx={stylexStyles3.rule23}>
+    <div>
+      <div sx={[nativeChildSpacingNextNextNext.s4, stylexStyles3.rule23]}>
         <div sx={stylexStyles3.rule24}>
           <LuCircleCheck sx={stylexStyles.rule6} />
         </div>
@@ -989,7 +1019,10 @@ function DoneStep({ onGoToLogin }: { onGoToLogin: () => void }) {
       <button
         type="button"
         onClick={onGoToLogin}
-        sx={[[stylexStyles2.rule1, groupMarker]]}
+        sx={[
+          nativeChildSpacingNextNextNext.s4,
+          [[stylexStyles2.rule1, groupMarker]],
+        ]}
       >
         <span sx={stylexStyles3.rule10}>Go to login</span>
         <LuArrowRight sx={stylexStyles.rule3} />
@@ -1035,6 +1068,41 @@ const nativeChildSpacingNext = stylex.create({
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// passwordStrengthStyles leaves unused strength segments transparent.
+const passwordStrengthStyles = stylex.create({
+  empty: { backgroundColor: 'transparent' },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNextNext = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNextNextNext = stylex.create({
+  s4: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
     },
   },
 })
