@@ -1,4 +1,7 @@
-import { useControlStyles } from '@s4wave/web/style/ControlStylesProvider.js'
+import {
+  controlTargetStyles,
+  useControlStyles,
+} from '@s4wave/web/style/ControlStylesProvider.js'
 import { stylexProps } from '@s4wave/web/style/props.js'
 
 import React, { useMemo } from 'react'
@@ -104,7 +107,10 @@ export function ComponentSelector({
 }: ComponentSelectorProps) {
   // Apply the enclosing bar's touch requirements to the actual trigger button.
   const requiredStyles = useControlStyles()
-  const attributes = stylexProps([stylexStyles.rule1, sx], {})
+  const attributes = stylexProps(
+    [stylexStyles.rule1, controlTargetStyles.minimum, sx],
+    {},
+  )
   attributes.className = [attributes.className, requiredStyles]
     .filter(Boolean)
     .join(' ')

@@ -1,3 +1,4 @@
+import { controlTargetStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import * as stylex from '@stylexjs/stylex'
 import {
   layout as themeLayout,
@@ -123,12 +124,16 @@ export function CanvasColorPicker({
           sx={[
             stylexStyles.rule2,
             color === swatch ? stylexStyles.rule3 : stylexStyles.rule4,
+            controlTargetStyles.minimum,
           ]}
           style={{ '--canvas-swatch-color': swatch }}
           onClick={() => onColorChange(swatch)}
         />
       ))}
-      <label sx={stylexStyles.rule5} title="Custom drawing color">
+      <label
+        sx={[stylexStyles.rule5, controlTargetStyles.minimum]}
+        title="Custom drawing color"
+      >
         <span sx={stylexStyles.rule6}>Custom drawing color</span>
         <input
           type="color"

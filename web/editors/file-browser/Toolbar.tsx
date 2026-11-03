@@ -136,7 +136,7 @@ const stylexStyles2 = stylex.create({
 const stylexStyles = stylex.create({
   header: {
     minHeight: {
-      default: null,
+      default: '32px',
       '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
     },
   },

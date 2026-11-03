@@ -1,3 +1,4 @@
+import { controlTargetStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import {
   createContext,
   type DragEvent,
@@ -287,7 +288,11 @@ export function FileList({
       <div sx={stylexStyles.rule1}>
         <button
           type="button"
-          sx={[stylexStyles.rule2, sortKey === 'name' && stylexStyles.rule3]}
+          sx={[
+            stylexStyles.rule2,
+            sortKey === 'name' && stylexStyles.rule3,
+            controlTargetStyles.minimum,
+          ]}
           onClick={() => handleSort('name')}
         >
           <span>Name</span>
@@ -295,7 +300,11 @@ export function FileList({
         </button>
         <button
           type="button"
-          sx={[stylexStyles.rule5, sortKey === 'date' && stylexStyles.rule3]}
+          sx={[
+            stylexStyles.rule5,
+            sortKey === 'date' && stylexStyles.rule3,
+            controlTargetStyles.minimum,
+          ]}
           onClick={() => handleSort('date')}
         >
           <span>Date Modified</span>
@@ -303,7 +312,11 @@ export function FileList({
         </button>
         <button
           type="button"
-          sx={[stylexStyles.rule6, sortKey === 'size' && stylexStyles.rule3]}
+          sx={[
+            stylexStyles.rule6,
+            sortKey === 'size' && stylexStyles.rule3,
+            controlTargetStyles.minimum,
+          ]}
           onClick={() => handleSort('size')}
         >
           {sortKey === 'size' && <SortChevron sx={stylexStyles.rule4} />}

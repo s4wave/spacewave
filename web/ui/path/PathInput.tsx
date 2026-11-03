@@ -1,3 +1,4 @@
+import { controlTargetStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 /* eslint-disable react-doctor/rerender-state-only-in-handlers */
 import {
@@ -322,7 +323,11 @@ export function PathInput({
     return (
       <div
         sx={[
-          [styles.editingBase, mobileTouchTargets && styles.editingTouch],
+          [
+            styles.editingBase,
+            mobileTouchTargets && styles.editingTouch,
+            controlTargetStyles.minimum,
+          ],
           sx,
         ]}
       >
@@ -337,6 +342,7 @@ export function PathInput({
           sx={[
             styles.inputBase,
             mobileTouchTargets ? styles.inputTouch : styles.input,
+            controlTargetStyles.minimum,
           ]}
           spellCheck={false}
           autoComplete="off"
@@ -353,6 +359,7 @@ export function PathInput({
         [
           styles.breadcrumbsBase,
           mobileTouchTargets ? styles.breadcrumbsTouch : styles.breadcrumbs,
+          controlTargetStyles.minimum,
         ],
         sx,
       ]}
@@ -369,6 +376,7 @@ export function PathInput({
           styles.rootBase,
           mobileTouchTargets ? styles.rootTouch : styles.root,
           pathSegments.length === 0 && styles.active,
+          controlTargetStyles.minimum,
         ]}
         aria-label="Navigate to root"
       >
@@ -410,6 +418,7 @@ export function PathInput({
               styles.crumbBase,
               mobileTouchTargets ? styles.crumbTouch : styles.crumb,
               index === pathSegments.length - 1 && styles.active,
+              controlTargetStyles.minimum,
             ]}
             aria-label={`Navigate to ${segment}`}
           >
@@ -422,7 +431,7 @@ export function PathInput({
         type="button"
         aria-label="Edit path"
         onClick={handleEditClick}
-        sx={styles.editTarget}
+        sx={[styles.editTarget, controlTargetStyles.minimum]}
       />
     </div>
   )
