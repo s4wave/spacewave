@@ -1,0 +1,31 @@
+---
+title: "One writer per destination across Core processes"
+---
+stateDiagram-v2
+  s0: No writer
+  s1: checking
+  s2: fetching
+  s3: assembling
+  s4: verifying
+  s5: publishing
+  s6: cleanup
+  s7: release
+  s8: Complete checkout, writer released
+  [*] --> s0
+  s0 --> s1: Acquire
+  s1 --> s2: Check
+  s1 --> s0: Crash
+  s2 --> s0: Crash
+  s2 --> s3: Fetch
+  s3 --> s4: Copy
+  s3 --> s0: Crash
+  s4 --> s0: Crash
+  s4 --> s5: Verify
+  s5 --> s0: Crash
+  s5 --> s6: Publish
+  s6 --> s7: Cleanup
+  s6 --> s8: Crash
+  s7 --> s8: Crash or Release
+  s8 --> s1: Acquire
+  s1 --> s6: Check
+  s1 --> s8: Crash

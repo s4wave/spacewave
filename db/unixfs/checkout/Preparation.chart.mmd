@@ -1,0 +1,34 @@
+---
+title: "One preparation, independent callers"
+---
+stateDiagram-v2
+  s0: idle
+  s1: checking
+  s2: stopping
+  s3: failed
+  s4: fetching
+  s5: assembling
+  s6: verifying
+  s7: publishing
+  s8: ready
+  [*] --> s0
+  s0 --> s1: Start
+  s1 --> s2: Cancel
+  s1 --> s3: Fail
+  s1 --> s4: Advance
+  s2 --> s0: Reap
+  s4 --> s2: Cancel
+  s4 --> s3: Fail
+  s4 --> s5: Advance
+  s3 --> s2: Retire
+  s5 --> s2: Cancel
+  s5 --> s3: Fail
+  s5 --> s6: Advance
+  s6 --> s2: Cancel
+  s6 --> s3: Fail
+  s6 --> s7: Advance
+  s7 --> s2: Cancel
+  s7 --> s3: Fail
+  s7 --> s8: Advance
+  s8 --> s2: Retire
+  s0 --> s8: Start
