@@ -21,7 +21,7 @@ type valType struct {
 	val []byte
 }
 
-// Less implements btree.Item interface
+// Less implements the btree item comparison.
 func (v *valType) Less(than *valType) bool {
 	return valTypeLess(v, than)
 }

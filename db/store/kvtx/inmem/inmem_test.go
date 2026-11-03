@@ -3,6 +3,7 @@ package store_kvtx_inmem
 import (
 	"bytes"
 	"context"
+	"strconv"
 	"testing"
 	"testing/synctest"
 
@@ -135,32 +136,40 @@ func TestIteratorKeepsEntryAcrossCancel(t *testing.T) {
 	}
 }
 
-// TestWriteWaiterCancelReleasesReaders proves a write tx cancelled mid-wait
-// releases its reader-admission block: subsequent readers and writers proceed.
-// A leaked writeWaiting registration would starve them, which synctest detects
-// as a bubble deadlock.
+// TestWriteWaiterCancelReleasesReaders covers cancellation while the writer
+// owns its FIFO turn but waits for existing readers to drain.
 func TestWriteWaiterCancelReleasesReaders(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
-		// Create the in-memory store for the cancelled writer scenario.
+		// Hold a reader so the first writer owns a turn but cannot begin writing.
 		ctx := context.Background()
 		store := NewStore()
-
-		// Hold a reader so a writer must register as waiting.
 		rtx, err := store.NewTransaction(ctx, false)
 		if err != nil {
 			t.Fatal(err)
 		}
+		defer rtx.Discard()
 
-		// A writer whose ctx is already cancelled registers writeWaiting in the
-		// first lock hold, then exits via ctx.Done on the first select.
+		// Cancel the writer only after it is durably waiting on the reader drain.
 		cctx, cancel := context.WithCancel(ctx)
+		cancelErr := make(chan error, 1)
+		go func() {
+			_, err := store.NewTransaction(cctx, true)
+			cancelErr <- err
+		}()
+		synctest.Wait()
+		if !store.WritersWaiting() {
+			t.Fatal("draining writer did not report its registration")
+		}
 		cancel()
-		if _, err := store.NewTransaction(cctx, true); err != context.Canceled {
+		synctest.Wait()
+		if err := <-cancelErr; err != context.Canceled {
 			t.Fatalf("cancelled write tx: got %v, want context.Canceled", err)
 		}
 
-		// The cancelled waiter must have released its block: a new reader is
-		// admitted immediately. Under the leak this blocks forever (deadlock).
+		// A surviving reader may overlap another reader once the writer cancels.
+		if store.WritersWaiting() {
+			t.Fatal("cancelled writer kept its registration")
+		}
 		rtx2, err := store.NewTransaction(ctx, false)
 		if err != nil {
 			t.Fatal(err)
@@ -168,7 +177,7 @@ func TestWriteWaiterCancelReleasesReaders(t *testing.T) {
 		rtx.Discard()
 		rtx2.Discard()
 
-		// A writer must also proceed once all readers are gone.
+		// The cancelled drain waiter also released its FIFO turn for later writers.
 		wtx, err := store.NewTransaction(ctx, true)
 		if err != nil {
 			t.Fatal(err)
@@ -255,12 +264,81 @@ func TestWriteWaiterCancelPreservesPeerBlock(t *testing.T) {
 		default:
 		}
 
-		// Finishing the writer admits the waiting reader.
+		// Queue a realistic writer fanout in known arrival order behind the holder.
+		const peers = 64
+		order := make(chan int, peers+1)
+		finished := make(chan error, peers)
+		for i := range peers {
+			go func() {
+				// Each peer stages a value, then finishes by Commit or Discard.
+				tx, err := store.NewTransaction(ctx, true)
+				if err != nil {
+					finished <- err
+					return
+				}
+				defer tx.Discard()
+				if err := tx.Set(ctx, []byte(strconv.Itoa(i)), []byte("peer")); err != nil {
+					finished <- err
+					return
+				}
+				order <- i
+				if i%2 == 0 {
+					finished <- tx.Commit(ctx)
+				} else {
+					tx.Discard()
+					finished <- nil
+				}
+			}()
+			synctest.Wait()
+		}
+		if !store.WritersWaiting() {
+			t.Fatal("queued writer peers were not visible")
+		}
+
+		// The releasing caller must queue its reacquisition behind every peer.
+		if err := stx.Commit(ctx); err != nil {
+			t.Fatal(err)
+		}
 		stx.Discard()
+		last, err := store.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer last.Discard()
+		order <- peers
+		if store.WritersWaiting() {
+			t.Fatal("admitted peers kept waiting registrations")
+		}
+
+		// Readers stay excluded through the final turn, then regain admission.
+		select {
+		case <-readerTx:
+			t.Fatal("reader entered before the queued writer turns finished")
+		default:
+		}
+		last.Discard()
 		synctest.Wait()
+		for range peers {
+			if err := <-finished; err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		// All queued writers precede the reacquirer without relying on elapsed time.
+		for want := range peers + 1 {
+			if got := <-order; got != want {
+				t.Fatalf("writer admission[%d]=%d, want FIFO order", want, got)
+			}
+		}
 		rtx2 := <-readerTx
 		if rtx2 == nil {
 			t.Fatal("reader failed to acquire after writer finished")
+		}
+
+		// The final reader sees only the half of peer writes that committed.
+		size, err := rtx2.Size(ctx)
+		if err != nil || size != peers/2 {
+			t.Fatalf("committed peer keys=%d, error=%v, want %d", size, err, peers/2)
 		}
 		rtx2.Discard()
 	})

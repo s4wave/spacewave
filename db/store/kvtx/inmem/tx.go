@@ -15,6 +15,8 @@ type Tx struct {
 	s *Store
 	// write permits staging changes and excludes other transactions.
 	write bool
+	// releaseWriter relinquishes the writer's FIFO turn when the transaction ends.
+	releaseWriter func()
 
 	// discarded prevents Commit or Discard from releasing admission twice.
 	discarded atomic.Bool
@@ -25,11 +27,12 @@ type Tx struct {
 }
 
 // newTx constructs a new inmem transaction.
-func newTx(s *Store, write bool) *Tx {
+func newTx(s *Store, write bool, releaseWriter func()) *Tx {
 	// Retain the admission granted by the store.
 	tx := &Tx{
-		s:     s,
-		write: write,
+		s:             s,
+		write:         write,
+		releaseWriter: releaseWriter,
 	}
 
 	// Only a writer needs overlays for tentative changes.
@@ -272,6 +275,9 @@ func (t *Tx) Commit(ctx context.Context) error {
 		t.s.writing = false
 		broadcast()
 	})
+
+	// Hand off the writer turn only after publishing the tree and admission.
+	t.releaseWriter()
 	return nil
 }
 
@@ -297,6 +303,11 @@ func (t *Tx) Discard() {
 		}
 		broadcast()
 	})
+
+	// Writers hand their turn to the next queued caller after releasing admission.
+	if t.releaseWriter != nil {
+		t.releaseWriter()
+	}
 }
 
 // _ checks the transaction interface.

@@ -4,26 +4,31 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/util/broadcast"
+	"github.com/aperturerobotics/util/csync"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/tidwall/btree"
 )
 
-// Store is a in-memory key-value store.
-//
-// Uses a K/V map.
+// Store is an in-memory transactional key-value store.
+// A writer's FIFO turn excludes other writers through Commit or Discard.
+// Its admission waits for existing readers and blocks later readers; no
+// broadcast lock is held while waiting for a turn or for readers to drain.
 type Store struct {
-	// tree is the btree containing the store
+	// tree holds committed values under transaction admission.
 	tree *btree.BTreeG[*valType]
 
-	// bcast guards below fields
+	// writers hands each writer a FIFO turn held until Commit or Discard.
+	writers csync.Mutex
+
+	// bcast guards the admission fields below.
 	bcast broadcast.Broadcast
-	// nreaders is the number of active readers
+	// nreaders counts admitted read transactions.
 	nreaders int
-	// writing indicates there's a write tx active
+	// writing reports an admitted write transaction.
 	writing bool
-	// writeWaiting is the number of write tx waiting to acquire.
-	// Readers are held while this is non-zero so waiting writers are not
-	// starved; each waiter releases its own registration on acquire or cancel.
+	// writeWaiting counts queued writers and the turn holder draining readers.
+	// It excludes an admitted writer; each caller unregisters once on admission
+	// or cancellation, keeping later readers behind waiting writers.
 	writeWaiting int
 }
 
@@ -36,79 +41,83 @@ func NewStore() *Store {
 // Indicate write if the transaction will not be read-only.
 // Always call Discard() after you are done with the transaction.
 func (s *Store) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
-	// Prepare the transaction result for the store lock.
+	// A writer owns a FIFO turn before it waits for readers to drain.
+	if write {
+		return s.newWriteTransaction(ctx)
+	}
+
+	// Readers overlap while no writer holds or is waiting for admission.
 	var tx kvtx.Tx
-
-	// waiting indicates this call registered as a waiting writer and still
-	// owns a writeWaiting increment it must release on any early exit.
-	var waiting bool
-	var waitCh <-chan struct{}
-	s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-		if write {
-			if s.nreaders != 0 || s.writing {
-				s.writeWaiting++
-				waiting = true
-				waitCh = getWaitCh()
-			} else {
-				s.writing = true
-				tx = newTx(s, true)
-			}
-		} else if !s.writing && s.writeWaiting == 0 {
-			s.nreaders++
-			tx = newTx(s, false)
-		} else {
-			waitCh = getWaitCh()
+	err := s.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
+		// A waiting writer retains priority over later readers.
+		if s.writing || s.writeWaiting != 0 {
+			return false, nil
 		}
+
+		// Admit another reader to the shared committed tree.
+		s.nreaders++
+		tx = newTx(s, false, nil)
+		return true, nil
 	})
+	return tx, err
+}
 
-	// Return the transaction when the store granted immediate access.
-	if tx != nil {
-		return tx, nil
+// newWriteTransaction retains its FIFO turn through publication or discard.
+// Registrations block new readers while earlier readers drain; cancellation
+// drops exactly this caller's registration and any turn it already acquired.
+func (s *Store) newWriteTransaction(ctx context.Context) (kvtx.Tx, error) {
+	// Register before entering the turnstile so fresh readers cannot bypass us.
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		s.writeWaiting++
+	})
+	registered := true
+	var releaseTurn func()
+	defer func() {
+		// A failed admission owns no transaction to release these resources.
+		if registered {
+			s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+				s.writeWaiting--
+				broadcast()
+			})
+		}
+		if releaseTurn != nil {
+			releaseTurn()
+		}
+	}()
+
+	// Existing queued writers receive their turns before this caller can retry.
+	var err error
+	releaseTurn, err = s.writers.Lock(ctx)
+	if err != nil {
+		return nil, err
 	}
 
-	// Wait for store access while retaining the waiting writer registration.
-	for {
-		// Wait for a store change or release the writer registration on cancellation.
-		select {
-		case <-ctx.Done():
-			// A cancelled write waiter must release its admission block on
-			// readers. writeWaiting gates reader admission, so leaking this
-			// registration permanently starves every subsequent reader on the
-			// shared store (the tx is nil, so the caller's Discard never runs).
-			if waiting {
-				s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-					s.writeWaiting--
-					broadcast()
-				})
-			}
-			return nil, context.Canceled
-		case <-waitCh:
+	// Only the turn holder waits on the reader drain, then transfers its turn.
+	var tx kvtx.Tx
+	err = s.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
+		// Keep the FIFO turn while the earlier readers finish.
+		if s.nreaders != 0 || s.writing {
+			return false, nil
 		}
 
-		// Acquire the transaction if the store now permits access.
-		s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			if write {
-				if s.nreaders == 0 && !s.writing {
-					s.writeWaiting--
-					waiting = false
-					s.writing = true
-					tx = newTx(s, true)
-				} else {
-					waitCh = getWaitCh()
-				}
-			} else if !s.writing && s.writeWaiting == 0 {
-				s.nreaders++
-				tx = newTx(s, false)
-			} else {
-				waitCh = getWaitCh()
-			}
-		})
+		// Transfer registration and turn ownership into the admitted transaction.
+		s.writeWaiting--
+		registered = false
+		s.writing = true
+		tx = newTx(s, true, releaseTurn)
+		releaseTurn = nil
+		return true, nil
+	})
+	return tx, err
+}
 
-		// Return the transaction once store access is granted.
-		if tx != nil {
-			return tx, nil
-		}
-	}
+// WritersWaiting reports queued writers, including the turn draining readers.
+func (s *Store) WritersWaiting() bool {
+	var waiting bool
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		waiting = s.writeWaiting != 0
+	})
+	return waiting
 }
 
 // Execute executes the given store.
@@ -123,4 +132,7 @@ func (s *Store) Execute(ctx context.Context) error {
 func (s *Store) SupportsAtomicCommit() bool { return true }
 
 // _ is a type assertion
-var _ kvtx.Store = (*Store)(nil)
+var (
+	_ kvtx.Store            = (*Store)(nil)
+	_ kvtx.WriterQueueStore = (*Store)(nil)
+)
