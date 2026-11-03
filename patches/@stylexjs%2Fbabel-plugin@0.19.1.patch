@@ -1,5 +1,5 @@
 diff --git a/lib/index.browser.js b/lib/index.browser.js
-index cc164deb2a944dfdaca233a630fa3687e37f7d43..92d470d7d239aefd01fbf808878fd3b7b5b0ba80 100644
+index cc164deb2a944dfdaca233a630fa3687e37f7d43..57a45ebe011652adba2cbbeb25fd09e9eee753c9 100644
 --- a/lib/index.browser.js
 +++ b/lib/index.browser.js
 @@ -5,4 +5,5 @@ import parser from 'postcss-value-parser';
@@ -91,30 +91,42 @@ index cc164deb2a944dfdaca233a630fa3687e37f7d43..92d470d7d239aefd01fbf808878fd3b7
      bound
    };
  }
-@@ -10818,7 +10841,7 @@ function processStylexRules(rules, config) {
-   let lastKPri = -1;
+@@ -10815,10 +10838,18 @@ function processStylexRules(rules, config) {
+       return rule1.localeCompare(rule2);
+     }
+   });
+-  let lastKPri = -1;
++  // Every separately emitted module must identify the same property and width bucket.
++  const encodeLayerPart = value => value.replace(/[^a-zA-Z0-9-]/g, character => '_' + character.charCodeAt(0).toString(16).padStart(4, '0'));
++  const ruleLayer = ([, styleObj, priority]) => {
++    const width = getWidthSortKey(styleObj.ltr);
++    const parts = [String(priority).replace('.', '_'), encodeLayerPart(declaredPropertyName(styleObj.ltr))];
++    if (width) parts.push(encodeLayerPart(width.context), width.bound.kind, encodeLayerPart(String(width.bound.value)));
++    return 'priority' + parts.join('__');
++  };
++  let lastKPri = null;
    const grouped = sortedRules.reduce((acc, rule) => {
      const [key, styleObj, priority] = rule;
 -    const priorityLevel = Math.floor(priority / 1000);
-+    const priorityLevel = useLayers ? priority : Math.floor(priority / 1000);
++    const priorityLevel = useLayers ? ruleLayer(rule) : Math.floor(priority / 1000);
      if (priorityLevel === lastKPri) {
        acc[acc.length - 1].push([key, styleObj, priority]);
        return acc;
-@@ -10828,7 +10851,11 @@ function processStylexRules(rules, config) {
+@@ -10828,7 +10859,11 @@ function processStylexRules(rules, config) {
      return acc;
    }, []);
    const logicalFloatVars = getLogicalFloatVars(sortedRules);
 -  const layerName = index => layerPrefix ? `${layerPrefix}.priority${index + 1}` : `priority${index + 1}`;
-+  // Separate bundles must identify the same compiler priority with the same layer.
++  // The document owner declares these stable buckets in compiler order across assets.
 +  const layerName = index => {
-+    const priority = String(grouped[index][0][2]).replace('.', '_');
-+    return layerPrefix ? `${layerPrefix}.priority${priority}` : `priority${priority}`;
++    const name = ruleLayer(grouped[index][0]);
++    return layerPrefix ? `${layerPrefix}.${name}` : name;
 +  };
    const header = useLayers ? '\n@layer ' + [...layersBefore, ...grouped.map((_, index) => layerName(index)), ...layersAfter].join(', ') + ';\n' : '';
    const collectedCSS = grouped.map((group, index) => {
      const pri = group[0][2];
 diff --git a/lib/index.js b/lib/index.js
-index f22b4c7bd8d084b6f5c624c10a986d8005a08d00..80e7e02f2fad1c1209843d351b507a8ec37d8b11 100644
+index f22b4c7bd8d084b6f5c624c10a986d8005a08d00..6c089bd669ac452743733727555df86a4e0984a5 100644
 --- a/lib/index.js
 +++ b/lib/index.js
 @@ -9409,7 +9409,32 @@ function styleXTransform() {
@@ -200,24 +212,36 @@ index f22b4c7bd8d084b6f5c624c10a986d8005a08d00..80e7e02f2fad1c1209843d351b507a8e
      bound
    };
  }
-@@ -9699,7 +9721,7 @@ function processStylexRules(rules, config) {
-   let lastKPri = -1;
+@@ -9696,10 +9718,18 @@ function processStylexRules(rules, config) {
+       return rule1.localeCompare(rule2);
+     }
+   });
+-  let lastKPri = -1;
++  // Every separately emitted module must identify the same property and width bucket.
++  const encodeLayerPart = value => value.replace(/[^a-zA-Z0-9-]/g, character => '_' + character.charCodeAt(0).toString(16).padStart(4, '0'));
++  const ruleLayer = ([, styleObj, priority]) => {
++    const width = getWidthSortKey(styleObj.ltr);
++    const parts = [String(priority).replace('.', '_'), encodeLayerPart(declaredPropertyName(styleObj.ltr))];
++    if (width) parts.push(encodeLayerPart(width.context), width.bound.kind, encodeLayerPart(String(width.bound.value)));
++    return 'priority' + parts.join('__');
++  };
++  let lastKPri = null;
    const grouped = sortedRules.reduce((acc, rule) => {
      const [key, styleObj, priority] = rule;
 -    const priorityLevel = Math.floor(priority / 1000);
-+    const priorityLevel = useLayers ? priority : Math.floor(priority / 1000);
++    const priorityLevel = useLayers ? ruleLayer(rule) : Math.floor(priority / 1000);
      if (priorityLevel === lastKPri) {
        acc[acc.length - 1].push([key, styleObj, priority]);
        return acc;
-@@ -9709,7 +9731,11 @@ function processStylexRules(rules, config) {
+@@ -9709,7 +9739,11 @@ function processStylexRules(rules, config) {
      return acc;
    }, []);
    const logicalFloatVars = getLogicalFloatVars(sortedRules);
 -  const layerName = index => layerPrefix ? `${layerPrefix}.priority${index + 1}` : `priority${index + 1}`;
-+  // Separate bundles must identify the same compiler priority with the same layer.
++  // The document owner declares these stable buckets in compiler order across assets.
 +  const layerName = index => {
-+    const priority = String(grouped[index][0][2]).replace('.', '_');
-+    return layerPrefix ? `${layerPrefix}.priority${priority}` : `priority${priority}`;
++    const name = ruleLayer(grouped[index][0]);
++    return layerPrefix ? `${layerPrefix}.${name}` : name;
 +  };
    const header = useLayers ? '\n@layer ' + [...layersBefore, ...grouped.map((_, index) => layerName(index)), ...layersAfter].join(', ') + ';\n' : '';
    const collectedCSS = grouped.map((group, index) => {

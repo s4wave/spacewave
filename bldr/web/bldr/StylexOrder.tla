@@ -3,8 +3,12 @@ EXTENDS Naturals, Integers, Sequences, FiniteSets
 
 CONSTANTS StablePriorities, SortedOrder
 
-Sheets == {"shared", "plugin"}
-Priority == [shared |-> 4000, plugin |-> 1000]
+Sheets == {"shared", "plugin", "small", "large", "duplicate"}
+\* Integers represent the lexicographic compiler bucket order, not numeric
+\* priorities alone. Small and large share a compiler priority; duplicate is
+\* independently emitted CSS for the exact same smaller-breakpoint bucket.
+Priority == [shared |-> 4000, plugin |-> 1000,
+             small |-> 430032, large |-> 430042, duplicate |-> 430032]
 Layer(sheet) == IF StablePriorities THEN Priority[sheet] ELSE 1
 
 VARIABLES loaded, arrivals, known, order
@@ -15,12 +19,12 @@ Init == /\ loaded = {}
         /\ known = {}
         /\ order = <<>>
 
+RECURSIVE Ordered(_)
 Ordered(priorities) ==
     IF priorities = {} THEN <<>>
-    ELSE IF priorities = {1} THEN <<1>>
-    ELSE IF priorities = {1000} THEN <<1000>>
-    ELSE IF priorities = {4000} THEN <<4000>>
-    ELSE <<1000, 4000>>
+    ELSE LET first == CHOOSE value \in priorities :
+                          \A other \in priorities : value <= other
+         IN <<first>> \o Ordered(priorities \ {first})
 
 Load(sheet) ==
     /\ sheet \in Sheets \ loaded
@@ -42,13 +46,17 @@ SharedWins ==
     ELSE Index(Layer("shared")) > Index(Layer("plugin"))
 
 TypeOK == /\ loaded \subseteq Sheets
-          /\ known \subseteq {1, 1000, 4000}
+          /\ known \subseteq {1, 1000, 4000, 430032, 430042}
           /\ arrivals \in Seq(Sheets)
-          /\ order \in Seq({1, 1000, 4000})
+          /\ order \in Seq({1, 1000, 4000, 430032, 430042})
 
 \* WebView reveals after stylesheet load handling, which registers the order
 \* in the same browser task. No paint observes an intermediate ordering.
-PropertySpecificity == loaded = Sheets => SharedWins
+LargerBreakpointWins ==
+    IF Layer("large") = Layer("small") THEN FALSE
+    ELSE Index(Layer("large")) > Index(Layer("small"))
+
+PropertySpecificity == loaded = Sheets => SharedWins /\ LargerBreakpointWins
 
 Spec == Init /\ [][Next]_vars
 =============================================================================

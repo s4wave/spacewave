@@ -9,7 +9,7 @@ import {
 // collectPriorities handles nested layer names produced by CSS minification.
 function collectPriorities(
   container: Container,
-  priorities: Set<number>,
+  priorities: Set<string>,
   prefix = '',
 ): void {
   container.each((node) => {
@@ -21,7 +21,7 @@ function collectPriorities(
       for (const name of rule.params.split(',')) {
         const qualified = prefix + name.trim()
         const priority = stylexPriority(qualified)
-        if (priority !== undefined) priorities.add(priority)
+        if (priority !== undefined) priorities.add(qualified)
       }
       if (rule.nodes) nested += `${rule.params.trim()}.`
     }
@@ -31,7 +31,7 @@ function collectPriorities(
 
 /** readStylexOrder collects one initial order while retaining at most one CSS syntax tree. */
 export function readStylexOrder(files: Iterable<string>): string {
-  const priorities = new Set<number>()
+  const priorities = new Set<string>()
   for (const file of files)
     collectPriorities(
       postcss.parse(readFileSync(file, 'utf8'), { from: file }),
