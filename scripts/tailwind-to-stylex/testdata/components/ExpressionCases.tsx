@@ -57,6 +57,12 @@ export function ExpressionCases() {
       <span className={combine(rowClasses, recipe({ tone: null }))}>
         Inherit
       </span>
+      <div className="group/code" data-numbered>
+        <span className={"group-data-[numbered]/code:before:content-['#'] group-data-[numbered]/code:before:select-none"}>
+          Related pseudo-element
+        </span>
+        <span className={"after:content-['−']"}>Unicode removal marker</span>
+      </div>
       {[false, true].map((selected) => (
         <button
           type="button"

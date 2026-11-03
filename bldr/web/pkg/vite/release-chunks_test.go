@@ -251,6 +251,7 @@ func checkSharedButtonBrowser(ctx context.Context, root string, client bldr_vite
 		{WebPkgId: "react", WebPkgRoot: filepath.Join(root, "node_modules/react"), Imports: []string{"index.js", "jsx-runtime.js"}},
 		{WebPkgId: "react-dom", WebPkgRoot: filepath.Join(root, "node_modules/react-dom"), Imports: []string{"index.js", "client.js"}},
 		{WebPkgId: "@stylexjs/stylex", WebPkgRoot: filepath.Join(root, "node_modules/@stylexjs/stylex"), Imports: []string{"lib/es/stylex.mjs"}},
+		{WebPkgId: "cmdk", WebPkgRoot: filepath.Join(root, "node_modules/cmdk"), Imports: []string{"dist/index.mjs"}},
 		{WebPkgId: "@s4wave/web", WebPkgRoot: filepath.Join(root, "web"), Imports: []string{"ui/button.tsx", "images/icons.ts", "style/button-icons.stylex.ts"}},
 	}
 	_, _, entries, err := BuildWebPkgsVite(ctx, logrus.NewEntry(logrus.New()), root, refs, packageOut, "/b/pkg/", true, true, false, client, filepath.Join(directory, "cache"))
@@ -267,14 +268,14 @@ func checkSharedButtonBrowser(ctx context.Context, root string, client bldr_vite
 	if err := os.MkdirAll(appRoot, 0o755); err != nil {
 		return err
 	}
-	source := `import React from 'react';import{createRoot}from'react-dom/client';import * as stylex from '@stylexjs/stylex';import{Button}from'@s4wave/web/ui/button.js';import{LuPlus,IconContext}from'@s4wave/web/images/icons.js';import{buttonMarker}from'@s4wave/web/style/button-icons.stylex.js';const styles=stylex.create({width:(minWidth:number)=>({minWidth}),consumer:{paddingTop:{default:0,[stylex.when.ancestor(':is(*)',buttonMarker)]:13}}});createRoot(document.getElementById('target')).render(<IconContext.Provider value={{color:'rgb(17, 34, 51)'}}><Button id="native-button" sx={styles.width(123)} style={{'--native-button-test':'retained'}}><LuPlus/><span id="consumer-marker" sx={styles.consumer}>Native bundle action</span></Button></IconContext.Provider>);`
+	source := `import React from 'react';import{createRoot}from'react-dom/client';import * as stylex from '@stylexjs/stylex';import{Button}from'@s4wave/web/ui/button.js';import{Command}from'cmdk';import{LuPlus,IconContext}from'@s4wave/web/images/icons.js';import{buttonMarker}from'@s4wave/web/style/button-icons.stylex.js';const styles=stylex.create({heading:{paddingTop:'17px',color:'rgb(12, 34, 56)'},sizer:{display:'grid'},width:(minWidth:number)=>({minWidth}),consumer:{paddingTop:{default:0,[stylex.when.ancestor(':is(*)',buttonMarker)]:13}}});createRoot(document.getElementById('target')).render(<IconContext.Provider value={{color:'rgb(17, 34, 51)'}}><Button id="native-button" sx={styles.width(123)} style={{'--native-button-test':'retained'}}><LuPlus/><span id="consumer-marker" sx={styles.consumer}>Native bundle action</span></Button><Command label="Native commands"><Command.Input/><Command.List sizerProps={stylex.props(styles.sizer)}><Command.Group heading="Native group" headingProps={stylex.props(styles.heading)}><Command.Item value="native">Native command</Command.Item></Command.Group></Command.List></Command></IconContext.Provider>);`
 	if err := os.WriteFile(filepath.Join(appRoot, "App.tsx"), []byte(source), 0o644); err != nil {
 		return err
 	}
 
 	// Compile the consumer with the shared package kept external.
 	appOut := filepath.Join(directory, "consumer")
-	response, err := client.BuildWebPkg(ctx, &bldr_vite.BuildWebPkgRequest{PkgId: "native-button-consumer", PkgRoot: appRoot, PackageRoots: map[string]string{"@s4wave/web": filepath.Join(root, "web")}, Imports: []string{"App.tsx"}, ExternalPkgs: []string{"react", "react-dom", "@stylexjs/stylex", "@s4wave/web"}, OutDir: appOut, WebPkgBasePath: "/b/pkg/", IsRelease: true})
+	response, err := client.BuildWebPkg(ctx, &bldr_vite.BuildWebPkgRequest{PkgId: "native-button-consumer", PkgRoot: appRoot, PackageRoots: map[string]string{"@s4wave/web": filepath.Join(root, "web")}, Imports: []string{"App.tsx"}, ExternalPkgs: []string{"react", "react-dom", "cmdk", "@stylexjs/stylex", "@s4wave/web"}, OutDir: appOut, WebPkgBasePath: "/b/pkg/", IsRelease: true})
 	if err != nil {
 		return err
 	}

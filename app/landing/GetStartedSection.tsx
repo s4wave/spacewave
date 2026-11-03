@@ -1,4 +1,5 @@
 import React, { useCallback, useSyncExternalStore } from 'react'
+import * as stylex from '@stylexjs/stylex'
 
 import type { SessionListEntry } from '@s4wave/core/session/session.pb.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
@@ -18,6 +19,7 @@ interface GetStartedSectionProps {
 }
 
 const shortHeightQuery = '(max-height: 580px)'
+const styles = stylex.create({ launcher: { position: 'relative', zIndex: 10 } })
 
 function subscribeShortHeight(onChange: () => void) {
   const query = window.matchMedia(shortHeightQuery)
@@ -68,7 +70,7 @@ export function GetStartedSection({
         <NavigationLinks />
 
         <div className="tall:flex-initial short:flex-none flex min-h-0 w-full max-w-2xl flex-1 flex-col gap-4 px-4 text-sm @lg:gap-6 @lg:px-8">
-          <GetStarted className="relative z-10" sessions={sessions} />
+          <GetStarted sx={styles.launcher} sessions={sessions} />
 
           {/* Description Section */}
           <div className="text-foreground-alt text-center">

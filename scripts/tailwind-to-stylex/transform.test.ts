@@ -30,6 +30,7 @@ import { writeTraceFixture } from './trace-fixture.js'
 import { writeTreeFixture } from './tree-fixture.js'
 import { writeGroupFixture } from './group-fixture.js'
 import { writeCodeFixture } from './code-fixture.js'
+import { writeCommandFixture } from './command-fixture.js'
 import { writeCredentialFixture } from './credential-fixture.js'
 import { writeBadgeFixture } from './badge-fixture.js'
 import { writeFloatingFixture } from './floating-fixture.js'
@@ -641,12 +642,14 @@ test(
         await writeInputFixture(root, version)
         await writeButtonFixture(root, version)
         await writeDialogFixture(root, version)
+        await writeCommandFixture(root, version)
         await writePathFixture(root, version)
         await writeTabsFixture(root, version)
         await writeIconDefaultsFixture(root, version)
         main = "import{IconDefaultsSamples}from'./IconDefaultsSamples';" + main
         main = "import{FloatingSamples}from'./FloatingSamples';" + main
         main = "import{GroupSamples}from'./GroupSamples';" + main
+        main = "import{CommandSamples}from'./CommandSamples';" + main
         main = "import{CodeSamples}from'./CodeSamples';" + main
         main = "import{CredentialSamples}from'./CredentialSamples';" + main
         main = "import{BadgeSamples}from'./BadgeSamples';" + main
@@ -658,7 +661,7 @@ test(
         main = "import{SheetSamples}from'./SheetSamples';" + main
         main = main.replace(
           "createRoot(document.getElementById('root')!).render",
-          "if(new URLSearchParams(location.search).has('groups'))createRoot(document.getElementById('root')!).render(<GroupSamples/>);else if(new URLSearchParams(location.search).has('code'))createRoot(document.getElementById('root')!).render(<CodeSamples/>);else if(new URLSearchParams(location.search).has('trace'))createRoot(document.getElementById('root')!).render(<TraceSamples/>);else if(new URLSearchParams(location.search).has('credential'))createRoot(document.getElementById('root')!).render(<CredentialSamples/>);else if(new URLSearchParams(location.search).has('icon-defaults'))createRoot(document.getElementById('root')!).render(<IconDefaultsSamples/>);else if(new URLSearchParams(location.search).has('floating'))createRoot(document.getElementById('root')!).render(<FloatingSamples/>);else if(new URLSearchParams(location.search).has('badge'))createRoot(document.getElementById('root')!).render(<BadgeSamples/>);else if(new URLSearchParams(location.search).has('tree'))createRoot(document.getElementById('root')!).render(<TreeSamples/>);else if(new URLSearchParams(location.search).has('tabs'))createRoot(document.getElementById('root')!).render(<TabsSamples/>);else if(new URLSearchParams(location.search).has('path'))createRoot(document.getElementById('root')!).render(<PathSamples/>);else if(new URLSearchParams(location.search).has('dialog'))createRoot(document.getElementById('root')!).render(<DialogSamples/>);else if(new URLSearchParams(location.search).has('buttons'))createRoot(document.getElementById('root')!).render(<ButtonSamples/>);else if(new URLSearchParams(location.search).has('input'))createRoot(document.getElementById('root')!).render(<InputSamples/>);else if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
+          "if(new URLSearchParams(location.search).has('command'))createRoot(document.getElementById('root')!).render(<CommandSamples/>);else if(new URLSearchParams(location.search).has('groups'))createRoot(document.getElementById('root')!).render(<GroupSamples/>);else if(new URLSearchParams(location.search).has('code'))createRoot(document.getElementById('root')!).render(<CodeSamples/>);else if(new URLSearchParams(location.search).has('trace'))createRoot(document.getElementById('root')!).render(<TraceSamples/>);else if(new URLSearchParams(location.search).has('credential'))createRoot(document.getElementById('root')!).render(<CredentialSamples/>);else if(new URLSearchParams(location.search).has('icon-defaults'))createRoot(document.getElementById('root')!).render(<IconDefaultsSamples/>);else if(new URLSearchParams(location.search).has('floating'))createRoot(document.getElementById('root')!).render(<FloatingSamples/>);else if(new URLSearchParams(location.search).has('badge'))createRoot(document.getElementById('root')!).render(<BadgeSamples/>);else if(new URLSearchParams(location.search).has('tree'))createRoot(document.getElementById('root')!).render(<TreeSamples/>);else if(new URLSearchParams(location.search).has('tabs'))createRoot(document.getElementById('root')!).render(<TabsSamples/>);else if(new URLSearchParams(location.search).has('path'))createRoot(document.getElementById('root')!).render(<PathSamples/>);else if(new URLSearchParams(location.search).has('dialog'))createRoot(document.getElementById('root')!).render(<DialogSamples/>);else if(new URLSearchParams(location.search).has('buttons'))createRoot(document.getElementById('root')!).render(<ButtonSamples/>);else if(new URLSearchParams(location.search).has('input'))createRoot(document.getElementById('root')!).render(<InputSamples/>);else if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
         )
         // Discover the actual tree API through its public barrel before converting the caller.
         const treeImports = await readSharedStyleApis(
@@ -986,6 +989,68 @@ void invalidNativeDelegate;
                   })
                   .first()
                   .hover({ timeout: 5000 })
+            },
+          })),
+          ...[
+            'default',
+            'filtered',
+            'keyboard',
+            'dialog-default',
+            'dialog-palette',
+          ].map((mode) => ({
+            id: `command-${mode}`,
+            path: `/?command=${mode}`,
+            ready: async (page: import('playwright').Page) => {
+              await page.locator('#command-fixtures').waitFor()
+              await page.evaluate(() => document.fonts.ready)
+              if (!mode.startsWith('dialog')) {
+                const caller = await page
+                  .locator('[cmdk-root]')
+                  .first()
+                  .evaluate((element) => {
+                    const style = getComputedStyle(element)
+                    return {
+                      width: style.minWidth,
+                      variable: style.getPropertyValue('--command-caller'),
+                    }
+                  })
+                assert.deepEqual(caller, {
+                  width: '160px',
+                  variable: 'retained',
+                })
+                assert.equal(
+                  await page
+                    .locator('[cmdk-root]')
+                    .nth(3)
+                    .locator('[cmdk-list-sizer]')
+                    .evaluate((element) => getComputedStyle(element).display),
+                  'grid',
+                )
+              }
+            },
+            setup: async (page: import('playwright').Page) => {
+              // Drive the actual command store, including disabled-item keyboard skipping.
+              const input = page.getByPlaceholder('Search commands').first()
+              if (mode === 'filtered') {
+                await input.fill('not a command')
+                await page
+                  .getByText('No matches', { exact: true })
+                  .first()
+                  .waitFor()
+              }
+              if (mode === 'keyboard') {
+                await input.focus()
+                await input.press('ArrowDown')
+                await input.press('End')
+                assert.equal(
+                  await page
+                    .locator('[cmdk-root]')
+                    .first()
+                    .locator('[cmdk-item][data-selected="true"]')
+                    .textContent(),
+                  'Last action',
+                )
+              }
             },
           })),
           ...['default', 'hovered', 'focused', 'reduced'].map((mode) => ({
@@ -1438,6 +1503,16 @@ void invalidNativeDelegate;
         {
           name: 'button groups',
           ids: ['groups-default', 'groups-focused'],
+        },
+        {
+          name: 'command controls',
+          ids: [
+            'command-default',
+            'command-filtered',
+            'command-keyboard',
+            'command-dialog-default',
+            'command-dialog-palette',
+          ],
         },
         {
           name: 'code blocks',

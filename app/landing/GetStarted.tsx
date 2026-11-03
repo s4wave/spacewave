@@ -27,6 +27,41 @@ import { useIsStaticMode } from '../prerender/StaticContext.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: {
+      default: null,
+      '@media (max-height: 470px)': {
+        default: null,
+        '@container (min-width: 32rem)': 'grid',
+      },
+    },
+    gridTemplateColumns: {
+      default: null,
+      '@media (max-height: 470px)': {
+        default: null,
+        '@container (min-width: 32rem)': 'repeat(2, minmax(0, 1fr))',
+      },
+    },
+    alignContent: {
+      default: null,
+      '@media (max-height: 470px)': {
+        default: null,
+        '@container (min-width: 32rem)': 'flex-start',
+      },
+    },
+  },
+  rule2: {
+    order: {
+      default: null,
+      '@media (max-height: 470px)': {
+        default: null,
+        '@container (min-width: 32rem)': -9999,
+      },
+    },
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 5)`,
@@ -109,6 +144,7 @@ function AddStateRootItem() {
 }
 
 function SessionItem({ session }: { session: SessionListEntry }) {
+  // Resolve the account label and destination from the watched session metadata.
   const navigate = useNavigate()
   const metadata = useSessionMetadata(session.sessionIndex ?? null)
   const accountId =
@@ -127,6 +163,7 @@ function SessionItem({ session }: { session: SessionListEntry }) {
       ? `${providerLabel} · ${metadata.cloudEntityId}`
       : providerLabel
 
+  // Read the handoff mode and group the static quickstart links.
   const handleClick = useCallback(() => {
     navigate({ path: '/u/' + session.sessionIndex + '/' })
   }, [navigate, session.sessionIndex])
@@ -149,14 +186,14 @@ function SessionItem({ session }: { session: SessionListEntry }) {
 }
 
 interface GetStartedProps {
-  className?: string
+  sx?: import('@stylexjs/stylex').StyleXStyles
   sessions?: SessionListEntry[]
 }
 
 // StaticGetStarted renders plain HTML links for the prerendered page.
 // cmdk requires React effects to register items, so it shows "No templates
 // found" during SSR. This version is crawlable and clickable without JS.
-function StaticGetStarted({ className }: { className?: string }) {
+function StaticGetStarted({ sx }: Pick<GetStartedProps, 'sx'>) {
   const useHandoffLinks = shouldUseStaticHandoffLinks()
   const itemsByCategory = useMemo(() => {
     const categories = [
@@ -168,12 +205,14 @@ function StaticGetStarted({ className }: { className?: string }) {
     }))
   }, [])
 
+  const attributes = stylex.props(sx)
   return (
     <div
+      {...attributes}
       className={cn(
         'border-foreground/11 bg-background-get-started rounded-landing-launcher shadow-landing-launcher relative flex min-h-50 flex-col border backdrop-blur-sm @lg:flex-1 @lg:overflow-hidden',
         '@lg:max-h-(--max-height-get-started) @lg:flex-initial @2xl:max-h-(--max-height-get-started-wide)',
-        className,
+        attributes.className,
       )}
     >
       <div className="border-foreground/7 flex items-center gap-2 border-b px-4.5 py-3.25">
@@ -220,7 +259,8 @@ function StaticGetStarted({ className }: { className?: string }) {
   )
 }
 
-const GetStarted = ({ className, sessions }: GetStartedProps) => {
+const GetStarted = ({ sx, sessions }: GetStartedProps) => {
+  // Resolve the launcher mode, available templates and input lifetime.
   const isStatic = useIsStaticMode()
   const experimentalCreatorsEnabled = useExperimentalCreatorsEnabled()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -256,6 +296,7 @@ const GetStarted = ({ className, sessions }: GetStartedProps) => {
       document.removeEventListener('keydown', handleGlobalKeyDown, true)
   }, [])
 
+  // Move forward Tab navigation from the launcher to the page links.
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'Tab' && !e.shiftKey) {
@@ -270,20 +311,18 @@ const GetStarted = ({ className, sessions }: GetStartedProps) => {
     [],
   )
 
-  if (isStatic) return <StaticGetStarted className={className} />
+  // Render crawlable links during prerendering and searchable commands after hydration.
+  if (isStatic) return <StaticGetStarted sx={sx} />
 
   return (
-    <Command variant="landing" className={className}>
+    <Command variant="landing" sx={sx}>
       <CommandInput
         ref={inputRef}
         variant="landing"
         placeholder="Where would you like to start? Type here to get started instantly."
         onKeyDown={handleKeyDown}
       />
-      <CommandList
-        variant="landing"
-        className="very-short:@lg:grid very-short:@lg:grid-cols-2 very-short:@lg:content-start"
-      >
+      <CommandList variant="landing" sx={stylexStyles3.rule1}>
         <CommandEmpty>No templates found.</CommandEmpty>
         {sessions && sessions.length > 0 && (
           <CommandGroup heading="Sessions" variant="landing">
@@ -297,9 +336,7 @@ const GetStarted = ({ className, sessions }: GetStartedProps) => {
             key={category}
             heading={category.charAt(0).toUpperCase() + category.slice(1)}
             variant="landing"
-            className={cn(
-              category === 'storage' && 'very-short:@lg:order-first',
-            )}
+            sx={[category === 'storage' && stylexStyles3.rule2]}
           >
             {items.map((item, idx) => (
               <React.Fragment key={item.id}>

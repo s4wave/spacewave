@@ -33,6 +33,10 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+const stylexStyles2 = stylex.create({
+  rule1: { maxHeight: `calc(${themeLayout['--spacing']} * 72)` },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -78,6 +82,7 @@ export function UnixFSMoveDialog({
   onOpenChange,
   onConfirm,
 }: UnixFSMoveDialogProps) {
+  // Keep the initial destination and submission result for this dialog lifetime.
   const initialSelectedPathRef = useRef(initialSelectedPath)
   const [selectedPath, setSelectedPath] = useState<string | null>(
     initialSelectedPathRef.current,
@@ -85,6 +90,7 @@ export function UnixFSMoveDialog({
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
+  // Load directory choices through the cancellable directory operation.
   const dirs = usePromise(
     useCallback(
       (signal: AbortSignal) => listUnixFSDirectories(rootHandle, signal),
@@ -92,6 +98,7 @@ export function UnixFSMoveDialog({
     ),
   )
 
+  // Validate the selected destination before enabling confirmation.
   const validation = useMemo(() => {
     if (!selectedPath) return null
     return validateUnixFSMove(moveItems, selectedPath)
@@ -104,6 +111,7 @@ export function UnixFSMoveDialog({
     [validation],
   )
 
+  // Clear submission feedback when the dialog closes.
   const handleOpenChange = useCallback(
     (open: boolean) => {
       if (!open) {
@@ -115,6 +123,7 @@ export function UnixFSMoveDialog({
     [onOpenChange],
   )
 
+  // Submit the validated destination and retain a retryable failure message.
   const handleConfirm = useCallback(async () => {
     if (!selectedPath || (validation && !validation.accepted)) return
     setSubmitting(true)
@@ -128,6 +137,7 @@ export function UnixFSMoveDialog({
     }
   }, [handleOpenChange, onConfirm, selectedPath, validation])
 
+  // Disable confirmation until directory loading and destination validation succeed.
   const confirmDisabled =
     !selectedPath ||
     submitting ||
@@ -135,6 +145,7 @@ export function UnixFSMoveDialog({
     !!dirs.error ||
     (validation ? !validation.accepted : false)
 
+  // Prefer destination validation feedback over the last submission failure.
   const errorMessage = validationMessage ?? submitError
 
   return (
@@ -150,7 +161,7 @@ export function UnixFSMoveDialog({
         <div className="border-foreground/6 bg-background-card/30 overflow-hidden rounded-lg border">
           <Command variant="folder">
             <CommandInput placeholder="Search folders…" />
-            <CommandList className="max-h-72">
+            <CommandList sx={stylexStyles2.rule1}>
               {dirs.loading && (
                 <div className="px-3 py-2">
                   <LoadingInline
