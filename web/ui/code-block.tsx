@@ -8,7 +8,7 @@ import {
   codeTitleIconMarker,
 } from '../style/icon-defaults.stylex.js'
 import * as React from 'react'
-import { type VariantProps } from 'class-variance-authority'
+
 import { LuCheck, LuCopy } from '@s4wave/web/images/icons.js'
 
 import { Button } from '@s4wave/web/ui/button.js'
@@ -30,13 +30,24 @@ import {
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    position: 'relative',
-    display: 'flex',
-    width: '100%',
-    minWidth: 0,
-    flexDirection: 'column',
-    overflow: 'hidden',
+    '--tw-ring-color': {
+      default: null,
+      ':has( > [data-slot="code-block-content"]:focus-visible)': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
+    },
+    '--tw-ring-shadow': {
+      default: null,
+      ':has( > [data-slot="code-block-content"]:focus-visible)':
+        'var(--tw-ring-inset, ) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
     borderRadius: themeRadii['--radius-lg'],
+    overflow: 'hidden',
+    boxShadow: {
+      default: null,
+      ':has( > [data-slot="code-block-content"]:focus-visible)':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    display: 'flex',
+    flexDirection: 'column',
     fontSize: {
       default: themeFonts['--text-sm'],
       ':is([data-size="sm"])': themeFonts['--text-xs'],
@@ -45,35 +56,36 @@ const stylexStyles2 = stylex.create({
       default: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
       ':is([data-size="sm"])': `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     },
+    position: 'relative',
+    minWidth: 0,
+    width: '100%',
+  },
+  rule2: {
+    '--tw-ring-color': {
+      default: null,
+      ':has( > [data-slot="code-block-content"]:focus-visible)': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
+    },
     '--tw-ring-shadow': {
       default: null,
       ':has( > [data-slot="code-block-content"]:focus-visible)':
         'var(--tw-ring-inset, ) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
     },
-    boxShadow: {
-      default: null,
-      ':has( > [data-slot="code-block-content"]:focus-visible)':
-        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
-    },
-    '--tw-ring-color': {
-      default: null,
-      ':has( > [data-slot="code-block-content"]:focus-visible)': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
-    },
-  },
-  rule2: {
-    position: 'relative',
-    display: 'flex',
-    width: '100%',
-    minWidth: 0,
-    flexDirection: 'column',
-    overflow: 'hidden',
-    borderRadius: themeRadii['--radius-lg'],
-    borderStyle: themeUtilityState['--tw-border-style'],
-    borderWidth: '1px',
     borderColor: {
       default: `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
       ':is(.dark *)': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
     },
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    overflow: 'hidden',
+    boxShadow: {
+      default: null,
+      ':has( > [data-slot="code-block-content"]:focus-visible)':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    color: themeColors['--color-destructive'],
+    display: 'flex',
+    flexDirection: 'column',
     fontSize: {
       default: themeFonts['--text-sm'],
       ':is([data-size="sm"])': themeFonts['--text-xs'],
@@ -82,37 +94,41 @@ const stylexStyles2 = stylex.create({
       default: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
       ':is([data-size="sm"])': `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     },
-    color: themeColors['--color-destructive'],
+    position: 'relative',
+    minWidth: 0,
+    width: '100%',
+  },
+  rule3: {
+    '--tw-ring-color': {
+      default: null,
+      ':has( > [data-slot="code-block-content"]:focus-visible)': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
+    },
     '--tw-ring-shadow': {
       default: null,
       ':has( > [data-slot="code-block-content"]:focus-visible)':
         'var(--tw-ring-inset, ) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
     },
-    boxShadow: {
-      default: null,
-      ':has( > [data-slot="code-block-content"]:focus-visible)':
-        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
-    },
-    '--tw-ring-color': {
-      default: null,
-      ':has( > [data-slot="code-block-content"]:focus-visible)': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
-    },
-  },
-  rule3: {
-    position: 'relative',
-    display: 'flex',
-    width: '100%',
-    minWidth: 0,
-    flexDirection: 'column',
-    overflow: 'hidden',
-    borderRadius: themeRadii['--radius-lg'],
-    borderStyle: themeUtilityState['--tw-border-style'],
-    borderWidth: '1px',
     borderColor: {
       default: themeColors['--color-input'],
       ':has( > [data-slot="code-block-content"]:focus-visible)':
         themeColors['--color-ring'],
     },
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    overflow: 'hidden',
+    backgroundColor: {
+      default: null,
+      ':is(.dark *)': `color-mix(in oklab, ${themeColors['--color-input']} 30%, transparent)`,
+    },
+    boxShadow: {
+      default: null,
+      ':has( > [data-slot="code-block-content"]:focus-visible)':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    color: themeColors['--color-foreground'],
+    display: 'flex',
+    flexDirection: 'column',
     fontSize: {
       default: themeFonts['--text-sm'],
       ':is([data-size="sm"])': themeFonts['--text-xs'],
@@ -121,97 +137,77 @@ const stylexStyles2 = stylex.create({
       default: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
       ':is([data-size="sm"])': `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     },
-    color: themeColors['--color-foreground'],
-    '--tw-ring-shadow': {
-      default: null,
-      ':has( > [data-slot="code-block-content"]:focus-visible)':
-        'var(--tw-ring-inset, ) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
-    },
-    boxShadow: {
-      default: null,
-      ':has( > [data-slot="code-block-content"]:focus-visible)':
-        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
-    },
-    '--tw-ring-color': {
-      default: null,
-      ':has( > [data-slot="code-block-content"]:focus-visible)': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
-    },
-    backgroundColor: {
-      default: null,
-      ':is(.dark *)': `color-mix(in oklab, ${themeColors['--color-input']} 30%, transparent)`,
-    },
+    position: 'relative',
+    minWidth: 0,
+    width: '100%',
   },
   rule4: {
-    display: 'flex',
-    minWidth: 0,
-    flexShrink: 0,
-    alignItems: 'center',
     gap: `calc(${themeLayout['--spacing']} * 2)`,
-    paddingInline: 'var(--code-block-padding, calc(var(--spacing) * 3))',
-    paddingTop: 'var(--code-block-padding, calc(var(--spacing) * 3))',
+    alignItems: 'center',
     color: 'var(--code-block-header-color, var(--color-muted-foreground))',
+    display: 'flex',
+    flexShrink: 0,
+    paddingInlineEnd: 'var(--code-block-padding, calc(var(--spacing) * 3))',
+    paddingInlineStart: 'var(--code-block-padding, calc(var(--spacing) * 3))',
+    minWidth: 0,
+    paddingTop: 'var(--code-block-padding, calc(var(--spacing) * 3))',
   },
   rule5: {
-    minWidth: 0,
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
     overflow: 'hidden',
+    color: 'var(--code-block-title-color, var(--color-foreground))',
     fontFamily: 'var(--font-sans)',
     fontSize: 'var(--code-block-title-size, var(--text-sm))',
+    fontWeight: themeFonts['--font-weight-medium'],
     lineHeight:
       'var(--tw-leading, var(--code-block-title-leading, var(--text-sm--line-height)))',
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
-    color: 'var(--code-block-title-color, var(--color-foreground))',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    minWidth: 0,
   },
   rule6: {
+    gap: themeLayout['--spacing'],
     marginBlock: {
       default: `calc(${themeLayout['--spacing']} * -1)`,
+      [stylex.when.ancestor(':is(*) >', codeBlockGroupMarker)]: 0,
+    },
+    alignItems: 'center',
+    display: 'flex',
+    flexShrink: 0,
+    insetInlineEnd: {
+      default: null,
+      [stylex.when.ancestor(':is(*) >', codeBlockGroupMarker)]:
+        'var(--code-block-action-inset, calc(var(--spacing) * 2))',
+    },
+    marginInlineEnd: {
+      default: `calc(${themeLayout['--spacing']} * -1.5)`,
       [stylex.when.ancestor(':is(*) >', codeBlockGroupMarker)]: 0,
     },
     marginInlineStart: {
       default: 'auto',
       [stylex.when.ancestor(':is(*) >', codeBlockGroupMarker)]: 0,
     },
-    marginInlineEnd: {
-      default: `calc(${themeLayout['--spacing']} * -1.5)`,
-      [stylex.when.ancestor(':is(*) >', codeBlockGroupMarker)]: 0,
-    },
-    display: 'flex',
-    flexShrink: 0,
-    alignItems: 'center',
-    gap: themeLayout['--spacing'],
-    position: {
-      default: null,
-      [stylex.when.ancestor(':is(*) >', codeBlockGroupMarker)]: 'absolute',
-    },
-    insetInlineEnd: {
-      default: null,
-      [stylex.when.ancestor(':is(*) >', codeBlockGroupMarker)]:
-        'var(--code-block-action-inset, calc(var(--spacing) * 2))',
-    },
-    top: {
-      default: null,
-      [stylex.when.ancestor(':is(*) >', codeBlockGroupMarker)]:
-        'var(--code-block-action-inset, calc(var(--spacing) * 2))',
-    },
-    zIndex: {
-      default: null,
-      [stylex.when.ancestor(':is(*) >', codeBlockGroupMarker)]: 10,
-    },
-
     opacity: {
       default: null,
-      [stylex.when.ancestor(':is(*) >', codeBlockGroupMarker)]: 0,
       [stylex.when.ancestor(':focus-within >', codeBlockGroupMarker)]: 1,
-      '@media (pointer: coarse)': {
-        default: null,
-        [stylex.when.ancestor(':is(*) >', codeBlockGroupMarker)]: 1,
-      },
+      [stylex.when.ancestor(':is(*) >', codeBlockGroupMarker)]: 0,
       '@media (hover: hover)': {
         default: null,
         [stylex.when.ancestor(':hover >', codeBlockGroupMarker)]: 1,
       },
+      '@media (pointer: coarse)': {
+        default: null,
+        [stylex.when.ancestor(':is(*) >', codeBlockGroupMarker)]: 1,
+      },
+    },
+    position: {
+      default: null,
+      [stylex.when.ancestor(':is(*) >', codeBlockGroupMarker)]: 'absolute',
+    },
+    transitionDuration: {
+      default: null,
+      [stylex.when.ancestor(':is(*) >', codeBlockGroupMarker)]:
+        'var(--tw-duration, var(--default-transition-duration))',
     },
     transitionProperty: {
       default: null,
@@ -222,60 +218,51 @@ const stylexStyles2 = stylex.create({
       [stylex.when.ancestor(':is(*) >', codeBlockGroupMarker)]:
         `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
     },
-    transitionDuration: {
+    zIndex: {
+      default: null,
+      [stylex.when.ancestor(':is(*) >', codeBlockGroupMarker)]: 10,
+    },
+    top: {
       default: null,
       [stylex.when.ancestor(':is(*) >', codeBlockGroupMarker)]:
-        'var(--tw-duration, var(--default-transition-duration))',
+        'var(--code-block-action-inset, calc(var(--spacing) * 2))',
     },
   },
   rule7: {
-    minHeight: 0,
-    minWidth: 0,
-    scrollbarWidth: 'thin',
-    overflow: 'auto',
+    '--tw-leading': 'var(--leading-relaxed)',
+    '--tw-outline-style': 'none',
+    MozOsxFontSmoothing: 'auto',
+    WebkitFontSmoothing: 'subpixel-antialiased',
     WebkitMaskImage: {
       default: 'linear-gradient(to right, #0000, #000 12% 88%, #0000)',
       ':is([data-wrap])': 'linear-gradient(#0000, #000 12% 88%, #0000)',
     },
+    overflow: 'auto',
+    fontFamily: themeFonts['--font-mono'],
+    lineHeight: 'var(--leading-relaxed)',
     maskImage: {
       default: 'linear-gradient(to right, #0000, #000 12% 88%, #0000)',
       ':is([data-wrap])': 'linear-gradient(#0000, #000 12% 88%, #0000)',
     },
-    paddingInline: 'var(--code-block-padding, calc(var(--spacing) * 3))',
-    paddingTop: 'var(--code-block-content-top, calc(var(--spacing) * 3))',
-    paddingBottom: 'var(--code-block-content-bottom, calc(var(--spacing) * 3))',
-    textAlign: 'start',
-    fontFamily: themeFonts['--font-mono'],
-    WebkitFontSmoothing: 'subpixel-antialiased',
-    MozOsxFontSmoothing: 'auto',
-    textRendering: 'auto',
-    textShadow: '0 0 0.25px currentColor',
-    '--tw-leading': 'var(--leading-relaxed)',
-    lineHeight: 'var(--leading-relaxed)',
-    '--tw-outline-style': 'none',
     outlineStyle: 'none',
     overflowWrap: { default: null, ':is([data-wrap])': 'break-word' },
+    paddingInlineEnd: 'var(--code-block-padding, calc(var(--spacing) * 3))',
+    paddingInlineStart: 'var(--code-block-padding, calc(var(--spacing) * 3))',
+    scrollbarWidth: 'thin',
+    textAlign: 'start',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
     whiteSpace: { default: null, ':is([data-wrap])': 'pre-wrap' },
+    minHeight: 0,
+    minWidth: 0,
+    paddingBottom: 'var(--code-block-content-bottom, calc(var(--spacing) * 3))',
+    paddingTop: 'var(--code-block-content-top, calc(var(--spacing) * 3))',
   },
   rule8: {
-    position: 'relative',
-    marginInline:
-      'calc(var(--code-block-padding, calc(var(--spacing) * 3)) * -1)',
-    display: {
-      default: 'block',
-      [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]: 'grid',
-    },
-    minHeight: '1lh',
-    paddingInline: 'var(--code-block-padding, calc(var(--spacing) * 3))',
     gridColumn: {
       default: null,
       [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
         'span 2 / span 2',
-    },
-    gridTemplateColumns: {
-      default: null,
-      [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
-        'subgrid',
     },
     columnGap: {
       default: null,
@@ -286,20 +273,33 @@ const stylexStyles2 = stylex.create({
       default: null,
       [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]: 'line',
     },
-    '::before': {
-      content: {
-        default: 'var(--tw-content)',
-        [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
-          'var(--tw-content)',
-        "@supports (content: counter(line) / '')": {
-          default: null,
-          [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
-            'var(--tw-content)',
-        },
-      },
-      minWidth: `calc(${themeLayout['--spacing']} * 6)`,
-      textAlign: 'end',
+    display: {
+      default: 'block',
+      [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]: 'grid',
+    },
+    gridTemplateColumns: {
+      default: null,
+      [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
+        'subgrid',
+    },
+    marginInlineEnd:
+      'calc(var(--code-block-padding, calc(var(--spacing) * 3)) * -1)',
+    marginInlineStart:
+      'calc(var(--code-block-padding, calc(var(--spacing) * 3)) * -1)',
+    paddingInlineEnd: 'var(--code-block-padding, calc(var(--spacing) * 3))',
+    paddingInlineStart: 'var(--code-block-padding, calc(var(--spacing) * 3))',
+    position: 'relative',
+    minHeight: '1lh',
+    '::after': {
+      WebkitUserSelect: 'none',
       color: themeColors['--color-muted-foreground'],
+      content: 'var(--tw-content)',
+      insetInlineStart: `calc(${themeLayout['--spacing']} * 1)`,
+      position: 'absolute',
+      userSelect: 'none',
+      top: 0,
+    },
+    '::before': {
       '--tw-content': {
         default: null,
         [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
@@ -314,42 +314,32 @@ const stylexStyles2 = stylex.create({
         default: null,
         [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]: 'none',
       },
+      color: themeColors['--color-muted-foreground'],
+      content: {
+        default: 'var(--tw-content)',
+        [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
+          'var(--tw-content)',
+        "@supports (content: counter(line) / '')": {
+          default: null,
+          [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
+            'var(--tw-content)',
+        },
+      },
+      textAlign: 'end',
       userSelect: {
         default: null,
         [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]: 'none',
       },
-    },
-    '::after': {
-      content: 'var(--tw-content)',
-      position: 'absolute',
-      insetInlineStart: `calc(${themeLayout['--spacing']} * 1)`,
-      top: 0,
-      color: themeColors['--color-muted-foreground'],
-      WebkitUserSelect: 'none',
-      userSelect: 'none',
+      minWidth: `calc(${themeLayout['--spacing']} * 6)`,
     },
   },
   rule9: {
-    position: 'relative',
-    marginInline:
-      'calc(var(--code-block-padding, calc(var(--spacing) * 3)) * -1)',
-    display: {
-      default: 'block',
-      [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]: 'grid',
-    },
-    minHeight: '1lh',
-    backgroundColor: themeColors['--color-muted'],
-    paddingInline: 'var(--code-block-padding, calc(var(--spacing) * 3))',
     gridColumn: {
       default: null,
       [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
         'span 2 / span 2',
     },
-    gridTemplateColumns: {
-      default: null,
-      [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
-        'subgrid',
-    },
+    backgroundColor: themeColors['--color-muted'],
     columnGap: {
       default: null,
       [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
@@ -359,20 +349,33 @@ const stylexStyles2 = stylex.create({
       default: null,
       [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]: 'line',
     },
-    '::before': {
-      content: {
-        default: 'var(--tw-content)',
-        [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
-          'var(--tw-content)',
-        "@supports (content: counter(line) / '')": {
-          default: null,
-          [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
-            'var(--tw-content)',
-        },
-      },
-      minWidth: `calc(${themeLayout['--spacing']} * 6)`,
-      textAlign: 'end',
+    display: {
+      default: 'block',
+      [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]: 'grid',
+    },
+    gridTemplateColumns: {
+      default: null,
+      [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
+        'subgrid',
+    },
+    marginInlineEnd:
+      'calc(var(--code-block-padding, calc(var(--spacing) * 3)) * -1)',
+    marginInlineStart:
+      'calc(var(--code-block-padding, calc(var(--spacing) * 3)) * -1)',
+    paddingInlineEnd: 'var(--code-block-padding, calc(var(--spacing) * 3))',
+    paddingInlineStart: 'var(--code-block-padding, calc(var(--spacing) * 3))',
+    position: 'relative',
+    minHeight: '1lh',
+    '::after': {
+      WebkitUserSelect: 'none',
       color: themeColors['--color-muted-foreground'],
+      content: 'var(--tw-content)',
+      insetInlineStart: `calc(${themeLayout['--spacing']} * 1)`,
+      position: 'absolute',
+      userSelect: 'none',
+      top: 0,
+    },
+    '::before': {
       '--tw-content': {
         default: null,
         [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
@@ -387,42 +390,32 @@ const stylexStyles2 = stylex.create({
         default: null,
         [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]: 'none',
       },
+      color: themeColors['--color-muted-foreground'],
+      content: {
+        default: 'var(--tw-content)',
+        [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
+          'var(--tw-content)',
+        "@supports (content: counter(line) / '')": {
+          default: null,
+          [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
+            'var(--tw-content)',
+        },
+      },
+      textAlign: 'end',
       userSelect: {
         default: null,
         [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]: 'none',
       },
-    },
-    '::after': {
-      content: 'var(--tw-content)',
-      position: 'absolute',
-      insetInlineStart: `calc(${themeLayout['--spacing']} * 1)`,
-      top: 0,
-      color: themeColors['--color-muted-foreground'],
-      WebkitUserSelect: 'none',
-      userSelect: 'none',
+      minWidth: `calc(${themeLayout['--spacing']} * 6)`,
     },
   },
   rule10: {
-    position: 'relative',
-    marginInline:
-      'calc(var(--code-block-padding, calc(var(--spacing) * 3)) * -1)',
-    display: {
-      default: 'block',
-      [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]: 'grid',
-    },
-    minHeight: '1lh',
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
-    paddingInline: 'var(--code-block-padding, calc(var(--spacing) * 3))',
     gridColumn: {
       default: null,
       [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
         'span 2 / span 2',
     },
-    gridTemplateColumns: {
-      default: null,
-      [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
-        'subgrid',
-    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
     columnGap: {
       default: null,
       [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
@@ -432,20 +425,34 @@ const stylexStyles2 = stylex.create({
       default: null,
       [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]: 'line',
     },
+    display: {
+      default: 'block',
+      [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]: 'grid',
+    },
+    gridTemplateColumns: {
+      default: null,
+      [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
+        'subgrid',
+    },
+    marginInlineEnd:
+      'calc(var(--code-block-padding, calc(var(--spacing) * 3)) * -1)',
+    marginInlineStart:
+      'calc(var(--code-block-padding, calc(var(--spacing) * 3)) * -1)',
+    paddingInlineEnd: 'var(--code-block-padding, calc(var(--spacing) * 3))',
+    paddingInlineStart: 'var(--code-block-padding, calc(var(--spacing) * 3))',
+    position: 'relative',
+    minHeight: '1lh',
+    '::after': {
+      '--tw-content': '"−"',
+      WebkitUserSelect: 'none',
+      color: themeColors['--color-destructive'],
+      content: 'var(--tw-content)',
+      insetInlineStart: `calc(${themeLayout['--spacing']} * 1)`,
+      position: 'absolute',
+      userSelect: 'none',
+      top: 0,
+    },
     '::before': {
-      content: {
-        default: 'var(--tw-content)',
-        [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
-          'var(--tw-content)',
-        "@supports (content: counter(line) / '')": {
-          default: null,
-          [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
-            'var(--tw-content)',
-        },
-      },
-      minWidth: `calc(${themeLayout['--spacing']} * 6)`,
-      textAlign: 'end',
-      color: themeColors['--color-muted-foreground'],
       '--tw-content': {
         default: null,
         [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
@@ -460,43 +467,32 @@ const stylexStyles2 = stylex.create({
         default: null,
         [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]: 'none',
       },
+      color: themeColors['--color-muted-foreground'],
+      content: {
+        default: 'var(--tw-content)',
+        [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
+          'var(--tw-content)',
+        "@supports (content: counter(line) / '')": {
+          default: null,
+          [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
+            'var(--tw-content)',
+        },
+      },
+      textAlign: 'end',
       userSelect: {
         default: null,
         [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]: 'none',
       },
-    },
-    '::after': {
-      content: 'var(--tw-content)',
-      position: 'absolute',
-      insetInlineStart: `calc(${themeLayout['--spacing']} * 1)`,
-      top: 0,
-      color: themeColors['--color-destructive'],
-      '--tw-content': '"−"',
-      WebkitUserSelect: 'none',
-      userSelect: 'none',
+      minWidth: `calc(${themeLayout['--spacing']} * 6)`,
     },
   },
   rule11: {
-    position: 'relative',
-    marginInline:
-      'calc(var(--code-block-padding, calc(var(--spacing) * 3)) * -1)',
-    display: {
-      default: 'block',
-      [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]: 'grid',
-    },
-    minHeight: '1lh',
-    backgroundColor: themeColors['--color-muted'],
-    paddingInline: 'var(--code-block-padding, calc(var(--spacing) * 3))',
     gridColumn: {
       default: null,
       [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
         'span 2 / span 2',
     },
-    gridTemplateColumns: {
-      default: null,
-      [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
-        'subgrid',
-    },
+    backgroundColor: themeColors['--color-muted'],
     columnGap: {
       default: null,
       [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
@@ -506,20 +502,34 @@ const stylexStyles2 = stylex.create({
       default: null,
       [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]: 'line',
     },
-    '::before': {
-      content: {
-        default: 'var(--tw-content)',
-        [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
-          'var(--tw-content)',
-        "@supports (content: counter(line) / '')": {
-          default: null,
-          [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
-            'var(--tw-content)',
-        },
-      },
-      minWidth: `calc(${themeLayout['--spacing']} * 6)`,
-      textAlign: 'end',
+    display: {
+      default: 'block',
+      [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]: 'grid',
+    },
+    gridTemplateColumns: {
+      default: null,
+      [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
+        'subgrid',
+    },
+    marginInlineEnd:
+      'calc(var(--code-block-padding, calc(var(--spacing) * 3)) * -1)',
+    marginInlineStart:
+      'calc(var(--code-block-padding, calc(var(--spacing) * 3)) * -1)',
+    paddingInlineEnd: 'var(--code-block-padding, calc(var(--spacing) * 3))',
+    paddingInlineStart: 'var(--code-block-padding, calc(var(--spacing) * 3))',
+    position: 'relative',
+    minHeight: '1lh',
+    '::after': {
+      '--tw-content': '"+"',
+      WebkitUserSelect: 'none',
       color: themeColors['--color-muted-foreground'],
+      content: 'var(--tw-content)',
+      insetInlineStart: `calc(${themeLayout['--spacing']} * 1)`,
+      position: 'absolute',
+      userSelect: 'none',
+      top: 0,
+    },
+    '::before': {
       '--tw-content': {
         default: null,
         [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
@@ -534,55 +544,59 @@ const stylexStyles2 = stylex.create({
         default: null,
         [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]: 'none',
       },
+      color: themeColors['--color-muted-foreground'],
+      content: {
+        default: 'var(--tw-content)',
+        [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
+          'var(--tw-content)',
+        "@supports (content: counter(line) / '')": {
+          default: null,
+          [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]:
+            'var(--tw-content)',
+        },
+      },
+      textAlign: 'end',
       userSelect: {
         default: null,
         [stylex.when.ancestor(':is([data-numbered])', codeGroupMarker)]: 'none',
       },
-    },
-    '::after': {
-      content: 'var(--tw-content)',
-      position: 'absolute',
-      insetInlineStart: `calc(${themeLayout['--spacing']} * 1)`,
-      top: 0,
-      color: themeColors['--color-muted-foreground'],
-      '--tw-content': '"+"',
-      WebkitUserSelect: 'none',
-      userSelect: 'none',
+      minWidth: `calc(${themeLayout['--spacing']} * 6)`,
     },
   },
   rule12: {
-    display: 'flex',
-    minWidth: 0,
-    flexShrink: 0,
-    alignItems: 'center',
     gap: `calc(${themeLayout['--spacing']} * 2)`,
-    paddingInline: 'var(--code-block-padding, calc(var(--spacing) * 3))',
-    paddingBottom: 'var(--code-block-padding, calc(var(--spacing) * 3))',
+    alignItems: 'center',
     color: themeColors['--color-muted-foreground'],
+    display: 'flex',
+    flexShrink: 0,
+    paddingInlineEnd: 'var(--code-block-padding, calc(var(--spacing) * 3))',
+    paddingInlineStart: 'var(--code-block-padding, calc(var(--spacing) * 3))',
+    minWidth: 0,
+    paddingBottom: 'var(--code-block-padding, calc(var(--spacing) * 3))',
   },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
-    clipPath: 'inset(50%)',
-    whiteSpace: 'nowrap',
-    borderWidth: 0,
-    width: '1px',
-    height: '1px',
     margin: '-1px',
     padding: 0,
-    position: 'absolute',
+    borderWidth: 0,
     overflow: 'hidden',
+    clipPath: 'inset(50%)',
+    position: 'absolute',
+    whiteSpace: 'nowrap',
+    height: '1px',
+    width: '1px',
   },
   rule2: {
-    display: 'grid',
-    minHeight: '1lh',
-    minWidth: { default: 'max-content', ':where([data-wrap] *)': 0 },
     alignContent: 'flex-start',
+    display: 'grid',
     gridTemplateColumns: {
       default: null,
       ':where([data-numbered] *)': 'auto 1fr',
     },
+    minHeight: '1lh',
+    minWidth: { default: 'max-content', ':where([data-wrap] *)': 0 },
   },
   rule3: { minWidth: 0 },
 })
@@ -610,37 +624,37 @@ const codeBlockVariants = (props?: {
 
 const layoutStyles = stylex.create({
   regular: {
-    '--code-block-padding': `calc(${themeLayout['--spacing']} * 3)`,
     '--code-block-action-inset': `calc(${themeLayout['--spacing']} * 2)`,
-    '--code-block-title-size': 'var(--text-sm)',
-    '--code-block-title-leading': 'var(--text-sm--line-height)',
-    '--code-block-content-top': {
-      default: `calc(${themeLayout['--spacing']} * 3)`,
-      ':has([data-slot="code-block-header"])': `calc(${themeLayout['--spacing']} * 2)`,
-    },
     '--code-block-content-bottom': {
       default: `calc(${themeLayout['--spacing']} * 3)`,
       ':has([data-slot="code-block-footer"])': `calc(${themeLayout['--spacing']} * 2)`,
     },
+    '--code-block-content-top': {
+      default: `calc(${themeLayout['--spacing']} * 3)`,
+      ':has([data-slot="code-block-header"])': `calc(${themeLayout['--spacing']} * 2)`,
+    },
+    '--code-block-padding': `calc(${themeLayout['--spacing']} * 3)`,
+    '--code-block-title-leading': 'var(--text-sm--line-height)',
+    '--code-block-title-size': 'var(--text-sm)',
   },
   small: {
-    '--code-block-padding': `calc(${themeLayout['--spacing']} * 2.5)`,
     '--code-block-action-inset': `calc(${themeLayout['--spacing']} * 1.5)`,
-    '--code-block-title-size': 'var(--text-xs)',
-    '--code-block-title-leading': 'var(--text-xs--line-height)',
+    '--code-block-content-bottom': `calc(${themeLayout['--spacing']} * 2.5)`,
     '--code-block-content-top': {
       default: `calc(${themeLayout['--spacing']} * 2.5)`,
       ':has([data-slot="code-block-header"])': `calc(${themeLayout['--spacing']} * 1.5)`,
     },
-    '--code-block-content-bottom': `calc(${themeLayout['--spacing']} * 2.5)`,
+    '--code-block-padding': `calc(${themeLayout['--spacing']} * 2.5)`,
+    '--code-block-title-leading': 'var(--text-xs--line-height)',
+    '--code-block-title-size': 'var(--text-xs)',
   },
   normal: {
-    '--code-block-title-color': 'var(--color-foreground)',
     '--code-block-header-color': 'var(--color-muted-foreground)',
+    '--code-block-title-color': 'var(--color-foreground)',
   },
   destructive: {
-    '--code-block-title-color': 'var(--color-destructive)',
     '--code-block-header-color': 'var(--color-destructive)',
+    '--code-block-title-color': 'var(--color-destructive)',
   },
 })
 
@@ -652,7 +666,9 @@ function CodeBlock({
   ...props
 }: Omit<
   React.ComponentProps<'div'> &
-    VariantProps<typeof codeBlockVariants> & { size?: 'default' | 'sm' },
+    NonNullable<Parameters<typeof codeBlockVariants>[0]> & {
+      size?: 'default' | 'sm'
+    },
   'className'
 > & { sx?: ComponentStyles; className?: never }) {
   return (
@@ -714,108 +730,6 @@ function CodeBlockTitle({
 
 const controlStyles = stylex.create({
   codeAction: {
-    backgroundColor: {
-      default: null,
-      ':is(button)': {
-        default: null,
-        [stylex.when.ancestor(
-          ':is(*) > :is([data-slot="code-block-actions"]) >',
-          codeBlockGroupMarker,
-        )]: themeColors['--color-background'],
-        ':hover': {
-          default: null,
-          [stylex.when.ancestor(
-            ':is(*) > :is([data-slot="code-block-actions"]) >',
-            codeBlockGroupMarker,
-          )]: themeColors['--color-background'],
-        },
-        ':focus': {
-          default: null,
-          [stylex.when.ancestor(
-            ':is(*) > :is([data-slot="code-block-actions"]) >',
-            codeBlockGroupMarker,
-          )]: themeColors['--color-background'],
-        },
-        ':focus-visible': {
-          default: null,
-          [stylex.when.ancestor(
-            ':is(*) > :is([data-slot="code-block-actions"]) >',
-            codeBlockGroupMarker,
-          )]: themeColors['--color-background'],
-        },
-        ':active': {
-          default: null,
-          [stylex.when.ancestor(
-            ':is(*) > :is([data-slot="code-block-actions"]) >',
-            codeBlockGroupMarker,
-          )]: themeColors['--color-background'],
-        },
-        '@media (hover: hover)': {
-          default: null,
-          ':hover': {
-            default: null,
-            [stylex.when.ancestor(
-              ':is(*) > :is([data-slot="code-block-actions"]) >',
-              codeBlockGroupMarker,
-            )]: themeColors['--color-background'],
-          },
-        },
-      },
-    },
-    '--tw-ring-shadow': {
-      default: null,
-      ':is(button)': {
-        default: null,
-        [stylex.when.ancestor(
-          ':is(*) > :is([data-slot="code-block-actions"]) >',
-          codeBlockGroupMarker,
-        )]:
-          'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
-        ':hover': {
-          default: null,
-          [stylex.when.ancestor(
-            ':is(*) > :is([data-slot="code-block-actions"]) >',
-            codeBlockGroupMarker,
-          )]:
-            'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
-        },
-        ':focus': {
-          default: null,
-          [stylex.when.ancestor(
-            ':is(*) > :is([data-slot="code-block-actions"]) >',
-            codeBlockGroupMarker,
-          )]:
-            'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
-        },
-        ':focus-visible': {
-          default: null,
-          [stylex.when.ancestor(
-            ':is(*) > :is([data-slot="code-block-actions"]) >',
-            codeBlockGroupMarker,
-          )]:
-            'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
-        },
-        ':active': {
-          default: null,
-          [stylex.when.ancestor(
-            ':is(*) > :is([data-slot="code-block-actions"]) >',
-            codeBlockGroupMarker,
-          )]:
-            'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
-        },
-        '@media (hover: hover)': {
-          default: null,
-          ':hover': {
-            default: null,
-            [stylex.when.ancestor(
-              ':is(*) > :is([data-slot="code-block-actions"]) >',
-              codeBlockGroupMarker,
-            )]:
-              'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
-          },
-        },
-      },
-    },
     '--tw-ring-color': {
       default: null,
       ':is(button)': {
@@ -825,6 +739,14 @@ const controlStyles = stylex.create({
           codeBlockGroupMarker,
         )]:
           `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+        ':focus-visible': {
+          default: null,
+          [stylex.when.ancestor(
+            ':is(*) > :is([data-slot="code-block-actions"]) >',
+            codeBlockGroupMarker,
+          )]:
+            `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+        },
         ':hover': {
           default: null,
           [stylex.when.ancestor(
@@ -834,14 +756,6 @@ const controlStyles = stylex.create({
             `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
         },
         ':focus': {
-          default: null,
-          [stylex.when.ancestor(
-            ':is(*) > :is([data-slot="code-block-actions"]) >',
-            codeBlockGroupMarker,
-          )]:
-            `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
-        },
-        ':focus-visible': {
           default: null,
           [stylex.when.ancestor(
             ':is(*) > :is([data-slot="code-block-actions"]) >',
@@ -870,6 +784,108 @@ const controlStyles = stylex.create({
         },
       },
     },
+    '--tw-ring-shadow': {
+      default: null,
+      ':is(button)': {
+        default: null,
+        [stylex.when.ancestor(
+          ':is(*) > :is([data-slot="code-block-actions"]) >',
+          codeBlockGroupMarker,
+        )]:
+          'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+        ':focus-visible': {
+          default: null,
+          [stylex.when.ancestor(
+            ':is(*) > :is([data-slot="code-block-actions"]) >',
+            codeBlockGroupMarker,
+          )]:
+            'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+        },
+        ':hover': {
+          default: null,
+          [stylex.when.ancestor(
+            ':is(*) > :is([data-slot="code-block-actions"]) >',
+            codeBlockGroupMarker,
+          )]:
+            'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+        },
+        ':focus': {
+          default: null,
+          [stylex.when.ancestor(
+            ':is(*) > :is([data-slot="code-block-actions"]) >',
+            codeBlockGroupMarker,
+          )]:
+            'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+        },
+        ':active': {
+          default: null,
+          [stylex.when.ancestor(
+            ':is(*) > :is([data-slot="code-block-actions"]) >',
+            codeBlockGroupMarker,
+          )]:
+            'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+        },
+        '@media (hover: hover)': {
+          default: null,
+          ':hover': {
+            default: null,
+            [stylex.when.ancestor(
+              ':is(*) > :is([data-slot="code-block-actions"]) >',
+              codeBlockGroupMarker,
+            )]:
+              'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+          },
+        },
+      },
+    },
+    backgroundColor: {
+      default: null,
+      ':is(button)': {
+        default: null,
+        [stylex.when.ancestor(
+          ':is(*) > :is([data-slot="code-block-actions"]) >',
+          codeBlockGroupMarker,
+        )]: themeColors['--color-background'],
+        ':focus-visible': {
+          default: null,
+          [stylex.when.ancestor(
+            ':is(*) > :is([data-slot="code-block-actions"]) >',
+            codeBlockGroupMarker,
+          )]: themeColors['--color-background'],
+        },
+        ':hover': {
+          default: null,
+          [stylex.when.ancestor(
+            ':is(*) > :is([data-slot="code-block-actions"]) >',
+            codeBlockGroupMarker,
+          )]: themeColors['--color-background'],
+        },
+        ':focus': {
+          default: null,
+          [stylex.when.ancestor(
+            ':is(*) > :is([data-slot="code-block-actions"]) >',
+            codeBlockGroupMarker,
+          )]: themeColors['--color-background'],
+        },
+        ':active': {
+          default: null,
+          [stylex.when.ancestor(
+            ':is(*) > :is([data-slot="code-block-actions"]) >',
+            codeBlockGroupMarker,
+          )]: themeColors['--color-background'],
+        },
+        '@media (hover: hover)': {
+          default: null,
+          ':hover': {
+            default: null,
+            [stylex.when.ancestor(
+              ':is(*) > :is([data-slot="code-block-actions"]) >',
+              codeBlockGroupMarker,
+            )]: themeColors['--color-background'],
+          },
+        },
+      },
+    },
     boxShadow: {
       default: null,
       ':is(button)': {
@@ -879,6 +895,14 @@ const controlStyles = stylex.create({
           codeBlockGroupMarker,
         )]:
           'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+        ':focus-visible': {
+          default: null,
+          [stylex.when.ancestor(
+            ':is(*) > :is([data-slot="code-block-actions"]) >',
+            codeBlockGroupMarker,
+          )]:
+            'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+        },
         ':hover': {
           default: null,
           [stylex.when.ancestor(
@@ -888,14 +912,6 @@ const controlStyles = stylex.create({
             'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
         },
         ':focus': {
-          default: null,
-          [stylex.when.ancestor(
-            ':is(*) > :is([data-slot="code-block-actions"]) >',
-            codeBlockGroupMarker,
-          )]:
-            'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
-        },
-        ':focus-visible': {
           default: null,
           [stylex.when.ancestor(
             ':is(*) > :is([data-slot="code-block-actions"]) >',
@@ -1077,7 +1093,8 @@ function CodeBlockLine({
   children,
   ...props
 }: Omit<
-  React.ComponentProps<'span'> & VariantProps<typeof codeBlockLineVariants>,
+  React.ComponentProps<'span'> &
+    NonNullable<Parameters<typeof codeBlockLineVariants>[0]>,
   'className'
 > & { sx?: ComponentStyles; className?: never }) {
   // An empty line holds a newline so copying a selection keeps blank lines.

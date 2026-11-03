@@ -42,23 +42,23 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
-    maxWidth: `calc(${themeLayout['--spacing']} * 36)`,
+    overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    overflow: 'hidden',
+    maxWidth: `calc(${themeLayout['--spacing']} * 36)`,
   },
   rule2: {
-    marginLeft: `calc(${themeLayout['--spacing']} * 1.5)`,
-    borderRadius: '3.40282e38px',
-    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
-    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
-    fontSize: '9px',
-    lineHeight: 1.5,
     '--tw-font-weight': 'var(--font-weight-semibold)',
-    fontWeight: 'var(--font-weight-semibold)',
     '--tw-tracking': 'var(--tracking-wider)',
+    borderRadius: '3.40282e38px',
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: '9px',
+    fontWeight: 'var(--font-weight-semibold)',
     letterSpacing: 'var(--tracking-wider)',
+    lineHeight: 1.5,
     textTransform: 'uppercase',
+    marginLeft: `calc(${themeLayout['--spacing']} * 1.5)`,
   },
   rule3: {
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,

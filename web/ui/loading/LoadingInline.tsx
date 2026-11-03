@@ -11,9 +11,9 @@ import {
 
 const styles = stylex.create({
   root: {
-    display: 'inline-flex',
-    alignItems: 'center',
     gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    alignItems: 'center',
+    display: 'inline-flex',
   },
   brand: { color: themeColors['--color-brand'] },
   muted: { color: themeColors['--color-foreground-alt'] },

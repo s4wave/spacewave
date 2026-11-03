@@ -1,4 +1,3 @@
-import { cn } from '@s4wave/web/style/utils.js'
 import { ControlStylesProvider } from '@s4wave/web/style/ControlStylesProvider.js'
 import { IconStylesProvider } from '@s4wave/web/images/icons.js'
 import { iconRequired } from '@s4wave/web/style/icon-defaults.stylex.js'
@@ -21,54 +20,54 @@ import {
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    position: 'relative',
-    display: 'flex',
-    height: themeLayout['--spacing-bar'],
-    minHeight: themeLayout['--spacing-bar'],
-    width: '100%',
-    flexShrink: 0,
-    flexDirection: 'row',
-    flexWrap: 'nowrap',
+    '--tw-duration': '.12s',
+    '--tw-numeric-spacing': 'tabular-nums',
     gap: 0,
     overflow: 'hidden',
     backgroundColor: themeColors['--color-bar'],
-    textAlign: 'center',
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     color: themeColors['--color-bar-font'],
-    '--tw-numeric-spacing': 'tabular-nums',
+    display: 'flex',
+    flexDirection: 'row',
+    flexShrink: 0,
+    flexWrap: 'nowrap',
+    fontSize: themeFonts['--text-xs'],
     fontVariantNumeric:
       'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
-    textDecorationLine: 'none',
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     outlineStyle: themeUtilityState['--tw-outline-style'],
     outlineWidth: 0,
+    position: 'relative',
+    textAlign: 'center',
+    textDecorationLine: 'none',
+    transitionDuration: '.12s',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration: '.12s',
-    '--tw-duration': '.12s',
+    height: themeLayout['--spacing-bar'],
+    minHeight: themeLayout['--spacing-bar'],
+    width: '100%',
   },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
-    display: 'flex',
-    minWidth: 0,
-    flexGrow: 1,
     overflow: 'hidden',
+    display: 'flex',
+    flexGrow: 1,
     textAlign: 'left',
+    minWidth: 0,
   },
-  rule2: { display: 'flex', flexShrink: 0, overflow: 'hidden' },
+  rule2: { overflow: 'hidden', display: 'flex', flexShrink: 0 },
   rule3: {
     '::after': {
+      backgroundColor: themeColors['--color-bar-border-top'],
       content: '""',
       pointerEvents: 'none',
       position: 'absolute',
-      top: 0,
-      left: 0,
       height: `calc(${themeLayout['--spacing']} * .25)`,
+      left: 0,
+      top: 0,
       width: '100%',
-      backgroundColor: themeColors['--color-bar-border-top'],
     },
   },
 })
@@ -104,7 +103,9 @@ export function Bar({
 }: IBarProps = {}) {
   if (hidden) return null
   const attributes = stylexProps([stylexStyles2.rule1, sx], { style })
-  attributes.className = cn(attributes.className, dark && 'dark')
+  attributes.className = [attributes.className, dark && 'dark']
+    .filter(Boolean)
+    .join(' ')
   return (
     <ControlStylesProvider styles={viewerBarStyles.required}>
       <IconStylesProvider requiredSx={iconRequired.viewerBar}>

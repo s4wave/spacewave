@@ -51,16 +51,6 @@ const reactSources = [
   'cmd/**/*.{js,mjs,ts,tsx}',
 ]
 
-// shadcnRules keep components on the design system's variants and tokens.
-const shadcnRules = {
-  'shadcn/no-restyle': ['error', { allow: ['layout'] }],
-  'shadcn/no-raw-colors': 'error',
-  'shadcn/no-arbitrary-values': 'error',
-  'shadcn/no-inline-styles': 'error',
-  'shadcn/no-unknown-classes': 'error',
-  'shadcn/require-static-classes': 'error',
-} as const
-
 // reactDoctorRules is the React Doctor recommended preset with every severity
 // raised to error.
 const reactDoctorRules = Object.fromEntries(
@@ -147,32 +137,30 @@ export default defineConfig({
     {
       files: reactSources,
       jsPlugins: [
-        '@shadcn/lint',
+        { name: 'stylex', specifier: '@stylexjs/eslint-plugin' },
+        { name: 'native-style', specifier: './scripts/native-style-lint.mjs' },
         { name: 'react-doctor', specifier: 'oxlint-plugin-react-doctor' },
       ],
       rules: {
         ...reactDoctorRules,
         ...serverRenderRules,
         ...declinedReactDoctorRules,
-        ...shadcnRules,
+        'stylex/valid-styles': ['error', { allowOuterPseudoAndMedia: true }],
+        'stylex/valid-shorthands': 'error',
+        'stylex/no-unused': 'error',
+        'stylex/sort-keys': 'error',
+        'native-style/native-classes': 'error',
       },
     },
     {
       // Test probes capture hook results during render, and layout mocks
       // invoke render callbacks the way the real layout does.
-      files: ['**/*.test.{ts,tsx}'],
+      files: ['**/*.test.{ts,tsx}', '**/*.e2e.{ts,tsx}'],
       rules: {
+        'native-style/native-classes': 'off',
         'react/globals': 'off',
         'react/immutability': 'off',
         'react-doctor/no-prop-callback-in-render': 'off',
-      },
-    },
-    {
-      files: ['web/ui/**'],
-      rules: {
-        'shadcn/no-restyle': 'off',
-        'shadcn/no-arbitrary-values': 'off',
-        'shadcn/require-static-classes': 'off',
       },
     },
   ],

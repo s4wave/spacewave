@@ -13,57 +13,57 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
-    display: 'grid',
     gap: `calc(${themeLayout['--spacing']} * 3)`,
+    display: 'grid',
     gridTemplateColumns: {
       default: null,
       '@container (min-width: 48rem)': 'repeat(2, minmax(0, 1fr))',
     },
   },
   rule2: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
   },
   rule3: {
-    display: 'flex',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
     gap: `calc(${themeLayout['--spacing']} * 3)`,
+    alignItems: 'baseline',
+    display: 'flex',
     fontSize: themeFonts['--text-xs'],
+    justifyContent: 'space-between',
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
   },
   rule4: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    overflow: 'hidden',
+    color: themeColors['--color-foreground'],
+    fontWeight: themeFonts['--font-weight-medium'],
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
-    color: themeColors['--color-foreground'],
   },
   rule5: {
-    flexShrink: 0,
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+    flexShrink: 0,
   },
   rule6: {
-    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
-    fontFamily: themeFonts['--font-mono'],
-    WebkitFontSmoothing: 'subpixel-antialiased',
-    MozOsxFontSmoothing: 'auto',
-    textRendering: 'auto',
-    textShadow: '0 0 0.25px currentColor',
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
     '--tw-numeric-spacing': 'tabular-nums',
+    MozOsxFontSmoothing: 'auto',
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+    fontFamily: themeFonts['--font-mono'],
+    fontSize: themeFonts['--text-xs'],
     fontVariantNumeric:
       'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
   },
   rule7: {
-    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    color: themeColors['--color-destructive'],
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors['--color-destructive'],
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
   },
 })
 
@@ -195,8 +195,8 @@ export function SyncInspector({ sync }: { sync: SessionSyncStatusView }) {
 // edgeSpacing keeps first and last row padding at the row owner.
 const edgeSpacing = stylex.create({
   s2: {
-    paddingTop: { default: 'calc(var(--spacing) * 2)', ':first-child': 0 },
     paddingBottom: { default: 'calc(var(--spacing) * 2)', ':last-child': 0 },
+    paddingTop: { default: 'calc(var(--spacing) * 2)', ':first-child': 0 },
   },
 })
 
@@ -204,9 +204,18 @@ const edgeSpacing = stylex.create({
 const nativeDividers = stylex.create({
   t6: {
     '--tw-divide-y-reverse': { default: null, ':not(:last-child)': 0 },
+    borderColor: {
+      default: null,
+      ':not(:last-child)':
+        'color-mix(in oklab, var(--color-foreground) 6%, transparent)',
+    },
     borderBottomStyle: {
       default: null,
       ':not(:last-child)': themeUtilityState['--tw-border-style'],
+    },
+    borderBottomWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * calc(1 - var(--tw-divide-y-reverse)))',
     },
     borderTopStyle: {
       default: null,
@@ -215,15 +224,6 @@ const nativeDividers = stylex.create({
     borderTopWidth: {
       default: null,
       ':not(:last-child)': 'calc(1px * var(--tw-divide-y-reverse))',
-    },
-    borderBottomWidth: {
-      default: null,
-      ':not(:last-child)': 'calc(1px * calc(1 - var(--tw-divide-y-reverse)))',
-    },
-    borderColor: {
-      default: null,
-      ':not(:last-child)':
-        'color-mix(in oklab, var(--color-foreground) 6%, transparent)',
     },
   },
 })

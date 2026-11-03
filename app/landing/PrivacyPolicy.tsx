@@ -9,8 +9,8 @@ import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 10)`,
     height: `calc(${themeLayout['--spacing']} * 10)`,
+    width: `calc(${themeLayout['--spacing']} * 10)`,
   },
 })
 

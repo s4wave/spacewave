@@ -14,26 +14,26 @@ const stylexStyles2 = stylex.create({
 
 const stylexStyles = stylex.create({
   rule1: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
   },
-  rule2: { display: 'flex', gap: `calc(${themeLayout['--spacing']} * 4)` },
+  rule2: { gap: `calc(${themeLayout['--spacing']} * 4)`, display: 'flex' },
   rule3: {
-    width: `calc(${themeLayout['--spacing']} * 32)`,
-    flexShrink: 0,
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+    flexShrink: 0,
+    width: `calc(${themeLayout['--spacing']} * 32)`,
   },
-  rule4: { minWidth: 0, flex: 1, overflowWrap: 'break-word' },
+  rule4: { flex: 1, overflowWrap: 'break-word', minWidth: 0 },
   rule5: {
-    fontFamily: themeFonts['--font-mono'],
-    WebkitFontSmoothing: 'subpixel-antialiased',
-    MozOsxFontSmoothing: 'auto',
-    textRendering: 'auto',
-    textShadow: '0 0 0.25px currentColor',
     '--tw-numeric-spacing': 'tabular-nums',
+    MozOsxFontSmoothing: 'auto',
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    fontFamily: themeFonts['--font-mono'],
     fontVariantNumeric:
       'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
   },
   rule6: { color: themeColors['--color-destructive'] },
   rule7: { color: themeColors['--color-warning'] },
@@ -102,13 +102,13 @@ export function Facts({
 const nativeChildSpacing = stylex.create({
   s1_5: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
-    marginBlockStart: {
-      default: null,
-      ':not(:last-child)': `calc(var(--spacing) * 1.5 * var(--tw-space-y-reverse))`,
-    },
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 1.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * var(--tw-space-y-reverse))`,
     },
   },
 })

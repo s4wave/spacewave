@@ -10,29 +10,29 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
-    height: '100%',
-    width: '100%',
-    resize: 'none',
     '--tw-border-style': 'none',
+    '--tw-outline-style': 'none',
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
     borderStyle: 'none',
     backgroundColor: '#0000',
-    padding: `calc(${themeLayout['--spacing']} * 2)`,
     fontFamily: themeFonts['--font-display'],
     fontSize: themeFonts['--text-sm'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
-    '--tw-outline-style': 'none',
     outlineStyle: 'none',
-  },
-  rule2: {
+    resize: 'none',
     height: '100%',
     width: '100%',
-    cursor: 'text',
-    overflow: 'auto',
+  },
+  rule2: {
     padding: `calc(${themeLayout['--spacing']} * 2)`,
+    overflow: 'auto',
+    cursor: 'text',
     fontFamily: themeFonts['--font-display'],
     fontSize: themeFonts['--text-sm'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     whiteSpace: 'pre-wrap',
+    height: '100%',
+    width: '100%',
   },
 })
 

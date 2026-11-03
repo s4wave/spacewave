@@ -13,13 +13,13 @@ import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
 const stylexStyles = stylex.create({
-  rule1: { flexShrink: 0, padding: `calc(${themeLayout['--spacing']} * 3)` },
+  rule1: { padding: `calc(${themeLayout['--spacing']} * 3)`, flexShrink: 0, },
   rule2: {
-    display: 'flex',
-    minHeight: 0,
     flex: 1,
-    flexDirection: 'column',
     backgroundColor: 'var(--color-black)',
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: 0,
   },
 })
 

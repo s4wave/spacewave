@@ -1,3 +1,4 @@
+import { keyframeNames } from '../style/tokens.stylex.js'
 import { stylexProps } from '@s4wave/web/style/props.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
@@ -32,20 +33,17 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
-    animationName: 'spin',
-    animationDuration: '1s',
-    animationTimingFunction: 'linear',
-    animationIterationCount: 'infinite',
-    animationDirection: 'normal',
-    animationPlayState: 'running',
     animationDelay: '0s',
+    animationDirection: 'normal',
+    animationDuration: '1s',
     animationFillMode: 'none',
+    animationIterationCount: 'infinite',
+    animationName: keyframeNames['spin'],
+    animationPlayState: 'running',
     animationTimeline: 'auto',
+    animationTimingFunction: 'linear',
   },
   rule2: {
-    flexShrink: 0,
-    fontSize: themeFonts['--text-sm'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     color: {
       default: themeColors['--color-muted-foreground'],
       '@media (hover: hover)': {
@@ -53,45 +51,48 @@ const stylexStyles = stylex.create({
         ':hover': themeColors['--color-foreground'],
       },
     },
-    textUnderlineOffset: '4px',
+    flexShrink: 0,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     textDecorationLine: {
       default: null,
       '@media (hover: hover)': { default: null, ':hover': 'underline' },
     },
+    textUnderlineOffset: '4px',
   },
   rule3: {
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
     display: 'flex',
     flexWrap: 'wrap',
-    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
   },
   rule4: {
-    fontFamily: themeFonts['--font-mono'],
-    WebkitFontSmoothing: 'subpixel-antialiased',
     MozOsxFontSmoothing: 'auto',
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    fontFamily: themeFonts['--font-mono'],
     textRendering: 'auto',
     textShadow: '0 0 0.25px currentColor',
   },
   rule5: {
-    clipPath: 'inset(50%)',
-    whiteSpace: 'nowrap',
-    borderWidth: 0,
-    width: '1px',
-    height: '1px',
     margin: '-1px',
     padding: 0,
-    position: 'absolute',
+    borderWidth: 0,
     overflow: 'hidden',
+    clipPath: 'inset(50%)',
+    position: 'absolute',
+    whiteSpace: 'nowrap',
+    height: '1px',
+    width: '1px',
   },
   rule6: {
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
     display: 'flex',
     minWidth: 0,
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
   },
   rule7: {
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
     display: 'flex',
     flexDirection: 'column',
-    gap: `calc(${themeLayout['--spacing']} * 3)`,
   },
 })
 

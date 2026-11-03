@@ -14,7 +14,7 @@ import { page } from 'vitest/browser'
 import { cleanup } from 'vitest-browser-react'
 
 // Import app CSS so individual e2e test files don't need to
-import '@s4wave/web/style/app.css'
+import '@s4wave/web/style/app.js'
 
 // Force dark mode for consistent test rendering
 document.documentElement.classList.add('dark')

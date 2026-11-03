@@ -1,0 +1,92 @@
+diff --git a/lib/reference/cssProperties.js b/lib/reference/cssProperties.js
+index ec58ca213de964c64588c4063badd993100ebf9d..d3bd6a4ee8e40f9063b7f95b376666ff020fa93b 100644
+--- a/lib/reference/cssProperties.js
++++ b/lib/reference/cssProperties.js
+@@ -447,14 +447,19 @@ const voiceStress = (0, _makeUnionRule.default)((0, _makeLiteralRule.default)('n
+ const voiceVolume = (0, _makeUnionRule.default)((0, _makeLiteralRule.default)('silent'), _isString.default);
+ const maskImage = maskReference;
+ const SupportedVendorSpecificCSSProperties = {
+-  MozOsxFontSmoothing: (0, _makeLiteralRule.default)('grayscale'),
+-  WebkitFontSmoothing: (0, _makeLiteralRule.default)('antialiased'),
++  MozOsxFontSmoothing: (0, _makeUnionRule.default)('grayscale', 'auto'),
++  WebkitFontSmoothing: (0, _makeUnionRule.default)('antialiased', 'subpixel-antialiased', 'auto', 'none'),
+   WebkitAppearance: appearance,
+   WebkitTapHighlightColor: color,
+   WebkitOverflowScrolling: (0, _makeLiteralRule.default)('touch'),
+   WebkitBoxOrient: (0, _makeUnionRule.default)('horizontal', 'vertical', 'inline-axis', 'block-axis'),
+   WebkitLineClamp: isStringOrNumber,
+   WebkitMaskImage: maskImage,
++  WebkitMask: maskLayer,
++  WebkitMaskComposite: (0, _makeUnionRule.default)('clear', 'copy', 'source-over', 'source-in', 'source-out', 'source-atop', 'destination-over', 'destination-in', 'destination-out', 'destination-atop', 'xor', 'plus-darker', 'plus-lighter'),
++  WebkitUserSelect: userSelect,
++  WebkitBackdropFilter: backdropFilter,
++  dynamicRangeLimit: (0, _makeUnionRule.default)('standard', 'constrained', 'no-limit', _isCSSVariable.default),
+   WebkitTextFillColor: color,
+   textFillColor: color,
+   WebkitTextStrokeWidth: borderWidth,
+@@ -534,12 +539,12 @@ const CSSProperties = exports.CSSProperties = {
+   backdropFilter: backdropFilter,
+   backfaceVisibility: backfaceVisibility,
+   background: _isString.default,
+-  backgroundAttachment: backgroundAttachment,
++  backgroundAttachment: (0, _makeUnionRule.default)(backgroundAttachment, (0, _makeRegExRule.default)(/^(?:scroll|fixed|local)(?:,\s*(?:scroll|fixed|local))+$/, 'a comma-separated background layer list')),
+   backgroundBlendMode: backgroundBlendMode,
+-  backgroundClip: backgroundClip,
++  backgroundClip: (0, _makeUnionRule.default)(backgroundClip, (0, _makeRegExRule.default)(/^(?:border-box|padding-box|content-box|text)(?:,\s*(?:border-box|padding-box|content-box|text))+$/, 'a comma-separated background layer list')),
+   backgroundColor: backgroundColor,
+   backgroundImage: backgroundImage,
+-  backgroundOrigin: backgroundOrigin,
++  backgroundOrigin: (0, _makeUnionRule.default)(backgroundOrigin, (0, _makeRegExRule.default)(/^(?:border-box|padding-box|content-box)(?:,\s*(?:border-box|padding-box|content-box))+$/, 'a comma-separated background layer list')),
+   backgroundPosition: backgroundPosition,
+   backgroundPositionX: backgroundPositionX,
+   backgroundPositionY: backgroundPositionY,
+@@ -671,7 +676,7 @@ const CSSProperties = exports.CSSProperties = {
+   dominantBaseline: dominantBaseline,
+   emptyCells: emptyCells,
+   filter: filter,
+-  flex: _isString.default,
++  flex: isStringOrNumber,
+   flexBasis: flexBasis,
+   flexDirection: flexDirection,
+   flexFlow: flexFlow,
+@@ -987,7 +992,7 @@ const CSSProperties = exports.CSSProperties = {
+   wordSpacing: wordSpacing,
+   wordWrap: wordWrap,
+   writingMode: writingMode,
+-  zIndex: zIndex,
++  zIndex: (0, _makeUnionRule.default)(zIndex, _isCSSVariable.default),
+   zoom: (0, _makeUnionRule.default)('normal', 'reset', _isNumber.default, _isPercentage.default)
+ };
+ const CSSPropertyKeys = exports.CSSPropertyKeys = Object.keys(CSSProperties);
+@@ -1008,5 +1013,5 @@ const CSSPropertyReplacements = exports.CSSPropertyReplacements = {
+   borderLeft: border('Left')
+ };
+ const pseudoElements = exports.pseudoElements = (0, _makeUnionRule.default)((0, _makeLiteralRule.default)('::before'), (0, _makeLiteralRule.default)('::after'), (0, _makeLiteralRule.default)('::first-letter'), (0, _makeLiteralRule.default)('::first-line'), (0, _makeLiteralRule.default)('::selection'), (0, _makeLiteralRule.default)('::backdrop'), (0, _makeLiteralRule.default)('::marker'), (0, _makeLiteralRule.default)('::placeholder'), (0, _makeLiteralRule.default)('::spelling-error'), (0, _makeLiteralRule.default)('::grammar-error'), (0, _makeLiteralRule.default)('::cue'), (0, _makeLiteralRule.default)('::cue-region'), (0, _makeLiteralRule.default)('::file-selector-button'), (0, _makeLiteralRule.default)('::target-text'), (0, _makeLiteralRule.default)('::slotted'), (0, _makeLiteralRule.default)('::part'), (0, _makeLiteralRule.default)('::thumb'), (0, _makeLiteralRule.default)('::-webkit-inner-spin-button'), (0, _makeLiteralRule.default)('::-webkit-outer-spin-button'), (0, _makeLiteralRule.default)('::-webkit-search-decoration'), (0, _makeLiteralRule.default)('::-webkit-search-cancel-button'), (0, _makeLiteralRule.default)('::-webkit-search-results-button'), (0, _makeLiteralRule.default)('::-webkit-search-results-decoration'), (0, _makeLiteralRule.default)('::-webkit-scrollbar'), (0, _makeLiteralRule.default)('::-webkit-scrollbar-button'), (0, _makeLiteralRule.default)('::-webkit-scrollbar-thumb'), (0, _makeLiteralRule.default)('::-webkit-scrollbar-track'), (0, _makeLiteralRule.default)('::-webkit-scrollbar-track-piece'), (0, _makeLiteralRule.default)('::-webkit-scrollbar-corner'), (0, _makeLiteralRule.default)('::-webkit-resizer'), (0, _makeLiteralRule.default)('::-webkit-slider-thumb'), (0, _makeLiteralRule.default)('::-webkit-slider-runnable-track'), (0, _makeLiteralRule.default)('::-moz-range-thumb'), (0, _makeLiteralRule.default)('::-moz-range-track'), (0, _makeLiteralRule.default)('::-moz-range-progress'));
+-const pseudoClassesAndAtRules = exports.pseudoClassesAndAtRules = (0, _makeUnionRule.default)((0, _makeLiteralRule.default)(':first-child'), (0, _makeLiteralRule.default)(':last-child'), (0, _makeLiteralRule.default)(':only-child'), (0, _makeLiteralRule.default)(':nth-child'), (0, _makeLiteralRule.default)(':nth-of-type'), (0, _makeLiteralRule.default)(':empty'), (0, _makeLiteralRule.default)(':hover'), (0, _makeLiteralRule.default)(':focus'), (0, _makeLiteralRule.default)(':focus-visible'), (0, _makeLiteralRule.default)(':focus-within'), (0, _makeLiteralRule.default)(':active'), (0, _makeLiteralRule.default)(':visited'), (0, _makeLiteralRule.default)(':disabled'), (0, _makeRegExRule.default)(/^@media/, 'a media query'), (0, _makeRegExRule.default)(/^@container/, 'a media query'), (0, _makeRegExRule.default)(/^@supports/, 'a supports query'), (0, _makeLiteralRule.default)('@starting-style'));
++const pseudoClassesAndAtRules = exports.pseudoClassesAndAtRules = (0, _makeUnionRule.default)((0, _makeRegExRule.default)(/^:(?:is|where|not|has|nth-child|nth-last-child|nth-of-type|nth-last-of-type)\([\s\S]+\)$/, 'a functional pseudo-class'), (0, _makeLiteralRule.default)(':first-child'), (0, _makeLiteralRule.default)(':last-child'), (0, _makeLiteralRule.default)(':only-child'), (0, _makeLiteralRule.default)(':nth-child'), (0, _makeLiteralRule.default)(':nth-of-type'), (0, _makeLiteralRule.default)(':empty'), (0, _makeLiteralRule.default)(':hover'), (0, _makeLiteralRule.default)(':focus'), (0, _makeLiteralRule.default)(':focus-visible'), (0, _makeLiteralRule.default)(':focus-within'), (0, _makeLiteralRule.default)(':active'), (0, _makeLiteralRule.default)(':visited'), (0, _makeLiteralRule.default)(':disabled'), (0, _makeRegExRule.default)(/^@media/, 'a media query'), (0, _makeRegExRule.default)(/^@container/, 'a media query'), (0, _makeRegExRule.default)(/^@supports/, 'a supports query'), (0, _makeLiteralRule.default)('@starting-style'));
+ const allModifiers = exports.allModifiers = (0, _makeUnionRule.default)(pseudoElements, pseudoClassesAndAtRules);
+\ No newline at end of file
+diff --git a/lib/stylex-valid-styles.js b/lib/stylex-valid-styles.js
+index 69fcee425dce2656f14fcd52e44088181c947e62..2391b7997237e1350c3d36e54ab0dbf6bd5f95c1 100644
+--- a/lib/stylex-valid-styles.js
++++ b/lib/stylex-valid-styles.js
+@@ -253,7 +253,7 @@ const stylexValidStyles = {
+     };
+     const CSSPropertiesWithOverrides = {
+       ..._cssProperties.CSSProperties,
+-      animationName: (0, _makeUnionRule.default)((0, _makeLiteralRule.default)('none'), (0, _isAnimationName.default)(styleXDefaultImports, styleXKeyframesImports), _cssProperties.all),
++      animationName: (0, _makeUnionRule.default)((0, _makeLiteralRule.default)('none'), _isCSSVariable.default, (0, _isAnimationName.default)(styleXDefaultImports, styleXKeyframesImports), _cssProperties.all),
+       positionTryFallbacks: (0, _makeUnionRule.default)((0, _makeLiteralRule.default)('none'), _isCSSVariable.default, (0, _isPositionTryFallbacks.default)(styleXDefaultImports, styleXPositionTryImports), _cssProperties.all)
+     };
+     const getOverrideErrorRule = (reason, propertyKey) => shorthandExpansionMap[propertyKey] != null && shouldEnableLegacyConditionalShorthandFixer(propertyKey) ? showErrorWithFix(reason, propertyKey) : showError(reason);
+@@ -378,6 +378,10 @@ const stylexValidStyles = {
+               message: 'Private properties are not allowed in stylex'
+             });
+           }
++          // A when key can contain another condition, just as its leaf form can.
++          if (style.computed && key.type === 'CallExpression' && key.callee.type === 'MemberExpression' && key.callee.object.type === 'MemberExpression' && key.callee.object.object.type === 'Identifier' && styleXDefaultImports.has(key.callee.object.object.name) && key.callee.object.property.name === 'when') {
++            return styleValue.properties.forEach(prop => checkStyleProperty(prop, level + 1, propName, outerIsPseudoElement));
++          }
+           const keyName = key.type === 'Literal' ? key.value : key.type === 'Identifier' ? !style.computed ? key.name : (0, _resolveKey.default)(key, variables) : null;
+           if ((0, _isStylexResolvedVarsToken.default)(key, stylexResolvedVarsTokenImports)) {
+             return undefined;

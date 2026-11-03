@@ -12,7 +12,7 @@ import {
 import { ObjectViewerContent } from '@s4wave/web/object/ObjectViewerContent.js'
 import type { ObjectViewerComponent } from '@s4wave/web/object/object.js'
 import type { ObjectInfo } from '@s4wave/web/object/object.pb.js'
-import '@s4wave/web/style/app.css'
+import '@s4wave/web/style/app.js'
 
 declare global {
   interface Window {

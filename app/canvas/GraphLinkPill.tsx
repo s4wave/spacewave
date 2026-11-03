@@ -20,39 +20,33 @@ import {
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    borderRadius: '.25rem',
     borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
-    paddingInline: themeLayout['--spacing'],
+    borderRadius: '.25rem',
     paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    paddingInline: themeLayout['--spacing'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
   },
   rule2: {
-    borderRadius: '.25rem',
     borderColor: `color-mix(in oklab, ${themeColors['--color-warning']} 20%, transparent)`,
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-warning']} 10%, transparent)`,
-    paddingInline: themeLayout['--spacing'],
+    borderRadius: '.25rem',
     paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    paddingInline: themeLayout['--spacing'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-warning']} 10%, transparent)`,
     color: themeColors['--color-warning'],
   },
   rule3: {
+    alignItems: 'center',
     display: 'flex',
     height: `calc(${themeLayout['--spacing']} * 6.5)`,
     maxWidth: `calc(${themeLayout['--spacing']} * 64)`,
-    alignItems: 'center',
   },
   rule4: {
-    display: 'flex',
-    height: `calc(${themeLayout['--spacing']} * 6.5)`,
-    minWidth: 0,
-    alignItems: 'center',
-    gap: themeLayout['--spacing'],
-    borderTopLeftRadius: themeRadii['--radius-md'],
-    borderBottomLeftRadius: themeRadii['--radius-md'],
-    borderStyle: themeUtilityState['--tw-border-style'],
-    borderWidth: '1px',
-    borderRightStyle: themeUtilityState['--tw-border-style'],
-    borderRightWidth: 0,
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    '--tw-shadow':
+      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
     borderColor: {
       default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
       '@media (hover: hover)': {
@@ -60,62 +54,68 @@ const stylexStyles2 = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
       },
     },
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
-    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    gap: themeLayout['--spacing'],
     paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
-    fontSize: '.6rem',
-    lineHeight: 1.5,
-    color: themeColors['--color-foreground'],
-    '--tw-shadow':
-      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
-    boxShadow:
-      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
-    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
-    WebkitBackdropFilter:
-      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    alignItems: 'center',
     backdropFilter:
       'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    color: themeColors['--color-foreground'],
+    display: 'flex',
+    fontSize: '.6rem',
+    lineHeight: 1.5,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
+    borderBottomLeftRadius: themeRadii['--radius-md'],
+    borderRightStyle: themeUtilityState['--tw-border-style'],
+    borderRightWidth: 0,
+    borderTopLeftRadius: themeRadii['--radius-md'],
+    height: `calc(${themeLayout['--spacing']} * 6.5)`,
+    minWidth: 0,
   },
   rule5: {
     '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
     color: `color-mix(in oklab, ${themeColors['--color-brand']} 60%, transparent)`,
+    fontWeight: themeFonts['--font-weight-medium'],
   },
   rule6: {
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 30%, transparent)`,
   },
   rule7: {
-    maxWidth: `calc(${themeLayout['--spacing']} * 24)`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    overflow: 'hidden',
+    fontWeight: themeFonts['--font-weight-medium'],
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
+    maxWidth: `calc(${themeLayout['--spacing']} * 24)`,
   },
   rule8: {
-    maxWidth: `calc(${themeLayout['--spacing']} * 20)`,
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
     overflow: 'hidden',
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    maxWidth: `calc(${themeLayout['--spacing']} * 20)`,
   },
   rule9: {
-    marginLeft: 'auto',
-    display: 'flex',
-    alignItems: 'center',
     gap: themeLayout['--spacing'],
+    alignItems: 'center',
+    display: 'flex',
+    marginLeft: 'auto',
   },
   rule10: {
-    display: 'flex',
-    height: `calc(${themeLayout['--spacing']} * 6.5)`,
-    alignItems: 'center',
-    borderStyle: themeUtilityState['--tw-border-style'],
-    borderWidth: '1px',
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    '--tw-shadow':
+      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
     borderColor: {
       default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
       '@media (hover: hover)': {
@@ -123,41 +123,39 @@ const stylexStyles2 = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
       },
     },
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
-    paddingInline: themeLayout['--spacing'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
     paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
-    color: themeColors['--color-foreground'],
-    '--tw-shadow':
-      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
-    boxShadow:
-      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
-    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
-    WebkitBackdropFilter:
-      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    paddingInline: themeLayout['--spacing'],
+    alignItems: 'center',
     backdropFilter:
       'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    color: themeColors['--color-foreground'],
+    display: 'flex',
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
+    height: `calc(${themeLayout['--spacing']} * 6.5)`,
   },
   rule11: {
     borderRightStyle: themeUtilityState['--tw-border-style'],
     borderRightWidth: 0,
   },
   rule12: {
-    borderTopRightRadius: themeRadii['--radius-md'],
     borderBottomRightRadius: themeRadii['--radius-md'],
+    borderTopRightRadius: themeRadii['--radius-md'],
   },
   rule13: {
-    display: 'flex',
-    height: `calc(${themeLayout['--spacing']} * 6.5)`,
-    alignItems: 'center',
-    borderTopRightRadius: themeRadii['--radius-md'],
-    borderBottomRightRadius: themeRadii['--radius-md'],
-    borderStyle: themeUtilityState['--tw-border-style'],
-    borderWidth: '1px',
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    '--tw-shadow':
+      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
     borderColor: {
       default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
       '@media (hover: hover)': {
@@ -165,6 +163,13 @@ const stylexStyles2 = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
       },
     },
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    paddingInline: themeLayout['--spacing'],
+    alignItems: 'center',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
     backgroundColor: {
       default: `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
       '@media (hover: hover)': {
@@ -172,30 +177,25 @@ const stylexStyles2 = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
       },
     },
-    paddingInline: themeLayout['--spacing'],
-    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
-    color: themeColors['--color-destructive'],
-    '--tw-shadow':
-      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
     boxShadow:
       'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
-    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
-    WebkitBackdropFilter:
-      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
-    backdropFilter:
-      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    color: themeColors['--color-destructive'],
+    display: 'flex',
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
+    borderBottomRightRadius: themeRadii['--radius-md'],
+    borderTopRightRadius: themeRadii['--radius-md'],
+    height: `calc(${themeLayout['--spacing']} * 6.5)`,
   },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 3)`,
     height: `calc(${themeLayout['--spacing']} * 3)`,
+    width: `calc(${themeLayout['--spacing']} * 3)`,
   },
 })
 

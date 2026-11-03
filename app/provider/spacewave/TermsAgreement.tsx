@@ -9,26 +9,26 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
-    display: 'flex',
-    cursor: 'pointer',
-    alignItems: 'flex-start',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
     WebkitUserSelect: 'none',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'flex-start',
+    cursor: 'pointer',
+    display: 'flex',
     userSelect: 'none',
   },
   rule2: {
-    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
-    width: `calc(${themeLayout['--spacing']} * 4)`,
-    height: `calc(${themeLayout['--spacing']} * 4)`,
-    flexShrink: 0,
     borderRadius: '.25rem',
     accentColor: themeColors['--color-brand'],
+    flexShrink: 0,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
   },
   rule3: {
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: 'var(--leading-relaxed)',
     '--tw-leading': 'var(--leading-relaxed)',
     color: themeColors['--color-foreground-alt'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
   },
   rule4: {
     color: themeColors['--color-brand'],

@@ -1,4 +1,4 @@
-/** stylexLayersBefore keeps the reset and transitional Tailwind layers below StyleX. */
+/** stylexLayersBefore keeps the reset and opaque skin layers below StyleX. */
 export const stylexLayersBefore = [
   'reset',
   'theme',

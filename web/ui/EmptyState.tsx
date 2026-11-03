@@ -14,71 +14,71 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
+    alignItems: 'center',
     display: 'flex',
     flexDirection: 'column',
-    alignItems: 'center',
     justifyContent: 'center',
     textAlign: 'center',
   },
   rule2: { padding: `calc(${themeLayout['--spacing']} * 4)` },
   rule3: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
     borderRadius: themeRadii['--radius-md'],
     borderStyle: 'solid',
     borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
   },
   rule4: { padding: `calc(${themeLayout['--spacing']} * 8)` },
   rule5: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
     borderRadius: '3.40282e38px',
+    alignItems: 'center',
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-muted']} 50%, transparent)`,
+    display: 'flex',
+    justifyContent: 'center',
   },
   rule6: {
-    width: `calc(${themeLayout['--spacing']} * 10)`,
     height: `calc(${themeLayout['--spacing']} * 10)`,
+    width: `calc(${themeLayout['--spacing']} * 10)`,
   },
   rule7: {
-    width: `calc(${themeLayout['--spacing']} * 14)`,
     height: `calc(${themeLayout['--spacing']} * 14)`,
+    width: `calc(${themeLayout['--spacing']} * 14)`,
   },
   rule8: { color: themeColors['--color-foreground-alt'] },
   rule9: {
-    width: `calc(${themeLayout['--spacing']} * 5)`,
     height: `calc(${themeLayout['--spacing']} * 5)`,
+    width: `calc(${themeLayout['--spacing']} * 5)`,
   },
   rule10: {
-    width: `calc(${themeLayout['--spacing']} * 7)`,
     height: `calc(${themeLayout['--spacing']} * 7)`,
+    width: `calc(${themeLayout['--spacing']} * 7)`,
   },
   rule11: {
     '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
     color: themeColors['--color-foreground'],
+    fontWeight: themeFonts['--font-weight-medium'],
   },
   rule12: {
-    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
     fontSize: themeFonts['--text-sm'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
   },
   rule13: {
-    marginTop: `calc(${themeLayout['--spacing']} * 4)`,
     fontSize: 'var(--text-base)',
     lineHeight: 'var(--tw-leading, var(--text-base--line-height))',
+    marginTop: `calc(${themeLayout['--spacing']} * 4)`,
   },
   rule14: {
-    marginTop: themeLayout['--spacing'],
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    marginTop: themeLayout['--spacing'],
   },
   rule15: { marginTop: `calc(${themeLayout['--spacing']} * 3)` },
   rule16: { marginTop: `calc(${themeLayout['--spacing']} * 4)` },
   rule17: {
+    height: `calc(${themeLayout['--spacing']} * 4)`,
     marginRight: `calc(${themeLayout['--spacing']} * 1.5)`,
     width: `calc(${themeLayout['--spacing']} * 4)`,
-    height: `calc(${themeLayout['--spacing']} * 4)`,
   },
 })
 

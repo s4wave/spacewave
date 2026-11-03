@@ -10,20 +10,9 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
-    display: 'flex',
-    height: `calc(${themeLayout['--spacing']} * 5)`,
-    alignItems: 'center',
-    justifyContent: 'center',
     borderRadius: themeRadii['--radius-menu-button'],
     paddingInline: '4px',
-    fontSize: themeLayout['--text-topbar-menu'],
-    whiteSpace: 'nowrap',
-    transitionProperty:
-      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
-    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
-    textShadow: themeLayout['--text-shadow-glow'],
+    alignItems: 'center',
     backgroundColor: {
       default: null,
       '@media (hover: hover)': {
@@ -38,6 +27,17 @@ const stylexStyles = stylex.create({
         ':hover': themeColors['--color-topbar-button-text-hi'],
       },
     },
+    display: 'flex',
+    fontSize: themeLayout['--text-topbar-menu'],
+    justifyContent: 'center',
+    textShadow: themeLayout['--text-shadow-glow'],
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    whiteSpace: 'nowrap',
+    height: `calc(${themeLayout['--spacing']} * 5)`,
   },
 })
 

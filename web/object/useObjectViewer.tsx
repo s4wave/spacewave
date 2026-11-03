@@ -48,25 +48,25 @@ import * as stylex from '@stylexjs/stylex'
 const stylexStyles = stylex.create({
   rule1: {
     marginInline: `calc(${themeLayout['--spacing']} * 2)`,
+    backgroundColor: themeColors['--color-border'],
     height: `calc(${themeLayout['--spacing']} * 3)`,
     width: '1px',
-    backgroundColor: themeColors['--color-border'],
   },
   rule2: {
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
     overflow: 'hidden',
+    color: themeColors['--color-muted-foreground'],
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors['--color-muted-foreground'],
-  },
-  rule3: { display: 'flex', minWidth: 0, alignItems: 'center' },
-  rule4: {
-    flexShrink: 1,
-    flexGrow: 1,
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
+  },
+  rule3: { alignItems: 'center', display: 'flex', minWidth: 0 },
+  rule4: {
     overflow: 'hidden',
+    flexGrow: 1,
+    flexShrink: 1,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
   },
 })
 

@@ -37,20 +37,17 @@ const stylexStyles2 = stylex.create({
     },
   },
   rule2: {
+    gap: themeLayout['--spacing'],
     display: 'flex',
     flexDirection: 'column',
-    gap: themeLayout['--spacing'],
   },
   rule3: { position: 'relative' },
   rule4: {
-    height: {
-      default: `calc(${themeLayout['--spacing']} * 11)`,
-      '@media (min-width: 48rem)': {
-        default: null,
-        '@media (pointer: fine)': 'auto',
-      },
-    },
-    width: '100%',
+    borderColor: themeColors['--color-border'],
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    paddingBlock: themeLayout['--spacing'],
     appearance: {
       default: 'none',
       '@media (min-width: 48rem)': {
@@ -58,12 +55,15 @@ const stylexStyles2 = stylex.create({
         '@media (pointer: fine)': 'auto',
       },
     },
-    borderRadius: '.25rem',
-    borderStyle: themeUtilityState['--tw-border-style'],
-    borderWidth: '1px',
-    borderColor: themeColors['--color-border'],
     backgroundColor: themeColors['--color-background-primary'],
-    paddingBlock: themeLayout['--spacing'],
+    height: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 'auto',
+      },
+    },
+    paddingLeft: themeLayout['--spacing'],
     paddingRight: {
       default: `calc(${themeLayout['--spacing']} * 6)`,
       '@media (min-width: 48rem)': {
@@ -71,23 +71,27 @@ const stylexStyles2 = stylex.create({
         '@media (pointer: fine)': themeLayout['--spacing'],
       },
     },
-    paddingLeft: themeLayout['--spacing'],
+    width: '100%',
   },
   rule5: {
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
     display: 'flex',
     flexWrap: 'wrap',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
   },
   rule6: {
-    borderBottomStyle: themeUtilityState['--tw-border-style'],
-    borderBottomWidth: '1px',
-    borderColor: themeColors['--color-border'],
     padding: `calc(${themeLayout['--spacing']} * 2)`,
+    borderColor: themeColors['--color-border'],
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
   },
   rule7: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    alignItems: 'center',
+    cursor: 'pointer',
     display: 'flex',
+    fontWeight: themeFonts['--font-weight-medium'],
     minHeight: {
       default: `calc(${themeLayout['--spacing']} * 11)`,
       '@media (min-width: 48rem)': {
@@ -95,30 +99,19 @@ const stylexStyles2 = stylex.create({
         '@media (pointer: fine)': 0,
       },
     },
-    cursor: 'pointer',
-    alignItems: 'center',
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
   },
   rule8: {
-    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
     display: 'flex',
     flexDirection: 'column',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
   },
   rule9: { color: themeColors['--color-muted-foreground'] },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
-    pointerEvents: 'none',
-    position: 'absolute',
-    top: '50%',
-    right: themeLayout['--spacing'],
-    width: `calc(${themeLayout['--spacing']} * 3)`,
-    height: `calc(${themeLayout['--spacing']} * 3)`,
     '--tw-translate-y': 'calc(calc(1 / 2 * 100%) * -1)',
-    translate: 'var(--tw-translate-x) var(--tw-translate-y)',
     display: {
       default: null,
       '@media (min-width: 48rem)': {
@@ -126,6 +119,13 @@ const stylexStyles = stylex.create({
         '@media (pointer: fine)': 'none',
       },
     },
+    pointerEvents: 'none',
+    position: 'absolute',
+    translate: 'var(--tw-translate-x) var(--tw-translate-y)',
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    right: themeLayout['--spacing'],
+    top: '50%',
+    width: `calc(${themeLayout['--spacing']} * 3)`,
   },
 })
 

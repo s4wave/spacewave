@@ -11,18 +11,18 @@ import {
 } from '../style/tokens.stylex.js'
 const styles = stylex.create({
   header: {
-    height: 'var(--panel-header-height)',
+    borderColor: themeColors['--color-ui-outline'],
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
     display: 'flex',
     flexShrink: 0,
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeLayout['--text-ui'],
+    letterSpacing: `var(--tw-tracking, ${themeLayout['--text-ui--letter-spacing']})`,
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-ui--line-height']})`,
     borderBottomStyle: themeUtilityState['--tw-border-style'],
     borderBottomWidth: '1px',
-    borderColor: themeColors['--color-ui-outline'],
-    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
-    fontSize: themeLayout['--text-ui'],
-    lineHeight: `var(--tw-leading, ${themeLayout['--text-ui--line-height']})`,
-    letterSpacing: `var(--tw-tracking, ${themeLayout['--text-ui--letter-spacing']})`,
+    height: 'var(--panel-header-height)',
   },
   touchSelector: {
     minHeight: {
@@ -38,37 +38,12 @@ const styles = stylex.create({
     backgroundColor: themeColors['--color-panel-header'],
   },
   button: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: '.25rem',
-    padding: `calc(${themeLayout['--spacing']} * .5)`,
-    transitionProperty:
-      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
-    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
-    '--tw-outline-style': 'none',
-    '--focus-outline-width': '2px',
     '--focus-outline-color': themeColors['--color-brand'],
-    outlineStyle: {
-      default: 'none',
-      ':focus-visible': 'solid',
-      '@media (forced-colors: active)': 'solid',
-    },
-    outlineColor: {
-      default: null,
-      '@media (forced-colors: active)': 'transparent',
-    },
-    outlineWidth: {
-      default: null,
-      '@media (forced-colors: active)': 'var(--focus-outline-width)',
-    },
-    outlineOffset: {
-      default: null,
-      ':focus-visible': '2px',
-      '@media (forced-colors: active)': '2px',
-    },
+    '--focus-outline-width': '2px',
+    '--tw-outline-style': 'none',
+    padding: `calc(${themeLayout['--spacing']} * .5)`,
+    borderRadius: '.25rem',
+    alignItems: 'center',
     backgroundColor: {
       default: null,
       '@media (hover: hover)': {
@@ -76,23 +51,48 @@ const styles = stylex.create({
         ':hover': themeColors['--color-pulldown-hover'],
       },
     },
+    display: 'flex',
+    justifyContent: 'center',
+    outlineColor: {
+      default: null,
+      '@media (forced-colors: active)': 'transparent',
+    },
+    outlineOffset: {
+      default: null,
+      ':focus-visible': '2px',
+      '@media (forced-colors: active)': '2px',
+    },
+    outlineStyle: {
+      default: 'none',
+      ':focus-visible': 'solid',
+      '@media (forced-colors: active)': 'solid',
+    },
+    outlineWidth: {
+      default: null,
+      '@media (forced-colors: active)': 'var(--focus-outline-width)',
+    },
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
   },
   viewerSelector: {
-    cursor: 'pointer',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
     overflow: 'hidden',
+    color: themeColors['--color-muted-foreground'],
+    cursor: 'pointer',
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors['--color-muted-foreground'],
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
   },
   viewerName: {
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
     overflow: 'hidden',
+    color: themeColors['--color-muted-foreground'],
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors['--color-muted-foreground'],
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
   },
 })
 

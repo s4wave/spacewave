@@ -13,7 +13,18 @@ import {
 
 const styles = stylex.create({
   base: {
+    '--tw-duration': '.15s',
+    WebkitUserSelect: 'none',
+    borderRadius: themeRadii['--radius-menu-button'],
+    gap: themeLayout['--spacing'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
     display: 'flex',
+    transitionDuration: '.15s',
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    userSelect: 'none',
+    whiteSpace: { default: 'normal', '@media (min-width: 40rem)': 'nowrap' },
     height: `calc(${themeLayout['--spacing']} * 7)`,
     minHeight: {
       default: `calc(${themeLayout['--spacing']} * 11)`,
@@ -23,22 +34,9 @@ const styles = stylex.create({
       default: `calc(${themeLayout['--spacing']} * 11)`,
       '@media (pointer: fine)': 0,
     },
-    alignItems: 'center',
-    gap: themeLayout['--spacing'],
-    borderRadius: themeRadii['--radius-menu-button'],
-    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
-    whiteSpace: { default: 'normal', '@media (min-width: 40rem)': 'nowrap' },
-    transitionProperty: 'all',
-    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration: '.15s',
-    '--tw-duration': '.15s',
-    WebkitUserSelect: 'none',
-    userSelect: 'none',
   },
   plain: {},
   primary: {
-    borderStyle: themeUtilityState['--tw-border-style'],
-    borderWidth: '1px',
     borderColor: {
       default: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
       '@media (hover: hover)': {
@@ -46,6 +44,8 @@ const styles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
       },
     },
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
     backgroundColor: {
       default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
       '@media (hover: hover)': {
@@ -59,18 +59,18 @@ const styles = stylex.create({
     },
   },
   destructive: {
-    color: {
-      default: themeColors['--color-destructive'],
-      '@media (hover: hover)': {
-        default: null,
-        ':hover': themeColors['--color-destructive'],
-      },
-    },
     backgroundColor: {
       default: themeColors['--color-background'],
       '@media (hover: hover)': {
         default: null,
         ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+      },
+    },
+    color: {
+      default: themeColors['--color-destructive'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-destructive'],
       },
     },
   },

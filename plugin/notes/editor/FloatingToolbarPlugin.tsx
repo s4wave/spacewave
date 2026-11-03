@@ -22,30 +22,29 @@ import {
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    top: 'var(--floating-toolbar-top)',
-    left: 'var(--floating-toolbar-left)',
-    transform: 'translateX(-50%)',
-    position: 'absolute',
-    zIndex: 50,
-    display: 'flex',
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * .5)`,
+    '--tw-shadow':
+      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
+    padding: themeLayout['--spacing'],
+    borderColor: themeColors['--color-border'],
     borderRadius: themeRadii['--radius-lg'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: themeColors['--color-border'],
+    gap: `calc(${themeLayout['--spacing']} * .5)`,
+    alignItems: 'center',
     backgroundColor: themeColors['--color-popover'],
-    padding: themeLayout['--spacing'],
-    '--tw-shadow':
-      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
     boxShadow:
       'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    display: 'flex',
+    position: 'absolute',
+    transform: 'translateX(-50%)',
+    zIndex: 50,
+    left: 'var(--floating-toolbar-left)',
+    top: 'var(--floating-toolbar-top)',
   },
   rule2: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    padding: `calc(${themeLayout['--spacing']} * 1.5)`,
     borderRadius: '.25rem',
+    alignItems: 'center',
     backgroundColor: {
       default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
       '@media (hover: hover)': {
@@ -53,16 +52,14 @@ const stylexStyles2 = stylex.create({
         ':hover': themeColors['--color-list-hover-background'],
       },
     },
-    padding: `calc(${themeLayout['--spacing']} * 1.5)`,
     color: themeColors['--color-brand'],
+    display: 'flex',
+    justifyContent: 'center',
   },
   rule3: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: '.25rem',
     padding: `calc(${themeLayout['--spacing']} * 1.5)`,
-    color: themeColors['--color-foreground'],
+    borderRadius: '.25rem',
+    alignItems: 'center',
     backgroundColor: {
       default: null,
       '@media (hover: hover)': {
@@ -70,13 +67,16 @@ const stylexStyles2 = stylex.create({
         ':hover': themeColors['--color-list-hover-background'],
       },
     },
+    color: themeColors['--color-foreground'],
+    display: 'flex',
+    justifyContent: 'center',
   },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 3.5)`,
     height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
 })
 

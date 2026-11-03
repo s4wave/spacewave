@@ -54,12 +54,7 @@ function readRule(container: Container, selector: string): StyleRule {
         // Custom utilities need the same longhand expansion as component recipes.
         const expanded = postcss.parse(expandBackground(declaration.value))
         expanded.walkDecls((value) => {
-          const repeated = value.value.split(',').map((part) => part.trim())
-          style[propertyName(value.prop)] = repeated.every(
-            (part) => part === repeated[0],
-          )
-            ? repeated[0]!
-            : value.value
+          style[propertyName(value.prop)] = value.value
         })
       } else if (declaration.prop === 'outline') {
         if (declaration.value !== '2px solid #0000')

@@ -15,7 +15,7 @@ import { createRef } from 'react'
 import { Actions, DockLocation, type IJsonModel } from '@aptre/flex-layout'
 
 // Import CSS for proper layout sizing
-import '@s4wave/web/style/app.css'
+import '@s4wave/web/style/app.js'
 
 import { BaseLayout, IBaseLayoutProps } from './BaseLayout.js'
 import { BaseLayoutContextProvider } from './BaseLayoutContext.js'

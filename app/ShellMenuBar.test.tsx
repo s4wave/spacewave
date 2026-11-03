@@ -38,11 +38,6 @@ const mockUseCommands = vi.fn()
 const mockInvokeCommand = vi.fn()
 const mockOpenCommand = vi.fn()
 
-vi.mock('@s4wave/web/style/utils.js', () => ({
-  cn: (...classes: Array<string | false | null | undefined>) =>
-    classes.filter(Boolean).join(' '),
-}))
-
 vi.mock('@s4wave/web/images/AppLogo.js', () => ({
   AppLogo: ({ className }: { className?: string }) => (
     <div className={className}>logo</div>

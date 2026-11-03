@@ -28,17 +28,17 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
+    alignItems: 'center',
+    color: themeColors['--color-muted-foreground'],
     display: 'flex',
+    justifyContent: 'center',
     height: '100%',
     width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: themeColors['--color-muted-foreground'],
   },
   rule2: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
   },
   rule3: { marginLeft: `calc(${themeLayout['--spacing']} * 2)` },
 })

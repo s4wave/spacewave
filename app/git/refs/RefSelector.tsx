@@ -22,22 +22,11 @@ import { fonts as themeFonts } from '../../../web/style/tokens.stylex.js'
 
 const stylexStyles3 = stylex.create({
   rule1: {
-    display: 'flex',
-    height: `calc(${themeLayout['--spacing']} * 5)`,
-    alignItems: 'center',
-    gap: themeLayout['--spacing'],
-    borderRadius: '.25rem',
-    paddingInline: themeLayout['--spacing'],
-    color: {
-      default: themeColors['--color-topbar-button-text'],
-      '@media (hover: hover)': {
-        default: null,
-        ':hover': themeColors['--color-topbar-button-text-hi'],
-      },
-    },
-    opacity: 0.6,
     WebkitUserSelect: 'none',
-    userSelect: 'none',
+    borderRadius: '.25rem',
+    gap: themeLayout['--spacing'],
+    paddingInline: themeLayout['--spacing'],
+    alignItems: 'center',
     backgroundColor: {
       default: null,
       '@media (hover: hover)': {
@@ -45,26 +34,27 @@ const stylexStyles3 = stylex.create({
         ':hover': themeColors['--color-pulldown-hover'],
       },
     },
+    color: {
+      default: themeColors['--color-topbar-button-text'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-topbar-button-text-hi'],
+      },
+    },
+    display: 'flex',
     fontSize: themeLayout['--text-ui'],
-    lineHeight: `var(--tw-leading, ${themeLayout['--text-ui--line-height']})`,
     letterSpacing: `var(--tw-tracking, ${themeLayout['--text-ui--letter-spacing']})`,
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-ui--line-height']})`,
+    opacity: 0.6,
+    userSelect: 'none',
+    height: `calc(${themeLayout['--spacing']} * 5)`,
   },
   rule2: {
-    display: 'flex',
-    height: `calc(${themeLayout['--spacing']} * 5)`,
-    alignItems: 'center',
-    gap: themeLayout['--spacing'],
-    borderRadius: '.25rem',
-    paddingInline: themeLayout['--spacing'],
-    color: {
-      default: themeColors['--color-topbar-button-text'],
-      '@media (hover: hover)': {
-        default: null,
-        ':hover': themeColors['--color-topbar-button-text-hi'],
-      },
-    },
     WebkitUserSelect: 'none',
-    userSelect: 'none',
+    borderRadius: '.25rem',
+    gap: themeLayout['--spacing'],
+    paddingInline: themeLayout['--spacing'],
+    alignItems: 'center',
     backgroundColor: {
       default: null,
       '@media (hover: hover)': {
@@ -72,35 +62,45 @@ const stylexStyles3 = stylex.create({
         ':hover': themeColors['--color-pulldown-hover'],
       },
     },
+    color: {
+      default: themeColors['--color-topbar-button-text'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-topbar-button-text-hi'],
+      },
+    },
+    display: 'flex',
     fontSize: themeLayout['--text-ui'],
-    lineHeight: `var(--tw-leading, ${themeLayout['--text-ui--line-height']})`,
     letterSpacing: `var(--tw-tracking, ${themeLayout['--text-ui--letter-spacing']})`,
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-ui--line-height']})`,
+    userSelect: 'none',
+    height: `calc(${themeLayout['--spacing']} * 5)`,
   },
   rule3: {
-    maxWidth: `calc(${themeLayout['--spacing']} * 30)`,
+    overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    overflow: 'hidden',
+    maxWidth: `calc(${themeLayout['--spacing']} * 30)`,
   },
   rule4: {
-    display: 'flex',
-    alignItems: 'center',
     gap: themeLayout['--spacing'],
+    alignItems: 'center',
+    display: 'flex',
   },
-  rule5: { textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' },
+  rule5: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   rule6: {
-    marginLeft: 'auto',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
     flexShrink: 0,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+    marginLeft: 'auto',
   },
   rule7: {
-    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
     paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    color: themeColors['--color-foreground-alt'],
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors['--color-foreground-alt'],
   },
 })
 
@@ -114,20 +114,20 @@ const stylexStyles2 = stylex.create({
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 3.5)`,
-    height: `calc(${themeLayout['--spacing']} * 3.5)`,
-    flexShrink: 0,
     color: themeColors['--color-foreground-alt'],
+    flexShrink: 0,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
   rule2: {
-    width: `calc(${themeLayout['--spacing']} * 3)`,
-    height: `calc(${themeLayout['--spacing']} * 3)`,
-    flexShrink: 0,
     color: themeColors['--color-foreground-alt'],
+    flexShrink: 0,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    width: `calc(${themeLayout['--spacing']} * 3)`,
   },
   rule3: {
-    width: `calc(${themeLayout['--spacing']} * 3)`,
     height: `calc(${themeLayout['--spacing']} * 3)`,
+    width: `calc(${themeLayout['--spacing']} * 3)`,
   },
 })
 

@@ -5,17 +5,17 @@ export const badgeMarker = stylex.defineMarker()
 /** badgeIconStyles preserves badge SVG dimensions and pointer handling at the icon. */
 export const badgeIconStyles = stylex.create({
   icon: {
-    width: {
+    pointerEvents: {
       default: null,
-      [stylex.when.ancestor(':is(*) >', badgeMarker)]: '12px',
+      [stylex.when.ancestor(':is(*) >', badgeMarker)]: 'none',
     },
     height: {
       default: null,
       [stylex.when.ancestor(':is(*) >', badgeMarker)]: '12px',
     },
-    pointerEvents: {
+    width: {
       default: null,
-      [stylex.when.ancestor(':is(*) >', badgeMarker)]: 'none',
+      [stylex.when.ancestor(':is(*) >', badgeMarker)]: '12px',
     },
   },
 })

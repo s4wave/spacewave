@@ -6,7 +6,6 @@ import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
 
 import {
   buildGoAliases,
@@ -121,5 +120,5 @@ export default defineConfig({
     ],
   },
 
-  plugins: [stylexCss(), react(), tailwindcss(), goTsResolver(__dirname)],
+  plugins: [stylexCss(), react(), goTsResolver(__dirname)],
 })

@@ -17,52 +17,52 @@ import { fonts as themeFonts } from '../../../web/style/tokens.stylex.js'
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    position: 'relative',
-    display: 'flex',
-    height: '100%',
-    width: '100%',
     alignItems: 'flex-start',
-    justifyContent: 'center',
-    overflowY: 'auto',
     backgroundColor: themeColors['--color-background-primary'],
-    paddingTop: `calc(${themeLayout['--spacing']} * 16)`,
+    display: 'flex',
+    justifyContent: 'center',
+    position: 'relative',
+    height: '100%',
+    overflowY: 'auto',
     paddingBottom: `calc(${themeLayout['--spacing']} * 10)`,
+    paddingTop: `calc(${themeLayout['--spacing']} * 16)`,
+    width: '100%',
   },
   rule2: {
-    width: '100%',
-    maxWidth: 'var(--container-md)',
     paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    maxWidth: 'var(--container-md)',
+    width: '100%',
   },
   rule3: {
-    marginBottom: `calc(${themeLayout['--spacing']} * 6)`,
-    display: 'flex',
-    alignItems: 'center',
     gap: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
+    display: 'flex',
+    marginBottom: `calc(${themeLayout['--spacing']} * 6)`,
   },
   rule4: {
-    fontSize: 'var(--text-lg)',
-    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
     '--tw-font-weight': 'var(--font-weight-semibold)',
-    fontWeight: 'var(--font-weight-semibold)',
     '--tw-tracking': 'var(--tracking-tight)',
-    letterSpacing: 'var(--tracking-tight)',
     color: themeColors['--color-foreground'],
+    fontSize: 'var(--text-lg)',
+    fontWeight: 'var(--font-weight-semibold)',
+    letterSpacing: 'var(--tracking-tight)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
   },
   rule5: {
-    marginTop: themeLayout['--spacing'],
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+    marginTop: themeLayout['--spacing'],
   },
   rule6: { marginTop: `calc(${themeLayout['--spacing']} * 4)` },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 5)`,
-    height: `calc(${themeLayout['--spacing']} * 5)`,
-    flexShrink: 0,
     color: themeColors['--color-foreground'],
+    flexShrink: 0,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    width: `calc(${themeLayout['--spacing']} * 5)`,
   },
 })
 

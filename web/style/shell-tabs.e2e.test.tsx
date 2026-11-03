@@ -7,7 +7,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { render, cleanup } from 'vitest-browser-react'
-import '@s4wave/web/style/app.css'
+import '@s4wave/web/style/app.js'
 
 /**
  * Builds a mock DOM structure matching FlexLayout's real output.

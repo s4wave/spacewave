@@ -13,7 +13,7 @@ import {
   type StartupView,
 } from './startup-view.js'
 
-import '@s4wave/web/style/app.css'
+import '@s4wave/web/style/app.js'
 
 // loadStartupView imports and renders only the components the view needs, so
 // an app route does not fetch the public pages and their assets.

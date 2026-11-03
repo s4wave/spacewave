@@ -40,26 +40,26 @@ import {
 
 const stylexStyles2 = stylex.create({
   rule1: {
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    alignItems: 'center',
+    backgroundColor: themeColors['--color-background-primary'],
     display: 'flex',
+    justifyContent: 'center',
     height: '100%',
     width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: themeColors['--color-background-primary'],
-    padding: `calc(${themeLayout['--spacing']} * 4)`,
   },
   rule2: {
-    display: 'flex',
-    height: '100%',
-    width: '100%',
-    flexDirection: 'column',
     overflow: 'hidden',
     backgroundColor: themeColors['--color-background-primary'],
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+    width: '100%',
   },
 })
 
 const stylexStyles = stylex.create({
-  rule1: { width: '100%', maxWidth: 'var(--container-sm)' },
+  rule1: { maxWidth: 'var(--container-sm)', width: '100%' },
 })
 
 // overridePredicate links a VmV86 to a per-asset override, which takes

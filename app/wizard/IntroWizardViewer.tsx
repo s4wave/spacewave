@@ -18,20 +18,20 @@ import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
 const stylexStyles = stylex.create({
   rule1: {
-    display: 'flex',
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: `calc(${themeLayout['--spacing']} * 6)`,
-  },
-  rule2: { width: '100%', maxWidth: 'var(--container-sm)' },
-  rule3: {
-    position: 'relative',
     display: 'flex',
+    justifyContent: 'center',
+  },
+  rule2: { maxWidth: 'var(--container-sm)', width: '100%' },
+  rule3: {
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
+    position: 'relative',
     height: '100%',
     width: '100%',
-    flexDirection: 'column',
-    overflow: 'hidden',
   },
 })
 

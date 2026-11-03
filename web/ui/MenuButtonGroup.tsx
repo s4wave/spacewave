@@ -3,7 +3,7 @@ import { type ReactNode } from 'react'
 
 import * as stylex from '@stylexjs/stylex'
 
-const stylexStyles = stylex.create({ rule1: { display: 'flex', gap: '1px' } })
+const stylexStyles = stylex.create({ rule1: { gap: '1px', display: 'flex' } })
 
 interface MenuButtonGroupProps {
   className?: never

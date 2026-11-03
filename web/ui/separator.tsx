@@ -7,7 +7,7 @@ import * as stylex from '@stylexjs/stylex'
 import { colors as themeColors } from '../style/tokens.stylex.js'
 
 const stylexStyles = stylex.create({
-  rule1: { flexShrink: '0', backgroundColor: themeColors['--color-border'] },
+  rule1: { backgroundColor: themeColors['--color-border'], flexShrink: '0' },
   rule2: { height: '1px', width: '100%' },
   rule3: { height: '100%', width: '1px' },
 })

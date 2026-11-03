@@ -17,7 +17,7 @@ import { render, cleanup } from 'vitest-browser-react'
 import { BldrContext, type IBldrContext } from '@aptre/bldr-react'
 import type { OpenStreamFunc } from 'starpc'
 
-import '@s4wave/web/style/app.css'
+import '@s4wave/web/style/app.js'
 
 import { App } from './App.js'
 import {

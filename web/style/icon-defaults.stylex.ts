@@ -27,11 +27,11 @@ export const agentPanelIconMarker = stylex.defineMarker()
 /** iconDefaults composes DOM-scoped defaults before an icon's explicit caller styles. */
 export const iconDefaults = stylex.create({
   menu: {
-    width: {
+    height: {
       default: null,
       [stylex.when.ancestor(':is(*)', menuIconMarker)]: 16,
     },
-    height: {
+    width: {
       default: null,
       [stylex.when.ancestor(':is(*)', menuIconMarker)]: 16,
     },
@@ -44,46 +44,46 @@ export const iconDefaults = stylex.create({
     },
   },
   command: {
-    width: {
-      default: null,
-      [stylex.when.ancestor(':is(*)', commandIconMarker)]: 16,
-    },
-    height: {
-      default: null,
-      [stylex.when.ancestor(':is(*)', commandIconMarker)]: 16,
-    },
     color: {
       default: null,
       [stylex.when.ancestor(':is(*)', commandIconMarker)]:
         colors['--color-foreground-alt'],
     },
+    height: {
+      default: null,
+      [stylex.when.ancestor(':is(*)', commandIconMarker)]: 16,
+    },
+    width: {
+      default: null,
+      [stylex.when.ancestor(':is(*)', commandIconMarker)]: 16,
+    },
   },
   buttonGroup: {
-    width: {
+    height: {
       default: null,
       [stylex.when.ancestor(':is(*)', buttonGroupIconMarker)]: 16,
     },
-    height: {
+    width: {
       default: null,
       [stylex.when.ancestor(':is(*)', buttonGroupIconMarker)]: 16,
     },
   },
   trace: {
-    width: {
+    height: {
       default: null,
       [stylex.when.ancestor(':is(*)', traceIconMarker)]: 16,
     },
-    height: {
+    width: {
       default: null,
       [stylex.when.ancestor(':is(*)', traceIconMarker)]: 16,
     },
   },
   codeTitle: {
-    width: {
+    height: {
       default: null,
       [stylex.when.ancestor(':is(*)', codeTitleIconMarker)]: 14,
     },
-    height: {
+    width: {
       default: null,
       [stylex.when.ancestor(':is(*)', codeTitleIconMarker)]: 14,
     },
@@ -93,30 +93,26 @@ export const iconDefaults = stylex.create({
 /** iconRequired retains menu interaction rules independently of explicit caller defaults. */
 export const iconRequired = stylex.create({
   inspector: {
-    width: {
+    height: {
       default: null,
       [stylex.when.ancestor(':is(*) >', inspectorIconMarker)]: 16,
     },
-    height: {
+    width: {
       default: null,
       [stylex.when.ancestor(':is(*) >', inspectorIconMarker)]: 16,
     },
   },
   agentPanel: {
-    width: {
+    height: {
       default: null,
       [stylex.when.ancestor(':is(*)', agentPanelIconMarker)]: 14,
     },
-    height: {
+    width: {
       default: null,
       [stylex.when.ancestor(':is(*)', agentPanelIconMarker)]: 14,
     },
   },
   bottomBar: {
-    width: {
-      default: null,
-      [stylex.when.ancestor(':is(*) >', bottomBarIconMarker)]: '12px',
-    },
     height: {
       default: null,
       [stylex.when.ancestor(':is(*) >', bottomBarIconMarker)]: '12px',
@@ -128,9 +124,13 @@ export const iconRequired = stylex.create({
         ':not(:only-child)': '4px',
       },
     },
+    width: {
+      default: null,
+      [stylex.when.ancestor(':is(*) >', bottomBarIconMarker)]: '12px',
+    },
   },
   viewerBar: {
-    width: {
+    height: {
       default: null,
       '@media (max-width: 640px) and (pointer: coarse), (max-height: 470px) and (hover: none) and (pointer: coarse)':
         {
@@ -139,7 +139,7 @@ export const iconRequired = stylex.create({
             '16px',
         },
     },
-    height: {
+    width: {
       default: null,
       '@media (max-width: 640px) and (pointer: coarse), (max-height: 470px) and (hover: none) and (pointer: coarse)':
         {
@@ -151,24 +151,24 @@ export const iconRequired = stylex.create({
   },
 
   command: {
-    pointerEvents: {
-      default: null,
-      [stylex.when.ancestor(':is(*)', commandIconMarker)]: 'none',
-    },
     flexShrink: {
       default: null,
       [stylex.when.ancestor(':is(*)', commandIconMarker)]: 0,
     },
+    pointerEvents: {
+      default: null,
+      [stylex.when.ancestor(':is(*)', commandIconMarker)]: 'none',
+    },
   },
   commandDialog: {
-    width: {
+    height: {
       default: null,
       [stylex.when.ancestor(
         ':is(*) :is([cmdk-item], [cmdk-input-wrapper])',
         commandDialogMarker,
       )]: '16px',
     },
-    height: {
+    width: {
       default: null,
       [stylex.when.ancestor(
         ':is(*) :is([cmdk-item], [cmdk-input-wrapper])',
@@ -183,21 +183,21 @@ export const iconRequired = stylex.create({
     },
   },
   codeTitle: {
-    pointerEvents: {
-      default: null,
-      [stylex.when.ancestor(':is(*)', codeTitleIconMarker)]: 'none',
-    },
     display: {
       default: null,
       [stylex.when.ancestor(':is(*)', codeTitleIconMarker)]: 'inline-block',
     },
-    verticalAlign: {
-      default: null,
-      [stylex.when.ancestor(':is(*)', codeTitleIconMarker)]: 'middle',
-    },
     marginInlineEnd: {
       default: null,
       [stylex.when.ancestor(':is(*) >', codeTitleIconMarker)]: '6px',
+    },
+    pointerEvents: {
+      default: null,
+      [stylex.when.ancestor(':is(*)', codeTitleIconMarker)]: 'none',
+    },
+    verticalAlign: {
+      default: null,
+      [stylex.when.ancestor(':is(*)', codeTitleIconMarker)]: 'middle',
     },
   },
   trace: {
@@ -207,13 +207,13 @@ export const iconRequired = stylex.create({
     },
   },
   menu: {
-    pointerEvents: {
-      default: null,
-      [stylex.when.ancestor(':is(*)', menuIconMarker)]: 'none',
-    },
     flexShrink: {
       default: null,
       [stylex.when.ancestor(':is(*)', menuIconMarker)]: 0,
+    },
+    pointerEvents: {
+      default: null,
+      [stylex.when.ancestor(':is(*)', menuIconMarker)]: 'none',
     },
   },
   menuDestructive: {

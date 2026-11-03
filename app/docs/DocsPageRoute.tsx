@@ -15,10 +15,10 @@ import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
 const stylexStyles = stylex.create({
   rule1: {
-    display: 'flex',
-    minHeight: '100%',
-    flexDirection: 'column',
     gap: `calc(${themeLayout['--spacing']} * 3)`,
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: '100%',
   },
   rule2: {
     paddingInline: `calc(${themeLayout['--spacing']} * 4)`,

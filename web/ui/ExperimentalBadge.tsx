@@ -7,17 +7,17 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
-    flexShrink: 0,
-    borderRadius: '.25rem',
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
-    paddingInline: themeLayout['--spacing'],
-    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: 1,
-    '--tw-leading': '1',
     '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-leading': '1',
+    borderRadius: '.25rem',
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    paddingInline: themeLayout['--spacing'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+    flexShrink: 0,
+    fontSize: themeFonts['--text-xs'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    lineHeight: 1,
     textTransform: 'uppercase',
   },
 })

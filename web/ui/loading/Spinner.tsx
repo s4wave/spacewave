@@ -1,3 +1,4 @@
+import { keyframeNames } from '../../style/tokens.stylex.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import { LuLoader } from '@s4wave/web/images/icons.js'
 
@@ -9,41 +10,41 @@ import {
 
 const styles = stylex.create({
   animation: {
-    animationName: {
-      default: 'spin',
-      '@media (prefers-reduced-motion: reduce)': 'none',
-    },
-    animationDuration: {
-      default: '1s',
+    animationDelay: {
+      default: '0s',
       '@media (prefers-reduced-motion: reduce)': '0s',
-    },
-    animationTimingFunction: {
-      default: 'linear',
-      '@media (prefers-reduced-motion: reduce)': 'ease',
-    },
-    animationIterationCount: {
-      default: 'infinite',
-      '@media (prefers-reduced-motion: reduce)': 1,
     },
     animationDirection: {
       default: 'normal',
       '@media (prefers-reduced-motion: reduce)': 'normal',
     },
-    animationPlayState: {
-      default: 'running',
-      '@media (prefers-reduced-motion: reduce)': 'running',
-    },
-    animationDelay: {
-      default: '0s',
+    animationDuration: {
+      default: '1s',
       '@media (prefers-reduced-motion: reduce)': '0s',
     },
     animationFillMode: {
       default: 'none',
       '@media (prefers-reduced-motion: reduce)': 'none',
     },
+    animationIterationCount: {
+      default: 'infinite',
+      '@media (prefers-reduced-motion: reduce)': 1,
+    },
+    animationName: {
+      default: keyframeNames['spin'],
+      '@media (prefers-reduced-motion: reduce)': 'none',
+    },
+    animationPlayState: {
+      default: 'running',
+      '@media (prefers-reduced-motion: reduce)': 'running',
+    },
     animationTimeline: {
       default: 'auto',
       '@media (prefers-reduced-motion: reduce)': 'auto',
+    },
+    animationTimingFunction: {
+      default: 'linear',
+      '@media (prefers-reduced-motion: reduce)': 'ease',
     },
   },
   small: {

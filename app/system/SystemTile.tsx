@@ -26,13 +26,8 @@ import { groupMarker as groupMarker2 } from '../../web/style/relations.stylex.js
 
 const stylexStyles3 = ownerStylex.create({
   rule1: {
-    position: 'relative',
-    display: 'flex',
-    minHeight: `calc(${themeLayout['--spacing']} * 36)`,
-    flexDirection: 'column',
-    borderRadius: themeRadii['--radius-lg'],
-    borderStyle: themeUtilityState['--tw-border-style'],
-    borderWidth: '1px',
+    '--tw-duration': '.15s',
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
     borderColor: {
       default: `color-mix(in oklab, ${colors['--color-foreground']} 8%, transparent)`,
       '@media (hover: hover)': {
@@ -40,6 +35,9 @@ const stylexStyles3 = ownerStylex.create({
         ':hover': `color-mix(in oklab, ${colors['--color-foreground']} 15%, transparent)`,
       },
     },
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
     backgroundColor: {
       default: `color-mix(in oklab, ${colors['--color-background-card']} 30%, transparent)`,
       '@media (hover: hover)': {
@@ -47,46 +45,43 @@ const stylexStyles3 = ownerStylex.create({
         ':hover': `color-mix(in oklab, ${colors['--color-background-card']} 60%, transparent)`,
       },
     },
-    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    display: 'flex',
+    flexDirection: 'column',
+    position: 'relative',
+    transitionDuration: '.15s',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration: '.15s',
-    '--tw-duration': '.15s',
+    minHeight: `calc(${themeLayout['--spacing']} * 36)`,
   },
 })
 
 const stylexStyles2 = ownerStylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 1.5)`,
-    height: `calc(${themeLayout['--spacing']} * 1.5)`,
     borderRadius: '3.40282e38px',
+    height: `calc(${themeLayout['--spacing']} * 1.5)`,
+    width: `calc(${themeLayout['--spacing']} * 1.5)`,
   },
 })
 
 const stylexStyles = ownerStylex.create({
   rule1: {
-    display: 'flex',
-    alignItems: 'center',
     gap: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
     color: `color-mix(in oklab, ${colors['--color-foreground-alt']} 60%, transparent)`,
+    display: 'flex',
   },
   rule2: {
-    fontSize: themeLayout['--text-metadata'],
-    lineHeight: `var(--tw-leading, ${themeLayout['--text-metadata--line-height']})`,
     '--tw-font-weight': 'var(--font-weight-semibold)',
-    fontWeight: 'var(--font-weight-semibold)',
-    '--tw-tracking': 'var(--tracking-wider)',
-    letterSpacing: 'var(--tracking-wider)',
-    textTransform: 'uppercase',
     '--tw-outline-style': 'none',
+    '--tw-tracking': 'var(--tracking-wider)',
+    fontSize: themeLayout['--text-metadata'],
+    fontWeight: 'var(--font-weight-semibold)',
+    letterSpacing: 'var(--tracking-wider)',
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-metadata--line-height']})`,
     outlineStyle: 'none',
-    '::after': {
-      content: 'var(--tw-content)',
-      position: 'absolute',
-      inset: 0,
-      borderRadius: themeRadii['--radius-lg'],
-    },
+    textAlign: { default: null, '@media (pointer: coarse)': 'left' },
+    textTransform: 'uppercase',
     minHeight: {
       default: null,
       '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
@@ -95,35 +90,40 @@ const stylexStyles = ownerStylex.create({
       default: null,
       '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
     },
-    textAlign: { default: null, '@media (pointer: coarse)': 'left' },
+    '::after': {
+      inset: 0,
+      borderRadius: themeRadii['--radius-lg'],
+      content: 'var(--tw-content)',
+      position: 'absolute',
+    },
   },
   rule3: {
-    clipPath: 'inset(50%)',
-    whiteSpace: 'nowrap',
-    borderWidth: 0,
-    width: '1px',
-    height: '1px',
     margin: '-1px',
     padding: 0,
-    position: 'absolute',
+    borderWidth: 0,
     overflow: 'hidden',
+    clipPath: 'inset(50%)',
+    position: 'absolute',
+    whiteSpace: 'nowrap',
+    height: '1px',
+    width: '1px',
   },
   rule4: {
-    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
-    fontSize: 'var(--text-lg)',
-    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
     '--tw-font-weight': 'var(--font-weight-semibold)',
-    fontWeight: 'var(--font-weight-semibold)',
     '--tw-tracking': 'var(--tracking-tight)',
-    letterSpacing: 'var(--tracking-tight)',
     color: colors['--color-foreground'],
+    fontSize: 'var(--text-lg)',
+    fontWeight: 'var(--font-weight-semibold)',
+    letterSpacing: 'var(--tracking-tight)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
   },
   rule5: {
-    marginTop: 'auto',
-    paddingTop: `calc(${themeLayout['--spacing']} * 3)`,
+    color: `color-mix(in oklab, ${colors['--color-foreground-alt']} 70%, transparent)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: `color-mix(in oklab, ${colors['--color-foreground-alt']} 70%, transparent)`,
+    marginTop: 'auto',
+    paddingTop: `calc(${themeLayout['--spacing']} * 3)`,
   },
 })
 
@@ -194,13 +194,6 @@ export function SystemTile({
 const tileIconStyles = stylex.create({
   icon: {
     color: `color-mix(in oklab, ${colors['--color-foreground-alt']} 50%, transparent)`,
-    marginLeft: 'auto',
-    width: 14,
-    height: 14,
-    transitionProperty: 'opacity',
-    transitionTimingFunction:
-      'var(--tw-ease,var(--default-transition-timing-function))',
-    transitionDuration: 'var(--tw-duration,var(--default-transition-duration))',
     opacity: {
       default: 0,
       [stylex.when.ancestor(':has(button:focus-visible)', groupMarker)]: 1,
@@ -209,5 +202,12 @@ const tileIconStyles = stylex.create({
         [stylex.when.ancestor(':hover', groupMarker)]: 1,
       },
     },
+    transitionDuration: 'var(--tw-duration,var(--default-transition-duration))',
+    transitionProperty: 'opacity',
+    transitionTimingFunction:
+      'var(--tw-ease,var(--default-transition-timing-function))',
+    height: 14,
+    marginLeft: 'auto',
+    width: 14,
   },
 })

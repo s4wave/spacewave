@@ -15,28 +15,28 @@ import { motion as themeMotion } from '../../web/style/tokens.stylex.js'
 
 const stylexStyles4 = stylex.create({
   rule1: {
-    transform: 'var(--canvas-node-transform)',
-    transformOrigin: 'var(--canvas-node-transform-origin)',
-    width: 'var(--canvas-node-width)',
-    height: 'var(--canvas-node-height)',
-    position: 'absolute',
-    left: 'var(--canvas-node-left)',
-    top: 'var(--canvas-node-top)',
-    touchAction: 'none',
-    pointerEvents: 'auto',
-    boxSizing: 'border-box',
-    cursor: 'grab',
+    '--tw-duration': '.15s',
+    WebkitUserSelect: 'none',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
     borderRadius: themeRadii['--radius-lg'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    boxSizing: 'border-box',
     color: themeColors['--color-card-foreground'],
+    cursor: 'grab',
+    pointerEvents: 'auto',
+    position: 'absolute',
+    touchAction: 'none',
+    transform: 'var(--canvas-node-transform)',
+    transformOrigin: 'var(--canvas-node-transform-origin)',
+    transitionDuration: '.15s',
     transitionProperty: 'box-shadow',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration: '.15s',
-    '--tw-duration': '.15s',
-    WebkitUserSelect: 'none',
     userSelect: 'none',
+    height: 'var(--canvas-node-height)',
+    left: 'var(--canvas-node-left)',
+    top: 'var(--canvas-node-top)',
+    width: 'var(--canvas-node-width)',
   },
   rule2: {
     '--tw-shadow':
@@ -45,9 +45,9 @@ const stylexStyles4 = stylex.create({
       'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
   },
   rule3: {
+    '--tw-shadow': '0 0 #0000',
     borderColor: '#0000',
     backgroundColor: '#0000',
-    '--tw-shadow': '0 0 #0000',
     boxShadow:
       'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
   },
@@ -56,53 +56,53 @@ const stylexStyles4 = stylex.create({
 
 const stylexStyles3 = stylex.create({
   rule1: {
-    position: 'absolute',
-    height: `calc(${themeLayout['--spacing']} * 2.5)`,
-    width: `calc(${themeLayout['--spacing']} * 2.5)`,
-    touchAction: 'none',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 60%, transparent)`,
     borderRadius: '3.40282e38px',
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 60%, transparent)`,
     backgroundColor: themeColors['--color-background'],
+    position: 'absolute',
+    touchAction: 'none',
+    height: `calc(${themeLayout['--spacing']} * 2.5)`,
+    width: `calc(${themeLayout['--spacing']} * 2.5)`,
   },
 })
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    top: `calc(${themeLayout['--spacing']} * -1.5)`,
-    left: `calc(${themeLayout['--spacing']} * -1.5)`,
     cursor: 'nwse-resize',
+    left: `calc(${themeLayout['--spacing']} * -1.5)`,
+    top: `calc(${themeLayout['--spacing']} * -1.5)`,
   },
   rule2: {
-    top: `calc(${themeLayout['--spacing']} * -1.5)`,
-    right: `calc(${themeLayout['--spacing']} * -1.5)`,
     cursor: 'nesw-resize',
+    right: `calc(${themeLayout['--spacing']} * -1.5)`,
+    top: `calc(${themeLayout['--spacing']} * -1.5)`,
   },
   rule3: {
-    right: `calc(${themeLayout['--spacing']} * -1.5)`,
-    bottom: `calc(${themeLayout['--spacing']} * -1.5)`,
     cursor: 'nwse-resize',
+    bottom: `calc(${themeLayout['--spacing']} * -1.5)`,
+    right: `calc(${themeLayout['--spacing']} * -1.5)`,
   },
   rule4: {
+    cursor: 'nesw-resize',
     bottom: `calc(${themeLayout['--spacing']} * -1.5)`,
     left: `calc(${themeLayout['--spacing']} * -1.5)`,
-    cursor: 'nesw-resize',
   },
   rule5: {
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
   },
   rule6: {
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
     '--tw-shadow':
       '0 1px 3px 0 var(--tw-shadow-color, #0000001a), 0 1px 2px -1px var(--tw-shadow-color, #0000001a)',
-    boxShadow:
-      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
-    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
     WebkitBackdropFilter:
       'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
     backdropFilter:
       'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
   },
   rule7: {
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 20%, transparent)`,
@@ -111,74 +111,74 @@ const stylexStyles2 = stylex.create({
 
 const stylexStyles = stylex.create({
   rule1: {
-    display: 'flex',
-    height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
     padding: themeLayout['--spacing'],
+    overflow: 'hidden',
+    alignItems: 'center',
+    display: 'flex',
+    justifyContent: 'center',
+    height: '100%',
   },
   rule2: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    overflow: 'hidden',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+    fontSize: themeFonts['--text-xs'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    textAlign: 'center',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textAlign: 'center',
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
   },
   rule3: {
-    display: 'flex',
-    height: '100%',
     alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+    display: 'flex',
+    fontSize: themeFonts['--text-xs'],
+    justifyContent: 'center',
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    height: '100%',
   },
   rule4: {
-    top: 0,
-    right: `calc(${themeLayout['--spacing']} * 2)`,
-    left: `calc(${themeLayout['--spacing']} * 2)`,
-    height: `calc(${themeLayout['--spacing']} * 1.5)`,
     borderTopLeftRadius: themeRadii['--radius-lg'],
     borderTopRightRadius: themeRadii['--radius-lg'],
+    height: `calc(${themeLayout['--spacing']} * 1.5)`,
+    left: `calc(${themeLayout['--spacing']} * 2)`,
+    right: `calc(${themeLayout['--spacing']} * 2)`,
+    top: 0,
   },
   rule5: {
-    right: `calc(${themeLayout['--spacing']} * 2)`,
-    bottom: 0,
-    left: `calc(${themeLayout['--spacing']} * 2)`,
-    height: `calc(${themeLayout['--spacing']} * 1.5)`,
-    borderBottomRightRadius: themeRadii['--radius-lg'],
     borderBottomLeftRadius: themeRadii['--radius-lg'],
+    borderBottomRightRadius: themeRadii['--radius-lg'],
+    bottom: 0,
+    height: `calc(${themeLayout['--spacing']} * 1.5)`,
+    left: `calc(${themeLayout['--spacing']} * 2)`,
+    right: `calc(${themeLayout['--spacing']} * 2)`,
   },
   rule6: {
-    top: `calc(${themeLayout['--spacing']} * 2)`,
+    borderBottomLeftRadius: themeRadii['--radius-lg'],
+    borderTopLeftRadius: themeRadii['--radius-lg'],
     bottom: `calc(${themeLayout['--spacing']} * 2)`,
     left: 0,
+    top: `calc(${themeLayout['--spacing']} * 2)`,
     width: `calc(${themeLayout['--spacing']} * 1.5)`,
-    borderTopLeftRadius: themeRadii['--radius-lg'],
-    borderBottomLeftRadius: themeRadii['--radius-lg'],
   },
   rule7: {
-    top: `calc(${themeLayout['--spacing']} * 2)`,
-    right: 0,
-    bottom: `calc(${themeLayout['--spacing']} * 2)`,
-    width: `calc(${themeLayout['--spacing']} * 1.5)`,
-    borderTopRightRadius: themeRadii['--radius-lg'],
     borderBottomRightRadius: themeRadii['--radius-lg'],
+    borderTopRightRadius: themeRadii['--radius-lg'],
+    bottom: `calc(${themeLayout['--spacing']} * 2)`,
+    right: 0,
+    top: `calc(${themeLayout['--spacing']} * 2)`,
+    width: `calc(${themeLayout['--spacing']} * 1.5)`,
   },
   rule8: {
-    pointerEvents: 'none',
-    position: 'absolute',
-    inset: 0,
-    borderRadius: themeRadii['--radius-lg'],
     '--tw-ring-shadow':
       'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    inset: 0,
+    borderRadius: themeRadii['--radius-lg'],
     boxShadow:
       'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    pointerEvents: 'none',
+    position: 'absolute',
   },
   rule9: {
     '--tw-ring-color': `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
@@ -187,20 +187,20 @@ const stylexStyles = stylex.create({
     '--tw-ring-color': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
   },
   rule11: {
+    overflow: 'hidden',
+    touchAction: 'var(--canvas-content-touch-action)',
     transform: 'var(--canvas-content-transform)',
     transformOrigin: 'var(--canvas-content-transform-origin)',
-    width: '100%',
     height: '100%',
-    touchAction: 'var(--canvas-content-touch-action)',
-    overflow: 'hidden',
+    width: '100%',
   },
-  rule12: { cursor: 'default', WebkitUserSelect: 'auto', userSelect: 'auto' },
+  rule12: { WebkitUserSelect: 'auto', cursor: 'default', userSelect: 'auto' },
   rule13: {
+    inset: `calc(${themeLayout['--spacing']} * -1.5)`,
+    borderRadius: themeRadii['--radius-lg'],
     pointerEvents: 'auto',
     position: 'absolute',
-    inset: `calc(${themeLayout['--spacing']} * -1.5)`,
     zIndex: -1,
-    borderRadius: themeRadii['--radius-lg'],
   },
 })
 
@@ -788,7 +788,7 @@ export const CanvasNode = memo(function CanvasNode(props: CanvasNodeProps) {
 
 // dragEdgeStyles owns the drag target beneath each side-specific caller.
 const dragEdgeStyles = stylex.create({
-  edge: { position: 'absolute', zIndex: 10, backgroundColor: 'transparent' },
+  edge: { backgroundColor: 'transparent', position: 'absolute', zIndex: 10 },
 })
 
 // nodeLayerStyles preserves each node's dynamic integer stacking order.

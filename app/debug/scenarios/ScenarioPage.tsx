@@ -14,39 +14,39 @@ import {
 } from '../../../web/style/tokens.stylex.js'
 
 const stylexStyles2 = stylex.create({
-  rule1: { display: 'flex', minHeight: 0, flex: 1 },
+  rule1: { flex: 1, display: 'flex', minHeight: 0 },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
     display: 'flex',
+    flexDirection: 'column',
     height: '100%',
     minHeight: 0,
-    flexDirection: 'column',
   },
   rule2: {
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    alignItems: 'center',
     display: 'flex',
     flexShrink: 0,
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 4)`,
-    borderBottomStyle: themeUtilityState['--tw-border-style'],
-    borderBottomWidth: '1px',
-    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
-    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
   },
   rule3: {
     borderRadius: '.25rem',
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
     paddingBlock: themeLayout['--spacing'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
   },
   rule4: {
-    display: 'flex',
-    alignItems: 'center',
     gap: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
+    display: 'flex',
   },
 })
 
@@ -121,9 +121,14 @@ export function ScenarioPage({ scenario }: { scenario: AppScenario }) {
 const nativeColumnDividers = stylex.create({
   tcurrent: {
     '--tw-divide-x-reverse': { default: null, ':not(:last-child)': 0 },
+    borderColor: { default: null, ':not(:last-child)': 'currentcolor' },
     borderInlineEndStyle: {
       default: null,
       ':not(:last-child)': dividerState['--tw-border-style'],
+    },
+    borderInlineEndWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * calc(1 - var(--tw-divide-x-reverse)))',
     },
     borderInlineStartStyle: {
       default: null,
@@ -133,10 +138,5 @@ const nativeColumnDividers = stylex.create({
       default: null,
       ':not(:last-child)': 'calc(1px * var(--tw-divide-x-reverse))',
     },
-    borderInlineEndWidth: {
-      default: null,
-      ':not(:last-child)': 'calc(1px * calc(1 - var(--tw-divide-x-reverse)))',
-    },
-    borderColor: { default: null, ':not(:last-child)': 'currentcolor' },
   },
 })

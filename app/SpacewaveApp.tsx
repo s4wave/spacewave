@@ -27,14 +27,14 @@ import * as stylex from '@stylexjs/stylex'
 
 const stylexStyles = stylex.create({
   rule1: {
-    position: 'relative',
+    flex: 1,
+    overflow: 'hidden',
     display: 'flex',
+    flexDirection: 'column',
+    position: 'relative',
     height: '100%',
     minHeight: 0,
     minWidth: 0,
-    flex: 1,
-    flexDirection: 'column',
-    overflow: 'hidden',
   },
 })
 

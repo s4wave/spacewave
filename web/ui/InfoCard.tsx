@@ -5,20 +5,20 @@ import { colors, fonts, layout, radii } from '../style/tokens.stylex.js'
 
 const styles = stylex.create({
   card: {
+    padding: `calc(${layout['--spacing']} * 3.5)`,
     borderColor: `color-mix(in oklab, ${colors['--color-foreground']} 6%, transparent)`,
-    backgroundColor: `color-mix(in oklab, ${colors['--color-background-card']} 30%, transparent)`,
-    minWidth: 0,
     borderRadius: radii['--radius-lg'],
     borderStyle: 'solid',
     borderWidth: 1,
-    padding: `calc(${layout['--spacing']} * 3.5)`,
+    backgroundColor: `color-mix(in oklab, ${colors['--color-background-card']} 30%, transparent)`,
+    minWidth: 0,
   },
   compact: { padding: `calc(${layout['--spacing']} * 2.5)` },
   heading: {
+    gap: `calc(${layout['--spacing']} * 2)`,
+    alignItems: 'center',
     color: colors['--color-foreground'],
     display: 'flex',
-    alignItems: 'center',
-    gap: `calc(${layout['--spacing']} * 2)`,
     fontSize: fonts['--text-sm'],
     lineHeight: fonts['--text-sm--line-height'],
     userSelect: 'none',
@@ -26,9 +26,9 @@ const styles = stylex.create({
   },
   compactHeading: { marginBottom: `calc(${layout['--spacing']} * 2)` },
   icon: {
+    alignItems: 'center',
     color: colors['--color-foreground'],
     display: 'flex',
-    alignItems: 'center',
     marginBottom: `calc(${layout['--spacing']} * 2)`,
   },
 })

@@ -16,39 +16,47 @@ import {
 
 const styles = stylex.create({
   base: {
-    display: 'inline-flex',
-    width: 'fit-content',
-    flexShrink: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: themeLayout['--spacing'],
-    overflow: 'hidden',
-    borderRadius: '3.40282e38px',
-    borderStyle: themeUtilityState['--tw-border-style'],
-    borderWidth: '1px',
-    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
-    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    whiteSpace: 'nowrap',
-    transitionProperty: 'color, box-shadow',
-    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
     '--tw-ring-shadow': {
       default: null,
       ':focus-visible':
         'var(--tw-ring-inset, ) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
     },
+    borderRadius: '3.40282e38px',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    gap: themeLayout['--spacing'],
+    overflow: 'hidden',
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
     boxShadow: {
       default: null,
       ':focus-visible':
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     },
+    display: 'inline-flex',
+    flexShrink: 0,
+    fontSize: themeFonts['--text-xs'],
+    justifyContent: 'center',
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    transitionProperty: 'color, box-shadow',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    whiteSpace: 'nowrap',
+    width: 'fit-content',
   },
   unselected: {
     '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
+      ':is(.dark *)': {
+        default: null,
+        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      },
+      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+    },
     borderColor: {
       default: null,
       ':focus-visible': themeColors['--color-ring'],
@@ -57,17 +65,19 @@ const styles = stylex.create({
         ':focus-visible': themeColors['--color-destructive'],
       },
     },
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  release: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
     '--tw-ring-color': {
       default: null,
       ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
-      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
       ':is(.dark *)': {
         default: null,
         ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
       },
+      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
     },
-  },
-  release: {
     borderColor: {
       default: `color-mix(in oklab, ${themeColors['--color-foreground']} 15%, transparent)`,
       ':focus-visible': themeColors['--color-ring'],
@@ -76,20 +86,20 @@ const styles = stylex.create({
         ':focus-visible': themeColors['--color-destructive'],
       },
     },
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
     color: themeColors['--color-foreground-alt'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  muted: {
+    '--tw-font-weight': 'var(--font-weight-normal)',
     '--tw-ring-color': {
       default: null,
       ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
-      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
       ':is(.dark *)': {
         default: null,
         ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
       },
+      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
     },
-  },
-  muted: {
     borderColor: {
       default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
       ':focus-visible': themeColors['--color-ring'],
@@ -98,20 +108,20 @@ const styles = stylex.create({
         ':focus-visible': themeColors['--color-destructive'],
       },
     },
-    '--tw-font-weight': 'var(--font-weight-normal)',
-    fontWeight: 'var(--font-weight-normal)',
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 65%, transparent)`,
+    fontWeight: 'var(--font-weight-normal)',
+  },
+  success: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
     '--tw-ring-color': {
       default: null,
       ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
-      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
       ':is(.dark *)': {
         default: null,
         ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
       },
+      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
     },
-  },
-  success: {
     borderColor: {
       default: `color-mix(in oklab, ${themeColors['--color-success']} 25%, transparent)`,
       ':focus-visible': themeColors['--color-ring'],
@@ -121,20 +131,20 @@ const styles = stylex.create({
       },
     },
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-success']} 5%, transparent)`,
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
     color: themeColors['--color-success'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  brand: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
     '--tw-ring-color': {
       default: null,
       ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
-      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
       ':is(.dark *)': {
         default: null,
         ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
       },
+      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
     },
-  },
-  brand: {
     borderColor: {
       default: `color-mix(in oklab, ${themeColors['--color-brand']} 25%, transparent)`,
       ':focus-visible': themeColors['--color-ring'],
@@ -144,24 +154,20 @@ const styles = stylex.create({
       },
     },
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
     color: themeColors['--color-brand'],
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
-      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
-      ':is(.dark *)': {
-        default: null,
-        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
-      },
-    },
+    fontWeight: themeFonts['--font-weight-medium'],
   },
   conflict: {
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 15%, transparent)`,
     '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
-    color: themeColors['--color-destructive'],
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
+      ':is(.dark *)': {
+        default: null,
+        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      },
+      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+    },
     borderColor: {
       default: null,
       ':focus-visible': themeColors['--color-ring'],
@@ -170,20 +176,21 @@ const styles = stylex.create({
         ':focus-visible': themeColors['--color-destructive'],
       },
     },
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
-      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
-      ':is(.dark *)': {
-        default: null,
-        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
-      },
-    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 15%, transparent)`,
+    color: themeColors['--color-destructive'],
+    fontWeight: themeFonts['--font-weight-medium'],
   },
   subtle: {
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
     '--tw-font-weight': 'var(--font-weight-normal)',
-    fontWeight: 'var(--font-weight-normal)',
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
+      ':is(.dark *)': {
+        default: null,
+        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      },
+      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+    },
     borderColor: {
       default: null,
       ':focus-visible': themeColors['--color-ring'],
@@ -192,19 +199,35 @@ const styles = stylex.create({
         ':focus-visible': themeColors['--color-destructive'],
       },
     },
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
-      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
-      ':is(.dark *)': {
-        default: null,
-        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
-      },
-    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    fontWeight: 'var(--font-weight-normal)',
   },
   outline: {
     '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
+      ':is(.dark *)': {
+        default: null,
+        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      },
+      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+    },
+    borderColor: {
+      default: null,
+      ':focus-visible': themeColors['--color-ring'],
+      ':is([aria-invalid="true"])': {
+        default: themeColors['--color-destructive'],
+        ':focus-visible': themeColors['--color-destructive'],
+      },
+    },
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':is(a)': { default: null, ':hover': themeColors['--color-accent'] },
+      },
+    },
     color: {
       default: themeColors['--color-foreground'],
       '@media (hover: hover)': {
@@ -215,32 +238,20 @@ const styles = stylex.create({
         },
       },
     },
-    borderColor: {
-      default: null,
-      ':focus-visible': themeColors['--color-ring'],
-      ':is([aria-invalid="true"])': {
-        default: themeColors['--color-destructive'],
-        ':focus-visible': themeColors['--color-destructive'],
-      },
-    },
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
-      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
-      ':is(.dark *)': {
-        default: null,
-        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
-      },
-    },
-    backgroundColor: {
-      default: null,
-      '@media (hover: hover)': {
-        default: null,
-        ':is(a)': { default: null, ':hover': themeColors['--color-accent'] },
-      },
-    },
+    fontWeight: themeFonts['--font-weight-medium'],
   },
   destructive: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+      ':is(.dark *)': {
+        default: null,
+        ':focus-visible': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      },
+      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+    },
     borderColor: {
       default: '#0000',
       ':focus-visible': themeColors['--color-ring'],
@@ -260,21 +271,20 @@ const styles = stylex.create({
         },
       },
     },
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
     color: themeColors['--color-white'],
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
-      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
-      ':is(.dark *)': {
-        default: null,
-        ':focus-visible': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
-        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
-      },
-    },
+    fontWeight: themeFonts['--font-weight-medium'],
   },
   secondary: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
+      ':is(.dark *)': {
+        default: null,
+        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+      },
+      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+    },
     borderColor: {
       default: '#0000',
       ':focus-visible': themeColors['--color-ring'],
@@ -293,20 +303,20 @@ const styles = stylex.create({
         },
       },
     },
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
     color: themeColors['--color-secondary-foreground'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  default: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
     '--tw-ring-color': {
       default: null,
       ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
-      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
       ':is(.dark *)': {
         default: null,
         ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
       },
+      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
     },
-  },
-  default: {
     borderColor: {
       default: '#0000',
       ':focus-visible': themeColors['--color-ring'],
@@ -325,18 +335,8 @@ const styles = stylex.create({
         },
       },
     },
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
     color: themeColors['--color-primary-foreground'],
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
-      ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
-      ':is(.dark *)': {
-        default: null,
-        ':is([aria-invalid="true"])': `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
-      },
-    },
+    fontWeight: themeFonts['--font-weight-medium'],
   },
 })
 

@@ -273,7 +273,8 @@
     "format:stylex-shared": "oxfmt --threads=4 web/ui app/loading/wrappers app/billing/DeleteBillingAccountSection.tsx app/org/OrganizationDetails.tsx app/session/SessionSharedObjectContainer.tsx app/session/dashboard/SessionDashboard.tsx app/session/dashboard/SessionDetailsHeader.tsx app/terminal/TerminalPane.tsx app/wizard/ForgeJobWizardViewer.tsx app/wizard/ForgeTaskWizardViewer.tsx plugin/v86/VmSerialConsole.tsx plugin/v86/VmV86Viewer.tsx plugin/wasivm/WasiVmDisplay.tsx plugin/wasivm/WasiVmViewer.tsx plugin/wasivm/WasiVmWizard.tsx web/editors/file-browser/FileListEntry.tsx web/editors/file-browser/Toolbar.tsx web/layout/BaseLayout.tsx web/object/LayoutObjectViewer.tsx web/object/ObjectViewerLoadingState.tsx web/transform/TransformConfigDisplay.tsx package.json bldr/dist/deps/package.json web/style/app.css web/style/sonner.css web/style/sonner.ts",
     "format:stylex-pilots": "oxfmt oxlint.config.ts web/ui/InfoCard.tsx app/vm/VmErrorBanner.tsx plugin/notes/blog/TagChip.tsx web/style/tokens.stylex.ts tsconfig.stylex-pilots.json",
     "check:stylex-pilots": "tsc --noEmit -p tsconfig.stylex-pilots.json",
-    "lint:stylex-pilots": "oxlint oxlint.config.ts web/ui/InfoCard.tsx app/vm/VmErrorBanner.tsx plugin/notes/blog/TagChip.tsx"
+    "lint:stylex-pilots": "oxlint oxlint.config.ts web/ui/InfoCard.tsx app/vm/VmErrorBanner.tsx plugin/notes/blog/TagChip.tsx",
+    "test:stylex-lint": "bun test scripts/native-style-lint.test.ts"
   },
   "devDependencies": {
     "@aptre/common": "0.38.2",
@@ -319,7 +320,8 @@
     "dom-accessibility-api": "0.7.1",
     "@tailwindcss/node": "^4.3.3",
     "pngjs": "7.0.0",
-    "@types/pngjs": "6.0.5"
+    "@types/pngjs": "6.0.5",
+    "@stylexjs/eslint-plugin": "0.19.1"
   },
   "dependencies": {
     "@stylexjs/stylex": "0.19.1",
@@ -411,6 +413,7 @@
     "@stylexjs/babel-plugin@0.19.1": "patches/@stylexjs%2Fbabel-plugin@0.19.1.patch",
     "orga@4.7.1": "patches/orga@4.7.1.patch",
     "@stylexjs/stylex@0.19.1": "patches/@stylexjs%2Fstylex@0.19.1.patch",
-    "cmdk@1.1.1": "patches/cmdk@1.1.1.patch"
+    "cmdk@1.1.1": "patches/cmdk@1.1.1.patch",
+    "@stylexjs/eslint-plugin@0.19.1": "patches/@stylexjs%2Feslint-plugin@0.19.1.patch"
   }
 }

@@ -1,5 +1,5 @@
 import { useControlStyles } from '@s4wave/web/style/ControlStylesProvider.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { buttonGroupControlStyles } from '../style/button-group.stylex.js'
 import { stylexProps } from '@s4wave/web/style/props.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
@@ -10,7 +10,6 @@ import {
   buttonGroupIconMarker,
 } from '../style/icon-defaults.stylex.js'
 import { Slot } from '@radix-ui/react-slot'
-import { type VariantProps } from 'class-variance-authority'
 
 import { Separator } from '@s4wave/web/ui/separator'
 import * as stylex from '@stylexjs/stylex'
@@ -30,58 +29,58 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
-    display: 'flex',
-    width: 'fit-content',
-    alignItems: 'stretch',
     gap: {
       default: null,
       ':has( > [data-slot="button-group"])': `calc(${themeLayout['--spacing']} * 2)`,
     },
+    alignItems: 'stretch',
+    display: 'flex',
+    width: 'fit-content',
   },
   rule2: {
-    display: 'flex',
-    width: 'fit-content',
-    flexDirection: 'column',
-    alignItems: 'stretch',
     gap: {
       default: null,
       ':has( > [data-slot="button-group"])': `calc(${themeLayout['--spacing']} * 2)`,
     },
+    alignItems: 'stretch',
+    display: 'flex',
+    flexDirection: 'column',
+    width: 'fit-content',
   },
   rule3: {
-    display: 'flex',
-    width: 'fit-content',
-    alignItems: 'stretch',
     gap: {
       default: null,
       ':has( > [data-slot="button-group"])': `calc(${themeLayout['--spacing']} * 2)`,
     },
+    alignItems: 'stretch',
+    display: 'flex',
+    width: 'fit-content',
   },
   rule4: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    '--tw-shadow': '0 1px 2px 0 var(--tw-shadow-color, #0000000d)',
     borderRadius: themeRadii['--radius-md'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    backgroundColor: colors['--color-muted'],
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
     paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
-    fontSize: themeFonts['--text-sm'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
-    '--tw-shadow': '0 1px 2px 0 var(--tw-shadow-color, #0000000d)',
+    alignItems: 'center',
+    backgroundColor: colors['--color-muted'],
     boxShadow:
       'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    display: 'flex',
+    fontSize: themeFonts['--text-sm'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
   },
 })
 
 const separatorStyles = stylex.create({
   base: {
-    backgroundColor: colors['--color-input'],
-    position: 'relative',
     margin: 0,
     alignSelf: 'stretch',
+    backgroundColor: colors['--color-input'],
+    position: 'relative',
     height: {
       default: null,
       ':is([data-orientation="horizontal"])': '1px',
@@ -118,7 +117,8 @@ function ButtonGroup({
   orientation,
   ...props
 }: Omit<
-  React.ComponentProps<'div'> & VariantProps<typeof buttonGroupVariants>,
+  React.ComponentProps<'div'> &
+    NonNullable<Parameters<typeof buttonGroupVariants>[0]>,
   'className'
 > & { sx?: ComponentStyles; className?: never }) {
   const attributes = stylexProps(
@@ -126,7 +126,9 @@ function ButtonGroup({
     props,
   )
   const inheritedClass = useControlStyles()
-  attributes.className = cn(attributes.className, groupClass, inheritedClass)
+  attributes.className = [attributes.className, groupClass, inheritedClass]
+    .filter(Boolean)
+    .join(' ')
   return (
     <div
       role="group"
@@ -155,7 +157,9 @@ function ButtonGroupText({
     props,
   )
   const inheritedClass = useControlStyles()
-  attributes.className = cn(attributes.className, groupClass, inheritedClass)
+  attributes.className = [attributes.className, groupClass, inheritedClass]
+    .filter(Boolean)
+    .join(' ')
 
   return (
     <IconStylesProvider

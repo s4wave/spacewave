@@ -15,74 +15,74 @@ import {
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    position: 'relative',
-    display: 'flex',
-    minHeight: 0,
     flex: 1,
-    flexDirection: 'column',
     overflow: 'hidden',
     backgroundColor: themeColors['--color-file-back'],
+    display: 'flex',
+    flexDirection: 'column',
+    position: 'relative',
+    minHeight: 0,
   },
   rule2: {
-    pointerEvents: 'none',
-    position: 'absolute',
-    bottom: `calc(${themeLayout['--spacing']} * 3)`,
-    left: '50%',
-    zIndex: 10,
+    '--tw-backdrop-blur': 'blur(8px)',
+    '--tw-shadow':
+      '0 1px 3px 0 var(--tw-shadow-color, #0000001a), 0 1px 2px -1px var(--tw-shadow-color, #0000001a)',
     '--tw-translate-x': 'calc(calc(1 / 2 * 100%) * -1)',
-    translate: 'var(--tw-translate-x) var(--tw-translate-y)',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
     borderRadius: themeRadii['--radius-md'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 85%, transparent)`,
-    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
     paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
-    '--tw-shadow':
-      '0 1px 3px 0 var(--tw-shadow-color, #0000001a), 0 1px 2px -1px var(--tw-shadow-color, #0000001a)',
-    boxShadow:
-      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
-    '--tw-backdrop-blur': 'blur(8px)',
-    WebkitBackdropFilter:
-      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
     backdropFilter:
       'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
-  },
-  rule3: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 85%, transparent)`,
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     pointerEvents: 'none',
     position: 'absolute',
-    inset: 0,
+    translate: 'var(--tw-translate-x) var(--tw-translate-y)',
     zIndex: 10,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    bottom: `calc(${themeLayout['--spacing']} * 3)`,
+    left: '50%',
+  },
+  rule3: {
+    '--tw-border-style': 'dashed',
+    inset: 0,
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
     borderRadius: themeRadii['--radius-md'],
     borderStyle: 'dashed',
     borderWidth: '2px',
-    '--tw-border-style': 'dashed',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    alignItems: 'center',
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+    display: 'flex',
+    justifyContent: 'center',
+    pointerEvents: 'none',
+    position: 'absolute',
+    zIndex: 10,
   },
   rule4: {
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
     display: 'flex',
     flexDirection: 'column',
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
   },
   rule5: {
-    fontSize: themeFonts['--text-sm'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
     color: themeColors['--color-brand'],
+    fontSize: themeFonts['--text-sm'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
   },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 8)`,
-    height: `calc(${themeLayout['--spacing']} * 8)`,
     color: themeColors['--color-brand'],
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    width: `calc(${themeLayout['--spacing']} * 8)`,
   },
 })
 

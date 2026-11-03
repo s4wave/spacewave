@@ -6,7 +6,7 @@ export const forgeViewerMarker = stylex.defineMarker()
 /** forgeControlStyles applies the viewer's touch floor at each native button. */
 export const forgeControlStyles = stylex.create({
   required: {
-    minWidth: {
+    minHeight: {
       default: null,
       '@media (pointer: coarse)': {
         default: null,
@@ -16,7 +16,7 @@ export const forgeControlStyles = stylex.create({
         },
       },
     },
-    minHeight: {
+    minWidth: {
       default: null,
       '@media (pointer: coarse)': {
         default: null,

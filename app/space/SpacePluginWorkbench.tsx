@@ -35,72 +35,72 @@ import {
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    display: 'grid',
-    minHeight: 0,
     flex: 1,
+    display: 'grid',
     gridTemplateColumns: {
       default: 'repeat(1, minmax(0, 1fr))',
       '@media (min-width: 48rem)': 'repeat(2, minmax(0, 1fr))',
     },
+    minHeight: 0,
   },
 })
 
 const stylexStyles = stylex.create({
-  rule1: { display: 'flex', minHeight: 0, flex: 1, flexDirection: 'column' },
+  rule1: { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 },
   rule2: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    alignItems: 'center',
     display: 'flex',
     flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
-    borderBottomStyle: themeUtilityState['--tw-border-style'],
-    borderBottomWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
-    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
-    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
   },
   rule3: { color: themeColors['--color-destructive'] },
   rule4: {
     display: 'flex',
+    flexDirection: 'column',
     minHeight: `calc(${themeLayout['--spacing']} * 64)`,
     minWidth: 0,
-    flexDirection: 'column',
   },
   rule5: {
-    borderBottomStyle: themeUtilityState['--tw-border-style'],
-    borderBottomWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
-    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
-    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     '--tw-font-weight': themeFonts['--font-weight-medium'],
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    fontSize: themeFonts['--text-xs'],
     fontWeight: themeFonts['--font-weight-medium'],
-  },
-  rule6: { minHeight: 0, flex: 1 },
-  rule7: {
-    display: 'grid',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     borderBottomStyle: themeUtilityState['--tw-border-style'],
     borderBottomWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+  },
+  rule6: { flex: 1, minHeight: 0 },
+  rule7: {
     padding: `calc(${themeLayout['--spacing']} * 3)`,
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'grid',
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
   },
   rule8: {
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
     borderRadius: '.25rem',
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
     backgroundColor: themeColors['--color-background'],
-    padding: `calc(${themeLayout['--spacing']} * 2)`,
   },
   rule9: {
     padding: `calc(${themeLayout['--spacing']} * 4)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
     fontSize: themeFonts['--text-sm'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
   },
 })
 
@@ -308,36 +308,26 @@ export function SpacePluginWorkbench({
 // paneDivider follows the source pane from stacked rows to side-by-side columns.
 const paneDivider = stylex.create({
   first: {
-    '--tw-divide-y-reverse': { default: null, ':not(:last-child)': 0 },
     '--tw-divide-x-reverse': {
       default: null,
       '@media (min-width:48rem)': { default: null, ':not(:last-child)': 0 },
     },
-    borderTopStyle: {
-      default: null,
-      ':not(:last-child)': paneUtilityState['--tw-border-style'],
-    },
-    borderBottomStyle: {
-      default: null,
-      ':not(:last-child)': paneUtilityState['--tw-border-style'],
-    },
-    borderTopWidth: {
-      default: null,
-      ':not(:last-child)': 'calc(1px * var(--tw-divide-y-reverse))',
-    },
-    borderBottomWidth: {
-      default: null,
-      ':not(:last-child)': 'calc(1px * calc(1 - var(--tw-divide-y-reverse)))',
-      '@media (min-width:48rem)': { default: null, ':not(:last-child)': 0 },
-    },
-    borderInlineStartStyle: {
+    '--tw-divide-y-reverse': { default: null, ':not(:last-child)': 0 },
+    borderInlineEndStyle: {
       default: null,
       '@media (min-width:48rem)': {
         default: null,
         ':not(:last-child)': paneUtilityState['--tw-border-style'],
       },
     },
-    borderInlineEndStyle: {
+    borderInlineEndWidth: {
+      default: null,
+      '@media (min-width:48rem)': {
+        default: null,
+        ':not(:last-child)': 'calc(1px * calc(1 - var(--tw-divide-x-reverse)))',
+      },
+    },
+    borderInlineStartStyle: {
       default: null,
       '@media (min-width:48rem)': {
         default: null,
@@ -351,12 +341,22 @@ const paneDivider = stylex.create({
         ':not(:last-child)': 'calc(1px * var(--tw-divide-x-reverse))',
       },
     },
-    borderInlineEndWidth: {
+    borderBottomStyle: {
       default: null,
-      '@media (min-width:48rem)': {
-        default: null,
-        ':not(:last-child)': 'calc(1px * calc(1 - var(--tw-divide-x-reverse)))',
-      },
+      ':not(:last-child)': paneUtilityState['--tw-border-style'],
+    },
+    borderBottomWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * calc(1 - var(--tw-divide-y-reverse)))',
+      '@media (min-width:48rem)': { default: null, ':not(:last-child)': 0 },
+    },
+    borderTopStyle: {
+      default: null,
+      ':not(:last-child)': paneUtilityState['--tw-border-style'],
+    },
+    borderTopWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * var(--tw-divide-y-reverse))',
     },
   },
 })

@@ -40,46 +40,46 @@ import {
 
 const stylexStyles3 = stylex.create({
   rule1: {
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 15%, transparent)`,
     borderRadius: themeRadii['--radius-lg'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 15%, transparent)`,
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
-    padding: `calc(${themeLayout['--spacing']} * 3)`,
     color: themeColors['--color-destructive'],
   },
   rule2: {
-    fontSize: themeFonts['--text-sm'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontSize: themeFonts['--text-sm'],
     fontWeight: 'var(--font-weight-semibold)',
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
   },
   rule3: {
-    marginTop: themeLayout['--spacing'],
+    '--tw-leading': 'var(--leading-relaxed)',
     fontSize: themeFonts['--text-xs'],
     lineHeight: 'var(--leading-relaxed)',
-    '--tw-leading': 'var(--leading-relaxed)',
+    marginTop: themeLayout['--spacing'],
   },
   rule4: {
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: 'var(--leading-relaxed)',
     '--tw-leading': 'var(--leading-relaxed)',
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
   },
   rule5: {
-    display: 'flex',
-    maxHeight: themeLayout['--max-height-wizard'],
-    flexDirection: 'column',
     gap: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'flex',
+    flexDirection: 'column',
+    maxHeight: themeLayout['--max-height-wizard'],
     overflowY: 'auto',
   },
 })
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 3.5)`,
-    height: `calc(${themeLayout['--spacing']} * 3.5)`,
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
 })
 

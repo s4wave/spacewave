@@ -210,3 +210,51 @@ diff --git a/lib/es/types/StyleXTypes.d.ts b/lib/es/types/StyleXTypes.d.ts
        '::after': CSSProperties;
        '::backdrop': CSSProperties;
        '::before': CSSProperties;
+diff --git a/lib/cjs/types/StyleXCSSTypes.d.ts b/lib/cjs/types/StyleXCSSTypes.d.ts
+--- a/lib/cjs/types/StyleXCSSTypes.d.ts
++++ b/lib/cjs/types/StyleXCSSTypes.d.ts
+@@ -109,16 +109,16 @@
+ type appearance = 'auto' | 'none' | 'textfield' | string;
+ type backdropFilter = 'none' | string;
+ type backfaceVisibility = 'visible' | 'hidden';
+-type backgroundAttachment = attachment;
++type backgroundAttachment = attachment | `${attachment}, ${string}`;
+ type backgroundBlendMode = blendMode;
+-type backgroundClip = box | 'text';
++type backgroundClip = box | 'text' | `${box | 'text'}, ${string}`;
+ type backgroundColor = color;
+ type backgroundImage = bgImage;
+-type backgroundOrigin = box;
++type backgroundOrigin = box | `${box}, ${string}`;
+ type backgroundPosition = string;
+ type backgroundPositionX = string;
+ type backgroundPositionY = string;
+-type backgroundRepeat = repeatStyle;
++type backgroundRepeat = repeatStyle | `${repeatStyle}, ${string}`;
+ type backgroundSize = bgSize;
+ type blockSize = width;
+ type border = borderWidth | brStyle | color;
+diff --git a/lib/es/types/StyleXCSSTypes.d.ts b/lib/es/types/StyleXCSSTypes.d.ts
+--- a/lib/es/types/StyleXCSSTypes.d.ts
++++ b/lib/es/types/StyleXCSSTypes.d.ts
+@@ -109,16 +109,16 @@
+ type appearance = 'auto' | 'none' | 'textfield' | string;
+ type backdropFilter = 'none' | string;
+ type backfaceVisibility = 'visible' | 'hidden';
+-type backgroundAttachment = attachment;
++type backgroundAttachment = attachment | `${attachment}, ${string}`;
+ type backgroundBlendMode = blendMode;
+-type backgroundClip = box | 'text';
++type backgroundClip = box | 'text' | `${box | 'text'}, ${string}`;
+ type backgroundColor = color;
+ type backgroundImage = bgImage;
+-type backgroundOrigin = box;
++type backgroundOrigin = box | `${box}, ${string}`;
+ type backgroundPosition = string;
+ type backgroundPositionX = string;
+ type backgroundPositionY = string;
+-type backgroundRepeat = repeatStyle;
++type backgroundRepeat = repeatStyle | `${repeatStyle}, ${string}`;
+ type backgroundSize = bgSize;
+ type blockSize = width;
+ type border = borderWidth | brStyle | color;

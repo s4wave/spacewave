@@ -37,8 +37,8 @@ export function AppLogo({
 
 const styles = stylex.create({
   root: {
+    padding: layout['--spacing-app-logo-inset'],
     pointerEvents: 'none',
     height: 'auto',
-    padding: layout['--spacing-app-logo-inset'],
   },
 })

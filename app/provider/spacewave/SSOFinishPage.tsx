@@ -34,41 +34,38 @@ import { fonts as themeFonts } from '../../../web/style/tokens.stylex.js'
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    position: 'relative',
-    display: 'flex',
-    flex: 1,
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: themeColors['--color-background-landing'],
     padding: `calc(${themeLayout['--spacing']} * 6)`,
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: themeColors['--color-background-landing'],
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    position: 'relative',
   },
   rule2: {
-    position: 'relative',
-    zIndex: 10,
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    alignItems: 'center',
     display: 'flex',
     flexDirection: 'column',
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    position: 'relative',
     textAlign: 'center',
+    zIndex: 10,
   },
   rule3: {
-    fontSize: 'var(--text-lg)',
-    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
     '--tw-font-weight': 'var(--font-weight-semibold)',
-    fontWeight: 'var(--font-weight-semibold)',
     color: themeColors['--color-foreground'],
+    fontSize: 'var(--text-lg)',
+    fontWeight: 'var(--font-weight-semibold)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
   },
   rule4: {
-    maxWidth: 'var(--container-sm)',
+    color: themeColors['--color-foreground-alt'],
     fontSize: themeFonts['--text-sm'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
-    color: themeColors['--color-foreground-alt'],
+    maxWidth: 'var(--container-sm)',
   },
   rule5: {
-    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
-    fontSize: themeFonts['--text-sm'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     color: {
       default: themeColors['--color-brand'],
       '@media (hover: hover)': {
@@ -76,25 +73,28 @@ const stylexStyles2 = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 80%, transparent)`,
       },
     },
-    textDecorationLine: 'underline',
-  },
-  rule6: {
     fontSize: themeFonts['--text-sm'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    textDecorationLine: 'underline',
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule6: {
     color: themeColors['--color-foreground-alt'],
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
   },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 12)`,
-    height: `calc(${themeLayout['--spacing']} * 12)`,
     color: themeColors['--color-destructive'],
+    height: `calc(${themeLayout['--spacing']} * 12)`,
+    width: `calc(${themeLayout['--spacing']} * 12)`,
   },
   rule2: {
-    width: `calc(${themeLayout['--spacing']} * 6)`,
-    height: `calc(${themeLayout['--spacing']} * 6)`,
     color: themeColors['--color-brand'],
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+    width: `calc(${themeLayout['--spacing']} * 6)`,
   },
 })
 

@@ -1,3 +1,4 @@
+import { keyframeNames } from '../style/tokens.stylex.js'
 import { stylexProps } from '@s4wave/web/style/props.js'
 import * as React from 'react'
 
@@ -5,42 +6,42 @@ import * as stylex from '@stylexjs/stylex'
 
 const styles = stylex.create({
   border: {
-    pointerEvents: 'none',
-    position: 'absolute',
-    inset: 0,
-    width: '100%',
-    height: '100%',
-    borderRadius: 'inherit',
-    backgroundImage: 'var(--shine-border-background)',
-    backgroundSize: '300% 300%',
-    mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
     WebkitMask:
       'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-    maskPosition: '0px 0px, 0px 0px',
     WebkitMaskComposite: 'xor',
-    maskComposite: 'exclude',
+    inset: 0,
     padding: 'var(--border-width)',
-    willChange: {
-      default: 'background-position',
-      '@media (prefers-reduced-motion: reduce)': 'auto',
-    },
-    opacity: { default: null, '@media (prefers-reduced-motion: reduce)': 0.35 },
-    animationName: {
-      default: null,
-      '@media (prefers-reduced-motion: no-preference)': 'shine',
-    },
+    borderRadius: 'inherit',
+    mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
     animationDuration: {
       default: null,
       '@media (prefers-reduced-motion: no-preference)': 'var(--duration)',
-    },
-    animationTimingFunction: {
-      default: null,
-      '@media (prefers-reduced-motion: no-preference)': 'linear',
     },
     animationIterationCount: {
       default: null,
       '@media (prefers-reduced-motion: no-preference)': 'infinite',
     },
+    animationName: {
+      default: null,
+      '@media (prefers-reduced-motion: no-preference)': keyframeNames['shine'],
+    },
+    animationTimingFunction: {
+      default: null,
+      '@media (prefers-reduced-motion: no-preference)': 'linear',
+    },
+    backgroundImage: 'var(--shine-border-background)',
+    backgroundSize: '300% 300%',
+    maskComposite: 'exclude',
+    maskPosition: '0px 0px, 0px 0px',
+    opacity: { default: null, '@media (prefers-reduced-motion: reduce)': 0.35 },
+    pointerEvents: 'none',
+    position: 'absolute',
+    willChange: {
+      default: 'background-position',
+      '@media (prefers-reduced-motion: reduce)': 'auto',
+    },
+    height: '100%',
+    width: '100%',
   },
 })
 

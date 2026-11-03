@@ -22,38 +22,38 @@ const stylexStyles2 = stylex.create({
 
 const stylexStyles = stylex.create({
   rule1: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
   },
   rule2: {
-    display: 'flex',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
     gap: `calc(${themeLayout['--spacing']} * 3)`,
+    alignItems: 'baseline',
+    display: 'flex',
+    justifyContent: 'space-between',
   },
   rule3: {
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    fontFamily: themeFonts['--font-mono'],
-    WebkitFontSmoothing: 'subpixel-antialiased',
     MozOsxFontSmoothing: 'auto',
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    overflow: 'hidden',
+    color: themeColors['--color-foreground'],
+    fontFamily: themeFonts['--font-mono'],
+    textOverflow: 'ellipsis',
     textRendering: 'auto',
     textShadow: '0 0 0.25px currentColor',
-    color: themeColors['--color-foreground'],
+    whiteSpace: 'nowrap',
   },
   rule4: {
-    flexShrink: 0,
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+    flexShrink: 0,
   },
   rule5: {
-    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
     color: themeColors['--color-destructive'],
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
   },
   rule6: {
-    display: 'grid',
     gap: `calc(${themeLayout['--spacing']} * 3)`,
+    display: 'grid',
     gridTemplateColumns: {
       default: null,
       '@container (min-width: 48rem)': 'repeat(2, minmax(0, 1fr))',
@@ -403,8 +403,8 @@ function revisionFact(rev?: bigint, source?: string): string | null {
 // edgeSpacing keeps first and last row padding at the row owner.
 const edgeSpacing = stylex.create({
   s2: {
-    paddingTop: { default: 'calc(var(--spacing) * 2)', ':first-child': 0 },
     paddingBottom: { default: 'calc(var(--spacing) * 2)', ':last-child': 0 },
+    paddingTop: { default: 'calc(var(--spacing) * 2)', ':first-child': 0 },
   },
 })
 
@@ -412,9 +412,18 @@ const edgeSpacing = stylex.create({
 const nativeDividers = stylex.create({
   t6: {
     '--tw-divide-y-reverse': { default: null, ':not(:last-child)': 0 },
+    borderColor: {
+      default: null,
+      ':not(:last-child)':
+        'color-mix(in oklab, var(--color-foreground) 6%, transparent)',
+    },
     borderBottomStyle: {
       default: null,
       ':not(:last-child)': themeUtilityState['--tw-border-style'],
+    },
+    borderBottomWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * calc(1 - var(--tw-divide-y-reverse)))',
     },
     borderTopStyle: {
       default: null,
@@ -423,15 +432,6 @@ const nativeDividers = stylex.create({
     borderTopWidth: {
       default: null,
       ':not(:last-child)': 'calc(1px * var(--tw-divide-y-reverse))',
-    },
-    borderBottomWidth: {
-      default: null,
-      ':not(:last-child)': 'calc(1px * calc(1 - var(--tw-divide-y-reverse)))',
-    },
-    borderColor: {
-      default: null,
-      ':not(:last-child)':
-        'color-mix(in oklab, var(--color-foreground) 6%, transparent)',
     },
   },
 })

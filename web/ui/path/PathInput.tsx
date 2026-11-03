@@ -21,54 +21,53 @@ import {
 
 const styles = stylex.create({
   rootIcon: {
-    width: `calc(${themeLayout['--spacing']} * 3.5)`,
     height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
   chevronIcon: {
-    width: `calc(${themeLayout['--spacing']} * 3)`,
-    height: `calc(${themeLayout['--spacing']} * 3)`,
     color: themeColors['--color-foreground-alt'],
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    width: `calc(${themeLayout['--spacing']} * 3)`,
   },
   editTarget: {
+    flex: 1,
+    alignSelf: 'stretch',
+    cursor: 'text',
     height: '100%',
     minWidth: `calc(${themeLayout['--spacing']} * 2)`,
-    flex: 1,
-    cursor: 'text',
-    alignSelf: 'stretch',
   },
   active: {
     fontSize: themeLayout['--text-ui'],
-    lineHeight: 'var(--tw-leading, var(--text-ui--line-height))',
     letterSpacing: 'var(--tw-tracking, var(--text-ui--letter-spacing))',
+    lineHeight: 'var(--tw-leading, var(--text-ui--line-height))',
   },
   editingBase: {
+    borderRadius: '.25rem',
+    flex: 1,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
+    backgroundColor: themeColors['--color-file-path-bar'],
     display: 'flex',
     height: `calc(${themeLayout['--spacing']} * 5)`,
-    flex: 1,
-    alignItems: 'center',
-    borderRadius: '.25rem',
-    backgroundColor: themeColors['--color-file-path-bar'],
-    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
   },
   inputBase: {
-    width: '100%',
-    backgroundColor: '#0000',
-    fontFamily: themeFonts['--font-mono'],
-    WebkitFontSmoothing: 'subpixel-antialiased',
+    '--tw-outline-style': 'none',
     MozOsxFontSmoothing: 'auto',
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    backgroundColor: '#0000',
+    color: themeColors['--color-foreground'],
+    fontFamily: themeFonts['--font-mono'],
+    outlineStyle: 'none',
     textRendering: 'auto',
     textShadow: '0 0 0.25px currentColor',
-    color: themeColors['--color-foreground'],
-    '--tw-outline-style': 'none',
-    outlineStyle: 'none',
+    width: '100%',
   },
   breadcrumbsBase: {
-    display: 'flex',
-    height: `calc(${themeLayout['--spacing']} * 5)`,
-    flex: 1,
-    alignItems: 'center',
-    overflow: 'hidden',
+    WebkitUserSelect: 'none',
     borderRadius: '.25rem',
+    flex: 1,
+    overflow: 'hidden',
+    alignItems: 'center',
     backgroundColor: {
       default: themeColors['--color-file-path-bar'],
       '@media (hover: hover)': {
@@ -77,23 +76,18 @@ const styles = stylex.create({
       },
     },
     color: themeColors['--color-foreground'],
+    display: 'flex',
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
-    WebkitUserSelect: 'none',
     userSelect: 'none',
+    height: `calc(${themeLayout['--spacing']} * 5)`,
   },
   rootBase: {
-    display: 'flex',
-    alignItems: 'center',
     borderRadius: '.25rem',
-    transitionProperty:
-      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
-    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
+    alignItems: 'center',
     backgroundColor: {
       default: null,
       '@media (hover: hover)': {
@@ -101,15 +95,16 @@ const styles = stylex.create({
         ':hover': themeColors['--color-pulldown-hover'],
       },
     },
+    display: 'flex',
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
   },
   segmentBase: { alignItems: 'center' },
   crumbBase: {
     borderRadius: '.25rem',
-    transitionProperty:
-      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
-    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
     backgroundColor: {
       default: null,
       '@media (hover: hover)': {
@@ -117,6 +112,11 @@ const styles = stylex.create({
         ':hover': themeColors['--color-pulldown-hover'],
       },
     },
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
   },
   editingTouch: {
     minHeight: {
@@ -140,7 +140,6 @@ const styles = stylex.create({
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
   },
   breadcrumbsTouch: {
-    minWidth: 0,
     gap: {
       default: `calc(${themeLayout['--spacing']} * .5)`,
       '@media (pointer: coarse)': 0,
@@ -161,6 +160,7 @@ const styles = stylex.create({
       default: null,
       '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
     },
+    minWidth: 0,
   },
   breadcrumbs: {
     gap: `calc(${themeLayout['--spacing']} * .5)`,
@@ -173,22 +173,22 @@ const styles = stylex.create({
       default: themeLayout['--spacing'],
       '@media (pointer: coarse)': 0,
     },
-    width: {
-      default: null,
-      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
-    },
+    flexShrink: { default: null, '@media (pointer: coarse)': 0 },
+    justifyContent: { default: null, '@media (pointer: coarse)': 'center' },
     height: {
       default: null,
       '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
     },
-    flexShrink: { default: null, '@media (pointer: coarse)': 0 },
-    justifyContent: { default: null, '@media (pointer: coarse)': 'center' },
+    width: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
   },
   root: { paddingInline: themeLayout['--spacing'] },
   lastSegmentTouch: {
+    flex: { default: null, '@media not all and (min-width: 40rem)': 1 },
     display: 'flex',
     minWidth: { default: null, '@media not all and (min-width: 40rem)': 0 },
-    flex: { default: null, '@media not all and (min-width: 40rem)': 1 },
   },
   hiddenSegmentTouch: {
     display: {
@@ -198,32 +198,32 @@ const styles = stylex.create({
   },
   segment: { display: 'flex' },
   crumbTouch: {
-    paddingInline: {
-      default: themeLayout['--spacing'],
-      '@media not all and (min-width: 40rem)': `calc(${themeLayout['--spacing']} * 2)`,
-    },
-    whiteSpace: {
-      default: 'nowrap',
-      '@media not all and (min-width: 40rem)': 'nowrap',
-    },
-    minWidth: { default: null, '@media not all and (min-width: 40rem)': 0 },
     flex: { default: null, '@media not all and (min-width: 40rem)': 1 },
-    textOverflow: {
-      default: null,
-      '@media not all and (min-width: 40rem)': 'ellipsis',
-    },
     overflow: {
       default: null,
       '@media not all and (min-width: 40rem)': 'hidden',
+    },
+    paddingInline: {
+      default: themeLayout['--spacing'],
+      '@media not all and (min-width: 40rem)': `calc(${themeLayout['--spacing']} * 2)`,
     },
     textAlign: {
       default: null,
       '@media not all and (min-width: 40rem)': 'left',
     },
+    textOverflow: {
+      default: null,
+      '@media not all and (min-width: 40rem)': 'ellipsis',
+    },
+    whiteSpace: {
+      default: 'nowrap',
+      '@media not all and (min-width: 40rem)': 'nowrap',
+    },
     minHeight: {
       default: null,
       '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
     },
+    minWidth: { default: null, '@media not all and (min-width: 40rem)': 0 },
   },
   crumb: { paddingInline: themeLayout['--spacing'], whiteSpace: 'nowrap' },
 })

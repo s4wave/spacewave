@@ -26,36 +26,37 @@ import {
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    display: 'flex',
-    width: '100%',
-    flexDirection: 'column',
     gap: `calc(${themeLayout['--spacing']} * 8)`,
+    display: 'flex',
+    flexDirection: 'column',
+    width: '100%',
   },
   rule2: {
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
     display: 'flex',
     flexDirection: 'column',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
   },
   rule3: {
-    display: 'flex',
-    alignItems: 'center',
     gap: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
+    display: 'flex',
   },
   rule4: {
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
     fontSize: {
       default: 'var(--text-2xl)',
       '@container (min-width: 32rem)': 'var(--text-3xl)',
     },
+    fontWeight: 'var(--font-weight-semibold)',
     lineHeight: {
       default: 'var(--tw-leading, var(--text-2xl--line-height))',
       '@container (min-width: 32rem)':
         'var(--tw-leading, var(--text-3xl--line-height))',
     },
-    '--tw-font-weight': 'var(--font-weight-semibold)',
-    fontWeight: 'var(--font-weight-semibold)',
-    color: themeColors['--color-foreground'],
   },
   rule5: {
+    color: themeColors['--color-foreground-alt'],
     fontSize: {
       default: themeFonts['--text-sm'],
       '@container (min-width: 32rem)': 'var(--text-base)',
@@ -65,50 +66,49 @@ const stylexStyles2 = stylex.create({
       '@container (min-width: 32rem)':
         'var(--tw-leading, var(--text-base--line-height))',
     },
-    color: themeColors['--color-foreground-alt'],
   },
   rule6: {
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
     display: 'flex',
     flexDirection: 'column',
-    gap: `calc(${themeLayout['--spacing']} * 3)`,
   },
   rule7: {
-    fontSize: themeFonts['--text-sm'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     '--tw-font-weight': 'var(--font-weight-semibold)',
-    fontWeight: 'var(--font-weight-semibold)',
     color: themeColors['--color-foreground'],
+    fontSize: themeFonts['--text-sm'],
+    fontWeight: 'var(--font-weight-semibold)',
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
   },
   rule8: {
-    display: 'grid',
     gap: `calc(${themeLayout['--spacing']} * 3)`,
+    display: 'grid',
     gridTemplateColumns: {
       default: null,
       '@container (min-width: 28rem)': 'repeat(2, minmax(0, 1fr))',
     },
   },
   rule9: {
-    display: 'flex',
-    cursor: 'pointer',
-    gap: `calc(${themeLayout['--spacing']} * 3)`,
-    borderRadius: themeRadii['--radius-lg'],
-    borderStyle: themeUtilityState['--tw-border-style'],
-    borderWidth: '1px',
-    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    '--tw-ring-color': {
+      default: null,
+      ':focus-within': `color-mix(in oklab, ${themeColors['--color-brand']} 70%, transparent)`,
+    },
     '--tw-ring-shadow': {
       default: null,
       ':focus-within':
         'var(--tw-ring-inset, ) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
     },
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
     boxShadow: {
       default: null,
       ':focus-within':
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     },
-    '--tw-ring-color': {
-      default: null,
-      ':focus-within': `color-mix(in oklab, ${themeColors['--color-brand']} 70%, transparent)`,
-    },
+    cursor: 'pointer',
+    display: 'flex',
   },
   rule10: {
     borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
@@ -125,85 +125,85 @@ const stylexStyles2 = stylex.create({
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
   },
   rule12: {
+    accentColor: themeColors['--color-brand'],
+    cursor: 'pointer',
+    flexShrink: 0,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
     marginTop: themeLayout['--spacing'],
     width: `calc(${themeLayout['--spacing']} * 4)`,
-    height: `calc(${themeLayout['--spacing']} * 4)`,
-    flexShrink: 0,
-    cursor: 'pointer',
-    accentColor: themeColors['--color-brand'],
   },
   rule13: {
+    gap: themeLayout['--spacing'],
     display: 'flex',
     flexDirection: 'column',
-    gap: themeLayout['--spacing'],
   },
   rule14: {
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: 'var(--leading-relaxed)',
     '--tw-leading': 'var(--leading-relaxed)',
     color: themeColors['--color-foreground-alt'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
   },
   rule15: {
-    display: 'flex',
-    gap: `calc(${themeLayout['--spacing']} * 3)`,
-    borderRadius: themeRadii['--radius-lg'],
-    borderStyle: themeUtilityState['--tw-border-style'],
-    borderWidth: '1px',
-    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    '--tw-ring-color': {
+      default: null,
+      ':focus-within': `color-mix(in oklab, ${themeColors['--color-brand']} 70%, transparent)`,
+    },
     '--tw-ring-shadow': {
       default: null,
       ':focus-within':
         'var(--tw-ring-inset, ) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
     },
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
     boxShadow: {
       default: null,
       ':focus-within':
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     },
-    '--tw-ring-color': {
-      default: null,
-      ':focus-within': `color-mix(in oklab, ${themeColors['--color-brand']} 70%, transparent)`,
-    },
+    display: 'flex',
   },
   rule16: { cursor: 'pointer' },
   rule17: { cursor: 'not-allowed', opacity: 0.5 },
   rule18: {
+    accentColor: themeColors['--color-brand'],
+    cursor: { default: 'pointer', ':disabled': 'not-allowed' },
+    flexShrink: 0,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
     marginTop: themeLayout['--spacing'],
     width: `calc(${themeLayout['--spacing']} * 4)`,
-    height: `calc(${themeLayout['--spacing']} * 4)`,
-    flexShrink: 0,
-    cursor: { default: 'pointer', ':disabled': 'not-allowed' },
-    accentColor: themeColors['--color-brand'],
   },
   rule19: {
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
     '--tw-tracking': 'var(--tracking-wider)',
-    letterSpacing: 'var(--tracking-wider)',
     color: themeColors['--color-foreground-alt'],
+    fontSize: themeFonts['--text-xs'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    letterSpacing: 'var(--tracking-wider)',
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     textTransform: 'uppercase',
   },
   rule20: {
-    textAlign: 'center',
+    color: themeColors['--color-foreground-alt'],
     fontSize: themeFonts['--text-sm'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
-    color: themeColors['--color-foreground-alt'],
+    textAlign: 'center',
   },
   rule21: {
-    display: 'flex',
-    width: '100%',
-    flexDirection: 'column',
     gap: `calc(${themeLayout['--spacing']} * 10)`,
+    display: 'flex',
+    flexDirection: 'column',
+    width: '100%',
   },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 5)`,
-    height: `calc(${themeLayout['--spacing']} * 5)`,
     color: themeColors['--color-foreground-alt'],
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    width: `calc(${themeLayout['--spacing']} * 5)`,
   },
 })
 

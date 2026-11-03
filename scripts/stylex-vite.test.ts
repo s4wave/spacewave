@@ -19,7 +19,7 @@ import * as stylex from '@stylexjs/stylex';
 import {metrics} from './tokens.stylex';
 import {ImportedStyle} from './ImportedStyle';
 const styles=stylex.create({button:{color:'${color}',marginTop:metrics.space}});
-export function App(){ const [count,setCount]=useState(0);return <button sx={styles.button} onClick={()=>setCount(count+1)}>{count}<ImportedStyle/></button> }`
+export function App(){ const [count,setCount]=useState(0);return <><button sx={styles.button} onClick={()=>setCount(count+1)}>{count}<ImportedStyle/></button><aside className="theme-only">Theme</aside></> }`
 
 test('native CSS ships in the manifest and updates without losing component state', async () => {
   // Use real React, compiler, Vite assets and browsers rather than emulating CSS delivery.
@@ -32,7 +32,7 @@ test('native CSS ships in the manifest and updates without losing component stat
   )
   await writeFile(
     join(root, 'main.tsx'),
-    `import React from 'react';import {createRoot} from 'react-dom/client';import {App} from './App';createRoot(document.getElementById('root')!).render(<App/>);`,
+    `import './theme-entry';import React from 'react';import {createRoot} from 'react-dom/client';import {App} from './App';createRoot(document.getElementById('root')!).render(<App/>);`,
   )
   await writeFile(
     join(root, 'tokens.stylex.ts'),
@@ -41,6 +41,20 @@ const identity = <T>(value:T):T => value;
 const assertion = <string>'valid';
 void identity(assertion);
 export const metrics=stylex.defineConsts({space:'17px'});`,
+  )
+
+  // An unused token binding still contributes CSS through the explicit theme entry.
+  await writeFile(
+    join(root, 'ThemeOnly.stylex.ts'),
+    `import * as stylex from '@stylexjs/stylex';export const palette=stylex.defineVars({'--theme-only-color':'rgb(2, 3, 4)'});`,
+  )
+  await writeFile(
+    join(root, 'native.css'),
+    '.theme-only { color:var(--theme-only-color) }',
+  )
+  await writeFile(
+    join(root, 'theme-entry.ts'),
+    "import './ThemeOnly.stylex';import './native.css';",
   )
   await writeFile(join(root, 'App.tsx'), appSource('red'))
 
@@ -59,7 +73,13 @@ export const metrics=stylex.defineConsts({space:'17px'});`,
     plugins: [stylexCss(), react(), stylexCss()],
     logLevel: 'warn' as const,
     build: { manifest: true },
-    server: { port: 0, host: '127.0.0.1', fs: { allow: [repository] } },
+    server: {
+      port: 0,
+      host: '127.0.0.1',
+      fs: { allow: [repository] },
+      // Immediate syntax-error corrections must bypass Chokidar's 50 ms change suppression.
+      watch: { awaitWriteFinish: { stabilityThreshold: 50, pollInterval: 10 } },
+    },
     preview: { port: 0, host: '127.0.0.1' },
   }
 
@@ -127,6 +147,13 @@ export const metrics=stylex.defineConsts({space:'17px'});`,
                 getComputedStyle(button).marginTop,
               ]),
             ['rgb(255, 0, 0)', '17px'],
+          )
+          assert.equal(
+            await staticPage
+              .locator('.theme-only')
+              .evaluate((element) => getComputedStyle(element).color),
+            'rgb(2, 3, 4)',
+            `${engine}: bootstrap markup needs theme-only CSS before hydration`,
           )
           await staticContext.close()
           const page = await browser.newPage()

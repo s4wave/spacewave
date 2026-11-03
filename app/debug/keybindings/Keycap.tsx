@@ -14,42 +14,42 @@ import {
 
 const stylexStyles3 = stylex.create({
   rule1: {
-    display: 'inline-flex',
-    alignItems: 'center',
     gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    alignItems: 'center',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 55%, transparent)`,
+    display: 'inline-flex',
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 55%, transparent)`,
   },
   rule2: {
-    display: 'inline-flex',
-    alignItems: 'center',
     gap: themeLayout['--spacing'],
+    alignItems: 'center',
+    display: 'inline-flex',
   },
 })
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    display: 'inline-flex',
-    minWidth: `calc(${themeLayout['--spacing']} * 6)`,
-    alignItems: 'center',
-    justifyContent: 'center',
+    '--tw-leading': `calc(${themeLayout['--spacing']} * 5)`,
+    MozOsxFontSmoothing: 'auto',
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 15%, transparent)`,
     borderRadius: '.25rem',
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 15%, transparent)`,
-    backgroundColor: themeColors['--color-background-card-alt'],
-    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
     paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    alignItems: 'center',
+    backgroundColor: themeColors['--color-background-card-alt'],
+    boxShadow: 'inset 0 -1px #ffffff14',
+    display: 'inline-flex',
     fontFamily: themeFonts['--font-mono'],
-    WebkitFontSmoothing: 'subpixel-antialiased',
-    MozOsxFontSmoothing: 'auto',
+    fontSize: themeLayout['--text-metadata'],
+    justifyContent: 'center',
+    lineHeight: `calc(${themeLayout['--spacing']} * 5)`,
     textRendering: 'auto',
     textShadow: '0 0 0.25px currentColor',
-    fontSize: themeLayout['--text-metadata'],
-    lineHeight: `calc(${themeLayout['--spacing']} * 5)`,
-    '--tw-leading': `calc(${themeLayout['--spacing']} * 5)`,
-    boxShadow: 'inset 0 -1px #ffffff14',
+    minWidth: `calc(${themeLayout['--spacing']} * 6)`,
   },
   rule2: {
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 60%, transparent)`,
@@ -59,8 +59,8 @@ const stylexStyles2 = stylex.create({
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 3.5)`,
     height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
 })
 

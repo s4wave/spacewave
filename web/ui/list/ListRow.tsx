@@ -14,20 +14,20 @@ import {
 
 const styles = stylex.create({
   row: {
-    display: 'flex',
-    cursor: 'pointer',
-    alignItems: 'center',
-    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    '--tw-leading': 'var(--leading-tight)',
+    WebkitUserSelect: 'none',
     paddingBlock: '1px',
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
+    cursor: 'pointer',
+    display: 'flex',
     fontSize: themeFonts['--text-xs'],
     lineHeight: 'var(--leading-tight)',
-    '--tw-leading': 'var(--leading-tight)',
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
-    WebkitUserSelect: 'none',
     userSelect: 'none',
   },
   selected: {
@@ -35,7 +35,6 @@ const styles = stylex.create({
     color: themeColors['--color-foreground'],
   },
   unselected: {
-    color: `color-mix(in oklab, ${themeColors['--color-foreground']} 90%, transparent)`,
     backgroundColor: {
       default: null,
       '@media (hover: hover)': {
@@ -43,20 +42,21 @@ const styles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
       },
     },
+    color: `color-mix(in oklab, ${themeColors['--color-foreground']} 90%, transparent)`,
   },
   focused: {
+    '--tw-ring-color': `color-mix(in oklab, ${themeColors['--color-brand']} 25%, transparent)`,
+    '--tw-ring-inset': 'inset',
     '--tw-ring-shadow':
       'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
     boxShadow:
       'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
-    '--tw-ring-color': `color-mix(in oklab, ${themeColors['--color-brand']} 25%, transparent)`,
-    '--tw-ring-inset': 'inset',
   },
   label: {
     flex: 1,
+    overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    overflow: 'hidden',
   },
 })
 

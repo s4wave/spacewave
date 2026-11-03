@@ -14,26 +14,16 @@ import {
 
 const styles = stylex.create({
   section: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
     borderRadius: themeRadii['--radius-lg'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
   },
-  actions: { display: 'flex', flexShrink: 0, alignItems: 'center' },
+  actions: { alignItems: 'center', display: 'flex', flexShrink: 0 },
   header: {
-    display: 'flex',
-    minHeight: {
-      default: `calc(${themeLayout['--spacing']} * 11)`,
-      '@media (pointer: fine)': 0,
-    },
-    alignItems: 'center',
     gap: `calc(${themeLayout['--spacing']} * 2)`,
-    transitionProperty:
-      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
-    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
+    alignItems: 'center',
     backgroundColor: {
       default: null,
       '@media (hover: hover)': {
@@ -41,39 +31,49 @@ const styles = stylex.create({
         ':hover': `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
       },
     },
+    display: 'flex',
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    minHeight: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (pointer: fine)': 0,
+    },
   },
   compactHeader: {
-    paddingInline: `calc(${themeLayout['--spacing']} * 2.5)`,
     paddingBlock: {
       default: null,
       '@media (min-width: 40rem)': `calc(${themeLayout['--spacing']} * 1.5)`,
     },
+    paddingInline: `calc(${themeLayout['--spacing']} * 2.5)`,
   },
   regularHeader: {
-    paddingInline: `calc(${themeLayout['--spacing']} * 3.5)`,
     paddingBlock: {
       default: null,
       '@media (min-width: 40rem)': `calc(${themeLayout['--spacing']} * 2.5)`,
     },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
   openHeader: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
     borderBottomStyle: themeUtilityState['--tw-border-style'],
     borderBottomWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
   },
   trigger: {
+    flex: 1,
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
+    alignSelf: 'stretch',
+    cursor: 'pointer',
     display: 'flex',
+    textAlign: 'left',
     minHeight: {
       default: `calc(${themeLayout['--spacing']} * 11)`,
       '@media (pointer: fine)': 0,
     },
     minWidth: 0,
-    flex: 1,
-    cursor: 'pointer',
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
-    alignSelf: 'stretch',
-    textAlign: 'left',
   },
   compactTrigger: {
     marginBlock: {
@@ -96,34 +96,34 @@ const styles = stylex.create({
     },
   },
   icon: {
-    display: 'flex',
-    width: `calc(${themeLayout['--spacing']} * 3.5)`,
-    height: `calc(${themeLayout['--spacing']} * 3.5)`,
-    flexShrink: 0,
     alignItems: 'center',
-    justifyContent: 'center',
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    display: 'flex',
+    flexShrink: 0,
+    justifyContent: 'center',
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
   title: {
-    minWidth: 0,
-    flex: 1,
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
-    color: themeColors['--color-foreground'],
     WebkitUserSelect: 'none',
+    flex: 1,
+    color: themeColors['--color-foreground'],
+    fontSize: themeFonts['--text-xs'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     userSelect: 'none',
+    minWidth: 0,
   },
   chevron: {
-    width: `calc(${themeLayout['--spacing']} * 3.5)`,
-    height: `calc(${themeLayout['--spacing']} * 3.5)`,
-    flexShrink: 0,
+    '--tw-duration': '.15s',
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 30%, transparent)`,
+    flexShrink: 0,
+    transitionDuration: '.15s',
     transitionProperty: 'transform, translate, scale, rotate',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration: '.15s',
-    '--tw-duration': '.15s',
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
   openChevron: { rotate: '180deg' },
   compactContent: { padding: `calc(${themeLayout['--spacing']} * 2.5)` },
@@ -210,11 +210,24 @@ export function CollapsibleSection({
 /** collapsibleSectionActionStyles styles a header action with its pointer-specific touch target. */
 export const collapsibleSectionActionStyles = stylex.create({
   button: {
-    display: 'flex',
-    width: `calc(${themeLayout['--spacing']} * 4)`,
-    height: `calc(${themeLayout['--spacing']} * 4)`,
     alignItems: 'center',
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    display: 'flex',
     justifyContent: 'center',
+    opacity: { default: null, ':disabled': 0.5 },
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
     minHeight: {
       default: `calc(${themeLayout['--spacing']} * 11)`,
       '@media (pointer: fine)': 0,
@@ -223,19 +236,6 @@ export const collapsibleSectionActionStyles = stylex.create({
       default: `calc(${themeLayout['--spacing']} * 11)`,
       '@media (pointer: fine)': 0,
     },
-    color: {
-      default: themeColors['--color-foreground-alt'],
-      '@media (hover: hover)': {
-        default: null,
-        ':hover': themeColors['--color-foreground'],
-      },
-    },
-    transitionProperty:
-      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
-    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
-    cursor: { default: null, ':disabled': 'not-allowed' },
-    opacity: { default: null, ':disabled': 0.5 },
+    width: `calc(${themeLayout['--spacing']} * 4)`,
   },
 })

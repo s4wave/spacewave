@@ -59,24 +59,24 @@ import {
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    display: 'flex',
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
     flex: 1,
     alignItems: 'center',
+    display: 'flex',
     justifyContent: 'center',
-    padding: `calc(${themeLayout['--spacing']} * 6)`,
   },
-  rule2: { width: '100%', maxWidth: 'var(--container-sm)' },
+  rule2: { maxWidth: 'var(--container-sm)', width: '100%' },
   rule3: {
+    '--tw-leading': 'var(--leading-relaxed)',
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 15%, transparent)`,
     borderRadius: themeRadii['--radius-lg'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 15%, transparent)`,
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
-    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    color: themeColors['--color-destructive'],
     fontSize: themeFonts['--text-xs'],
     lineHeight: 'var(--leading-relaxed)',
-    '--tw-leading': 'var(--leading-relaxed)',
-    color: themeColors['--color-destructive'],
   },
   rule4: {
     '--tw-font-weight': themeFonts['--font-weight-medium'],
@@ -87,10 +87,10 @@ const stylexStyles2 = stylex.create({
 
 const stylexStyles = stylex.create({
   rule1: {
+    flexShrink: 0,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
     marginRight: `calc(${themeLayout['--spacing']} * 2)`,
     width: `calc(${themeLayout['--spacing']} * 4)`,
-    height: `calc(${themeLayout['--spacing']} * 4)`,
-    flexShrink: 0,
   },
 })
 

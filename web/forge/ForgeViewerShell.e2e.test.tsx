@@ -9,10 +9,10 @@ import { ForgeViewerShell } from './ForgeViewerShell.js'
 const styles = stylex.create({
   root: { height: '100dvh', width: '100%' },
   compact: {
-    height: '28px',
     paddingInline: '8px',
     fontSize: '12px',
     lineHeight: 1.5,
+    height: '28px',
   },
 })
 

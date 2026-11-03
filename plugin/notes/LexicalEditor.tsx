@@ -51,34 +51,34 @@ import {
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    minHeight: '100%',
-    padding: `calc(${themeLayout['--spacing']} * 4)`,
-    fontSize: themeLayout['--text-ui'],
-    lineHeight: `var(--tw-leading, ${themeLayout['--text-ui--line-height']})`,
-    letterSpacing: `var(--tw-tracking, ${themeLayout['--text-ui--letter-spacing']})`,
-    color: themeColors['--color-editor-foreground'],
     '--tw-outline-style': 'none',
-    outlineStyle: 'none',
-    '--tw-ring-shadow': {
-      default: null,
-      ':focus-visible':
-        'var(--tw-ring-inset, ) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
-    },
-    boxShadow: {
-      default: null,
-      ':focus-visible':
-        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
-    },
     '--tw-ring-color': {
       default: null,
       ':focus-visible': themeColors['--color-brand'],
     },
     '--tw-ring-inset': { default: null, ':focus-visible': 'inset' },
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    color: themeColors['--color-editor-foreground'],
+    fontSize: themeLayout['--text-ui'],
+    letterSpacing: `var(--tw-tracking, ${themeLayout['--text-ui--letter-spacing']})`,
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-ui--line-height']})`,
+    outlineStyle: 'none',
+    minHeight: '100%',
   },
 })
 
 const stylexStyles = stylex.create({
-  rule1: { position: 'relative', flex: 1, overflow: 'auto' },
+  rule1: { flex: 1, overflow: 'auto', position: 'relative', },
 })
 
 // validateLinkUrl rejects dangerous URL schemes (javascript:, data:, vbscript:).

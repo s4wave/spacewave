@@ -123,7 +123,6 @@ func directRendererRequest(
 		sourcemap = "external"
 	}
 	external := slices.Clone(web_pkg_external.BldrExternal)
-	external = append(external, "tailwindcss")
 	external = append(external, opts.ExtraExternal...)
 	return &bldr_web_bundler_rolldown.BuildRequest{
 		WorkingDir:   buildDir,

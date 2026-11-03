@@ -20,13 +20,13 @@ import {
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    display: 'inline-flex',
-    width: `calc(${themeLayout['--spacing']} * 8)`,
-    height: `calc(${themeLayout['--spacing']} * 8)`,
-    flexShrink: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
     borderRadius: '3.40282e38px',
+    alignItems: 'center',
+    display: 'inline-flex',
+    flexShrink: 0,
+    justifyContent: 'center',
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    width: `calc(${themeLayout['--spacing']} * 8)`,
   },
   rule2: {
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 12%, transparent)`,
@@ -40,41 +40,41 @@ const stylexStyles2 = stylex.create({
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 45%, transparent)`,
   },
-  rule5: { minWidth: 0, flex: 1 },
+  rule5: { flex: 1, minWidth: 0 },
   rule6: {
-    display: 'flex',
-    alignItems: 'center',
     gap: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
+    display: 'flex',
   },
   rule7: {
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
     overflow: 'hidden',
     fontSize: themeFonts['--text-sm'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
     fontWeight: themeFonts['--font-weight-medium'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
   },
   rule8: {
-    width: `calc(${themeLayout['--spacing']} * 1.5)`,
-    height: `calc(${themeLayout['--spacing']} * 1.5)`,
-    flexShrink: 0,
     borderRadius: '3.40282e38px',
     backgroundColor: themeColors['--color-brand'],
+    flexShrink: 0,
+    height: `calc(${themeLayout['--spacing']} * 1.5)`,
+    width: `calc(${themeLayout['--spacing']} * 1.5)`,
   },
   rule9: {
-    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    '--tw-font-weight': 'var(--font-weight-normal)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 45%, transparent)`,
     display: 'block',
     fontSize: '10px',
-    lineHeight: 1.5,
-    '--tw-font-weight': 'var(--font-weight-normal)',
     fontWeight: 'var(--font-weight-normal)',
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 45%, transparent)`,
+    lineHeight: 1.5,
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
   },
 })
 
 const stylexStyles = stylex.create({
-  rule1: { width: '100%', justifyContent: 'flex-start', textAlign: 'left' },
+  rule1: { justifyContent: 'flex-start', textAlign: 'left', width: '100%' },
 })
 
 interface AuditQueueRowProps {

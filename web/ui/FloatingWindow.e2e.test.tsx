@@ -8,7 +8,7 @@ import { page, userEvent } from 'vitest/browser'
 import { render, cleanup } from 'vitest-browser-react'
 import { useState, useCallback } from 'react'
 
-import '@s4wave/web/style/app.css'
+import '@s4wave/web/style/app.js'
 
 import {
   FloatingWindow,

@@ -33,36 +33,36 @@ import {
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    position: 'relative',
-    display: 'flex',
-    minHeight: 0,
-    minWidth: 0,
+    WebkitUserSelect: 'none',
     flex: 1,
     overflow: 'hidden',
     backgroundColor: themeColors['--color-background-dark'],
-    WebkitUserSelect: 'none',
+    display: 'flex',
+    position: 'relative',
     userSelect: 'none',
+    minHeight: 0,
+    minWidth: 0,
   },
   rule2: {
-    minHeight: 0,
-    width: '100%',
-    minWidth: 0,
     flex: 1,
     overflow: 'hidden',
+    minHeight: 0,
+    minWidth: 0,
+    width: '100%',
   },
   rule3: {
-    position: 'absolute',
     inset: 0,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-dark']} 95%, transparent)`,
     padding: `calc(${themeLayout['--spacing']} * 4)`,
+    alignItems: 'center',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-dark']} 95%, transparent)`,
+    display: 'flex',
+    justifyContent: 'center',
+    position: 'absolute',
   },
 })
 
 const stylexStyles = stylex.create({
-  rule1: { width: '100%', maxWidth: 'var(--container-sm)' },
+  rule1: { maxWidth: 'var(--container-sm)', width: '100%' },
 })
 
 const terminalEncoder = new TextEncoder()

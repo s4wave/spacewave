@@ -1,7 +1,7 @@
 import { Toaster as Sonner, toast } from 'sonner'
 import type { StyleXStyles } from '@stylexjs/stylex'
 import { stylexProps } from '@s4wave/web/style/props.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { sonnerClassNames as skin } from '../style/sonner.js'
 
 type ToasterProps = Omit<React.ComponentProps<typeof Sonner>, 'className'> & {
@@ -36,7 +36,7 @@ function Toaster({ sx, ...props }: ToasterProps) {
         },
       }}
       {...attributes}
-      className={cn(skin.toaster, attributes.className)}
+      className={[skin.toaster, attributes.className].filter(Boolean).join(' ')}
     />
   )
 }

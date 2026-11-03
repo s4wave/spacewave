@@ -33,12 +33,9 @@ import {
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    position: 'relative',
+    overflow: 'hidden',
+    backgroundColor: themeColors['--color-background-primary'],
     display: 'flex',
-    height: '100%',
-    minHeight: 0,
-    width: '100%',
-    minWidth: 0,
     flexDirection: {
       default: 'column',
       '@media (min-width: 48rem)': {
@@ -46,11 +43,15 @@ const stylexStyles2 = stylex.create({
         '@media (pointer: fine)': 'row',
       },
     },
-    overflow: 'hidden',
-    backgroundColor: themeColors['--color-background-primary'],
+    position: 'relative',
+    height: '100%',
+    minHeight: 0,
+    minWidth: 0,
+    width: '100%',
   },
   rule2: {
-    zIndex: 40,
+    borderColor: themeColors['--color-border'],
+    alignItems: 'center',
     display: {
       default: 'flex',
       '@media (min-width: 48rem)': {
@@ -58,20 +59,14 @@ const stylexStyles2 = stylex.create({
         '@media (pointer: fine)': 'none',
       },
     },
-    height: `calc(${themeLayout['--spacing']} * 11)`,
     flexShrink: 0,
-    alignItems: 'center',
+    zIndex: 40,
     borderBottomStyle: themeUtilityState['--tw-border-style'],
     borderBottomWidth: '1px',
-    borderColor: themeColors['--color-border'],
+    height: `calc(${themeLayout['--spacing']} * 11)`,
   },
   rule3: {
-    display: 'flex',
-    width: `calc(${themeLayout['--spacing']} * 11)`,
-    height: `calc(${themeLayout['--spacing']} * 11)`,
-    flexShrink: 0,
     alignItems: 'center',
-    justifyContent: 'center',
     color: {
       default: themeColors['--color-foreground-alt'],
       '@media (hover: hover)': {
@@ -79,50 +74,25 @@ const stylexStyles2 = stylex.create({
         ':hover': themeColors['--color-foreground'],
       },
     },
+    display: 'flex',
+    flexShrink: 0,
+    justifyContent: 'center',
+    height: `calc(${themeLayout['--spacing']} * 11)`,
+    width: `calc(${themeLayout['--spacing']} * 11)`,
   },
   rule4: {
-    minWidth: 0,
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
     overflow: 'hidden',
     paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
     fontSize: themeFonts['--text-sm'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
     fontWeight: themeFonts['--font-weight-medium'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    minWidth: 0,
   },
   rule5: {
-    position: {
-      default: 'absolute',
-      '@media (min-width: 48rem)': {
-        default: null,
-        '@media (pointer: fine)': 'relative',
-      },
-    },
-    top: `calc(${themeLayout['--spacing']} * 11)`,
-    bottom: 0,
-    left: 0,
-    zIndex: 30,
-    display: {
-      default: 'block',
-      '@media (min-width: 48rem)': {
-        default: null,
-        '@media (pointer: fine)': 'block',
-      },
-    },
-    width: {
-      default: `calc(${themeLayout['--spacing']} * 72)`,
-      '@media (min-width: 48rem)': {
-        default: null,
-        '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 50)`,
-      },
-    },
-    maxWidth: '100%',
-    overflowY: 'auto',
-    borderRightStyle: themeUtilityState['--tw-border-style'],
-    borderRightWidth: '1px',
     borderColor: themeColors['--color-border'],
-    backgroundColor: themeColors['--color-background-primary'],
     insetBlock: {
       default: null,
       '@media (min-width: 48rem)': {
@@ -130,6 +100,27 @@ const stylexStyles2 = stylex.create({
         '@media (pointer: fine)': 0,
       },
     },
+    backgroundColor: themeColors['--color-background-primary'],
+    display: {
+      default: 'block',
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 'block',
+      },
+    },
+    position: {
+      default: 'absolute',
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 'relative',
+      },
+    },
+    zIndex: 30,
+    borderRightStyle: themeUtilityState['--tw-border-style'],
+    borderRightWidth: '1px',
+    bottom: 0,
+    left: 0,
+    maxWidth: '100%',
     minWidth: {
       default: null,
       '@media (min-width: 48rem)': {
@@ -137,15 +128,8 @@ const stylexStyles2 = stylex.create({
         '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 50)`,
       },
     },
-  },
-  rule6: {
-    display: {
-      default: 'none',
-      '@media (min-width: 48rem)': {
-        default: null,
-        '@media (pointer: fine)': 'block',
-      },
-    },
+    overflowY: 'auto',
+    top: `calc(${themeLayout['--spacing']} * 11)`,
     width: {
       default: `calc(${themeLayout['--spacing']} * 72)`,
       '@media (min-width: 48rem)': {
@@ -153,11 +137,16 @@ const stylexStyles2 = stylex.create({
         '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 50)`,
       },
     },
-    maxWidth: '100%',
-    overflowY: 'auto',
-    borderRightStyle: themeUtilityState['--tw-border-style'],
-    borderRightWidth: '1px',
+  },
+  rule6: {
     borderColor: themeColors['--color-border'],
+    display: {
+      default: 'none',
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 'block',
+      },
+    },
     position: {
       default: null,
       '@media (min-width: 48rem)': {
@@ -165,6 +154,9 @@ const stylexStyles2 = stylex.create({
         '@media (pointer: fine)': 'relative',
       },
     },
+    borderRightStyle: themeUtilityState['--tw-border-style'],
+    borderRightWidth: '1px',
+    maxWidth: '100%',
     minWidth: {
       default: null,
       '@media (min-width: 48rem)': {
@@ -172,16 +164,17 @@ const stylexStyles2 = stylex.create({
         '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 50)`,
       },
     },
-  },
-  rule7: {
-    minHeight: 0,
-    minWidth: {
-      default: 0,
+    overflowY: 'auto',
+    width: {
+      default: `calc(${themeLayout['--spacing']} * 72)`,
       '@media (min-width: 48rem)': {
         default: null,
-        '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 62.5)`,
+        '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 50)`,
       },
     },
+  },
+  rule7: {
+    borderColor: themeColors['--color-border'],
     flex: {
       default: 1,
       '@media (min-width: 48rem)': {
@@ -192,7 +185,14 @@ const stylexStyles2 = stylex.create({
     flexDirection: 'column',
     borderRightStyle: themeUtilityState['--tw-border-style'],
     borderRightWidth: '1px',
-    borderColor: themeColors['--color-border'],
+    minHeight: 0,
+    minWidth: {
+      default: 0,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 62.5)`,
+      },
+    },
     width: {
       default: null,
       '@media (min-width: 48rem)': {
@@ -212,7 +212,17 @@ const stylexStyles2 = stylex.create({
   },
   rule9: { display: 'flex' },
   rule10: {
+    borderColor: themeColors['--color-border'],
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
     display: 'flex',
+    fontSize: themeFonts['--text-xs'],
+    justifyContent: 'space-between',
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
     minHeight: {
       default: `calc(${themeLayout['--spacing']} * 11)`,
       '@media (min-width: 48rem)': {
@@ -220,26 +230,11 @@ const stylexStyles2 = stylex.create({
         '@media (pointer: fine)': 0,
       },
     },
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
-    borderBottomStyle: themeUtilityState['--tw-border-style'],
-    borderBottomWidth: '1px',
-    borderColor: themeColors['--color-border'],
-    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
-    paddingBlock: themeLayout['--spacing'],
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
   },
   rule11: { position: 'relative' },
   rule12: {
-    height: {
-      default: `calc(${themeLayout['--spacing']} * 11)`,
-      '@media (min-width: 48rem)': {
-        default: null,
-        '@media (pointer: fine)': 'auto',
-      },
-    },
+    borderRadius: '.25rem',
+    paddingBlock: themeLayout['--spacing'],
     appearance: {
       default: 'none',
       '@media (min-width: 48rem)': {
@@ -247,9 +242,15 @@ const stylexStyles2 = stylex.create({
         '@media (pointer: fine)': 'auto',
       },
     },
-    borderRadius: '.25rem',
     backgroundColor: themeColors['--color-background-primary'],
-    paddingBlock: themeLayout['--spacing'],
+    height: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 'auto',
+      },
+    },
+    paddingLeft: themeLayout['--spacing'],
     paddingRight: {
       default: `calc(${themeLayout['--spacing']} * 6)`,
       '@media (min-width: 48rem)': {
@@ -257,10 +258,9 @@ const stylexStyles2 = stylex.create({
         '@media (pointer: fine)': themeLayout['--spacing'],
       },
     },
-    paddingLeft: themeLayout['--spacing'],
   },
-  rule13: { minHeight: 0, flex: 1 },
-  rule14: { minHeight: 0, minWidth: 0, flex: 1 },
+  rule13: { flex: 1, minHeight: 0, },
+  rule14: { flex: 1, minHeight: 0, minWidth: 0, },
   rule15: { display: 'block' },
   rule16: {
     display: {
@@ -272,18 +272,16 @@ const stylexStyles2 = stylex.create({
     },
   },
   rule17: {
-    display: 'flex',
-    height: '100%',
     alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     color: themeColors['--color-muted-foreground'],
+    display: 'flex',
+    fontSize: themeFonts['--text-xs'],
+    justifyContent: 'center',
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    height: '100%',
   },
   rule18: {
-    position: 'absolute',
     inset: 0,
-    zIndex: 20,
     backgroundColor: 'color-mix(in oklab, var(--color-black) 40%, transparent)',
     display: {
       default: null,
@@ -292,23 +290,18 @@ const stylexStyles2 = stylex.create({
         '@media (pointer: fine)': 'none',
       },
     },
+    position: 'absolute',
+    zIndex: 20,
   },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 5)`,
     height: `calc(${themeLayout['--spacing']} * 5)`,
+    width: `calc(${themeLayout['--spacing']} * 5)`,
   },
   rule2: {
-    pointerEvents: 'none',
-    position: 'absolute',
-    top: '50%',
-    right: themeLayout['--spacing'],
-    width: `calc(${themeLayout['--spacing']} * 3)`,
-    height: `calc(${themeLayout['--spacing']} * 3)`,
     '--tw-translate-y': 'calc(calc(1 / 2 * 100%) * -1)',
-    translate: 'var(--tw-translate-x) var(--tw-translate-y)',
     display: {
       default: null,
       '@media (min-width: 48rem)': {
@@ -316,6 +309,13 @@ const stylexStyles = stylex.create({
         '@media (pointer: fine)': 'none',
       },
     },
+    pointerEvents: 'none',
+    position: 'absolute',
+    translate: 'var(--tw-translate-x) var(--tw-translate-y)',
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    right: themeLayout['--spacing'],
+    top: '50%',
+    width: `calc(${themeLayout['--spacing']} * 3)`,
   },
 })
 

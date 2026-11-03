@@ -1,6 +1,5 @@
 import { createContext, use, type ReactNode } from 'react'
 import * as stylex from '@stylexjs/stylex'
-import { cn } from './utils.js'
 
 const ControlStyleContext = createContext<string | undefined>(undefined)
 
@@ -14,7 +13,8 @@ export function ControlStylesProvider({
 }) {
   const inherited = use(ControlStyleContext)
   const owned = stylex.props(styles).className
-  const classes = inherited === owned ? owned : cn(inherited, owned)
+  const classes =
+    inherited === owned ? owned : [inherited, owned].filter(Boolean).join(' ')
   return (
     <ControlStyleContext.Provider value={classes}>
       {children}

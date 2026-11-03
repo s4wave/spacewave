@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { page } from 'vitest/browser'
 import { render, cleanup } from 'vitest-browser-react'
 
-import '@s4wave/web/style/app.css'
+import '@s4wave/web/style/app.js'
 
 import { App } from './App.js'
 import { AppShell } from './AppShell.js'

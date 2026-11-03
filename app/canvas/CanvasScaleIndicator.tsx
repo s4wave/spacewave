@@ -10,25 +10,25 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
-    pointerEvents: 'none',
-    position: 'absolute',
-    bottom: `calc(${themeLayout['--spacing']} * 4)`,
-    left: `calc(${themeLayout['--spacing']} * 4)`,
-    fontFamily: themeFonts['--font-mono'],
-    WebkitFontSmoothing: 'subpixel-antialiased',
-    MozOsxFontSmoothing: 'auto',
-    textRendering: 'auto',
-    textShadow: '0 0 0.25px currentColor',
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
     '--tw-numeric-spacing': 'tabular-nums',
+    MozOsxFontSmoothing: 'auto',
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+    fontFamily: themeFonts['--font-mono'],
+    fontSize: themeFonts['--text-xs'],
     fontVariantNumeric:
       'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    pointerEvents: 'none',
+    position: 'absolute',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty: 'opacity',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    bottom: `calc(${themeLayout['--spacing']} * 4)`,
+    left: `calc(${themeLayout['--spacing']} * 4)`,
   },
   rule2: { opacity: 0 },
 })

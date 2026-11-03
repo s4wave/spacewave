@@ -1,3 +1,4 @@
+import { keyframeNames } from '../style/tokens.stylex.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import { IconStylesProvider } from '@s4wave/web/images/icons.js'
 import {
@@ -36,132 +37,128 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
-    display: 'flex',
-    width: '100%',
-    minWidth: 0,
-    flexDirection: 'column',
     gap: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'flex',
+    flexDirection: 'column',
+    minWidth: 0,
+    width: '100%',
   },
   rule2: {
-    display: 'flex',
-    width: 'fit-content',
-    maxWidth: '100%',
-    minWidth: 0,
-    alignItems: 'center',
     gap: `calc(${themeLayout['--spacing']} * 2)`,
-    fontSize: themeFonts['--text-sm'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    alignItems: 'center',
     color: {
       default: themeColors['--color-muted-foreground'],
       ':is([data-status="error"])': themeColors['--color-destructive'],
     },
+    display: 'flex',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    opacity: { default: null, ':is([data-status="pending"])': 0.6 },
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
-    opacity: { default: null, ':is([data-status="pending"])': 0.6 },
+    maxWidth: '100%',
+    minWidth: 0,
+    width: 'fit-content',
   },
   rule3: {
-    display: 'flex',
-    width: `calc(${themeLayout['--spacing']} * 4)`,
-    height: `calc(${themeLayout['--spacing']} * 4)`,
-    flexShrink: 0,
     alignItems: 'center',
+    display: 'flex',
+    flexShrink: 0,
     justifyContent: 'center',
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
   },
   rule4: {
-    minWidth: 0,
+    overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    overflow: 'hidden',
+    minWidth: 0,
   },
   rule5: {
-    flexShrink: 0,
-    color: `color-mix(in oklab, ${themeColors['--color-muted-foreground']} 70%, transparent)`,
     '--tw-numeric-spacing': 'tabular-nums',
+    color: `color-mix(in oklab, ${themeColors['--color-muted-foreground']} 70%, transparent)`,
+    flexShrink: 0,
     fontVariantNumeric:
       'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
   },
   rule6: {
     display: 'flex',
-    width: '100%',
-    minWidth: 0,
     flexDirection: 'column',
+    minWidth: 0,
+    width: '100%',
   },
   rule7: {
-    minWidth: 0,
-    overflow: 'hidden',
-    '--tw-duration': '.2s',
-    transitionDuration: '.2s',
     '--radix-accordion-content-height':
       'var(--radix-collapsible-content-height)',
+    '--tw-duration': '.2s',
+    overflow: 'hidden',
+    transitionDuration: '.2s',
+    minWidth: 0,
   },
   rule8: {
-    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
-    marginBottom: themeLayout['--spacing'],
-    marginLeft: `calc(calc(${themeLayout['--spacing']} * 2) - 1px)`,
-    minWidth: 0,
-    borderLeftStyle: themeUtilityState['--tw-border-style'],
-    borderLeftWidth: '1px',
-    paddingRight: themeLayout['--spacing'],
-    paddingLeft: `calc(${themeLayout['--spacing']} * 4)`,
     '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-muted-foreground'],
     lineHeight: 'var(--leading-relaxed)',
     overflowWrap: 'break-word',
-    color: themeColors['--color-muted-foreground'],
+    borderLeftStyle: themeUtilityState['--tw-border-style'],
+    borderLeftWidth: '1px',
+    marginBottom: themeLayout['--spacing'],
+    marginLeft: `calc(calc(${themeLayout['--spacing']} * 2) - 1px)`,
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    minWidth: 0,
+    paddingLeft: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingRight: themeLayout['--spacing'],
   },
 })
 
 const triggerStyles = stylex.create({
   trigger: {
-    display: 'flex',
-    width: 'fit-content',
-    maxWidth: '100%',
-    minWidth: 0,
-    cursor: 'pointer',
-    alignItems: 'center',
-    gap: themeLayout['--spacing'],
-    borderRadius: themeRadii['--radius-md'],
-    textAlign: 'left',
-    color: {
-      default: themeColors['--color-muted-foreground'],
-      '@media (hover: hover)': {
-        default: null,
-        ':hover': themeColors['--color-foreground'],
-      },
-      ':has([data-status="error"])': themeColors['--color-destructive'],
-    },
-    transitionProperty:
-      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
-    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
     '--tw-outline-style': 'none',
-    outlineStyle: 'none',
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
+    },
     '--tw-ring-shadow': {
       default: null,
       ':focus-visible':
         'var(--tw-ring-inset, ) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
     },
+    borderRadius: themeRadii['--radius-md'],
+    gap: themeLayout['--spacing'],
+    alignItems: 'center',
     boxShadow: {
       default: null,
       ':focus-visible':
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     },
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
+    color: {
+      default: themeColors['--color-muted-foreground'],
+      ':has([data-status="error"])': themeColors['--color-destructive'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
     },
+    cursor: 'pointer',
+    display: 'flex',
+    outlineStyle: 'none',
+    textAlign: 'left',
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    maxWidth: '100%',
+    minWidth: 0,
+    width: 'fit-content',
   },
 })
 
 const indicatorStyles = stylex.create({
   indicator: {
-    transitionProperty: 'transform, translate, scale, rotate',
-    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
     rotate: {
       default: null,
       [stylex.when.ancestor(
@@ -169,20 +166,19 @@ const indicatorStyles = stylex.create({
         traceTriggerGroupMarker,
       )]: '90deg',
     },
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    transitionProperty: 'transform, translate, scale, rotate',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
   },
 })
 
 const effectStyles = stylex.create({
   title: {
-    backgroundImage: {
+    WebkitBackgroundClip: {
       default: null,
       [stylex.when.ancestor(':is([data-status="running"]) >', traceLineMarker)]:
-        {
-          default:
-            'linear-gradient(110deg, currentColor 40%, color-mix(in oklch, currentColor 20%, transparent) 50%, currentColor 60%)',
-          '@media (prefers-reduced-motion: reduce)': 'none',
-        },
-      '@media (prefers-reduced-motion: reduce)': 'none',
+        'text',
     },
     WebkitTextFillColor: {
       default: null,
@@ -192,6 +188,87 @@ const effectStyles = stylex.create({
           '@media (prefers-reduced-motion: reduce)': 'currentColor',
         },
       '@media (prefers-reduced-motion: reduce)': 'currentColor',
+    },
+    animationDelay: {
+      default: null,
+      [stylex.when.ancestor(':is([data-status="running"]) >', traceLineMarker)]:
+        { default: '0s', '@media (prefers-reduced-motion: reduce)': '0s' },
+      '@media (prefers-reduced-motion: reduce)': '0s',
+    },
+    animationDirection: {
+      default: null,
+      [stylex.when.ancestor(':is([data-status="running"]) >', traceLineMarker)]:
+        {
+          default: 'normal',
+          '@media (prefers-reduced-motion: reduce)': 'normal',
+        },
+      '@media (prefers-reduced-motion: reduce)': 'normal',
+    },
+    animationDuration: {
+      default: null,
+      [stylex.when.ancestor(':is([data-status="running"]) >', traceLineMarker)]:
+        { default: '2s', '@media (prefers-reduced-motion: reduce)': '0s' },
+      '@media (prefers-reduced-motion: reduce)': '0s',
+    },
+    animationFillMode: {
+      default: null,
+      [stylex.when.ancestor(':is([data-status="running"]) >', traceLineMarker)]:
+        { default: 'none', '@media (prefers-reduced-motion: reduce)': 'none' },
+      '@media (prefers-reduced-motion: reduce)': 'none',
+    },
+    animationIterationCount: {
+      default: null,
+      [stylex.when.ancestor(':is([data-status="running"]) >', traceLineMarker)]:
+        { default: 'infinite', '@media (prefers-reduced-motion: reduce)': 1 },
+      '@media (prefers-reduced-motion: reduce)': 1,
+    },
+    animationName: {
+      default: null,
+      [stylex.when.ancestor(':is([data-status="running"]) >', traceLineMarker)]:
+        {
+          default: keyframeNames['tw-shimmer'],
+          '@media (prefers-reduced-motion: reduce)': 'none',
+        },
+      '@media (prefers-reduced-motion: reduce)': 'none',
+    },
+    animationPlayState: {
+      default: null,
+      [stylex.when.ancestor(':is([data-status="running"]) >', traceLineMarker)]:
+        {
+          default: 'running',
+          '@media (prefers-reduced-motion: reduce)': 'running',
+        },
+      '@media (prefers-reduced-motion: reduce)': 'running',
+    },
+    animationTimeline: {
+      default: null,
+      [stylex.when.ancestor(':is([data-status="running"]) >', traceLineMarker)]:
+        { default: 'auto', '@media (prefers-reduced-motion: reduce)': 'auto' },
+      '@media (prefers-reduced-motion: reduce)': 'auto',
+    },
+    animationTimingFunction: {
+      default: null,
+      [stylex.when.ancestor(':is([data-status="running"]) >', traceLineMarker)]:
+        {
+          default: 'linear',
+          '@media (prefers-reduced-motion: reduce)': 'ease',
+        },
+      '@media (prefers-reduced-motion: reduce)': 'ease',
+    },
+    backgroundClip: {
+      default: null,
+      [stylex.when.ancestor(':is([data-status="running"]) >', traceLineMarker)]:
+        'text',
+    },
+    backgroundImage: {
+      default: null,
+      [stylex.when.ancestor(':is([data-status="running"]) >', traceLineMarker)]:
+        {
+          default:
+            'linear-gradient(110deg, currentColor 40%, color-mix(in oklch, currentColor 20%, transparent) 50%, currentColor 60%)',
+          '@media (prefers-reduced-motion: reduce)': 'none',
+        },
+      '@media (prefers-reduced-motion: reduce)': 'none',
     },
     backgroundRepeat: {
       default: null,
@@ -203,165 +280,89 @@ const effectStyles = stylex.create({
       [stylex.when.ancestor(':is([data-status="running"]) >', traceLineMarker)]:
         '200% 100%',
     },
-    WebkitBackgroundClip: {
-      default: null,
-      [stylex.when.ancestor(':is([data-status="running"]) >', traceLineMarker)]:
-        'text',
-    },
-    backgroundClip: {
-      default: null,
-      [stylex.when.ancestor(':is([data-status="running"]) >', traceLineMarker)]:
-        'text',
-    },
-    animationName: {
-      default: null,
-      [stylex.when.ancestor(':is([data-status="running"]) >', traceLineMarker)]:
-        {
-          default: 'tw-shimmer',
-          '@media (prefers-reduced-motion: reduce)': 'none',
-        },
-      '@media (prefers-reduced-motion: reduce)': 'none',
-    },
-    animationDuration: {
-      default: null,
-      [stylex.when.ancestor(':is([data-status="running"]) >', traceLineMarker)]:
-        { default: '2s', '@media (prefers-reduced-motion: reduce)': '0s' },
-      '@media (prefers-reduced-motion: reduce)': '0s',
-    },
-    animationTimingFunction: {
-      default: null,
-      [stylex.when.ancestor(':is([data-status="running"]) >', traceLineMarker)]:
-        {
-          default: 'linear',
-          '@media (prefers-reduced-motion: reduce)': 'ease',
-        },
-      '@media (prefers-reduced-motion: reduce)': 'ease',
-    },
-    animationIterationCount: {
-      default: null,
-      [stylex.when.ancestor(':is([data-status="running"]) >', traceLineMarker)]:
-        { default: 'infinite', '@media (prefers-reduced-motion: reduce)': 1 },
-      '@media (prefers-reduced-motion: reduce)': 1,
-    },
-    animationDirection: {
-      default: null,
-      [stylex.when.ancestor(':is([data-status="running"]) >', traceLineMarker)]:
-        {
-          default: 'normal',
-          '@media (prefers-reduced-motion: reduce)': 'normal',
-        },
-      '@media (prefers-reduced-motion: reduce)': 'normal',
-    },
-    animationPlayState: {
-      default: null,
-      [stylex.when.ancestor(':is([data-status="running"]) >', traceLineMarker)]:
-        {
-          default: 'running',
-          '@media (prefers-reduced-motion: reduce)': 'running',
-        },
-      '@media (prefers-reduced-motion: reduce)': 'running',
-    },
-    animationDelay: {
-      default: null,
-      [stylex.when.ancestor(':is([data-status="running"]) >', traceLineMarker)]:
-        { default: '0s', '@media (prefers-reduced-motion: reduce)': '0s' },
-      '@media (prefers-reduced-motion: reduce)': '0s',
-    },
-    animationFillMode: {
-      default: null,
-      [stylex.when.ancestor(':is([data-status="running"]) >', traceLineMarker)]:
-        { default: 'none', '@media (prefers-reduced-motion: reduce)': 'none' },
-      '@media (prefers-reduced-motion: reduce)': 'none',
-    },
-    animationTimeline: {
-      default: null,
-      [stylex.when.ancestor(':is([data-status="running"]) >', traceLineMarker)]:
-        { default: 'auto', '@media (prefers-reduced-motion: reduce)': 'auto' },
-      '@media (prefers-reduced-motion: reduce)': 'auto',
-    },
   },
   content: {
-    animationName: {
+    animationDelay: {
       default: null,
-      ":is([data-state='open'], [data-open]:not([data-open='false']))":
-        'accordion-down',
       ":is([data-state='closed'], [data-closed]:not([data-closed='false']))":
-        'accordion-up',
-    },
-    animationDuration: {
-      default: null,
-      ":is([data-state='open'], [data-open]:not([data-open='false']))": '.2s',
-      ":is([data-state='closed'], [data-closed]:not([data-closed='false']))":
-        '.2s',
-    },
-    animationTimingFunction: {
-      default: null,
-      ":is([data-state='open'], [data-open]:not([data-open='false']))":
-        'ease-out',
-      ":is([data-state='closed'], [data-closed]:not([data-closed='false']))":
-        'ease-out',
-    },
-    animationIterationCount: {
-      default: null,
-      ":is([data-state='open'], [data-open]:not([data-open='false']))": 1,
-      ":is([data-state='closed'], [data-closed]:not([data-closed='false']))": 1,
+        '0s',
+      ":is([data-state='open'], [data-open]:not([data-open='false']))": '0s',
     },
     animationDirection: {
       default: null,
-      ":is([data-state='open'], [data-open]:not([data-open='false']))":
-        'normal',
       ":is([data-state='closed'], [data-closed]:not([data-closed='false']))":
         'normal',
-    },
-    animationPlayState: {
-      default: null,
       ":is([data-state='open'], [data-open]:not([data-open='false']))":
-        'running',
-      ":is([data-state='closed'], [data-closed]:not([data-closed='false']))":
-        'running',
+        'normal',
     },
-    animationDelay: {
+    animationDuration: {
       default: null,
-      ":is([data-state='open'], [data-open]:not([data-open='false']))": '0s',
       ":is([data-state='closed'], [data-closed]:not([data-closed='false']))":
-        '0s',
+        '.2s',
+      ":is([data-state='open'], [data-open]:not([data-open='false']))": '.2s',
     },
     animationFillMode: {
       default: null,
-      ":is([data-state='open'], [data-open]:not([data-open='false']))": 'none',
       ":is([data-state='closed'], [data-closed]:not([data-closed='false']))":
         'none',
+      ":is([data-state='open'], [data-open]:not([data-open='false']))": 'none',
+    },
+    animationIterationCount: {
+      default: null,
+      ":is([data-state='closed'], [data-closed]:not([data-closed='false']))": 1,
+      ":is([data-state='open'], [data-open]:not([data-open='false']))": 1,
+    },
+    animationName: {
+      default: null,
+      ":is([data-state='closed'], [data-closed]:not([data-closed='false']))":
+        keyframeNames['accordion-up'],
+      ":is([data-state='open'], [data-open]:not([data-open='false']))":
+        keyframeNames['accordion-down'],
+    },
+    animationPlayState: {
+      default: null,
+      ":is([data-state='closed'], [data-closed]:not([data-closed='false']))":
+        'running',
+      ":is([data-state='open'], [data-open]:not([data-open='false']))":
+        'running',
     },
     animationTimeline: {
       default: null,
-      ":is([data-state='open'], [data-open]:not([data-open='false']))": 'auto',
       ":is([data-state='closed'], [data-closed]:not([data-closed='false']))":
         'auto',
+      ":is([data-state='open'], [data-open]:not([data-open='false']))": 'auto',
+    },
+    animationTimingFunction: {
+      default: null,
+      ":is([data-state='closed'], [data-closed]:not([data-closed='false']))":
+        'ease-out',
+      ":is([data-state='open'], [data-open]:not([data-open='false']))":
+        'ease-out',
     },
   },
 })
 
 const relationshipStyles = stylex.create({
   line: {
-    cursor: {
-      default: null,
-      [stylex.when.ancestor(':is(*)', traceTriggerGroupMarker)]: 'pointer',
-    },
     color: {
       default: themeColors['--color-muted-foreground'],
       [stylex.when.ancestor(':hover', traceTriggerGroupMarker)]:
         themeColors['--color-foreground'],
     },
-  },
-  errorLine: {
     cursor: {
       default: null,
       [stylex.when.ancestor(':is(*)', traceTriggerGroupMarker)]: 'pointer',
     },
+  },
+  errorLine: {
     color: {
       default: themeColors['--color-destructive'],
       [stylex.when.ancestor(':hover', traceTriggerGroupMarker)]:
         themeColors['--color-destructive'],
+    },
+    cursor: {
+      default: null,
+      [stylex.when.ancestor(':is(*)', traceTriggerGroupMarker)]: 'pointer',
     },
   },
   icon: {
@@ -376,28 +377,28 @@ const relationshipStyles = stylex.create({
 /** traceLinkStyles gives a source link its own trace geometry and focus ring. */
 export const traceLinkStyles = stylex.create({
   link: {
-    display: 'flex',
-    width: 'fit-content',
-    maxWidth: '100%',
-    minWidth: 0,
-    borderRadius: themeRadii['--radius-md'],
-    textAlign: 'left',
     '--tw-outline-style': 'none',
-    outlineStyle: 'none',
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
+    },
     '--tw-ring-shadow': {
       default: null,
       ':focus-visible':
         'var(--tw-ring-inset, ) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
     },
+    borderRadius: themeRadii['--radius-md'],
     boxShadow: {
       default: null,
       ':focus-visible':
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     },
-    '--tw-ring-color': {
-      default: null,
-      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-ring']} 50%, transparent)`,
-    },
+    display: 'flex',
+    outlineStyle: 'none',
+    textAlign: 'left',
+    maxWidth: '100%',
+    minWidth: 0,
+    width: 'fit-content',
   },
 })
 

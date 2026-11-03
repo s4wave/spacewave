@@ -1,3 +1,4 @@
+import { keyframeNames } from '../../web/style/tokens.stylex.js'
 import { Badge } from '@s4wave/web/ui/badge.js'
 import { VmState } from '@s4wave/sdk/vm/v86.pb.js'
 
@@ -8,35 +9,11 @@ import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
 const styles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 1.5)`,
-    height: `calc(${themeLayout['--spacing']} * 1.5)`,
     borderRadius: '3.40282e38px',
-    backgroundColor: 'currentColor',
-    animationName: {
+    animationDelay: {
       default: null,
-      [stylex.when.ancestor(':is([data-state="Starting"])', groupMarker)]:
-        'pulse',
-      [stylex.when.ancestor(':is([data-state="Stopping"])', groupMarker)]:
-        'pulse',
-    },
-    animationDuration: {
-      default: null,
-      [stylex.when.ancestor(':is([data-state="Starting"])', groupMarker)]: '2s',
-      [stylex.when.ancestor(':is([data-state="Stopping"])', groupMarker)]: '2s',
-    },
-    animationTimingFunction: {
-      default: null,
-      [stylex.when.ancestor(':is([data-state="Starting"])', groupMarker)]:
-        'cubic-bezier(.4, 0, .6, 1)',
-      [stylex.when.ancestor(':is([data-state="Stopping"])', groupMarker)]:
-        'cubic-bezier(.4, 0, .6, 1)',
-    },
-    animationIterationCount: {
-      default: null,
-      [stylex.when.ancestor(':is([data-state="Starting"])', groupMarker)]:
-        'infinite',
-      [stylex.when.ancestor(':is([data-state="Stopping"])', groupMarker)]:
-        'infinite',
+      [stylex.when.ancestor(':is([data-state="Starting"])', groupMarker)]: '0s',
+      [stylex.when.ancestor(':is([data-state="Stopping"])', groupMarker)]: '0s',
     },
     animationDirection: {
       default: null,
@@ -45,17 +22,10 @@ const styles = stylex.create({
       [stylex.when.ancestor(':is([data-state="Stopping"])', groupMarker)]:
         'normal',
     },
-    animationPlayState: {
+    animationDuration: {
       default: null,
-      [stylex.when.ancestor(':is([data-state="Starting"])', groupMarker)]:
-        'running',
-      [stylex.when.ancestor(':is([data-state="Stopping"])', groupMarker)]:
-        'running',
-    },
-    animationDelay: {
-      default: null,
-      [stylex.when.ancestor(':is([data-state="Starting"])', groupMarker)]: '0s',
-      [stylex.when.ancestor(':is([data-state="Stopping"])', groupMarker)]: '0s',
+      [stylex.when.ancestor(':is([data-state="Starting"])', groupMarker)]: '2s',
+      [stylex.when.ancestor(':is([data-state="Stopping"])', groupMarker)]: '2s',
     },
     animationFillMode: {
       default: null,
@@ -64,6 +34,27 @@ const styles = stylex.create({
       [stylex.when.ancestor(':is([data-state="Stopping"])', groupMarker)]:
         'none',
     },
+    animationIterationCount: {
+      default: null,
+      [stylex.when.ancestor(':is([data-state="Starting"])', groupMarker)]:
+        'infinite',
+      [stylex.when.ancestor(':is([data-state="Stopping"])', groupMarker)]:
+        'infinite',
+    },
+    animationName: {
+      default: null,
+      [stylex.when.ancestor(':is([data-state="Starting"])', groupMarker)]:
+        keyframeNames['pulse'],
+      [stylex.when.ancestor(':is([data-state="Stopping"])', groupMarker)]:
+        keyframeNames['pulse'],
+    },
+    animationPlayState: {
+      default: null,
+      [stylex.when.ancestor(':is([data-state="Starting"])', groupMarker)]:
+        'running',
+      [stylex.when.ancestor(':is([data-state="Stopping"])', groupMarker)]:
+        'running',
+    },
     animationTimeline: {
       default: null,
       [stylex.when.ancestor(':is([data-state="Starting"])', groupMarker)]:
@@ -71,6 +62,16 @@ const styles = stylex.create({
       [stylex.when.ancestor(':is([data-state="Stopping"])', groupMarker)]:
         'auto',
     },
+    animationTimingFunction: {
+      default: null,
+      [stylex.when.ancestor(':is([data-state="Starting"])', groupMarker)]:
+        'cubic-bezier(.4, 0, .6, 1)',
+      [stylex.when.ancestor(':is([data-state="Stopping"])', groupMarker)]:
+        'cubic-bezier(.4, 0, .6, 1)',
+    },
+    backgroundColor: 'currentColor',
+    height: `calc(${themeLayout['--spacing']} * 1.5)`,
+    width: `calc(${themeLayout['--spacing']} * 1.5)`,
   },
 })
 

@@ -25,19 +25,37 @@ import {
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    display: 'flex',
-    height: '100%',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 3)`,
     padding: `calc(${themeLayout['--spacing']} * 4)`,
-    textAlign: 'center',
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    alignItems: 'center',
     color: themeColors['--color-muted-foreground'],
+    display: 'flex',
+    flexDirection: 'column',
+    fontSize: themeFonts['--text-xs'],
+    justifyContent: 'center',
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    textAlign: 'center',
+    height: '100%',
   },
   rule2: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    borderColor: themeColors['--color-border'],
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-list-hover-background'],
+      },
+    },
+    color: themeColors['--color-foreground'],
+    fontSize: themeFonts['--text-xs'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     minHeight: {
       default: `calc(${themeLayout['--spacing']} * 11)`,
       '@media (min-width: 48rem)': {
@@ -45,85 +63,35 @@ const stylexStyles2 = stylex.create({
         '@media (pointer: fine)': 0,
       },
     },
-    borderRadius: themeRadii['--radius-md'],
-    borderStyle: themeUtilityState['--tw-border-style'],
-    borderWidth: '1px',
-    borderColor: themeColors['--color-border'],
-    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
-    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
-    color: themeColors['--color-foreground'],
-    backgroundColor: {
-      default: null,
-      '@media (hover: hover)': {
-        default: null,
-        ':hover': themeColors['--color-list-hover-background'],
-      },
-    },
   },
   rule3: {
     display: 'flex',
-    height: '100%',
     flexDirection: 'column',
+    height: '100%',
     overflowY: 'auto',
   },
   rule4: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-wide)',
+    borderColor: themeColors['--color-border'],
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    color: themeColors['--color-foreground-alt'],
+    fontSize: themeFonts['--text-xs'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    letterSpacing: 'var(--tracking-wide)',
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    textTransform: 'uppercase',
     borderBottomStyle: themeUtilityState['--tw-border-style'],
     borderBottomWidth: '1px',
-    borderColor: themeColors['--color-border'],
-    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
-    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
-    '--tw-tracking': 'var(--tracking-wide)',
-    letterSpacing: 'var(--tracking-wide)',
-    color: themeColors['--color-foreground-alt'],
-    textTransform: 'uppercase',
   },
   rule5: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     gap: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
+    display: 'flex',
+    justifyContent: 'space-between',
   },
   rule6: {
-    display: 'flex',
-    width: {
-      default: `calc(${themeLayout['--spacing']} * 11)`,
-      '@media (min-width: 48rem)': {
-        default: null,
-        '@media (pointer: fine)': 'auto',
-      },
-    },
-    height: {
-      default: `calc(${themeLayout['--spacing']} * 11)`,
-      '@media (min-width: 48rem)': {
-        default: null,
-        '@media (pointer: fine)': 'auto',
-      },
-    },
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: '.25rem',
-    color: {
-      default: themeColors['--color-foreground-alt'],
-      '@media (hover: hover)': {
-        default: null,
-        ':hover': themeColors['--color-foreground'],
-      },
-    },
-    backgroundColor: {
-      default: null,
-      '@media (hover: hover)': {
-        default: null,
-        ':hover': themeColors['--color-list-hover-background'],
-      },
-    },
     padding: {
       default: null,
       '@media (min-width: 48rem)': {
@@ -131,19 +99,51 @@ const stylexStyles2 = stylex.create({
         '@media (pointer: fine)': themeLayout['--spacing'],
       },
     },
-  },
-  rule7: { flex: 1, overflowY: 'auto' },
-  rule8: {
+    borderRadius: '.25rem',
+    alignItems: 'center',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-list-hover-background'],
+      },
+    },
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
     display: 'flex',
-    minHeight: {
+    justifyContent: 'center',
+    height: {
       default: `calc(${themeLayout['--spacing']} * 11)`,
       '@media (min-width: 48rem)': {
         default: null,
-        '@media (pointer: fine)': 0,
+        '@media (pointer: fine)': 'auto',
       },
     },
-    alignItems: 'center',
+    width: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 'auto',
+      },
+    },
+  },
+  rule7: { flex: 1, overflowY: 'auto' },
+  rule8: {
     gap: themeLayout['--spacing'],
+    paddingBlock: {
+      default: null,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 1.5)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
     backgroundColor: {
       default: themeColors['--color-list-active-selection-background'],
       '@media (hover: hover)': {
@@ -151,20 +151,10 @@ const stylexStyles2 = stylex.create({
         ':hover': themeColors['--color-list-hover-background'],
       },
     },
-    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    color: themeColors['--color-list-active-selection-foreground'],
+    display: 'flex',
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors['--color-list-active-selection-foreground'],
-    paddingBlock: {
-      default: null,
-      '@media (min-width: 48rem)': {
-        default: null,
-        '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 1.5)`,
-      },
-    },
-  },
-  rule9: {
-    display: 'flex',
     minHeight: {
       default: `calc(${themeLayout['--spacing']} * 11)`,
       '@media (min-width: 48rem)': {
@@ -172,18 +162,9 @@ const stylexStyles2 = stylex.create({
         '@media (pointer: fine)': 0,
       },
     },
-    alignItems: 'center',
+  },
+  rule9: {
     gap: themeLayout['--spacing'],
-    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    backgroundColor: {
-      default: null,
-      '@media (hover: hover)': {
-        default: null,
-        ':hover': themeColors['--color-list-hover-background'],
-      },
-    },
     paddingBlock: {
       default: null,
       '@media (min-width: 48rem)': {
@@ -191,9 +172,32 @@ const stylexStyles2 = stylex.create({
         '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 1.5)`,
       },
     },
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-list-hover-background'],
+      },
+    },
+    display: 'flex',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    minHeight: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
   },
   rule10: {
+    flex: 1,
+    gap: themeLayout['--spacing'],
+    alignItems: 'center',
     display: 'flex',
+    textAlign: 'left',
     minHeight: {
       default: `calc(${themeLayout['--spacing']} * 11)`,
       '@media (min-width: 48rem)': {
@@ -202,48 +206,19 @@ const stylexStyles2 = stylex.create({
       },
     },
     minWidth: 0,
-    flex: 1,
-    alignItems: 'center',
-    gap: themeLayout['--spacing'],
-    textAlign: 'left',
   },
   rule11: {
+    overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    overflow: 'hidden',
   },
   rule12: {
+    gap: `calc(${themeLayout['--spacing']} * .5)`,
+    alignItems: 'center',
     display: 'flex',
     flexShrink: 0,
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * .5)`,
   },
   rule13: {
-    display: 'flex',
-    width: {
-      default: `calc(${themeLayout['--spacing']} * 11)`,
-      '@media (min-width: 48rem)': {
-        default: null,
-        '@media (pointer: fine)': 'auto',
-      },
-    },
-    height: {
-      default: `calc(${themeLayout['--spacing']} * 11)`,
-      '@media (min-width: 48rem)': {
-        default: null,
-        '@media (pointer: fine)': 'auto',
-      },
-    },
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: '.25rem',
-    backgroundColor: {
-      default: null,
-      '@media (hover: hover)': {
-        default: null,
-        ':hover': themeColors['--color-list-hover-background'],
-      },
-    },
     padding: {
       default: null,
       '@media (min-width: 48rem)': {
@@ -251,18 +226,43 @@ const stylexStyles2 = stylex.create({
         '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * .5)`,
       },
     },
+    borderRadius: '.25rem',
+    alignItems: 'center',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-list-hover-background'],
+      },
+    },
+    display: 'flex',
+    justifyContent: 'center',
+    height: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 'auto',
+      },
+    },
+    width: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 'auto',
+      },
+    },
   },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 3)`,
     height: `calc(${themeLayout['--spacing']} * 3)`,
+    width: `calc(${themeLayout['--spacing']} * 3)`,
   },
   rule2: {
-    width: `calc(${themeLayout['--spacing']} * 3)`,
-    height: `calc(${themeLayout['--spacing']} * 3)`,
     flexShrink: 0,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    width: `calc(${themeLayout['--spacing']} * 3)`,
   },
 })
 

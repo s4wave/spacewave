@@ -51,55 +51,55 @@ import { fonts as themeFonts } from '../style/tokens.stylex.js'
 
 const stylexStyles3 = stylex.create({
   rule1: {
-    position: 'relative',
-    display: 'flex',
-    height: '100%',
-    width: '100%',
-    flexDirection: 'column',
     gap: themeLayout['--spacing'],
     overflow: 'hidden',
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    display: 'flex',
+    flexDirection: 'column',
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    position: 'relative',
+    height: '100%',
+    width: '100%',
   },
 })
 
 const stylexStyles2 = stylex.create({
-  rule1: { textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' },
+  rule1: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   rule2: {
-    width: `calc(${themeLayout['--spacing']} * 2.5)`,
     height: `calc(${themeLayout['--spacing']} * 2.5)`,
+    width: `calc(${themeLayout['--spacing']} * 2.5)`,
   },
   rule3: {
-    width: `calc(${themeLayout['--spacing']} * 4)`,
     height: `calc(${themeLayout['--spacing']} * 4)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
   },
   rule4: {
-    display: 'flex',
-    height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
     padding: `calc(${themeLayout['--spacing']} * 4)`,
+    alignItems: 'center',
+    display: 'flex',
+    justifyContent: 'center',
+    height: '100%',
   },
   rule5: {
-    display: 'flex',
-    height: '100%',
     alignItems: 'center',
-    justifyContent: 'center',
     color: themeColors['--color-muted-foreground'],
+    display: 'flex',
+    justifyContent: 'center',
+    height: '100%',
   },
   rule6: {
-    position: 'relative',
+    flex: 1,
     display: 'flex',
+    flexDirection: 'column',
+    position: 'relative',
     height: '100%',
     width: '100%',
-    flex: 1,
-    flexDirection: 'column',
   },
 })
 
 const stylexStyles = stylex.create({
-  rule1: { width: '100%', maxWidth: 'var(--container-sm)' },
+  rule1: { maxWidth: 'var(--container-sm)', width: '100%' },
 })
 
 // ObjectLayoutTypeID is the type identifier for ObjectLayout objects.

@@ -11,31 +11,31 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
-    position: 'relative',
+    paddingBlock: themeLayout['--spacing'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    alignItems: 'center',
     display: 'flex',
     flexDirection: 'column',
-    alignItems: 'center',
-    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
-    paddingBlock: themeLayout['--spacing'],
+    position: 'relative',
   },
   rule2: {
-    display: 'flex',
-    width: '100%',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     alignItems: 'center',
-    justifyContent: 'center',
     columnGap: {
       default: themeLayout['--spacing'],
       '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 2)`,
     },
+    display: 'flex',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     fontSize: themeFonts['--text-sm'],
+    justifyContent: 'center',
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    width: '100%',
   },
   rule3: {
-    display: 'flex',
-    alignItems: 'center',
     paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
+    display: 'flex',
     minHeight: {
       default: null,
       '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,

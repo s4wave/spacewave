@@ -5,32 +5,32 @@ import { colors, radii, utilityState } from '../style/tokens.stylex.js'
 
 const styles = stylex.create({
   window: {
-    overflow: 'hidden',
-    borderRadius: radii['--radius-lg'],
-    borderWidth: '1px',
-    borderStyle: utilityState['--tw-border-style'],
-    transitionProperty: {
-      default: null,
-      '@media (dynamic-range: high)': 'box-shadow, border-color',
-    },
-    transitionDuration: {
-      default: null,
-      '@media (dynamic-range: high)': '.15s',
-    },
-    transitionTimingFunction: {
-      default: null,
-      '@media (dynamic-range: high)': 'ease',
-    },
     dynamicRangeLimit: {
       default: null,
       '@media (dynamic-range: high)': { default: null, ':hover': 'no-limit' },
     },
+    borderRadius: radii['--radius-lg'],
+    borderStyle: utilityState['--tw-border-style'],
+    borderWidth: '1px',
+    overflow: 'hidden',
     boxShadow: {
       default: null,
       '@media (dynamic-range: high)': {
         default: null,
         ':hover': '0 0 6px 1px var(--hdr-glow-active-shadow)',
       },
+    },
+    transitionDuration: {
+      default: null,
+      '@media (dynamic-range: high)': '.15s',
+    },
+    transitionProperty: {
+      default: null,
+      '@media (dynamic-range: high)': 'box-shadow, border-color',
+    },
+    transitionTimingFunction: {
+      default: null,
+      '@media (dynamic-range: high)': 'ease',
     },
   },
   idle: { borderColor: colors['--color-window-border'] },

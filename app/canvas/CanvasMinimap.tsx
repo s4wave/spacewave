@@ -17,46 +17,46 @@ import {
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    width: 'var(--minimap-width)',
-    height: 'var(--minimap-height)',
-    position: 'absolute',
-    right: `calc(${themeLayout['--spacing']} * 4)`,
-    bottom: `calc(${themeLayout['--spacing']} * 4)`,
-    overflow: 'hidden',
-    borderRadius: themeRadii['--radius-lg'],
-    borderStyle: themeUtilityState['--tw-border-style'],
-    borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
-    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
     '--tw-backdrop-blur': 'blur(var(--blur-sm))',
     WebkitBackdropFilter:
       'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    overflow: 'hidden',
     backdropFilter:
       'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    position: 'absolute',
+    bottom: `calc(${themeLayout['--spacing']} * 4)`,
+    height: 'var(--minimap-height)',
+    right: `calc(${themeLayout['--spacing']} * 4)`,
+    width: 'var(--minimap-width)',
   },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
-    left: 'var(--minimap-left)',
-    top: 'var(--minimap-top)',
-    width: 'var(--minimap-rect-width)',
-    height: 'var(--minimap-rect-height)',
-    position: 'absolute',
     borderRadius: 'var(--radius-xs)',
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 25%, transparent)`,
-  },
-  rule2: {
+    position: 'absolute',
+    height: 'var(--minimap-rect-height)',
     left: 'var(--minimap-left)',
     top: 'var(--minimap-top)',
     width: 'var(--minimap-rect-width)',
-    height: 'var(--minimap-rect-height)',
-    position: 'absolute',
+  },
+  rule2: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
     borderRadius: 'var(--radius-sm)',
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+    position: 'absolute',
+    height: 'var(--minimap-rect-height)',
+    left: 'var(--minimap-left)',
+    top: 'var(--minimap-top)',
+    width: 'var(--minimap-rect-width)',
   },
 })
 

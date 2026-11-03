@@ -67,11 +67,6 @@ vi.mock('@s4wave/web/frame/bottom-bar-context.js', () => ({
   useBottomBarSetOpenMenu: () => vi.fn(),
 }))
 
-vi.mock('@s4wave/web/style/utils.js', () => ({
-  cn: (...values: Array<string | false | null | undefined>) =>
-    values.filter(Boolean).join(' '),
-}))
-
 vi.mock('@s4wave/app/session/SessionFrame.js', () => ({
   SessionFrame: ({ children }: { children?: React.ReactNode }) => (
     <div data-testid="session-frame">{children}</div>

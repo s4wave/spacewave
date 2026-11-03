@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { page } from 'vitest/browser'
 import { cleanup, render } from 'vitest-browser-react'
 
-import '@s4wave/web/style/app.css'
+import '@s4wave/web/style/app.js'
 
 import { AlarmState, type Alarm } from '@s4wave/sdk/alarm/alarm.pb.js'
 

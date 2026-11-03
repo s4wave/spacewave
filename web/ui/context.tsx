@@ -11,40 +11,40 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
-    display: 'flex',
-    width: '100%',
-    minWidth: 0,
-    flexDirection: 'column',
     gap: themeLayout['--spacing'],
+    display: 'flex',
+    flexDirection: 'column',
     fontSize: themeFonts['--text-sm'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    minWidth: 0,
+    width: '100%',
   },
   rule2: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     gap: `calc(${themeLayout['--spacing']} * 3)`,
+    alignItems: 'center',
+    display: 'flex',
+    justifyContent: 'space-between',
   },
   rule3: {
     '--tw-font-weight': themeFonts['--font-weight-medium'],
     fontWeight: themeFonts['--font-weight-medium'],
   },
   rule4: {
-    color: themeColors['--color-muted-foreground'],
     '--tw-numeric-spacing': 'tabular-nums',
+    color: themeColors['--color-muted-foreground'],
     fontVariantNumeric:
       'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
   },
   rule5: {
-    height: `calc(${themeLayout['--spacing']} * 1.5)`,
-    overflow: 'hidden',
     borderRadius: '3.40282e38px',
+    overflow: 'hidden',
     backgroundColor: themeColors['--color-muted'],
+    height: `calc(${themeLayout['--spacing']} * 1.5)`,
   },
   rule6: {
+    backgroundColor: themeColors['--color-foreground'],
     height: '100%',
     width: 'var(--context-used)',
-    backgroundColor: themeColors['--color-foreground'],
   },
 })
 

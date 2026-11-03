@@ -1,3 +1,4 @@
+import { keyframeNames } from '../../../web/style/tokens.stylex.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
 import { LuCircleX, LuKeyboard, LuRotateCcw } from '@s4wave/web/images/icons.js'
@@ -12,30 +13,30 @@ import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
 
 const stylexStyles3 = stylex.create({
   rule1: {
-    display: 'inline-flex',
-    alignItems: 'center',
     gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    alignItems: 'center',
+    display: 'inline-flex',
   },
 })
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    animationName: 'pulse',
-    animationDuration: '2s',
-    animationTimingFunction: 'cubic-bezier(.4, 0, .6, 1)',
-    animationIterationCount: 'infinite',
-    animationDirection: 'normal',
-    animationPlayState: 'running',
     animationDelay: '0s',
+    animationDirection: 'normal',
+    animationDuration: '2s',
     animationFillMode: 'none',
+    animationIterationCount: 'infinite',
+    animationName: keyframeNames['pulse'],
+    animationPlayState: 'running',
     animationTimeline: 'auto',
+    animationTimingFunction: 'cubic-bezier(.4, 0, .6, 1)',
   },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
-    minWidth: `calc(${themeLayout['--spacing']} * 28)`,
     justifyContent: 'center',
+    minWidth: `calc(${themeLayout['--spacing']} * 28)`,
   },
 })
 

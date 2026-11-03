@@ -1,3 +1,4 @@
+import {keyframeNames} from "../../web/style/tokens.stylex.js"
 import { LuCloudDownload } from '@s4wave/web/images/icons.js'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
@@ -16,40 +17,17 @@ import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
 
 const stylexStyles3 = stylex.create({
   rule1: {
-    position: 'absolute',
-    insetBlock: 0,
-    left: 0,
-    width: {
-      default: '33.3333%',
-      '@media (prefers-reduced-motion: reduce)': '100%',
-    },
     borderRadius: '3.40282e38px',
-    backgroundColor: themeColors['--color-brand'],
-    animationName: {
-      default: null,
-      '@media (prefers-reduced-motion: reduce)': 'none',
-    },
-    animationDuration: {
+    insetBlock: 0,
+    animationDelay: {
       default: null,
       '@media (prefers-reduced-motion: reduce)': '0s',
-    },
-    animationTimingFunction: {
-      default: null,
-      '@media (prefers-reduced-motion: reduce)': 'ease',
-    },
-    animationIterationCount: {
-      default: null,
-      '@media (prefers-reduced-motion: reduce)': 1,
     },
     animationDirection: {
       default: null,
       '@media (prefers-reduced-motion: reduce)': 'normal',
     },
-    animationPlayState: {
-      default: null,
-      '@media (prefers-reduced-motion: reduce)': 'running',
-    },
-    animationDelay: {
+    animationDuration: {
       default: null,
       '@media (prefers-reduced-motion: reduce)': '0s',
     },
@@ -57,108 +35,131 @@ const stylexStyles3 = stylex.create({
       default: null,
       '@media (prefers-reduced-motion: reduce)': 'none',
     },
+    animationIterationCount: {
+      default: null,
+      '@media (prefers-reduced-motion: reduce)': 1,
+    },
+    animationName: {
+      default: null,
+      '@media (prefers-reduced-motion: reduce)': 'none',
+    },
+    animationPlayState: {
+      default: null,
+      '@media (prefers-reduced-motion: reduce)': 'running',
+    },
     animationTimeline: {
       default: null,
       '@media (prefers-reduced-motion: reduce)': 'auto',
     },
+    animationTimingFunction: {
+      default: null,
+      '@media (prefers-reduced-motion: reduce)': 'ease',
+    },
+    backgroundColor: themeColors['--color-brand'],
     opacity: { default: null, '@media (prefers-reduced-motion: reduce)': 0.5 },
+    position: 'absolute',
+    left: 0,
+    width: {
+      default: '33.3333%',
+      '@media (prefers-reduced-motion: reduce)': '100%',
+    },
   },
 })
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    display: 'flex',
-    minWidth: 0,
-    alignItems: 'center',
-    gap: themeLayout['--spacing'],
-    fontSize: themeFonts['--text-xs'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors['--color-foreground-alt'],
-    '--tw-numeric-spacing': 'tabular-nums',
-    fontVariantNumeric:
-      'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
-    opacity: { default: 0, ':is([data-active="true"])': 1 },
-    transitionProperty: 'opacity',
-    transitionTimingFunction: 'var(--ease-out)',
-    transitionDuration: '.2s',
-    transitionDelay: { default: '.5s', ':is([data-active="true"])': '0s' },
     '--tw-duration': '.2s',
     '--tw-ease': 'var(--ease-out)',
+    '--tw-numeric-spacing': 'tabular-nums',
+    gap: themeLayout['--spacing'],
+    alignItems: 'center',
+    color: themeColors['--color-foreground-alt'],
+    display: 'flex',
+    fontSize: themeFonts['--text-xs'],
+    fontVariantNumeric:
+      'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    opacity: { default: 0, ':is([data-active="true"])': 1 },
+    transitionDelay: { default: '.5s', ':is([data-active="true"])': '0s' },
+    transitionDuration: '.2s',
+    transitionProperty: 'opacity',
+    transitionTimingFunction: 'var(--ease-out)',
+    minWidth: 0,
   },
   rule2: {
     display: { default: 'none', '@container (min-width: 28rem)': 'inline' },
   },
-  rule3: { textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' },
+  rule3: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', },
   rule4: {
-    clipPath: 'inset(50%)',
-    whiteSpace: 'nowrap',
-    borderWidth: 0,
-    width: '1px',
-    height: '1px',
     margin: '-1px',
     padding: 0,
-    position: 'absolute',
+    borderWidth: 0,
     overflow: 'hidden',
+    clipPath: 'inset(50%)',
+    position: 'absolute',
+    whiteSpace: 'nowrap',
+    height: '1px',
+    width: '1px',
   },
   rule5: {
-    pointerEvents: 'none',
-    position: 'absolute',
-    insetInline: 0,
-    bottom: 0,
-    height: `calc(${themeLayout['--spacing']} * .5)`,
-    overflow: 'hidden',
-    opacity: { default: 0, ':is([data-active="true"])': 1 },
-    transitionProperty: 'opacity',
-    transitionTimingFunction: 'var(--ease-out)',
-    transitionDuration: '.2s',
-    transitionDelay: { default: '.5s', ':is([data-active="true"])': '0s' },
     '--tw-duration': '.2s',
     '--tw-ease': 'var(--ease-out)',
+    insetInline: 0,
+    overflow: 'hidden',
+    opacity: { default: 0, ':is([data-active="true"])': 1 },
+    pointerEvents: 'none',
+    position: 'absolute',
+    transitionDelay: { default: '.5s', ':is([data-active="true"])': '0s' },
+    transitionDuration: '.2s',
+    transitionProperty: 'opacity',
+    transitionTimingFunction: 'var(--ease-out)',
+    bottom: 0,
+    height: `calc(${themeLayout['--spacing']} * .5)`,
   },
 })
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 3.5)`,
-    height: `calc(${themeLayout['--spacing']} * 3.5)`,
-    flexShrink: 0,
-    animationName: {
-      default: 'pulse',
-      '@media (prefers-reduced-motion: reduce)': 'none',
-    },
-    animationDuration: {
-      default: '2s',
+    animationDelay: {
+      default: '0s',
       '@media (prefers-reduced-motion: reduce)': '0s',
-    },
-    animationTimingFunction: {
-      default: 'cubic-bezier(.4, 0, .6, 1)',
-      '@media (prefers-reduced-motion: reduce)': 'ease',
-    },
-    animationIterationCount: {
-      default: 'infinite',
-      '@media (prefers-reduced-motion: reduce)': 1,
     },
     animationDirection: {
       default: 'normal',
       '@media (prefers-reduced-motion: reduce)': 'normal',
     },
-    animationPlayState: {
-      default: 'running',
-      '@media (prefers-reduced-motion: reduce)': 'running',
-    },
-    animationDelay: {
-      default: '0s',
+    animationDuration: {
+      default: '2s',
       '@media (prefers-reduced-motion: reduce)': '0s',
     },
     animationFillMode: {
       default: 'none',
       '@media (prefers-reduced-motion: reduce)': 'none',
     },
+    animationIterationCount: {
+      default: 'infinite',
+      '@media (prefers-reduced-motion: reduce)': 1,
+    },
+    animationName: {
+      default: keyframeNames["pulse"],
+      '@media (prefers-reduced-motion: reduce)': 'none',
+    },
+    animationPlayState: {
+      default: 'running',
+      '@media (prefers-reduced-motion: reduce)': 'running',
+    },
     animationTimeline: {
       default: 'auto',
       '@media (prefers-reduced-motion: reduce)': 'auto',
     },
+    animationTimingFunction: {
+      default: 'cubic-bezier(.4, 0, .6, 1)',
+      '@media (prefers-reduced-motion: reduce)': 'ease',
+    },
     color: themeColors['--color-brand'],
+    flexShrink: 0,
+    height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
 })
 
@@ -218,12 +219,12 @@ export function WasiVmDownloadChip({
 // downloadProgressStyles reuses the shared plain-CSS progress keyframes.
 const downloadProgressStyles = stylex.create({
   motion: {
+    animationDuration: '1.4s',
+    animationIterationCount: 'infinite',
     animationName: {
-      default: 'progress-indeterminate',
+      default: keyframeNames["progress-indeterminate"],
       '@media (prefers-reduced-motion: reduce)': 'none',
     },
-    animationDuration: '1.4s',
     animationTimingFunction: 'ease-in-out',
-    animationIterationCount: 'infinite',
   },
 })

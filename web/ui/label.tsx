@@ -12,30 +12,30 @@ import { groupMarker, peerMarker } from '../style/relations.stylex.js'
 
 const styles = stylex.create({
   label: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
-    fontSize: themeFonts['--text-sm'],
-    lineHeight: 1,
-    '--tw-leading': '1',
     '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-leading': '1',
     WebkitUserSelect: 'none',
-    userSelect: 'none',
-    pointerEvents: {
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
+    cursor: {
       default: null,
-      [stylex.when.ancestor(':is([data-disabled="true"])', groupMarker)]:
-        'none',
+      [stylex.when.siblingBefore(':is(:disabled)', peerMarker)]: 'not-allowed',
     },
+    display: 'flex',
+    fontSize: themeFonts['--text-sm'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    lineHeight: 1,
     opacity: {
       default: null,
       [stylex.when.ancestor(':is([data-disabled="true"])', groupMarker)]: 0.5,
       [stylex.when.siblingBefore(':is(:disabled)', peerMarker)]: 0.5,
     },
-    cursor: {
+    pointerEvents: {
       default: null,
-      [stylex.when.siblingBefore(':is(:disabled)', peerMarker)]: 'not-allowed',
+      [stylex.when.ancestor(':is([data-disabled="true"])', groupMarker)]:
+        'none',
     },
+    userSelect: 'none',
   },
 })
 

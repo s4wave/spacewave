@@ -16,17 +16,17 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
-    display: 'flex',
-    width: '100%',
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
     backgroundColor: themeColors['--color-background-landing'],
+    display: 'flex',
+    justifyContent: 'center',
+    width: '100%',
   },
   rule2: {
-    width: '100%',
-    maxWidth: 'var(--container-sm)',
     paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    maxWidth: 'var(--container-sm)',
+    width: '100%',
   },
 })
 

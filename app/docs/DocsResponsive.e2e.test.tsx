@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { page } from 'vitest/browser'
 import { cleanup, render } from 'vitest-browser-react'
 
-import '@s4wave/web/style/app.css'
+import '@s4wave/web/style/app.js'
 
 import { Routes, RouterProvider, type To } from '@s4wave/web/router/router.js'
 import { DocsRoutes } from '@s4wave/app/routes/DocsRoutes.js'

@@ -9,7 +9,7 @@ import { Config } from '@s4wave/net/stream/echo/echo.pb.js'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
 const stylexStyles = stylex.create({
-  rule1: { display: 'grid', gap: `calc(${themeLayout['--spacing']} * 2)` },
+  rule1: { gap: `calc(${themeLayout['--spacing']} * 2)`, display: 'grid', },
 })
 
 // StreamEchoEditor edits the echo protocol while retaining the Device peer.

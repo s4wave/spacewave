@@ -10,17 +10,17 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
-    left: 'var(--canvas-selection-left)',
-    top: 'var(--canvas-selection-top)',
-    width: 'var(--canvas-selection-width)',
-    height: 'var(--canvas-selection-height)',
-    pointerEvents: 'none',
-    position: 'absolute',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
     borderRadius: 'var(--radius-sm)',
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+    pointerEvents: 'none',
+    position: 'absolute',
+    height: 'var(--canvas-selection-height)',
+    left: 'var(--canvas-selection-left)',
+    top: 'var(--canvas-selection-top)',
+    width: 'var(--canvas-selection-width)',
   },
 })
 

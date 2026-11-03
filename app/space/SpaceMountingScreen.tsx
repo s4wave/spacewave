@@ -1,3 +1,4 @@
+import { keyframeNames } from '../../web/style/tokens.stylex.js'
 import { LuRefreshCw } from '@s4wave/web/images/icons.js'
 
 import { useRenderDelay } from '@s4wave/app/loading/useRenderDelay.js'
@@ -23,32 +24,32 @@ import {
 
 const stylexStyles2 = stylex.create({
   rule1: {
-    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
     display: 'flex',
     justifyContent: 'center',
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
   },
   rule2: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    justifyContent: 'center',
     gap: `calc(${themeLayout['--spacing']} * 5)`,
+    alignItems: 'flex-start',
+    display: 'flex',
+    justifyContent: 'center',
   },
   rule3: {
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
     display: 'flex',
     flexDirection: 'column',
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
   },
   rule4: {
-    position: 'relative',
-    width: `calc(${themeLayout['--spacing']} * 2)`,
-    height: `calc(${themeLayout['--spacing']} * 2)`,
+    '--tw-duration': '.3s',
     borderRadius: '3.40282e38px',
+    position: 'relative',
+    transitionDuration: '.3s',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration: '.3s',
-    '--tw-duration': '.3s',
+    height: `calc(${themeLayout['--spacing']} * 2)`,
+    width: `calc(${themeLayout['--spacing']} * 2)`,
   },
   rule5: {
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 60%, transparent)`,
@@ -58,61 +59,61 @@ const stylexStyles2 = stylex.create({
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 15%, transparent)`,
   },
   rule8: {
-    position: 'absolute',
     inset: '-6px',
-    animationName: {
-      default: 'ping',
-      '@media (prefers-reduced-motion: reduce)': 'none',
-    },
-    animationDuration: {
-      default: '1s',
+    borderRadius: '3.40282e38px',
+    animationDelay: {
+      default: '0s',
       '@media (prefers-reduced-motion: reduce)': '0s',
-    },
-    animationTimingFunction: {
-      default: 'cubic-bezier(0, 0, .2, 1)',
-      '@media (prefers-reduced-motion: reduce)': 'ease',
-    },
-    animationIterationCount: {
-      default: 'infinite',
-      '@media (prefers-reduced-motion: reduce)': 1,
     },
     animationDirection: {
       default: 'normal',
       '@media (prefers-reduced-motion: reduce)': 'normal',
     },
-    animationPlayState: {
-      default: 'running',
-      '@media (prefers-reduced-motion: reduce)': 'running',
-    },
-    animationDelay: {
-      default: '0s',
+    animationDuration: {
+      default: '1s',
       '@media (prefers-reduced-motion: reduce)': '0s',
     },
     animationFillMode: {
       default: 'none',
       '@media (prefers-reduced-motion: reduce)': 'none',
     },
+    animationIterationCount: {
+      default: 'infinite',
+      '@media (prefers-reduced-motion: reduce)': 1,
+    },
+    animationName: {
+      default: keyframeNames['ping'],
+      '@media (prefers-reduced-motion: reduce)': 'none',
+    },
+    animationPlayState: {
+      default: 'running',
+      '@media (prefers-reduced-motion: reduce)': 'running',
+    },
     animationTimeline: {
       default: 'auto',
       '@media (prefers-reduced-motion: reduce)': 'auto',
     },
-    borderRadius: '3.40282e38px',
+    animationTimingFunction: {
+      default: 'cubic-bezier(0, 0, .2, 1)',
+      '@media (prefers-reduced-motion: reduce)': 'ease',
+    },
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    position: 'absolute',
   },
   rule9: {
-    fontSize: '.6rem',
-    lineHeight: 1.5,
     '--tw-font-weight': themeFonts['--font-weight-medium'],
-    fontWeight: themeFonts['--font-weight-medium'],
     '--tw-tracking': 'var(--tracking-widest)',
+    WebkitUserSelect: 'none',
+    fontSize: '.6rem',
+    fontWeight: themeFonts['--font-weight-medium'],
     letterSpacing: 'var(--tracking-widest)',
+    lineHeight: 1.5,
     textTransform: 'uppercase',
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
     transitionProperty:
       'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
-    WebkitUserSelect: 'none',
     userSelect: 'none',
   },
   rule10: {
@@ -126,8 +127,8 @@ const stylexStyles2 = stylex.create({
 
 const stylexStyles = stylex.create({
   rule1: {
-    width: `calc(${themeLayout['--spacing']} * 3.5)`,
     height: `calc(${themeLayout['--spacing']} * 3.5)`,
+    width: `calc(${themeLayout['--spacing']} * 3.5)`,
   },
 })
 

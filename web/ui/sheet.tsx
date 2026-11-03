@@ -1,3 +1,4 @@
+import { keyframeNames } from '../style/tokens.stylex.js'
 import { stylexProps } from '@s4wave/web/style/props.js'
 import type { StyleXStyles } from '@stylexjs/stylex'
 import * as React from 'react'
@@ -15,306 +16,306 @@ import {
 
 const styles = stylex.create({
   overlay: {
-    position: 'fixed',
+    '--tw-enter-opacity': { default: null, ':is([data-state="open"])': '0' },
+    '--tw-exit-opacity': { default: null, ':is([data-state="closed"])': '0' },
     inset: 0,
-    zIndex: 50,
-    backgroundColor: 'color-mix(in oklab, var(--color-black) 50%, transparent)',
-    animationName: {
+    animationDelay: {
       default: null,
-      ':is([data-state="closed"])': 'shadcn-exit',
-      ':is([data-state="open"])': 'shadcn-enter',
-    },
-    animationDuration: {
-      default: null,
-      ':is([data-state="closed"])': '.15s',
-      ':is([data-state="open"])': '.15s',
-    },
-    animationTimingFunction: {
-      default: null,
-      ':is([data-state="closed"])': 'ease-in',
-      ':is([data-state="open"])': 'ease-out',
-    },
-    animationIterationCount: {
-      default: null,
-      ':is([data-state="closed"])': 1,
-      ':is([data-state="open"])': 1,
+      ':is([data-state="closed"])': '0s',
+      ':is([data-state="open"])': '0s',
     },
     animationDirection: {
       default: null,
       ':is([data-state="closed"])': 'normal',
       ':is([data-state="open"])': 'normal',
     },
-    animationPlayState: {
+    animationDuration: {
       default: null,
-      ':is([data-state="closed"])': 'running',
-      ':is([data-state="open"])': 'running',
-    },
-    animationDelay: {
-      default: null,
-      ':is([data-state="closed"])': '0s',
-      ':is([data-state="open"])': '0s',
+      ':is([data-state="closed"])': '.15s',
+      ':is([data-state="open"])': '.15s',
     },
     animationFillMode: {
       default: null,
       ':is([data-state="closed"])': 'both',
       ':is([data-state="open"])': 'both',
     },
+    animationIterationCount: {
+      default: null,
+      ':is([data-state="closed"])': 1,
+      ':is([data-state="open"])': 1,
+    },
+    animationName: {
+      default: null,
+      ':is([data-state="closed"])': keyframeNames['shadcn-exit'],
+      ':is([data-state="open"])': keyframeNames['shadcn-enter'],
+    },
+    animationPlayState: {
+      default: null,
+      ':is([data-state="closed"])': 'running',
+      ':is([data-state="open"])': 'running',
+    },
     animationTimeline: {
       default: null,
       ':is([data-state="closed"])': 'auto',
       ':is([data-state="open"])': 'auto',
     },
-    '--tw-exit-opacity': { default: null, ':is([data-state="closed"])': '0' },
-    '--tw-enter-opacity': { default: null, ':is([data-state="open"])': '0' },
+    animationTimingFunction: {
+      default: null,
+      ':is([data-state="closed"])': 'ease-in',
+      ':is([data-state="open"])': 'ease-out',
+    },
+    backgroundColor: 'color-mix(in oklab, var(--color-black) 50%, transparent)',
+    position: 'fixed',
+    zIndex: 50,
   },
   content: {
-    zIndex: 50,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: `calc(${themeLayout['--spacing']} * 4)`,
-    backgroundColor: themeColors['--color-background'],
-    '--tw-shadow':
-      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
-    boxShadow:
-      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
-    transitionProperty:
-      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
-    transitionTimingFunction: 'var(--ease-in-out)',
-    transitionDuration: {
-      default: 'var(--tw-duration, var(--default-transition-duration))',
-      ':is([data-state="closed"])': '.3s',
-      ':is([data-state="open"])': '.5s',
-    },
-    '--tw-ease': 'var(--ease-in-out)',
-    animationName: {
-      default: null,
-      ':is([data-state="closed"])': 'shadcn-exit',
-      ':is([data-state="open"])': 'shadcn-enter',
-    },
-    animationDuration: {
-      default: null,
-      ':is([data-state="closed"])': '.15s',
-      ':is([data-state="open"])': '.15s',
-    },
-    animationTimingFunction: {
-      default: null,
-      ':is([data-state="closed"])': 'ease-in',
-      ':is([data-state="open"])': 'ease-out',
-    },
-    animationIterationCount: {
-      default: null,
-      ':is([data-state="closed"])': 1,
-      ':is([data-state="open"])': 1,
-    },
-    animationDirection: {
-      default: null,
-      ':is([data-state="closed"])': 'normal',
-      ':is([data-state="open"])': 'normal',
-    },
-    animationPlayState: {
-      default: null,
-      ':is([data-state="closed"])': 'running',
-      ':is([data-state="open"])': 'running',
-    },
-    animationDelay: {
-      default: null,
-      ':is([data-state="closed"])': '0s',
-      ':is([data-state="open"])': '0s',
-    },
-    animationFillMode: {
-      default: null,
-      ':is([data-state="closed"])': 'both',
-      ':is([data-state="open"])': 'both',
-    },
-    animationTimeline: {
-      default: null,
-      ':is([data-state="closed"])': 'auto',
-      ':is([data-state="open"])': 'auto',
-    },
     '--tw-duration': {
       default: null,
       ':is([data-state="closed"])': '.3s',
       ':is([data-state="open"])': '.5s',
     },
+    '--tw-ease': 'var(--ease-in-out)',
+    '--tw-shadow':
+      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    animationDelay: {
+      default: null,
+      ':is([data-state="closed"])': '0s',
+      ':is([data-state="open"])': '0s',
+    },
+    animationDirection: {
+      default: null,
+      ':is([data-state="closed"])': 'normal',
+      ':is([data-state="open"])': 'normal',
+    },
+    animationDuration: {
+      default: null,
+      ':is([data-state="closed"])': '.15s',
+      ':is([data-state="open"])': '.15s',
+    },
+    animationFillMode: {
+      default: null,
+      ':is([data-state="closed"])': 'both',
+      ':is([data-state="open"])': 'both',
+    },
+    animationIterationCount: {
+      default: null,
+      ':is([data-state="closed"])': 1,
+      ':is([data-state="open"])': 1,
+    },
+    animationName: {
+      default: null,
+      ':is([data-state="closed"])': keyframeNames['shadcn-exit'],
+      ':is([data-state="open"])': keyframeNames['shadcn-enter'],
+    },
+    animationPlayState: {
+      default: null,
+      ':is([data-state="closed"])': 'running',
+      ':is([data-state="open"])': 'running',
+    },
+    animationTimeline: {
+      default: null,
+      ':is([data-state="closed"])': 'auto',
+      ':is([data-state="open"])': 'auto',
+    },
+    animationTimingFunction: {
+      default: null,
+      ':is([data-state="closed"])': 'ease-in',
+      ':is([data-state="open"])': 'ease-out',
+    },
+    backgroundColor: themeColors['--color-background'],
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    display: 'flex',
+    flexDirection: 'column',
+    transitionDuration: {
+      default: 'var(--tw-duration, var(--default-transition-duration))',
+      ':is([data-state="closed"])': '.3s',
+      ':is([data-state="open"])': '.5s',
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: 'var(--ease-in-out)',
+    zIndex: 50,
   },
   absolute: { position: 'absolute' },
   fixed: { position: 'fixed' },
   right: {
+    '--tw-enter-translate-x': {
+      default: null,
+      ':is([data-state="open"])': '100%',
+    },
+    '--tw-exit-translate-x': {
+      default: null,
+      ':is([data-state="closed"])': '100%',
+    },
     insetBlock: 0,
-    right: 0,
-    height: '100%',
-    width: '75%',
     borderLeftStyle: themeUtilityState['--tw-border-style'],
     borderLeftWidth: '1px',
-    '--tw-exit-translate-x': {
-      default: null,
-      ':is([data-state="closed"])': '100%',
-    },
-    '--tw-enter-translate-x': {
-      default: null,
-      ':is([data-state="open"])': '100%',
-    },
+    height: '100%',
     maxWidth: {
       default: null,
       '@media (min-width: 40rem)': 'var(--container-sm)',
     },
+    right: 0,
+    width: '75%',
   },
   left: {
-    insetBlock: 0,
-    left: 0,
-    height: '100%',
-    width: '75%',
-    borderRightStyle: themeUtilityState['--tw-border-style'],
-    borderRightWidth: '1px',
-    '--tw-exit-translate-x': {
-      default: null,
-      ':is([data-state="closed"])': '-100%',
-    },
     '--tw-enter-translate-x': {
       default: null,
       ':is([data-state="open"])': '-100%',
     },
+    '--tw-exit-translate-x': {
+      default: null,
+      ':is([data-state="closed"])': '-100%',
+    },
+    insetBlock: 0,
+    borderRightStyle: themeUtilityState['--tw-border-style'],
+    borderRightWidth: '1px',
+    height: '100%',
+    left: 0,
     maxWidth: {
       default: null,
       '@media (min-width: 40rem)': 'var(--container-sm)',
     },
+    width: '75%',
   },
   top: {
-    insetInline: 0,
-    top: 0,
-    height: 'auto',
-    borderBottomStyle: themeUtilityState['--tw-border-style'],
-    borderBottomWidth: '1px',
-    '--tw-exit-translate-y': {
-      default: null,
-      ':is([data-state="closed"])': '-100%',
-    },
     '--tw-enter-translate-y': {
       default: null,
       ':is([data-state="open"])': '-100%',
     },
-  },
-  bottom: {
-    insetInline: 0,
-    bottom: 0,
-    height: 'auto',
-    borderTopStyle: themeUtilityState['--tw-border-style'],
-    borderTopWidth: '1px',
     '--tw-exit-translate-y': {
       default: null,
-      ':is([data-state="closed"])': '100%',
+      ':is([data-state="closed"])': '-100%',
     },
+    insetInline: 0,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    height: 'auto',
+    top: 0,
+  },
+  bottom: {
     '--tw-enter-translate-y': {
       default: null,
       ':is([data-state="open"])': '100%',
     },
+    '--tw-exit-translate-y': {
+      default: null,
+      ':is([data-state="closed"])': '100%',
+    },
+    insetInline: 0,
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    bottom: 0,
+    height: 'auto',
   },
-  docs: { gap: 0, padding: 0 },
+  docs: { padding: 0, gap: 0 },
   header: {
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
     display: 'flex',
     flexDirection: 'column',
-    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
-    padding: `calc(${themeLayout['--spacing']} * 4)`,
   },
   footer: {
-    marginTop: 'auto',
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
     display: 'flex',
     flexDirection: 'column',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
-    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    marginTop: 'auto',
   },
   title: {
     '--tw-font-weight': 'var(--font-weight-semibold)',
-    fontWeight: 'var(--font-weight-semibold)',
     color: themeColors['--color-foreground'],
+    fontWeight: 'var(--font-weight-semibold)',
   },
   docsTitle: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
-    fontSize: themeFonts['--text-sm'],
-    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
     '--tw-font-weight': 'var(--font-weight-semibold)',
-    fontWeight: 'var(--font-weight-semibold)',
     '--tw-tracking': 'var(--tracking-tight)',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    alignItems: 'center',
+    display: 'flex',
+    fontSize: themeFonts['--text-sm'],
+    fontWeight: 'var(--font-weight-semibold)',
     letterSpacing: 'var(--tracking-tight)',
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
   },
   plainTitle: { gap: 0 },
   description: {
+    color: themeColors['--color-muted-foreground'],
     fontSize: themeFonts['--text-sm'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
-    color: themeColors['--color-muted-foreground'],
   },
-  absoluteOverlay: { position: 'absolute', inset: 0 },
+  absoluteOverlay: { inset: 0, position: 'absolute' },
   close: {
-    position: 'absolute',
-    top: `calc(${themeLayout['--spacing']} * 4)`,
-    right: `calc(${themeLayout['--spacing']} * 4)`,
-    borderRadius: 'var(--radius-xs)',
-    opacity: {
-      default: 0.7,
-      '@media (hover: hover)': { default: null, ':hover': 1 },
-    },
+    '--tw-outline-style': { default: null, ':focus': 'none' },
+    '--tw-ring-color': { default: null, ':focus': themeColors['--color-ring'] },
     '--tw-ring-offset-color': themeColors['--color-background'],
-    transitionProperty: 'opacity',
-    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
-    transitionDuration:
-      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-ring-offset-shadow': {
+      default: null,
+      ':focus':
+        'var(--tw-ring-inset, ) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color)',
+    },
+    '--tw-ring-offset-width': { default: null, ':focus': '2px' },
     '--tw-ring-shadow': {
       default: null,
       ':focus':
         'var(--tw-ring-inset, ) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    borderRadius: 'var(--radius-xs)',
+    backgroundColor: {
+      default: null,
+      ':is([data-state="open"])': themeColors['--color-secondary'],
     },
     boxShadow: {
       default: null,
       ':focus':
         'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
     },
-    '--tw-ring-color': { default: null, ':focus': themeColors['--color-ring'] },
-    '--tw-ring-offset-width': { default: null, ':focus': '2px' },
-    '--tw-ring-offset-shadow': {
-      default: null,
-      ':focus':
-        'var(--tw-ring-inset, ) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color)',
-    },
-    '--tw-outline-style': { default: null, ':focus': 'none' },
-    outlineStyle: {
-      default: null,
-      ':focus': 'none',
-      '@media (forced-colors: active)': { default: null, ':focus': 'solid' },
-    },
-    outlineOffset: {
-      default: null,
-      '@media (forced-colors: active)': { default: null, ':focus': '2px' },
-    },
-    outlineWidth: {
-      default: null,
-      '@media (forced-colors: active)': { default: null, ':focus': '2px' },
+    opacity: {
+      default: 0.7,
+      '@media (hover: hover)': { default: null, ':hover': 1 },
     },
     outlineColor: {
       default: null,
       '@media (forced-colors: active)': { default: null, ':focus': '#0000' },
     },
-    pointerEvents: { default: null, ':disabled': 'none' },
-    backgroundColor: {
+    outlineOffset: {
       default: null,
-      ':is([data-state="open"])': themeColors['--color-secondary'],
+      '@media (forced-colors: active)': { default: null, ':focus': '2px' },
     },
+    outlineStyle: {
+      default: null,
+      ':focus': 'none',
+      '@media (forced-colors: active)': { default: null, ':focus': 'solid' },
+    },
+    outlineWidth: {
+      default: null,
+      '@media (forced-colors: active)': { default: null, ':focus': '2px' },
+    },
+    pointerEvents: { default: null, ':disabled': 'none' },
+    position: 'absolute',
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    transitionProperty: 'opacity',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    right: `calc(${themeLayout['--spacing']} * 4)`,
+    top: `calc(${themeLayout['--spacing']} * 4)`,
   },
   closeIcon: {
-    width: `calc(${themeLayout['--spacing']} * 4)`,
     height: `calc(${themeLayout['--spacing']} * 4)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
   },
   closeLabel: {
-    clipPath: 'inset(50%)',
-    whiteSpace: 'nowrap',
-    borderWidth: 0,
-    width: '1px',
-    height: '1px',
     margin: '-1px',
     padding: 0,
-    position: 'absolute',
+    borderWidth: 0,
     overflow: 'hidden',
+    clipPath: 'inset(50%)',
+    position: 'absolute',
+    whiteSpace: 'nowrap',
+    height: '1px',
+    width: '1px',
   },
 })
 

@@ -1,5 +1,3 @@
-import { cn } from '@s4wave/web/style/utils.js'
-
 import type { BrowserStartupPhaseView } from './status/browser-startup-model.js'
 
 import { BootLoadingCriticalStyle } from './boot-loading-critical.js'
@@ -9,19 +7,19 @@ import * as stylex from '@stylexjs/stylex'
 const stylexStyles = stylex.create({
   rule1: { position: 'relative', width: '100%' },
   rule2: {
-    position: 'relative',
-    display: 'grid',
-    gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
-    gap: '0.5rem',
     margin: 0,
     padding: 0,
+    gap: '0.5rem',
     listStyle: 'none',
+    display: 'grid',
+    gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
+    position: 'relative',
   },
   rule3: {
-    display: 'flex',
-    height: '1.5rem',
     alignItems: 'center',
+    display: 'flex',
     justifyContent: 'center',
+    height: '1.5rem',
   },
   rule4: {
     overflow: 'hidden',
@@ -50,19 +48,14 @@ export function BrowserStartupPhaseRail({
   return (
     <div sx={stylexStyles.rule1}>
       <BootLoadingCriticalStyle />
-      <div
-        aria-hidden="true"
-        className={
-          /* TODO(stylex): global or unknown class: swb-rail-track */ 'swb-rail-track'
-        }
-      >
+      <div aria-hidden="true" className={'swb-rail-track'}>
         <div
-          className={
-            /* TODO(stylex): global or unknown class: swb-rail-fill */ cn(
-              'swb-rail-fill browser-progress-width',
-              failed && 'swb-rail-fill--error',
-            )
-          }
+          className={[
+            'swb-rail-fill browser-progress-width',
+            failed && 'swb-rail-fill--error',
+          ]
+            .filter(Boolean)
+            .join(' ')}
           style={{ '--browser-progress-width': `${fillPct}%` }}
         />
       </div>
@@ -70,27 +63,15 @@ export function BrowserStartupPhaseRail({
         {phases.map((phase) => (
           <li
             key={phase.id}
-            className={
-              /* TODO(stylex): global or unknown class: swb-step */ 'swb-step'
-            }
+            className={'swb-step'}
             data-state={phase.state}
             aria-current={phase.state === 'current' ? 'step' : undefined}
           >
             <div sx={stylexStyles.rule3}>
               {phase.state === 'current' ? (
-                <span
-                  className={
-                    /* TODO(stylex): global or unknown class: swb-spinner */ 'swb-spinner'
-                  }
-                  aria-hidden="true"
-                />
+                <span className={'swb-spinner'} aria-hidden="true" />
               ) : (
-                <span
-                  className={
-                    /* TODO(stylex): global or unknown class: swb-dot */ 'swb-dot'
-                  }
-                  aria-hidden="true"
-                />
+                <span className={'swb-dot'} aria-hidden="true" />
               )}
             </div>
             <div sx={stylexStyles.rule4}>{phase.label}</div>

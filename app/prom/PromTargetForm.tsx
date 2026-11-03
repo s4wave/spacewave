@@ -17,32 +17,32 @@ import {
 
 const stylexStyles = stylex.create({
   rule1: {
-    marginInline: 'auto',
-    display: 'grid',
-    width: '100%',
-    maxWidth: 'var(--container-md)',
-    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
     borderRadius: themeRadii['--radius-md'],
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '1px',
-    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
-    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    marginInline: 'auto',
+    display: 'grid',
+    maxWidth: 'var(--container-md)',
+    width: '100%',
   },
   rule2: {
+    gap: themeLayout['--spacing'],
+    color: themeColors['--color-foreground-alt'],
     display: 'flex',
     flexDirection: 'column',
-    gap: themeLayout['--spacing'],
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors['--color-foreground-alt'],
   },
-  rule3: { display: 'flex', gap: `calc(${themeLayout['--spacing']} * 2)` },
+  rule3: { gap: `calc(${themeLayout['--spacing']} * 2)`, display: 'flex' },
   rule4: { flex: 1 },
   rule5: { width: `calc(${themeLayout['--spacing']} * 28)` },
   rule6: {
+    color: themeColors['--color-destructive'],
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-    color: themeColors['--color-destructive'],
   },
 })
 
