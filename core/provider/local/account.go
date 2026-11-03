@@ -20,6 +20,7 @@ import (
 	provider_gccleanup "github.com/s4wave/spacewave/core/provider/gccleanup"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/block"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/volume"
@@ -195,8 +196,17 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		return err
 	}
 
-	// Construct the ProviderAccount and keyed trackers.
+	// Identify the account storage from the mounted volume without probing it.
 	le := t.p.le.WithField("account-id", t.accountInfo.GetProviderAccountId())
+	publisher, supportsAtomic := vol.(block.AtomicPublisher)
+	le.WithFields(logrus.Fields{
+		"storage-id":                storageID,
+		"storage-volume-id":         storageVolumeID,
+		"volume-id":                 vol.GetID(),
+		"volume-atomic-publication": supportsAtomic && publisher.SupportsAtomicPublication(),
+	}).Infof("account storage route (volume %T)", vol)
+
+	// Construct the ProviderAccount and keyed trackers.
 	providerAcc := &ProviderAccount{
 		t:            t,
 		vol:          vol,
@@ -356,6 +366,7 @@ func waitExecVolumeController(
 	dir directive.Directive,
 	disposeCb func(),
 ) (volume.Controller, directive.Reference, error) {
+	// Wait for a constructed controller while preserving startup errors.
 	execValue, _, ref, err := bus.ExecWaitValue[loader.ExecControllerValue](
 		ctx,
 		b,
@@ -373,6 +384,7 @@ func waitExecVolumeController(
 		return nil, nil, err
 	}
 
+	// Keep the typed controller and release an unexpected result.
 	volCtrl, ok := execValue.GetController().(volume.Controller)
 	if !ok {
 		ref.Release()

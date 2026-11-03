@@ -77,12 +77,21 @@ func ExecutePluginEntrypoint(
 	// Name the entrypoint as the origin of what it adds outside a controller.
 	ctx = directive.WithOriginController(ctx, EntrypointOriginID)
 
-	// Look up the plugin information and attach it to the context.
+	// Read the plugin host identity and storage selection.
 	pluginHost := bldr_plugin.NewSRPCPluginHostClient(pluginHostClient)
 	pluginInfo, err := pluginHost.GetPluginInfo(ctx, &bldr_plugin.GetPluginInfoRequest{})
 	if err != nil {
 		return err
 	}
+
+	// Identify the selected host storage once, before constructing its volumes.
+	le.WithFields(logrus.Fields{
+		"host-storage-id": pluginInfo.GetHostStorageId(),
+		"plugin-id":       pluginInfo.GetPluginId(),
+		"plugin-instance": pluginInfo.GetInstanceKey(),
+	}).Info("plugin storage route")
+
+	// Attach this plugin identity and binding to the entrypoint context.
 	ctx = bldr_plugin.WithPluginContextInfo(
 		ctx,
 		bldr_plugin.NewPluginContextInfo(
