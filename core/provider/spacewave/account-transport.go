@@ -302,7 +302,7 @@ func (a *ProviderAccount) authorizeDEXRequest(ctx context.Context, config *dex_s
 		releaseObject()
 		return nil, errors.New("DEX protocol context did not mount a cloud SharedObject")
 	}
-	return sharedobject_dexaccess.NewSharedObjectRequestAccess(ctx, swObject.ctx, swObject.GetSOHost(), requester, releaseObject)
+	return sharedobject_dexaccess.NewSharedObjectRequestAccess(ctx, a.le.WithField("authority-peer", swObject.GetPeerID().String()), swObject.ctx, swObject.GetSOHost(), requester, releaseObject)
 }
 
 // GetSessionTransport returns the legacy default session transport, or nil.

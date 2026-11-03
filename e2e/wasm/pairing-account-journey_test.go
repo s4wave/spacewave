@@ -94,6 +94,9 @@ func TestPairingHomeDriveJourney(t *testing.T) {
 		t.Fatal("pairing did not register the offered account")
 	}
 
+	// Capture the transport and enrolled identities before waiting on the copy.
+	logPairingPeerIdentities(t, "account attached", a.Page(), b.Page())
+
 	// Wait for the receiver's own block copy before opening the file.
 	receiver, err := b.MountSessionByIdx(ctx, index)
 	if err != nil {
@@ -371,9 +374,12 @@ func TestPairingSignedInDriveJourney(t *testing.T) {
 	}
 
 	// Both clients must retain and display files from both original accounts.
-	for _, client := range clients {
+	for i, client := range clients {
 		if err := client.Page().GetByRole("heading", playwright.PageGetByRoleOptions{Name: "Account connected", Exact: new(true)}).WaitFor(); err != nil {
 			t.Fatal(err)
+		}
+		if i == 0 {
+			logPairingPeerIdentities(t, "merged account attached", a.Page(), b.Page())
 		}
 		index := waitPairingPageCopy(t, client.Page(), accounts[0], ids...)
 		for i, id := range ids {
@@ -405,6 +411,9 @@ func confirmPairingPages(t *testing.T, source, receiving playwright.Page) {
 		}
 	}
 
+	// Capture public identities before approval can replace a setup Session.
+	logPairingPeerIdentities(t, "before approval", source, receiving)
+
 	// Authorize access only after comparing the proofs displayed by both clients.
 	emojiA, err := source.GetByLabel("Verification emoji").InnerText()
 	if err != nil {
@@ -418,5 +427,44 @@ func confirmPairingPages(t *testing.T, source, receiving playwright.Page) {
 		if err := page.GetByRole("button", playwright.PageGetByRoleOptions{Name: "Yes, they match", Exact: new(true)}).Click(); err != nil {
 			t.Fatal(err)
 		}
+	}
+}
+
+// logPairingPeerIdentities records public Session and pairing identities for the
+// synthetic accounts, without exporting credentials, grants or approval proofs.
+func logPairingPeerIdentities(t *testing.T, phase string, pages ...playwright.Page) {
+	// Snapshot the existing resource RPCs without changing a pairing decision.
+	t.Helper()
+	for i, page := range pages {
+		state, err := page.Evaluate(`async () => {
+			const root = globalThis.__s4wave_debug.root
+			const signal = AbortSignal.timeout(5000)
+			const entries = (await root.listSessions(signal)).sessions ?? []
+			const snapshots = []
+			for (const entry of entries) {
+				const snapshot = { sessionIndex: entry.sessionIndex }
+				let session
+				try {
+					const mounted = await root.mountSessionByIdx({ sessionIdx: entry.sessionIndex }, signal)
+					session = mounted.session
+					const info = await session.getSessionInfo(signal)
+					snapshot.peerId = info.peerId
+					snapshot.signingPeerId = info.signingPeerId
+					for await (const state of session.watchPairingStatus(signal)) {
+						snapshot.pairing = { status: state.status, remotePeerId: state.remotePeerId, sessionPeerId: state.sessionPeerId, accountId: state.accountId }
+						break
+					}
+					for await (const state of session.watchSyncStatus({}, signal)) {
+						snapshot.transportPeers = state.peers?.map(peer => peer.peerId)
+						break
+					}
+				} catch (error) {
+					snapshot.error = String(error)
+				} finally { session?.release() }
+				snapshots.push(snapshot)
+			}
+			return JSON.stringify(snapshots)
+		}`)
+		t.Logf("pairing peers %s client%d: %v (read error: %v)", phase, i, state, err)
 	}
 }

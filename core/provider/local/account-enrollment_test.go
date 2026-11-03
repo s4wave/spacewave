@@ -143,13 +143,14 @@ func TestAccountReplicaEnrollment(t *testing.T) {
 // TestAccountPairingExchange exercises the actual duplex protocol, bilateral
 // decision, provider bootstrap, and durable Session registration together.
 func TestAccountPairingExchange(t *testing.T) {
-	for _, approve := range []bool{false, true} {
-		name := "reject"
-		if approve {
-			name = "enroll"
-		}
-		t.Run(name, func(t *testing.T) {
-			// Bound the exchange.
+	for _, mode := range []struct {
+		name    string
+		approve bool
+		direct  bool
+	}{{"reject", false, false}, {"enroll", true, false}, {"direct-enroll", true, true}} {
+		t.Run(mode.name, func(t *testing.T) {
+			// Bound the exchange and choose the local approval decision.
+			approve := mode.approve
 			ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
 			defer cancel()
 
@@ -157,7 +158,13 @@ func TestAccountPairingExchange(t *testing.T) {
 			// packet network. The network is set before each Session mounts and
 			// starts its transport; provider stores stay isolated.
 			network := inproc.NewNetwork()
-			shareNetwork := func(p *Provider) { p.localNetwork = transport.WithInprocNetwork(network) }
+			shareNetwork := func(p *Provider) {
+				if mode.direct {
+					p.localNetwork = transport.WithInprocNetwork(inproc.NewNetwork())
+				} else {
+					p.localNetwork = transport.WithInprocNetwork(network)
+				}
+			}
 			_, _, source, sourceSession, releaseSource := setupProviderAndSessionInternal(ctx, t, shareNetwork)
 			defer releaseSource()
 			tb, _, receiver, receivingSession, releaseReceiver := setupProviderAndSessionInternal(ctx, t, shareNetwork)
@@ -200,34 +207,48 @@ func TestAccountPairingExchange(t *testing.T) {
 				payloadRef, payload = seedAccountReplicaPayload(ctx, t, source, spaceRef)
 			}
 
-			// Run both pairing engines over one in-memory duplex stream.
-			const agentLabel = "Test agent on build host"
+			// Resolve both engines and the existing stream-completion channel.
+			agentLabel := "Test agent on build host"
 			sourceEngine := pairingEngineForTest(t, sourceSession)
 			receivingEngine := pairingEngineForTest(t, receivingSession)
-			left, right := net.Pipe()
-			defer left.Close()
-			defer right.Close()
-
-			// Each engine signals finished when its side of the exchange ends.
 			finished := make(chan struct{}, 2)
-			go func() {
+
+			// Exercise direct handoff without another route between the providers.
+			if mode.direct {
+				links := authenticatedPairingLinks(ctx, t, sourceSession, receivingSession)
+				sourceEngine.StartDirect(links[0], true, true)
+				receivingEngine.StartDirect(links[1], false, false)
+			} else {
+				left, right := net.Pipe()
 				defer left.Close()
-				sourceEngine.StartOnStream(ctx, left, receivingSession.GetPeerId(), true, true, "")
-				finished <- struct{}{}
-			}()
-			go func() {
 				defer right.Close()
-				receivingEngine.StartOnStream(ctx, right, sourceSession.GetPeerId(), false, false, agentLabel)
-				finished <- struct{}{}
-			}()
+				go func() {
+					defer left.Close()
+					sourceEngine.StartOnStream(ctx, left, receivingSession.GetPeerId(), true, true, "")
+					finished <- struct{}{}
+				}()
+				go func() {
+					defer right.Close()
+					receivingEngine.StartOnStream(ctx, right, sourceSession.GetPeerId(), false, false, agentLabel)
+					finished <- struct{}{}
+				}()
+			}
 
 			// Matching emoji alone must neither register a Session nor import
 			// Spaces. The approving client sees the receiver's label.
 			verifying := waitForPairingStatus(ctx, t, sourceEngine, pairing.StatusVerifyingEmoji)
 			waitForPairingStatus(ctx, t, receivingEngine, pairing.StatusVerifyingEmoji)
+			if mode.direct {
+				agentLabel = verifying.RemoteLabel
+				if agentLabel == "" {
+					t.Fatal("direct pairing did not publish the receiving client's name")
+				}
+			}
 			if verifying.RemoteLabel != agentLabel {
 				t.Fatalf("approval screen label = %q, want %q", verifying.RemoteLabel, agentLabel)
 			}
+
+			// Keep enrollment absent until the bilateral approval decision.
 			entries, err := controller.ListSessions(ctx)
 			if err != nil || len(entries) != 1 {
 				t.Fatalf("unapproved pairing changed the Session list: %v, %v", entries, err)
@@ -236,11 +257,16 @@ func TestAccountPairingExchange(t *testing.T) {
 			if approve {
 				receivingEngine.ConfirmSAS(true)
 			}
-			for range 2 {
-				select {
-				case <-ctx.Done():
-					t.Fatal("account pairing did not finish")
-				case <-finished:
+			if mode.direct {
+				waitForPairingStatus(ctx, t, sourceEngine, pairing.StatusBothConfirmed)
+				waitForPairingStatus(ctx, t, receivingEngine, pairing.StatusBothConfirmed)
+			} else {
+				for range 2 {
+					select {
+					case <-ctx.Done():
+						t.Fatal("account pairing did not finish")
+					case <-finished:
+					}
 				}
 			}
 

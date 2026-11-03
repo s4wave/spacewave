@@ -2,6 +2,7 @@ package dexaccess
 
 import (
 	"context"
+	"encoding/hex"
 	"slices"
 
 	"github.com/aperturerobotics/util/ccontainer"
@@ -9,14 +10,17 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	dex_solicit "github.com/s4wave/spacewave/db/dex/solicit"
 	"github.com/s4wave/spacewave/net/peer"
+	"github.com/sirupsen/logrus"
 )
 
 // NewSharedObjectRequestAccess retains the SharedObject authority watch for
 // one authenticated DEX requester. sourceCtx ends when that authority source is
 // released; nil leaves the retained watch as the source. releaseObject releases
-// the caller's SharedObject mount.
+// the caller's SharedObject mount. le receives denial context only in the
+// source process; nil disables that diagnostic.
 func NewSharedObjectRequestAccess(
 	ctx context.Context,
+	le *logrus.Entry,
 	sourceCtx context.Context,
 	host *sobject.SOHost,
 	requester peer.ID,
@@ -31,6 +35,7 @@ func NewSharedObjectRequestAccess(
 		return nil, err
 	}
 	return &sharedObjectDEXRequestAccess{
+		le: le, objectID: host.GetSharedObjectID(),
 		sourceCtx: sourceCtx, watchCtx: watchCtx, cancel: cancel,
 		states: states, requester: requester.String(),
 		releaseStates: releaseStates, releaseObject: releaseObject,
@@ -39,6 +44,10 @@ func NewSharedObjectRequestAccess(
 
 // sharedObjectDEXRequestAccess reads participant roles from the retained SOHost watch.
 type sharedObjectDEXRequestAccess struct {
+	// le receives server-local denial context, never the wire response.
+	le *logrus.Entry
+	// objectID identifies the retained source of authority.
+	objectID string
 	// sourceCtx ends when the SharedObject's authority source is released.
 	sourceCtx context.Context
 	// watchCtx ends when the request releases its retained authority watch.
@@ -92,12 +101,32 @@ func (a *sharedObjectDEXRequestAccess) WaitRevoked(ctx context.Context) error {
 
 // checkState rejects absent participants and roles without read permission.
 func (a *sharedObjectDEXRequestAccess) checkState(state *sobject.SOState) error {
+	// Authorize only the requester's current readable participant record.
 	if slices.ContainsFunc(state.GetConfig().GetParticipants(), func(participant *sobject.SOParticipantConfig) bool {
 		return participant.GetPeerId() == a.requester && sobject.CanReadState(participant.GetRole())
 	}) {
 		return nil
 	}
-	return errors.New("shared object block access denied")
+
+	// Record only public identities from the same snapshot that denied access.
+	// Keep this server-local: the unauthorized peer receives no participant list.
+	err := errors.New("shared object block access denied")
+	if a.le != nil {
+		// Summarize public roles without logging grants or private keys.
+		participants := make([]string, 0, len(state.GetConfig().GetParticipants()))
+		for _, participant := range state.GetConfig().GetParticipants() {
+			participants = append(participants, participant.GetPeerId()+"="+participant.GetRole().String())
+		}
+
+		// Keep the diagnostic in the caller's server log.
+		a.le.WithError(err).WithFields(logrus.Fields{
+			"requester-peer":    a.requester,
+			"shared-object-id":  a.objectID,
+			"config-chain-hash": hex.EncodeToString(state.GetConfig().GetConfigChainHash()),
+			"participants":      participants,
+		}).Warn("DEX request denied by current SharedObject authority")
+	}
+	return err
 }
 
 // Release releases the state watch before the mounted SharedObject.

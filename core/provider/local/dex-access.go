@@ -21,5 +21,5 @@ func (a *ProviderAccount) authorizeDEXRequest(ctx context.Context, config *dex_s
 	}
 
 	// Retain the authority source independently of SO sync and hosting lifetimes.
-	return sharedobject_dexaccess.NewSharedObjectRequestAccess(ctx, object.ctx, object.soHost, requester, releaseObject)
+	return sharedobject_dexaccess.NewSharedObjectRequestAccess(ctx, a.le.WithField("authority-peer", object.GetPeerID().String()), object.ctx, object.soHost, requester, releaseObject)
 }
