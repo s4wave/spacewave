@@ -91,6 +91,17 @@ func BuildWebPkgsViteWithManagedRoot(
 		webPkgIDs = append(webPkgIDs, ref.GetWebPkgId())
 		packageRoots[ref.GetWebPkgId()] = ref.GetWebPkgRoot()
 	}
+
+	// External JavaScript packages still supply compile-time theme metadata.
+	for _, id := range providedWebPkgIDs {
+		if packageRoots[id] == "" {
+			if root := web_pkg.ResolveWebPkgRoot(canonicalCodeRoot, id); root != "" {
+				packageRoots[id] = root
+			}
+		}
+	}
+
+	// Order and deduplicate the package identities emitted by this build.
 	slices.Sort(webPkgIDs)
 	webPkgIDs = slices.Compact(webPkgIDs)
 

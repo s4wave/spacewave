@@ -420,16 +420,7 @@ func ResolveWebPkgRefsFromConfig(
 		// Determine package root.
 		pkgRoot := rootsByID[pkgID]
 		if pkgRoot == "" {
-			pkgRoot = resolveTSConfigWebPkgRoot(codeRootPath, pkgID)
-		}
-		if pkgRoot == "" {
-			pkgRoot = resolveMaterializedWebPkgRoot(codeRootPath, pkgID)
-		}
-		if pkgRoot == "" {
-			candidate := filepath.Join(codeRootPath, "node_modules", pkgID)
-			if info, err := os.Stat(candidate); err == nil && info.IsDir() {
-				pkgRoot = candidate
-			}
+			pkgRoot = ResolveWebPkgRoot(codeRootPath, pkgID)
 		}
 		if pkgRoot == "" {
 			continue
@@ -455,6 +446,26 @@ func ResolveWebPkgRefsFromConfig(
 	// Order package references by identifier for the caller.
 	SortWebPkgRefs(refs)
 	return refs, nil
+}
+
+// ResolveWebPkgRoot locates a package's source through project mappings,
+// materialized module sources or installed dependencies, including packages
+// whose JavaScript another plugin provides.
+func ResolveWebPkgRoot(codeRootPath, pkgID string) string {
+	// Prefer explicit project sources over materialized or installed packages.
+	if root := resolveTSConfigWebPkgRoot(codeRootPath, pkgID); root != "" {
+		return root
+	}
+	if root := resolveMaterializedWebPkgRoot(codeRootPath, pkgID); root != "" {
+		return root
+	}
+
+	// Use the installed package only when the project supplies no source mapping.
+	candidate := filepath.Join(codeRootPath, "node_modules", pkgID)
+	if info, err := os.Stat(candidate); err == nil && info.IsDir() {
+		return candidate
+	}
+	return ""
 }
 
 // resolveMaterializedWebPkgRoot resolves a scoped web pkg "@scope/name" to a
