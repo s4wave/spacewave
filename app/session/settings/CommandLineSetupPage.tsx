@@ -1401,12 +1401,8 @@ function MoreCommandsSection({ opts }: { opts: CommandOptions }) {
       open={open}
       onOpenChange={setOpen}
     >
-      <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
-        }
-      >
-        <ul>
+      <div>
+        <ul sx={nativeChildSpacingNext.s3}>
           <MoreCommandRow
             sx={nativeChildSpacing.s2}
             command={buildSpacewaveCommand('web --bg', opts)}
@@ -1423,7 +1419,10 @@ function MoreCommandsSection({ opts }: { opts: CommandOptions }) {
             explanation="Drive git helpers against a selected space."
           />
         </ul>
-        <a href={developerCliHref} sx={stylexStyles4.rule49}>
+        <a
+          href={developerCliHref}
+          sx={[nativeChildSpacingNext.s3, stylexStyles4.rule49]}
+        >
           Developer CLI reference
         </a>
       </div>
@@ -1603,6 +1602,21 @@ const nativeChildSpacing = stylex.create({
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
     },
   },
 })

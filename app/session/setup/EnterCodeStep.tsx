@@ -293,11 +293,7 @@ export function EnterCodeStep({
   }
 
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4'
-      }
-    >
+    <div>
       {scanning && (
         <QRScannerModal
           title="Scan QR code"
@@ -309,7 +305,7 @@ export function EnterCodeStep({
         />
       )}
 
-      <div sx={stylexStyles2.rule3}>
+      <div sx={[nativeChildSpacing.s4, stylexStyles2.rule3]}>
         <div sx={stylexStyles2.rule4}>
           <LuLink sx={stylexStyles.rule1} />
         </div>
@@ -320,6 +316,7 @@ export function EnterCodeStep({
       </div>
 
       <CodeInput
+        sx={nativeChildSpacing.s4}
         value={code}
         onChange={(value) => setCode(cleanCode(value))}
         onPaste={handlePaste}
@@ -332,15 +329,17 @@ export function EnterCodeStep({
       <button
         type="button"
         onClick={() => setScanning(true)}
-        sx={[stylexStyles2.rule7]}
+        sx={[nativeChildSpacing.s4, [stylexStyles2.rule7]]}
       >
         <LuCamera sx={stylexStyles.rule2} />
         <span sx={stylexStyles2.rule8}>Scan QR code</span>
       </button>
 
-      {error && <p sx={stylexStyles2.rule9}>{error}</p>}
+      {error && (
+        <p sx={[nativeChildSpacing.s4, stylexStyles2.rule9]}>{error}</p>
+      )}
 
-      <div sx={stylexStyles2.rule10}>
+      <div sx={[nativeChildSpacing.s4, stylexStyles2.rule10]}>
         <LinkDeviceBackButton onClick={onBack} />
         <button
           type="button"
@@ -363,3 +362,18 @@ export function EnterCodeStep({
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s4: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

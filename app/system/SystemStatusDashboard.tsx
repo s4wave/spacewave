@@ -31,7 +31,7 @@ import {
 import { useTrackedResources } from '@s4wave/web/devtools/index.js'
 import { useStateInspectorEntryMap } from '@s4wave/web/devtools/useStateInspectorEntries.js'
 import { useStateAtom, useStateNamespace } from '@s4wave/web/state/index.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 
 import { NetworkInspector } from './NetworkInspector.js'
@@ -50,7 +50,7 @@ import {
   protectionLabel,
   shortId,
 } from './format.js'
-import { toneDotClass, toneTextClass } from './tone.js'
+import { toneDotStyles, toneTextStyles } from './tone.js'
 import {
   spaceEngineId,
   updatePhaseLabel,
@@ -76,6 +76,20 @@ import { groupMarker } from '../../web/style/relations.stylex.js'
 
 import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
 import { groupMarker as groupMarker2 } from '../../web/style/relations.stylex.js'
+
+const stylexStyles5 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 2.5)`,
+    height: `calc(${themeLayout['--spacing']} * 2.5)`,
+    flexShrink: 0,
+    borderRadius: '3.40282e38px',
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 1.5)`,
+    height: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: '3.40282e38px',
+  },
+})
 
 const stylexStyles4 = stylex.create({
   rule1: {
@@ -910,12 +924,7 @@ function VerdictBar({
   return (
     <header sx={stylexStyles3.rule6}>
       <span
-        className={
-          /* TODO(stylex): dynamic class or forwarded className */ cn(
-            'size-2.5 shrink-0 rounded-full',
-            toneDotClass[verdict.tone],
-          )
-        }
+        sx={[[stylexStyles5.rule1], [toneDotStyles[verdict.tone]]]}
         aria-hidden="true"
       />
       <h1 sx={stylexStyles3.rule7} role="status">
@@ -1039,7 +1048,7 @@ function SyncTile({
   return (
     <SystemTile
       {...base}
-      {...stylex.props(stylexStyles3.rule16)}
+      sx={stylexStyles3.rule16}
       headline={sync.summaryLabel}
     >
       <div sx={stylexStyles3.rule17}>
@@ -1073,11 +1082,7 @@ function StorageTile({
   }
 
   return (
-    <SystemTile
-      {...base}
-      {...stylex.props(stylexStyles3.rule16)}
-      headline={headline}
-    >
+    <SystemTile {...base} sx={stylexStyles3.rule16} headline={headline}>
       <p sx={stylexStyles3.rule20}>
         {formatCount(storage.blockCount)} block entries
       </p>
@@ -1103,18 +1108,14 @@ function NetworkTile({
 }) {
   if (!network) {
     return (
-      <SystemTile
-        {...base}
-        {...stylex.props(stylexStyles3.rule16)}
-        headline="Reading…"
-      />
+      <SystemTile {...base} sx={stylexStyles3.rule16} headline="Reading…" />
     )
   }
 
   return (
     <SystemTile
       {...base}
-      {...stylex.props(stylexStyles3.rule16)}
+      sx={stylexStyles3.rule16}
       headline={plural(network.peerCount ?? 0, 'peer')}
     >
       <p>
@@ -1153,7 +1154,7 @@ function RuntimeTile({ base, model }: { base: TileBase; model: SystemModel }) {
   return (
     <SystemTile
       {...base}
-      {...stylex.props(stylexStyles3.rule23)}
+      sx={stylexStyles3.rule23}
       headline={runtimeHeadline(model.plugins, running)}
     >
       <p sx={stylexStyles3.rule20}>
@@ -1201,7 +1202,7 @@ function ReleaseTile({ base, model }: { base: TileBase; model: SystemModel }) {
   return (
     <SystemTile
       {...base}
-      {...stylex.props(stylexStyles3.rule16)}
+      sx={stylexStyles3.rule16}
       headline={
         <span sx={stylexStyles3.rule9}>{model.build.version || 'dev'}</span>
       }
@@ -1230,11 +1231,7 @@ function SpacesTile({
 }) {
   if (!sessions || !spaces) {
     return (
-      <SystemTile
-        {...base}
-        {...stylex.props(stylexStyles3.rule31)}
-        headline="Reading…"
-      />
+      <SystemTile {...base} sx={stylexStyles3.rule31} headline="Reading…" />
     )
   }
 
@@ -1242,7 +1239,7 @@ function SpacesTile({
   return (
     <SystemTile
       {...base}
-      {...stylex.props(stylexStyles3.rule31)}
+      sx={stylexStyles3.rule31}
       headline={`${plural(spaces.length, 'Space')} · ${plural(sessions.length, 'account')}`}
     >
       <ul sx={stylexStyles3.rule32}>
@@ -1355,22 +1352,11 @@ function InspectorNav({
           >
             {tone && (
               <span
-                className={
-                  /* TODO(stylex): dynamic class or forwarded className */ cn(
-                    'size-1.5 rounded-full',
-                    toneDotClass[tone],
-                  )
-                }
+                sx={[[stylexStyles5.rule2], [toneDotStyles[tone]]]}
                 aria-hidden="true"
               />
             )}
-            <span
-              className={
-                /* TODO(stylex): dynamic class or forwarded className */ cn(
-                  tone === 'error' && toneTextClass.error,
-                )
-              }
-            >
+            <span sx={[[false], [tone === 'error' && toneTextStyles.error]]}>
               {inspectorMeta[id].title}
             </span>
           </button>

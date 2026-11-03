@@ -3,7 +3,6 @@ import { useBillingConsent } from '../provider/spacewave/useBillingConsent.js'
 import { useCallback, useMemo, useState } from 'react'
 import { LuCheck, LuCreditCard, LuPlus, LuX } from '@s4wave/web/images/icons.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { useSessionNavigate } from '@s4wave/web/contexts/contexts.js'
@@ -37,7 +36,7 @@ import {
 } from './DetachAssignmentDialog.js'
 import {
   lifecycleStateLabel,
-  subscriptionStatusBadgeColor,
+  subscriptionStatusBadgeStyles,
   statusLabel,
 } from './billing-utils.js'
 
@@ -53,6 +52,21 @@ import {
   fonts as themeFonts,
   motion as themeMotion,
 } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    borderRadius: '3.40282e38px',
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: '10px',
+    lineHeight: 1.5,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-wider)',
+    letterSpacing: 'var(--tracking-wider)',
+    textTransform: 'uppercase',
+  },
+})
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -491,17 +505,16 @@ export function BillingAccountsPage() {
         )}
         {detachError && <div sx={stylexStyles2.rule7}>{detachError}</div>}
         {accounts.length > 0 && (
-          <ul
-            className={
-              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-            }
-          >
+          <ul>
             {accounts.map((ba) => {
               const baId = ba.id ?? ''
               const assignees = ba.assignees ?? []
               const isBusy = assigningBaId === baId
               return (
-                <li key={baId} sx={stylexStyles2.rule10}>
+                <li
+                  key={baId}
+                  sx={[nativeChildSpacing.s2, stylexStyles2.rule10]}
+                >
                   <button
                     type="button"
                     onClick={() => handleOpen(baId)}
@@ -512,12 +525,14 @@ export function BillingAccountsPage() {
                         {ba.displayName || baId}
                       </span>
                       <span
-                        className={
-                          /* TODO(stylex): computed class helper */ cn(
-                            'rounded-full px-2 py-0.5 micro-ten font-semibold tracking-wider uppercase',
-                            subscriptionStatusBadgeColor(ba.subscriptionStatus),
-                          )
-                        }
+                        sx={[
+                          [stylexStyles3.rule1],
+                          [
+                            subscriptionStatusBadgeStyles(
+                              ba.subscriptionStatus,
+                            ),
+                          ],
+                        ]}
                       >
                         {statusLabel(ba.subscriptionStatus)}
                       </span>
@@ -625,3 +640,18 @@ export function BillingAccountsPage() {
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

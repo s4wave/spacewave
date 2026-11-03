@@ -226,14 +226,9 @@ export function SpaceControlSection() {
             /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
           }
         >
-          <div
-            className={
-              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ 'space-y-1.5'
-            }
-            role="radiogroup"
-            aria-label="Who controls the Space"
-          >
+          <div role="radiogroup" aria-label="Who controls the Space">
             <RadioOption
+              sx={nativeChildSpacingNextNext.s1_5}
               selected={!group}
               onSelect={() => void choose(SpaceControl.SpaceControl_OWNER)}
               disabled={!canSet || !group}
@@ -242,6 +237,7 @@ export function SpaceControlSection() {
               description="The owner changes members and settings."
             />
             <RadioOption
+              sx={nativeChildSpacingNextNext.s1_5}
               selected={group}
               onSelect={() => setConfirmGroup(true)}
               disabled={!canSet || group}
@@ -302,6 +298,7 @@ export function SpaceControlSection() {
 // GroupChanges lists the changes waiting for the group, with how many votes
 // each has and a way for the viewer to agree.
 function GroupChanges({
+  sx,
   state,
   changes,
   canAgree,
@@ -311,10 +308,10 @@ function GroupChanges({
   changes: SpaceGroupChange[]
   canAgree: boolean
   onAgree: (hash: Uint8Array) => void
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   const quorum = state.quorumWeight ?? 0n
   return (
-    <div>
+    <div sx={sx}>
       <h4 sx={[nativeChildSpacingNext.s1_5, stylexStyles2.rule6]}>
         Waiting for the group
       </h4>
@@ -479,6 +476,21 @@ const nativeChildSpacing = stylex.create({
 
 // nativeChildSpacing preserves the original margins at each rendered child.
 const nativeChildSpacingNext = stylex.create({
+  s1_5: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNextNext = stylex.create({
   s1_5: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
     marginBlockStart: {

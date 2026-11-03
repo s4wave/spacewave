@@ -1,16 +1,26 @@
-import { type ReactNode } from 'react'
-
-import { cn } from '@s4wave/web/style/utils.js'
-
+import type { ReactNode } from 'react'
 import * as stylex from '@stylexjs/stylex'
-import { colors as themeColors } from '../../web/style/tokens.stylex.js'
+
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
 
 const stylexStyles = stylex.create({
-  rule1: {
+  rule1: { display: 'block', minWidth: 0 },
+  rule2: {
     display: 'block',
     fontSize: '.65rem',
-    lineHeight: 'var(--leading-relaxed)',
+    lineHeight: 1.5,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule3: {
+    display: 'block',
+    fontSize: '.65rem',
     '--tw-leading': 'var(--leading-relaxed)',
+    lineHeight: 'var(--leading-relaxed)',
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
   },
 })
@@ -18,39 +28,46 @@ const stylexStyles = stylex.create({
 export interface WizardFieldFrameProps {
   label: ReactNode
   help?: ReactNode
-  fieldClassName?: string
-  labelClassName?: string
-  children: ReactNode
+  sx?: stylex.StyleXStyles
+  labelSx?: stylex.StyleXStyles
+  className?: never
+  children: (controlSx: stylex.StyleXStyles) => ReactNode
 }
 
+// WizardFieldFrame keeps each control's label and help in the same label element.
 export function WizardFieldFrame({
   label,
   help,
-  fieldClassName,
-  labelClassName,
+  sx,
+  labelSx,
   children,
 }: WizardFieldFrameProps) {
   return (
-    <label
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ cn(
-          'block min-w-0 space-y-1.5',
-          fieldClassName,
-        )
-      }
-    >
-      <span
-        className={
-          /* TODO(stylex): dynamic class or forwarded className */ cn(
-            'text-foreground-alt/70 block micro-label font-medium',
-            labelClassName,
-          )
-        }
-      >
+    <label sx={[stylexStyles.rule1, sx]}>
+      <span sx={[stylexStyles.rule2, [fieldChildren.child, labelSx]]}>
         {label}
       </span>
-      {children}
-      {help && <span sx={stylexStyles.rule1}>{help}</span>}
+      {children(fieldChildren.child)}
+      {help && (
+        <span sx={[stylexStyles.rule3, fieldChildren.child]}>{help}</span>
+      )}
     </label>
   )
 }
+
+// fieldChildren preserves the original margins at the label, control and help owners.
+const fieldChildren = stylex.create({
+  child: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)':
+        'calc(var(--spacing) * 1.5 * var(--tw-space-y-reverse))',
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)':
+        'calc(var(--spacing) * 1.5 * calc(1 - var(--tw-space-y-reverse)))',
+    },
+  },
+})

@@ -13,8 +13,8 @@ export interface WizardFieldProps extends Omit<
   sx?: ComponentStyles
   label: ReactNode
   help?: ReactNode
-  fieldClassName?: string
-  labelClassName?: string
+  fieldSx?: ComponentStyles
+  labelSx?: ComponentStyles
   inputRef?: Ref<HTMLInputElement>
   variant?: 'default' | 'error' | 'compactMono'
 }
@@ -22,32 +22,29 @@ export interface WizardFieldProps extends Omit<
 export function WizardField({
   label,
   help,
-  fieldClassName,
-  labelClassName,
+  fieldSx,
+  labelSx,
   sx,
   inputRef,
   variant = 'default',
   ...props
 }: WizardFieldProps) {
   return (
-    <WizardFieldFrame
-      label={label}
-      help={help}
-      fieldClassName={fieldClassName}
-      labelClassName={labelClassName}
-    >
-      <Input
-        sx={sx}
-        ref={inputRef}
-        variant={
-          variant === 'error'
-            ? 'wizardError'
-            : variant === 'compactMono'
-              ? 'wizardMono'
-              : 'wizard'
-        }
-        {...props}
-      />
+    <WizardFieldFrame label={label} help={help} sx={fieldSx} labelSx={labelSx}>
+      {(controlSx) => (
+        <Input
+          sx={[controlSx, sx]}
+          ref={inputRef}
+          variant={
+            variant === 'error'
+              ? 'wizardError'
+              : variant === 'compactMono'
+                ? 'wizardMono'
+                : 'wizard'
+          }
+          {...props}
+        />
+      )}
     </WizardFieldFrame>
   )
 }

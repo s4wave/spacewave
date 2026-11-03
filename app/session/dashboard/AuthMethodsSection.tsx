@@ -546,28 +546,28 @@ function AuthMethodPickerDialog({
             Choose which type of auth method to add.
           </DialogDescription>
         </DialogHeader>
-        <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-          }
-        >
+        <div>
           <MethodOption
+            sx={nativeChildSpacingNext.s2}
             label="Backup key (.pem)"
             description="Generate a key file for offline recovery"
             onClick={() => onPick('pem')}
           />
           <MethodOption
+            sx={nativeChildSpacingNext.s2}
             label="Passkey"
             description="Use biometrics or a hardware key"
             onClick={() => onPick('passkey')}
           />
           <MethodOption
+            sx={nativeChildSpacingNext.s2}
             label="Google"
             description="Link your Google identity"
             icon={<FcGoogle sx={stylexStyles.rule4} />}
             onClick={() => onPick('google')}
           />
           <MethodOption
+            sx={nativeChildSpacingNext.s2}
             label="GitHub"
             description="Link your GitHub identity"
             icon={<LuGithub sx={stylexStyles.rule4} />}
@@ -734,6 +734,7 @@ function isRemovableAuthMethod(method: AccountAuthMethod): boolean {
 
 // MethodOption renders a selectable auth method type in the picker.
 function MethodOption({
+  sx,
   label,
   description,
   icon,
@@ -745,13 +746,13 @@ function MethodOption({
   icon?: React.ReactNode
   disabled?: boolean
   onClick?: () => void
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
     <button
       type="button"
       disabled={disabled}
       onClick={onClick}
-      sx={disabled ? stylexStyles2.rule11 : stylexStyles2.rule12}
+      sx={[disabled ? stylexStyles2.rule11 : stylexStyles2.rule12, sx]}
     >
       <div sx={stylexStyles2.rule13}>
         {icon}
@@ -767,6 +768,21 @@ function MethodOption({
 
 // nativeChildSpacing preserves the original margins at each rendered child.
 const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
   s2: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
     marginBlockStart: {

@@ -266,12 +266,9 @@ export function SessionLockSection({ embedded }: SessionLockSectionProps) {
             /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
           }
         >
-          <div
-            className={
-              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ 'space-y-1.5'
-            }
-          >
+          <div>
             <RadioOption
+              sx={nativeChildSpacingNext.s1_5}
               selected={displayMode === 'auto'}
               onSelect={() => setSelectedMode('auto')}
               icon={<LuLockOpen sx={stylexStyles.rule1} />}
@@ -279,6 +276,7 @@ export function SessionLockSection({ embedded }: SessionLockSectionProps) {
               description="Key stored on disk. No PIN needed."
             />
             <RadioOption
+              sx={nativeChildSpacingNext.s1_5}
               selected={displayMode === 'pin'}
               onSelect={() => setSelectedMode('pin')}
               icon={<LuLock sx={stylexStyles.rule1} />}
@@ -425,6 +423,21 @@ const nativeChildSpacing = stylex.create({
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s1_5: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * calc(1 - var(--tw-space-y-reverse)))`,
     },
   },
 })

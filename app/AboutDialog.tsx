@@ -24,6 +24,13 @@ import {
   motion as themeMotion,
 } from '../web/style/tokens.stylex.js'
 
+const stylexStyles3 = stylex.create({
+  rule1: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     position: 'absolute',
@@ -229,13 +236,13 @@ export function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
             </button>
           </TooltipTrigger>
           <TooltipContent side="bottom">
-            <div
-              className={
-                /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1 */ 'space-y-1 text-xs'
-              }
-            >
-              <p>Dedicated to my father, Jim, and my cat, May.</p>
-              <p>May they rest in peace ❤ ~ CJS, 2024</p>
+            <div sx={stylexStyles3.rule1}>
+              <p sx={nativeChildSpacing.s1}>
+                Dedicated to my father, Jim, and my cat, May.
+              </p>
+              <p sx={nativeChildSpacing.s1}>
+                May they rest in peace ❤ ~ CJS, 2024
+              </p>
             </div>
           </TooltipContent>
         </Tooltip>
@@ -243,3 +250,18 @@ export function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
     </Dialog>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s1: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

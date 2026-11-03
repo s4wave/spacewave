@@ -10,7 +10,7 @@ import { RxPerson } from '@s4wave/web/images/icons.js'
 
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import {
   SessionContext,
   useSessionIndex,
@@ -29,7 +29,7 @@ import type { ManagedBillingAccount } from '@s4wave/sdk/provider/spacewave/space
 import {
   isStatusActive,
   lifecycleStateLabel,
-  subscriptionStatusBadgeColor,
+  subscriptionStatusBadgeStyles,
   statusLabel,
 } from '@s4wave/app/billing/billing-utils.js'
 import { PageFooter, PageWrapper } from './CloudConfirmationPage.js'
@@ -45,6 +45,23 @@ import {
   radii as themeRadii,
   motion as themeMotion,
 } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    borderRadius: '3.40282e38px',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: '.55rem',
+    lineHeight: 1.5,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-widest)',
+    letterSpacing: 'var(--tracking-widest)',
+    textTransform: 'uppercase',
+  },
+})
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -638,12 +655,10 @@ function BillingAccountRow({
         <div sx={stylexStyles2.rule12}>
           <span sx={stylexStyles2.rule17}>{account.displayName || baId}</span>
           <span
-            className={
-              /* TODO(stylex): computed class helper */ cn(
-                'rounded-full border px-2 py-0.5 micro-fine font-semibold tracking-widest uppercase',
-                subscriptionStatusBadgeColor(account.subscriptionStatus),
-              )
-            }
+            sx={[
+              [stylexStyles3.rule1],
+              [subscriptionStatusBadgeStyles(account.subscriptionStatus)],
+            ]}
           >
             {statusLabel(account.subscriptionStatus)}
           </span>

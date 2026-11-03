@@ -237,22 +237,23 @@ export function BillingAssignmentsSection({
   const menuDisabled = !session || assigning || noTargets
 
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
-      }
-    >
-      <div sx={stylexStyles2.rule1}>Assigned to</div>
+    <div>
+      <div sx={[nativeChildSpacing.s3, stylexStyles2.rule1]}>Assigned to</div>
       {loading && !managedBillingAccount && (
-        <LoadingInline label="Loading assignments" tone="muted" size="sm" />
+        <LoadingInline
+          sx={nativeChildSpacing.s3}
+          label="Loading assignments"
+          tone="muted"
+          size="sm"
+        />
       )}
       {!loading && assignees.length === 0 && (
-        <div sx={stylexStyles2.rule2}>
+        <div sx={[nativeChildSpacing.s3, stylexStyles2.rule2]}>
           Unassigned. Pick a principal below to link this billing account.
         </div>
       )}
       {assignees.length > 0 && (
-        <div sx={stylexStyles2.rule3}>
+        <div sx={[nativeChildSpacing.s3, stylexStyles2.rule3]}>
           {assignees.map((a) => {
             const isPersonal =
               a.ownerType === 'account' && a.ownerId === callerAccountId
@@ -284,7 +285,7 @@ export function BillingAssignmentsSection({
           })}
         </div>
       )}
-      <div sx={stylexStyles2.rule6}>
+      <div sx={[nativeChildSpacing.s3, stylexStyles2.rule6]}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild disabled={menuDisabled}>
             <DropdownTriggerButton icon={<LuLink sx={stylexStyles.rule1} />}>
@@ -321,8 +322,16 @@ export function BillingAssignmentsSection({
           </span>
         )}
       </div>
-      {assignError && <div sx={stylexStyles2.rule8}>{assignError}</div>}
-      {detachError && <div sx={stylexStyles2.rule8}>{detachError}</div>}
+      {assignError && (
+        <div sx={[nativeChildSpacing.s3, stylexStyles2.rule8]}>
+          {assignError}
+        </div>
+      )}
+      {detachError && (
+        <div sx={[nativeChildSpacing.s3, stylexStyles2.rule8]}>
+          {detachError}
+        </div>
+      )}
       <DetachAssignmentDialog
         target={detachTarget}
         busy={detaching}
@@ -332,3 +341,18 @@ export function BillingAssignmentsSection({
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
