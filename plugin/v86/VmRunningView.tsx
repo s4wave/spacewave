@@ -10,7 +10,7 @@ import { VmSerialConsole } from './VmSerialConsole.js'
 import { VmV86Controls, type VmView } from './VmV86Controls.js'
 
 import * as stylex from '@stylexjs/stylex'
-import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+import { layout as themeLayout } from '@s4wave/web/style/tokens.stylex.js'
 
 const stylexStyles = stylex.create({
   rule1: { padding: `calc(${themeLayout['--spacing']} * 3)`, flexShrink: 0, },

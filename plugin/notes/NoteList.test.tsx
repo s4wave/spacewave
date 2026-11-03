@@ -227,7 +227,7 @@ describe('NoteList', () => {
     })
   })
 
-  it('highlights the selected note in the current directory', async () => {
+  it('exposes the selected note in the current directory', async () => {
     mockDirectory(
       [
         { name: 'a.md', isDir: false },
@@ -242,8 +242,8 @@ describe('NoteList', () => {
     renderList({ selectedNote: 'nested/b.md', currentPath: 'nested' })
 
     await waitFor(() => {
-      const row = screen.getByText('b').closest('div')
-      expect(row?.className).toContain('bg-list-active-selection-background')
+      const row = screen.getByText('b').closest('button')
+      expect(row?.getAttribute('aria-current')).toBe('true')
     })
   })
 

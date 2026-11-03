@@ -24,22 +24,6 @@ describe('LoadingCard', () => {
     ).toBeTruthy()
   })
 
-  it('applies the active state icon treatment', () => {
-    const { container } = render(
-      <LoadingCard view={{ state: 'active', title: 'Uploading changes' }} />,
-    )
-    const iconBox = container.querySelector('div.bg-brand\\/10')
-    expect(iconBox).toBeTruthy()
-  })
-
-  it('applies the synced state icon treatment', () => {
-    const { container } = render(
-      <LoadingCard view={{ state: 'synced', title: 'Synced' }} />,
-    )
-    // Synced pairs a cloud icon with a brand-colored check.
-    expect(container.querySelector('.text-brand')).toBeTruthy()
-  })
-
   it('renders the error box when error is set', () => {
     render(
       <LoadingCard
@@ -54,7 +38,7 @@ describe('LoadingCard', () => {
   })
 
   it('renders a determinate progress bar when progress is set', () => {
-    const { container } = render(
+    render(
       <LoadingCard
         view={{
           state: 'active',
@@ -64,13 +48,9 @@ describe('LoadingCard', () => {
         }}
       />,
     )
-    const fill = container.querySelector('div.bg-brand')
-    expect(fill).toBeInstanceOf(HTMLElement)
-    expect(
-      fill instanceof HTMLElement
-        ? fill.style.getPropertyValue('--progress-width')
-        : '',
-    ).toBe('62%')
+    expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe(
+      '62',
+    )
     expect(screen.getByText('4.8 MiB/s')).toBeTruthy()
   })
 

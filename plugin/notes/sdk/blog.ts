@@ -30,9 +30,7 @@ export class BlogHandle extends Resource implements IBlogHandle {
   }
 
   // watchBlog streams the current blog state.
-  public async *watchBlog(
-    abortSignal?: AbortSignal,
-  ): AsyncIterable<Blog> {
+  public async *watchBlog(abortSignal?: AbortSignal): AsyncIterable<Blog> {
     const stream = this.service.WatchBlog({}, abortSignal)
     for await (const resp of stream as AsyncIterable<WatchBlogResponse>) {
       if (resp.blog) {

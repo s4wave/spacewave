@@ -377,7 +377,7 @@ describe('UnixFSGalleryViewer', () => {
     expect(h.photoSliderProps?.portalContainer).toBe(
       screen.getByTestId('unixfs-gallery-viewer'),
     )
-    expect(h.photoSliderProps?.className).toContain('!absolute')
+    expect(h.photoSliderProps?.className).toContain('unixfs-photo-slider')
   })
 
   it('opens the lightbox at the clicked tile', () => {

@@ -26,6 +26,7 @@ export default defineConfig({
     ...base.test,
     include: [
       'web/style/stylex-pilots.e2e.test.tsx',
+      'app/canvas/CanvasPresentation.e2e.test.tsx',
       'web/ui/FloatingWindow.e2e.test.tsx',
       'web/forge/ForgeViewerShell.e2e.test.tsx',
     ],

@@ -17,13 +17,13 @@ import { useNoteWrite } from './useNoteWrite.js'
 import type { parseNote } from './frontmatter.js'
 
 import * as stylex from '@stylexjs/stylex'
-import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+import { layout as themeLayout } from '@s4wave/web/style/tokens.stylex.js'
 
 import {
   utilityState as themeUtilityState,
   colors as themeColors,
   fonts as themeFonts,
-} from '../../web/style/tokens.stylex.js'
+} from '@s4wave/web/style/tokens.stylex.js'
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -41,7 +41,7 @@ const stylexStyles2 = stylex.create({
     borderBottomWidth: '1px',
     minWidth: 0,
   },
-  rule2: { flex: 1, overflowWrap: 'break-word', minWidth: 0, },
+  rule2: { flex: 1, overflowWrap: 'break-word', minWidth: 0 },
   rule3: {
     '--tw-font-weight': themeFonts['--font-weight-medium'],
     borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
@@ -238,7 +238,7 @@ const stylexStyles2 = stylex.create({
     display: 'flex',
     flexDirection: 'column',
   },
-  rule18: { display: 'flex', flexDirection: 'column', height: '100%', },
+  rule18: { display: 'flex', flexDirection: 'column', height: '100%' },
   rule19: {
     '--tw-font-weight': themeFonts['--font-weight-medium'],
     borderColor: themeColors['--color-border'],

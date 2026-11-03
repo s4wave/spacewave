@@ -25,7 +25,8 @@ vi.mock('@s4wave/web/ui/tooltip.js', () => ({
   ),
   TooltipContent: () => null,
 }))
-vi.mock('@s4wave/web/ui/CollapsibleSection.js', () => ({
+vi.mock('@s4wave/web/ui/CollapsibleSection.js', async (importOriginal) => ({
+  ...(await importOriginal()),
   CollapsibleSection: ({
     title,
     children,

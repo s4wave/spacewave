@@ -5,13 +5,13 @@ import { LuList } from '@s4wave/web/images/icons.js'
 import type { NoteFileFormat } from '../note-files.js'
 
 import * as stylex from '@stylexjs/stylex'
-import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+import { layout as themeLayout } from '@s4wave/web/style/tokens.stylex.js'
 
 import {
   utilityState as themeUtilityState,
   colors as themeColors,
   fonts as themeFonts,
-} from '../../../web/style/tokens.stylex.js'
+} from '@s4wave/web/style/tokens.stylex.js'
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -38,7 +38,7 @@ const stylexStyles2 = stylex.create({
     borderBottomStyle: themeUtilityState['--tw-border-style'],
     borderBottomWidth: '1px',
   },
-  rule3: { flex: 1, paddingBlock: themeLayout['--spacing'], overflowY: 'auto', },
+  rule3: { flex: 1, paddingBlock: themeLayout['--spacing'], overflowY: 'auto' },
   rule4: {
     overflow: 'hidden',
     paddingBlock: themeLayout['--spacing'],

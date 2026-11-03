@@ -582,7 +582,9 @@ function renderBrowser(
 
 // getDragSurface returns the browser's upload drop surface.
 function getDragSurface(container: HTMLElement): Element {
-  const surface = container.querySelector('.bg-file-back')
+  const surface = container.querySelector(
+    '[data-testid="unixfs-upload-drop-target"]',
+  )
   if (!surface) {
     throw new Error('drag surface not found')
   }

@@ -28,7 +28,7 @@ import {
   layout as themeLayout,
   utilityState as themeUtilityState,
   fonts as themeFonts,
-} from '../../web/style/tokens.stylex.js'
+} from '@s4wave/web/style/tokens.stylex.js'
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -45,7 +45,7 @@ const stylexStyles = stylex.create({
     minWidth: `calc(${themeLayout['--spacing']} * 55)`,
     width: `calc(${themeLayout['--spacing']} * 55)`,
   },
-  rule3: { flex: 1, minWidth: 0, },
+  rule3: { flex: 1, minWidth: 0 },
   rule4: {
     alignItems: 'center',
     color: themeColors['--color-muted-foreground'],

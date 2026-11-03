@@ -11,7 +11,7 @@ import {
   utilityState as themeUtilityState,
   fonts as themeFonts,
   motion as themeMotion,
-} from '../../web/style/tokens.stylex.js'
+} from '@s4wave/web/style/tokens.stylex.js'
 
 const stylexStyles = stylex.create({
   rule1: {

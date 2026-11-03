@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { cleanup } from '@testing-library/react'
-import { LuBot, LuBox, LuGitBranch, LuPaintbrush } from 'react-icons/lu'
+import {
+  LuBot,
+  LuBox,
+  LuGitBranch,
+  LuPaintbrush,
+} from '@s4wave/web/images/icons.js'
 import {
   ObjectTypeVisibility,
   type ObjectTypeRegistration,

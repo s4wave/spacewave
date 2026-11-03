@@ -47,13 +47,13 @@ import * as stylex from '@stylexjs/stylex'
 import {
   layout as themeLayout,
   colors as themeColors,
-} from '../../web/style/tokens.stylex.js'
+} from '@s4wave/web/style/tokens.stylex.js'
 
 import {
   utilityState as themeUtilityState,
   fonts as themeFonts,
   radii as themeRadii,
-} from '../../web/style/tokens.stylex.js'
+} from '@s4wave/web/style/tokens.stylex.js'
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -1021,6 +1021,7 @@ function NoteListNoteRow({
         type="button"
         data-testid="notes-note-row"
         data-note-path={notePath}
+        aria-current={selected ? 'true' : undefined}
         sx={stylexStyles2.rule15}
         onClick={() => onSelect(notePath)}
       >

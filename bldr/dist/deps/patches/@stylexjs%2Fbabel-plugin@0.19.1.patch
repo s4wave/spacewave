@@ -1,11 +1,48 @@
-diff --git a/node_modules/@stylexjs/babel-plugin/.bun-tag-42b9469ca79b76c6 b/.bun-tag-42b9469ca79b76c6
-new file mode 100644
-index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
 diff --git a/lib/index.browser.js b/lib/index.browser.js
-index cc164deb2a944dfdaca233a630fa3687e37f7d43..4bf66bee5b37768a9c3fba7ff9cc6e6def701670 100644
+index cc164deb2a944dfdaca233a630fa3687e37f7d43..c5b78c0345f99f725a32d7356952edabd96fba31 100644
 --- a/lib/index.browser.js
 +++ b/lib/index.browser.js
-@@ -10818,7 +10818,7 @@ function processStylexRules(rules, config) {
+@@ -5,4 +5,5 @@ import parser from 'postcss-value-parser';
+ const {
++  assignmentExpression, sequenceExpression, spreadElement, isJSXExpressionContainer, isJSXEmptyExpression,
+   arrayExpression, arrowFunctionExpression, binaryExpression, booleanLiteral,
+   callExpression, conditionalExpression, expressionStatement, identifier,
+   importDeclaration, isAssignmentExpression, isBinaryExpression, isBooleanLiteral,
+@@ -10528,7 +10529,32 @@ function styleXTransform() {
+             continue;
+           }
+           const stylexLocalName = getStylexRuntimeBinding(path, state);
+-          attr.replaceWith(jsxSpreadAttribute(callExpression(memberExpression(identifier(stylexLocalName), identifier('props')), [value.node])));
++          const propsCall = callExpression(memberExpression(identifier(stylexLocalName), identifier('props')), [value.node]);
++          const inlineAttributes = path.get('attributes').filter(candidate => candidate.isJSXAttribute() && candidate.get('name').isJSXIdentifier() && ['style', 'className'].includes(candidate.node.name.name));
++          if (inlineAttributes.length) {
++            // Intrinsic sx preserves inline geometry and opaque skins without evaluating styles twice.
++            const propsId = path.scope.generateUidIdentifier('sxProps');
++            path.scope.push({ id: propsId, kind: 'var' });
++            const mergedProperties = [spreadElement(propsId)];
++            for (const inlineAttribute of inlineAttributes) {
++              const name = inlineAttribute.node.name.name;
++              const attributeValue = inlineAttribute.node.value;
++              const inlineValue = isJSXExpressionContainer(attributeValue) ? attributeValue.expression : attributeValue;
++              if (!inlineValue || isJSXEmptyExpression(inlineValue)) continue;
++              const compiledValue = memberExpression(propsId, identifier(name));
++              const mergedValue = name === 'style'
++                ? objectExpression([spreadElement(compiledValue), spreadElement(inlineValue)])
++                : callExpression(memberExpression(callExpression(memberExpression(arrayExpression([compiledValue, inlineValue]), identifier('filter')), [identifier('Boolean')]), identifier('join')), [stringLiteral(' ')]);
++              mergedProperties.push(objectProperty(identifier(name), mergedValue));
++              inlineAttribute.remove();
++            }
++            attr.replaceWith(jsxSpreadAttribute(sequenceExpression([
++              assignmentExpression('=', propsId, propsCall),
++              objectExpression(mergedProperties),
++            ])));
++          } else {
++            attr.replaceWith(jsxSpreadAttribute(propsCall));
++          }
+           break;
+         }
+       },
+@@ -10818,7 +10844,7 @@ function processStylexRules(rules, config) {
    let lastKPri = -1;
    const grouped = sortedRules.reduce((acc, rule) => {
      const [key, styleObj, priority] = rule;
@@ -14,7 +51,7 @@ index cc164deb2a944dfdaca233a630fa3687e37f7d43..4bf66bee5b37768a9c3fba7ff9cc6e6d
      if (priorityLevel === lastKPri) {
        acc[acc.length - 1].push([key, styleObj, priority]);
        return acc;
-@@ -10828,7 +10828,11 @@ function processStylexRules(rules, config) {
+@@ -10828,7 +10854,11 @@ function processStylexRules(rules, config) {
      return acc;
    }, []);
    const logicalFloatVars = getLogicalFloatVars(sortedRules);
@@ -28,10 +65,44 @@ index cc164deb2a944dfdaca233a630fa3687e37f7d43..4bf66bee5b37768a9c3fba7ff9cc6e6d
    const collectedCSS = grouped.map((group, index) => {
      const pri = group[0][2];
 diff --git a/lib/index.js b/lib/index.js
-index f22b4c7bd8d084b6f5c624c10a986d8005a08d00..f3dc3710affbc04ded8a7b12befab97046a97c0b 100644
+index f22b4c7bd8d084b6f5c624c10a986d8005a08d00..45272eb9bea1ec4983946addfe77ad3b12973eaf 100644
 --- a/lib/index.js
 +++ b/lib/index.js
-@@ -9699,7 +9699,7 @@ function processStylexRules(rules, config) {
+@@ -9409,7 +9409,32 @@ function styleXTransform() {
+             continue;
+           }
+           const stylexLocalName = getStylexRuntimeBinding(path, state);
+-          attr.replaceWith(t__namespace.jsxSpreadAttribute(t__namespace.callExpression(t__namespace.memberExpression(t__namespace.identifier(stylexLocalName), t__namespace.identifier('props')), [value.node])));
++          const propsCall = t__namespace.callExpression(t__namespace.memberExpression(t__namespace.identifier(stylexLocalName), t__namespace.identifier('props')), [value.node]);
++          const inlineAttributes = path.get('attributes').filter(candidate => candidate.isJSXAttribute() && candidate.get('name').isJSXIdentifier() && ['style', 'className'].includes(candidate.node.name.name));
++          if (inlineAttributes.length) {
++            // Intrinsic sx preserves inline geometry and opaque skins without evaluating styles twice.
++            const propsId = path.scope.generateUidIdentifier('sxProps');
++            path.scope.push({ id: propsId, kind: 'var' });
++            const mergedProperties = [t__namespace.spreadElement(propsId)];
++            for (const inlineAttribute of inlineAttributes) {
++              const name = inlineAttribute.node.name.name;
++              const attributeValue = inlineAttribute.node.value;
++              const inlineValue = t__namespace.isJSXExpressionContainer(attributeValue) ? attributeValue.expression : attributeValue;
++              if (!inlineValue || t__namespace.isJSXEmptyExpression(inlineValue)) continue;
++              const compiledValue = t__namespace.memberExpression(propsId, t__namespace.identifier(name));
++              const mergedValue = name === 'style'
++                ? t__namespace.objectExpression([t__namespace.spreadElement(compiledValue), t__namespace.spreadElement(inlineValue)])
++                : t__namespace.callExpression(t__namespace.memberExpression(t__namespace.callExpression(t__namespace.memberExpression(t__namespace.arrayExpression([compiledValue, inlineValue]), t__namespace.identifier('filter')), [t__namespace.identifier('Boolean')]), t__namespace.identifier('join')), [t__namespace.stringLiteral(' ')]);
++              mergedProperties.push(t__namespace.objectProperty(t__namespace.identifier(name), mergedValue));
++              inlineAttribute.remove();
++            }
++            attr.replaceWith(t__namespace.jsxSpreadAttribute(t__namespace.sequenceExpression([
++              t__namespace.assignmentExpression('=', propsId, propsCall),
++              t__namespace.objectExpression(mergedProperties),
++            ])));
++          } else {
++            attr.replaceWith(t__namespace.jsxSpreadAttribute(propsCall));
++          }
+           break;
+         }
+       },
+@@ -9699,7 +9724,7 @@ function processStylexRules(rules, config) {
    let lastKPri = -1;
    const grouped = sortedRules.reduce((acc, rule) => {
      const [key, styleObj, priority] = rule;
@@ -40,7 +111,7 @@ index f22b4c7bd8d084b6f5c624c10a986d8005a08d00..f3dc3710affbc04ded8a7b12befab970
      if (priorityLevel === lastKPri) {
        acc[acc.length - 1].push([key, styleObj, priority]);
        return acc;
-@@ -9709,7 +9709,11 @@ function processStylexRules(rules, config) {
+@@ -9709,7 +9734,11 @@ function processStylexRules(rules, config) {
      return acc;
    }, []);
    const logicalFloatVars = getLogicalFloatVars(sortedRules);

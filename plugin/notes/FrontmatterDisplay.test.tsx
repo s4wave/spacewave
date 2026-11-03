@@ -20,9 +20,7 @@ describe('FrontmatterDisplay', () => {
   })
 
   it('renders status badge', () => {
-    render(
-      <FrontmatterDisplay frontmatter={{ status: 'in-progress' }} />,
-    )
+    render(<FrontmatterDisplay frontmatter={{ status: 'in-progress' }} />)
     expect(screen.getByText('in-progress')).toBeDefined()
   })
 
@@ -39,30 +37,20 @@ describe('FrontmatterDisplay', () => {
   })
 
   it('renders author', () => {
-    render(
-      <FrontmatterDisplay frontmatter={{ author: ['[[Kevin Kelly]]'] }} />,
-    )
+    render(<FrontmatterDisplay frontmatter={{ author: ['[[Kevin Kelly]]'] }} />)
     expect(screen.getByText('Kevin Kelly')).toBeDefined()
   })
 
   it('renders created date', () => {
-    render(
-      <FrontmatterDisplay frontmatter={{ created: '2026-03-18' }} />,
-    )
+    render(<FrontmatterDisplay frontmatter={{ created: '2026-03-18' }} />)
     expect(screen.getByText('2026-03-18')).toBeDefined()
   })
 
   it('renders URL as link', () => {
-    render(
-      <FrontmatterDisplay
-        frontmatter={{ url: 'https://example.com' }}
-      />,
-    )
+    render(<FrontmatterDisplay frontmatter={{ url: 'https://example.com' }} />)
     const link = screen.getByText('source')
     expect(link).toBeDefined()
-    expect(link.closest('a')?.getAttribute('href')).toBe(
-      'https://example.com',
-    )
+    expect(link.closest('a')?.getAttribute('href')).toBe('https://example.com')
   })
 
   it('deduplicates tags and topics', () => {
@@ -78,9 +66,7 @@ describe('FrontmatterDisplay', () => {
 
   it('strips wiki links from categories', () => {
     render(
-      <FrontmatterDisplay
-        frontmatter={{ categories: ['[[Clippings]]'] }}
-      />,
+      <FrontmatterDisplay frontmatter={{ categories: ['[[Clippings]]'] }} />,
     )
     expect(screen.getByText('Clippings')).toBeDefined()
   })

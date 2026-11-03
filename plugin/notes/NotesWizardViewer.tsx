@@ -14,7 +14,7 @@ import {
 } from './content-seed.js'
 
 import * as stylex from '@stylexjs/stylex'
-import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+import { layout as themeLayout } from '@s4wave/web/style/tokens.stylex.js'
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -24,7 +24,7 @@ const stylexStyles = stylex.create({
     display: 'flex',
     justifyContent: 'center',
   },
-  rule2: { maxWidth: 'var(--container-sm)', width: '100%', },
+  rule2: { maxWidth: 'var(--container-sm)', width: '100%' },
 })
 
 export const NotesNotebookWizardTypeID = 'wizard/notes/notebook'

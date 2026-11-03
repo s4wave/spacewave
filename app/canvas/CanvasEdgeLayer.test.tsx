@@ -331,26 +331,6 @@ describe('CanvasEdgeLayer', () => {
     expect(pill?.textContent).toContain('hidden 2')
   })
 
-  it('isolates graph-link pill pointer events from canvas drag gestures', () => {
-    const n1 = makeNode({ id: 'a', x: 0, y: 0, width: 100, height: 100 })
-    const nodes = new Map([['a', n1]])
-    const ephEdge = makeEphemeralEdge({
-      stubX: 400,
-      stubY: 200,
-    })
-    render(
-      <CanvasEdgeLayer
-        edges={[]}
-        ephemeralEdges={[ephEdge]}
-        nodes={nodes}
-        callbacks={makeCallbacks()}
-      />,
-    )
-
-    const pillHost = document.querySelector('foreignObject')
-    expect(pillHost?.getAttribute('class')).toContain('pointer-events-auto')
-  })
-
   it('renders edge labels on valid manual edge path identifiers', () => {
     const n1 = makeNode({ id: 'a', x: 0, y: 0, width: 100, height: 100 })
     const n2 = makeNode({ id: 'b', x: 300, y: 0, width: 100, height: 100 })

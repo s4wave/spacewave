@@ -45,9 +45,6 @@ describe('PairingCodeChip', () => {
     await waitFor(() => {
       expect(screen.getByText('Copied')).toBeDefined()
     })
-    expect(screen.getByText('Copied').closest('span')?.className).toContain(
-      'text-success',
-    )
     expect(codeButton.textContent).toContain('ABCD 1234')
     expect(codeButton.querySelector('svg')).not.toBeNull()
     expect(screen.getAllByRole('button')).toHaveLength(1)

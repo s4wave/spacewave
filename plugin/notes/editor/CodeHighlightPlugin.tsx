@@ -1,9 +1,6 @@
 import { useEffect } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import {
-  registerCodeHighlighting,
-  ShikiTokenizer,
-} from '@lexical/code-shiki'
+import { registerCodeHighlighting, ShikiTokenizer } from '@lexical/code-shiki'
 
 // CodeHighlightPlugin registers shiki-based syntax highlighting for code blocks.
 function CodeHighlightPlugin() {

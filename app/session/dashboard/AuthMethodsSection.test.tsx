@@ -8,7 +8,8 @@ import { AccountAuthMethodKind } from '@s4wave/core/provider/spacewave/api/api.p
 vi.mock('@aptre/bldr-sdk/hooks/useStreamingResource.js', () => ({
   useStreamingResource: vi.fn(),
 }))
-vi.mock('@s4wave/web/ui/CollapsibleSection.js', () => ({
+vi.mock('@s4wave/web/ui/CollapsibleSection.js', async (importOriginal) => ({
+  ...(await importOriginal()),
   CollapsibleSection: ({
     title,
     badge,

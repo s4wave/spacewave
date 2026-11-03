@@ -47,7 +47,7 @@ const stylexStyles2 = stylex.create({
   rule5: {
     '--tw-leading': {
       default: null,
-      '@media not all and (min-width: 40rem)': `calc(${themeLayout['--spacing']} * 6)`,
+      '@media (width < 40rem)': `calc(${themeLayout['--spacing']} * 6)`,
     },
     MozOsxFontSmoothing: 'auto',
     WebkitFontSmoothing: 'subpixel-antialiased',
@@ -58,15 +58,15 @@ const stylexStyles2 = stylex.create({
     fontFamily: themeFonts['--font-mono'],
     fontSize: {
       default: themeFonts['--text-xs'],
-      '@media not all and (min-width: 40rem)': themeFonts['--text-sm'],
+      '@media (width < 40rem)': themeFonts['--text-sm'],
     },
     lineHeight: {
       default: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
-      '@media not all and (min-width: 40rem)': `calc(${themeLayout['--spacing']} * 6)`,
+      '@media (width < 40rem)': `calc(${themeLayout['--spacing']} * 6)`,
     },
     overflowWrap: {
       default: null,
-      '@media not all and (min-width: 40rem)': 'break-word',
+      '@media (width < 40rem)': 'break-word',
     },
     textRendering: 'auto',
     textShadow: '0 0 0.25px currentColor',

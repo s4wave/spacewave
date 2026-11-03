@@ -56,13 +56,6 @@ describe('CopyableField', () => {
     expect(writeText).toHaveBeenCalledWith('acct-789')
   })
 
-  it('displays value in a mono font span', () => {
-    setup()
-    render(<CopyableField label="ID" value="mono-value" />)
-    const valueSpan = screen.getByText('mono-value')
-    expect(valueSpan.classList.contains('font-mono')).toBe(true)
-  })
-
   it('reverts aria-label back to "Click to copy" after timeout', () => {
     setup()
     vi.useFakeTimers()

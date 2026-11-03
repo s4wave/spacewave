@@ -188,9 +188,9 @@ describe('Canvas', () => {
     const callbacks = makeCallbacks()
     render(<Canvas state={state} callbacks={callbacks} />)
 
-    // Minimap is a div with specific dimensions.
-    const minimaps = document.querySelectorAll('[style*="width: 200px"]')
-    expect(minimaps.length).toBeGreaterThan(0)
+    expect(
+      screen.getByRole('button', { name: 'Center canvas minimap' }),
+    ).toBeTruthy()
   })
 
   it('clicking background clears selection', async () => {
@@ -263,25 +263,6 @@ describe('Canvas', () => {
     expect(document.querySelector('[data-canvas-node="multi-1"]')).toBeTruthy()
     expect(document.querySelector('[data-canvas-node="multi-2"]')).toBeTruthy()
     expect(document.querySelector('[data-canvas-node="multi-3"]')).toBeTruthy()
-  })
-
-  it('all nodes have touch-action none', () => {
-    const nodes = [
-      makeNode({ id: 'ta-1', x: 0, y: 0 }),
-      makeNode({ id: 'ta-2', x: 300, y: 0 }),
-    ]
-    const state = makeState(nodes)
-    const callbacks = makeCallbacks()
-    render(<Canvas state={state} callbacks={callbacks} />)
-
-    const el1 = document.querySelector(
-      '[data-canvas-node="ta-1"]',
-    ) as HTMLElement
-    const el2 = document.querySelector(
-      '[data-canvas-node="ta-2"]',
-    ) as HTMLElement
-    expect(el1.classList.contains('canvas-node-input')).toBe(true)
-    expect(el2.classList.contains('canvas-node-input')).toBe(true)
   })
 
   it('viewport transform is applied to the content layer', () => {

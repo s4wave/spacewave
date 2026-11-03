@@ -32,14 +32,14 @@ import * as stylex from '@stylexjs/stylex'
 import {
   layout as themeLayout,
   colors as themeColors,
-} from '../../web/style/tokens.stylex.js'
+} from '@s4wave/web/style/tokens.stylex.js'
 
 import {
   fonts as themeFonts,
   radii as themeRadii,
   utilityState as themeUtilityState,
   motion as themeMotion,
-} from '../../web/style/tokens.stylex.js'
+} from '@s4wave/web/style/tokens.stylex.js'
 
 const stylexStyles3 = stylex.create({
   rule1: {

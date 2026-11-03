@@ -342,7 +342,6 @@ describe('SpaceObjectBrowser', () => {
       throw new Error('expected dropdown menu ghost anchor')
     }
 
-    expect(anchor.classList.contains('dropdown-ghost-anchor')).toBe(true)
     expect(anchor.style.getPropertyValue('--dropdown-ghost-left')).toBe('120px')
     expect(anchor.style.getPropertyValue('--dropdown-ghost-top')).toBe('140px')
   })

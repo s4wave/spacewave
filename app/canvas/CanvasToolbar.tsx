@@ -91,6 +91,7 @@ const stylexStyles = stylex.create({
     },
   },
   rule4: {
+    borderWidth: 0,
     marginBlock: themeLayout['--spacing'],
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
     height: '1px',
@@ -132,6 +133,7 @@ function ToolButton({
           ]}
           onClick={onClick}
           aria-label={label}
+          aria-pressed={active}
         >
           {children}
         </button>
@@ -227,7 +229,7 @@ export function CanvasToolbar({
         </ToolButton>
       )}
 
-      <div sx={stylexStyles.rule4} />
+      <hr aria-label="Canvas actions" sx={stylexStyles.rule4} />
 
       <ToolButton label="Zoom In (+)" onClick={actions['zoom-in']}>
         <LuZoomIn size={16} />

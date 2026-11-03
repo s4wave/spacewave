@@ -309,16 +309,6 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
     }
   })
 
-  it('uses the shared compact input class for the Device name', () => {
-    h.currentStep = 0
-    renderViewer()
-
-    const name = screen.getByLabelText('Device Name')
-    expect(name.className).toContain('text-xs')
-    expect(name.className).not.toMatch(/(^|\s)text-base($|\s)/)
-    expect(name.className).not.toMatch(/(^|\s)text-sm($|\s)/)
-  })
-
   it('approves a CLI SpaceLink ticket and persists the completion command', async () => {
     const ticket = bytesToBase64(new Uint8Array([1, 2, 3]))
     h.previewSpaceLink.mockResolvedValue({

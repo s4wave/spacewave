@@ -18,8 +18,8 @@ const appSource = (color: string) => `import React,{useState} from 'react';
 import * as stylex from '@stylexjs/stylex';
 import {metrics} from './tokens.stylex';
 import {ImportedStyle} from './ImportedStyle';
-const styles=stylex.create({button:{color:'${color}',marginTop:metrics.space},balanced:{textWrap:'balance'}});
-export function App(){ const [count,setCount]=useState(0);return <><button sx={styles.button} onClick={()=>setCount(count+1)}>{count}<ImportedStyle/></button><aside className="theme-only">Theme</aside><div className="landing-finish"><p data-balanced sx={styles.balanced}>Balanced public copy</p><p data-pretty>Default public copy</p></div></> }`
+const styles=stylex.create({button:{color:'${color}',marginTop:metrics.space},balanced:{textWrap:'balance'},geometry:(z:number)=>({position:'absolute',zIndex:z,minHeight:{default:null,'@media (pointer: coarse)':'48px','@media (width < 40rem)':'48px'}})});
+export function App(){ const [count,setCount]=useState(0);return <><button sx={styles.button} onClick={()=>setCount(count+1)}>{count}<ImportedStyle/></button><div data-geometry className="theme-only" style={{left:31,width:47,height:53}} sx={styles.geometry(7)}/><div data-geometry sx={styles.geometry(8)} className="theme-only" style={{left:37,width:59,height:61}}/><aside className="theme-only">Theme</aside><div className="landing-finish"><p data-balanced sx={styles.balanced}>Balanced public copy</p><p data-pretty>Default public copy</p></div></> }`
 
 test('native CSS ships in the manifest and updates without losing component state', async () => {
   // Use real React, compiler, Vite assets and browsers rather than emulating CSS delivery.
@@ -150,7 +150,7 @@ export const metrics=stylex.defineConsts({space:'17px'});`,
           )
           assert.equal(
             await staticPage
-              .locator('.theme-only')
+              .locator('aside.theme-only')
               .evaluate((element) => getComputedStyle(element).color),
             'rgb(2, 3, 4)',
             `${engine}: bootstrap markup needs theme-only CSS before hydration`,
@@ -163,6 +163,27 @@ export const metrics=stylex.defineConsts({space:'17px'});`,
               ),
             ['balance', 'pretty'],
             `${engine}: native wrapping must override the landing skin's paragraph default`,
+          )
+          assert.deepEqual(
+            await staticPage
+              .locator('[data-geometry]')
+              .evaluateAll((elements) =>
+                elements.map((element) => {
+                  const css = getComputedStyle(element)
+                  return [
+                    css.left,
+                    css.width,
+                    css.height,
+                    css.zIndex,
+                    css.color,
+                  ]
+                }),
+              ),
+            [
+              ['31px', '47px', '53px', '7', 'rgb(2, 3, 4)'],
+              ['37px', '59px', '61px', '8', 'rgb(2, 3, 4)'],
+            ],
+            `${engine}: intrinsic sx must retain inline lengths, dynamic stacking and opaque skins in either attribute order`,
           )
           await staticContext.close()
           const page = await browser.newPage()

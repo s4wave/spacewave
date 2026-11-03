@@ -124,7 +124,7 @@ const stylexStyles2 = stylex.create({
     minHeight: {
       default: null,
       '@media (pointer: coarse)': `calc(${themeLayout2['--spacing']} * 12)`,
-      '@media not all and (min-width: 40rem)': `calc(${themeLayout2['--spacing']} * 12)`,
+      '@media (width < 40rem)': `calc(${themeLayout2['--spacing']} * 12)`,
     },
   },
   rule10: {

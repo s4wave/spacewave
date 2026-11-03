@@ -9,7 +9,7 @@ import type { BlogPostData } from './types.js'
 import type { AuthorRegistry } from './authors.js'
 
 import * as stylex from '@stylexjs/stylex'
-import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+import { layout as themeLayout } from '@s4wave/web/style/tokens.stylex.js'
 
 import {
   radii as themeRadii,
@@ -17,7 +17,7 @@ import {
   fonts as themeFonts,
   motion as themeMotion,
   colors as themeColors,
-} from '../../../web/style/tokens.stylex.js'
+} from '@s4wave/web/style/tokens.stylex.js'
 
 const stylexStyles2 = stylex.create({
   rule1: { height: '100%', overflowY: 'auto' },

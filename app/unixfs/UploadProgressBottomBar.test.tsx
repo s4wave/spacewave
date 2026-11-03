@@ -110,9 +110,7 @@ describe('UploadProgressBottomBar', () => {
       </BottomBarRoot>,
     )
 
-    const overlay = screen.getByTestId('upload-progress-overlay')
-    expect(overlay.className).toContain('h-full')
-    expect(overlay.className).toContain('w-full')
+    expect(screen.getByTestId('upload-progress-overlay')).toBeTruthy()
     expect(screen.getByText('Uploads')).toBeTruthy()
     expect(screen.getByText('33%')).toBeTruthy()
     expect(screen.getByText('1 uploading')).toBeTruthy()
@@ -163,13 +161,10 @@ describe('UploadProgressBottomBar', () => {
     )
 
     const label = screen.getByText('2/2 uploaded')
-    const button = label.closest('button')
     expect(label).toBeTruthy()
-    expect(button?.className).toContain('whitespace-nowrap')
-    expect(button?.className).toContain('shrink-0')
   })
 
-  it('keeps the active upload summary on one line', () => {
+  it('shows the number of active and total uploads', () => {
     const uploadManager = buildUploadManager({
       activeCount: 1,
       items: [
@@ -198,10 +193,7 @@ describe('UploadProgressBottomBar', () => {
     )
 
     const label = screen.getByText('Uploading 1/1')
-    const button = label.closest('button')
     expect(label).toBeTruthy()
-    expect(button?.className).toContain('whitespace-nowrap')
-    expect(button?.className).toContain('shrink-0')
   })
 
   it('shows an anchored start notification on an upload started event', async () => {

@@ -8,13 +8,13 @@ import { usePromise } from '@s4wave/web/hooks/usePromise.js'
 import { highlightCode } from './highlight.js'
 
 import * as stylex from '@stylexjs/stylex'
-import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+import { layout as themeLayout } from '@s4wave/web/style/tokens.stylex.js'
 
 import {
   radii as themeRadii,
   motion as themeMotion,
   colors as themeColors,
-} from '../../web/style/tokens.stylex.js'
+} from '@s4wave/web/style/tokens.stylex.js'
 import { codeGroupMarker as codeGroupMarker3 } from '../../web/style/relations.stylex.js'
 
 const stylexStyles2 = ownerStylex.create({

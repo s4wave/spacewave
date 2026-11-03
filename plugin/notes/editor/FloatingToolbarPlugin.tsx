@@ -12,13 +12,13 @@ import { LuBold, LuItalic, LuCode, LuLink } from '@s4wave/web/images/icons.js'
 import { TextInputDialog } from '../NoteDialogs.js'
 
 import * as stylex from '@stylexjs/stylex'
-import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+import { layout as themeLayout } from '@s4wave/web/style/tokens.stylex.js'
 
 import {
   radii as themeRadii,
   utilityState as themeUtilityState,
   colors as themeColors,
-} from '../../../web/style/tokens.stylex.js'
+} from '@s4wave/web/style/tokens.stylex.js'
 
 const stylexStyles2 = stylex.create({
   rule1: {

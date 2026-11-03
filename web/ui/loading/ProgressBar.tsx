@@ -109,7 +109,14 @@ export function ProgressBar({
     value === undefined ? 0 : Math.max(0, Math.min(100, Math.round(value)))
   return (
     <div sx={[styles.root, sx]}>
-      <div sx={styles.track}>
+      <div
+        role="progressbar"
+        aria-label="Progress"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={indeterminate ? undefined : pct}
+        sx={styles.track}
+      >
         {indeterminate ? (
           <div sx={styles.indeterminate} />
         ) : (

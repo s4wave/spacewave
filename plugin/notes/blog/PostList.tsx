@@ -10,17 +10,17 @@ import {
   layout as themeLayout,
   colors as themeColors,
   motion as themeMotion,
-} from '../../../web/style/tokens.stylex.js'
+} from '@s4wave/web/style/tokens.stylex.js'
 import { groupMarker } from '../../../web/style/relations.stylex.js'
 
-import { utilityState as themeUtilityState } from '../../../web/style/tokens.stylex.js'
+import { utilityState as themeUtilityState } from '@s4wave/web/style/tokens.stylex.js'
 import { groupMarker as groupMarker2 } from '../../../web/style/relations.stylex.js'
 
-import { fonts as themeFonts } from '../../../web/style/tokens.stylex.js'
+import { fonts as themeFonts } from '@s4wave/web/style/tokens.stylex.js'
 import { groupMarker as groupMarker3 } from '../../../web/style/relations.stylex.js'
 
 const stylexStyles3 = stylex.create({
-  rule1: { flex: 1, minWidth: 0, },
+  rule1: { flex: 1, minWidth: 0 },
   rule2: {
     '--tw-duration': '.2s',
     '--tw-font-weight': 'var(--font-weight-semibold)',
@@ -51,7 +51,7 @@ const stylexStyles3 = stylex.create({
   rule3: {
     cursor: 'pointer',
     textAlign: 'left',
-    '::after': { inset: 0, content: 'var(--tw-content)', position: 'absolute', },
+    '::after': { inset: 0, content: 'var(--tw-content)', position: 'absolute' },
   },
   rule4: {
     overflow: 'hidden',

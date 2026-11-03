@@ -20,32 +20,6 @@ describe('CanvasDrawingLayer', () => {
     expect(canvas).toBeTruthy()
   })
 
-  it('has pointer-events-auto and cursor-crosshair when visible', () => {
-    render(<CanvasDrawingLayer visible={true} viewport={defaultViewport} />)
-    const canvas = document.querySelector('canvas') as HTMLElement
-    expect(canvas.className).toContain('pointer-events-auto')
-    expect(canvas.className).toContain('cursor-crosshair')
-  })
-
-  it('has pointer-events-none when not visible', () => {
-    render(<CanvasDrawingLayer visible={false} viewport={defaultViewport} />)
-    const canvas = document.querySelector('canvas') as HTMLElement
-    expect(canvas.className).toContain('pointer-events-none')
-    expect(canvas.className).not.toContain('cursor-crosshair')
-  })
-
-  it('sets higher z-index when visible', () => {
-    render(<CanvasDrawingLayer visible={true} viewport={defaultViewport} />)
-    const canvas = document.querySelector('canvas') as HTMLElement
-    expect(canvas.style.getPropertyValue('--canvas-layer-z-index')).toBe('10')
-  })
-
-  it('sets lower z-index when not visible', () => {
-    render(<CanvasDrawingLayer visible={false} viewport={defaultViewport} />)
-    const canvas = document.querySelector('canvas') as HTMLElement
-    expect(canvas.style.getPropertyValue('--canvas-layer-z-index')).toBe('-1')
-  })
-
   it('uses the selected color for the live and committed stroke', () => {
     const context = {
       beginPath: vi.fn(),

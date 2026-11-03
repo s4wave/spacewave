@@ -6,7 +6,7 @@ import { Input } from '@s4wave/web/ui/input.js'
 import { Label } from '@s4wave/web/ui/label.js'
 import { Config } from '@s4wave/net/stream/echo/echo.pb.js'
 
-import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+import { layout as themeLayout } from '@s4wave/web/style/tokens.stylex.js'
 
 const stylexStyles = stylex.create({
   rule1: { gap: `calc(${themeLayout['--spacing']} * 2)`, display: 'grid', },

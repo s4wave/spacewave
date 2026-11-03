@@ -23,13 +23,13 @@ import { useNotebookViewerState } from './useNotebookViewerState.js'
 import NotebookSavedViews from './NotebookSavedViews.js'
 
 import * as stylex from '@stylexjs/stylex'
-import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+import { layout as themeLayout } from '@s4wave/web/style/tokens.stylex.js'
 
 import {
   colors as themeColors,
   utilityState as themeUtilityState,
   fonts as themeFonts,
-} from '../../web/style/tokens.stylex.js'
+} from '@s4wave/web/style/tokens.stylex.js'
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -259,8 +259,8 @@ const stylexStyles2 = stylex.create({
       },
     },
   },
-  rule13: { flex: 1, minHeight: 0, },
-  rule14: { flex: 1, minHeight: 0, minWidth: 0, },
+  rule13: { flex: 1, minHeight: 0 },
+  rule14: { flex: 1, minHeight: 0, minWidth: 0 },
   rule15: { display: 'block' },
   rule16: {
     display: {

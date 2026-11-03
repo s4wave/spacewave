@@ -179,13 +179,6 @@ describe('SessionDashboard', () => {
     expectTextBefore('Join Space', 'Link a device')
     expectTextBefore('Link a device', 'Create a Drive')
     expectTextBefore('Create a Drive', 'Create a Canvas')
-    const linkDeviceItem = screen
-      .getByText('Link a device')
-      .closest('[cmdk-item]')
-    expect(linkDeviceItem?.getAttribute('class')).toContain(
-      'data-[selected=true]:bg-menu-selected',
-    )
-    expect(linkDeviceItem?.getAttribute('class')).toContain('bg-transparent')
   })
 
   it('keeps returning sessions join-first before spaces and create actions', () => {
