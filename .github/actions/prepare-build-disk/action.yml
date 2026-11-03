@@ -1,0 +1,14 @@
+name: Make room for E2E builds
+description: Remove unused SDKs from disposable GitHub hosted Linux runners.
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        set -euo pipefail
+        df -h /
+        # These suites use Go, Bun and browsers, not the preinstalled mobile,
+        # .NET or Haskell SDKs. Leave their own toolchains and caches intact.
+        sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc
+        df -h /
