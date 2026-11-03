@@ -1,3 +1,4 @@
+import { controlTargetStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import {
   useCallback,
@@ -201,6 +202,7 @@ export function CopyButton({
         stylexStyles.rule1,
         !!(variant === 'toolbar') && stylexStyles.rule2,
         size === 'md' ? stylexStyles.rule3 : stylexStyles.rule4,
+        controlTargetStyles.minimum,
         sx,
       ]}
     >

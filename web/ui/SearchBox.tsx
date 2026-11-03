@@ -1,3 +1,4 @@
+import { controlTargetStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import { useState, useRef, useCallback, type KeyboardEvent } from 'react'
 import { LuSearch } from '@s4wave/web/images/icons.js'
@@ -106,6 +107,7 @@ export function SearchBox({
     <div
       sx={[
         stylexStyles.rule1,
+        controlTargetStyles.minimum,
         focused ? stylexStyles.rule2 : stylexStyles.rule3,
         sx,
       ]}
@@ -126,7 +128,7 @@ export function SearchBox({
       {!focused && (
         <button
           type="button"
-          sx={stylexStyles.rule6}
+          sx={[stylexStyles.rule6, controlTargetStyles.minimum]}
           onClick={() => {
             setFocused(true)
             focusInputSoon()

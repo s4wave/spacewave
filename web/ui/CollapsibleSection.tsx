@@ -1,3 +1,4 @@
+import { controlTargetStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import React, { useCallback } from 'react'
 import * as Collapsible from '@radix-ui/react-collapsible'
 import { LuChevronDown } from '@s4wave/web/images/icons.js'
@@ -39,7 +40,7 @@ const styles = stylex.create({
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
     minHeight: {
       default: `calc(${themeLayout['--spacing']} * 11)`,
-      '@media (pointer: fine)': 0,
+      '@media (pointer: fine)': '24px',
     },
   },
   compactHeader: {
@@ -71,7 +72,7 @@ const styles = stylex.create({
     textAlign: 'left',
     minHeight: {
       default: `calc(${themeLayout['--spacing']} * 11)`,
-      '@media (pointer: fine)': 0,
+      '@media (pointer: fine)': '24px',
     },
     minWidth: 0,
   },
@@ -185,6 +186,7 @@ export function CollapsibleSection({
               sx={[
                 styles.trigger,
                 compact ? styles.compactTrigger : styles.regularTrigger,
+                controlTargetStyles.minimum,
               ]}
             >
               {icon && <span sx={styles.icon}>{icon}</span>}
@@ -230,11 +232,11 @@ export const collapsibleSectionActionStyles = stylex.create({
     height: `calc(${themeLayout['--spacing']} * 4)`,
     minHeight: {
       default: `calc(${themeLayout['--spacing']} * 11)`,
-      '@media (pointer: fine)': 0,
+      '@media (pointer: fine)': '24px',
     },
     minWidth: {
       default: `calc(${themeLayout['--spacing']} * 11)`,
-      '@media (pointer: fine)': 0,
+      '@media (pointer: fine)': '24px',
     },
     width: `calc(${themeLayout['--spacing']} * 4)`,
   },

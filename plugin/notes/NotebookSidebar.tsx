@@ -1,3 +1,4 @@
+import { controlTargetStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import { useCallback } from 'react'
 
 import type { NotebookSource } from './proto/notebook.pb.js'
@@ -304,7 +305,11 @@ function NotebookSidebar({
     return (
       <div sx={stylexStyles2.rule1}>
         <span>No sources configured</span>
-        <button type="button" sx={stylexStyles2.rule2} onClick={onAddSource}>
+        <button
+          type="button"
+          sx={[stylexStyles2.rule2, controlTargetStyles.minimum]}
+          onClick={onAddSource}
+        >
           Add source
         </button>
       </div>
@@ -318,7 +323,7 @@ function NotebookSidebar({
           <span>Sources</span>
           <button
             type="button"
-            sx={stylexStyles2.rule6}
+            sx={[stylexStyles2.rule6, controlTargetStyles.minimum]}
             title="Add source"
             onClick={onAddSource}
           >
@@ -335,7 +340,7 @@ function NotebookSidebar({
               <div sx={selected ? stylexStyles2.rule8 : stylexStyles2.rule9}>
                 <button
                   type="button"
-                  sx={stylexStyles2.rule10}
+                  sx={[stylexStyles2.rule10, controlTargetStyles.minimum]}
                   aria-current={selected ? 'true' : undefined}
                   onClick={() => {
                     onSelectSource(index)
@@ -355,7 +360,7 @@ function NotebookSidebar({
                 <span sx={stylexStyles2.rule12}>
                   <button
                     type="button"
-                    sx={stylexStyles2.rule13}
+                    sx={[stylexStyles2.rule13, controlTargetStyles.minimum]}
                     title="Move source up"
                     disabled={index === 0}
                     onClick={(e) => {
@@ -367,7 +372,7 @@ function NotebookSidebar({
                   </button>
                   <button
                     type="button"
-                    sx={stylexStyles2.rule13}
+                    sx={[stylexStyles2.rule13, controlTargetStyles.minimum]}
                     title="Move source down"
                     disabled={index === sources.length - 1}
                     onClick={(e) => {
@@ -379,7 +384,7 @@ function NotebookSidebar({
                   </button>
                   <button
                     type="button"
-                    sx={stylexStyles2.rule13}
+                    sx={[stylexStyles2.rule13, controlTargetStyles.minimum]}
                     title="Remove source"
                     onClick={(e) => {
                       e.stopPropagation()

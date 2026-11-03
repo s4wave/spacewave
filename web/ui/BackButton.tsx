@@ -1,3 +1,4 @@
+import { controlTargetStyles } from '../style/ControlStylesProvider.js'
 import { stylexProps } from '@s4wave/web/style/props.js'
 import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import type React from 'react'
@@ -69,7 +70,12 @@ export function BackButton({
     <button
       type={type}
       {...stylexProps(
-        [stylexStyles.rule1, !!floating && stylexStyles.rule2, sx],
+        [
+          stylexStyles.rule1,
+          !!floating && stylexStyles.rule2,
+          controlTargetStyles.minimum,
+          sx,
+        ],
         props,
       )}
     >

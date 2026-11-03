@@ -113,7 +113,7 @@ const stylexStyles3 = stylex.create({
     '--tw-font-weight': themeFonts['--font-weight-medium'],
     '--tw-tracking': 'var(--tracking-widest)',
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
-    fontSize: '.55rem',
+    fontSize: '10px',
     fontWeight: themeFonts['--font-weight-medium'],
     letterSpacing: 'var(--tracking-widest)',
     lineHeight: 1.5,

@@ -164,7 +164,7 @@ const stylexStyles3 = stylex.create({
     '--tw-leading': 'var(--leading-snug)',
     WebkitUserSelect: 'none',
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 55%, transparent)`,
-    fontSize: '.65rem',
+    fontSize: '12px',
     lineHeight: 'var(--leading-snug)',
     userSelect: 'none',
   },

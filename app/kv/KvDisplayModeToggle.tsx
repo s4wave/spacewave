@@ -1,3 +1,4 @@
+import { controlTargetStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import {
   KV_DISPLAY_MODES,
   KV_DISPLAY_MODE_LABELS,
@@ -27,7 +28,7 @@ const stylexStyles = stylex.create({
     '--tw-font-weight': themeFonts['--font-weight-medium'],
     paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
     paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
-    fontSize: '.6rem',
+    fontSize: '12px',
     fontWeight: themeFonts['--font-weight-medium'],
     lineHeight: 1.5,
     transitionDuration:
@@ -84,6 +85,7 @@ export function KvDisplayModeToggle({
           sx={[
             stylexStyles.rule2,
             option === mode ? stylexStyles.rule3 : stylexStyles.rule4,
+            controlTargetStyles.minimum,
           ]}
         >
           {KV_DISPLAY_MODE_LABELS[option]}

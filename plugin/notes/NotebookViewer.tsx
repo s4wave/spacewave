@@ -1,3 +1,4 @@
+import { controlTargetStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { useObjectName } from '@s4wave/web/object/ObjectViewerContext.js'
@@ -390,7 +391,7 @@ function NotebookViewer({
                 : 'Open notebook navigation'
             }
             aria-expanded={sidebarOpen}
-            sx={stylexStyles2.rule3}
+            sx={[stylexStyles2.rule3, controlTargetStyles.minimum]}
             onClick={() => setSidebarOpen(!sidebarOpen)}
           >
             {sidebarOpen ? (
@@ -403,7 +404,7 @@ function NotebookViewer({
             <button
               type="button"
               aria-label="Back to notes"
-              sx={stylexStyles2.rule3}
+              sx={[stylexStyles2.rule3, controlTargetStyles.minimum]}
               onClick={() => handleChangePath(currentPath)}
             >
               <LuArrowLeft sx={stylexStyles.rule1} />
@@ -512,7 +513,7 @@ function NotebookViewer({
           <button
             type="button"
             aria-label="Close sidebar"
-            sx={stylexStyles2.rule18}
+            sx={[stylexStyles2.rule18, controlTargetStyles.minimum]}
             onClick={() => setSidebarOpen(false)}
           />
         )}

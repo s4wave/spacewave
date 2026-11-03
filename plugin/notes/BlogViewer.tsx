@@ -1,3 +1,4 @@
+import { controlTargetStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import { useCallback, useMemo, useState } from 'react'
 
 import { LuBookOpen, LuPenLine } from '@s4wave/web/images/icons.js'
@@ -310,6 +311,7 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
               sx={[
                 stylexStyles2.rule6,
                 mode === 'reading' ? stylexStyles2.rule7 : stylexStyles2.rule8,
+                controlTargetStyles.minimum,
               ]}
               title="Reading mode"
             >
@@ -322,6 +324,7 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
               sx={[
                 stylexStyles2.rule6,
                 mode === 'editing' ? stylexStyles2.rule7 : stylexStyles2.rule8,
+                controlTargetStyles.minimum,
               ]}
               title="Editing mode"
             >

@@ -1,3 +1,4 @@
+import { controlTargetStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import { useState, type ReactNode } from 'react'
 import { LuChevronDown } from '@s4wave/web/images/icons.js'
 
@@ -155,7 +156,7 @@ function SavedViewButton({
   return (
     <button
       type="button"
-      sx={stylexStyles2.rule1}
+      sx={[stylexStyles2.rule1, controlTargetStyles.minimum]}
       disabled={disabled}
       onClick={onClick}
     >
@@ -358,7 +359,9 @@ export default function NotebookSavedViews({
   // Recovery and a missing selected view remain visible without applying stale filters.
   return (
     <details sx={stylexStyles2.rule6}>
-      <summary sx={stylexStyles2.rule7}>Shared views</summary>
+      <summary sx={[stylexStyles2.rule7, controlTargetStyles.minimum]}>
+        Shared views
+      </summary>
       <div sx={stylexStyles2.rule8}>
         <p sx={stylexStyles2.rule9}>
           Save filters for everyone in this Notebook. Load a view to use it

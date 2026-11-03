@@ -117,7 +117,7 @@ const stylexStyles2 = stylex.create({
   rule13: {
     '--tw-font-weight': themeFonts['--font-weight-medium'],
     '--tw-tracking': 'var(--tracking-widest)',
-    fontSize: '.6rem',
+    fontSize: '10px',
     fontWeight: themeFonts['--font-weight-medium'],
     letterSpacing: 'var(--tracking-widest)',
     lineHeight: 1.5,
