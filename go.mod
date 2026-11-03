@@ -55,7 +55,7 @@ require (
 	github.com/fclairamb/ftpserverlib v0.32.7
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v6 v6.0.0-beta.1.0.20261102114623-3dcdd520bf27 // main
-	github.com/go-git/go-git/v6 v6.0.0-beta.1.0.20261102125716-dba33177304c // main
+	github.com/go-git/go-git/v6 v6.0.0-beta.1.0.20261103104851-500c64d699c8 // main
 	github.com/go-sql-driver/mysql v1.10.1
 	github.com/goccy/go-json v0.12.0
 	github.com/gomodule/redigo v2.0.0+incompatible
@@ -85,7 +85,7 @@ require (
 	github.com/prometheus/prometheus v0.315.1
 	github.com/quic-go/quic-go v0.64.1
 	github.com/restic/chunker v0.5.0
-	github.com/s4wave/goscript v0.6.4-0.20261103022401-cc6ce470fdd5
+	github.com/s4wave/goscript v0.6.4-0.20261103064215-1896d7803dfa
 	github.com/sasha-s/go-deadlock v0.3.9
 	github.com/satori/go.uuid v1.2.0
 	github.com/sergi/go-diff v1.4.0
@@ -106,6 +106,7 @@ require (
 	golang.org/x/term v0.47.0
 	golang.org/x/time v0.16.0
 	golang.org/x/tools v0.52.0 // latest
+	google.golang.org/protobuf v1.36.12
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gorm.io/gorm v1.31.2
 	gotest.tools/v3 v3.5.2
@@ -182,7 +183,6 @@ require (
 	golang.org/x/net v0.61.0 // indirect
 	golang.org/x/telemetry v0.0.0-20261009151841-97e8ea77aa2a // indirect
 	golang.org/x/text v0.43.0 // indirect
-	google.golang.org/protobuf v1.36.12 // indirect
 	gopkg.in/src-d/go-errors.v1 v1.0.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
