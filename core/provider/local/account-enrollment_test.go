@@ -257,7 +257,7 @@ func TestAccountPairingExchange(t *testing.T) {
 			var payload []byte
 			if approve {
 				if mode.direct {
-					payloadRef, payload = seedPairingWorldPayload(ctx, t, sourceTB, source, spaceRef, "payload", true)
+					payloadRef, payload, _ = seedPairingWorldPayload(ctx, t, sourceTB, source, spaceRef, "payload", true)
 				} else {
 					payloadRef, payload = seedAccountReplicaPayload(ctx, t, source, spaceRef)
 				}
@@ -455,7 +455,7 @@ func TestAccountPairingExchange(t *testing.T) {
 			// The receiving client can publish new bytes and the original Session
 			// copies them through the retained direct connection in reverse.
 			if mode.direct {
-				reverse, want := seedPairingWorldPayload(ctx, t, tb, replica, spaceRef, "reverse-payload", false)
+				reverse, want, reverseWorld := seedPairingWorldPayload(ctx, t, tb, replica, spaceRef, "reverse-payload", false)
 				sourceSO, releaseSO, err := source.MountSharedObject(ctx, spaceRef, nil)
 				if err != nil {
 					t.Fatal(err)
@@ -472,11 +472,11 @@ func TestAccountPairingExchange(t *testing.T) {
 					t.Fatal(err)
 				}
 
-				// Wait for that graph's copy to finish before reading local bytes.
+				// Accept either the operation span or its leader-promoted checkpoint.
 				for {
 					progress, changed := source.GetAccountCopyProgress()
 					if slices.ContainsFunc(progress, func(p *AccountReplicaCopyState) bool {
-						return p.GetObjectId() == sourceSO.GetSharedObjectID() && p.GetHead().GetRootRef().EqualsRef(reverseHead) && p.GetComplete()
+						return p.GetObjectId() == sourceSO.GetSharedObjectID() && (p.GetHead().GetRootRef().EqualsRef(reverseHead) || p.GetHead().GetRootRef().EqualsRef(reverseWorld)) && p.GetComplete()
 					}) {
 						break
 					}

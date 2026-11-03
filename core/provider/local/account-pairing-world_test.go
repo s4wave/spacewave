@@ -23,7 +23,8 @@ import (
 
 // seedPairingWorldPayload publishes through the real Space engine, whose page
 // view may retain derived World pages until an ordered save stores them.
-func seedPairingWorldPayload(ctx context.Context, t *testing.T, tb *testbed.Testbed, account *ProviderAccount, ref *sobject.SharedObjectRef, key string, checkpoint bool) (*block.BlockRef, []byte) {
+// It returns the payload, its bytes, and the derived World the leader may adopt.
+func seedPairingWorldPayload(ctx context.Context, t *testing.T, tb *testbed.Testbed, account *ProviderAccount, ref *sobject.SharedObjectRef, key string, checkpoint bool) (*block.BlockRef, []byte, *block.BlockRef) {
 	// Start the same Space body controller that owns browser Worlds.
 	t.Helper()
 	tb.StaticResolver.AddFactory(space_sobject.NewFactory(tb.Bus))
@@ -119,7 +120,7 @@ func seedPairingWorldPayload(ctx context.Context, t *testing.T, tb *testbed.Test
 
 	// Inspect advertised roots through exactly the DEX server's local lookup.
 	logPairingStoredRoots(ctx, t, tb, so, derived)
-	return leaf, data
+	return leaf, data, derived
 }
 
 // logPairingStoredRoots distinguishes missing bytes from unknown child refs
