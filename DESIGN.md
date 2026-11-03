@@ -603,8 +603,8 @@ a brand decoration.
 
 ### Principles
 
-- App panels should stay small. Use `text-sm` for panel titles, `text-xs` for
-  section labels, and `text-[0.6rem]` for metadata.
+- App panels use the 14px panel-title step, 12px section and metadata steps,
+  and the 10px micro-cap step for uppercase labels.
 - Marketing and onboarding may use `text-3xl`, `text-4xl`, and `text-2xl`, but
   app chrome should not inherit hero-scale type.
 - Use uppercase only for micro labels, badges, and small nav items. Do not make
@@ -804,6 +804,8 @@ description.
 - Text `text-foreground text-xs`.
 - Height usually `h-7` in wizards and `h-9` on focused pages.
 - Do not use a solid brand fill for ordinary app actions.
+- Buttons, menu triggers and tabs keep a 24px minimum target, or 44px with a
+  coarse pointer. Viewer bars provide matching room for their controls.
 - `web/ui/button.tsx` is the shared primitive. App surfaces use its variants
   and typed `sx` input, or a wrapper that composes the primary-action styles.
 
@@ -871,8 +873,8 @@ description.
 
 **`shell-tab`** is compact top workbench chrome.
 
-- Height 22px in shell layout; 20px in the top-bar-style strip.
-- Max width 100px, ellipsized text, `font-size: 11px`.
+- Minimum target 24px in the shell and top-bar-style strip, 44px with a coarse pointer.
+- Max width 100px, ellipsized text, using the 12px control type step.
 - FlexLayout shell tabs use `letter-spacing: -0.01em`; the legacy
   top-bar-style strip uses `-0.025em`.
 - Top corners only, no underline pseudo-element.

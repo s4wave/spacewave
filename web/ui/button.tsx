@@ -37,7 +37,11 @@ const styles = stylex.create({
     transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
     whiteSpace: 'nowrap',
     minHeight: {
-      default: null,
+      default: `calc(${themeLayout['--spacing']} * 6)`,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+    minWidth: {
+      default: `calc(${themeLayout['--spacing']} * 6)`,
       '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
     },
   },

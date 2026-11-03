@@ -153,7 +153,7 @@ const stylexStyles2 = stylex.create({
   rule1: { height: '100%' },
   rule2: {
     minHeight: {
-      default: null,
+      default: '24px',
       '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
     },
   },

@@ -605,7 +605,7 @@ const stylexStyles5 = ownerStylex.create({
   rule52: {
     '--tw-leading': 'var(--leading-relaxed)',
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
-    fontSize: '.6rem',
+    fontSize: '10px',
     lineHeight: 'var(--leading-relaxed)',
   },
   rule53: {

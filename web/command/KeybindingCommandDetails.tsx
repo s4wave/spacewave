@@ -110,14 +110,21 @@ const stylexStyles = stylex.create({
     whiteSpace: 'nowrap',
   },
   rule10: {
-    padding: {
+    flex: 1,
+    overflow: 'auto',
+    paddingInline: {
       default: `calc(${themeLayout['--spacing']} * 4)`,
       '@media (min-width: 40rem)': `calc(${themeLayout['--spacing']} * 5)`,
     },
-    flex: 1,
-    overflow: 'auto',
     minHeight: 0,
-    paddingBottom: `calc(${themeLayout['--spacing']} * 8)`,
+    paddingBottom: {
+      default: `calc(${themeLayout['--spacing']} * 8)`,
+      '@media (min-width: 40rem)': `calc(${themeLayout['--spacing']} * 5)`,
+    },
+    paddingTop: {
+      default: `calc(${themeLayout['--spacing']} * 4)`,
+      '@media (min-width: 40rem)': `calc(${themeLayout['--spacing']} * 5)`,
+    },
   },
   rule11: {
     borderColor: `color-mix(in oklab, ${themeColors['--color-warning']} 30%, transparent)`,

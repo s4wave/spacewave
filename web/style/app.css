@@ -28,7 +28,6 @@ SOFTWARE.
 @import '@fontsource-variable/manrope/wght.css';
 @import '@xterm/xterm/css/xterm.css';
 @import './flexlayout/flexlayout.css';
-/*! tailwindcss v4.3.3 | MIT License | https://tailwindcss.com */
 @layer theme, base, components, utilities;
 @layer base {
   *,
@@ -532,7 +531,7 @@ SOFTWARE.
     display: flex;
     justify-content: space-between;
     color: var(--color-foreground-alt);
-    font-size: 11px;
+    font-size: var(--text-ui, 0.75rem);
   }
   .swl-transfer-track {
     height: 3px;
@@ -553,7 +552,7 @@ SOFTWARE.
     justify-content: center;
     gap: 18px;
     color: var(--color-foreground-alt);
-    font-size: 11px;
+    font-size: var(--text-ui, 0.75rem);
   }
   .swl-footer:empty {
     display: none;
@@ -1298,7 +1297,7 @@ body,
     > .flexlayout__optimized_layout
     > .flexlayout__layout
     .flexlayout__tab_button_content {
-    font-size: 11px;
+    font-size: var(--text-ui, 0.75rem);
     font-weight: 500;
     line-height: 1;
     overflow: hidden;

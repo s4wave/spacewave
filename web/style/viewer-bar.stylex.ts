@@ -10,13 +10,11 @@ export const viewerBarStyles = stylex.create({
     paddingInline: layout['--spacing'],
     height: {
       default: layout['--spacing-bar'],
-      '@media (max-width: 640px) and (pointer: coarse), (max-height: 470px) and (hover: none) and (pointer: coarse)':
-        'calc(44px + env(safe-area-inset-bottom))',
+      '@media (pointer: coarse)': 'calc(44px + env(safe-area-inset-bottom))',
     },
     minHeight: {
       default: layout['--spacing-bar'],
-      '@media (max-width: 640px) and (pointer: coarse), (max-height: 470px) and (hover: none) and (pointer: coarse)':
-        'calc(44px + env(safe-area-inset-bottom))',
+      '@media (pointer: coarse)': 'calc(44px + env(safe-area-inset-bottom))',
     },
     paddingBottom: {
       default: null,
@@ -48,25 +46,23 @@ export const viewerBarStyles = stylex.create({
     },
     minHeight: {
       default: null,
-      '@media (max-width: 640px) and (pointer: coarse), (max-height: 470px) and (hover: none) and (pointer: coarse)':
-        {
-          default: null,
-          [stylex.when.ancestor(':is(*)', viewerBarMarker)]: {
-            default: null,
-            ':is(button, [role="button"])': '44px',
-          },
+      [stylex.when.ancestor(':is(*)', viewerBarMarker)]: {
+        default: null,
+        ':is(button, [role="button"])': {
+          default: '24px',
+          '@media (pointer: coarse)': '44px',
         },
+      },
     },
     minWidth: {
       default: null,
-      '@media (max-width: 640px) and (pointer: coarse), (max-height: 470px) and (hover: none) and (pointer: coarse)':
-        {
-          default: null,
-          [stylex.when.ancestor(':is(*)', viewerBarMarker)]: {
-            default: null,
-            ':is(button, [role="button"])': '44px',
-          },
+      [stylex.when.ancestor(':is(*)', viewerBarMarker)]: {
+        default: null,
+        ':is(button, [role="button"])': {
+          default: '24px',
+          '@media (pointer: coarse)': '44px',
         },
+      },
     },
   },
 })

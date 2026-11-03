@@ -1,5 +1,4 @@
 @import './base.css';
-/*! tailwindcss v4.3.3 | MIT License | https://tailwindcss.com */
 @layer properties;
 .flexlayout__layout {
   --font-size: var(--text-ui);
@@ -60,10 +59,11 @@
   --text-muted-color: var(--color-text-muted);
 }
 .flexlayout__tab_button {
+  min-height: 24px;
   background-color: var(--color-editor-tab-inactive, transparent);
   color: var(--color-editor-tab-text, oklch(0.78 0 0));
   box-sizing: border-box;
-  height: 20px;
+  height: 24px;
   min-width: 24px;
   max-width: 100px;
   padding: 0 0.375rem;
@@ -165,15 +165,17 @@
   overflow: hidden;
 }
 .flexlayout__tab_button_content {
-  font-size: 0.6875rem;
+  font-size: var(--text-ui, 0.75rem);
   font-weight: 500;
-  line-height: 20px;
+  line-height: 24px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   letter-spacing: -0.01em;
 }
 .flexlayout__tab_toolbar_button {
+  min-width: 24px;
+  min-height: 24px;
   border-radius: var(--radius-menu-button, 3px);
   transition: background-color 0.15s ease;
 }
@@ -192,7 +194,8 @@
   padding-left: 0;
 }
 .flexlayout__tabset_tabbar_inner {
-  height: 22px;
+  min-height: 24px;
+  height: 24px;
   align-items: flex-end;
 }
 .flexlayout__tabset_tabbar_inner_tab_container {
@@ -208,6 +211,10 @@
   display: flex;
 }
 .flexlayout__tab_button_trailing {
+  min-width: 24px;
+  min-height: 24px;
+  align-items: center;
+  justify-content: center;
   visibility: visible;
   position: relative;
   border-radius: var(--radius-menu-button, 3px);
