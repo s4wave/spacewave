@@ -1,15 +1,20 @@
 import { Toaster as Sonner, toast } from 'sonner'
+import type { StyleXStyles } from '@stylexjs/stylex'
+import { stylexProps } from '@s4wave/web/style/props.js'
+import { cn } from '@s4wave/web/style/utils.js'
 import { sonnerClassNames as skin } from '../style/sonner.js'
 
-type ToasterProps = React.ComponentProps<typeof Sonner>
+type ToasterProps = Omit<React.ComponentProps<typeof Sonner>, 'className'> & {
+  sx?: StyleXStyles
+  className?: never
+}
 
-function Toaster({ ...props }: ToasterProps) {
+/** Toaster styles the vendor-owned toast elements through the shared skin. */
+function Toaster({ sx, ...props }: ToasterProps) {
+  const attributes = stylexProps(sx, props)
   return (
     <Sonner
       theme="dark"
-      className={
-        /* TODO(stylex): dynamic class or forwarded className */ skin.toaster
-      }
       position="bottom-right"
       offset={{ bottom: 50, right: 12 }}
       mobileOffset={{ bottom: 50, right: 12 }}
@@ -30,7 +35,8 @@ function Toaster({ ...props }: ToasterProps) {
           error: skin.error,
         },
       }}
-      {...props}
+      {...attributes}
+      className={cn(skin.toaster, attributes.className)}
     />
   )
 }

@@ -14,6 +14,10 @@ import { resolve, join } from 'node:path'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { build, preview } from 'vite'
+import {
+  buildGoAliases,
+  goTsResolver,
+} from '../../bldr/web/bundler/vite/go-ts-resolver.js'
 import react from '@vitejs/plugin-react'
 import tailwind from '@tailwindcss/vite'
 
@@ -31,6 +35,8 @@ import { writeTreeFixture } from './tree-fixture.js'
 import { writeGroupFixture } from './group-fixture.js'
 import { writeCodeFixture } from './code-fixture.js'
 import { writeCommandFixture } from './command-fixture.js'
+import { writeLoginFixture } from './login-fixture.js'
+import { writeLoadingScreenFixture } from './loading-screen-fixture.js'
 import { writeCredentialFixture } from './credential-fixture.js'
 import { writeBadgeFixture } from './badge-fixture.js'
 import { writeFloatingFixture } from './floating-fixture.js'
@@ -643,12 +649,17 @@ test(
         await writeButtonFixture(root, version)
         await writeDialogFixture(root, version)
         await writeCommandFixture(root, version)
+        await writeLoginFixture(root, version)
+        await writeLoadingScreenFixture(root, version)
         await writePathFixture(root, version)
         await writeTabsFixture(root, version)
         await writeIconDefaultsFixture(root, version)
         main = "import{IconDefaultsSamples}from'./IconDefaultsSamples';" + main
         main = "import{FloatingSamples}from'./FloatingSamples';" + main
         main = "import{GroupSamples}from'./GroupSamples';" + main
+        main =
+          "import{LoadingScreenSamples}from'./LoadingScreenSamples';" + main
+        main = "import{LoginSamples}from'./LoginSamples';" + main
         main = "import{CommandSamples}from'./CommandSamples';" + main
         main = "import{CodeSamples}from'./CodeSamples';" + main
         main = "import{CredentialSamples}from'./CredentialSamples';" + main
@@ -661,7 +672,7 @@ test(
         main = "import{SheetSamples}from'./SheetSamples';" + main
         main = main.replace(
           "createRoot(document.getElementById('root')!).render",
-          "if(new URLSearchParams(location.search).has('command'))createRoot(document.getElementById('root')!).render(<CommandSamples/>);else if(new URLSearchParams(location.search).has('groups'))createRoot(document.getElementById('root')!).render(<GroupSamples/>);else if(new URLSearchParams(location.search).has('code'))createRoot(document.getElementById('root')!).render(<CodeSamples/>);else if(new URLSearchParams(location.search).has('trace'))createRoot(document.getElementById('root')!).render(<TraceSamples/>);else if(new URLSearchParams(location.search).has('credential'))createRoot(document.getElementById('root')!).render(<CredentialSamples/>);else if(new URLSearchParams(location.search).has('icon-defaults'))createRoot(document.getElementById('root')!).render(<IconDefaultsSamples/>);else if(new URLSearchParams(location.search).has('floating'))createRoot(document.getElementById('root')!).render(<FloatingSamples/>);else if(new URLSearchParams(location.search).has('badge'))createRoot(document.getElementById('root')!).render(<BadgeSamples/>);else if(new URLSearchParams(location.search).has('tree'))createRoot(document.getElementById('root')!).render(<TreeSamples/>);else if(new URLSearchParams(location.search).has('tabs'))createRoot(document.getElementById('root')!).render(<TabsSamples/>);else if(new URLSearchParams(location.search).has('path'))createRoot(document.getElementById('root')!).render(<PathSamples/>);else if(new URLSearchParams(location.search).has('dialog'))createRoot(document.getElementById('root')!).render(<DialogSamples/>);else if(new URLSearchParams(location.search).has('buttons'))createRoot(document.getElementById('root')!).render(<ButtonSamples/>);else if(new URLSearchParams(location.search).has('input'))createRoot(document.getElementById('root')!).render(<InputSamples/>);else if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
+          "if(new URLSearchParams(location.search).has('loading-screen'))createRoot(document.getElementById('root')!).render(<LoadingScreenSamples/>);else if(new URLSearchParams(location.search).has('login'))createRoot(document.getElementById('root')!).render(<LoginSamples/>);else if(new URLSearchParams(location.search).has('command'))createRoot(document.getElementById('root')!).render(<CommandSamples/>);else if(new URLSearchParams(location.search).has('groups'))createRoot(document.getElementById('root')!).render(<GroupSamples/>);else if(new URLSearchParams(location.search).has('code'))createRoot(document.getElementById('root')!).render(<CodeSamples/>);else if(new URLSearchParams(location.search).has('trace'))createRoot(document.getElementById('root')!).render(<TraceSamples/>);else if(new URLSearchParams(location.search).has('credential'))createRoot(document.getElementById('root')!).render(<CredentialSamples/>);else if(new URLSearchParams(location.search).has('icon-defaults'))createRoot(document.getElementById('root')!).render(<IconDefaultsSamples/>);else if(new URLSearchParams(location.search).has('floating'))createRoot(document.getElementById('root')!).render(<FloatingSamples/>);else if(new URLSearchParams(location.search).has('badge'))createRoot(document.getElementById('root')!).render(<BadgeSamples/>);else if(new URLSearchParams(location.search).has('tree'))createRoot(document.getElementById('root')!).render(<TreeSamples/>);else if(new URLSearchParams(location.search).has('tabs'))createRoot(document.getElementById('root')!).render(<TabsSamples/>);else if(new URLSearchParams(location.search).has('path'))createRoot(document.getElementById('root')!).render(<PathSamples/>);else if(new URLSearchParams(location.search).has('dialog'))createRoot(document.getElementById('root')!).render(<DialogSamples/>);else if(new URLSearchParams(location.search).has('buttons'))createRoot(document.getElementById('root')!).render(<ButtonSamples/>);else if(new URLSearchParams(location.search).has('input'))createRoot(document.getElementById('root')!).render(<InputSamples/>);else if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
         )
         // Discover the actual tree API through its public barrel before converting the caller.
         const treeImports = await readSharedStyleApis(
@@ -818,19 +829,31 @@ void invalidNativeDelegate;
         const config = {
           configFile: false as const,
           root,
-          plugins: [stylexCss(), tailwind(), react()],
+          plugins: [
+            stylexCss(),
+            tailwind(),
+            react(),
+            goTsResolver(process.cwd()),
+          ],
           resolve: {
-            alias: {
-              ...(version === 'before'
-                ? Object.fromEntries(
-                    ['button', 'badge', 'FloatingWindow'].map((name) => [
-                      `@s4wave/web/ui/${name}.js`,
-                      join(root, `${name}-native.tsx`),
-                    ]),
-                  )
-                : {}),
-              '@s4wave/web': resolve('web'),
-            },
+            alias: [
+              ...buildGoAliases(process.cwd()),
+              ...Object.entries({
+                ...(version === 'before'
+                  ? Object.fromEntries(
+                      ['button', 'badge', 'FloatingWindow'].map((name) => [
+                        `@s4wave/web/ui/${name}.js`,
+                        join(root, `${name}-native.tsx`),
+                      ]),
+                    )
+                  : {}),
+                '@aptre/bldr': resolve('bldr/web/bldr/index.ts'),
+                '@aptre/bldr-react': resolve('bldr/web/bldr-react/index.ts'),
+                '@aptre/bldr-sdk': resolve('bldr/sdk'),
+                '@s4wave/sdk': resolve('sdk'),
+                '@s4wave/web': resolve('web'),
+              }).map(([find, replacement]) => ({ find, replacement })),
+            ],
           },
           logLevel: 'warn' as const,
           preview: { host: '127.0.0.1', port: 0 },
@@ -989,6 +1012,56 @@ void invalidNativeDelegate;
                   })
                   .first()
                   .hover({ timeout: 5000 })
+            },
+          })),
+          ...['default', 'error', 'reduced'].map((mode) => ({
+            id: `loading-screen-${mode}`,
+            path: `/?loading-screen=${mode}`,
+            reducedMotion: mode === 'reduced' ? ('reduce' as const) : undefined,
+            ready: async (page: import('playwright').Page) => {
+              await page.locator('#loading-screen-fixtures').waitFor()
+              if (mode === 'error')
+                await page.getByRole('alert').waitFor({ timeout: 5000 })
+              else
+                await page
+                  .getByRole('progressbar', { name: 'Current download' })
+                  .waitFor({ timeout: 5000 })
+              await page.evaluate(() => document.fonts.ready)
+            },
+          })),
+          ...['default', 'create', 'busy', 'error'].map((mode) => ({
+            id: `login-${mode}`,
+            path: `/?login=${mode}`,
+            ready: async (page: import('playwright').Page) => {
+              await page.locator('#login-fixtures').waitFor()
+              await page.evaluate(() => document.fonts.ready)
+            },
+            setup: async (page: import('playwright').Page) => {
+              // Walk the form's actual transitions through its supplied authentication callbacks.
+              if (mode === 'default') return
+              await page
+                .getByLabel('Password', { exact: true })
+                .fill('correct-password9')
+              await page
+                .getByRole('button', {
+                  name: 'Continue with password',
+                  exact: true,
+                })
+                .click()
+              if (mode === 'create') {
+                await page
+                  .getByLabel('Confirm password', { exact: true })
+                  .fill('mismatch')
+              }
+              if (mode === 'busy')
+                await page
+                  .getByText('Signing in securely', { exact: true })
+                  .waitFor()
+              if (mode === 'error')
+                await page
+                  .getByText(/Wrong password/)
+                  .first()
+                  .waitFor()
             },
           })),
           ...[
@@ -1503,6 +1576,18 @@ void invalidNativeDelegate;
         {
           name: 'button groups',
           ids: ['groups-default', 'groups-focused'],
+        },
+        {
+          name: 'loading screens',
+          ids: [
+            'loading-screen-default',
+            'loading-screen-error',
+            'loading-screen-reduced',
+          ],
+        },
+        {
+          name: 'login form',
+          ids: ['login-default', 'login-create', 'login-busy', 'login-error'],
         },
         {
           name: 'command controls',

@@ -1,6 +1,7 @@
 // Loads the CF script on-demand when the first <Turnstile> mounts.
 
 import { useEffect, useImperativeHandle, useRef, type Ref } from 'react'
+import * as stylex from '@stylexjs/stylex'
 
 // TURNSTILE_SITE_KEY is the Cloudflare Turnstile public site key.
 export const TURNSTILE_PROD_SITE_KEY = '0x4AAAAAACr84TeZC0nMMY9O'
@@ -52,7 +53,9 @@ const scriptReady = new Promise<void>((resolve) => {
   scriptResolve = resolve
 })
 
+// ensureScript shares one script load and resolves after the vendor callback.
 function ensureScript() {
+  // Install one readiness callback before any widget requests the vendor script.
   if (scriptState !== 'idle') return scriptReady
   scriptState = 'loading'
   const turnstileWindow = window as TurnstileWindow
@@ -61,6 +64,8 @@ function ensureScript() {
     scriptResolve?.()
     delete turnstileWindow[CALLBACK_NAME]
   }
+
+  // Load the script only after its readiness callback can receive completion.
   const script = document.createElement('script')
   script.src = `${SCRIPT_URL}?onload=${CALLBACK_NAME}&render=explicit`
   script.async = true
@@ -70,6 +75,7 @@ function ensureScript() {
 }
 
 interface TurnstileProps {
+  sx?: stylex.StyleXStyles
   ref?: Ref<TurnstileInstance>
   siteKey: string
   size?: 'flexible' | 'invisible'
@@ -84,7 +90,13 @@ interface PendingTurnstileRequest {
 }
 
 // Turnstile renders a Cloudflare Turnstile widget.
-export function Turnstile({ ref, siteKey, size = 'flexible' }: TurnstileProps) {
+export function Turnstile({
+  ref,
+  siteKey,
+  sx,
+  size = 'flexible',
+}: TurnstileProps) {
+  // Retain the widget lifetime, issued token and pending token consumers.
   const bypass = isTurnstileBypassed(siteKey)
   const containerRef = useRef<HTMLDivElement>(null)
   const widgetIdRef = useRef<string | null>(null)
@@ -104,6 +116,7 @@ export function Turnstile({ ref, siteKey, size = 'flexible' }: TurnstileProps) {
           sitekey: siteKey,
           size,
           callback: (token) => {
+            // Deliver each issued token to one waiting consumer, or retain it for the next.
             const next = pendingRef.current.shift()
             if (!next) {
               tokenRef.current = token
@@ -144,6 +157,7 @@ export function Turnstile({ ref, siteKey, size = 'flexible' }: TurnstileProps) {
     }
   }
 
+  // Expose single-use tokens through the owner’s imperative request interface.
   useImperativeHandle(ref, () => ({
     async takeToken(timeout = 30000) {
       // Hand out the token the widget already issued.
@@ -169,8 +183,9 @@ export function Turnstile({ ref, siteKey, size = 'flexible' }: TurnstileProps) {
     },
   }))
 
+  // Test keys bypass the vendor DOM; real widgets retain native caller styles.
   if (bypass) return null
-  return <div ref={containerRef} />
+  return <div ref={containerRef} {...stylex.props(sx)} />
 }
 
 Turnstile.displayName = 'Turnstile'
