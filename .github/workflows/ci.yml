@@ -85,12 +85,14 @@ jobs:
             ;;
           esac
 
-  # Check every TLA+ spec on every event. Larger bounded state spaces take
-  # several minutes, so the job allows the full model set to finish.
-  specs:
-    name: TLA+ specs
+  # Isolate the three canonical counting searches while checking every other
+  # discovered configuration together. A failure must not cancel its siblings.
+  specs-select:
+    name: TLA+ groups
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 5
+    outputs:
+      groups: ${{ steps.groups.outputs.groups }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -99,8 +101,51 @@ jobs:
       - name: Install Bun dependencies
         run: bun install --frozen-lockfile --ignore-scripts
 
+      - name: Discover specs groups
+        id: groups
+        run: |
+          groups=$(bun run check:tla --groups-json)
+          echo "groups=$groups" >> "$GITHUB_OUTPUT"
+
+  specs-check:
+    name: TLA+ specs (${{ matrix.group }})
+    needs: specs-select
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        group: ${{ fromJSON(needs.specs-select.outputs.groups) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup TLC Java runtime
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install Bun dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+
       - name: Check specs
-        run: bun run check:tla
+        run: bun run check:tla --group ${{ matrix.group }}
+
+  # Keep the existing required status and fail on any incomplete matrix job.
+  specs:
+    name: TLA+ specs
+    needs: [specs-select, specs-check]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Require every specs group
+        env:
+          SELECTION: ${{ needs.specs-select.result }}
+          RESULT: ${{ needs.specs-check.result }}
+        run: test "$SELECTION" = success && test "$RESULT" = success
 
   member-ci:
     name: CI (${{ matrix.name }})

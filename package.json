@@ -44,7 +44,7 @@
     "qualify:sync": "bun run scripts/sync-library/qualify.ts",
     "pack:sync": "npm pack --ignore-scripts ./packages/spacewave --pack-destination .tmp/sync-library",
     "check": "bun run typecheck && bun run lint && bun run check:tla",
-    "check:tla": "aptre-tla .",
+    "check:tla": "bun scripts/check-tla.ts",
     "fecheck": "bun scripts/fecheck.js",
     "clean": "rimraf ./dist ./.bldr/{devtool.db*,logs,src,plugin,build,cli,cache} ./.bldr-dist ./.tools ./bin ./bldr/bin",
     "clean:full": "bun run clean && rimraf ./.bldr ./.tmp",
