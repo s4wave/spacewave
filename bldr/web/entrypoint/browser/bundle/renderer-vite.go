@@ -155,6 +155,9 @@ func BuildConfigFreeRenderer(
 	}
 	outputs := make([]string, 0, len(response.GetOutputFiles()))
 	for _, output := range response.GetOutputFiles() {
+		if filepath.Clean(output) == filepath.Join(".vite", "manifest.json") {
+			continue
+		}
 		outputs = append(outputs, filepath.Join(outputDirRel, output))
 	}
 	css := make([]string, 0, len(entrypoint.GetCssOutputs())+len(response.GetGlobalCssFiles()))

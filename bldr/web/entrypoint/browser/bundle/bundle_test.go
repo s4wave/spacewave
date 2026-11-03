@@ -207,6 +207,13 @@ func TestBuildRendererRoutesCSSGraphThroughVite(t *testing.T) {
 		}
 	}
 
+	// Every advertised output must remain available for the browser bundle cache.
+	for _, output := range result.OutputFiles {
+		if _, err := os.Stat(filepath.Join(buildDir, output)); err != nil {
+			t.Fatalf("renderer advertised unavailable output %s: %v", output, err)
+		}
+	}
+
 	// Ensure renderer output does not overwrite the foreign worker asset.
 	requireForeignRendererOutput(t, foreignPath)
 }
