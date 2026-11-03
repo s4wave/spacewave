@@ -23,6 +23,51 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+import {
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    backgroundColor: themeColors['--color-background-primary'],
+  },
+  rule2: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule3: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule4: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule5: { flex: 1 },
+  rule6: { minHeight: 0, flex: 1 },
+  rule7: { padding: `calc(${themeLayout['--spacing']} * 4)` },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -76,18 +121,14 @@ export function SqlQueryResultViewer({
   }
 
   return (
-    <div className="bg-background-primary flex h-full w-full flex-col">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-4">
+    <div sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>
         <LuTableProperties sx={stylexStyles.rule1} aria-hidden />
-        <span className="text-foreground text-sm font-semibold tracking-tight select-none">
-          Query Result
-        </span>
+        <span sx={stylexStyles2.rule3}>Query Result</span>
         {grid?.rowCount != null ? (
-          <span className="text-foreground-alt/50 text-xs">
-            {grid.rowCount.toString()} rows
-          </span>
+          <span sx={stylexStyles2.rule4}>{grid.rowCount.toString()} rows</span>
         ) : null}
-        <div className="flex-1" />
+        <div sx={stylexStyles2.rule5} />
         {container && grid?.sourceQueryObjectKey ? (
           <Button
             variant="ghost"
@@ -110,14 +151,14 @@ export function SqlQueryResultViewer({
         ) : null}
       </div>
 
-      <div className="min-h-0 flex-1">
+      <div sx={stylexStyles2.rule6}>
         {gridResource.loading && grid == null ? (
-          <div className="p-4">
+          <div sx={stylexStyles2.rule7}>
             <LoadingInline label="Loading result" tone="muted" />
           </div>
         ) : null}
         {gridResource.error ? (
-          <div className="p-4">
+          <div sx={stylexStyles2.rule7}>
             <ErrorState
               title="Query result unavailable"
               message={String(gridResource.error)}
@@ -126,7 +167,7 @@ export function SqlQueryResultViewer({
           </div>
         ) : null}
         {grid?.error?.message ? (
-          <div className="p-4">
+          <div sx={stylexStyles2.rule7}>
             <ErrorState
               variant="inline"
               title="Query execution failed"

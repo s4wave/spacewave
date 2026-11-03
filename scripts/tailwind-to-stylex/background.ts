@@ -3,6 +3,19 @@ import postcss from 'postcss'
 
 /** expandBackground retains every shorthand reset while printing native CSS longhands. */
 export function expandBackground(value: string, colorVariable = false): string {
+  // Gradient-only layers are images even when their colors remain runtime variables.
+  const layers = postcss.list.comma(value)
+  if (
+    layers.length &&
+    layers.every((layer) =>
+      /^(?:repeating-)?(?:linear|radial|conic)-gradient\([\s\S]*\)$/.test(
+        layer,
+      ),
+    )
+  ) {
+    return `.background { background-color: transparent; background-image: ${value}; background-position-x: 0%; background-position-y: 0%; background-size: auto; background-repeat: repeat; background-attachment: scroll; background-origin: padding-box; background-clip: border-box; }`
+  }
+
   // Parse known color variables through a color placeholder; other unresolved shorthands stay manual.
   let expanded: Declaration[] = []
   transform({

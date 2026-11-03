@@ -26,7 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@s4wave/web/ui/dialog.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { toast } from '@s4wave/web/ui/toaster.js'
 
 import { RuntimeHandoffProvider } from '@s4wave/app/listener/RuntimeHandoffContext.js'
@@ -36,6 +36,206 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
+
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({ rule1: { minWidth: 0, flex: 1 } })
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule3: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '3.40282e38px',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 60%, transparent)`,
+  },
+  rule4: {
+    fontSize: '.65rem',
+    lineHeight: 1.5,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-wider)',
+    letterSpacing: 'var(--tracking-wider)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+    textTransform: 'uppercase',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule5: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule6: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule7: {
+    borderRadius: themeRadii['--radius-md'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule8: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-warning']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-warning']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-warning']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule9: {
+    display: 'flex',
+    width: '100%',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-warning']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-warning']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule10: {
+    display: 'flex',
+    minWidth: 0,
+    flex: 1,
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule11: { minWidth: 0 },
+  rule12: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: `color-mix(in oklab, ${themeColors['--color-foreground']} 80%, transparent)`,
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule13: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule14: {
+    borderRadius: '.25rem',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    paddingInline: themeLayout['--spacing'],
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: '10px',
+    lineHeight: 1.5,
+  },
+  rule15: {
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    flexShrink: 0,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-warning']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-warning']} 50%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-warning']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-warning']} 15%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -171,25 +371,25 @@ function ListenerYieldNotifierInner({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="border-foreground/10 bg-background/30 rounded-lg border p-4">
-            <div className="flex items-start gap-3">
-              <div className="border-foreground/10 bg-background/60 flex size-10 shrink-0 items-center justify-center rounded-full border">
+          <div sx={stylexStyles2.rule1}>
+            <div sx={stylexStyles2.rule2}>
+              <div sx={stylexStyles2.rule3}>
                 <LuTerminal sx={stylexStyles.rule2} />
               </div>
-              <div className="min-w-0 flex-1 space-y-2">
-                <div className="space-y-0.5">
-                  <p className="text-foreground-alt/60 micro-label font-medium tracking-wider uppercase select-none">
+              <div sx={stylexStyles3.rule1}>
+                <div sx={[nativeChildSpacingNext.s2, false]}>
+                  <p sx={[nativeChildSpacing.s0_5, stylexStyles2.rule4]}>
                     Requesting runtime
                   </p>
-                  <p className="text-foreground truncate text-sm font-medium">
+                  <p sx={[nativeChildSpacing.s0_5, stylexStyles2.rule5]}>
                     {requesterName}
                   </p>
                 </div>
-                <div className="space-y-0.5">
-                  <p className="text-foreground-alt/60 micro-label font-medium tracking-wider uppercase select-none">
+                <div sx={[nativeChildSpacingNext.s2, false]}>
+                  <p sx={[nativeChildSpacing.s0_5, stylexStyles2.rule4]}>
                     Socket path
                   </p>
-                  <p className="text-foreground-alt truncate font-mono text-xs">
+                  <p sx={[nativeChildSpacing.s0_5, stylexStyles2.rule6]}>
                     {socketPath}
                   </p>
                 </div>
@@ -202,7 +402,7 @@ function ListenerYieldNotifierInner({
               type="button"
               onClick={() => active && respond(active.promptId ?? '', false)}
               disabled={pendingDecision != null}
-              className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+              sx={stylexStyles2.rule7}
             >
               {pendingDecision === 'deny' ? 'Denying…' : 'Deny'}
             </button>
@@ -210,11 +410,7 @@ function ListenerYieldNotifierInner({
               type="button"
               onClick={() => active && respond(active.promptId ?? '', true)}
               disabled={pendingDecision != null}
-              className={cn(
-                'rounded-md border px-4 py-2 text-sm transition-all',
-                'border-warning/30 bg-warning/10 hover:bg-warning/20',
-                'disabled:cursor-not-allowed disabled:opacity-50',
-              )}
+              sx={[stylexStyles2.rule8]}
             >
               {pendingDecision === 'allow' ? 'Allowing…' : 'Allow takeover'}
             </button>
@@ -272,22 +468,15 @@ function RuntimeHandoffBanner({
   const socketPath = handoff.socketPath || ''
 
   return (
-    <div
-      data-slot="runtime-handoff-banner"
-      className="border-warning/20 bg-warning/5 flex w-full flex-wrap items-center justify-between gap-3 border-b px-3 py-1.5"
-    >
-      <div className="flex min-w-0 flex-1 items-start gap-2">
+    <div data-slot="runtime-handoff-banner" sx={stylexStyles2.rule9}>
+      <div sx={stylexStyles2.rule10}>
         <LuTriangleAlert sx={stylexStyles.rule3} />
-        <div className="min-w-0">
-          <p className="text-foreground/80 text-xs font-medium select-none">
-            Runtime handed off
-          </p>
-          <p className="text-foreground-alt/60 mt-0.5 text-xs">
+        <div sx={stylexStyles2.rule11}>
+          <p sx={stylexStyles2.rule12}>Runtime handed off</p>
+          <p sx={stylexStyles2.rule13}>
             {requesterName} is running against{' '}
-            <code className="bg-foreground/5 micro-ten rounded px-1 py-0.5 font-mono">
-              {socketPath}
-            </code>
-            . Runtime actions are disabled until you reclaim.
+            <code sx={stylexStyles2.rule14}>{socketPath}</code>. Runtime actions
+            are disabled until you reclaim.
           </p>
         </div>
       </div>
@@ -295,14 +484,40 @@ function RuntimeHandoffBanner({
         type="button"
         onClick={onReclaim}
         disabled={reclaiming}
-        className={cn(
-          'h-7 shrink-0 rounded-md border px-3 text-xs font-medium transition-all duration-150',
-          'border-warning/30 bg-warning/10 hover:border-warning/50 hover:bg-warning/15',
-          'text-foreground disabled:cursor-not-allowed disabled:opacity-50',
-        )}
+        sx={[stylexStyles2.rule15]}
       >
         {reclaiming ? 'Reclaiming…' : 'Reclaim runtime'}
       </button>
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s0_5: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 0.5 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 0.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

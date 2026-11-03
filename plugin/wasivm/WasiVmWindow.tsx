@@ -34,8 +34,137 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
 
-const stylexStyles2 = stylex.create({"rule1":{"minWidth":`calc(${themeLayout["--spacing"]} * 45)`}})
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: { default: 'none', '@container (min-width: 28rem)': 'inline' },
+  },
+  rule2: {
+    minWidth: 0,
+    flex: 1,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+  },
+  rule3: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule4: {
+    display: 'flex',
+    minHeight: 0,
+    flex: 1,
+    justifyContent: 'center',
+    overflowY: 'auto',
+    padding: {
+      default: `calc(${themeLayout['--spacing']} * 4)`,
+      '@media (min-width: 40rem)': `calc(${themeLayout['--spacing']} * 8)`,
+    },
+  },
+  rule5: {
+    display: 'flex',
+    height: 'fit-content',
+    width: '100%',
+    maxWidth: 'var(--container-md)',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+  },
+  rule6: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule7: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-lg'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule8: { minWidth: 0, flex: 1 },
+  rule9: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: 'var(--text-base)',
+    lineHeight: 'var(--tw-leading, var(--text-base--line-height))',
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule10: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule11: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: themeLayout['--spacing'],
+  },
+  rule12: {
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule13: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * .5)`,
+  },
+  rule14: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    textAlign: 'left',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+  },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: { minWidth: `calc(${themeLayout['--spacing']} * 45)` },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -156,19 +285,23 @@ export function WasiVmWindowsMenu({ windows, onOpen }: WasiVmWindowsMenuProps) {
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="xs" aria-label="Windows">
           <LuAppWindow />
-          <span className="hidden @md:inline">Windows</span>
+          <span sx={stylexStyles3.rule1}>Windows</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" variant="compact" sx={stylexStyles2.rule1}>
+      <DropdownMenuContent
+        align="end"
+        variant="compact"
+        sx={stylexStyles2.rule1}
+      >
         <DropdownMenuLabel>Open in tab</DropdownMenuLabel>
         {windows.length === 0 ? (
           <DropdownMenuItem disabled>No windows are open</DropdownMenuItem>
         ) : (
           windows.map((w) => (
             <DropdownMenuItem key={w.id} onClick={() => onOpen(w.id ?? 0)}>
-              <span className="min-w-0 flex-1 truncate">{windowLabel(w)}</span>
+              <span sx={stylexStyles3.rule2}>{windowLabel(w)}</span>
               {w.place === WasiVmWindowPlace.WasiVmWindowPlace_VIEWER && (
-                <span className="text-foreground-alt/60 text-xs">In a tab</span>
+                <span sx={stylexStyles3.rule3}>In a tab</span>
               )}
             </DropdownMenuItem>
           ))
@@ -201,18 +334,16 @@ export function WasiVmWindowPicker({
   onShowDesktop,
 }: WasiVmWindowPickerProps) {
   return (
-    <div className="flex min-h-0 flex-1 justify-center overflow-y-auto p-4 sm:p-8">
-      <section className="border-foreground/6 bg-background-card/30 flex h-fit w-full max-w-md flex-col gap-4 rounded-lg border p-4 backdrop-blur-sm">
+    <div sx={stylexStyles3.rule4}>
+      <section sx={stylexStyles3.rule5}>
         {/* Identity */}
-        <div className="flex items-center gap-3">
-          <div className="bg-foreground/5 text-foreground-alt flex size-10 shrink-0 items-center justify-center rounded-lg">
+        <div sx={stylexStyles3.rule6}>
+          <div sx={stylexStyles3.rule7}>
             <LuAppWindow sx={stylexStyles.rule1} />
           </div>
-          <div className="min-w-0 flex-1">
-            <h2 className="text-foreground truncate text-base font-medium">
-              No window in this tab
-            </h2>
-            <div className="text-foreground-alt text-xs">
+          <div sx={stylexStyles3.rule8}>
+            <h2 sx={stylexStyles3.rule9}>No window in this tab</h2>
+            <div sx={stylexStyles3.rule10}>
               {earlierRun
                 ? `Its window closed when ${name} last stopped.`
                 : `Its window in ${name} closed.`}
@@ -221,34 +352,28 @@ export function WasiVmWindowPicker({
         </div>
 
         {/* Windows */}
-        <div className="flex flex-col gap-1">
-          <div className="text-foreground-alt text-xs">Show a window here</div>
+        <div sx={stylexStyles3.rule11}>
+          <div sx={stylexStyles3.rule10}>Show a window here</div>
           {windows === undefined ? (
-            <div className="text-foreground-alt/70 py-1.5 text-sm">
-              Reading the VM's windows...
-            </div>
+            <div sx={stylexStyles3.rule12}>Reading the VM's windows...</div>
           ) : windows.length === 0 ? (
-            <div className="text-foreground-alt/70 py-1.5 text-sm">
+            <div sx={stylexStyles3.rule12}>
               No windows are open. Open an app on the desktop and it appears
               here.
             </div>
           ) : (
-            <ul className="flex flex-col gap-0.5">
+            <ul sx={stylexStyles3.rule13}>
               {windows.map((w) => (
                 <li key={w.id}>
                   <button
                     type="button"
                     onClick={() => onShowWindow(w.id ?? 0)}
-                    className="hover:bg-foreground/5 text-foreground flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition duration-150"
+                    sx={stylexStyles3.rule14}
                   >
                     <LuAppWindow sx={stylexStyles.rule2} />
-                    <span className="min-w-0 flex-1 truncate">
-                      {windowLabel(w)}
-                    </span>
+                    <span sx={stylexStyles3.rule2}>{windowLabel(w)}</span>
                     {w.place === WasiVmWindowPlace.WasiVmWindowPlace_VIEWER && (
-                      <span className="text-foreground-alt/60 text-xs">
-                        In another tab
-                      </span>
+                      <span sx={stylexStyles3.rule3}>In another tab</span>
                     )}
                   </button>
                 </li>

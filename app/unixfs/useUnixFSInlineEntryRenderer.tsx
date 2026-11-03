@@ -7,6 +7,85 @@ import type { FileEntry } from '@s4wave/web/editors/file-browser/types.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+import {
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    minWidth: `calc(${themeLayout['--spacing']} * 30)`,
+    flex: 1,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * .5)`,
+    overflow: 'hidden',
+  },
+  rule2: {
+    minWidth: 0,
+    flex: 1,
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: themeColors['--color-brand'],
+    backgroundColor: themeColors['--color-background'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+  },
+  rule3: {
+    flexShrink: 0,
+    padding: `calc(${themeLayout['--spacing']} * .5)`,
+    color: {
+      default: themeColors['--color-brand'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-brand-highlight'],
+      },
+    },
+  },
+  rule4: {
+    flexShrink: 0,
+    padding: `calc(${themeLayout['--spacing']} * .5)`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+  },
+  rule5: {
+    display: 'flex',
+    minWidth: `calc(${themeLayout['--spacing']} * 30)`,
+    flex: 1,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    overflow: 'hidden',
+  },
+  rule6: {
+    minWidth: 0,
+    flex: 1,
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: themeColors['--color-brand'],
+    backgroundColor: themeColors['--color-background'],
+    paddingInline: themeLayout['--spacing'],
+    paddingBlock: 0,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3)`,
@@ -60,7 +139,7 @@ export function useUnixFSInlineEntryRenderer({
         return (
           <div
             role="presentation"
-            className="flex min-w-30 flex-1 items-center gap-0.5 overflow-hidden"
+            sx={stylexStyles2.rule1}
             data-rename-actions="true"
             onClick={(event) => event.stopPropagation()}
             onMouseDown={(event) => event.stopPropagation()}
@@ -77,7 +156,7 @@ export function useUnixFSInlineEntryRenderer({
                   lastDot > 0 ? lastDot : name.length,
                 )
               }}
-              className="bg-background text-foreground border-brand min-w-0 flex-1 rounded border px-1.5 py-0.5 text-xs outline-none"
+              sx={stylexStyles2.rule2}
               defaultValue={renameRef.current}
               onChange={(event) => {
                 renameRef.current = event.target.value
@@ -104,7 +183,7 @@ export function useUnixFSInlineEntryRenderer({
               type="button"
               tabIndex={0}
               aria-label="Confirm rename"
-              className="text-brand hover:text-brand-highlight shrink-0 p-0.5"
+              sx={stylexStyles2.rule3}
               onClick={(event) => {
                 event.preventDefault()
                 event.stopPropagation()
@@ -117,7 +196,7 @@ export function useUnixFSInlineEntryRenderer({
               type="button"
               tabIndex={0}
               aria-label="Cancel rename"
-              className="text-foreground-alt hover:text-foreground shrink-0 p-0.5"
+              sx={stylexStyles2.rule4}
               onClick={(event) => {
                 event.preventDefault()
                 event.stopPropagation()
@@ -141,14 +220,14 @@ export function useUnixFSInlineEntryRenderer({
       return (
         <div
           role="presentation"
-          className="flex min-w-30 flex-1 items-center gap-2 overflow-hidden"
+          sx={stylexStyles2.rule5}
           onClick={(event) => event.stopPropagation()}
           onMouseDown={(event) => event.stopPropagation()}
         >
           <input
             aria-label={placeholder}
             ref={(element) => element?.focus()}
-            className="bg-background text-foreground border-brand min-w-0 flex-1 rounded border px-1 py-0 text-xs outline-none"
+            sx={stylexStyles2.rule6}
             value={value}
             onChange={(event) => handleNameChange(event.target.value)}
             onKeyDown={(event) => {

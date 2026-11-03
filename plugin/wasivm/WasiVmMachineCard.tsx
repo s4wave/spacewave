@@ -8,6 +8,103 @@ import { VmErrorBanner } from '@s4wave/app/vm/VmErrorBanner.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    minHeight: 0,
+    flex: 1,
+    justifyContent: 'center',
+    overflowY: 'auto',
+    padding: {
+      default: `calc(${themeLayout['--spacing']} * 4)`,
+      '@media (min-width: 40rem)': `calc(${themeLayout['--spacing']} * 8)`,
+    },
+  },
+  rule2: {
+    display: 'flex',
+    height: 'fit-content',
+    width: '100%',
+    maxWidth: 'var(--container-md)',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+  },
+  rule3: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule4: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-lg'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule5: { minWidth: 0, flex: 1 },
+  rule6: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: 'var(--text-base)',
+    lineHeight: 'var(--tw-leading, var(--text-base--line-height))',
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule7: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule8: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule9: { display: 'flex', gap: `calc(${themeLayout['--spacing']} * 4)` },
+  rule10: {
+    width: `calc(${themeLayout['--spacing']} * 24)`,
+    flexShrink: 0,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule11: {
+    minWidth: 0,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    color: themeColors['--color-foreground'],
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 5)`,
@@ -47,20 +144,16 @@ export function WasiVmMachineCard({
 }: WasiVmMachineCardProps) {
   const failed = state === VmState.VmState_ERROR
   return (
-    <div className="flex min-h-0 flex-1 justify-center overflow-y-auto p-4 sm:p-8">
-      <section className="border-foreground/6 bg-background-card/30 flex h-fit w-full max-w-md flex-col gap-4 rounded-lg border p-4 backdrop-blur-sm">
+    <div sx={stylexStyles2.rule1}>
+      <section sx={stylexStyles2.rule2}>
         {/* Identity */}
-        <div className="flex items-center gap-3">
-          <div className="bg-foreground/5 text-foreground-alt flex size-10 shrink-0 items-center justify-center rounded-lg">
+        <div sx={stylexStyles2.rule3}>
+          <div sx={stylexStyles2.rule4}>
             <LuTerminal sx={stylexStyles.rule1} />
           </div>
-          <div className="min-w-0 flex-1">
-            <h2 className="text-foreground truncate text-base font-medium">
-              {name}
-            </h2>
-            <div className="text-foreground-alt text-xs">
-              WebAssembly virtual machine
-            </div>
+          <div sx={stylexStyles2.rule5}>
+            <h2 sx={stylexStyles2.rule6}>{name}</h2>
+            <div sx={stylexStyles2.rule7}>WebAssembly virtual machine</div>
           </div>
         </div>
 
@@ -75,23 +168,16 @@ export function WasiVmMachineCard({
         )}
 
         {/* Configuration */}
-        <dl className="flex flex-col gap-1.5 text-xs">
-          <div className="flex gap-4">
-            <dt className="text-foreground-alt w-24 shrink-0">
-              Root filesystem
-            </dt>
-            <dd
-              className="text-foreground min-w-0 truncate font-mono"
-              title={rootfsKey}
-            >
+        <dl sx={stylexStyles2.rule8}>
+          <div sx={stylexStyles2.rule9}>
+            <dt sx={stylexStyles2.rule10}>Root filesystem</dt>
+            <dd sx={stylexStyles2.rule11} title={rootfsKey}>
               {rootfsKey || 'None'}
             </dd>
           </div>
-          <div className="flex gap-4">
-            <dt className="text-foreground-alt w-24 shrink-0">Init</dt>
-            <dd className="text-foreground min-w-0 truncate font-mono">
-              {init}
-            </dd>
+          <div sx={stylexStyles2.rule9}>
+            <dt sx={stylexStyles2.rule10}>Init</dt>
+            <dd sx={stylexStyles2.rule11}>{init}</dd>
           </div>
         </dl>
 

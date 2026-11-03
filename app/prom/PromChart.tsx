@@ -9,6 +9,35 @@ import {
   seriesColor,
 } from './prom-view.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  colors as themeColors,
+  layout as themeLayout,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'block',
+    touchAction: 'none',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule2: {
+    stroke: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+  },
+  rule3: {
+    fill: themeColors['--color-foreground-alt'],
+    fontSize: themeLayout['--text-metadata'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-metadata--line-height']})`,
+    '--tw-numeric-spacing': 'tabular-nums',
+    fontVariantNumeric:
+      'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+  },
+  rule4: {
+    stroke: `color-mix(in oklab, ${themeColors['--color-foreground']} 40%, transparent)`,
+  },
+})
+
 // chartHeight is the height of every chart, so panels never shift as they
 // load. The panel's placeholders match it with h-40.
 const chartHeight = 160
@@ -129,7 +158,7 @@ export function PromChart({
     <svg
       width={width}
       height={chartHeight}
-      className="block touch-none select-none"
+      sx={stylexStyles.rule1}
       onPointerMove={handleMove}
       onPointerLeave={handleLeave}
       role="img"
@@ -141,14 +170,14 @@ export function PromChart({
             x2={width}
             y1={y(v)}
             y2={y(v)}
-            className="stroke-foreground/8"
+            sx={stylexStyles.rule2}
           />
           <text
             x={marginLeft - 6}
             y={y(v)}
             dy="0.32em"
             textAnchor="end"
-            className="fill-foreground-alt text-metadata tabular-nums"
+            sx={stylexStyles.rule3}
           >
             {formatValue(v, unit)}
           </text>
@@ -160,7 +189,7 @@ export function PromChart({
           x={x(ms)}
           y={chartHeight - 4}
           textAnchor="middle"
-          className="fill-foreground-alt text-metadata tabular-nums"
+          sx={stylexStyles.rule3}
         >
           {formatClock(ms, withDate)}
         </text>
@@ -184,7 +213,7 @@ export function PromChart({
           x2={x(hoverMs)}
           y1={marginTop}
           y2={marginTop + plotHeight}
-          className="stroke-foreground/40"
+          sx={stylexStyles.rule4}
         />
       ) : null}
     </svg>

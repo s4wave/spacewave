@@ -25,8 +25,72 @@ import {
 import { $createHorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode'
 import { INSERT_TABLE_COMMAND } from '@lexical/table'
 import { SpacewaveEmbedNode } from './SpacewaveEmbedNode.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { TextInputDialog } from '../NoteDialogs.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    top: 'var(--slash-command-top)',
+    left: 'var(--slash-command-left)',
+    position: 'fixed',
+    zIndex: 200,
+    minWidth: `calc(${themeLayout['--spacing']} * 55)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: themeColors['--color-border'],
+    backgroundColor: themeColors['--color-popover'],
+    paddingBlock: themeLayout['--spacing'],
+    '--tw-shadow':
+      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+  },
+  rule2: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    textAlign: 'left',
+  },
+  rule3: {
+    backgroundColor: themeColors['--color-list-active-selection-background'],
+  },
+  rule4: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 6)`,
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-muted-foreground'],
+  },
+  rule5: { display: 'flex', flexDirection: 'column' },
+  rule6: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule7: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-muted-foreground'],
+  },
+})
 
 type SlashMenuItem = {
   title: string
@@ -380,7 +444,7 @@ function SlashCommandPlugin() {
         ? createPortal(
             <div
               ref={menuRef}
-              className="slash-command-position bg-popover border-border z-command-menu fixed min-w-55 rounded-lg border py-1 shadow-lg"
+              sx={stylexStyles.rule1}
               style={{
                 '--slash-command-top': `${position.top}px`,
                 '--slash-command-left': `${position.left}px`,
@@ -390,27 +454,20 @@ function SlashCommandPlugin() {
                 <button
                   key={item.title}
                   type="button"
-                  className={cn(
-                    'flex w-full items-center gap-3 px-3 py-1.5 text-left',
-                    index === selectedIndex &&
-                      'bg-list-active-selection-background',
-                  )}
+                  sx={[
+                    stylexStyles.rule2,
+                    index === selectedIndex && stylexStyles.rule3,
+                  ]}
                   onMouseDown={(e) => {
                     e.preventDefault()
                     executeItem(index)
                   }}
                   onMouseEnter={() => setSelectedIndex(index)}
                 >
-                  <span className="text-muted-foreground flex size-6 items-center justify-center text-xs font-medium">
-                    {item.icon}
-                  </span>
-                  <span className="flex flex-col">
-                    <span className="text-foreground text-xs">
-                      {item.title}
-                    </span>
-                    <span className="text-muted-foreground text-xs">
-                      {item.description}
-                    </span>
+                  <span sx={stylexStyles.rule4}>{item.icon}</span>
+                  <span sx={stylexStyles.rule5}>
+                    <span sx={stylexStyles.rule6}>{item.title}</span>
+                    <span sx={stylexStyles.rule7}>{item.description}</span>
                   </span>
                 </button>
               ))}

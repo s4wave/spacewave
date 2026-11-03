@@ -27,6 +27,62 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: themeColors['--color-background-landing'],
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule2: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule3: {
+    position: 'relative',
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 6)`,
+    backgroundColor: themeColors['--color-background-landing'],
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule4: {
+    position: 'relative',
+    zIndex: 10,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule5: {
+    fontSize: 'var(--text-xl)',
+    lineHeight: 'var(--tw-leading, var(--text-xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-wide)',
+    letterSpacing: 'var(--tracking-wide)',
+  },
+  rule6: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule7: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 6)`,
@@ -210,21 +266,19 @@ export function HandoffPage() {
 
   if (!request) {
     return (
-      <div className="bg-background-landing flex flex-1 flex-col items-center justify-center p-6">
-        <p className="text-destructive text-sm">Invalid handoff link.</p>
+      <div sx={stylexStyles2.rule1}>
+        <p sx={stylexStyles2.rule2}>Invalid handoff link.</p>
       </div>
     )
   }
 
   if (state.step === 'completing') {
     return (
-      <div className="bg-background-landing relative flex flex-1 flex-col items-center justify-center gap-6 p-6">
-        <div className="relative z-10 flex flex-col items-center gap-4">
+      <div sx={stylexStyles2.rule3}>
+        <div sx={stylexStyles2.rule4}>
           <Spinner size="xl" variant="brand" />
-          <h1 className="text-xl font-semibold tracking-wide">
-            Completing sign-in…
-          </h1>
-          <p className="text-foreground-alt text-sm">
+          <h1 sx={stylexStyles2.rule5}>Completing sign-in…</h1>
+          <p sx={stylexStyles2.rule6}>
             Sending credentials to Spacewave {label}.
           </p>
         </div>
@@ -243,9 +297,9 @@ export function HandoffPage() {
       intro={
         <>
           <AnimatedLogo followMouse={false} />
-          <div className="flex items-center gap-2">
+          <div sx={stylexStyles2.rule7}>
             <ClientTypeIcon clientType={request.clientType ?? ''} />
-            <h1 className="text-xl font-semibold tracking-wide">
+            <h1 sx={stylexStyles2.rule5}>
               {routeHints.authIntent === 'signup'
                 ? `Creating a Spacewave ${label} account`
                 : `Signing in to Spacewave ${label}`}

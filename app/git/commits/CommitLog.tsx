@@ -12,6 +12,51 @@ import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
 
 import { CommitRow } from './CommitRow.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  layout as themeLayout,
+  fonts as themeFonts,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule2: {
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+  },
+  rule3: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule4: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    textAlign: 'left',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    textDecorationLine: {
+      default: null,
+      '@media (hover: hover)': { default: null, ':hover': 'underline' },
+    },
+  },
+  rule5: { color: themeColors['--color-brand'] },
+})
+
 // CommitLogProps are props for the CommitLog component.
 export interface CommitLogProps {
   handle: GitRepoHandle
@@ -124,7 +169,7 @@ function CommitLogInner({ handle, refName, onCommitClick }: CommitLogProps) {
 
   if (loading) {
     return (
-      <div className="border-foreground/8 border-t px-3 py-2">
+      <div sx={stylexStyles.rule1}>
         <LoadingInline label="Loading commits" tone="muted" size="sm" />
       </div>
     )
@@ -132,8 +177,8 @@ function CommitLogInner({ handle, refName, onCommitClick }: CommitLogProps) {
 
   if (error) {
     return (
-      <div className="border-foreground/8 border-t">
-        <div className="text-destructive px-3 py-2 text-xs">
+      <div sx={stylexStyles.rule2}>
+        <div sx={stylexStyles.rule3}>
           Failed to load commits: {error.message}
         </div>
       </div>
@@ -143,7 +188,7 @@ function CommitLogInner({ handle, refName, onCommitClick }: CommitLogProps) {
   if (commits.length === 0) return null
 
   return (
-    <div className="border-foreground/8 border-t">
+    <div sx={stylexStyles.rule2}>
       <div>
         {commits.map((commit) => {
           const hash = commit.hash ?? ''
@@ -164,14 +209,14 @@ function CommitLogInner({ handle, refName, onCommitClick }: CommitLogProps) {
       {(hasMore || (initialHasMore && extraCommits.length === 0)) && (
         <button
           type="button"
-          className="flex w-full items-center px-3 py-1.5 text-left text-xs hover:underline"
+          sx={stylexStyles.rule4}
           onClick={handleShowMore}
           disabled={loadingMore}
         >
           {loadingMore ? (
             <LoadingInline label="Loading" tone="muted" size="sm" />
           ) : (
-            <span className="text-brand">Show more</span>
+            <span sx={stylexStyles.rule5}>Show more</span>
           )}
         </button>
       )}

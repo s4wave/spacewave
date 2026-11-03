@@ -20,6 +20,107 @@ import { ForgeValueSetDisplay } from './ForgeValueSetDisplay.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: { color: themeColors['--color-destructive'] },
+  rule2: { color: 'var(--color-amber-300)' },
+  rule3: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule4: { color: themeColors['--color-foreground'] },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule2: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule3: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule4: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    padding: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule5: {
+    maxHeight: `calc(${themeLayout['--spacing']} * 64)`,
+    overflowY: 'auto',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 40%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule6: {
+    display: 'flex',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+  },
+  rule7: {
+    flex: 1,
+    wordBreak: 'break-all',
+    whiteSpace: 'pre-wrap',
+    color: themeColors['--color-foreground'],
+  },
+  rule8: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule9: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule10: {
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -41,17 +142,17 @@ const execStateLabels: Record<number, string> = {
   [State.ExecutionState_COMPLETE]: 'COMPLETE',
 }
 
-// logLevelColor returns a text color class for a log level.
-function logLevelColor(level: string): string {
+// logLevelStyles returns a text color class for a log level.
+function logLevelStyles(level: string): stylex.StyleXStyles {
   switch (level) {
     case 'error':
-      return 'text-destructive'
+      return stylexStyles3.rule1
     case 'warn':
-      return 'text-amber-300'
+      return stylexStyles3.rule2
     case 'debug':
-      return 'text-foreground-alt/50'
+      return stylexStyles3.rule3
     default:
-      return 'text-foreground'
+      return stylexStyles3.rule4
   }
 }
 
@@ -69,14 +170,10 @@ function describeResult(result?: {
 
 function ExecutionTimestamp({ timestamp }: { timestamp?: Date }) {
   if (!timestamp) {
-    return <span className="text-foreground-alt/50 text-xs">Not started</span>
+    return <span sx={stylexStyles2.rule1}>Not started</span>
   }
 
-  return (
-    <span className="text-foreground text-sm font-medium">
-      {timestamp.toISOString()}
-    </span>
-  )
+  return <span sx={stylexStyles2.rule2}>{timestamp.toISOString()}</span>
 }
 
 // LogViewer renders execution log entries with auto-scroll.
@@ -90,8 +187,8 @@ function LogViewer({ logEntries }: { logEntries: Execution['logEntries'] }) {
 
   if (entries.length === 0) {
     return (
-      <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-        <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
+      <div sx={stylexStyles2.rule3}>
+        <div sx={stylexStyles2.rule4}>
           <LuActivity sx={stylexStyles.rule1} />
           <span>No log output</span>
         </div>
@@ -100,23 +197,18 @@ function LogViewer({ logEntries }: { logEntries: Execution['logEntries'] }) {
   }
 
   return (
-    <div
-      ref={scrollRef}
-      className="border-foreground/6 bg-background/40 max-h-64 overflow-y-auto rounded-lg border p-3"
-    >
+    <div ref={scrollRef} sx={stylexStyles2.rule5}>
       {entries.map((entry) => (
         <div
           key={`${entry.level ?? ''}:${entry.message}`}
-          className="flex gap-2 font-mono text-xs leading-relaxed"
+          sx={stylexStyles2.rule6}
         >
           {entry.level && (
-            <span className={logLevelColor(entry.level)}>
+            <span sx={logLevelStyles(entry.level)}>
               [{entry.level.toUpperCase()}]
             </span>
           )}
-          <span className="text-foreground flex-1 break-all whitespace-pre-wrap">
-            {entry.message}
-          </span>
+          <span sx={stylexStyles2.rule7}>{entry.message}</span>
         </div>
       ))}
     </div>
@@ -146,8 +238,9 @@ export function ForgeExecutionViewer({
         id: 'inputs',
         label: 'Inputs',
         content: (
-          <div className="space-y-3">
+          <div sx={false}>
             <ForgeValueSetDisplay
+              sx={nativeChildSpacingNext.s3}
               title="Inputs"
               values={execution?.valueSet?.inputs}
               emptyLabel="No inputs recorded"
@@ -159,8 +252,9 @@ export function ForgeExecutionViewer({
         id: 'outputs',
         label: 'Outputs',
         content: (
-          <div className="space-y-3">
+          <div sx={false}>
             <ForgeValueSetDisplay
+              sx={nativeChildSpacingNext.s3}
               title="Outputs"
               values={execution?.valueSet?.outputs}
               emptyLabel="No outputs recorded"
@@ -172,37 +266,43 @@ export function ForgeExecutionViewer({
         id: 'details',
         label: 'Details',
         content: (
-          <div className="space-y-3">
-            <InfoCard>
-              <div className="space-y-2">
+          <div sx={false}>
+            <InfoCard sx={nativeChildSpacing.s3}>
+              <div sx={false}>
                 {execution?.peerId && (
                   <CopyableField
+                    sx={nativeChildSpacing.s2}
                     label="Worker Peer ID"
                     value={execution.peerId}
                   />
                 )}
                 {execution?.timestamp && (
                   <CopyableField
+                    sx={nativeChildSpacing.s2}
                     label="Created"
                     value={execution.timestamp.toISOString()}
                   />
                 )}
-                <CopyableField label="Object Key" value={objectKey} />
+                <CopyableField
+                  sx={nativeChildSpacing.s2}
+                  label="Object Key"
+                  value={objectKey}
+                />
               </div>
             </InfoCard>
-            <InfoCard title="Runtime">
-              <div className="flex items-center justify-between gap-3">
-                <div className="text-foreground-alt/50 text-xs">Started</div>
+            <InfoCard sx={nativeChildSpacing.s3} title="Runtime">
+              <div sx={stylexStyles2.rule8}>
+                <div sx={stylexStyles2.rule1}>Started</div>
                 <ExecutionTimestamp timestamp={execution?.timestamp} />
               </div>
-              <div className="text-foreground-alt/50 mt-3 flex flex-wrap gap-3 text-xs">
+              <div sx={stylexStyles2.rule9}>
                 <span>{execution?.logEntries?.length ?? 0} log entries</span>
                 <span>{execution?.valueSet?.inputs?.length ?? 0} inputs</span>
                 <span>{execution?.valueSet?.outputs?.length ?? 0} outputs</span>
               </div>
             </InfoCard>
-            <InfoCard title="Result">
-              <div className="text-foreground text-sm font-medium">
+            <InfoCard sx={nativeChildSpacing.s3} title="Result">
+              <div sx={stylexStyles2.rule2}>
                 {describeResult(execution?.result)}
               </div>
             </InfoCard>
@@ -222,7 +322,7 @@ export function ForgeExecutionViewer({
       stateLabels={execStateLabels}
       headerStatus={
         execution?.waitingPluginId && (
-          <div className="border-foreground/8 text-foreground border-b px-4 py-2 text-xs">
+          <div sx={stylexStyles2.rule10}>
             Waiting for plugin {execution.waitingPluginId} to load
           </div>
         )
@@ -231,3 +331,44 @@ export function ForgeExecutionViewer({
     />
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

@@ -82,19 +82,23 @@ export function UpgradeLoginPage() {
 
   return (
     <AuthScreenLayout
-      topLeft={
-        <button type="button" onClick={handleBack} sx={stylexStyles2.rule1}>
+      renderTopLeft={(buttonSx) => (
+        <button
+          type="button"
+          onClick={handleBack}
+          sx={[stylexStyles2.rule1, buttonSx]}
+        >
           <LuArrowLeft sx={stylexStyles.rule1} />
           <span sx={stylexStyles2.rule2}>Back to plan selection</span>
         </button>
-      }
+      )}
       intro={
         <>
           <AnimatedLogo followMouse={false} />
           <h1 sx={stylexStyles2.rule3}>Create a Cloud Account</h1>
         </>
       }
-      contentClassName="auth-short:max-w-lg"
+      contentSx={authFormStyles.wide}
     >
       <div sx={stylexStyles2.rule4}>
         <LoginForm
@@ -111,3 +115,13 @@ export function UpgradeLoginPage() {
     </AuthScreenLayout>
   )
 }
+
+// authFormStyles gives account creation its existing short-container width.
+const authFormStyles = stylex.create({
+  wide: {
+    maxWidth: {
+      default: 'var(--container-sm)',
+      '@container (max-height: 740px)': 'var(--container-lg)',
+    },
+  },
+})

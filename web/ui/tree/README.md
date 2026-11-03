@@ -35,13 +35,13 @@ function MyTree() {
 
 ## Props
 
-| Prop | Type | Description |
-|------|------|-------------|
-| `nodes` | `TreeNode<T>[]` | Tree data structure |
-| `state` | `TreeStateHandle` | The tree state and its updater, from `useTreeState` |
-| `placeholder` | `ReactNode` | Shown when nodes is empty |
-| `className` | `string` | Additional CSS classes |
-| `onRowDefaultAction` | `(nodes: TreeNode<T>[]) => void` | Called on double-click or Enter |
+| Prop                 | Type                             | Description                                         |
+| -------------------- | -------------------------------- | --------------------------------------------------- |
+| `nodes`              | `TreeNode<T>[]`                  | Tree data structure                                 |
+| `state`              | `TreeStateHandle`                | The tree state and its updater, from `useTreeState` |
+| `placeholder`        | `ReactNode`                      | Shown when nodes is empty                           |
+| `className`          | `string`                         | Additional CSS classes                              |
+| `onRowDefaultAction` | `(nodes: TreeNode<T>[]) => void` | Called on double-click or Enter                     |
 
 ## TreeNode Interface
 
@@ -59,18 +59,18 @@ interface TreeNode<T = void> {
 
 ## Keyboard Navigation
 
-| Key | Action |
-|-----|--------|
-| `j` / `ArrowDown` | Move to next visible node |
-| `k` / `ArrowUp` | Move to previous visible node |
-| `l` / `ArrowRight` | Expand node or move to first child |
-| `h` / `ArrowLeft` | Collapse node or move to parent |
-| `Enter` | Trigger default action on selected nodes |
-| `Space` | Toggle expand on parent nodes |
-| `Home` | Jump to first node |
-| `End` | Jump to last visible node |
-| `Shift+Arrow` | Range selection |
-| `Ctrl/Cmd+Click` | Toggle selection |
+| Key                | Action                                   |
+| ------------------ | ---------------------------------------- |
+| `j` / `ArrowDown`  | Move to next visible node                |
+| `k` / `ArrowUp`    | Move to previous visible node            |
+| `l` / `ArrowRight` | Expand node or move to first child       |
+| `h` / `ArrowLeft`  | Collapse node or move to parent          |
+| `Enter`            | Trigger default action on selected nodes |
+| `Space`            | Toggle expand on parent nodes            |
+| `Home`             | Jump to first node                       |
+| `End`              | Jump to last visible node                |
+| `Shift+Arrow`      | Range selection                          |
+| `Ctrl/Cmd+Click`   | Toggle selection                         |
 
 ## State
 
@@ -108,9 +108,9 @@ import { TreeStateContext, TreeDispatchContext } from '@s4wave/web/ui/tree'
 function CustomTreeWidget() {
   const state = useContext(TreeStateContext)
   const dispatch = useContext(TreeDispatchContext)
-  
+
   const selectedCount = state?.selectedIds.size ?? 0
-  
+
   return <div>{selectedCount} selected</div>
 }
 ```
@@ -125,11 +125,24 @@ export { TreeRow } from './TreeRow.js'
 // Types
 export type { TreeProps } from './Tree.js'
 export type { TreeNode, TreeNodeOnDragStart } from './TreeNode.js'
-export type { TreeState, TreeStateHandle, TreeUpdate, TreeAction, SelectNodeAction, TreeDispatch } from './TreeState.js'
+export type {
+  TreeState,
+  TreeStateHandle,
+  TreeUpdate,
+  TreeAction,
+  SelectNodeAction,
+  TreeDispatch,
+} from './TreeState.js'
 
 // Contexts
 export { TreeStateContext, TreeDispatchContext } from './TreeState.js'
 
 // Utilities
-export { useTreeState, treeReducer, findNodeById, findParentNode, getVisibleNodes } from './TreeState.js'
+export {
+  useTreeState,
+  treeReducer,
+  findNodeById,
+  findParentNode,
+  getVisibleNodes,
+} from './TreeState.js'
 ```

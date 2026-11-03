@@ -13,7 +13,6 @@ import {
   useUnixFSHandle,
   useUnixFSHandleEntries,
 } from '@s4wave/web/hooks/useUnixFSHandle.js'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import { Blog } from './proto/blog.pb.js'
 import { BlogTypeID } from './sdk/blog.js'
@@ -29,6 +28,97 @@ import NoteContentView from './NoteContentView.js'
 
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+import {
+  colors as themeColors,
+  fonts as themeFonts,
+  utilityState as themeUtilityState,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    flexShrink: 0,
+    borderRadius: '.25rem',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 1,
+    '--tw-leading': '1',
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-brand'],
+  },
+  rule2: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    overflow: 'hidden',
+    backgroundColor: themeColors['--color-background-primary'],
+  },
+  rule3: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: themeColors['--color-border'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule4: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule5: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * .5)`,
+  },
+  rule6: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderRadius: '.25rem',
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-list-hover-background'],
+      },
+    },
+  },
+  rule7: { color: themeColors['--color-brand'] },
+  rule8: { color: themeColors['--color-foreground-alt'] },
+  rule9: { minHeight: 0, flex: 1 },
+  rule10: { display: 'flex', height: '100%', overflow: 'hidden' },
+  rule11: {
+    width: `calc(${themeLayout['--spacing']} * 62.5)`,
+    minWidth: `calc(${themeLayout['--spacing']} * 62.5)`,
+    borderRightStyle: themeUtilityState['--tw-border-style'],
+    borderRightWidth: '1px',
+    borderColor: themeColors['--color-border'],
+  },
+  rule12: { minWidth: 0, flex: 1 },
+  rule13: {
+    display: 'flex',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-muted-foreground'],
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -151,11 +241,7 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
   const renderDraftBadge = useCallback(
     (name: string) => {
       if (!draftNames.has(name)) return null
-      return (
-        <span className="bg-brand/10 text-brand shrink-0 rounded px-1.5 py-0.5 text-xs leading-none font-medium">
-          Draft
-        </span>
-      )
+      return <span sx={stylexStyles2.rule1}>Draft</span>
     },
     [draftNames],
   )
@@ -213,21 +299,18 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
       emptyText="No sources configured for this blog"
       sources={sources}
     >
-      <div className="bg-background-primary flex h-full w-full flex-col overflow-hidden">
+      <div sx={stylexStyles2.rule2}>
         {/* Mode toggle header */}
-        <div className="border-border flex h-9 shrink-0 items-center justify-between border-b px-3">
-          <span className="text-foreground text-xs font-medium">
-            {state.value?.name ?? 'Blog'}
-          </span>
-          <div className="flex items-center gap-0.5">
+        <div sx={stylexStyles2.rule3}>
+          <span sx={stylexStyles2.rule4}>{state.value?.name ?? 'Blog'}</span>
+          <div sx={stylexStyles2.rule5}>
             <button
               type="button"
               onClick={handleSetReading}
-              className={cn(
-                'flex items-center gap-1 rounded px-2 py-0.5 text-xs',
-                'hover:bg-list-hover-background',
-                mode === 'reading' ? 'text-brand' : 'text-foreground-alt',
-              )}
+              sx={[
+                stylexStyles2.rule6,
+                mode === 'reading' ? stylexStyles2.rule7 : stylexStyles2.rule8,
+              ]}
               title="Reading mode"
             >
               <LuBookOpen sx={stylexStyles.rule1} />
@@ -236,11 +319,10 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
             <button
               type="button"
               onClick={handleSetEditing}
-              className={cn(
-                'flex items-center gap-1 rounded px-2 py-0.5 text-xs',
-                'hover:bg-list-hover-background',
-                mode === 'editing' ? 'text-brand' : 'text-foreground-alt',
-              )}
+              sx={[
+                stylexStyles2.rule6,
+                mode === 'editing' ? stylexStyles2.rule7 : stylexStyles2.rule8,
+              ]}
               title="Editing mode"
             >
               <LuPenLine sx={stylexStyles.rule1} />
@@ -250,7 +332,7 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
         </div>
 
         {/* Content area */}
-        <div className="min-h-0 flex-1">
+        <div sx={stylexStyles2.rule9}>
           {mode === 'reading' ? (
             <BlogReadingView
               posts={blogPosts}
@@ -259,9 +341,9 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
               authorRegistry={authorRegistry}
             />
           ) : (
-            <div className="flex h-full overflow-hidden">
+            <div sx={stylexStyles2.rule10}>
               {/* Post list sidebar */}
-              <div className="border-border w-62.5 min-w-62.5 border-r">
+              <div sx={stylexStyles2.rule11}>
                 <NoteList
                   source={firstSource}
                   worldState={worldState}
@@ -274,7 +356,7 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
               </div>
 
               {/* Editor area */}
-              <div className="min-w-0 flex-1">
+              <div sx={stylexStyles2.rule12}>
                 {firstSource?.ref && selectedPostName ? (
                   <NoteContentView
                     worldState={worldState}
@@ -285,9 +367,7 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
                     onContentSaved={handleContentSaved}
                   />
                 ) : (
-                  <div className="text-muted-foreground flex h-full items-center justify-center text-xs">
-                    Select a post to edit
-                  </div>
+                  <div sx={stylexStyles2.rule13}>Select a post to edit</div>
                 )}
               </div>
             </div>

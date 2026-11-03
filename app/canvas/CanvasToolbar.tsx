@@ -1,3 +1,4 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import { useCallback, type ReactNode } from 'react'
 import {
   LuArrowRight,
@@ -16,7 +17,6 @@ import {
   LuZoomOut,
 } from '@s4wave/web/images/icons.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import {
   Tooltip,
   TooltipContent,
@@ -27,7 +27,79 @@ import { CanvasColorPicker } from './CanvasColorPicker.js'
 import { DEFAULT_CANVAS_COLOR } from './geometry.js'
 import type { CanvasAction, CanvasTool } from './types.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  radii as themeRadii,
+  motion as themeMotion,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+import { utilityState as themeUtilityState } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderRightStyle: themeUtilityState['--tw-border-style'],
+    borderRightWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-dark']} 80%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 1.5)`,
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+  },
+  rule2: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    color: themeColors['--color-foreground'],
+  },
+  rule3: {
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground-alt'],
+      },
+    },
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+      },
+    },
+  },
+  rule4: {
+    marginBlock: themeLayout['--spacing'],
+    height: '1px',
+    width: `calc(${themeLayout['--spacing']} * 6)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+  },
+})
+
 interface CanvasToolbarProps {
+  className?: never
   tool: CanvasTool
   color?: string
   onToolChange: (tool: CanvasTool) => void
@@ -35,7 +107,7 @@ interface CanvasToolbarProps {
   actions: Record<CanvasAction, () => void>
   onAddObject?: () => void
   onAddImage?: () => void
-  className?: string
+  sx?: ComponentStyles
 }
 
 function ToolButton({
@@ -54,12 +126,10 @@ function ToolButton({
       <TooltipTrigger asChild>
         <button
           type="button"
-          className={cn(
-            'flex h-8 w-8 items-center justify-center rounded-md transition-colors duration-150',
-            active
-              ? 'bg-foreground/10 text-foreground'
-              : 'text-foreground-alt/50 hover:bg-foreground/6 hover:text-foreground-alt',
-          )}
+          sx={[
+            stylexStyles.rule1,
+            active ? stylexStyles.rule2 : stylexStyles.rule3,
+          ]}
           onClick={onClick}
           aria-label={label}
         >
@@ -80,8 +150,11 @@ export function CanvasToolbar({
   actions,
   onAddObject,
   onAddImage,
-  className,
-}: CanvasToolbarProps) {
+  sx,
+}: Omit<CanvasToolbarProps, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
   const setSelect = useCallback(() => onToolChange('select'), [onToolChange])
   const setDraw = useCallback(() => onToolChange('draw'), [onToolChange])
   const setLine = useCallback(() => onToolChange('line'), [onToolChange])
@@ -99,12 +172,7 @@ export function CanvasToolbar({
   )
 
   return (
-    <div
-      className={cn(
-        'bg-background-dark/80 border-foreground/6 flex flex-col items-center gap-1 border-r p-1.5 backdrop-blur-sm',
-        className,
-      )}
-    >
+    <div sx={[stylexStyles2.rule1, sx]}>
       <ToolButton
         label="Select (V)"
         active={tool === 'select'}
@@ -159,7 +227,7 @@ export function CanvasToolbar({
         </ToolButton>
       )}
 
-      <div className="bg-foreground/6 my-1 h-px w-6" />
+      <div sx={stylexStyles.rule4} />
 
       <ToolButton label="Zoom In (+)" onClick={actions['zoom-in']}>
         <LuZoomIn size={16} />

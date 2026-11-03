@@ -9,6 +9,41 @@ import {
 import { useNavigate } from '@s4wave/web/router/router.js'
 import LandingContent from './LandingContent.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    pointerEvents: 'none',
+    position: 'absolute',
+    inset: 0,
+    zIndex: 50,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 95%, transparent)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+  },
+  rule2: {
+    animationName: 'pulse',
+    animationDuration: '2s',
+    animationTimingFunction: 'cubic-bezier(.4, 0, .6, 1)',
+    animationIterationCount: 'infinite',
+    animationDirection: 'normal',
+    animationPlayState: 'running',
+    animationDelay: '0s',
+    animationFillMode: 'none',
+    animationTimeline: 'auto',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule3: { color: themeColors['--color-foreground-alt'] },
+})
+
 export const metadata = {
   title: 'Spacewave - Self-host anything in the browser',
   description:
@@ -187,18 +222,14 @@ export function Landing() {
   return (
     <div
       ref={containerRef}
-      className="bg-background-landing landing-finish @container relative flex w-full flex-1 flex-col overflow-auto"
+      className={
+        /* TODO(stylex): global or unknown class: landing-finish */ 'bg-background-landing landing-finish @container relative flex w-full flex-1 flex-col overflow-auto'
+      }
     >
       <QuickstartCommands onQuickstart={handleQuickstartCommand} />
       {visibility.tooNarrow && (
-        <div className="bg-background/95 pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center text-sm">
-          <span
-            className={
-              pageActive
-                ? 'text-foreground-alt animate-pulse'
-                : 'text-foreground-alt'
-            }
-          >
+        <div sx={stylexStyles.rule1}>
+          <span sx={pageActive ? stylexStyles.rule2 : stylexStyles.rule3}>
             &larr; Wider please! &rarr;
           </span>
         </div>

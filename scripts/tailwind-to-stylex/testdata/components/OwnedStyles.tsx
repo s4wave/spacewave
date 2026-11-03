@@ -6,6 +6,7 @@ import { Label } from './label.js'
 const ComponentStyles = 'existing-binding'
 const compiledStyles = compiled.create({
   override: { padding: 12 },
+  customOnly: { '--owned-only-color': 'rgb(30, 40, 50)' },
   dynamic: (minWidth: number, zIndex: number) => ({ minWidth, zIndex }),
 })
 
@@ -120,7 +121,7 @@ export function OwnedStyles({ optional = false }: { optional?: boolean } = {}) {
       <Box label="Default box">Default</Box>
       <Box
         label="Dynamic native caller"
-        className="min-w-[123px] z-3"
+        className="z-3 min-w-[123px]"
         style={{ '--owned-native-test': 'retained' }}
       >
         Dynamic caller
@@ -142,7 +143,17 @@ export function OwnedStyles({ optional = false }: { optional?: boolean } = {}) {
       >
         Attribute state
       </button>
+      <div
+        className="animated-logo-background perspective-logo h-4"
+        aria-label="Custom utility background"
+      />
       <div className="relative -z-10">Negative layer</div>
+      <div
+        sx={compiledStyles.customOnly}
+        style={{ color: 'var(--owned-only-color)' }}
+      >
+        Custom property only
+      </div>
     </section>
   )
 }

@@ -188,3 +188,25 @@ diff --git a/lib/es/types/StyleXTypes.js.flow b/lib/es/types/StyleXTypes.js.flow
 +> = StyleXArray<false | ?GenStylePropType<Readonly<CSS>> | MapNamespace<{ readonly marker: symbol | 'default-marker' }>>;
 @@ -188,0 +189 @@
 +  | MapNamespace<{ readonly marker: symbol | 'default-marker' }>
+diff --git a/lib/cjs/types/StyleXTypes.d.ts b/lib/cjs/types/StyleXTypes.d.ts
+--- a/lib/cjs/types/StyleXTypes.d.ts
++++ b/lib/cjs/types/StyleXTypes.d.ts
+@@ -38,6 +38,7 @@
+ type CSSPropertiesWithExtras = Partial<
+   Readonly<
+     CSSProperties & {
++      [customProperty: `--${string}`]: string | number | null;
+       '::after': CSSProperties;
+       '::backdrop': CSSProperties;
+       '::before': CSSProperties;
+diff --git a/lib/es/types/StyleXTypes.d.ts b/lib/es/types/StyleXTypes.d.ts
+--- a/lib/es/types/StyleXTypes.d.ts
++++ b/lib/es/types/StyleXTypes.d.ts
+@@ -38,6 +38,7 @@
+ type CSSPropertiesWithExtras = Partial<
+   Readonly<
+     CSSProperties & {
++      [customProperty: `--${string}`]: string | number | null;
+       '::after': CSSProperties;
+       '::backdrop': CSSProperties;
+       '::before': CSSProperties;

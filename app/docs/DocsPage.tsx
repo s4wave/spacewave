@@ -9,7 +9,7 @@ import {
   LuSparkles,
   LuChevronDown,
 } from '@s4wave/web/images/icons.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,6 +41,159 @@ import {
   radii as themeRadii,
   fonts as themeFonts,
 } from '../../web/style/tokens.stylex.js'
+
+import { groupMarker as groupMarker3 } from '../../web/style/relations.stylex.js'
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 6)`,
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    columnGap: `calc(${themeLayout['--spacing']} * 3)`,
+    rowGap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule2: {
+    display: 'flex',
+    minWidth: 0,
+    flex: 1,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule3: {
+    display: { default: 'none', '@container (min-width: 42rem)': 'inline' },
+  },
+  rule4: {
+    display: { default: 'none', '@container (min-width: 42rem)': 'inline' },
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 30%, transparent)`,
+  },
+  rule5: {
+    display: { default: 'none', '@container (min-width: 42rem)': 'inline' },
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule6: {
+    display: 'flex',
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+  },
+  rule7: {
+    display: 'flex',
+    height: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@container (min-width: 42rem)': `calc(${themeLayout['--spacing']} * 8)`,
+    },
+    minWidth: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@container (min-width: 42rem)': 0,
+    },
+    alignItems: 'center',
+    justifyContent: {
+      default: 'center',
+      '@container (min-width: 42rem)': 'flex-start',
+    },
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: themeRadii['--radius-md'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule8: { color: themeColors['--color-brand'] },
+  rule9: {
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground-alt'],
+      },
+    },
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+  },
+  rule10: { marginBottom: `calc(${themeLayout['--spacing']} * 8)` },
+  rule11: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: {
+      default: 'var(--text-2xl)',
+      '@container (min-width: 42rem)': 'var(--text-3xl)',
+    },
+    lineHeight: {
+      default: 'var(--leading-snug)',
+      '@container (min-width: 42rem)': 'var(--leading-snug)',
+    },
+    '--tw-leading': {
+      default: 'var(--leading-snug)',
+      '@container (min-width: 42rem)': 'var(--leading-snug)',
+    },
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+  },
+  rule12: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule13: {
+    marginTop: `calc(${themeLayout['--spacing']} * 12)`,
+    display: 'grid',
+    gridTemplateColumns: {
+      default: 'repeat(1, minmax(0, 1fr))',
+      '@container (min-width: 24rem)': 'repeat(2, minmax(0, 1fr))',
+    },
+    gap: {
+      default: `calc(${themeLayout['--spacing']} * 3)`,
+      '@container (min-width: 24rem)': `calc(${themeLayout['--spacing']} * 4)`,
+    },
+  },
+  rule14: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule15: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: {
+      default: themeColors['--color-foreground'],
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker3)]:
+          themeColors['--color-brand'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.2s',
+    '--tw-duration': '.2s',
+  },
+})
 
 const stylexStyles3 = stylex.create({
   rule1: {
@@ -230,12 +383,8 @@ const siteLabels = new Map(siteDefs.map((s) => [s.id, s.label]))
 // toolbarActionBase sizes a header action to a 44px touch target while it is
 // icon-only on narrow displays, then relaxes to a compact inline control once
 // the @2xl label appears.
-const toolbarActionBase =
-  'flex h-11 min-w-11 items-center justify-center gap-1.5 rounded-md px-2 text-xs transition-colors @2xl:h-8 @2xl:min-w-0 @2xl:justify-start'
 
 // toolbarActionIdle is the resting color treatment shared by the header actions.
-const toolbarActionIdle =
-  'text-foreground-alt/40 hover:text-foreground-alt hover:bg-foreground/5'
 
 // DocsPage renders a single documentation page with markdown content.
 export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
@@ -283,29 +432,27 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
   return (
     <article>
       {/* Header bar: breadcrumb + utility actions */}
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
-        <div className="text-foreground-alt/50 flex min-w-0 flex-1 items-center gap-2 text-xs">
-          <span className="hidden @2xl:inline">
+      <div sx={stylexStyles4.rule1}>
+        <div sx={stylexStyles4.rule2}>
+          <span sx={stylexStyles4.rule3}>
             {siteLabels.get(doc.site) ?? doc.site}
           </span>
-          <span className="text-foreground-alt/30 hidden @2xl:inline">/</span>
-          <span className="hidden @2xl:inline">
+          <span sx={stylexStyles4.rule4}>/</span>
+          <span sx={stylexStyles4.rule3}>
             {getSectionLabel(doc.site, doc.section)}
           </span>
-          <span className="text-foreground-alt/30 hidden @2xl:inline">/</span>
-          <span className="text-foreground-alt hidden truncate @2xl:inline">
-            {doc.title}
-          </span>
+          <span sx={stylexStyles4.rule4}>/</span>
+          <span sx={stylexStyles4.rule5}>{doc.title}</span>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1">
+        <div sx={stylexStyles4.rule6}>
           <button
             type="button"
             onClick={handleCopyMarkdown}
-            className={cn(
-              toolbarActionBase,
-              copied ? 'text-brand' : toolbarActionIdle,
-            )}
+            sx={[
+              stylexStyles4.rule7,
+              copied ? stylexStyles4.rule8 : stylexStyles4.rule9,
+            ]}
             title="Copy as Markdown"
             aria-label="Copy page as Markdown"
           >
@@ -314,7 +461,7 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
             ) : (
               <LuCopy sx={stylexStyles.rule1} />
             )}
-            <span className="hidden @2xl:inline">
+            <span sx={stylexStyles4.rule3}>
               {copied ? 'Copied' : 'Copy MD'}
             </span>
           </button>
@@ -326,19 +473,19 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
             aria-label="Open raw Markdown on GitHub"
           >
             <LuFileText sx={stylexStyles.rule1} />
-            <span className="hidden @2xl:inline">Open MD</span>
+            <span sx={stylexStyles4.rule3}>Open MD</span>
           </ExternalLink>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className={cn(toolbarActionBase, toolbarActionIdle)}
+                sx={[stylexStyles4.rule7, stylexStyles4.rule9]}
                 title="Open in AI"
                 aria-label="Open page in an AI assistant"
               >
                 <LuSparkles sx={stylexStyles.rule1} />
-                <span className="hidden @2xl:inline">AI</span>
+                <span sx={stylexStyles4.rule3}>AI</span>
                 <LuChevronDown sx={stylexStyles.rule2} />
               </button>
             </DropdownMenuTrigger>
@@ -358,36 +505,34 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
       </div>
 
       {/* Page header */}
-      <header className="mb-8">
-        <h1 className="text-foreground mb-3 text-2xl leading-snug font-semibold tracking-tight @2xl:text-3xl @2xl:leading-snug">
-          {doc.title}
-        </h1>
-        <p className="text-foreground-alt text-sm leading-relaxed">
-          {doc.summary}
-        </p>
+      <header sx={stylexStyles4.rule10}>
+        <h1 sx={stylexStyles4.rule11}>{doc.title}</h1>
+        <p sx={stylexStyles4.rule12}>{doc.summary}</p>
       </header>
 
       {/* Page body */}
-      <div className="docs-prose">
+      <div
+        className={
+          /* TODO(stylex): global or unknown class: docs-prose */ 'docs-prose'
+        }
+      >
         <Markdown options={docsMarkdownOverrides}>{doc.body}</Markdown>
       </div>
 
       {/* Previous / Next navigation */}
       {(prevDoc || nextDoc) && (
-        <nav className="mt-12 grid grid-cols-1 gap-3 @sm:grid-cols-2 @sm:gap-4">
+        <nav sx={stylexStyles4.rule13}>
           {prevDoc ? (
             <button
               type="button"
               onClick={navigatePrev}
               sx={[stylexStyles2.rule1, groupMarker2]}
             >
-              <span className="text-foreground-alt/50 flex items-center gap-1.5 text-xs">
+              <span sx={stylexStyles4.rule14}>
                 <LuArrowLeft sx={stylexStyles.rule3} />
                 Previous
               </span>
-              <span className="text-foreground group-hover:text-brand text-sm font-medium transition-colors duration-200">
-                {prevDoc.title}
-              </span>
+              <span sx={stylexStyles4.rule15}>{prevDoc.title}</span>
             </button>
           ) : (
             <div />
@@ -399,13 +544,11 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
               onClick={navigateNext}
               sx={[stylexStyles2.rule2, groupMarker2]}
             >
-              <span className="text-foreground-alt/50 flex items-center gap-1.5 text-xs">
+              <span sx={stylexStyles4.rule14}>
                 Next
                 <LuArrowRight sx={stylexStyles.rule4} />
               </span>
-              <span className="text-foreground group-hover:text-brand text-sm font-medium transition-colors duration-200">
-                {nextDoc.title}
-              </span>
+              <span sx={stylexStyles4.rule15}>{nextDoc.title}</span>
             </button>
           ) : (
             <div />

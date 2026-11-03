@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { LuMenu, LuX } from '@s4wave/web/images/icons.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { LegalFooter } from '@s4wave/app/landing/LegalFooter.js'
 import {
   Sheet,
@@ -12,6 +12,183 @@ import {
 
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+import {
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  radii as themeRadii,
+  motion as themeMotion,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: { default: 'flex', '@container (min-width: 42rem)': 'none' },
+    height: `calc(${themeLayout['--spacing']} * 12)`,
+    minWidth: 0,
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-white']} 10%, transparent)`,
+    backgroundColor: themeColors['--color-topbar-back'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule2: {
+    display: 'inline-flex',
+    width: `calc(${themeLayout['--spacing']} * 11)`,
+    height: `calc(${themeLayout['--spacing']} * 11)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    },
+    '--tw-outline-style': { default: null, ':focus-visible': 'none' },
+    outlineStyle: { default: null, ':focus-visible': 'none' },
+  },
+  rule3: {
+    minWidth: 0,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule4: { display: 'flex', minHeight: 0, flex: 1, flexDirection: 'column' },
+  rule5: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-white']} 10%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule6: {
+    display: 'inline-flex',
+    width: `calc(${themeLayout['--spacing']} * 11)`,
+    height: `calc(${themeLayout['--spacing']} * 11)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    },
+    '--tw-outline-style': { default: null, ':focus-visible': 'none' },
+    outlineStyle: { default: null, ':focus-visible': 'none' },
+  },
+  rule7: { minHeight: 0, flex: 1, overflowY: 'auto' },
+  rule8: {
+    containerType: 'inline-size',
+    position: 'relative',
+    display: 'flex',
+    width: '100%',
+    flex: 1,
+    flexDirection: 'column',
+    overflow: 'hidden',
+    backgroundColor: themeColors['--color-background-landing'],
+  },
+  rule9: { display: 'flex', minHeight: 0, flex: 1, overflow: 'hidden' },
+  rule10: {
+    display: { default: 'none', '@container (min-width: 42rem)': 'block' },
+    width: `calc(${themeLayout['--spacing']} * 58)`,
+    flexShrink: 0,
+    overflowY: 'auto',
+    borderRightStyle: themeUtilityState['--tw-border-style'],
+    borderRightWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-white']} 10%, transparent)`,
+  },
+  rule11: {
+    display: 'flex',
+    minWidth: 0,
+    flex: 1,
+    flexDirection: 'column',
+    overflowX: 'hidden',
+    overflowY: 'auto',
+  },
+  rule12: {
+    marginInline: 'auto',
+    width: '100%',
+    flex: 1,
+    paddingInline: {
+      default: `calc(${themeLayout['--spacing']} * 5)`,
+      '@container (min-width: 42rem)': `calc(${themeLayout['--spacing']} * 8)`,
+    },
+    paddingTop: {
+      default: `calc(${themeLayout['--spacing']} * 6)`,
+      '@container (min-width: 42rem)': `calc(${themeLayout['--spacing']} * 10)`,
+    },
+    paddingBottom: `calc(${themeLayout['--spacing']} * 20)`,
+  },
+  rule13: { maxWidth: 'var(--container-5xl)' },
+  rule14: { maxWidth: 'var(--container-3xl)' },
+})
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -60,19 +237,17 @@ function DocsMobileNav({
 
   return (
     <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-      <div className="bg-topbar-back flex h-12 min-w-0 items-center gap-1 border-b border-white/10 px-2 @2xl:hidden">
+      <div sx={stylexStyles3.rule1}>
         <SheetTrigger asChild>
           <button
             type="button"
             aria-label="Open documentation navigation"
-            className="text-foreground-alt hover:bg-foreground/5 hover:text-foreground focus-visible:ring-brand/30 inline-flex size-11 shrink-0 items-center justify-center rounded-md transition-colors focus-visible:ring-1 focus-visible:outline-none"
+            sx={stylexStyles3.rule2}
           >
             <LuMenu sx={stylexStyles2.rule1} />
           </button>
         </SheetTrigger>
-        <span className="text-foreground min-w-0 truncate text-sm font-semibold">
-          {title}
-        </span>
+        <span sx={stylexStyles3.rule3}>{title}</span>
       </div>
       <SheetContent
         side="left"
@@ -82,20 +257,20 @@ function DocsMobileNav({
         variant="docs"
         sx={stylexStyles.rule1}
       >
-        <div className="flex min-h-0 flex-1 flex-col">
-          <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+        <div sx={stylexStyles3.rule4}>
+          <div sx={stylexStyles3.rule5}>
             <SheetTitle variant="docsPlain">Documentation</SheetTitle>
             <SheetClose asChild>
               <button
                 type="button"
                 aria-label="Close documentation navigation"
-                className="text-foreground-alt hover:bg-foreground/5 hover:text-foreground focus-visible:ring-brand/30 inline-flex size-11 items-center justify-center rounded-md transition-colors focus-visible:ring-1 focus-visible:outline-none"
+                sx={stylexStyles3.rule6}
               >
                 <LuX sx={stylexStyles2.rule1} />
               </button>
             </SheetClose>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto">{sidebar}</div>
+          <div sx={stylexStyles3.rule7}>{sidebar}</div>
         </div>
       </SheetContent>
     </Sheet>
@@ -116,13 +291,9 @@ export function DocsLayout({
   const [portalContainer, setPortalContainer] = useState<HTMLDivElement | null>(
     null,
   )
-  const maxWidth = contentWidth === 'wide' ? 'max-w-5xl' : 'max-w-3xl'
 
   return (
-    <div
-      ref={setPortalContainer}
-      className="bg-background-landing @container relative flex w-full flex-1 flex-col overflow-hidden"
-    >
+    <div ref={setPortalContainer} sx={stylexStyles3.rule8}>
       {/* Navigation drawer - narrow widths only */}
       <DocsMobileNav
         key={currentSlug ?? 'docs-root'}
@@ -131,21 +302,21 @@ export function DocsLayout({
         title={mobileTitle}
       />
 
-      <div className="flex min-h-0 flex-1 overflow-hidden">
+      <div sx={stylexStyles3.rule9}>
         {/* Sidebar - wide widths only */}
-        <aside className="hidden w-58 shrink-0 overflow-y-auto border-r border-white/10 @2xl:block">
-          {sidebar}
-        </aside>
+        <aside sx={stylexStyles3.rule10}>{sidebar}</aside>
 
         {/* Content. overflow-x-hidden keeps the scroll region from ever
             scrolling sideways: wide prose scrolls inside its own bounded box
             and the shell never gains a horizontal scrollbar. */}
-        <main className="flex min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto">
+        <main sx={stylexStyles3.rule11}>
           <div
-            className={cn(
-              'mx-auto w-full flex-1 px-5 pt-6 pb-20 @2xl:px-8 @2xl:pt-10',
-              maxWidth,
-            )}
+            sx={[
+              stylexStyles3.rule12,
+              contentWidth === 'wide'
+                ? stylexStyles3.rule13
+                : stylexStyles3.rule14,
+            ]}
           >
             {children}
           </div>

@@ -1,7 +1,7 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
 import { LuCircleX, LuKeyboard, LuRotateCcw } from '@s4wave/web/images/icons.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import { Button } from '@s4wave/web/ui/button.js'
 
 import { Keycap } from './Keycap.js'
@@ -9,6 +9,14 @@ import { chordFromKeyboardEvent } from './keyboard-utils.js'
 
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+})
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -32,10 +40,11 @@ const stylexStyles = stylex.create({
 })
 
 interface BindingCaptureProps {
+  className?: never
   binding: string
   commandLabel: string
   isCustomized?: boolean
-  className?: string
+  sx?: ComponentStyles
   onChange: (binding: string) => void
   onReset?: () => void
 }
@@ -44,10 +53,13 @@ export function BindingCapture({
   binding,
   commandLabel,
   isCustomized = false,
-  className,
+  sx,
   onChange,
   onReset,
-}: BindingCaptureProps) {
+}: Omit<BindingCaptureProps, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
   const captureButtonRef = useRef<HTMLButtonElement>(null)
   const [capturing, setCapturing] = useState(false)
 
@@ -97,7 +109,7 @@ export function BindingCapture({
   }, [capturing])
 
   return (
-    <div className={cn('inline-flex items-center gap-1.5', className)}>
+    <div sx={[stylexStyles3.rule1, sx]}>
       <Button
         ref={captureButtonRef}
         type="button"

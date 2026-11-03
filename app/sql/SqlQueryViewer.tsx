@@ -16,7 +16,7 @@ import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContex
 import { useAccessTypedHandle } from '@s4wave/web/hooks/useAccessTypedHandle.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { Button } from '@s4wave/web/ui/button.js'
 import { ErrorState } from '@s4wave/web/ui/ErrorState.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
@@ -41,6 +41,279 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
+
+import {
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+  radii as themeRadii,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    backgroundColor: themeColors['--color-background-primary'],
+  },
+  rule2: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule3: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule4: {
+    minHeight: 0,
+    flex: 1,
+    overflow: 'auto',
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule5: {
+    marginInline: 'auto',
+    display: 'flex',
+    maxWidth: 'var(--container-4xl)',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule6: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: themeLayout['--spacing'],
+  },
+  rule7: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule8: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: themeColors['--color-background-primary'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': themeColors['--color-ring'],
+    },
+    '--tw-outline-style': { default: null, ':focus-visible': 'none' },
+    outlineStyle: { default: null, ':focus-visible': 'none' },
+  },
+  rule9: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule10: {
+    display: 'grid',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    gridTemplateColumns: {
+      default: null,
+      '@media (min-width: 48rem)': 'repeat(2, minmax(0, 1fr))',
+    },
+  },
+  rule11: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: themeColors['--color-background-primary'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': themeColors['--color-ring'],
+    },
+    '--tw-outline-style': { default: null, ':focus-visible': 'none' },
+    outlineStyle: { default: null, ':focus-visible': 'none' },
+  },
+  rule12: {
+    minWidth: 0,
+    flex: 1,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: themeColors['--color-background-primary'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': themeColors['--color-ring'],
+    },
+    '--tw-outline-style': { default: null, ':focus-visible': 'none' },
+    outlineStyle: { default: null, ':focus-visible': 'none' },
+  },
+  rule13: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+  },
+  rule14: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule15: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule16: {
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule17: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule18: {
+    width: `calc(${themeLayout['--spacing']} * 6)`,
+    flexShrink: 0,
+    textAlign: 'right',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    '--tw-numeric-spacing': 'tabular-nums',
+    fontVariantNumeric:
+      'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+  },
+  rule19: {
+    flexShrink: 0,
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: themeColors['--color-background-primary'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule20: {
+    minWidth: 0,
+    flex: 1,
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: themeColors['--color-background-primary'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': themeColors['--color-ring'],
+    },
+    '--tw-outline-style': { default: null, ':focus-visible': 'none' },
+    outlineStyle: { default: null, ':focus-visible': 'none' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+})
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -162,14 +435,12 @@ export function SqlQueryViewer({
   )
 
   return (
-    <div className="bg-background-primary flex h-full w-full flex-col">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-4">
+    <div sx={stylexStyles3.rule1}>
+      <div sx={stylexStyles3.rule2}>
         <LuFileText sx={stylexStyles2.rule1} aria-hidden />
-        <span className="text-foreground text-sm font-semibold tracking-tight select-none">
-          SQL Query
-        </span>
+        <span sx={stylexStyles3.rule3}>SQL Query</span>
       </div>
-      <div className="min-h-0 flex-1 overflow-auto p-4">
+      <div sx={stylexStyles3.rule4}>
         <SqlQueryBody
           objectKey={objectKey}
           handle={handle}
@@ -399,7 +670,7 @@ function SqlQueryEditor({
     !busy && paramError == null && !!sql.trim() && !!targetDb.trim()
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-4">
+    <div sx={stylexStyles3.rule5}>
       <QueryToolbar
         busy={busy}
         canRun={canRun}
@@ -410,8 +681,8 @@ function SqlQueryEditor({
         onDiscard={handleDiscard}
       />
 
-      <label className="flex flex-col gap-1">
-        <span className="text-foreground-alt/70 text-xs font-medium">SQL</span>
+      <label sx={stylexStyles3.rule6}>
+        <span sx={stylexStyles3.rule7}>SQL</span>
         <textarea
           aria-label="SQL text"
           value={sql}
@@ -419,10 +690,7 @@ function SqlQueryEditor({
           disabled={busy}
           spellCheck={false}
           rows={10}
-          className={cn(
-            'border-foreground/10 bg-background-primary text-foreground rounded-md border px-3 py-2 font-mono text-xs',
-            'focus-visible:ring-ring focus-visible:ring-1 focus-visible:outline-none',
-          )}
+          sx={[stylexStyles3.rule8]}
         />
       </label>
 
@@ -479,7 +747,7 @@ function QueryToolbar({
   onDiscard,
 }: QueryToolbarProps) {
   return (
-    <div className="flex items-center gap-2">
+    <div sx={stylexStyles3.rule9}>
       <Button
         variant="default"
         onClick={onRun}
@@ -531,32 +799,28 @@ function QueryTargetFields({
   onOpenTargetDb,
 }: QueryTargetFieldsProps) {
   return (
-    <div className="grid gap-4 md:grid-cols-2">
-      <label className="flex flex-col gap-1">
-        <span className="text-foreground-alt/70 text-xs font-medium">
-          Dialect Hint
-        </span>
+    <div sx={stylexStyles3.rule10}>
+      <label sx={stylexStyles3.rule6}>
+        <span sx={stylexStyles3.rule7}>Dialect Hint</span>
         <input
           aria-label="Dialect hint"
           value={dialect}
           onChange={(e) => onDialectChange(e.target.value)}
           disabled={busy}
           spellCheck={false}
-          className="border-foreground/10 bg-background-primary text-foreground focus-visible:ring-ring rounded-md border px-3 py-1.5 font-mono text-xs focus-visible:ring-1 focus-visible:outline-none"
+          sx={stylexStyles3.rule11}
         />
       </label>
-      <div className="flex flex-col gap-1">
-        <span className="text-foreground-alt/70 text-xs font-medium">
-          Target Database
-        </span>
-        <div className="flex items-center gap-2">
+      <div sx={stylexStyles3.rule6}>
+        <span sx={stylexStyles3.rule7}>Target Database</span>
+        <div sx={stylexStyles3.rule9}>
           <input
             aria-label="Target database object key"
             value={targetDb}
             onChange={(e) => onTargetDbChange(e.target.value)}
             disabled={busy}
             spellCheck={false}
-            className="border-foreground/10 bg-background-primary text-foreground focus-visible:ring-ring min-w-0 flex-1 rounded-md border px-3 py-1.5 font-mono text-xs focus-visible:ring-1 focus-visible:outline-none"
+            sx={stylexStyles3.rule12}
           />
           {onOpenTargetDb && targetDb.trim() ? (
             <Button
@@ -591,22 +855,23 @@ function ParametersPanel({
   onRemove,
 }: ParametersPanelProps) {
   return (
-    <div className="border-foreground/8 rounded-lg border">
-      <div className="border-foreground/8 flex items-center justify-between border-b px-3 py-2">
-        <span className="text-foreground text-xs font-medium">Parameters</span>
+    <div sx={stylexStyles3.rule13}>
+      <div sx={stylexStyles3.rule14}>
+        <span sx={stylexStyles3.rule15}>Parameters</span>
         <Button variant="ghost" onClick={onAdd} disabled={busy} size="xs">
           <LuPlus sx={stylexStyles2.rule3} />
           Add
         </Button>
       </div>
       {params.length === 0 ? (
-        <div className="text-foreground-alt/40 p-3 text-xs">
+        <div sx={stylexStyles3.rule16}>
           No bind parameters. Use positional placeholders in the SQL.
         </div>
       ) : (
-        <div className="divide-foreground/8 divide-y">
+        <div>
           {params.map((row, index) => (
             <ParamEditorRow
+              sx={nativeDividers.t8}
               key={row.id}
               index={index}
               row={row}
@@ -702,17 +967,16 @@ interface ParamEditorRowProps {
 }
 
 function ParamEditorRow({
+  sx,
   index,
   row,
   disabled,
   onChange,
   onRemove,
-}: ParamEditorRowProps) {
+}: ParamEditorRowProps & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5">
-      <span className="text-foreground-alt/50 w-6 shrink-0 text-right text-xs tabular-nums">
-        {index + 1}
-      </span>
+    <div sx={[stylexStyles3.rule17, sx]}>
+      <span sx={stylexStyles3.rule18}>{index + 1}</span>
       <select
         aria-label={`Parameter ${index + 1} type`}
         value={row.kind}
@@ -720,7 +984,7 @@ function ParamEditorRow({
           onChange(row.id, { kind: paramKindFromInput(e.target.value) })
         }
         disabled={disabled}
-        className="border-foreground/10 bg-background-primary text-foreground shrink-0 rounded border px-2 py-1 text-xs"
+        sx={stylexStyles3.rule19}
       >
         <option value="text">text</option>
         <option value="int">int</option>
@@ -735,7 +999,7 @@ function ParamEditorRow({
         disabled={disabled || row.kind === 'null'}
         spellCheck={false}
         placeholder={row.kind === 'null' ? 'NULL' : ''}
-        className="border-foreground/10 bg-background-primary text-foreground focus-visible:ring-ring min-w-0 flex-1 rounded border px-2 py-1 font-mono text-xs focus-visible:ring-1 focus-visible:outline-none disabled:opacity-50"
+        sx={stylexStyles3.rule20}
       />
       <Button
         onClick={() => onRemove(row.id)}
@@ -749,3 +1013,31 @@ function ParamEditorRow({
     </div>
   )
 }
+
+// nativeDividers applies the list border only to its nonfinal physical rows.
+const nativeDividers = stylex.create({
+  t8: {
+    '--tw-divide-y-reverse': { default: null, ':not(:last-child)': 0 },
+    borderBottomStyle: {
+      default: null,
+      ':not(:last-child)': themeUtilityState['--tw-border-style'],
+    },
+    borderTopStyle: {
+      default: null,
+      ':not(:last-child)': themeUtilityState['--tw-border-style'],
+    },
+    borderTopWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * var(--tw-divide-y-reverse))',
+    },
+    borderBottomWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * calc(1 - var(--tw-divide-y-reverse)))',
+    },
+    borderColor: {
+      default: null,
+      ':not(:last-child)':
+        'color-mix(in oklab, var(--color-foreground) 8%, transparent)',
+    },
+  },
+})

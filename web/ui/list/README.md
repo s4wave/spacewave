@@ -69,7 +69,12 @@ function MyComponent() {
 ## With Sorting
 
 ```tsx
-import { List, ListItem, ListSortFn, RenderHeaderProps } from '@s4wave/web/ui/list'
+import {
+  List,
+  ListItem,
+  ListSortFn,
+  RenderHeaderProps,
+} from '@s4wave/web/ui/list'
 
 const sortFn: ListSortFn<MyData> = (items, sortKey, sortDirection) => {
   return [...items].sort((a, b) => {
@@ -88,15 +93,20 @@ function MyComponent() {
   })
 
   const renderHeader = useCallback(({ state, dispatch }: RenderHeaderProps) => {
-    const handleSort = (key: string) => dispatch({ type: 'SET_SORT', sortKey: key })
+    const handleSort = (key: string) =>
+      dispatch({ type: 'SET_SORT', sortKey: key })
 
     return (
       <div className="flex">
         <div onClick={() => handleSort('name')}>
-          Name {state.sortKey === 'name' && (state.sortDirection === 'asc' ? '↓' : '↑')}
+          Name{' '}
+          {state.sortKey === 'name' &&
+            (state.sortDirection === 'asc' ? '↓' : '↑')}
         </div>
         <div onClick={() => handleSort('value')}>
-          Value {state.sortKey === 'value' && (state.sortDirection === 'asc' ? '↓' : '↑')}
+          Value{' '}
+          {state.sortKey === 'value' &&
+            (state.sortDirection === 'asc' ? '↓' : '↑')}
         </div>
       </div>
     )
@@ -187,6 +197,7 @@ The List component manages sorting internally to solve a fundamental issue with 
 3. The reducer might operate on a different array order than what's displayed
 
 By managing both sorting AND selection internally:
+
 - The reducer always operates on the correctly sorted array
 - Index calculations are always accurate
 - Selection after sorting always selects the correct item

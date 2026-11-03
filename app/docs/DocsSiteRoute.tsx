@@ -9,6 +9,22 @@ import { loadDocs } from './load-docs.js'
 import { getSections, siteDefs } from './sections.js'
 import type { DocPage } from './types.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    minHeight: '100%',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule2: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingTop: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 // DocsSiteRoute renders the site-level docs landing for a given audience surface.
 export function DocsSiteRoute() {
   const params = useParams()
@@ -36,8 +52,8 @@ export function DocsSiteRoute() {
   }
 
   const sidebar = (
-    <div className="flex min-h-full flex-col gap-3">
-      <div className="px-4 pt-4">
+    <div sx={stylexStyles.rule1}>
+      <div sx={stylexStyles.rule2}>
         <DocsSearch docs={docs} onSelect={handleSearchSelect} />
       </div>
       <DocsSidebar sections={sections} />

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { LuActivity } from '@s4wave/web/images/icons.js'
 
 import type { TargetInfo, TargetStatus } from '@s4wave/sdk/prom/prom.pb.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { Button } from '@s4wave/web/ui/button.js'
 
 import {
@@ -18,6 +18,111 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
+
+import {
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    minHeight: 0,
+    flex: 1,
+    overflow: 'auto',
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    borderRadius: '.25rem',
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: '1px',
+    fontSize: themeLayout['--text-metadata'],
+    lineHeight: 'var(--text-metadata--line-height)',
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  rule2: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-success']} 15%, transparent)`,
+    color: themeColors['--color-success'],
+  },
+  rule3: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 15%, transparent)`,
+    color: themeColors['--color-destructive'],
+  },
+  rule4: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-warning']} 15%, transparent)`,
+    color: themeColors['--color-warning'],
+  },
+  rule5: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    backgroundColor: themeColors['--color-background-primary'],
+  },
+  rule2: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule3: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+  },
+  rule4: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule5: {
+    display: 'grid',
+    maxWidth: 'var(--container-md)',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    columnGap: `calc(${themeLayout['--spacing']} * 6)`,
+    rowGap: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule6: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule7: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule8: { color: themeColors['--color-foreground-alt'] },
+  rule9: { wordBreak: 'break-all', color: themeColors['--color-foreground'] },
+  rule10: {
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -46,8 +151,8 @@ export interface PromTargetViewProps {
   // saveError is the reason the last approval write failed.
   saveError: string | null
   onAction: () => void
-  // chart shows up and scrape_duration_seconds over the time range.
-  chart?: ReactNode
+  // renderChart applies section spacing at the chart's physical root.
+  renderChart?: (sx?: stylex.StyleXStyles) => ReactNode
 }
 
 // PromTargetView shows a Scrape target's configuration, its scrape state,
@@ -62,28 +167,27 @@ export function PromTargetView({
   saving,
   saveError,
   onAction,
-  chart,
+  renderChart,
 }: PromTargetViewProps) {
   const scrape = info?.meta?.scrape
   const intervalMs = scrape?.intervalMs || 15_000
   const retentionMs = Number(info?.meta?.retentionMs ?? 0n) || 15 * 86_400_000
   return (
-    <div className="bg-background-primary flex h-full w-full flex-col">
-      <header className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-4">
+    <div sx={stylexStyles2.rule1}>
+      <header sx={stylexStyles2.rule2}>
         <LuActivity sx={stylexStyles.rule1} aria-hidden />
-        <span className="text-foreground text-sm font-semibold tracking-tight">
-          {targetName(objectKey)}
-        </span>
+        <span sx={stylexStyles2.rule3}>{targetName(objectKey)}</span>
         <StateBadge state={state} />
       </header>
 
-      <div className="min-h-0 flex-1 space-y-4 overflow-auto p-4">
-        <p className="text-foreground text-sm">
+      <div sx={stylexStyles4.rule1}>
+        <p sx={[targetSectionStyles.spacing, stylexStyles2.rule4]}>
           {describeState(state, nowMs, deviceName)}
         </p>
 
         {action ? (
           <ActionRow
+            sx={targetSectionStyles.spacing}
             action={action}
             saving={saving}
             saveError={saveError}
@@ -92,12 +196,16 @@ export function PromTargetView({
         ) : null}
 
         {state.state === 'up' || state.state === 'down' ? (
-          <ScrapeFields status={state.status} deviceName={deviceName} />
+          <ScrapeFields
+            sx={targetSectionStyles.spacing}
+            status={state.status}
+            deviceName={deviceName}
+          />
         ) : null}
 
-        {chart}
+        {renderChart?.(targetSectionStyles.spacing)}
 
-        <dl className="grid max-w-md grid-cols-2 gap-x-6 gap-y-1 text-xs">
+        <dl sx={[targetSectionStyles.spacing, stylexStyles2.rule5]}>
           <Field label="URL" mono>
             {scrape?.url || 'none: stores only samples written to it'}
           </Field>
@@ -136,6 +244,7 @@ function describeState(
 
 // ActionRow is the approval button and the last write's failure.
 function ActionRow({
+  sx,
   action,
   saving,
   saveError,
@@ -145,9 +254,9 @@ function ActionRow({
   saving: boolean
   saveError: string | null
   onAction: () => void
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
-    <div className="flex items-center gap-3">
+    <div sx={[stylexStyles2.rule6, sx]}>
       <Button
         size="sm"
         variant={action === 'stop' ? 'outline' : 'default'}
@@ -157,9 +266,7 @@ function ActionRow({
         {saveError ? 'Retry' : actionLabels[action]}
       </Button>
       {saveError ? (
-        <span className="text-destructive text-xs">
-          Could not save: {saveError}.
-        </span>
+        <span sx={stylexStyles2.rule7}>Could not save: {saveError}.</span>
       ) : null}
     </div>
   )
@@ -167,14 +274,15 @@ function ActionRow({
 
 // ScrapeFields lists the last scrape's Device, time, duration and series.
 function ScrapeFields({
+  sx,
   status,
   deviceName,
 }: {
   status: TargetStatus
   deviceName: (peerId: string) => string
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
-    <dl className="grid max-w-md grid-cols-2 gap-x-6 gap-y-1 text-xs">
+    <dl sx={[stylexStyles2.rule5, sx]}>
       <Field label="Device">{deviceName(status.devicePeerId ?? '')}</Field>
       <Field label="Last scrape">
         {formatClock(Number(status.lastScrapeMs ?? 0n))}
@@ -196,15 +304,15 @@ function StateBadge({ state }: { state: TargetState }) {
   }
   return (
     <span
-      // text-metadata stays outside cn, which reads it as a color.
-      className={`text-metadata ${cn(
-        'rounded px-1.5 py-px font-medium',
-        state.state === 'up' && 'bg-success/15 text-success',
-        state.state === 'down' && 'bg-destructive/15 text-destructive',
-        state.state === 'stale' && 'bg-warning/15 text-warning',
-        (state.state === 'unapproved' || state.state === 'waiting') &&
-          'bg-foreground/8 text-foreground-alt',
-      )}`}
+      // Keep the metadata font role separate from conditional tone utilities.
+      sx={[
+        stylexStyles3.rule1,
+        state.state === 'up' && stylexStyles3.rule2,
+        state.state === 'down' && stylexStyles3.rule3,
+        state.state === 'stale' && stylexStyles3.rule4,
+        !!(state.state === 'unapproved' || state.state === 'waiting') &&
+          stylexStyles3.rule5,
+      ]}
     >
       {labels[state.state]}
     </span>
@@ -223,10 +331,21 @@ function Field({
 }) {
   return (
     <>
-      <dt className="text-foreground-alt">{label}</dt>
-      <dd className={cn('text-foreground break-all', mono && 'font-mono')}>
+      <dt sx={stylexStyles2.rule8}>{label}</dt>
+      <dd sx={[stylexStyles2.rule9, !!mono && stylexStyles2.rule10]}>
         {children}
       </dd>
     </>
   )
 }
+
+// targetSectionStyles applies spacing to each rendered target section.
+const targetSectionStyles = stylex.create({
+  spacing: {
+    marginBlockStart: { default: null, ':not(:last-child)': 0 },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': 'calc(var(--spacing) * 4)',
+    },
+  },
+})

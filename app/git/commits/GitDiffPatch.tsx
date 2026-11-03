@@ -4,13 +4,119 @@ import { LuChevronDown, LuChevronRight } from '@s4wave/web/images/icons.js'
 import { PatchDiff, type PatchDiffProps } from '@pierre/diffs/react'
 
 import type { DiffFileStat } from '@s4wave/sdk/git/repo.pb.js'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import * as stylex from '@stylexjs/stylex'
 import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
+
+import {
+  fonts as themeFonts,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule2: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule3: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule4: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-warning']} 30%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-warning']} 10%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-warning'],
+  },
+  rule5: {
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+  },
+  rule6: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    width: '100%',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    textAlign: 'left',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+      },
+    },
+  },
+  rule7: {
+    minWidth: 0,
+    flex: 1,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule8: {
+    display: 'flex',
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule9: { color: themeColors['--color-error'] },
+  rule10: { color: themeColors['--color-success'] },
+  rule11: {
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -24,11 +130,12 @@ const stylexStyles = stylex.create({
 // GitDiffPatchProps are props for the GitDiffPatch component.
 export interface GitDiffPatchProps {
   patch: string | undefined
-  className?: string
+  sx?: stylex.StyleXStyles
+  className?: never
 }
 
 // GitDiffPatch renders a unified git patch with Spacewave styling.
-export function GitDiffPatch({ patch, className }: GitDiffPatchProps) {
+export function GitDiffPatch({ patch, sx }: GitDiffPatchProps) {
   const options = useMemo<NonNullable<PatchDiffProps<undefined>['options']>>(
     () => ({
       diffStyle: 'unified',
@@ -44,11 +151,13 @@ export function GitDiffPatch({ patch, className }: GitDiffPatchProps) {
   if (!patch) return null
 
   return (
-    <div className={cn('overflow-hidden', className)}>
+    <div sx={[patchContainerStyles.root, sx]}>
       <PatchDiff
         patch={patch}
         disableWorkerPool
-        className="git-diff-patch"
+        className={
+          /* TODO(stylex): global or unknown class: git-diff-patch */ 'git-diff-patch'
+        }
         options={options}
       />
     </div>
@@ -95,31 +204,23 @@ export function GitDiffPatchFiles({
   }, [])
 
   if (loading) {
-    return (
-      <div className="text-foreground-alt px-3 py-2 text-xs">Loading diff…</div>
-    )
+    return <div sx={stylexStyles2.rule1}>Loading diff…</div>
   }
 
   if (error) {
     return (
-      <div className="text-destructive px-3 py-2 text-xs">
-        Failed to load diff: {error.message}
-      </div>
+      <div sx={stylexStyles2.rule2}>Failed to load diff: {error.message}</div>
     )
   }
 
   if (sections.length === 0) {
-    return (
-      <div className="text-foreground-alt/70 px-3 py-2 text-xs">
-        No diff to display
-      </div>
-    )
+    return <div sx={stylexStyles2.rule3}>No diff to display</div>
   }
 
   return (
-    <div className="space-y-2">
+    <div sx={false}>
       {truncated && (
-        <div className="border-warning/30 bg-warning/10 text-warning rounded-lg border px-3 py-2 text-xs">
+        <div sx={[nativeChildSpacing.s2, stylexStyles2.rule4]}>
           Showing the first {formatBytes(limitBytes ?? 0)} of{' '}
           {formatBytes(totalBytes ?? 0)}.
         </div>
@@ -129,11 +230,11 @@ export function GitDiffPatchFiles({
         return (
           <div
             key={section.path}
-            className="border-foreground/6 bg-background-card/30 overflow-hidden rounded-lg border"
+            sx={[nativeChildSpacing.s2, stylexStyles2.rule5]}
           >
             <button
               type="button"
-              className="hover:bg-background-card/50 flex h-10 w-full items-center gap-2 px-3 text-left transition-colors"
+              sx={stylexStyles2.rule6}
               onClick={() => toggle(section.path)}
             >
               {isCollapsed ? (
@@ -141,23 +242,18 @@ export function GitDiffPatchFiles({
               ) : (
                 <LuChevronDown sx={stylexStyles.rule1} />
               )}
-              <span className="text-foreground min-w-0 flex-1 truncate font-mono text-xs">
-                {section.path}
-              </span>
-              <span className="flex shrink-0 items-center gap-2 font-mono text-xs">
+              <span sx={stylexStyles2.rule7}>{section.path}</span>
+              <span sx={stylexStyles2.rule8}>
                 {section.deletions > 0 && (
-                  <span className="text-error">-{section.deletions}</span>
+                  <span sx={stylexStyles2.rule9}>-{section.deletions}</span>
                 )}
                 {section.additions > 0 && (
-                  <span className="text-success">+{section.additions}</span>
+                  <span sx={stylexStyles2.rule10}>+{section.additions}</span>
                 )}
               </span>
             </button>
             {!isCollapsed && (
-              <GitDiffPatch
-                patch={section.patch}
-                className="border-foreground/6 border-t"
-              />
+              <GitDiffPatch patch={section.patch} sx={stylexStyles2.rule11} />
             )}
           </div>
         )
@@ -265,3 +361,21 @@ function formatBytes(bytes: bigint | number): string {
   }
   return `${scaled.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// patchContainerStyles bounds the vendor diff view without changing its skin.
+const patchContainerStyles = stylex.create({ root: { overflow: 'hidden' } })

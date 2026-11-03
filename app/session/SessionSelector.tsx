@@ -510,7 +510,10 @@ export function SessionSelector() {
       </BackButton>
 
       <div sx={stylexStyles2.rule2}>
-        <AnimatedLogo followMouse={true} containerClassName="mb-6" />
+        <AnimatedLogo
+          followMouse={true}
+          containerSx={logoContainerStyles.root}
+        />
 
         <h1 sx={stylexStyles2.rule3}>Welcome back</h1>
         <p sx={stylexStyles2.rule4}>
@@ -941,4 +944,9 @@ const nativeDividers = stylex.create({
         'color-mix(in oklab, var(--color-foreground) 10%, transparent)',
     },
   },
+})
+
+// logoContainerStyles preserves the caller's logo spacing and height threshold.
+const logoContainerStyles = stylex.create({
+  root: { marginBottom: 'calc(var(--spacing) * 6)' },
 })

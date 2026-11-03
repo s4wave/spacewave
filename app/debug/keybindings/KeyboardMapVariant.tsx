@@ -28,6 +28,193 @@ import {
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  utilityState as themeUtilityState,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    marginInline: 'auto',
+    maxWidth: 'var(--container-4xl)',
+    minWidth: `calc(${themeLayout['--spacing']} * 180)`,
+  },
+  rule2: { marginTop: `calc(${themeLayout['--spacing']} * 4)` },
+})
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'flex',
+    flexDirection: { default: 'column', '@media (min-width: 40rem)': 'row' },
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    alignItems: { default: null, '@media (min-width: 40rem)': 'flex-end' },
+    justifyContent: {
+      default: null,
+      '@media (min-width: 40rem)': 'space-between',
+    },
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule3: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+  },
+  rule4: {
+    marginTop: themeLayout['--spacing'],
+    maxWidth: 'var(--container-xl)',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 55%, transparent)`,
+  },
+  rule5: {
+    position: 'relative',
+    display: 'block',
+    width: '100%',
+    maxWidth: {
+      default: null,
+      '@media (min-width: 40rem)': `calc(${themeLayout['--spacing']} * 72)`,
+    },
+  },
+  rule6: {
+    display: 'grid',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    gridTemplateColumns: {
+      default: null,
+      '@media (min-width: 80rem)': 'repeat(2, minmax(0, 1fr))',
+    },
+  },
+  rule7: {
+    overflowX: 'auto',
+    borderRadius: 'var(--radius-xl)',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: {
+      default: `calc(${themeLayout['--spacing']} * 4)`,
+      '@media (min-width: 40rem)': `calc(${themeLayout['--spacing']} * 6)`,
+    },
+  },
+  rule8: { display: 'flex', gap: `calc(${themeLayout['--spacing']} * 1.5)` },
+  rule9: {
+    marginTop: `calc(${themeLayout['--spacing']} * 5)`,
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 45%, transparent)`,
+  },
+  rule10: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule11: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 8%, transparent)`,
+  },
+  rule12: {
+    width: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 60%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+  },
+  rule13: {
+    borderRadius: 'var(--radius-xl)',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule14: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rule15: {
+    fontSize: '10px',
+    lineHeight: 1.5,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-wider)',
+    letterSpacing: 'var(--tracking-wider)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 45%, transparent)`,
+    textTransform: 'uppercase',
+  },
+  rule16: {
+    marginTop: themeLayout['--spacing'],
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+  },
+  rule17: { minWidth: 0 },
+  rule18: {
+    display: 'block',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  rule19: {
+    display: 'block',
+    fontSize: '10px',
+    lineHeight: 1.5,
+    '--tw-font-weight': 'var(--font-weight-normal)',
+    fontWeight: 'var(--font-weight-normal)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 45%, transparent)`,
+  },
+  rule20: {
+    paddingBlock: `calc(${themeLayout['--spacing']} * 5)`,
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 45%, transparent)`,
+  },
+  rule21: {
+    marginTop: `calc(${themeLayout['--spacing']} * 4)`,
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingTop: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule22: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule23: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule24: { marginTop: `calc(${themeLayout['--spacing']} * 4)` },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 4)`,
@@ -124,19 +311,19 @@ export function KeyboardMapVariant({
   }, [resetBinding, selectedCommand])
 
   return (
-    <section className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <section sx={false}>
+      <div sx={[nativeChildSpacing.s4, stylexStyles3.rule1]}>
         <div>
-          <div className="flex items-center gap-2">
+          <div sx={stylexStyles3.rule2}>
             <LuKeyboard sx={stylexStyles2.rule1} />
-            <h2 className="text-sm font-semibold">Keyboard atlas</h2>
+            <h2 sx={stylexStyles3.rule3}>Keyboard atlas</h2>
           </div>
-          <p className="text-foreground-alt/55 mt-1 max-w-xl text-xs">
+          <p sx={stylexStyles3.rule4}>
             Hover to inspect assignments. Click a highlighted key, choose its
             command, then record a replacement.
           </p>
         </div>
-        <label className="relative block w-full sm:max-w-72">
+        <label sx={stylexStyles3.rule5}>
           <LuSearch sx={stylexStyles2.rule2} />
           <Input
             value={query}
@@ -148,11 +335,14 @@ export function KeyboardMapVariant({
         </label>
       </div>
 
-      <div className="xl:grid-cols-keybindings grid gap-4">
-        <div className="border-foreground/8 bg-background-card/30 overflow-x-auto rounded-xl border p-4 sm:p-6">
-          <div className="mx-auto max-w-4xl min-w-180 space-y-2">
+      <div sx={[nativeChildSpacing.s4, stylexStyles3.rule6]}>
+        <div sx={stylexStyles3.rule7}>
+          <div sx={stylexStyles4.rule1}>
             {keyboardRows.map((row) => (
-              <div key={row.id} className="flex gap-1.5">
+              <div
+                key={row.id}
+                sx={[nativeChildSpacing.s2, stylexStyles3.rule8]}
+              >
                 {row.keys.map((definition) => {
                   const mappedCommands = visibleCommands.filter((command) =>
                     commandUsesKey(command, definition.key, platform),
@@ -175,31 +365,29 @@ export function KeyboardMapVariant({
               </div>
             ))}
           </div>
-          <div className="text-foreground-alt/45 mt-5 flex flex-wrap items-center gap-4 text-xs">
-            <span className="flex items-center gap-1.5">
-              <span className="border-brand/30 bg-brand/8 size-3 rounded border" />
+          <div sx={stylexStyles3.rule9}>
+            <span sx={stylexStyles3.rule10}>
+              <span sx={stylexStyles3.rule11} />
               Assigned
             </span>
-            <span className="flex items-center gap-1.5">
-              <span className="border-destructive/60 bg-destructive/10 size-3 rounded border" />
+            <span sx={stylexStyles3.rule10}>
+              <span sx={stylexStyles3.rule12} />
               Conflict
             </span>
             <span>{visibleCommands.length} commands represented</span>
           </div>
         </div>
 
-        <aside className="border-foreground/8 bg-background-card/30 rounded-xl border p-4">
-          <div className="flex items-center justify-between">
+        <aside sx={stylexStyles3.rule13}>
+          <div sx={stylexStyles3.rule14}>
             <div>
-              <span className="text-foreground-alt/45 micro-ten font-semibold tracking-wider uppercase">
-                Inspected key
-              </span>
-              <div className="mt-1 font-mono text-lg">{activeKey ?? '—'}</div>
+              <span sx={stylexStyles3.rule15}>Inspected key</span>
+              <div sx={stylexStyles3.rule16}>{activeKey ?? '—'}</div>
             </div>
             <LuMousePointer2 sx={stylexStyles2.rule3} />
           </div>
 
-          <div className="mt-4 space-y-1">
+          <div sx={stylexStyles4.rule2}>
             {activeKeyCommands.map((command) => (
               <Button
                 key={command.id}
@@ -208,38 +396,30 @@ export function KeyboardMapVariant({
                   command.id === selectedCommand?.id ? 'brandGhost' : 'ghost'
                 }
                 size="commandRow"
-                sx={stylexStyles.rule1}
+                sx={[nativeChildSpacing.s1, stylexStyles.rule1]}
                 aria-pressed={command.id === selectedCommand?.id}
                 onClick={() => selectCommand(command.id)}
               >
-                <span className="min-w-0">
-                  <span className="block truncate text-xs font-medium">
-                    {command.label}
-                  </span>
-                  <span className="text-foreground-alt/45 micro-ten block font-normal">
-                    {command.context}
-                  </span>
+                <span sx={stylexStyles3.rule17}>
+                  <span sx={stylexStyles3.rule18}>{command.label}</span>
+                  <span sx={stylexStyles3.rule19}>{command.context}</span>
                 </span>
                 <Keycap chord={command.binding} muted />
               </Button>
             ))}
             {activeKeyCommands.length === 0 ? (
-              <p className="text-foreground-alt/45 py-5 text-center text-xs">
+              <p sx={[nativeChildSpacing.s1, stylexStyles3.rule20]}>
                 No matching command uses this key.
               </p>
             ) : null}
           </div>
 
           {selectedCommand ? (
-            <div className="border-foreground/8 mt-4 border-t pt-4">
-              <div className="flex items-start justify-between gap-2">
+            <div sx={stylexStyles3.rule21}>
+              <div sx={stylexStyles3.rule22}>
                 <div>
-                  <h3 className="text-sm font-semibold">
-                    {selectedCommand.label}
-                  </h3>
-                  <p className="text-foreground-alt/50 mt-1 text-xs">
-                    {selectedCommand.description}
-                  </p>
+                  <h3 sx={stylexStyles3.rule3}>{selectedCommand.label}</h3>
+                  <p sx={stylexStyles3.rule23}>{selectedCommand.description}</p>
                 </div>
                 {conflictCommandIds.has(selectedCommand.id) ? (
                   <Badge variant="conflict">
@@ -251,7 +431,7 @@ export function KeyboardMapVariant({
                 binding={selectedCommand.binding}
                 commandLabel={selectedCommand.label}
                 isCustomized={customizedCommandIds.has(selectedCommand.id)}
-                className="mt-4"
+                sx={stylexStyles3.rule24}
                 onChange={changeBinding}
                 onReset={reset}
               />
@@ -262,3 +442,40 @@ export function KeyboardMapVariant({
     </section>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s4: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s1: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

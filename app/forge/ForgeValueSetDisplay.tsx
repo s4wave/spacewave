@@ -4,6 +4,46 @@ import type { ValueSet } from '@go/github.com/s4wave/spacewave/forge/target/targ
 import type { Value } from '@go/github.com/s4wave/spacewave/forge/value/value.pb.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+  utilityState as themeUtilityState,
+  layout as themeLayout,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 20%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule3: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule4: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+})
+
 type ForgeValueLike = Value
 type ForgeValueSetLike = Pick<ValueSet, 'inputs' | 'outputs'>
 
@@ -24,30 +64,30 @@ function describeValue(value: ForgeValueLike): string {
 }
 
 export function ForgeValueSetDisplay({
+  sx,
   title,
   values,
   emptyLabel,
-}: ForgeValueSetDisplayProps) {
+}: ForgeValueSetDisplayProps & {
+  sx?: stylex.StyleXStyles
+  className?: never
+}) {
   const rows = useMemo(() => values ?? [], [values])
 
   return (
-    <InfoCard title={title}>
-      {rows.length === 0 && (
-        <div className="text-foreground-alt/40 text-xs">{emptyLabel}</div>
-      )}
+    <InfoCard sx={sx} title={title}>
+      {rows.length === 0 && <div sx={stylexStyles.rule1}>{emptyLabel}</div>}
       {rows.length > 0 && (
-        <div className="space-y-2">
+        <div sx={false}>
           {rows.map((value, index) => (
             <div
               key={value.name || JSON.stringify(value)}
-              className="border-foreground/6 bg-background-card/20 flex items-center justify-between rounded border px-3 py-2"
+              sx={[nativeChildSpacing.s2, stylexStyles.rule2]}
             >
-              <div className="text-foreground text-xs font-medium">
+              <div sx={stylexStyles.rule3}>
                 {value.name || `value-${index + 1}`}
               </div>
-              <div className="text-foreground-alt/50 text-xs">
-                {describeValue(value)}
-              </div>
+              <div sx={stylexStyles.rule4}>{describeValue(value)}</div>
             </div>
           ))}
         </div>
@@ -65,20 +105,23 @@ interface ForgeValueSetPanelsProps {
 }
 
 export function ForgeValueSetPanels({
+  sx,
   valueSet,
   inputsTitle = 'Inputs',
   outputsTitle = 'Outputs',
   emptyInputsLabel = 'No inputs',
   emptyOutputsLabel = 'No outputs',
-}: ForgeValueSetPanelsProps) {
+}: ForgeValueSetPanelsProps & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
-    <div className="space-y-3">
+    <div sx={[false, sx]}>
       <ForgeValueSetDisplay
+        sx={nativeChildSpacingNext.s3}
         title={inputsTitle}
         values={valueSet?.inputs}
         emptyLabel={emptyInputsLabel}
       />
       <ForgeValueSetDisplay
+        sx={nativeChildSpacingNext.s3}
         title={outputsTitle}
         values={valueSet?.outputs}
         emptyLabel={emptyOutputsLabel}
@@ -86,3 +129,33 @@ export function ForgeValueSetPanels({
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

@@ -13,7 +13,7 @@ import { useAccessTypedHandle } from '@s4wave/web/hooks/useAccessTypedHandle.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { useObjectName } from '@s4wave/web/object/ObjectViewerContext.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
@@ -23,6 +23,133 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
+
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: themeColors['--color-background-dark'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    letterSpacing: '.2em',
+    color: themeColors['--color-foreground'],
+  },
+  rule2: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule3: {
+    display: 'grid',
+    columnGap: `calc(${themeLayout['--spacing']} * 6)`,
+    rowGap: `calc(${themeLayout['--spacing']} * 3)`,
+    gridTemplateColumns: {
+      default: null,
+      '@media (min-width: 40rem)': 'repeat(2, minmax(0, 1fr))',
+    },
+  },
+  rule4: {
+    display: 'grid',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    gridTemplateColumns: {
+      default: null,
+      '@media (min-width: 40rem)': 'repeat(3, minmax(0, 1fr))',
+    },
+  },
+  rule5: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule6: {
+    marginInline: 'auto',
+    display: 'flex',
+    width: '100%',
+    maxWidth: 'var(--container-3xl)',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule7: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    backgroundColor: themeColors['--color-background-primary'],
+  },
+  rule8: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule9: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+  },
+  rule10: {
+    minHeight: 0,
+    flex: 1,
+    overflow: 'auto',
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule11: { minWidth: 0 },
+  rule12: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule13: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    overflowWrap: 'break-word',
+    color: themeColors['--color-foreground'],
+  },
+  rule14: {
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+  },
+  rule15: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -59,10 +186,8 @@ function ProtectedValueCard() {
       icon={<LuLockKeyhole sx={stylexStyles.rule1} />}
       title="Protected value"
     >
-      <div className="border-foreground/8 bg-background-dark text-foreground tracking-brand-wide rounded-md border px-3 py-2 font-mono text-sm">
-        ••••••••••••
-      </div>
-      <p className="text-foreground-alt/60 mt-2 text-xs leading-relaxed">
+      <div sx={stylexStyles2.rule1}>••••••••••••</div>
+      <p sx={stylexStyles2.rule2}>
         Secret values stay hidden in the object viewer. Use the feature that
         consumes this credential to verify or replace it.
       </p>
@@ -80,7 +205,7 @@ function SecretMetadataCard({
 }) {
   return (
     <InfoCard title="Metadata">
-      <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+      <div sx={stylexStyles2.rule3}>
         <Metadata
           label="Name"
           value={secret?.displayName || 'Unnamed secret'}
@@ -116,7 +241,7 @@ function SecretAccessCard({
       title="Access status"
     >
       {healthStatus === SharedObjectHealthStatus.READY ? (
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div sx={stylexStyles2.rule4}>
           <Metadata
             label="Nested SharedObject readability"
             value={grantLabel(
@@ -146,7 +271,7 @@ function SecretAccessCard({
           value={formatHealthStatus(healthStatus)}
         />
       )}
-      <p className="text-foreground-alt/60 mt-3 text-xs leading-relaxed">
+      <p sx={stylexStyles2.rule5}>
         This status describes nested SharedObject access. It does not reveal or
         copy the protected value.
       </p>
@@ -165,7 +290,7 @@ function SecretDetails({
   const healthStatus = state.health?.status ?? SharedObjectHealthStatus.UNKNOWN
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
+    <div sx={stylexStyles2.rule6}>
       <ProtectedValueCard />
       <SecretMetadataCard secret={state.secret} objectKey={objectKey} />
       <SecretAccessCard grant={state.grantStatus} healthStatus={healthStatus} />
@@ -245,14 +370,12 @@ export function SecretViewer({
   const title = stateResource.error ? 'Secret' : state?.secret?.displayName
 
   return (
-    <div className="bg-background-primary flex h-full w-full flex-col">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-4">
+    <div sx={stylexStyles2.rule7}>
+      <div sx={stylexStyles2.rule8}>
         <LuKeyRound sx={stylexStyles.rule2} aria-hidden="true" />
-        <span className="text-foreground truncate text-sm font-semibold tracking-tight">
-          {title || 'Secret'}
-        </span>
+        <span sx={stylexStyles2.rule9}>{title || 'Secret'}</span>
       </div>
-      <div className="min-h-0 flex-1 overflow-auto px-4 py-3">
+      <div sx={stylexStyles2.rule10}>
         <SecretBody
           error={stateResource.error}
           loading={stateResource.loading}
@@ -275,13 +398,13 @@ function Metadata({
   mono?: boolean
 }) {
   return (
-    <div className="min-w-0">
-      <p className="text-foreground-alt/60 text-xs">{label}</p>
+    <div sx={stylexStyles2.rule11}>
+      <p sx={stylexStyles2.rule12}>{label}</p>
       <p
-        className={cn(
-          'text-foreground mt-0.5 break-words text-xs',
-          mono ? 'font-mono' : 'font-medium',
-        )}
+        sx={[
+          stylexStyles2.rule13,
+          mono ? stylexStyles2.rule14 : stylexStyles2.rule15,
+        ]}
       >
         {value}
       </p>

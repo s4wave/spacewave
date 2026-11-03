@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { LuCheck, LuFolder } from '@s4wave/web/images/icons.js'
 import type { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
 import { usePromise } from '@s4wave/web/hooks/usePromise.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import {
   Command,
   CommandEmpty,
@@ -32,6 +32,125 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
+
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+  },
+  rule2: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule3: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule4: {
+    paddingLeft: 'var(--docs-tree-padding-left)',
+    display: 'flex',
+    minWidth: 0,
+    flex: 1,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule5: { textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' },
+  rule6: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule7: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    borderRadius: '.25rem',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeLayout['--text-metadata'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-metadata--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule8: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule9: {
+    borderRadius: themeRadii['--radius-md'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule10: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 40%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-brand'],
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+})
 
 const stylexStyles2 = stylex.create({
   rule1: { maxHeight: `calc(${themeLayout['--spacing']} * 72)` },
@@ -158,12 +277,12 @@ export function UnixFSMoveDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="border-foreground/6 bg-background-card/30 overflow-hidden rounded-lg border">
+        <div sx={stylexStyles3.rule1}>
           <Command variant="folder">
             <CommandInput placeholder="Search folders…" />
             <CommandList sx={stylexStyles2.rule1}>
               {dirs.loading && (
-                <div className="px-3 py-2">
+                <div sx={stylexStyles3.rule2}>
                   <LoadingInline
                     label="Loading folders"
                     tone="muted"
@@ -172,7 +291,7 @@ export function UnixFSMoveDialog({
                 </div>
               )}
               {dirs.error && (
-                <div className="text-destructive px-3 py-2 text-xs">
+                <div sx={stylexStyles3.rule3}>
                   Failed to load folders: {dirs.error.message}
                 </div>
               )}
@@ -195,13 +314,13 @@ export function UnixFSMoveDialog({
                           variant="compact"
                         >
                           <div
-                            className="docs-tree-indent flex min-w-0 flex-1 items-center gap-2"
+                            sx={stylexStyles3.rule4}
                             style={{
                               '--docs-tree-padding-left': `${dir.depth * 12}px`,
                             }}
                           >
                             <LuFolder sx={stylexStyles.rule1} />
-                            <span className="truncate">{dir.name}</span>
+                            <span sx={stylexStyles3.rule5}>{dir.name}</span>
                           </div>
                           {isSelected && <LuCheck sx={stylexStyles.rule2} />}
                         </CommandItem>
@@ -215,22 +334,18 @@ export function UnixFSMoveDialog({
         </div>
 
         {selectedPath && (
-          <div className="text-foreground-alt/60 flex items-center gap-1.5 text-xs select-none">
+          <div sx={stylexStyles3.rule6}>
             <span>Moving to</span>
-            <code className="text-foreground bg-foreground/5 text-metadata truncate rounded px-1.5 py-0.5 font-mono">
-              {selectedPath}
-            </code>
+            <code sx={stylexStyles3.rule7}>{selectedPath}</code>
           </div>
         )}
 
-        {errorMessage && (
-          <p className="text-destructive text-xs">{errorMessage}</p>
-        )}
+        {errorMessage && <p sx={stylexStyles3.rule8}>{errorMessage}</p>}
 
         <DialogFooter>
           <button
             type="button"
-            className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
+            sx={stylexStyles3.rule9}
             onClick={() => handleOpenChange(false)}
             disabled={submitting}
           >
@@ -238,12 +353,7 @@ export function UnixFSMoveDialog({
           </button>
           <button
             type="button"
-            className={cn(
-              'rounded-md border px-4 py-2 text-sm transition-all',
-              'border-brand/30 bg-brand/10 text-brand',
-              'hover:border-brand/40 hover:bg-brand/20',
-              'disabled:cursor-not-allowed disabled:opacity-50',
-            )}
+            sx={[stylexStyles3.rule10]}
             onClick={() => void handleConfirm()}
             disabled={confirmDisabled}
           >

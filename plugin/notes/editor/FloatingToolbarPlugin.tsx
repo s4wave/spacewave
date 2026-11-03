@@ -7,12 +7,71 @@ import {
   type TextFormatType,
 } from 'lexical'
 import { $isLinkNode, TOGGLE_LINK_COMMAND } from '@lexical/link'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { LuBold, LuItalic, LuCode, LuLink } from '@s4wave/web/images/icons.js'
 import { TextInputDialog } from '../NoteDialogs.js'
 
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    top: 'var(--floating-toolbar-top)',
+    left: 'var(--floating-toolbar-left)',
+    transform: 'translateX(-50%)',
+    position: 'absolute',
+    zIndex: 50,
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * .5)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: themeColors['--color-border'],
+    backgroundColor: themeColors['--color-popover'],
+    padding: themeLayout['--spacing'],
+    '--tw-shadow':
+      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '.25rem',
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-list-hover-background'],
+      },
+    },
+    padding: `calc(${themeLayout['--spacing']} * 1.5)`,
+    color: themeColors['--color-brand'],
+  },
+  rule3: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '.25rem',
+    padding: `calc(${themeLayout['--spacing']} * 1.5)`,
+    color: themeColors['--color-foreground'],
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-list-hover-background'],
+      },
+    },
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -139,16 +198,12 @@ function FloatingToolbarPlugin() {
 
   if (!isVisible && !linkDialogOpen) return null
 
-  const btnClass =
-    'flex items-center justify-center rounded p-1.5 text-foreground hover:bg-list-hover-background'
-  const activeClass = 'bg-brand/10 text-brand'
-
   return (
     <>
       {isVisible && (
         <div
           ref={floatingRef}
-          className="floating-toolbar-position bg-popover border-border absolute z-50 flex items-center gap-0.5 rounded-lg border p-1 shadow-lg"
+          sx={stylexStyles2.rule1}
           style={{
             '--floating-toolbar-top': `${position.top}px`,
             '--floating-toolbar-left': `${position.left}px`,
@@ -156,7 +211,7 @@ function FloatingToolbarPlugin() {
         >
           <button
             type="button"
-            className={cn(btnClass, isBold && activeClass)}
+            sx={isBold ? stylexStyles2.rule2 : stylexStyles2.rule3}
             onMouseDown={(e) => {
               e.preventDefault()
               handleFormat('bold')
@@ -167,7 +222,7 @@ function FloatingToolbarPlugin() {
           </button>
           <button
             type="button"
-            className={cn(btnClass, isItalic && activeClass)}
+            sx={isItalic ? stylexStyles2.rule2 : stylexStyles2.rule3}
             onMouseDown={(e) => {
               e.preventDefault()
               handleFormat('italic')
@@ -178,7 +233,7 @@ function FloatingToolbarPlugin() {
           </button>
           <button
             type="button"
-            className={cn(btnClass, isCode && activeClass)}
+            sx={isCode ? stylexStyles2.rule2 : stylexStyles2.rule3}
             onMouseDown={(e) => {
               e.preventDefault()
               handleFormat('code')
@@ -189,7 +244,7 @@ function FloatingToolbarPlugin() {
           </button>
           <button
             type="button"
-            className={cn(btnClass, isLink && activeClass)}
+            sx={isLink ? stylexStyles2.rule2 : stylexStyles2.rule3}
             onMouseDown={(e) => {
               e.preventDefault()
               handleLink()

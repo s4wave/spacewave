@@ -43,6 +43,46 @@ import { useUnixFSInlineEntryRenderer } from './useUnixFSInlineEntryRenderer.js'
 import { useUnixFSDeleteKeyHandler } from './useUnixFSDeleteKeyHandler.js'
 import { useUnixFSStartupBoundaries } from './useUnixFSStartupBoundaries.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    maxWidth: 'var(--container-xl)',
+    textAlign: 'center',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    minHeight: 0,
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    overflow: 'hidden',
+    backgroundColor: themeColors['--color-file-back'],
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule2: { width: '100%', maxWidth: 'var(--container-sm)' },
+})
+
 export interface UnixFSBrowserBodyProps {
   rootHandle: Resource<FSHandle>
   unixfsId: string
@@ -101,16 +141,13 @@ function buildUnixFSLoadingStageLabel({
 function UnixFSLoadingDiagnostics({ stageLabel }: { stageLabel: string }) {
   const status = useSessionSyncStatus()
   return (
-    <div
-      className="text-foreground-alt/60 max-w-xl space-y-1 text-center font-mono text-xs leading-relaxed"
-      data-testid="unixfs-loading-diagnostics"
-    >
-      <div>Stage: {stageLabel}</div>
-      <div>
+    <div sx={stylexStyles2.rule1} data-testid="unixfs-loading-diagnostics">
+      <div sx={nativeChildSpacing.s1}>Stage: {stageLabel}</div>
+      <div sx={nativeChildSpacing.s1}>
         Pack reads: ranges {status.packRangeLabel}; index tail{' '}
         {status.packIndexTailLabel}
       </div>
-      <div>
+      <div sx={nativeChildSpacing.s1}>
         Lookup: {status.packLookupLabel}; cache {status.packIndexCacheLabel}
       </div>
     </div>
@@ -509,8 +546,8 @@ function UnixFSBrowserListing({
 function UnixFSBrowserLoading({ model }: { model: UnixFSBrowserModel }) {
   return (
     <UnixFSBrowserShell {...model.shellActionProps}>
-      <div className="bg-file-back flex min-h-0 flex-1 flex-col items-center justify-center gap-3 overflow-hidden p-6">
-        <div className="w-full max-w-sm">
+      <div sx={stylexStyles.rule1}>
+        <div sx={stylexStyles.rule2}>
           <UnixFSPathLoadingCard
             root={model.rootHandle}
             lookup={model.pathHandle}
@@ -616,3 +653,18 @@ export function UnixFSBrowser(props: UnixFSBrowserProps) {
     </UnixFSBrowserInteractive>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s1: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

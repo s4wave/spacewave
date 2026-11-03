@@ -1,7 +1,5 @@
 import { LuTerminal } from '@s4wave/web/images/icons.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
-
 import { ArchTile } from './ArchTile.js'
 import { CliInstallSnippet } from './CliInstallSnippet.js'
 import type { DownloadEntry, DownloadOS } from './manifest.js'
@@ -12,6 +10,90 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
+
+import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    width: '100%',
+    scrollMarginTop: `calc(${themeLayout['--spacing']} * 24)`,
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 8)`,
+  },
+  rule2: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule3: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule4: {
+    fontSize: {
+      default: 'var(--text-2xl)',
+      '@container (min-width: 32rem)': 'var(--text-3xl)',
+    },
+    lineHeight: {
+      default: 'var(--tw-leading, var(--text-2xl--line-height))',
+      '@container (min-width: 32rem)':
+        'var(--tw-leading, var(--text-3xl--line-height))',
+    },
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule5: {
+    fontSize: {
+      default: themeFonts['--text-sm'],
+      '@container (min-width: 32rem)': 'var(--text-base)',
+    },
+    lineHeight: {
+      default: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+      '@container (min-width: 32rem)':
+        'var(--tw-leading, var(--text-base--line-height))',
+    },
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule6: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 8)`,
+  },
+  rule7: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule8: {
+    fontSize: {
+      default: 'var(--text-lg)',
+      '@container (min-width: 32rem)': 'var(--text-xl)',
+    },
+    lineHeight: {
+      default: 'var(--tw-leading, var(--text-lg--line-height))',
+      '@container (min-width: 32rem)':
+        'var(--tw-leading, var(--text-xl--line-height))',
+    },
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule9: {
+    display: 'grid',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    gridTemplateColumns: {
+      default: null,
+      '@container (min-width: 32rem)': 'repeat(2, minmax(0, 1fr))',
+    },
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -38,22 +120,15 @@ const OS_HEADINGS: Record<DownloadOS, string> = {
 // per-arch tile grid.
 export function CliSection({ primary, groups }: CliSectionProps) {
   return (
-    <section
-      id="cli"
-      className="flex w-full scroll-mt-24 flex-col gap-8"
-      aria-labelledby="cli-heading"
-    >
-      <header className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
+    <section id="cli" sx={stylexStyles2.rule1} aria-labelledby="cli-heading">
+      <header sx={stylexStyles2.rule2}>
+        <div sx={stylexStyles2.rule3}>
           <LuTerminal sx={stylexStyles.rule1} />
-          <h2
-            id="cli-heading"
-            className="text-foreground text-2xl font-semibold select-none @lg:text-3xl"
-          >
+          <h2 id="cli-heading" sx={stylexStyles2.rule4}>
             Spacewave CLI
           </h2>
         </div>
-        <p className="text-foreground-alt text-sm @lg:text-base">
+        <p sx={stylexStyles2.rule5}>
           Standalone command-line binary. Install it alongside the desktop app
           to script your workflow, drive headless servers, or pipe spacewave
           output through other Unix tools.
@@ -62,7 +137,7 @@ export function CliSection({ primary, groups }: CliSectionProps) {
 
       <PrimaryDownloadButton entry={primary} />
 
-      <div className="flex flex-col gap-8">
+      <div sx={stylexStyles2.rule6}>
         {groups.map(({ os, entries }) => (
           <CliPlatformGroup key={os} os={os} entries={entries} />
         ))}
@@ -82,12 +157,10 @@ function CliPlatformGroup({
   const heading = OS_HEADINGS[os]
   const snippetEntry = entries[0]
   return (
-    <div className={cn('flex flex-col gap-4')}>
-      <h3 className="text-foreground text-lg font-semibold select-none @lg:text-xl">
-        {heading}
-      </h3>
+    <div sx={[stylexStyles2.rule7]}>
+      <h3 sx={stylexStyles2.rule8}>{heading}</h3>
       <CliInstallSnippet entry={snippetEntry} />
-      <div className="grid gap-4 @lg:grid-cols-2">
+      <div sx={stylexStyles2.rule9}>
         {entries.map((entry) => (
           <ArchTile key={entry.filename} entry={entry} />
         ))}

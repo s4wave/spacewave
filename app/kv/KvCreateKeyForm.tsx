@@ -10,6 +10,52 @@ import { parseValue, type KvDisplayMode } from './kv-encoding.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule3: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -74,9 +120,9 @@ export function KvCreateKeyForm({
   }, [keyDraft, keyMode, valueDraft, valueMode, onCreate])
 
   return (
-    <div className="border-foreground/6 bg-background-card/30 space-y-3 rounded-lg border p-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
+    <div sx={stylexStyles4.rule1}>
+      <div sx={[nativeChildSpacing.s3, stylexStyles3.rule1]}>
+        <h3 sx={stylexStyles3.rule2}>
           <LuPlus sx={stylexStyles2.rule1} />
           New Key
         </h3>
@@ -92,6 +138,7 @@ export function KvCreateKeyForm({
         </Button>
       </div>
       <KvValueEditor
+        sx={nativeChildSpacing.s3}
         label="Key"
         ariaLabel="New key"
         draft={keyDraft}
@@ -103,6 +150,7 @@ export function KvCreateKeyForm({
         rows={2}
       />
       <KvValueEditor
+        sx={nativeChildSpacing.s3}
         label="Value"
         ariaLabel="New key value"
         draft={valueDraft}
@@ -115,11 +163,12 @@ export function KvCreateKeyForm({
       />
       {mutationError ? (
         <ErrorState
+          sx={nativeChildSpacing.s3}
           variant="inline"
           message={`Create failed: ${mutationError}`}
         />
       ) : null}
-      <div className="flex items-center gap-2">
+      <div sx={[nativeChildSpacing.s3, stylexStyles3.rule3]}>
         <Button
           onClick={() => void handleCreate()}
           disabled={!canCreate}
@@ -143,3 +192,18 @@ function parseDraftError(draft: string, mode: KvDisplayMode): string | null {
     return err instanceof Error ? err.message : String(err)
   }
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

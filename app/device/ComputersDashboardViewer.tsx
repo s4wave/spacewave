@@ -20,7 +20,7 @@ import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { FigureStrip } from '@s4wave/web/ui/FigureStrip.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { DeviceHandle, DeviceTypeID } from '@s4wave/sdk/device/device.js'
 import { DeviceAvailabilityState } from '@s4wave/sdk/device/device.pb.js'
 import { SshHostHandle, SshHostTypeID } from '@s4wave/sdk/sshhost/sshhost.js'
@@ -40,6 +40,304 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
+
+import {
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+  radii as themeRadii,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    borderRadius: '3.40282e38px',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: '10px',
+    lineHeight: 1.5,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-widest)',
+    letterSpacing: 'var(--tracking-widest)',
+    textTransform: 'uppercase',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+})
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 15%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule2: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-emerald-400']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-emerald-400']} 8%, transparent)`,
+    color: themeColors['--color-emerald-300'],
+  },
+  rule3: {
+    borderColor: 'color-mix(in oklab, var(--color-amber-400) 20%, transparent)',
+    backgroundColor:
+      'color-mix(in oklab, var(--color-amber-400) 8%, transparent)',
+    color: 'var(--color-amber-300)',
+  },
+  rule4: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 8%, transparent)`,
+    color: themeColors['--color-destructive'],
+  },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    backgroundColor: themeColors['--color-background-primary'],
+  },
+  rule2: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule3: {
+    display: 'flex',
+    minWidth: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule4: {
+    minHeight: 0,
+    flex: 1,
+    overflow: 'auto',
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule5: {
+    marginInline: 'auto',
+    display: 'flex',
+    width: '100%',
+    maxWidth: 'var(--container-5xl)',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule6: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 15%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-destructive'],
+  },
+  rule7: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule8: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule9: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule10: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule11: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+  },
+  rule12: {
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    borderRadius: themeRadii['--radius-md'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule13: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    color: themeColors['--color-foreground'],
+  },
+  rule14: {
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+  },
+  rule15: {
+    containerType: 'inline-size',
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+  },
+  rule16: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 3.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 4)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule17: {
+    display: 'grid',
+    gridTemplateColumns: {
+      default: 'minmax(0, 1fr) auto',
+      '@container (min-width: 42rem)':
+        'minmax(0, 1.4fr) 6rem minmax(0, 1fr) 6.5rem 6.5rem',
+    },
+    alignItems: 'center',
+    columnGap: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule18: {
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: '10px',
+    lineHeight: 1.5,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-widest)',
+    letterSpacing: 'var(--tracking-widest)',
+    color: themeColors['--color-foreground-alt'],
+    textTransform: 'uppercase',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule19: {
+    display: { default: 'none', '@container (min-width: 42rem)': 'block' },
+  },
+  rule20: {
+    display: { default: 'none', '@container (min-width: 42rem)': 'block' },
+    textAlign: 'right',
+  },
+  rule21: {
+    width: '100%',
+    minWidth: 0,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+    textAlign: 'left',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+  },
+  rule22: { minWidth: 0 },
+  rule23: {
+    display: 'block',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule24: {
+    display: 'block',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule25: {
+    display: { default: 'none', '@container (min-width: 42rem)': 'block' },
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule26: {
+    display: { default: 'none', '@container (min-width: 42rem)': 'block' },
+    textAlign: 'right',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+    '--tw-numeric-spacing': 'tabular-nums',
+    fontVariantNumeric:
+      'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -166,9 +464,9 @@ export function ComputersDashboardViewer({
   ).length
 
   return (
-    <div className="bg-background-primary flex h-full w-full flex-col">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center justify-between border-b px-4">
-        <span className="text-foreground flex min-w-0 items-center gap-2 text-sm font-semibold select-none">
+    <div sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>
+        <span sx={stylexStyles2.rule3}>
           <LuMonitor sx={stylexStyles.rule1} />
           Computers
         </span>
@@ -182,13 +480,10 @@ export function ComputersDashboardViewer({
           </DashboardButton>
         )}
       </div>
-      <div className="min-h-0 flex-1 overflow-auto px-4 py-3">
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-4">
+      <div sx={stylexStyles2.rule4}>
+        <div sx={stylexStyles2.rule5}>
           {openingError && (
-            <div
-              className="border-destructive/15 bg-destructive/5 text-destructive rounded-lg border p-3 text-xs leading-relaxed"
-              role="alert"
-            >
+            <div sx={stylexStyles2.rule6} role="alert">
               {openingError}
             </div>
           )}
@@ -205,20 +500,18 @@ export function ComputersDashboardViewer({
               icon={<LuMonitor sx={stylexStyles.rule3} />}
               title="No computers added"
             >
-              <div className="flex flex-col items-start gap-3">
-                <p className="text-foreground-alt/70 text-xs leading-relaxed">
+              <div sx={stylexStyles2.rule7}>
+                <p sx={stylexStyles2.rule8}>
                   Add a managed Device for persistent capabilities, or add an
                   SSH Host for on-demand terminal access.
                 </p>
               </div>
             </InfoCard>
           ) : (
-            <section className="space-y-2">
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="text-foreground text-xs font-medium select-none">
-                  Inventory
-                </h3>
-                <div className="flex items-center gap-1" role="tablist">
+            <section sx={false}>
+              <div sx={[nativeChildSpacing.s2, stylexStyles2.rule9]}>
+                <h3 sx={stylexStyles2.rule10}>Inventory</h3>
+                <div sx={stylexStyles2.rule11} role="tablist">
                   <FilterButton
                     active={filter === 'all'}
                     onClick={() => setFilter('all')}
@@ -240,6 +533,7 @@ export function ComputersDashboardViewer({
                 </div>
               </div>
               <InventoryPanel
+                sx={nativeChildSpacing.s2}
                 entries={inventory}
                 worldState={worldState}
                 onOnline={handleOnline}
@@ -268,12 +562,10 @@ function FilterButton({
       role="tab"
       aria-selected={active}
       onClick={onClick}
-      className={cn(
-        'h-7 rounded-md px-2 text-xs font-medium transition-colors',
-        active
-          ? 'bg-foreground/8 text-foreground'
-          : 'text-foreground-alt/70 hover:bg-foreground/5 hover:text-foreground',
-      )}
+      sx={[
+        stylexStyles2.rule12,
+        active ? stylexStyles2.rule13 : stylexStyles2.rule14,
+      ]}
     >
       {children}
     </button>
@@ -287,11 +579,11 @@ interface InventoryEntry {
 
 type ChipTone = 'idle' | 'success' | 'warning' | 'error'
 
-const chipTone: Record<ChipTone, string> = {
-  idle: 'border-foreground/15 bg-foreground/5 text-foreground-alt/70',
-  success: 'border-emerald-400/20 bg-emerald-400/8 text-emerald-300',
-  warning: 'border-amber-400/20 bg-amber-400/8 text-amber-300',
-  error: 'border-destructive/30 bg-destructive/8 text-destructive',
+const chipTone: Record<ChipTone, stylex.StyleXStyles> = {
+  idle: stylexStyles3.rule1,
+  success: stylexStyles3.rule2,
+  warning: stylexStyles3.rule3,
+  error: stylexStyles3.rule4,
 }
 
 // RowView is what one inventory row shows once its object state streams in.
@@ -304,10 +596,8 @@ interface RowView {
   online: boolean
 }
 
-const rowGrid =
-  'grid grid-cols-inventory-narrow items-center gap-x-4 @2xl:grid-cols-inventory'
-
 function InventoryPanel({
+  sx,
   entries,
   worldState,
   onOnline,
@@ -317,32 +607,25 @@ function InventoryPanel({
   worldState: Resource<IWorldState>
   onOnline: (objectKey: string, online: boolean) => void
   onOpen: (objectKey: string) => void
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
-    <div className="border-foreground/6 bg-background-card/30 @container overflow-hidden rounded-lg border">
+    <div sx={[stylexStyles2.rule15, sx]}>
       {entries.length === 0 ? (
-        <div className="text-foreground-alt/70 px-3.5 py-4 text-xs">
-          No computers match this filter.
-        </div>
+        <div sx={stylexStyles2.rule16}>No computers match this filter.</div>
       ) : (
         <div>
-          <div
-            aria-hidden
-            className={cn(
-              rowGrid,
-              'border-foreground/8 text-foreground-alt micro-ten border-b px-3.5 py-2 font-semibold tracking-widest uppercase select-none',
-            )}
-          >
+          <div aria-hidden sx={[stylexStyles2.rule17, stylexStyles2.rule18]}>
             <span>Name</span>
-            <span className="hidden @2xl:block">Kind</span>
-            <span className="hidden @2xl:block">Platform</span>
+            <span sx={stylexStyles2.rule19}>Kind</span>
+            <span sx={stylexStyles2.rule19}>Platform</span>
             <span>State</span>
-            <span className="hidden text-right @2xl:block">Capabilities</span>
+            <span sx={stylexStyles2.rule20}>Capabilities</span>
           </div>
-          <div className="divide-foreground/8 divide-y">
+          <div>
             {entries.map((entry) =>
               entry.kind === 'device' ? (
                 <DeviceRow
+                  sx={nativeDividers.t8}
                   key={entry.objectKey}
                   objectKey={entry.objectKey}
                   worldState={worldState}
@@ -351,6 +634,7 @@ function InventoryPanel({
                 />
               ) : (
                 <HostRow
+                  sx={nativeDividers.t8}
                   key={entry.objectKey}
                   objectKey={entry.objectKey}
                   worldState={worldState}
@@ -376,7 +660,13 @@ interface RowProps {
 const watchDevice = (h: DeviceHandle, signal: AbortSignal) =>
   h.watchDeviceAvailability(signal)
 
-function DeviceRow({ objectKey, worldState, onOnline, onOpen }: RowProps) {
+function DeviceRow({
+  sx,
+  objectKey,
+  worldState,
+  onOnline,
+  onOpen,
+}: RowProps & { sx?: stylex.StyleXStyles; className?: never }) {
   // Observe the Device record together with its authenticated transport.
   const handle = useAccessTypedHandle(
     worldState,
@@ -403,6 +693,7 @@ function DeviceRow({ objectKey, worldState, onOnline, onOpen }: RowProps) {
   }
   return (
     <InventoryRow
+      sx={sx}
       objectKey={objectKey}
       kind="Device"
       view={view}
@@ -415,7 +706,13 @@ function DeviceRow({ objectKey, worldState, onOnline, onOpen }: RowProps) {
 const watchHost = (h: SshHostHandle, signal: AbortSignal) =>
   h.watchSshHostState(signal)
 
-function HostRow({ objectKey, worldState, onOnline, onOpen }: RowProps) {
+function HostRow({
+  sx,
+  objectKey,
+  worldState,
+  onOnline,
+  onOpen,
+}: RowProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const handle = useAccessTypedHandle(
     worldState,
     objectKey,
@@ -441,6 +738,7 @@ function HostRow({ objectKey, worldState, onOnline, onOpen }: RowProps) {
   }
   return (
     <InventoryRow
+      sx={sx}
       objectKey={objectKey}
       kind="SSH host"
       view={view}
@@ -465,6 +763,7 @@ function livenessChip(liveness: DeviceAvailabilityState): {
 }
 
 function InventoryRow({
+  sx,
   objectKey,
   kind,
   view,
@@ -476,7 +775,7 @@ function InventoryRow({
   view: RowView
   onOnline: (objectKey: string, online: boolean) => void
   onOpen: (objectKey: string) => void
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   const { online } = view
   useEffect(() => {
     onOnline(objectKey, online)
@@ -487,38 +786,63 @@ function InventoryRow({
     <button
       type="button"
       onClick={() => onOpen(objectKey)}
-      className={cn(
-        rowGrid,
-        'hover:bg-foreground/5 w-full min-w-0 px-3.5 py-2.5 text-left transition-colors',
-      )}
+      sx={[[stylexStyles2.rule17, stylexStyles2.rule21], sx]}
     >
-      <span className="min-w-0">
-        <span className="text-foreground block truncate text-sm font-medium">
-          {view.name}
-        </span>
-        <span className="text-foreground-alt/50 block truncate font-mono text-xs">
-          {objectKey}
-        </span>
+      <span sx={stylexStyles2.rule22}>
+        <span sx={stylexStyles2.rule23}>{view.name}</span>
+        <span sx={stylexStyles2.rule24}>{objectKey}</span>
       </span>
-      <span className="text-foreground-alt hidden truncate text-xs @2xl:block">
-        {kind}
-      </span>
-      <span className="text-foreground-alt hidden truncate text-xs @2xl:block">
-        {view.platform}
-      </span>
+      <span sx={stylexStyles2.rule25}>{kind}</span>
+      <span sx={stylexStyles2.rule25}>{view.platform}</span>
       <span>
-        <span
-          className={cn(
-            'micro-ten inline-flex items-center rounded-full border px-2 py-0.5 font-medium tracking-widest uppercase select-none',
-            chipTone[view.tone],
-          )}
-        >
+        <span sx={[[stylexStyles4.rule1], [chipTone[view.tone]]]}>
           {view.state}
         </span>
       </span>
-      <span className="text-foreground hidden text-right font-mono text-xs tabular-nums @2xl:block">
-        {view.capabilities ?? ''}
-      </span>
+      <span sx={stylexStyles2.rule26}>{view.capabilities ?? ''}</span>
     </button>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeDividers applies the list border only to its nonfinal physical rows.
+const nativeDividers = stylex.create({
+  t8: {
+    '--tw-divide-y-reverse': { default: null, ':not(:last-child)': 0 },
+    borderBottomStyle: {
+      default: null,
+      ':not(:last-child)': themeUtilityState['--tw-border-style'],
+    },
+    borderTopStyle: {
+      default: null,
+      ':not(:last-child)': themeUtilityState['--tw-border-style'],
+    },
+    borderTopWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * var(--tw-divide-y-reverse))',
+    },
+    borderBottomWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * calc(1 - var(--tw-divide-y-reverse)))',
+    },
+    borderColor: {
+      default: null,
+      ':not(:last-child)':
+        'color-mix(in oklab, var(--color-foreground) 8%, transparent)',
+    },
+  },
+})

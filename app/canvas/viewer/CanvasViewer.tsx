@@ -53,6 +53,64 @@ import {
 import { CanvasTypeID } from '../types.js'
 import { getUnixFSImageSubItems } from '../unixfs-image-sub-items.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+  layout as themeLayout,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-muted-foreground'],
+  },
+  rule2: {
+    display: 'flex',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: themeColors['--color-muted-foreground'],
+  },
+  rule3: { position: 'relative', height: '100%', width: '100%' },
+  rule4: {
+    pointerEvents: 'none',
+    position: 'absolute',
+    top: `calc(${themeLayout['--spacing']} * 3)`,
+    left: '50%',
+    zIndex: 20,
+    '--tw-translate-x': 'calc(calc(1 / 2 * 100%) * -1)',
+    translate: 'var(--tw-translate-x) var(--tw-translate-y)',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 90%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+    '--tw-shadow':
+      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+  },
+  rule5: { height: '100%', width: '100%' },
+})
+
 export { CanvasTypeID }
 
 const graphLinkLookupLimit = 100
@@ -537,9 +595,7 @@ export function CanvasViewer({
       // Block self-embedding.
       if (node.objectKey === objectKey) {
         return (
-          <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
-            Cannot embed canvas within itself
-          </div>
+          <div sx={stylexStyles.rule1}>Cannot embed canvas within itself</div>
         )
       }
 
@@ -583,19 +639,13 @@ export function CanvasViewer({
   )
 
   if (canvasResource.loading || !canvasStateData) {
-    return (
-      <div className="text-muted-foreground flex h-full items-center justify-center">
-        Loading canvas…
-      </div>
-    )
+    return <div sx={stylexStyles.rule2}>Loading canvas…</div>
   }
 
   return (
-    <div className="relative h-full w-full">
+    <div sx={stylexStyles.rule3}>
       {graphLinkActionError && (
-        <div className="border-destructive/20 bg-background-card/90 text-destructive pointer-events-none absolute top-3 left-1/2 z-20 -translate-x-1/2 rounded-md border px-3 py-2 text-xs shadow-lg backdrop-blur-sm">
-          {graphLinkActionError}
-        </div>
+        <div sx={stylexStyles.rule4}>{graphLinkActionError}</div>
       )}
       <Canvas
         state={effectiveState}
@@ -608,7 +658,7 @@ export function CanvasViewer({
         }
         imageSubItems={unixfsRoot.value ? imageSubItems : undefined}
         focusNodeId={focusNodeId}
-        className="h-full w-full"
+        sx={stylexStyles.rule5}
       />
     </div>
   )

@@ -4,6 +4,27 @@ import { FileStatusCode } from '@s4wave/sdk/git/worktree.pb.js'
 import type { GitWorktreeHandle } from '@s4wave/sdk/git/worktree.js'
 import { StatusSection } from './StatusSection.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rule2: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule3: { overflow: 'auto' },
+})
+
 // ChangesViewProps are props for the ChangesView component.
 export interface ChangesViewProps {
   entries: StatusEntry[]
@@ -67,16 +88,14 @@ export function ChangesView({
 
   if (entries.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <span className="text-foreground-alt text-xs">
-          No changes in working directory
-        </span>
+      <div sx={stylexStyles.rule1}>
+        <span sx={stylexStyles.rule2}>No changes in working directory</span>
       </div>
     )
   }
 
   return (
-    <div className="overflow-auto">
+    <div sx={stylexStyles.rule3}>
       <StatusSection
         title="Staged Changes"
         entries={staged}

@@ -9,7 +9,7 @@ import {
 import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { PromDashboard, PromTargets } from '@s4wave/sdk/prom/prom.js'
 import { PanelKind, PanelUnit, type Panel } from '@s4wave/sdk/prom/prom.pb.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { Button } from '@s4wave/web/ui/button.js'
 import { Input } from '@s4wave/web/ui/input.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
@@ -19,6 +19,129 @@ import { filterSuggestions, suggestContext } from './expr-suggest.js'
 import type { TimeRange } from './prom-view.js'
 
 import * as stylex from '@stylexjs/stylex'
+
+import {
+  layout as themeLayout,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+  },
+  rule2: { flex: 1, color: themeColors['--color-foreground'] },
+  rule3: {
+    gridColumn: '1 / -1',
+    display: 'grid',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    gridTemplateColumns: {
+      default: null,
+      '@media (min-width: 64rem)': 'repeat(2, minmax(0, 1fr))',
+    },
+  },
+  rule4: {
+    display: 'flex',
+    minWidth: 0,
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule5: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule6: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule7: {
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: themeColors['--color-background-primary'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule8: {
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+  },
+  rule9: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule10: { display: 'flex', gap: `calc(${themeLayout['--spacing']} * 2)` },
+  rule11: {
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule12: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+  },
+  rule13: {
+    display: 'block',
+    width: '100%',
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    textAlign: 'left',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    color: themeColors['--color-foreground'],
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+  },
+  rule14: {
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    gap: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
 
 const stylexStyles = stylex.create({ rule1: { marginLeft: 'auto' } })
 
@@ -33,8 +156,6 @@ const unitOptions: readonly [PanelUnit, string][] = [
 ]
 
 // field styles the editor's textarea and selects like its inputs.
-const field =
-  'border-foreground/10 bg-background-primary text-foreground rounded border px-2 py-1 text-xs'
 
 // Editor is the state of the panel editor.
 type Editor = {
@@ -187,10 +308,8 @@ export function PromPanelEditor({
 
   if (removed) {
     return (
-      <section className="border-foreground/8 flex items-center gap-3 rounded-md border p-3 text-sm">
-        <p className="text-foreground flex-1">
-          Another member removed this panel.
-        </p>
+      <section sx={stylexStyles2.rule1}>
+        <p sx={stylexStyles2.rule2}>Another member removed this panel.</p>
         <Button variant="outline" size="sm" onClick={onClose}>
           Close
         </Button>
@@ -201,12 +320,9 @@ export function PromPanelEditor({
   const titleMissing = !ed.draft.title?.trim()
   const saving = ed.save.state === 'saving'
   return (
-    <section
-      aria-label="Panel editor"
-      className="border-brand/30 col-span-full grid gap-3 rounded-md border p-3 lg:grid-cols-2"
-    >
-      <div className="flex min-w-0 flex-col gap-2">
-        <label className="text-foreground-alt flex flex-col gap-1 text-xs">
+    <section aria-label="Panel editor" sx={stylexStyles2.rule3}>
+      <div sx={stylexStyles2.rule4}>
+        <label sx={stylexStyles2.rule5}>
           Title
           <Input
             variant="toolbar"
@@ -217,17 +333,17 @@ export function PromPanelEditor({
           />
         </label>
         {titleMissing ? (
-          <p className="text-foreground-alt text-xs">A panel needs a title.</p>
+          <p sx={stylexStyles2.rule6}>A panel needs a title.</p>
         ) : null}
 
-        <label className="text-foreground-alt flex flex-col gap-1 text-xs">
+        <label sx={stylexStyles2.rule5}>
           Expression
           <textarea
             ref={exprRef}
             rows={3}
             spellCheck={false}
             value={ed.draft.expr ?? ''}
-            className={cn(field, 'font-mono')}
+            sx={[stylexStyles2.rule7, stylexStyles2.rule8]}
             onChange={(e) =>
               dispatch({
                 kind: 'expr',
@@ -266,11 +382,11 @@ export function PromPanelEditor({
         />
 
         {ed.save.state === 'failed' ? (
-          <p className="text-destructive text-xs">
+          <p sx={stylexStyles2.rule9}>
             Could not save the panel: {ed.save.reason}.
           </p>
         ) : null}
-        <div className="flex gap-2">
+        <div sx={stylexStyles2.rule10}>
           <Button
             size="sm"
             disabled={titleMissing || saving}
@@ -317,9 +433,9 @@ function Suggestions({
   onPick: (name: string) => void
 }) {
   return (
-    <div className="border-foreground/8 rounded border text-xs">
+    <div sx={stylexStyles2.rule11}>
       {loading ? (
-        <div className="px-2 py-1">
+        <div sx={stylexStyles2.rule12}>
           <LoadingInline label="Loading names" />
         </div>
       ) : (
@@ -327,7 +443,7 @@ function Suggestions({
           <button
             key={name}
             type="button"
-            className="hover:bg-foreground/5 text-foreground block w-full px-2 py-0.5 text-left font-mono"
+            sx={stylexStyles2.rule13}
             onMouseDown={(e) => {
               e.preventDefault()
               onPick(name)
@@ -351,12 +467,12 @@ function FormatFields({
   onChange: (patch: Partial<Panel>) => void
 }) {
   return (
-    <div className="flex gap-2">
-      <label className="text-foreground-alt flex flex-1 flex-col gap-1 text-xs">
+    <div sx={stylexStyles2.rule10}>
+      <label sx={stylexStyles2.rule14}>
         Unit
         <select
           value={draft.unit ?? 0}
-          className={field}
+          sx={stylexStyles2.rule7}
           onChange={(e) =>
             onChange({ unit: Number(e.target.value) as PanelUnit })
           }
@@ -368,11 +484,11 @@ function FormatFields({
           ))}
         </select>
       </label>
-      <label className="text-foreground-alt flex flex-1 flex-col gap-1 text-xs">
+      <label sx={stylexStyles2.rule14}>
         Show as
         <select
           value={draft.kind ?? 0}
-          className={field}
+          sx={stylexStyles2.rule7}
           onChange={(e) =>
             onChange({ kind: Number(e.target.value) as PanelKind })
           }

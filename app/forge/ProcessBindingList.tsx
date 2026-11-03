@@ -1,8 +1,87 @@
 import { forgeControlStyles } from '@s4wave/web/style/forge-controls.stylex.js'
 import { useCallback } from 'react'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import type { ProcessBindingInfo } from '@s4wave/sdk/space/space.pb.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+  utilityState as themeUtilityState,
+  layout as themeLayout,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule3: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * .5)`,
+  },
+  rule4: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule5: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule6: {
+    borderRadius: '.25rem',
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule7: {
+    backgroundColor: {
+      default: themeColors['--color-green-600'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-green-700'],
+      },
+    },
+    color: themeColors['--color-white'],
+  },
+  rule8: {
+    backgroundColor: {
+      default: themeColors['--color-neutral-600'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-neutral-700'],
+      },
+    },
+    color: themeColors['--color-white'],
+  },
+  rule9: { cursor: 'not-allowed', opacity: 0.5 },
+})
 
 interface ProcessBindingListProps {
   // bindings is the list of process binding info objects.
@@ -14,21 +93,21 @@ interface ProcessBindingListProps {
 
 // ProcessBindingList renders a list of process bindings with approve/unapprove toggles.
 export function ProcessBindingList({
+  sx,
   bindings,
   onToggle,
-}: ProcessBindingListProps) {
+}: ProcessBindingListProps & { sx?: stylex.StyleXStyles; className?: never }) {
   if (bindings.length === 0) {
     return (
-      <div className="text-foreground-alt/40 text-sm">
-        No process bindings configured.
-      </div>
+      <div sx={[stylexStyles.rule1, sx]}>No process bindings configured.</div>
     )
   }
 
   return (
-    <div className="space-y-1">
+    <div sx={[false, sx]}>
       {bindings.map((binding) => (
         <ProcessBindingRow
+          sx={nativeChildSpacing.s1}
           key={binding.objectKey ?? ''}
           binding={binding}
           onToggle={onToggle}
@@ -44,7 +123,11 @@ interface ProcessBindingRowProps {
 }
 
 // ProcessBindingRow renders a single process binding entry.
-function ProcessBindingRow({ binding, onToggle }: ProcessBindingRowProps) {
+function ProcessBindingRow({
+  sx,
+  binding,
+  onToggle,
+}: ProcessBindingRowProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const objectKey = binding.objectKey ?? ''
   const approved = binding.approved ?? false
 
@@ -53,35 +136,48 @@ function ProcessBindingRow({ binding, onToggle }: ProcessBindingRowProps) {
   }, [onToggle, objectKey, approved])
 
   return (
-    <div className="border-foreground/8 flex items-center justify-between rounded border px-3 py-2">
-      <div className="flex flex-col gap-0.5">
-        <span className="text-foreground text-sm font-medium">{objectKey}</span>
+    <div sx={[stylexStyles.rule2, sx]}>
+      <div sx={stylexStyles.rule3}>
+        <span sx={stylexStyles.rule4}>{objectKey}</span>
         {binding.typeId && (
-          <span className="text-foreground-alt/50 text-xs">
-            {binding.typeId}
-          </span>
+          <span sx={stylexStyles.rule5}>{binding.typeId}</span>
         )}
         {binding.decidedAt && (
-          <span className="text-foreground-alt/50 text-xs">
+          <span sx={stylexStyles.rule5}>
             {binding.decidedAt.toLocaleString()}
           </span>
         )}
       </div>
       <button
-        sx={forgeControlStyles.required}
         type="button"
         disabled={!onToggle}
         onClick={handleToggle}
-        className={cn(
-          'rounded px-2 py-1 text-xs font-medium transition-colors',
-          approved
-            ? 'bg-green-600 text-white hover:bg-green-700'
-            : 'bg-neutral-600 text-white hover:bg-neutral-700',
-          !onToggle && 'cursor-not-allowed opacity-50',
-        )}
+        sx={[
+          [
+            stylexStyles.rule6,
+            approved ? stylexStyles.rule7 : stylexStyles.rule8,
+            !onToggle && stylexStyles.rule9,
+          ],
+          forgeControlStyles.required,
+        ]}
       >
         {approved ? 'Approved' : 'Unapproved'}
       </button>
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s1: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

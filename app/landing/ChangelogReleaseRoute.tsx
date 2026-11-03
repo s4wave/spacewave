@@ -8,6 +8,28 @@ import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 
 import { ChangelogReleasePage } from './ChangelogReleasePage.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  colors as themeColors,
+  layout as themeLayout,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    width: '100%',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: themeColors['--color-background-landing'],
+  },
+  rule2: {
+    width: '100%',
+    maxWidth: 'var(--container-sm)',
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 // ChangelogReleaseRoute resolves the version route param against the loaded
 // changelog and renders that release's page, redirecting to /changelog when
 // the version is unknown.
@@ -32,8 +54,8 @@ export function ChangelogReleaseRoute() {
 
   if (changelogResource.loading) {
     return (
-      <div className="bg-background-landing flex w-full flex-1 items-center justify-center">
-        <div className="w-full max-w-sm px-4">
+      <div sx={stylexStyles.rule1}>
+        <div sx={stylexStyles.rule2}>
           <LoadingCard
             view={{
               state: 'active',

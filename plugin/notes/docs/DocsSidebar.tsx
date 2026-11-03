@@ -11,7 +11,7 @@ import {
   useUnixFSHandleEntries,
 } from '@s4wave/web/hooks/useUnixFSHandle.js'
 import { useStateAtom } from '@s4wave/web/state/index.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import {
   LuChevronDown,
   LuChevronRight,
@@ -25,6 +25,108 @@ import { isNoteFileName, stripNoteFileExtension } from '../note-files.js'
 
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+  utilityState as themeUtilityState,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-muted-foreground'],
+  },
+  rule2: {
+    display: 'flex',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-muted-foreground'],
+  },
+  rule3: {
+    display: 'flex',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule4: {
+    display: 'flex',
+    height: '100%',
+    flexDirection: 'column',
+    overflowY: 'auto',
+  },
+  rule5: {
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: themeColors['--color-border'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-wide)',
+    letterSpacing: 'var(--tracking-wide)',
+    color: themeColors['--color-foreground-alt'],
+    textTransform: 'uppercase',
+  },
+  rule6: { flex: 1, overflowY: 'auto', paddingBlock: themeLayout['--spacing'] },
+  rule7: {
+    paddingLeft: 'var(--docs-tree-padding-left)',
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: themeLayout['--spacing'],
+    paddingRight: `calc(${themeLayout['--spacing']} * 2)`,
+    textAlign: 'left',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-list-hover-background'],
+      },
+    },
+  },
+  rule8: { textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' },
+  rule9: {
+    paddingLeft: 'var(--docs-tree-padding-left)',
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    backgroundColor: {
+      default: themeColors['--color-list-active-selection-background'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-list-hover-background'],
+      },
+    },
+    paddingBlock: themeLayout['--spacing'],
+    paddingRight: `calc(${themeLayout['--spacing']} * 2)`,
+    textAlign: 'left',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-list-active-selection-foreground'],
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -63,43 +165,25 @@ function DocsSidebar({
   const entriesResource = useUnixFSHandleEntries(pathHandle)
 
   if (!source) {
-    return (
-      <div className="text-muted-foreground flex h-full items-center justify-center text-xs">
-        No source configured
-      </div>
-    )
+    return <div sx={stylexStyles2.rule1}>No source configured</div>
   }
 
   if (!objectKey) {
-    return (
-      <div className="text-muted-foreground flex h-full items-center justify-center p-4 text-center text-xs">
-        Invalid source ref
-      </div>
-    )
+    return <div sx={stylexStyles2.rule2}>Invalid source ref</div>
   }
 
   if (entriesResource.loading) {
-    return (
-      <div className="text-muted-foreground flex h-full items-center justify-center text-xs">
-        Loading…
-      </div>
-    )
+    return <div sx={stylexStyles2.rule1}>Loading…</div>
   }
 
   if (entriesResource.error) {
-    return (
-      <div className="text-destructive flex h-full items-center justify-center p-4 text-center text-xs">
-        {entriesResource.error.message}
-      </div>
-    )
+    return <div sx={stylexStyles2.rule3}>{entriesResource.error.message}</div>
   }
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto">
-      <div className="text-foreground-alt border-border border-b px-3 py-2 text-xs font-medium tracking-wide uppercase">
-        Pages
-      </div>
-      <div className="flex-1 overflow-y-auto py-1">
+    <div sx={stylexStyles2.rule4}>
+      <div sx={stylexStyles2.rule5}>Pages</div>
+      <div sx={stylexStyles2.rule6}>
         <TreeEntries
           entries={entriesResource.value ?? []}
           worldState={worldState}
@@ -234,10 +318,7 @@ function FolderNode({
     <div>
       <button
         type="button"
-        className={cn(
-          'docs-tree-indent flex w-full items-center gap-1.5 py-1 pr-2 text-left text-xs',
-          'hover:bg-list-hover-background',
-        )}
+        sx={[stylexStyles2.rule7]}
         style={{ '--docs-tree-padding-left': paddingLeft }}
         onClick={handleToggle}
       >
@@ -251,7 +332,7 @@ function FolderNode({
         ) : (
           <LuFolder sx={stylexStyles.rule1} />
         )}
-        <span className="truncate">{name}</span>
+        <span sx={stylexStyles2.rule8}>{name}</span>
       </button>
       {expanded && childEntries.value && (
         <TreeEntries
@@ -290,17 +371,12 @@ function FileNode({ name, path, selected, onSelect, depth }: FileNodeProps) {
   return (
     <button
       type="button"
-      className={cn(
-        'docs-tree-indent flex w-full items-center gap-1.5 py-1 pr-2 text-left text-xs',
-        'hover:bg-list-hover-background',
-        selected &&
-          'bg-list-active-selection-background text-list-active-selection-foreground',
-      )}
+      sx={selected ? stylexStyles2.rule9 : stylexStyles2.rule7}
       style={{ '--docs-tree-padding-left': paddingLeft }}
       onClick={handleDocSelect}
     >
       <LuFile sx={stylexStyles.rule1} />
-      <span className="truncate">{title}</span>
+      <span sx={stylexStyles2.rule8}>{title}</span>
     </button>
   )
 }

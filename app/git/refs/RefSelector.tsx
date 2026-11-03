@@ -2,7 +2,6 @@ import { LuChevronDown, LuGitBranch, LuTag } from '@s4wave/web/images/icons.js'
 
 import type { ListRefsResponse } from '@s4wave/sdk/git/repo.pb.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -18,6 +17,92 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
+
+import { fonts as themeFonts } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderRadius: '.25rem',
+    paddingInline: themeLayout['--spacing'],
+    color: {
+      default: themeColors['--color-topbar-button-text'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-topbar-button-text-hi'],
+      },
+    },
+    opacity: 0.6,
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-pulldown-hover'],
+      },
+    },
+    fontSize: themeLayout['--text-ui'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-ui--line-height']})`,
+    letterSpacing: `var(--tw-tracking, ${themeLayout['--text-ui--letter-spacing']})`,
+  },
+  rule2: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderRadius: '.25rem',
+    paddingInline: themeLayout['--spacing'],
+    color: {
+      default: themeColors['--color-topbar-button-text'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-topbar-button-text-hi'],
+      },
+    },
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-pulldown-hover'],
+      },
+    },
+    fontSize: themeLayout['--text-ui'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-ui--line-height']})`,
+    letterSpacing: `var(--tw-tracking, ${themeLayout['--text-ui--letter-spacing']})`,
+  },
+  rule3: {
+    maxWidth: `calc(${themeLayout['--spacing']} * 30)`,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+  },
+  rule4: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+  },
+  rule5: { textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' },
+  rule6: {
+    marginLeft: 'auto',
+    flexShrink: 0,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule7: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -70,14 +155,11 @@ export function RefSelector({
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className={cn(
-            'text-topbar-menu text-topbar-button-text hover:text-topbar-button-text-hi hover:bg-pulldown-hover flex h-5 items-center gap-1 rounded px-1 select-none',
-            loading && 'opacity-60',
-          )}
+          sx={loading ? stylexStyles3.rule1 : stylexStyles3.rule2}
           disabled={loading}
         >
           <LuGitBranch sx={stylexStyles.rule1} />
-          <span className="max-w-30 truncate">{displayName}</span>
+          <span sx={stylexStyles3.rule3}>{displayName}</span>
           <LuChevronDown sx={stylexStyles.rule2} />
         </button>
       </DropdownMenuTrigger>
@@ -89,7 +171,7 @@ export function RefSelector({
         {branches.length > 0 && (
           <DropdownMenuGroup>
             <DropdownMenuLabel>
-              <div className="flex items-center gap-1">
+              <div sx={stylexStyles3.rule4}>
                 <LuGitBranch sx={stylexStyles.rule3} />
                 <span>Branches</span>
               </div>
@@ -100,12 +182,8 @@ export function RefSelector({
                 onClick={() => onRefSelect(branch.name ?? '')}
                 variant={effectiveRef === branch.name ? 'selected' : 'default'}
               >
-                <span className="truncate">{branch.name}</span>
-                {branch.isHead && (
-                  <span className="text-foreground-alt/70 ml-auto shrink-0 text-xs">
-                    HEAD
-                  </span>
-                )}
+                <span sx={stylexStyles3.rule5}>{branch.name}</span>
+                {branch.isHead && <span sx={stylexStyles3.rule6}>HEAD</span>}
               </DropdownMenuItem>
             ))}
           </DropdownMenuGroup>
@@ -114,7 +192,7 @@ export function RefSelector({
         {tags.length > 0 && (
           <DropdownMenuGroup>
             <DropdownMenuLabel>
-              <div className="flex items-center gap-1">
+              <div sx={stylexStyles3.rule4}>
                 <LuTag sx={stylexStyles.rule3} />
                 <span>Tags</span>
               </div>
@@ -125,15 +203,13 @@ export function RefSelector({
                 onClick={() => onRefSelect(tag.name ?? '')}
                 variant={effectiveRef === tag.name ? 'selected' : 'default'}
               >
-                <span className="truncate">{tag.name}</span>
+                <span sx={stylexStyles3.rule5}>{tag.name}</span>
               </DropdownMenuItem>
             ))}
           </DropdownMenuGroup>
         )}
         {branches.length === 0 && tags.length === 0 && !loading && (
-          <div className="text-foreground-alt px-2 py-1.5 text-xs">
-            No refs found
-          </div>
+          <div sx={stylexStyles3.rule7}>No refs found</div>
         )}
       </DropdownMenuContent>
     </DropdownMenu>

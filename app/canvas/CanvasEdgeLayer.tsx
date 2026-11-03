@@ -8,6 +8,42 @@ import type {
   CanvasCallbacks,
 } from './types.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    zIndex: 0,
+    pointerEvents: 'none',
+    position: 'absolute',
+    inset: 0,
+    height: '100%',
+    width: '100%',
+    overflow: 'visible',
+  },
+  rule2: {
+    fill: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule3: {
+    fill: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 30%, transparent)`,
+  },
+  rule4: {
+    stroke: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule5: {
+    fill: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule6: {
+    stroke: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 30%, transparent)`,
+  },
+  rule7: { pointerEvents: 'auto' },
+})
+
 // CanvasEdgeLayerProps are the props for CanvasEdgeLayer.
 interface CanvasEdgeLayerProps {
   edges: CanvasEdgeData[]
@@ -157,10 +193,7 @@ export function CanvasEdgeLayer({
   )
 
   return (
-    <svg
-      className="canvas-layer-z-index pointer-events-none absolute inset-0 h-full w-full overflow-visible"
-      style={{ '--canvas-layer-z-index': 0 }}
-    >
+    <svg sx={stylexStyles.rule1}>
       <defs>
         <marker
           id="canvas-arrowhead"
@@ -170,10 +203,7 @@ export function CanvasEdgeLayer({
           refY="3.5"
           orient="auto"
         >
-          <polygon
-            points="0 0, 10 3.5, 0 7"
-            className="fill-foreground-alt/40"
-          />
+          <polygon points="0 0, 10 3.5, 0 7" sx={stylexStyles.rule2} />
         </marker>
         <marker
           id="canvas-arrowhead-dashed"
@@ -183,10 +213,7 @@ export function CanvasEdgeLayer({
           refY="3.5"
           orient="auto"
         >
-          <polygon
-            points="0 0, 10 3.5, 0 7"
-            className="fill-foreground-alt/30"
-          />
+          <polygon points="0 0, 10 3.5, 0 7" sx={stylexStyles.rule3} />
         </marker>
       </defs>
 
@@ -196,16 +223,12 @@ export function CanvasEdgeLayer({
             id={edge.pathID}
             d={edge.path}
             fill="none"
-            className="stroke-foreground-alt/40"
+            sx={stylexStyles.rule4}
             strokeWidth={2}
             markerEnd="url(#canvas-arrowhead)"
           />
           {edge.label && (
-            <text
-              className="fill-foreground-alt/50 text-xs"
-              textAnchor="middle"
-              dy={-8}
-            >
+            <text sx={stylexStyles.rule5} textAnchor="middle" dy={-8}>
               <textPath href={`#${edge.pathID}`} startOffset="50%">
                 {edge.label}
               </textPath>
@@ -219,7 +242,7 @@ export function CanvasEdgeLayer({
           <path
             d={edge.path}
             fill="none"
-            className="stroke-foreground-alt/30"
+            sx={stylexStyles.rule6}
             strokeWidth={1.5}
             strokeDasharray="6 4"
             markerEnd="url(#canvas-arrowhead-dashed)"
@@ -229,7 +252,7 @@ export function CanvasEdgeLayer({
             y={edge.actionY - 13}
             width={260}
             height={26}
-            className="pointer-events-auto"
+            sx={stylexStyles.rule7}
           >
             <GraphLinkPill
               edge={edge.edge}

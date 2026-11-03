@@ -4,7 +4,7 @@ import { LuCheck, LuPlus, LuServer, LuTrash } from '@s4wave/web/images/icons.js'
 import type { ConfigEditorProps } from '@s4wave/web/configtype/configtype.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { Button } from '@s4wave/web/ui/button.js'
 import { Input } from '@s4wave/web/ui/input.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
@@ -18,6 +18,159 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
+
+import {
+  fonts as themeFonts,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule3: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule4: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule5: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 12%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+      },
+    },
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    textAlign: 'left',
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+  },
+  rule6: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 12%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+      },
+    },
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    textAlign: 'left',
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+  },
+  rule7: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 7)`,
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+  },
+  rule8: { minWidth: 0, flex: 1 },
+  rule9: {
+    display: 'block',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule10: {
+    display: 'block',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule11: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -153,10 +306,10 @@ export function ForgeJobConfigEditor({
   )
 
   return (
-    <div sx={sx} className="space-y-3">
-      <section>
-        <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
+    <div sx={[false, sx]}>
+      <section sx={nativeChildSpacing.s3}>
+        <div sx={stylexStyles2.rule1}>
+          <h3 sx={stylexStyles2.rule2}>
             <LuServer sx={stylexStyles.rule1} />
             Target Cluster
           </h3>
@@ -181,37 +334,34 @@ export function ForgeJobConfigEditor({
             }}
           />
         ) : clusters.length === 0 ? (
-          <div className="border-foreground/6 bg-background-card/30 text-foreground-alt/60 rounded-lg border px-3.5 py-3 text-xs leading-relaxed">
+          <div sx={stylexStyles2.rule3}>
             No Clusters are available. Create a Cluster before creating a Job.
           </div>
         ) : (
-          <p className="text-foreground-alt/60 mb-2 text-xs leading-relaxed">
+          <p sx={stylexStyles2.rule4}>
             Choose the Cluster that will schedule this Job.
           </p>
         )}
-        <div className="space-y-2">
+        <div sx={false}>
           {clusters.map((cluster) => (
             <button
               type="button"
               key={cluster.key}
-              className={cn(
-                'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-all duration-150',
-                value.clusterKey === cluster.key &&
-                  'border-brand/30 bg-brand/5',
-              )}
+              sx={[
+                nativeChildSpacing.s2,
+                value.clusterKey === cluster.key
+                  ? stylexStyles2.rule5
+                  : stylexStyles2.rule6,
+              ]}
               onClick={() => handleSelectCluster(cluster.key)}
               aria-pressed={value.clusterKey === cluster.key}
             >
-              <span className="bg-foreground/5 flex size-7 shrink-0 items-center justify-center rounded-md">
+              <span sx={stylexStyles2.rule7}>
                 <LuServer sx={stylexStyles.rule2} />
               </span>
-              <span className="min-w-0 flex-1">
-                <span className="text-foreground block truncate text-xs font-medium">
-                  {cluster.name}
-                </span>
-                <span className="text-foreground-alt/50 block truncate text-xs">
-                  {cluster.key}
-                </span>
+              <span sx={stylexStyles2.rule8}>
+                <span sx={stylexStyles2.rule9}>{cluster.name}</span>
+                <span sx={stylexStyles2.rule10}>{cluster.key}</span>
               </span>
               {value.clusterKey === cluster.key && (
                 <LuCheck sx={stylexStyles.rule3} aria-label="Selected" />
@@ -221,9 +371,9 @@ export function ForgeJobConfigEditor({
         </div>
       </section>
 
-      <section>
-        <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
+      <section sx={nativeChildSpacing.s3}>
+        <div sx={stylexStyles2.rule1}>
+          <h3 sx={stylexStyles2.rule2}>
             <LuPlus sx={stylexStyles.rule1} />
             Initial Tasks
           </h3>
@@ -232,12 +382,15 @@ export function ForgeJobConfigEditor({
             Add Task
           </Button>
         </div>
-        <p className="text-foreground-alt/60 mb-2 text-xs leading-relaxed">
+        <p sx={stylexStyles2.rule4}>
           Add at least one named task. Tasks run in the order shown.
         </p>
-        <div className="border-foreground/6 bg-background-card/30 space-y-2 rounded-lg border p-3.5">
+        <div sx={stylexStyles3.rule1}>
           {displayedTaskDefs.map((task, i) => (
-            <div key={taskKeys[i]} className="flex items-center gap-2">
+            <div
+              key={taskKeys[i]}
+              sx={[nativeChildSpacing.s2, stylexStyles2.rule11]}
+            >
               <Input
                 value={task.name ?? ''}
                 onChange={(e) => handleUpdateTaskDef(i, e.target.value)}
@@ -261,3 +414,29 @@ export function ForgeJobConfigEditor({
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

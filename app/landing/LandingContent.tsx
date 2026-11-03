@@ -1,8 +1,9 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as ownerStylex from '@stylexjs/stylex'
 
 import type { IconType } from '@s4wave/web/images/icons.js'
 import React, { useCallback, useState, useMemo } from 'react'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { useScrollReveal } from './useScrollReveal.js'
 import {
   LuBookOpen,
@@ -65,6 +66,153 @@ import {
 } from '../../web/style/tokens.stylex.js'
 
 import { groupMarker as groupMarker3 } from '../../web/style/relations.stylex.js'
+
+import { groupMarker as groupMarker4 } from '../../web/style/relations.stylex.js'
+
+const stylexStyles11 = ownerStylex.create({
+  rule1: {
+    marginRight: `calc(${themeLayout['--spacing']} * 3)`,
+    transitionProperty: 'transform, translate, scale, rotate',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    '--tw-scale-x': {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        [ownerStylex.when.ancestor(':is(:hover)', groupMarker4)]: '110%',
+      },
+    },
+    '--tw-scale-y': {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        [ownerStylex.when.ancestor(':is(:hover)', groupMarker4)]: '110%',
+      },
+    },
+    '--tw-scale-z': {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        [ownerStylex.when.ancestor(':is(:hover)', groupMarker4)]: '110%',
+      },
+    },
+    scale: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        [ownerStylex.when.ancestor(':is(:hover)', groupMarker4)]:
+          'var(--tw-scale-x) var(--tw-scale-y)',
+      },
+    },
+  },
+})
+
+const stylexStyles10 = ownerStylex.create({
+  rule1: { color: themeColors['--color-brand'] },
+  rule2: { color: themeColors['--color-green-400'] },
+  rule3: { color: 'var(--color-rose-400)' },
+  rule4: { color: themeColors['--color-blue-400'] },
+  rule5: { color: themeColors['--color-yellow-400'] },
+})
+
+const stylexStyles9 = ownerStylex.create({
+  rule1: { marginBottom: `calc(${themeLayout['--spacing']} * 8)` },
+})
+
+const stylexStyles8 = ownerStylex.create({
+  rule1: {
+    position: 'relative',
+    width: '100%',
+    paddingInline: {
+      default: `calc(${themeLayout['--spacing']} * 4)`,
+      '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 8)`,
+      '@container (min-width: 42rem)': `calc(${themeLayout['--spacing']} * 12)`,
+    },
+    paddingBlock: `calc(${themeLayout['--spacing']} * 28)`,
+  },
+  rule2: {
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.7s',
+    '--tw-duration': '.7s',
+  },
+  rule3: {
+    '--tw-translate-y': '0px',
+    translate: 'var(--tw-translate-x) var(--tw-translate-y)',
+    opacity: 1,
+  },
+  rule4: {
+    '--tw-translate-y': `calc(${themeLayout['--spacing']} * 8)`,
+    translate: 'var(--tw-translate-x) var(--tw-translate-y)',
+    opacity: 0,
+  },
+  rule5: {
+    marginInline: 'auto',
+    maxWidth: 'var(--container-2xl)',
+    fontSize: {
+      default: themeFonts['--text-sm'],
+      '@container (min-width: 32rem)': 'var(--text-base)',
+    },
+    lineHeight: {
+      default: 'var(--leading-relaxed)',
+      '@container (min-width: 32rem)': 'var(--leading-relaxed)',
+    },
+    '--tw-leading': {
+      default: 'var(--leading-relaxed)',
+      '@container (min-width: 32rem)': 'var(--leading-relaxed)',
+    },
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule6: {
+    display: 'flex',
+    cursor: 'pointer',
+    alignItems: 'center',
+    borderRadius: themeRadii['--radius-landing-control'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-background']} 50%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 6)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    textDecorationLine: 'none',
+    '--tw-shadow': `inset 0 1px 0 var(--tw-shadow-color, color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)), 0 1px 2px var(--tw-shadow-color, oklch(0% 0 0 / .3)), 0 10px 24px -14px var(--tw-shadow-color, oklch(0% 0 0 / .6))`,
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    '--tw-translate-y': {
+      default: null,
+      '@media (hover: hover)': { default: null, ':hover': '-1px' },
+    },
+    translate: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': 'var(--tw-translate-x) var(--tw-translate-y)',
+      },
+    },
+    minHeight: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+  },
+})
 
 const stylexStyles7 = ownerStylex.create({
   rule1: {
@@ -1581,17 +1729,20 @@ const stylexStyles = stylex.create({
 // Section provides consistent section styling with optional scroll-reveal.
 function Section({
   children,
-  className,
+  sx,
   id,
   withTopSeparator = false,
   reveal = false,
-}: {
-  children: React.ReactNode
-  className?: string
-  id?: string
-  withTopSeparator?: boolean
-  reveal?: boolean
-}) {
+}: Omit<
+  {
+    children: React.ReactNode
+    className?: string
+    id?: string
+    withTopSeparator?: boolean
+    reveal?: boolean
+  },
+  'className'
+> & { sx?: ComponentStyles; className?: never }) {
   const { ref, visible } = useScrollReveal(0.08)
   const isStatic = useIsStaticMode()
   const isVisible = visible || isStatic
@@ -1599,19 +1750,14 @@ function Section({
     <section
       id={id}
       ref={reveal && !isStatic ? ref : undefined}
-      className={
-        /* TODO(stylex): dynamic class or forwarded className */ cn(
-          'relative w-full px-4 py-28 @lg:px-8 @2xl:px-12',
-          reveal &&
-            cn(
-              'transition duration-700',
-              isVisible
-                ? 'translate-y-0 opacity-100'
-                : 'translate-y-8 opacity-0',
-            ),
-          className,
-        )
-      }
+      sx={[
+        stylexStyles8.rule1,
+        !!reveal && [
+          stylexStyles8.rule2,
+          isVisible ? stylexStyles8.rule3 : stylexStyles8.rule4,
+        ],
+        sx,
+      ]}
     >
       {withTopSeparator && <div sx={stylexStyles7.rule1} />}
       <div sx={stylexStyles7.rule2}>{children}</div>
@@ -1676,22 +1822,20 @@ const SectionHeading: React.FC<SectionHeadingProps> = ({ children }) => (
 
 // Hero Components
 interface HeroTextProps {
-  className?: string
+  className?: never
+  sx?: ComponentStyles
   children: React.ReactNode
 }
 
-const HeroText: React.FC<HeroTextProps> = ({ className, children }) => (
-  <p
-    className={
-      /* TODO(stylex): dynamic class or forwarded className */ cn(
-        'text-foreground-alt mx-auto max-w-2xl text-sm leading-relaxed @lg:text-base @lg:leading-relaxed',
-        className,
-      )
-    }
-  >
-    {children}
-  </p>
-)
+function HeroText({
+  sx,
+  children,
+}: Omit<HeroTextProps, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
+  return <p sx={[stylexStyles8.rule5, sx]}>{children}</p>
+}
 
 interface HeroButtonProps {
   icon: React.ReactNode
@@ -1700,13 +1844,7 @@ interface HeroButtonProps {
 }
 
 const HeroButton: React.FC<HeroButtonProps> = ({ icon, children, onClick }) => (
-  <button
-    type="button"
-    className={
-      /* TODO(stylex): global class adds declarations outside the utility compiler: hero-button */ 'hero-button'
-    }
-    onClick={onClick}
-  >
+  <button type="button" sx={stylexStyles8.rule6} onClick={onClick}>
     {icon}
     <span sx={stylexStyles7.rule11}>{children}</span>
   </button>
@@ -1724,25 +1862,16 @@ const HeroFeature: React.FC<HeroFeatureProps> = ({
   color = 'primary',
 }) => {
   const colorClasses = {
-    primary: 'text-brand',
-    emerald: 'text-green-400',
-    pink: 'text-rose-400',
-    purple: 'text-blue-400',
-    amber: 'text-yellow-400',
+    primary: stylexStyles10.rule1,
+    emerald: stylexStyles10.rule2,
+    pink: stylexStyles10.rule3,
+    purple: stylexStyles10.rule4,
+    amber: stylexStyles10.rule5,
   } as const
 
   return (
     <li sx={[stylexStyles4.rule1, groupMarker2]}>
-      <span
-        className={
-          /* TODO(stylex): dynamic class or forwarded className */ cn(
-            colorClasses[color],
-            'mr-3 transition-transform duration-300 group-hover:scale-110',
-          )
-        }
-      >
-        {icon}
-      </span>
+      <span sx={[[stylexStyles11.rule1], [colorClasses[color]]]}>{icon}</span>
       <span sx={stylexStyles7.rule12}>{text}</span>
     </li>
   )
@@ -1962,12 +2091,8 @@ const HeroSection: React.FC = () => {
 
         <SectionHeading>The internet without the internet</SectionHeading>
 
-        <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-0 */ 'mb-8 space-y-0'
-          }
-        >
-          <HeroText>
+        <div sx={stylexStyles9.rule1}>
+          <HeroText sx={nativeChildSpacing.s0}>
             The web was built for servers.{' '}
             <strong sx={stylexStyles7.rule34}>
               Spacewave was built for you
@@ -1975,13 +2100,13 @@ const HeroSection: React.FC = () => {
             .
           </HeroText>
 
-          <HeroText>
+          <HeroText sx={nativeChildSpacing.s0}>
             Your spaces work <strong sx={stylexStyles7.rule34}>offline</strong>,
             sync <strong sx={stylexStyles7.rule34}>instantly</strong>, and store
             data <strong sx={stylexStyles7.rule34}>anywhere</strong>.
           </HeroText>
 
-          <HeroText>
+          <HeroText sx={nativeChildSpacing.s0}>
             Devices talk <strong sx={stylexStyles7.rule34}>directly</strong>{' '}
             instead of through distant servers. That's{' '}
             <strong sx={stylexStyles7.rule34}>real freedom</strong>.
@@ -2606,11 +2731,7 @@ function ArchitectureStackDiagram() {
 
   return (
     <div ref={ref} sx={stylexStyles7.rule57}>
-      <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-tight */ 'space-y-tight'
-        }
-      >
+      <div sx={false}>
         {STACK_LAYERS.map((layer, i) => {
           const LayerIcon = layer.icon
           const isTop = i === STACK_LAYERS.length - 1
@@ -2619,6 +2740,7 @@ function ArchitectureStackDiagram() {
               key={layer.name}
               sx={[
                 stylexStyles7.rule58,
+                stackLayerStyles.spacing,
                 visible ? stylexStyles7.rule59 : stylexStyles7.rule60,
               ]}
               style={{
@@ -2845,13 +2967,12 @@ const ComparisonChart: React.FC = () => {
         </div>
 
         {/* Features */}
-        <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: divide-y */ 'divide-foreground/6 divide-y'
-          }
-        >
+        <div>
           {features.map((feature) => (
-            <div key={feature.name} sx={stylexStyles7.rule92}>
+            <div
+              key={feature.name}
+              sx={[stylexStyles7.rule92, nativeDividers.t6]}
+            >
               <div sx={stylexStyles7.rule93}>
                 <span sx={stylexStyles7.rule94}>{feature.icon}</span>
                 <span>{feature.name}</span>
@@ -2891,11 +3012,7 @@ const ComparisonChart: React.FC = () => {
 
 const OpenSourceSection: React.FC = () => {
   return (
-    <Section
-      id="open-source"
-      {...ownerStylex.props(stylexStyles7.rule99)}
-      withTopSeparator
-    >
+    <Section id="open-source" sx={stylexStyles7.rule99} withTopSeparator>
       <div sx={stylexStyles7.rule100}>
         <div sx={stylexStyles7.rule101}>
           <div sx={stylexStyles7.rule102}>
@@ -2971,4 +3088,52 @@ export default function LandingContent(): React.ReactElement {
 // stackOrder keeps dynamic layer order in the native stylesheet contract.
 const stackOrder = ownerStylex.create({
   layer: (zIndex: number) => ({ zIndex }),
+})
+
+// nativeDividers applies the list border only to its nonfinal physical rows.
+const nativeDividers = stylex.create({
+  t6: {
+    '--tw-divide-y-reverse': { default: null, ':not(:last-child)': 0 },
+    borderBottomStyle: {
+      default: null,
+      ':not(:last-child)': themeUtilityState['--tw-border-style'],
+    },
+    borderTopStyle: {
+      default: null,
+      ':not(:last-child)': themeUtilityState['--tw-border-style'],
+    },
+    borderTopWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * var(--tw-divide-y-reverse))',
+    },
+    borderBottomWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * calc(1 - var(--tw-divide-y-reverse)))',
+    },
+    borderColor: {
+      default: null,
+      ':not(:last-child)':
+        'color-mix(in oklab, var(--color-foreground) 6%, transparent)',
+    },
+  },
+})
+
+// stackLayerStyles keeps the original one-pixel overlap at the physical cards.
+const stackLayerStyles = stylex.create({
+  spacing: { marginBlockEnd: { default: null, ':not(:last-child)': '-1px' } },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s0: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 0 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 0 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
 })

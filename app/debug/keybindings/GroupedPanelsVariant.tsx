@@ -17,6 +17,73 @@ import {
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  radii as themeRadii,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 4)`,
+    display: 'flex',
+    flexDirection: { default: 'column', '@media (min-width: 40rem)': 'row' },
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    alignItems: { default: null, '@media (min-width: 40rem)': 'flex-end' },
+    justifyContent: {
+      default: null,
+      '@media (min-width: 40rem)': 'space-between',
+    },
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule3: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+  },
+  rule4: {
+    marginTop: themeLayout['--spacing'],
+    maxWidth: 'var(--container-xl)',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 55%, transparent)`,
+  },
+  rule5: {
+    position: 'relative',
+    display: 'block',
+    width: '100%',
+    maxWidth: {
+      default: null,
+      '@media (min-width: 40rem)': `calc(${themeLayout['--spacing']} * 72)`,
+    },
+  },
+  rule6: {
+    display: 'grid',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    gridTemplateColumns: {
+      default: null,
+      '@media (min-width: 80rem)': 'repeat(2, minmax(0, 1fr))',
+    },
+    alignItems: { default: null, '@media (min-width: 80rem)': 'flex-start' },
+  },
+  rule7: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: 'dashed',
+    borderWidth: '1px',
+    '--tw-border-style': 'dashed',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 16)`,
+    textAlign: 'center',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 55%, transparent)`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 4)`,
@@ -78,18 +145,18 @@ export function GroupedPanelsVariant(props: KeybindingVariantProps) {
 
   return (
     <section>
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div sx={stylexStyles2.rule1}>
         <div>
-          <div className="flex items-center gap-2">
+          <div sx={stylexStyles2.rule2}>
             <LuBoxes sx={stylexStyles.rule1} />
-            <h2 className="text-sm font-semibold">Collections</h2>
+            <h2 sx={stylexStyles2.rule3}>Collections</h2>
           </div>
-          <p className="text-foreground-alt/55 mt-1 max-w-xl text-xs">
+          <p sx={stylexStyles2.rule4}>
             Browse collapsible command families while keeping execution context
             and collisions visible.
           </p>
         </div>
-        <label className="relative block w-full sm:max-w-72">
+        <label sx={stylexStyles2.rule5}>
           <LuSearch sx={stylexStyles.rule2} />
           <Input
             value={query}
@@ -101,7 +168,7 @@ export function GroupedPanelsVariant(props: KeybindingVariantProps) {
         </label>
       </div>
 
-      <div className="grid gap-3 xl:grid-cols-2 xl:items-start">
+      <div sx={stylexStyles2.rule6}>
         {groups.map((group) => (
           <CategoryPanel
             key={group.category}
@@ -115,9 +182,7 @@ export function GroupedPanelsVariant(props: KeybindingVariantProps) {
       </div>
 
       {groups.length === 0 ? (
-        <div className="border-foreground/8 text-foreground-alt/55 rounded-lg border border-dashed py-16 text-center text-sm">
-          No collections match “{query}”.
-        </div>
+        <div sx={stylexStyles2.rule7}>No collections match “{query}”.</div>
       ) : null}
     </section>
   )

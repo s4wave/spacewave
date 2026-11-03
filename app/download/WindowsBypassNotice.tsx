@@ -1,8 +1,6 @@
 import { useState } from 'react'
 import { LuPlus, LuShieldAlert } from '@s4wave/web/images/icons.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
-
 import * as stylex from '@stylexjs/stylex'
 import {
   layout as themeLayout,
@@ -10,6 +8,152 @@ import {
 } from '../../web/style/tokens.stylex.js'
 
 import { groupMarker } from '../../web/style/relations.stylex.js'
+
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+import { groupMarker as groupMarker2 } from '../../web/style/relations.stylex.js'
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    marginLeft: `calc(${themeLayout['--spacing']} * 4)`,
+    listStyleType: 'decimal',
+  },
+})
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule2: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 12%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 60%, transparent)`,
+  },
+  rule3: {
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 12%, transparent)`,
+      },
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+  },
+  rule4: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule5: {
+    fontSize: {
+      default: themeFonts['--text-sm'],
+      '@container (min-width: 32rem)': 'var(--text-base)',
+    },
+    lineHeight: {
+      default: 'var(--leading-relaxed)',
+      '@container (min-width: 32rem)':
+        'var(--tw-leading, var(--text-base--line-height))',
+    },
+    '--tw-leading': 'var(--leading-relaxed)',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: {
+      default: themeColors['--color-foreground'],
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker2)]:
+          themeColors['--color-brand'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule6: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule7: {
+    rotate: '45deg',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 12%, transparent)`,
+    color: themeColors['--color-brand'],
+  },
+  rule8: {
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker2)]:
+          `color-mix(in oklab, ${themeColors['--color-brand']} 8%, transparent)`,
+      },
+    },
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker2)]:
+          themeColors['--color-brand'],
+      },
+    },
+  },
+  rule9: {
+    display: 'grid',
+    transitionProperty: 'all',
+    transitionTimingFunction: 'var(--ease-in-out)',
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    '--tw-ease': 'var(--ease-in-out)',
+  },
+  rule10: { gridTemplateRows: '1fr', opacity: 1 },
+  rule11: { gridTemplateRows: '0fr', opacity: 0 },
+  rule12: { overflow: 'hidden' },
+  rule13: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 5)`,
+    paddingBottom: `calc(${themeLayout['--spacing']} * 5)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule14: {
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule15: { color: themeColors['--color-foreground'] },
+  rule16: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+})
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -48,12 +192,10 @@ export function WindowsBypassNotice() {
 
   return (
     <div
-      className={cn(
-        'rounded-lg border transition-all',
-        isOpen
-          ? 'border-foreground/12 bg-background-card/60'
-          : 'border-foreground/6 bg-background-card/30 hover:border-foreground/12',
-      )}
+      sx={[
+        stylexStyles3.rule1,
+        isOpen ? stylexStyles3.rule2 : stylexStyles3.rule3,
+      ]}
     >
       <button
         type="button"
@@ -61,47 +203,42 @@ export function WindowsBypassNotice() {
         onClick={() => setOpen((v) => !v)}
         sx={[stylexStyles2.rule1, groupMarker]}
       >
-        <div className="flex items-start gap-3">
+        <div sx={stylexStyles3.rule4}>
           <LuShieldAlert sx={stylexStyles.rule1} />
-          <h3 className="text-foreground group-hover:text-brand text-sm leading-relaxed font-semibold transition-colors @lg:text-base">
-            How to run on Windows
-          </h3>
+          <h3 sx={stylexStyles3.rule5}>How to run on Windows</h3>
         </div>
         <div
-          className={cn(
-            'mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md transition-all',
-            isOpen
-              ? 'bg-brand/12 text-brand rotate-45'
-              : 'bg-foreground/6 text-foreground-alt group-hover:bg-brand/8 group-hover:text-brand',
-          )}
+          sx={[
+            stylexStyles3.rule6,
+            isOpen ? stylexStyles3.rule7 : stylexStyles3.rule8,
+          ]}
         >
           <LuPlus sx={stylexStyles.rule2} />
         </div>
       </button>
       <div
-        className={cn(
-          'grid transition-all duration-300 ease-in-out',
-          isOpen
-            ? 'grid-rows-expand opacity-100'
-            : 'grid-rows-collapse opacity-0',
-        )}
+        sx={[
+          stylexStyles3.rule9,
+          isOpen ? stylexStyles3.rule10 : stylexStyles3.rule11,
+        ]}
       >
-        <div className="overflow-hidden">
-          <div className="text-foreground-alt flex flex-col gap-3 px-5 pb-5 text-sm leading-relaxed">
-            <ol className="ml-4 list-decimal space-y-2">
-              <li>
-                Run the downloaded{' '}
-                <span className="font-mono text-xs">.exe</span>. If SmartScreen
-                shows{' '}
-                <strong className="text-foreground">
+        <div sx={stylexStyles3.rule12}>
+          <div sx={stylexStyles3.rule13}>
+            <ol sx={stylexStyles4.rule1}>
+              <li sx={nativeChildSpacing.s2}>
+                Run the downloaded <span sx={stylexStyles3.rule14}>.exe</span>.
+                If SmartScreen shows{' '}
+                <strong sx={stylexStyles3.rule15}>
                   &quot;Windows protected your PC&quot;
                 </strong>
-                , click <strong className="text-foreground">More info</strong>,
-                then <strong className="text-foreground">Run anyway</strong>.
+                , click <strong sx={stylexStyles3.rule15}>More info</strong>,
+                then <strong sx={stylexStyles3.rule15}>Run anyway</strong>.
               </li>
-              <li>Spacewave installs itself, so this is only needed once.</li>
+              <li sx={nativeChildSpacing.s2}>
+                Spacewave installs itself, so this is only needed once.
+              </li>
             </ol>
-            <p className="text-xs">
+            <p sx={stylexStyles3.rule16}>
               The Windows build is unsigned during Microsoft&apos;s code-signing
               identity validation. The SmartScreen prompt disappears once
               validation completes.
@@ -112,3 +249,18 @@ export function WindowsBypassNotice() {
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

@@ -26,7 +26,7 @@ import {
 import { ForgeEntityList } from '@s4wave/web/forge/ForgeEntityList.js'
 import { PRED_JOB_TO_TASK } from '@s4wave/web/forge/predicates.js'
 import { StateBadge } from '@s4wave/web/forge/StateBadge.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
@@ -45,6 +45,197 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
+
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 12%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+  },
+  rule2: { minWidth: 0 },
+  rule3: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule4: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule5: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule6: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    padding: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule7: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+  },
+  rule8: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule9: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule10: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: '.6rem',
+    lineHeight: 1.5,
+    '--tw-tracking': 'var(--tracking-widest)',
+    letterSpacing: 'var(--tracking-widest)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    textTransform: 'uppercase',
+  },
+  rule11: {
+    fontSize: 'var(--text-2xl)',
+    lineHeight: 'var(--tw-leading, var(--text-2xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule12: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule13: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    height: `calc(${themeLayout['--spacing']} * 1.5)`,
+    width: '100%',
+    overflow: 'hidden',
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+  },
+  rule14: {
+    transition: 'width 200ms',
+    width: 'var(--forge-progress-width)',
+    height: '100%',
+    backgroundColor: themeColors['--color-brand'],
+  },
+  rule15: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule16: {
+    display: 'inline-flex',
+    gap: themeLayout['--spacing'],
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    padding: themeLayout['--spacing'],
+  },
+  rule17: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    paddingInline: `calc(${themeLayout['--spacing']} * 2.5)`,
+    paddingBlock: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule18: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    color: themeColors['--color-foreground'],
+  },
+  rule19: {
+    borderColor: '#0000',
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -166,121 +357,122 @@ export function ForgeJobViewer({
     }
   }, [spaceWorld, navigateToObjects, objectKey])
 
-  const tasksContent = useMemo(() => {
-    if (tasksView === 'list') {
-      if (tasksLoading || decodedTasksLoading) {
+  const renderTasksContent = useCallback(
+    (sx?: stylex.StyleXStyles) => {
+      if (tasksView === 'list') {
+        if (tasksLoading || decodedTasksLoading) {
+          return (
+            <ForgeEntityList
+              sx={sx}
+              entities={tasks}
+              loading
+              icon={<LuListTodo sx={stylexStyles.rule1} />}
+              loadingLabel="Loading tasks..."
+              emptyLabel="No tasks in job"
+            />
+          )
+        }
+        if (decodedTasks.length === 0) {
+          return (
+            <ForgeEntityList
+              sx={sx}
+              entities={tasks}
+              loading={tasksLoading}
+              icon={<LuListTodo sx={stylexStyles.rule1} />}
+              loadingLabel="Loading tasks..."
+              emptyLabel="No tasks in job"
+            />
+          )
+        }
+
         return (
-          <ForgeEntityList
-            entities={tasks}
-            loading
-            icon={<LuListTodo sx={stylexStyles.rule1} />}
-            loadingLabel="Loading tasks..."
-            emptyLabel="No tasks in job"
-          />
+          <div sx={[false, sx]}>
+            {decodedTasks.map((task) => (
+              <div
+                key={task.entity.objectKey}
+                sx={[nativeChildSpacing.s2, stylexStyles2.rule1]}
+              >
+                <div sx={stylexStyles2.rule2}>
+                  <div sx={stylexStyles2.rule3}>
+                    {task.data.name || task.entity.objectKey}
+                  </div>
+                  <div sx={stylexStyles2.rule4}>{task.entity.objectKey}</div>
+                </div>
+                <StateBadge
+                  state={task.data.taskState ?? 0}
+                  labels={taskStateLabels}
+                />
+              </div>
+            ))}
+          </div>
+        )
+      }
+
+      if (taskEdgesLoading && taskEdges.length === 0) {
+        return (
+          <div sx={[stylexStyles2.rule5, sx]}>
+            <div sx={stylexStyles2.rule6}>
+              <LuGitBranch sx={stylexStyles.rule2} />
+              <span>Loading dependency graph…</span>
+            </div>
+          </div>
         )
       }
       if (decodedTasks.length === 0) {
         return (
-          <ForgeEntityList
-            entities={tasks}
-            loading={tasksLoading}
-            icon={<LuListTodo sx={stylexStyles.rule1} />}
-            loadingLabel="Loading tasks..."
-            emptyLabel="No tasks in job"
-          />
+          <div sx={[stylexStyles2.rule5, sx]}>
+            <div sx={stylexStyles2.rule6}>
+              <LuListTodo sx={stylexStyles.rule2} />
+              <span>No tasks in job</span>
+            </div>
+          </div>
+        )
+      }
+      if (taskEdges.length === 0) {
+        return (
+          <div sx={[stylexStyles2.rule5, sx]}>
+            <div sx={stylexStyles2.rule6}>
+              <LuGitBranch sx={stylexStyles.rule2} />
+              <span>No task dependency edges defined yet</span>
+            </div>
+          </div>
         )
       }
 
       return (
-        <div className="space-y-2">
-          {decodedTasks.map((task) => (
-            <div
-              key={task.entity.objectKey}
-              className="border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 flex items-center justify-between gap-3 rounded-lg border px-3.5 py-2.5 transition duration-150"
-            >
-              <div className="min-w-0">
-                <div className="text-foreground truncate text-sm font-medium">
-                  {task.data.name || task.entity.objectKey}
+        <div sx={[false, sx]}>
+          {taskEdges.map((edge) => {
+            const fromTask = taskByKey.get(edge.from)
+            const toTask = taskByKey.get(edge.to)
+            return (
+              <div
+                key={`${edge.kind}:${edge.from}:${edge.to}`}
+                sx={[nativeChildSpacing.s2, stylexStyles2.rule7]}
+              >
+                <div sx={stylexStyles2.rule8}>
+                  <LuGitBranch sx={stylexStyles.rule3} />
+                  <span>{fromTask?.data.name || edge.from}</span>
+                  <span sx={stylexStyles2.rule9}>-&gt;</span>
+                  <span>{toTask?.data.name || edge.to}</span>
                 </div>
-                <div className="text-foreground-alt/50 truncate text-xs">
-                  {task.entity.objectKey}
-                </div>
+                <div sx={stylexStyles2.rule10}>{edge.kind}</div>
               </div>
-              <StateBadge
-                state={task.data.taskState ?? 0}
-                labels={taskStateLabels}
-              />
-            </div>
-          ))}
+            )
+          })}
         </div>
       )
-    }
-
-    if (taskEdgesLoading && taskEdges.length === 0) {
-      return (
-        <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-          <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
-            <LuGitBranch sx={stylexStyles.rule2} />
-            <span>Loading dependency graph…</span>
-          </div>
-        </div>
-      )
-    }
-    if (decodedTasks.length === 0) {
-      return (
-        <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-          <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
-            <LuListTodo sx={stylexStyles.rule2} />
-            <span>No tasks in job</span>
-          </div>
-        </div>
-      )
-    }
-    if (taskEdges.length === 0) {
-      return (
-        <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-          <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
-            <LuGitBranch sx={stylexStyles.rule2} />
-            <span>No task dependency edges defined yet</span>
-          </div>
-        </div>
-      )
-    }
-
-    return (
-      <div className="space-y-2">
-        {taskEdges.map((edge) => {
-          const fromTask = taskByKey.get(edge.from)
-          const toTask = taskByKey.get(edge.to)
-          return (
-            <div
-              key={`${edge.kind}:${edge.from}:${edge.to}`}
-              className="border-foreground/6 bg-background-card/30 rounded-lg border px-3.5 py-2.5"
-            >
-              <div className="text-foreground flex items-center gap-2 text-sm font-medium">
-                <LuGitBranch sx={stylexStyles.rule3} />
-                <span>{fromTask?.data.name || edge.from}</span>
-                <span className="text-foreground-alt/50 text-xs">-&gt;</span>
-                <span>{toTask?.data.name || edge.to}</span>
-              </div>
-              <div className="text-foreground-alt/50 micro-text mt-1 tracking-widest uppercase">
-                {edge.kind}
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    )
-  }, [
-    decodedTasks,
-    decodedTasksLoading,
-    taskByKey,
-    taskEdges,
-    taskEdgesLoading,
-    tasks,
-    tasksLoading,
-    tasksView,
-  ])
+    },
+    [
+      decodedTasks,
+      decodedTasksLoading,
+      taskByKey,
+      taskEdges,
+      taskEdgesLoading,
+      tasks,
+      tasksLoading,
+      tasksView,
+    ],
+  )
 
   const tabs: ForgeViewerTab[] = useMemo(
     () => [
@@ -288,12 +480,17 @@ export function ForgeJobViewer({
         id: 'overview',
         label: 'Overview',
         content: (
-          <div className="space-y-3">
-            <InfoCard>
-              <div className="space-y-2">
-                <CopyableField label="Object Key" value={objectKey} />
+          <div sx={false}>
+            <InfoCard sx={nativeChildSpacing.s3}>
+              <div sx={false}>
+                <CopyableField
+                  sx={nativeChildSpacing.s2}
+                  label="Object Key"
+                  value={objectKey}
+                />
                 {job?.timestamp && (
                   <CopyableField
+                    sx={nativeChildSpacing.s2}
                     label="Created"
                     value={job.timestamp.toISOString()}
                   />
@@ -301,18 +498,17 @@ export function ForgeJobViewer({
               </div>
             </InfoCard>
             <InfoCard
+              sx={nativeChildSpacing.s3}
               icon={<LuListTodo sx={stylexStyles.rule4} />}
               title="Tasks"
             >
-              <div className="text-foreground text-2xl font-semibold">
+              <div sx={stylexStyles2.rule11}>
                 {tasksLoading ? '-' : `${completeTaskCount}/${tasks.length}`}
               </div>
-              <div className="text-foreground-alt/50 mt-1 text-xs">
-                {progressPercent}% complete
-              </div>
-              <div className="bg-foreground/8 mt-3 h-1.5 w-full overflow-hidden rounded-full">
+              <div sx={stylexStyles2.rule12}>{progressPercent}% complete</div>
+              <div sx={stylexStyles2.rule13}>
                 <div
-                  className="bg-brand forge-progress-width progress-width-transition h-full"
+                  sx={stylexStyles2.rule14}
                   style={{ '--forge-progress-width': `${progressPercent}%` }}
                 />
               </div>
@@ -324,33 +520,37 @@ export function ForgeJobViewer({
         id: 'tasks',
         label: 'Tasks',
         content: (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <div className="bg-foreground/5 inline-flex gap-1 rounded-md p-1">
+          <div sx={false}>
+            <div sx={[nativeChildSpacing.s3, stylexStyles2.rule15]}>
+              <div sx={stylexStyles2.rule16}>
                 <button
-                  sx={forgeControlStyles.required}
                   type="button"
                   onClick={() => setTasksView('list')}
-                  className={cn(
-                    'flex items-center gap-1 rounded border px-2.5 py-1 text-xs font-medium transition-all duration-150 select-none',
-                    tasksView === 'list'
-                      ? 'border-brand/30 bg-brand/10 text-foreground'
-                      : 'text-foreground-alt/60 hover:text-foreground hover:bg-foreground/5 border-transparent',
-                  )}
+                  sx={[
+                    [
+                      stylexStyles2.rule17,
+                      tasksView === 'list'
+                        ? stylexStyles2.rule18
+                        : stylexStyles2.rule19,
+                    ],
+                    forgeControlStyles.required,
+                  ]}
                 >
                   <LuList sx={stylexStyles.rule3} />
                   List
                 </button>
                 <button
-                  sx={forgeControlStyles.required}
                   type="button"
                   onClick={() => setTasksView('dag')}
-                  className={cn(
-                    'flex items-center gap-1 rounded border px-2.5 py-1 text-xs font-medium transition-all duration-150 select-none',
-                    tasksView === 'dag'
-                      ? 'border-brand/30 bg-brand/10 text-foreground'
-                      : 'text-foreground-alt/60 hover:text-foreground hover:bg-foreground/5 border-transparent',
-                  )}
+                  sx={[
+                    [
+                      stylexStyles2.rule17,
+                      tasksView === 'dag'
+                        ? stylexStyles2.rule18
+                        : stylexStyles2.rule19,
+                    ],
+                    forgeControlStyles.required,
+                  ]}
                 >
                   <LuGitBranch sx={stylexStyles.rule3} />
                   DAG
@@ -368,7 +568,7 @@ export function ForgeJobViewer({
                 </DashboardButton>
               )}
             </div>
-            {tasksContent}
+            {renderTasksContent(nativeChildSpacing.s3)}
           </div>
         ),
       },
@@ -382,7 +582,7 @@ export function ForgeJobViewer({
       objectKey,
       progressPercent,
       tasks.length,
-      tasksContent,
+      renderTasksContent,
       tasksLoading,
       tasksView,
     ],
@@ -399,3 +599,29 @@ export function ForgeJobViewer({
     />
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

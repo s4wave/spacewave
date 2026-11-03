@@ -13,6 +13,102 @@ import { ConfirmActionDialog, TextInputDialog } from './NoteDialogs.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+import {
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    minHeight: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
+    minWidth: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
+  },
+  rule2: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: themeLayout['--spacing'],
+  },
+  rule3: { position: 'relative' },
+  rule4: {
+    height: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 'auto',
+      },
+    },
+    width: '100%',
+    appearance: {
+      default: 'none',
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 'auto',
+      },
+    },
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: themeColors['--color-border'],
+    backgroundColor: themeColors['--color-background-primary'],
+    paddingBlock: themeLayout['--spacing'],
+    paddingRight: {
+      default: `calc(${themeLayout['--spacing']} * 6)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': themeLayout['--spacing'],
+      },
+    },
+    paddingLeft: themeLayout['--spacing'],
+  },
+  rule5: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule6: {
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: themeColors['--color-border'],
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule7: {
+    display: 'flex',
+    minHeight: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 48rem)': {
+        default: null,
+        '@media (pointer: fine)': 0,
+      },
+    },
+    cursor: 'pointer',
+    alignItems: 'center',
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  rule8: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule9: { color: themeColors['--color-muted-foreground'] },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     pointerEvents: 'none',
@@ -46,9 +142,6 @@ interface NotebookSavedViewsProps {
 
 type SavedViewDialog = 'save' | 'rename' | 'delete'
 
-const actionClassName =
-  'min-h-11 min-w-11 md:pointer-fine:min-h-0 md:pointer-fine:min-w-0'
-
 // SavedViewButton renders one saved view action.
 function SavedViewButton({
   disabled,
@@ -62,7 +155,7 @@ function SavedViewButton({
   return (
     <button
       type="button"
-      className={actionClassName}
+      sx={stylexStyles2.rule1}
       disabled={disabled}
       onClick={onClick}
     >
@@ -86,14 +179,14 @@ function SavedViewSelect({
   onSelect: (id: string) => void
 }) {
   return (
-    <label className="flex flex-col gap-1">
+    <label sx={stylexStyles2.rule2}>
       Saved view
-      <span className="relative">
+      <span sx={stylexStyles2.rule3}>
         <select
           value={currentId}
           disabled={disabled}
           onChange={(event) => onSelect(event.target.value)}
-          className="border-border bg-background-primary h-11 w-full appearance-none rounded border py-1 pr-6 pl-1 md:pointer-fine:h-auto md:pointer-fine:appearance-auto md:pointer-fine:pr-1"
+          sx={stylexStyles2.rule4}
         >
           <option value="">
             {loading ? 'Loading views…' : 'Choose a saved view'}
@@ -131,7 +224,7 @@ function SavedViewActions({
   onDelete: () => void
 }) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div sx={stylexStyles2.rule5}>
       <SavedViewButton disabled={!current || disabled} onClick={onLoad}>
         Load view
       </SavedViewButton>
@@ -264,12 +357,10 @@ export default function NotebookSavedViews({
 
   // Recovery and a missing selected view remain visible without applying stale filters.
   return (
-    <details className="border-border border-b p-2 text-xs">
-      <summary className="flex min-h-11 cursor-pointer items-center font-medium md:pointer-fine:min-h-0">
-        Shared views
-      </summary>
-      <div className="mt-2 flex flex-col gap-2">
-        <p className="text-muted-foreground">
+    <details sx={stylexStyles2.rule6}>
+      <summary sx={stylexStyles2.rule7}>Shared views</summary>
+      <div sx={stylexStyles2.rule8}>
+        <p sx={stylexStyles2.rule9}>
           Save filters for everyone in this Notebook. Load a view to use it
           here.
         </p>

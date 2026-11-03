@@ -18,6 +18,87 @@ import { useForgeBlockData } from '@s4wave/web/forge/useForgeBlockData.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+  utilityState as themeUtilityState,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule3: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    overflow: 'auto',
+    backgroundColor: themeColors['--color-background-primary'],
+  },
+  rule4: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule5: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule6: {
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+  },
+  rule7: {
+    '--tw-font-weight': 'var(--font-weight-normal)',
+    fontWeight: 'var(--font-weight-normal)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule8: {
+    flex: 1,
+    overflow: 'auto',
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule9: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    padding: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -74,14 +155,15 @@ interface ManifestSectionProps {
 
 /** ManifestSection renders a titled info card of manifest fields. */
 function ManifestSection({
+  sx,
   icon: Icon,
   title,
   children,
-}: ManifestSectionProps) {
+}: ManifestSectionProps & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
-    <section>
-      <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
+    <section sx={sx}>
+      <div sx={stylexStyles3.rule1}>
+        <h2 sx={stylexStyles3.rule2}>
           <Icon sx={stylexStyles2.rule1} />
           {title}
         </h2>
@@ -98,21 +180,41 @@ interface ManifestMetaFieldsProps {
 /** ManifestMetaFields lists the copyable identity fields of a manifest. */
 function ManifestMetaFields({ meta }: ManifestMetaFieldsProps) {
   return (
-    <div className="space-y-2">
+    <div sx={false}>
       {meta?.manifestId && (
-        <CopyableField label="Manifest ID" value={meta.manifestId} />
+        <CopyableField
+          sx={nativeChildSpacing.s2}
+          label="Manifest ID"
+          value={meta.manifestId}
+        />
       )}
       {meta?.buildType && (
-        <CopyableField label="Build Type" value={meta.buildType} />
+        <CopyableField
+          sx={nativeChildSpacing.s2}
+          label="Build Type"
+          value={meta.buildType}
+        />
       )}
       {meta?.platformId && (
-        <CopyableField label="Platform" value={meta.platformId} />
+        <CopyableField
+          sx={nativeChildSpacing.s2}
+          label="Platform"
+          value={meta.platformId}
+        />
       )}
       {meta?.rev !== undefined && (
-        <CopyableField label="Rev" value={String(meta.rev)} />
+        <CopyableField
+          sx={nativeChildSpacing.s2}
+          label="Rev"
+          value={String(meta.rev)}
+        />
       )}
       {meta?.description && (
-        <CopyableField label="Description" value={meta.description} />
+        <CopyableField
+          sx={nativeChildSpacing.s2}
+          label="Description"
+          value={meta.description}
+        />
       )}
     </div>
   )
@@ -142,47 +244,63 @@ export function ManifestViewer({
   const isEmpty = !hasMeta && !hasEntrypoint && !hasStorage
 
   return (
-    <div className="bg-background-primary flex h-full w-full flex-col overflow-auto">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center border-b px-4">
-        <div className="text-foreground flex items-center gap-2 text-sm font-semibold select-none">
+    <div sx={stylexStyles3.rule3}>
+      <div sx={stylexStyles3.rule4}>
+        <div sx={stylexStyles3.rule5}>
           <LuPackage sx={stylexStyles.rule1} />
-          <span className="tracking-tight">Manifest</span>
-          {headerMeta && (
-            <span className="text-foreground-alt/50 font-normal">
-              {headerMeta}
-            </span>
-          )}
+          <span sx={stylexStyles3.rule6}>Manifest</span>
+          {headerMeta && <span sx={stylexStyles3.rule7}>{headerMeta}</span>}
         </div>
       </div>
-      <div className="flex-1 overflow-auto px-4 py-3">
-        <div className="space-y-3">
+      <div sx={stylexStyles3.rule8}>
+        <div sx={false}>
           {isEmpty && (
-            <InfoCard>
-              <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
+            <InfoCard sx={nativeChildSpacingNext.s3}>
+              <div sx={stylexStyles3.rule9}>
                 <LuPackage sx={stylexStyles.rule2} />
                 <span>No manifest data</span>
               </div>
             </InfoCard>
           )}
           {manifest?.entrypoint && (
-            <ManifestSection icon={LuTerminal} title="Entrypoint">
+            <ManifestSection
+              sx={nativeChildSpacingNext.s3}
+              icon={LuTerminal}
+              title="Entrypoint"
+            >
               <CopyableField label="Path" value={manifest.entrypoint} />
             </ManifestSection>
           )}
           {hasStorage && (
-            <ManifestSection icon={LuFolderTree} title="Storage">
-              <div className="space-y-2">
+            <ManifestSection
+              sx={nativeChildSpacingNext.s3}
+              icon={LuFolderTree}
+              title="Storage"
+            >
+              <div sx={false}>
                 {distHash && (
-                  <CopyableField label="Dist FS Ref" value={distHash} />
+                  <CopyableField
+                    sx={nativeChildSpacing.s2}
+                    label="Dist FS Ref"
+                    value={distHash}
+                  />
                 )}
                 {assetsHash && (
-                  <CopyableField label="Assets FS Ref" value={assetsHash} />
+                  <CopyableField
+                    sx={nativeChildSpacing.s2}
+                    label="Assets FS Ref"
+                    value={assetsHash}
+                  />
                 )}
               </div>
             </ManifestSection>
           )}
           {hasMeta && (
-            <ManifestSection icon={LuTag} title="Metadata">
+            <ManifestSection
+              sx={nativeChildSpacingNext.s3}
+              icon={LuTag}
+              title="Metadata"
+            >
               <ManifestMetaFields meta={meta} />
             </ManifestSection>
           )}
@@ -191,3 +309,33 @@ export function ManifestViewer({
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

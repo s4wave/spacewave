@@ -1,46 +1,221 @@
 import type { EditorThemeClasses } from 'lexical'
 
-// editorTheme maps Lexical node types to Tailwind CSS classes.
-const editorTheme: EditorThemeClasses = {
-  heading: {
-    h1: 'text-3xl font-bold mt-6 mb-3',
-    h2: 'text-2xl font-bold mt-5 mb-2',
-    h3: 'text-xl font-semibold mt-4 mb-2',
-    h4: 'text-lg font-semibold mt-3 mb-1',
-    h5: 'text-base font-semibold mt-2 mb-1',
-    h6: 'text-sm font-semibold mt-2 mb-1',
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  fonts as themeFonts,
+  colors as themeColors,
+  utilityState as themeUtilityState,
+  radii as themeRadii,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    marginTop: `calc(${themeLayout['--spacing']} * 6)`,
+    marginBottom: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: 'var(--text-3xl)',
+    lineHeight: 'var(--tw-leading, var(--text-3xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-bold)',
+    fontWeight: 'var(--font-weight-bold)',
   },
-  text: {
-    bold: 'font-bold',
-    italic: 'italic',
-    strikethrough: 'line-through',
-    underline: 'underline',
-    code: 'bg-muted rounded px-1.5 py-0.5 font-mono text-[0.9em] text-brand',
+  rule2: {
+    marginTop: `calc(${themeLayout['--spacing']} * 5)`,
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: 'var(--text-2xl)',
+    lineHeight: 'var(--tw-leading, var(--text-2xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-bold)',
+    fontWeight: 'var(--font-weight-bold)',
   },
-  list: {
-    ul: 'list-disc pl-6 my-2',
-    ol: 'list-decimal pl-6 my-2',
-    listitem: 'my-1',
-    listitemChecked:
-      'list-none relative pl-6 line-through opacity-60 before:absolute before:left-0 before:content-["\\2611"]',
-    listitemUnchecked:
-      'list-none relative pl-6 before:absolute before:left-0 before:content-["\\2610"]',
-    nested: {
-      listitem: 'list-none',
+  rule3: {
+    marginTop: `calc(${themeLayout['--spacing']} * 4)`,
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: 'var(--text-xl)',
+    lineHeight: 'var(--tw-leading, var(--text-xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+  },
+  rule4: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    marginBottom: themeLayout['--spacing'],
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+  },
+  rule5: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    marginBottom: themeLayout['--spacing'],
+    fontSize: 'var(--text-base)',
+    lineHeight: 'var(--tw-leading, var(--text-base--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+  },
+  rule6: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    marginBottom: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+  },
+  rule7: {
+    '--tw-font-weight': 'var(--font-weight-bold)',
+    fontWeight: 'var(--font-weight-bold)',
+  },
+  rule8: { fontStyle: 'italic' },
+  rule9: { textDecorationLine: 'line-through' },
+  rule10: { textDecorationLine: 'underline' },
+  rule11: {
+    borderRadius: '.25rem',
+    backgroundColor: themeColors['--color-muted'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: '.9em',
+    color: themeColors['--color-brand'],
+  },
+  rule12: {
+    marginBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    listStyleType: 'disc',
+    paddingLeft: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule13: {
+    marginBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    listStyleType: 'decimal',
+    paddingLeft: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule14: { marginBlock: themeLayout['--spacing'] },
+  rule15: {
+    position: 'relative',
+    listStyleType: 'none',
+    paddingLeft: `calc(${themeLayout['--spacing']} * 6)`,
+    textDecorationLine: 'line-through',
+    opacity: 0.6,
+    '::before': {
+      content: 'var(--tw-content)',
+      position: 'absolute',
+      left: 0,
+      '--tw-content': '"☑"',
     },
   },
-  link: 'text-brand underline cursor-pointer hover:opacity-80',
-  quote:
-    'border-l-4 border-border pl-4 italic text-muted-foreground my-3',
-  code: 'bg-muted rounded-md p-4 font-mono text-[0.9em] my-3 block overflow-x-auto',
-  table: 'border-collapse w-full my-3',
-  tableCell:
-    'border border-border px-3 py-2 text-left align-top',
-  tableCellHeader:
-    'border border-border bg-muted px-3 py-2 text-left font-semibold',
-  tableRow: '',
-  image: 'my-3',
-  horizontalRule: 'border-t border-border my-6',
+  rule16: {
+    position: 'relative',
+    listStyleType: 'none',
+    paddingLeft: `calc(${themeLayout['--spacing']} * 6)`,
+    '::before': {
+      content: 'var(--tw-content)',
+      position: 'absolute',
+      left: 0,
+      '--tw-content': '"☐"',
+    },
+  },
+  rule17: { listStyleType: 'none' },
+  rule18: {
+    cursor: 'pointer',
+    color: themeColors['--color-brand'],
+    textDecorationLine: 'underline',
+    opacity: {
+      default: null,
+      '@media (hover: hover)': { default: null, ':hover': 0.8 },
+    },
+  },
+  rule19: {
+    marginBlock: `calc(${themeLayout['--spacing']} * 3)`,
+    borderLeftStyle: themeUtilityState['--tw-border-style'],
+    borderLeftWidth: '4px',
+    borderColor: themeColors['--color-border'],
+    paddingLeft: `calc(${themeLayout['--spacing']} * 4)`,
+    color: themeColors['--color-muted-foreground'],
+    fontStyle: 'italic',
+  },
+  rule20: {
+    marginBlock: `calc(${themeLayout['--spacing']} * 3)`,
+    display: 'block',
+    overflowX: 'auto',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: themeColors['--color-muted'],
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: '.9em',
+  },
+  rule21: {
+    marginBlock: `calc(${themeLayout['--spacing']} * 3)`,
+    width: '100%',
+    borderCollapse: 'collapse',
+  },
+  rule22: {
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: themeColors['--color-border'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    textAlign: 'left',
+    verticalAlign: 'top',
+  },
+  rule23: {
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: themeColors['--color-border'],
+    backgroundColor: themeColors['--color-muted'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    textAlign: 'left',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+  },
+  rule24: { marginBlock: `calc(${themeLayout['--spacing']} * 3)` },
+  rule25: {
+    marginBlock: `calc(${themeLayout['--spacing']} * 6)`,
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: themeColors['--color-border'],
+  },
+})
+
+// editorTheme maps Lexical-owned nodes to compiled native StyleX classes.
+const editorTheme: EditorThemeClasses = {
+  heading: {
+    h1: stylex.props(stylexStyles.rule1).className ?? '',
+    h2: stylex.props(stylexStyles.rule2).className ?? '',
+    h3: stylex.props(stylexStyles.rule3).className ?? '',
+    h4: stylex.props(stylexStyles.rule4).className ?? '',
+    h5: stylex.props(stylexStyles.rule5).className ?? '',
+    h6: stylex.props(stylexStyles.rule6).className ?? '',
+  },
+  text: {
+    bold: stylex.props(stylexStyles.rule7).className ?? '',
+    italic: stylex.props(stylexStyles.rule8).className ?? '',
+    strikethrough: stylex.props(stylexStyles.rule9).className ?? '',
+    underline: stylex.props(stylexStyles.rule10).className ?? '',
+    code: stylex.props(stylexStyles.rule11).className ?? '',
+  },
+  list: {
+    ul: stylex.props(stylexStyles.rule12).className ?? '',
+    ol: stylex.props(stylexStyles.rule13).className ?? '',
+    listitem: stylex.props(stylexStyles.rule14).className ?? '',
+    listitemChecked: stylex.props(stylexStyles.rule15).className ?? '',
+    listitemUnchecked: stylex.props(stylexStyles.rule16).className ?? '',
+    nested: {
+      listitem: stylex.props(stylexStyles.rule17).className ?? '',
+    },
+  },
+  link: stylex.props(stylexStyles.rule18).className ?? '',
+  quote: stylex.props(stylexStyles.rule19).className ?? '',
+  code: stylex.props(stylexStyles.rule20).className ?? '',
+  table: stylex.props(stylexStyles.rule21).className ?? '',
+  tableCell: stylex.props(stylexStyles.rule22).className ?? '',
+  tableCellHeader: stylex.props(stylexStyles.rule23).className ?? '',
+  tableRow: stylex.props(false).className ?? '',
+  image: stylex.props(stylexStyles.rule24).className ?? '',
+  horizontalRule: stylex.props(stylexStyles.rule25).className ?? '',
 }
 
 export default editorTheme

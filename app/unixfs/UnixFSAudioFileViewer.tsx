@@ -9,12 +9,160 @@ import { createPlayer } from '@videojs/react'
 import { Audio, audioFeatures, AudioSkin } from '@videojs/react/audio'
 import '@videojs/react/audio/skin.css'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
 
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+import {
+  colors as themeColors,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: { display: 'flex', minHeight: 0, flex: 1, overflow: 'hidden' },
+  rule2: {
+    display: 'flex',
+    minHeight: 0,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: themeColors['--color-background-primary'],
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule3: {
+    position: 'relative',
+    display: 'flex',
+    width: '100%',
+    maxWidth: 'var(--container-2xl)',
+    flexDirection: 'column',
+    overflow: 'hidden',
+    borderRadius: 'var(--radius-xl)',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 60%, transparent)`,
+    '--tw-shadow':
+      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+  },
+  rule4: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule5: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    color: themeColors['--color-brand'],
+  },
+  rule6: { minWidth: 0, flex: 1 },
+  rule7: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule8: {
+    display: 'flex',
+    alignItems: 'center',
+    borderRadius: '3.40282e38px',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 78%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule9: {
+    position: 'relative',
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule10: {
+    position: 'absolute',
+    inset: 0,
+    zIndex: 20,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 72%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+  },
+  rule11: { width: '100%', maxWidth: 'var(--container-sm)' },
+  rule12: {
+    position: 'absolute',
+    inset: 0,
+    zIndex: 20,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 82%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+    textAlign: 'center',
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+  },
+  rule13: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+    color: themeColors['--color-destructive'],
+  },
+  rule14: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule15: {
+    maxWidth: 'var(--container-md)',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule16: {
+    display: 'flex',
+    minHeight: 0,
+    width: '100%',
+    alignItems: 'center',
+    borderRadius: 0,
+  },
+  rule17: { width: '100%' },
+  rule18: { opacity: 0.2 },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -144,32 +292,27 @@ function UnixFSAudioPlayerSurface({
   const showBuffering = state.status === 'ready' && state.buffering
 
   return (
-    <div className="flex min-h-0 flex-1 overflow-hidden">
-      <div className="bg-background-primary flex min-h-0 flex-1 items-center justify-center p-4">
-        <div className="border-foreground/10 bg-background-card/60 relative flex w-full max-w-2xl flex-col overflow-hidden rounded-xl border shadow-lg">
-          <div className="border-foreground/8 flex items-center gap-3 border-b px-4 py-3">
-            <div className="bg-brand/10 text-brand flex size-8 items-center justify-center rounded-full">
+    <div sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>
+        <div sx={stylexStyles2.rule3}>
+          <div sx={stylexStyles2.rule4}>
+            <div sx={stylexStyles2.rule5}>
               <LuMusic sx={stylexStyles.rule1} />
             </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-foreground truncate text-sm font-semibold">
-                {title}
-              </div>
+            <div sx={stylexStyles2.rule6}>
+              <div sx={stylexStyles2.rule7}>{title}</div>
             </div>
             {showBuffering && (
-              <div className="border-foreground/10 bg-background/78 flex items-center rounded-full border px-3 py-1.5">
+              <div sx={stylexStyles2.rule8}>
                 <LoadingInline label="Buffering" tone="muted" size="sm" />
               </div>
             )}
           </div>
 
-          <div className="relative px-4 py-3">
+          <div sx={stylexStyles2.rule9}>
             {showLoading && (
-              <div
-                data-testid="unixfs-audio-loading"
-                className="bg-background/72 absolute inset-0 z-20 flex items-center justify-center p-6 backdrop-blur-sm"
-              >
-                <div className="w-full max-w-sm">
+              <div data-testid="unixfs-audio-loading" sx={stylexStyles2.rule10}>
+                <div sx={stylexStyles2.rule11}>
                   <LoadingCard
                     view={{
                       state: 'active',
@@ -182,35 +325,30 @@ function UnixFSAudioPlayerSurface({
             )}
 
             {state.status === 'error' && (
-              <div
-                data-testid="unixfs-audio-error"
-                className="bg-background/82 absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 p-6 text-center backdrop-blur-sm"
-              >
-                <div className="bg-destructive/10 text-destructive flex size-10 items-center justify-center rounded-full">
+              <div data-testid="unixfs-audio-error" sx={stylexStyles2.rule12}>
+                <div sx={stylexStyles2.rule13}>
                   <LuTriangleAlert sx={stylexStyles.rule2} />
                 </div>
-                <div className="text-foreground text-sm font-semibold">
+                <div sx={stylexStyles2.rule14}>
                   {state.unsupported
                     ? 'Audio preview unavailable'
                     : 'Audio playback failed'}
                 </div>
-                <div className="text-foreground-alt max-w-md text-xs">
-                  {state.message}
-                </div>
+                <div sx={stylexStyles2.rule15}>{state.message}</div>
               </div>
             )}
 
             <Player.Player>
               <AudioSkin
-                className="flex min-h-0 w-full items-center rounded-none"
+                {...stylex.props(stylexStyles2.rule16)}
                 style={audioSkinStyle}
               >
                 <Audio
                   aria-label={title}
-                  className={cn(
-                    'w-full',
-                    state.status === 'error' && 'opacity-20',
-                  )}
+                  {...stylex.props([
+                    stylexStyles2.rule17,
+                    state.status === 'error' && stylexStyles2.rule18,
+                  ])}
                   data-testid="unixfs-audio-element"
                   onCanPlay={handleReady}
                   onError={handleError}

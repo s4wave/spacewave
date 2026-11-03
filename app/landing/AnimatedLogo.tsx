@@ -1,15 +1,123 @@
 import * as ownerStylex from '@stylexjs/stylex'
-import { cn as ownerClasses } from '@s4wave/web/style/utils.js'
 import { groupMarker as ownergroupMarker } from '@s4wave/web/style/relations.stylex.js'
 import { useMemo, useEffect, useState, type RefObject } from 'react'
 import { useDocumentVisibility } from '@aptre/bldr-react'
 import { useMouse } from '@uidotdev/usehooks'
 
 import { useIsTabActive } from '@s4wave/app/ShellTabContext.js'
-import { cn } from '@s4wave/web/style/utils.js'
 import spacewaveIcon from '@s4wave/web/images/spacewave-icon.png'
 
 import './AnimatedLogo.css'
+
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+import { motion as themeMotion } from '../../web/style/tokens.stylex.js'
+import { groupMarker as groupMarker3 } from '../../web/style/relations.stylex.js'
+
+const stylexStyles2 = ownerStylex.create({
+  rule1: { position: 'relative', perspective: 1000 },
+  rule2: {
+    position: 'relative',
+    width: {
+      default: `calc(${themeLayout['--spacing']} * 20)`,
+      '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 28)`,
+    },
+    height: {
+      default: `calc(${themeLayout['--spacing']} * 20)`,
+      '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 28)`,
+    },
+  },
+  rule3: {
+    position: 'absolute',
+    inset: `calc(${themeLayout['--spacing']} * -.5)`,
+    zIndex: 1,
+    borderRadius: 'var(--radius-3xl)',
+    opacity: {
+      default: 0.5,
+      '@media (hover: hover)': {
+        default: null,
+        [ownerStylex.when.ancestor(':is(:hover)', groupMarker3)]: 0.55,
+      },
+    },
+    '--tw-blur': 'blur(var(--blur-md))',
+    filter:
+      'var(--tw-blur, ) var(--tw-brightness, ) var(--tw-contrast, ) var(--tw-grayscale, ) var(--tw-hue-rotate, ) var(--tw-invert, ) var(--tw-saturate, ) var(--tw-sepia, ) var(--tw-drop-shadow, )',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.8s',
+    '--tw-duration': '.8s',
+    willChange: 'transform',
+    backgroundColor: 'transparent',
+    backgroundImage:
+      'radial-gradient(circle farthest-corner at 100% 0, var(--color-brand), transparent), radial-gradient(circle farthest-corner at 0 100%, var(--color-logo-blue), transparent), radial-gradient(circle farthest-corner at 0 0, var(--color-brand), transparent), radial-gradient(circle at 50% 50%, var(--color-logo-base) 10%, var(--color-logo-dark) 80%)',
+    backgroundPositionX: '0%',
+    backgroundPositionY: '0%',
+    backgroundSize: 'auto',
+    backgroundRepeat: 'repeat',
+    backgroundAttachment: 'scroll',
+    backgroundOrigin: 'padding-box',
+    backgroundClip: 'border-box',
+    '--tw-scale-x': {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        [ownerStylex.when.ancestor(':is(:hover)', groupMarker3)]: '105%',
+      },
+    },
+    '--tw-scale-y': {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        [ownerStylex.when.ancestor(':is(:hover)', groupMarker3)]: '105%',
+      },
+    },
+    '--tw-scale-z': {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        [ownerStylex.when.ancestor(':is(:hover)', groupMarker3)]: '105%',
+      },
+    },
+    scale: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        [ownerStylex.when.ancestor(':is(:hover)', groupMarker3)]:
+          'var(--tw-scale-x) var(--tw-scale-y)',
+      },
+    },
+  },
+  rule4: {
+    position: 'relative',
+    zIndex: 10,
+    height: '100%',
+    width: '100%',
+    overflow: 'hidden',
+    borderRadius: 'var(--radius-3xl)',
+  },
+})
+
+const stylexStyles = ownerStylex.create({
+  rule1: {
+    position: 'absolute',
+    inset: `calc(${themeLayout['--spacing']} * -.25)`,
+    zIndex: 2,
+    borderRadius: 'var(--radius-3xl)',
+    willChange: 'transform',
+    backgroundColor: 'transparent',
+    backgroundImage:
+      'radial-gradient(circle farthest-corner at 100% 0, var(--color-brand), transparent), radial-gradient(circle farthest-corner at 0 100%, var(--color-logo-blue), transparent), radial-gradient(circle farthest-corner at 0 0, var(--color-brand), transparent), radial-gradient(circle at 50% 50%, var(--color-logo-base) 10%, var(--color-logo-dark) 80%)',
+    backgroundPositionX: '0%',
+    backgroundPositionY: '0%',
+    backgroundSize: 'auto',
+    backgroundRepeat: 'repeat',
+    backgroundAttachment: 'scroll',
+    backgroundOrigin: 'padding-box',
+    backgroundClip: 'border-box',
+  },
+  rule2: { height: '100%', width: '100%', maxWidth: 'none' },
+})
 
 function rectEquals(a: DOMRect | null, b: DOMRect): boolean {
   return (
@@ -133,14 +241,15 @@ function useLogoTilt(
 }
 
 const AnimatedLogo = ({
-  className,
-  containerClassName,
+  sx,
+  containerSx,
   followMouse = true,
   fixedSize,
   reduceMotion = false,
 }: {
-  className?: string
-  containerClassName?: string
+  sx?: ownerStylex.StyleXStyles
+  className?: never
+  containerSx?: ownerStylex.StyleXStyles
   followMouse?: boolean
   fixedSize?: string | number
   reduceMotion?: boolean
@@ -161,16 +270,12 @@ const AnimatedLogo = ({
   return (
     <div
       ref={mouseRef}
-      className={
-        /* TODO(stylex): global or unknown class: animated-logo-fixed-size */ cn(
-          ownerClasses(
-            'group relative perspective-logo',
-            ownerStylex.props(ownergroupMarker).className,
-          ),
-          fixedSize && 'animated-logo-fixed-size',
-          containerClassName,
-        )
-      }
+      sx={[
+        stylexStyles2.rule1,
+        ownergroupMarker,
+        !!fixedSize && logoNative.fixed,
+        containerSx,
+      ]}
       style={
         fixedSize
           ? {
@@ -181,45 +286,32 @@ const AnimatedLogo = ({
       }
     >
       <div
-        className="animated-logo-transform relative size-20 @lg:h-28 @lg:w-28"
+        sx={[
+          stylexStyles2.rule2,
+          logoNative.tilt,
+          reduceMotion && logoNative.still,
+        ]}
         style={{
           '--animated-logo-transform': `rotateX(${transform.rotateX}deg) rotateY(${transform.rotateY}deg) scale(${transform.scale})`,
-          '--animated-logo-transition': reduceMotion
-            ? 'none'
-            : 'transform 0.8s ease-out',
         }}
       >
         {/* Background Gradient Layer - Blur for Depth */}
         <div
-          className={cn(
-            'absolute -inset-0.5 z-1 rounded-3xl opacity-50 blur-md transition duration-800 will-change-transform group-hover:scale-105 group-hover:opacity-55',
-            'animated-logo-background',
-            canRunAnimation
-              ? 'animated-logo-blur'
-              : 'animated-logo-blur-paused',
-          )}
+          sx={stylexStyles2.rule3}
+          className={
+            canRunAnimation ? 'animated-logo-blur' : 'animated-logo-blur-paused'
+          }
         />
 
         {/* Background Gradient Layer - Sharp for Clean Border */}
-        <div
-          className={cn(
-            'absolute -inset-0.25 z-2 rounded-3xl will-change-transform',
-            'animated-logo-background',
-          )}
-        />
+        <div sx={[stylexStyles.rule1]} />
 
         {/* Logo Image - Ensures it stays on top */}
-        <div
-          className={cn(
-            'relative z-10 h-full w-full overflow-hidden rounded-3xl',
-            fixedSize && 'animated-logo-fixed-content',
-            className,
-          )}
-        >
+        <div sx={[stylexStyles2.rule4, sx]}>
           <img
             src={spacewaveIcon}
             alt="Spacewave Icon"
-            className="h-full w-full max-w-none"
+            sx={stylexStyles.rule2}
           />
         </div>
       </div>
@@ -228,3 +320,19 @@ const AnimatedLogo = ({
 }
 
 export default AnimatedLogo
+
+// logoNative owns the fixed dimensions and dynamic tilt without utility strings.
+const logoNative = ownerStylex.create({
+  fixed: {
+    width: 'var(--animated-logo-size)',
+    height: 'var(--animated-logo-size)',
+  },
+  tilt: {
+    transform: 'var(--animated-logo-transform)',
+    transitionProperty: 'transform',
+    transitionDuration: '0.8s',
+    transitionTimingFunction: 'ease-out',
+    transitionDelay: '0s',
+  },
+  still: { transitionProperty: 'none' },
+})

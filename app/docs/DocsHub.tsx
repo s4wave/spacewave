@@ -22,6 +22,100 @@ import {
 } from '../../web/style/tokens.stylex.js'
 import { groupMarker as groupMarker2 } from '../../web/style/relations.stylex.js'
 
+import {
+  fonts as themeFonts,
+  radii as themeRadii,
+} from '../../web/style/tokens.stylex.js'
+import { groupMarker as groupMarker3 } from '../../web/style/relations.stylex.js'
+
+const stylexStyles4 = stylex.create({
+  rule1: { marginBottom: `calc(${themeLayout['--spacing']} * 10)` },
+  rule2: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: {
+      default: 'var(--text-2xl)',
+      '@container (min-width: 32rem)': 'var(--text-3xl)',
+    },
+    lineHeight: {
+      default: 'var(--tw-leading, var(--text-2xl--line-height))',
+      '@container (min-width: 32rem)':
+        'var(--tw-leading, var(--text-3xl--line-height))',
+    },
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+  },
+  rule3: {
+    fontSize: {
+      default: themeFonts['--text-sm'],
+      '@container (min-width: 32rem)': 'var(--text-base)',
+    },
+    lineHeight: {
+      default: 'var(--leading-relaxed)',
+      '@container (min-width: 32rem)':
+        'var(--tw-leading, var(--text-base--line-height))',
+    },
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule4: {
+    display: 'grid',
+    gap: `calc(${themeLayout['--spacing']} * 5)`,
+    gridTemplateColumns: {
+      default: null,
+      '@container (min-width: 32rem)': 'repeat(3, minmax(0, 1fr))',
+    },
+  },
+  rule5: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-lg'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    color: themeColors['--color-brand'],
+  },
+  rule6: {
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule7: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule8: {
+    marginTop: 'auto',
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: {
+      default: themeColors['--color-brand'],
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker3)]:
+          themeColors['--color-brand-highlight'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+})
+
 const stylexStyles3 = stylex.create({
   rule1: {
     display: 'flex',
@@ -109,16 +203,14 @@ export function DocsHub() {
 
   return (
     <div>
-      <header className="mb-10">
-        <h1 className="text-foreground mb-3 text-2xl font-semibold tracking-tight @lg:text-3xl">
-          Documentation
-        </h1>
-        <p className="text-foreground-alt text-sm leading-relaxed @lg:text-base">
+      <header sx={stylexStyles4.rule1}>
+        <h1 sx={stylexStyles4.rule2}>Documentation</h1>
+        <p sx={stylexStyles4.rule3}>
           Guides and references for building with Spacewave.
         </p>
       </header>
 
-      <div className="grid gap-5 @lg:grid-cols-3">
+      <div sx={stylexStyles4.rule4}>
         {siteDefs.map((site) => {
           const Icon = siteIcons[site.id] ?? LuUser
           return (
@@ -128,16 +220,12 @@ export function DocsHub() {
               onClick={() => goToSite(site.id)}
               sx={[stylexStyles3.rule1, groupMarker2]}
             >
-              <div className="bg-brand/10 text-brand flex size-10 items-center justify-center rounded-lg">
+              <div sx={stylexStyles4.rule5}>
                 <Icon sx={stylexStyles2.rule1} />
               </div>
-              <h2 className="text-foreground text-lg font-semibold">
-                {site.label}
-              </h2>
-              <p className="text-foreground-alt/70 text-sm leading-relaxed">
-                {site.description}
-              </p>
-              <span className="text-brand group-hover:text-brand-highlight mt-auto flex items-center gap-1.5 text-xs font-medium transition-colors">
+              <h2 sx={stylexStyles4.rule6}>{site.label}</h2>
+              <p sx={stylexStyles4.rule7}>{site.description}</p>
+              <span sx={stylexStyles4.rule8}>
                 Browse
                 <LuArrowRight sx={stylexStyles.rule1} />
               </span>

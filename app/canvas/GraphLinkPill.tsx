@@ -5,12 +5,192 @@ import {
   LuTrash2,
 } from '@s4wave/web/images/icons.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
-
 import type { EphemeralEdge } from './types.js'
 
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+import {
+  colors as themeColors,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    borderRadius: '.25rem',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    paddingInline: themeLayout['--spacing'],
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule2: {
+    borderRadius: '.25rem',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-warning']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-warning']} 10%, transparent)`,
+    paddingInline: themeLayout['--spacing'],
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    color: themeColors['--color-warning'],
+  },
+  rule3: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 6.5)`,
+    maxWidth: `calc(${themeLayout['--spacing']} * 64)`,
+    alignItems: 'center',
+  },
+  rule4: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 6.5)`,
+    minWidth: 0,
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderTopLeftRadius: themeRadii['--radius-md'],
+    borderBottomLeftRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderRightStyle: themeUtilityState['--tw-border-style'],
+    borderRightWidth: 0,
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      },
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: '.6rem',
+    lineHeight: 1.5,
+    color: themeColors['--color-foreground'],
+    '--tw-shadow':
+      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule5: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: `color-mix(in oklab, ${themeColors['--color-brand']} 60%, transparent)`,
+  },
+  rule6: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 30%, transparent)`,
+  },
+  rule7: {
+    maxWidth: `calc(${themeLayout['--spacing']} * 24)`,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  rule8: {
+    maxWidth: `calc(${themeLayout['--spacing']} * 20)`,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule9: {
+    marginLeft: 'auto',
+    display: 'flex',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+  },
+  rule10: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 6.5)`,
+    alignItems: 'center',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      },
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+    paddingInline: themeLayout['--spacing'],
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    color: themeColors['--color-foreground'],
+    '--tw-shadow':
+      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule11: {
+    borderRightStyle: themeUtilityState['--tw-border-style'],
+    borderRightWidth: 0,
+  },
+  rule12: {
+    borderTopRightRadius: themeRadii['--radius-md'],
+    borderBottomRightRadius: themeRadii['--radius-md'],
+  },
+  rule13: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 6.5)`,
+    alignItems: 'center',
+    borderTopRightRadius: themeRadii['--radius-md'],
+    borderBottomRightRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+      },
+    },
+    paddingInline: themeLayout['--spacing'],
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    color: themeColors['--color-destructive'],
+    '--tw-shadow':
+      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -39,20 +219,10 @@ function GraphLinkBadges({ edge }: GraphLinkBadgesProps) {
 
   return (
     <>
-      {edge.protected && (
-        <span className="border-foreground/8 bg-foreground/5 text-foreground-alt/50 rounded px-1 py-0.5">
-          protected
-        </span>
-      )}
-      {capped && (
-        <span className="border-warning/20 bg-warning/10 text-warning rounded px-1 py-0.5">
-          capped
-        </span>
-      )}
+      {edge.protected && <span sx={stylexStyles2.rule1}>protected</span>}
+      {capped && <span sx={stylexStyles2.rule2}>capped</span>}
       {edge.hiddenCount > 0 && (
-        <span className="border-foreground/8 bg-foreground/5 text-foreground-alt/50 rounded px-1 py-0.5">
-          hidden {edge.hiddenCount}
-        </span>
+        <span sx={stylexStyles2.rule1}>hidden {edge.hiddenCount}</span>
       )}
     </>
   )
@@ -67,27 +237,21 @@ export function GraphLinkPill({
   onDelete,
 }: GraphLinkPillProps) {
   return (
-    <div className="flex h-6.5 max-w-64 items-center">
+    <div sx={stylexStyles2.rule3}>
       <button
         type="button"
-        className={cn(
-          'bg-background-card/50 text-foreground border-foreground/10 hover:border-foreground/20 flex h-6.5 min-w-0 items-center gap-1 rounded-l-md border border-r-0 px-1.5 py-0.5 micro-text shadow-lg backdrop-blur-sm transition-colors',
-        )}
+        sx={[stylexStyles2.rule4]}
         onClick={onPrimary}
         title={`${loaded ? 'Focus' : 'Load'} ${edge.linkedObjectLabel}`}
       >
-        <span className="text-brand/60 font-medium">{edge.predicate}</span>
-        <span className="text-foreground-alt/30">/</span>
-        <span className="max-w-24 truncate font-medium">
-          {edge.linkedObjectLabel}
-        </span>
+        <span sx={stylexStyles2.rule5}>{edge.predicate}</span>
+        <span sx={stylexStyles2.rule6}>/</span>
+        <span sx={stylexStyles2.rule7}>{edge.linkedObjectLabel}</span>
         {edge.linkedObjectTypeLabel && (
-          <span className="text-foreground-alt/50 max-w-20 truncate">
-            {edge.linkedObjectTypeLabel}
-          </span>
+          <span sx={stylexStyles2.rule8}>{edge.linkedObjectTypeLabel}</span>
         )}
         <GraphLinkBadges edge={edge} />
-        <span className="ml-auto flex items-center gap-1">
+        <span sx={stylexStyles2.rule9}>
           {loaded ? (
             <LuLocateFixed sx={stylexStyles.rule1} />
           ) : (
@@ -99,10 +263,12 @@ export function GraphLinkPill({
       {edge.hideable && onHide && (
         <button
           type="button"
-          className={cn(
-            'bg-background-card/50 text-foreground border-foreground/10 hover:border-foreground/20 flex h-6.5 items-center border px-1 py-0.5 shadow-lg backdrop-blur-sm transition-colors',
-            edge.userRemovable && onDelete ? 'border-r-0' : 'rounded-r-md',
-          )}
+          sx={[
+            stylexStyles2.rule10,
+            edge.userRemovable && onDelete
+              ? stylexStyles2.rule11
+              : stylexStyles2.rule12,
+          ]}
           onClick={onHide}
           title={`Hide ${edge.predicate} link`}
         >
@@ -112,7 +278,7 @@ export function GraphLinkPill({
       {edge.userRemovable && onDelete && (
         <button
           type="button"
-          className="bg-background-card/50 text-destructive border-foreground/10 hover:border-destructive/20 hover:bg-destructive/10 flex h-6.5 items-center rounded-r-md border px-1 py-0.5 shadow-lg backdrop-blur-sm transition-colors"
+          sx={stylexStyles2.rule13}
           onClick={onDelete}
           title={`Delete ${edge.predicate} link`}
         >

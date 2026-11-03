@@ -3,6 +3,12 @@ import { useMemo, type ReactNode } from 'react'
 import type { CanvasNodeData } from './types.js'
 import { decodeCanvasGeometry } from './geometry.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: { height: '100%', width: '100%', overflow: 'visible' },
+})
+
 interface CanvasGeometryNodeProps {
   node: CanvasNodeData
 }
@@ -96,7 +102,7 @@ export function CanvasGeometryNode({ node }: CanvasGeometryNodeProps) {
 
   return (
     <svg
-      className="h-full w-full overflow-visible"
+      sx={stylexStyles.rule1}
       viewBox={`0 0 ${node.width} ${node.height}`}
       preserveAspectRatio="none"
       data-canvas-geometry={geometry.kind}

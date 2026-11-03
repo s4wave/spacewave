@@ -35,6 +35,239 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+import {
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+  radii as themeRadii,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles5 = stylex.create({
+  rule1: {
+    display: 'grid',
+    gap: themeLayout['--spacing'],
+    gridTemplateColumns: {
+      default: null,
+      '@media (min-width: 40rem)': 'minmax(8rem, .35fr) minmax(0, 1fr)',
+    },
+  },
+})
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+})
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    backgroundColor: themeColors['--color-background-primary'],
+  },
+  rule2: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule3: {
+    display: 'flex',
+    minWidth: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule4: {
+    display: 'flex',
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule5: {
+    minHeight: 0,
+    flex: 1,
+    overflow: 'auto',
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule6: {
+    marginInline: 'auto',
+    display: 'flex',
+    width: '100%',
+    maxWidth: 'var(--container-4xl)',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule7: {
+    display: 'flex',
+    flexDirection: { default: 'column', '@media (min-width: 40rem)': 'row' },
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    alignItems: { default: null, '@media (min-width: 40rem)': 'flex-start' },
+    justifyContent: {
+      default: null,
+      '@media (min-width: 40rem)': 'space-between',
+    },
+  },
+  rule8: { minWidth: 0 },
+  rule9: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule10: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule11: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    display: 'grid',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingTop: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    gridTemplateColumns: {
+      default: null,
+      '@media (min-width: 40rem)': 'repeat(4, minmax(0, 1fr))',
+    },
+  },
+  rule12: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule13: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule14: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule15: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule16: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule17: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule18: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 20%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule19: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule20: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule21: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule22: {
+    display: 'flex',
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule23: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule24: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule25: {
+    cursor: 'pointer',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+    minHeight: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+    paddingBlock: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 3.5)`,
+    },
+  },
+  rule26: {
+    minWidth: 0,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    wordBreak: 'break-all',
+    color: themeColors['--color-foreground'],
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -159,13 +392,13 @@ export function SshHostViewer({
   }
 
   return (
-    <div className="bg-background-primary flex h-full w-full flex-col">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center justify-between border-b px-4">
-        <span className="text-foreground flex min-w-0 items-center gap-2 text-sm font-semibold select-none">
+    <div sx={stylexStyles3.rule1}>
+      <div sx={stylexStyles3.rule2}>
+        <span sx={stylexStyles3.rule3}>
           <LuServer sx={stylexStyles.rule1} />
           {state?.label || 'SSH Host'}
         </span>
-        <div className="flex shrink-0 items-center gap-2">
+        <div sx={stylexStyles3.rule4}>
           {state && (
             <DashboardButton
               icon={<LuTerminal sx={stylexStyles.rule2} />}
@@ -182,7 +415,7 @@ export function SshHostViewer({
           </DashboardButton>
         </div>
       </div>
-      <div className="min-h-0 flex-1 overflow-auto px-4 py-3">
+      <div sx={stylexStyles3.rule5}>
         {stateResource.loading && !state && (
           <LoadingCard
             view={{
@@ -193,20 +426,16 @@ export function SshHostViewer({
           />
         )}
         {state && (
-          <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
+          <div sx={stylexStyles3.rule6}>
             <InfoCard>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0">
-                  <div className="text-foreground text-sm font-semibold">
-                    {formatEndpoint(state)}
-                  </div>
-                  <div className="text-foreground-alt/70 mt-1 text-xs">
-                    SSH-only connection
-                  </div>
+              <div sx={stylexStyles3.rule7}>
+                <div sx={stylexStyles3.rule8}>
+                  <div sx={stylexStyles3.rule9}>{formatEndpoint(state)}</div>
+                  <div sx={stylexStyles3.rule10}>SSH-only connection</div>
                 </div>
                 <CanonicalStatus status={status} />
               </div>
-              <div className="border-foreground/8 mt-3 grid gap-2 border-t pt-3 text-xs sm:grid-cols-4">
+              <div sx={stylexStyles3.rule11}>
                 <HostMeta label="Mode" value="SSH-only" />
                 <HostMeta
                   label="User"
@@ -223,7 +452,7 @@ export function SshHostViewer({
                   }
                 />
               </div>
-              <p className="text-foreground-alt/60 mt-3 text-xs leading-relaxed">
+              <p sx={stylexStyles3.rule12}>
                 Open Terminal requires a desktop/native SSH connector.
               </p>
             </InfoCard>
@@ -232,17 +461,13 @@ export function SshHostViewer({
               icon={<LuCircleAlert sx={stylexStyles.rule3} />}
               title="Connection status"
             >
-              <div className="flex items-start gap-2">
+              <div sx={stylexStyles3.rule13}>
                 <CanonicalStatusIcon state={status.state} />
                 <div>
-                  <div className="text-foreground text-sm font-medium">
-                    {status.label}
-                  </div>
-                  <div className="text-foreground-alt/70 mt-1 text-xs leading-relaxed">
-                    {status.detail}
-                  </div>
+                  <div sx={stylexStyles3.rule14}>{status.label}</div>
+                  <div sx={stylexStyles3.rule15}>{status.detail}</div>
                   {status.observedAt && (
-                    <div className="text-foreground-alt/50 mt-1 text-xs">
+                    <div sx={stylexStyles3.rule16}>
                       Last checked {formatObservedAt(status.observedAt)}
                     </div>
                   )}
@@ -262,13 +487,12 @@ export function SshHostViewer({
               title="Host-key trust"
             >
               {pins.length === 0 ? (
-                <div className="text-foreground-alt/70 text-xs">
-                  Ask on first connection
-                </div>
+                <div sx={stylexStyles3.rule17}>Ask on first connection</div>
               ) : (
-                <div className="divide-foreground/8 divide-y">
+                <div>
                   {pins.map((pin) => (
                     <TrustPinRow
+                      sx={nativeDividers.t8}
                       key={`${pin.algorithm}:${pin.sha256Fingerprint || pin.publicKey}`}
                       pin={pin}
                     />
@@ -277,8 +501,8 @@ export function SshHostViewer({
               )}
             </InfoCard>
 
-            <div className="border-foreground/8 bg-background-card/20 rounded-lg border p-3">
-              <div className="text-foreground-alt/70 text-xs leading-relaxed">
+            <div sx={stylexStyles3.rule18}>
+              <div sx={stylexStyles3.rule19}>
                 Agent installation is not available from this SSH Host until
                 secure bootstrap is configured.
               </div>
@@ -292,22 +516,18 @@ export function SshHostViewer({
 
 function HostMeta({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-0">
-      <div className="text-foreground-alt/60 text-xs">{label}</div>
-      <div className="text-foreground mt-0.5 truncate text-xs font-medium">
-        {value}
-      </div>
+    <div sx={stylexStyles3.rule8}>
+      <div sx={stylexStyles3.rule20}>{label}</div>
+      <div sx={stylexStyles3.rule21}>{value}</div>
     </div>
   )
 }
 
 function CanonicalStatus({ status }: { status: CanonicalSshConnectionStatus }) {
   return (
-    <div className="flex shrink-0 items-center gap-1.5">
+    <div sx={stylexStyles3.rule22}>
       <CanonicalStatusIcon state={status.state} />
-      <span className="text-foreground text-xs font-medium">
-        {status.label}
-      </span>
+      <span sx={stylexStyles3.rule23}>{status.label}</span>
     </div>
   )
 }
@@ -340,18 +560,20 @@ function CanonicalStatusIcon({
 function CredentialRows({ refs }: { refs?: SshHostCredentialRefs }) {
   const summary = credentialSummary(refs)
   return (
-    <div className="space-y-2">
-      <div className="text-foreground text-sm font-medium">{summary}</div>
-      <details className="text-xs">
-        <summary className="text-foreground-alt/70 cursor-pointer [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-3.5">
+    <div sx={false}>
+      <div sx={[nativeChildSpacing.s2, stylexStyles3.rule14]}>{summary}</div>
+      <details sx={[nativeChildSpacing.s2, stylexStyles3.rule24]}>
+        <summary sx={stylexStyles3.rule25}>
           Technical credential details
         </summary>
-        <div className="text-foreground-alt/60 mt-2 space-y-1 font-mono text-xs">
-          <div>
+        <div sx={stylexStyles4.rule1}>
+          <div sx={nativeChildSpacing.s1}>
             Private key: {refs?.privateKeySecretObjectKey || 'not linked'}
           </div>
-          <div>Password: {refs?.passwordSecretObjectKey || 'not linked'}</div>
-          <div>
+          <div sx={nativeChildSpacing.s1}>
+            Password: {refs?.passwordSecretObjectKey || 'not linked'}
+          </div>
+          <div sx={nativeChildSpacing.s1}>
             Passphrase: {refs?.passphraseSecretObjectKey || 'not linked'}
           </div>
         </div>
@@ -366,13 +588,14 @@ function credentialSummary(refs?: SshHostCredentialRefs): string {
   return 'No credential linked'
 }
 
-function TrustPinRow({ pin }: { pin: SshHostKeyPin }) {
+function TrustPinRow({
+  sx,
+  pin,
+}: { pin: SshHostKeyPin } & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
-    <div className="sm:grid-cols-form grid gap-1 py-2 first:pt-0 last:pb-0">
-      <div className="text-foreground-alt/70 text-xs">
-        {pin.algorithm || 'unknown'}
-      </div>
-      <div className="text-foreground min-w-0 font-mono text-xs break-all">
+    <div sx={[stylexStyles5.rule1, [trustRowStyles.insets, sx]]}>
+      <div sx={stylexStyles3.rule17}>{pin.algorithm || 'unknown'}</div>
+      <div sx={stylexStyles3.rule26}>
         {pin.sha256Fingerprint || pin.publicKey || 'unfingerprinted'}
       </div>
     </div>
@@ -391,3 +614,65 @@ function formatObservedAt(timestamp: Date): string {
     minute: '2-digit',
   })
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s1: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeDividers applies the list border only to its nonfinal physical rows.
+const nativeDividers = stylex.create({
+  t8: {
+    '--tw-divide-y-reverse': { default: null, ':not(:last-child)': 0 },
+    borderBottomStyle: {
+      default: null,
+      ':not(:last-child)': themeUtilityState['--tw-border-style'],
+    },
+    borderTopStyle: {
+      default: null,
+      ':not(:last-child)': themeUtilityState['--tw-border-style'],
+    },
+    borderTopWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * var(--tw-divide-y-reverse))',
+    },
+    borderBottomWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * calc(1 - var(--tw-divide-y-reverse)))',
+    },
+    borderColor: {
+      default: null,
+      ':not(:last-child)':
+        'color-mix(in oklab, var(--color-foreground) 8%, transparent)',
+    },
+  },
+})
+
+// trustRowStyles preserves first and final row insets at the actual trust row.
+const trustRowStyles = stylex.create({
+  insets: {
+    paddingTop: { default: 'calc(var(--spacing) * 2)', ':first-child': 0 },
+    paddingBottom: { default: 'calc(var(--spacing) * 2)', ':last-child': 0 },
+  },
+})

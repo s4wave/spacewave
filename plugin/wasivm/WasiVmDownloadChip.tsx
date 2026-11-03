@@ -12,6 +12,111 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    position: 'absolute',
+    insetBlock: 0,
+    left: 0,
+    width: {
+      default: '33.3333%',
+      '@media (prefers-reduced-motion: reduce)': '100%',
+    },
+    borderRadius: '3.40282e38px',
+    backgroundColor: themeColors['--color-brand'],
+    animationName: {
+      default: null,
+      '@media (prefers-reduced-motion: reduce)': 'none',
+    },
+    animationDuration: {
+      default: null,
+      '@media (prefers-reduced-motion: reduce)': '0s',
+    },
+    animationTimingFunction: {
+      default: null,
+      '@media (prefers-reduced-motion: reduce)': 'ease',
+    },
+    animationIterationCount: {
+      default: null,
+      '@media (prefers-reduced-motion: reduce)': 1,
+    },
+    animationDirection: {
+      default: null,
+      '@media (prefers-reduced-motion: reduce)': 'normal',
+    },
+    animationPlayState: {
+      default: null,
+      '@media (prefers-reduced-motion: reduce)': 'running',
+    },
+    animationDelay: {
+      default: null,
+      '@media (prefers-reduced-motion: reduce)': '0s',
+    },
+    animationFillMode: {
+      default: null,
+      '@media (prefers-reduced-motion: reduce)': 'none',
+    },
+    animationTimeline: {
+      default: null,
+      '@media (prefers-reduced-motion: reduce)': 'auto',
+    },
+    opacity: { default: null, '@media (prefers-reduced-motion: reduce)': 0.5 },
+  },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    minWidth: 0,
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    '--tw-numeric-spacing': 'tabular-nums',
+    fontVariantNumeric:
+      'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+    opacity: { default: 0, ':is([data-active="true"])': 1 },
+    transitionProperty: 'opacity',
+    transitionTimingFunction: 'var(--ease-out)',
+    transitionDuration: '.2s',
+    transitionDelay: { default: '.5s', ':is([data-active="true"])': '0s' },
+    '--tw-duration': '.2s',
+    '--tw-ease': 'var(--ease-out)',
+  },
+  rule2: {
+    display: { default: 'none', '@container (min-width: 28rem)': 'inline' },
+  },
+  rule3: { textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' },
+  rule4: {
+    clipPath: 'inset(50%)',
+    whiteSpace: 'nowrap',
+    borderWidth: 0,
+    width: '1px',
+    height: '1px',
+    margin: '-1px',
+    padding: 0,
+    position: 'absolute',
+    overflow: 'hidden',
+  },
+  rule5: {
+    pointerEvents: 'none',
+    position: 'absolute',
+    insetInline: 0,
+    bottom: 0,
+    height: `calc(${themeLayout['--spacing']} * .5)`,
+    overflow: 'hidden',
+    opacity: { default: 0, ':is([data-active="true"])': 1 },
+    transitionProperty: 'opacity',
+    transitionTimingFunction: 'var(--ease-out)',
+    transitionDuration: '.2s',
+    transitionDelay: { default: '.5s', ':is([data-active="true"])': '0s' },
+    '--tw-duration': '.2s',
+    '--tw-ease': 'var(--ease-out)',
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -94,22 +199,31 @@ export function WasiVmDownloadChip({
         data-active={active}
         aria-hidden={!active}
         title={`Downloaded ${bytes} of the VM image`}
-        className="text-foreground-alt flex min-w-0 items-center gap-1 text-xs tabular-nums opacity-0 transition-opacity delay-500 duration-200 ease-out data-[active=true]:opacity-100 data-[active=true]:delay-0"
+        sx={stylexStyles2.rule1}
       >
         <LuCloudDownload sx={stylexStyles.rule1} />
-        <span className="hidden @md:inline">Downloading</span>
-        <span className="truncate">{bytes}</span>
+        <span sx={stylexStyles2.rule2}>Downloading</span>
+        <span sx={stylexStyles2.rule3}>{bytes}</span>
       </span>
-      <span role="status" className="sr-only">
+      <span role="status" sx={stylexStyles2.rule4}>
         {active ? 'Downloading the VM image' : ''}
       </span>
-      <div
-        aria-hidden
-        data-active={active}
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 overflow-hidden opacity-0 transition-opacity delay-500 duration-200 ease-out data-[active=true]:opacity-100 data-[active=true]:delay-0"
-      >
-        <div className="bg-brand animate-progress-indeterminate absolute inset-y-0 left-0 w-1/3 rounded-full motion-reduce:w-full motion-reduce:animate-none motion-reduce:opacity-50" />
+      <div aria-hidden data-active={active} sx={stylexStyles2.rule5}>
+        <div sx={[stylexStyles3.rule1, downloadProgressStyles.motion]} />
       </div>
     </>
   )
 }
+
+// downloadProgressStyles reuses the shared plain-CSS progress keyframes.
+const downloadProgressStyles = stylex.create({
+  motion: {
+    animationName: {
+      default: 'progress-indeterminate',
+      '@media (prefers-reduced-motion: reduce)': 'none',
+    },
+    animationDuration: '1.4s',
+    animationTimingFunction: 'ease-in-out',
+    animationIterationCount: 'infinite',
+  },
+})

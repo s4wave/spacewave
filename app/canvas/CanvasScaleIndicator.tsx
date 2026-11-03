@@ -1,6 +1,37 @@
 import { useEffect, useReducer, useRef } from 'react'
 
-import { cn } from '@s4wave/web/style/utils.js'
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  fonts as themeFonts,
+  colors as themeColors,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    pointerEvents: 'none',
+    position: 'absolute',
+    bottom: `calc(${themeLayout['--spacing']} * 4)`,
+    left: `calc(${themeLayout['--spacing']} * 4)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+    '--tw-numeric-spacing': 'tabular-nums',
+    fontVariantNumeric:
+      'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+    transitionProperty: 'opacity',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+  },
+  rule2: { opacity: 0 },
+})
 
 // CanvasScaleIndicatorProps are the props for CanvasScaleIndicator.
 interface CanvasScaleIndicatorProps {
@@ -75,10 +106,7 @@ export function CanvasScaleIndicator({ scale }: CanvasScaleIndicatorProps) {
 
   return (
     <div
-      className={cn(
-        'canvas-transition-duration text-foreground-alt/60 pointer-events-none absolute bottom-4 left-4 font-mono text-xs tabular-nums transition-opacity',
-        state.fading && 'opacity-0',
-      )}
+      sx={[stylexStyles.rule1, !!state.fading && stylexStyles.rule2]}
       style={{ '--canvas-transition-duration': `${FADE_MS}ms` }}
     >
       {Math.round(scale * 100)}%

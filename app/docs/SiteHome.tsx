@@ -21,6 +21,193 @@ import {
 } from '../../web/style/tokens.stylex.js'
 import { groupMarker as groupMarker2 } from '../../web/style/relations.stylex.js'
 
+import {
+  fonts as themeFonts,
+  radii as themeRadii,
+} from '../../web/style/tokens.stylex.js'
+import { groupMarker as groupMarker3 } from '../../web/style/relations.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: { marginBottom: `calc(${themeLayout['--spacing']} * 10)` },
+  rule2: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 4)`,
+    display: 'flex',
+    cursor: 'pointer',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground-alt'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule3: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: {
+      default: 'var(--text-2xl)',
+      '@container (min-width: 32rem)': 'var(--text-3xl)',
+    },
+    lineHeight: {
+      default: 'var(--tw-leading, var(--text-2xl--line-height))',
+      '@container (min-width: 32rem)':
+        'var(--tw-leading, var(--text-3xl--line-height))',
+    },
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+  },
+  rule4: {
+    fontSize: {
+      default: themeFonts['--text-sm'],
+      '@container (min-width: 32rem)': 'var(--text-base)',
+    },
+    lineHeight: {
+      default: 'var(--leading-relaxed)',
+      '@container (min-width: 32rem)':
+        'var(--tw-leading, var(--text-base--line-height))',
+    },
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule5: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 10)`,
+    display: 'grid',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    gridTemplateColumns: {
+      default: null,
+      '@container (min-width: 32rem)': 'repeat(3, minmax(0, 1fr))',
+    },
+  },
+  rule6: {
+    fontSize: 'var(--text-base)',
+    lineHeight: 'var(--tw-leading, var(--text-base--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule7: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule8: {
+    marginTop: 'auto',
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: {
+      default: themeColors['--color-brand'],
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker3)]:
+          themeColors['--color-brand-highlight'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule9: {
+    display: 'grid',
+    gap: `calc(${themeLayout['--spacing']} * 5)`,
+    gridTemplateColumns: {
+      default: null,
+      '@container (min-width: 32rem)': 'repeat(2, minmax(0, 1fr))',
+      '@container (min-width: 64rem)': 'repeat(3, minmax(0, 1fr))',
+    },
+  },
+  rule10: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-lg'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    color: themeColors['--color-brand'],
+  },
+  rule11: {
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule12: {
+    borderRadius: 'var(--radius-xl)',
+    borderStyle: 'dashed',
+    borderWidth: '1px',
+    '--tw-border-style': 'dashed',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 8)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 20)`,
+    textAlign: 'center',
+  },
+  rule13: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule14: {
+    marginTop: `calc(${themeLayout['--spacing']} * 10)`,
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-white']} 10%, transparent)`,
+    paddingTop: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule15: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-widest)',
+    letterSpacing: 'var(--tracking-widest)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    textTransform: 'uppercase',
+  },
+  rule16: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule17: {
+    cursor: 'pointer',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     display: 'flex',
@@ -212,25 +399,17 @@ export function SiteHome({ siteId, sections }: SiteHomeProps) {
 
   return (
     <div>
-      <header className="mb-10">
-        <button
-          type="button"
-          onClick={goToHub}
-          className="text-foreground-alt/50 hover:text-foreground-alt mb-4 flex cursor-pointer items-center gap-1.5 text-xs transition-colors"
-        >
+      <header sx={stylexStyles3.rule1}>
+        <button type="button" onClick={goToHub} sx={stylexStyles3.rule2}>
           <LuArrowLeft sx={stylexStyles.rule1} />
           All Documentation
         </button>
-        <h1 className="text-foreground mb-3 text-2xl font-semibold tracking-tight @lg:text-3xl">
-          {site?.label ?? siteId}
-        </h1>
-        <p className="text-foreground-alt text-sm leading-relaxed @lg:text-base">
-          {site?.description}
-        </p>
+        <h1 sx={stylexStyles3.rule3}>{site?.label ?? siteId}</h1>
+        <p sx={stylexStyles3.rule4}>{site?.description}</p>
       </header>
 
       {startPaths.length > 0 && (
-        <div className="mb-10 grid gap-4 @lg:grid-cols-3">
+        <div sx={stylexStyles3.rule5}>
           {startPaths.map((path) => (
             <button
               type="button"
@@ -238,13 +417,9 @@ export function SiteHome({ siteId, sections }: SiteHomeProps) {
               onClick={() => goToPage(path.url)}
               sx={[stylexStyles2.rule1, groupMarker2]}
             >
-              <h2 className="text-foreground text-base font-semibold">
-                {path.title}
-              </h2>
-              <p className="text-foreground-alt/70 text-sm leading-relaxed">
-                {path.summary}
-              </p>
-              <span className="text-brand group-hover:text-brand-highlight mt-auto flex items-center gap-1.5 text-xs font-medium transition-colors">
+              <h2 sx={stylexStyles3.rule6}>{path.title}</h2>
+              <p sx={stylexStyles3.rule7}>{path.summary}</p>
+              <span sx={stylexStyles3.rule8}>
                 Open
                 <LuArrowRight sx={stylexStyles.rule2} />
               </span>
@@ -253,7 +428,7 @@ export function SiteHome({ siteId, sections }: SiteHomeProps) {
         </div>
       )}
 
-      <div className="grid gap-5 @lg:grid-cols-2 @5xl:grid-cols-3">
+      <div sx={stylexStyles3.rule9}>
         {sections.map((section) => {
           const firstPage = section.pages[0]
           return (
@@ -264,18 +439,16 @@ export function SiteHome({ siteId, sections }: SiteHomeProps) {
               disabled={!firstPage}
               sx={[stylexStyles2.rule2, groupMarker2]}
             >
-              <div className="bg-brand/10 text-brand flex size-10 items-center justify-center rounded-lg">
+              <div sx={stylexStyles3.rule10}>
                 <LuBookOpen sx={stylexStyles.rule3} />
               </div>
-              <h2 className="text-foreground text-lg font-semibold">
-                {section.label}
-              </h2>
-              <p className="text-foreground-alt/70 text-sm leading-relaxed">
+              <h2 sx={stylexStyles3.rule11}>{section.label}</h2>
+              <p sx={stylexStyles3.rule7}>
                 {section.pages.length}{' '}
                 {section.pages.length === 1 ? 'page' : 'pages'}
               </p>
               {firstPage && (
-                <span className="text-brand group-hover:text-brand-highlight mt-auto flex items-center gap-1.5 text-xs font-medium transition-colors">
+                <span sx={stylexStyles3.rule8}>
                   Get started
                   <LuArrowRight sx={stylexStyles.rule2} />
                 </span>
@@ -286,25 +459,21 @@ export function SiteHome({ siteId, sections }: SiteHomeProps) {
       </div>
 
       {sections.every((s) => s.pages.length === 0) && (
-        <div className="border-foreground/6 rounded-xl border border-dashed px-8 py-20 text-center">
-          <p className="text-foreground-alt text-sm">
-            No pages yet. Check back soon.
-          </p>
+        <div sx={stylexStyles3.rule12}>
+          <p sx={stylexStyles3.rule13}>No pages yet. Check back soon.</p>
         </div>
       )}
 
       {otherSites.length > 0 && (
-        <div className="mt-10 border-t border-white/10 pt-6">
-          <h3 className="text-foreground-alt/50 mb-3 text-xs font-semibold tracking-widest uppercase">
-            Other Documentation
-          </h3>
-          <div className="flex flex-wrap gap-3">
+        <div sx={stylexStyles3.rule14}>
+          <h3 sx={stylexStyles3.rule15}>Other Documentation</h3>
+          <div sx={stylexStyles3.rule16}>
             {otherSites.map((other) => (
               <button
                 type="button"
                 key={other.id}
                 onClick={() => goToPage(`/docs/${other.id}`)}
-                className="text-foreground-alt/70 hover:text-foreground cursor-pointer text-sm transition-colors"
+                sx={stylexStyles3.rule17}
               >
                 {other.label}
               </button>

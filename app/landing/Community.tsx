@@ -1069,13 +1069,9 @@ export function Community() {
             No packages match &ldquo;{search}&rdquo;
           </div>
         ) : (
-          <div
-            className={
-              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-8 */ 'space-y-8'
-            }
-          >
+          <div sx={false}>
             {ossGroups.map(({ category, entries }) => (
-              <div key={category.id}>
+              <div sx={nativeChildSpacing.s8} key={category.id}>
                 <div sx={stylexStyles5.rule36}>
                   <h3
                     sx={[
@@ -1195,3 +1191,18 @@ export function Community() {
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s8: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 8 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 8 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

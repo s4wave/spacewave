@@ -13,6 +13,309 @@ import {
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+import {
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+  radii as themeRadii,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    marginTop: `calc(${themeLayout['--spacing']} * 16)`,
+    marginBottom: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    borderRadius: 'var(--radius-2xl)',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: {
+      default: `calc(${themeLayout['--spacing']} * 6)`,
+      '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 8)`,
+    },
+  },
+  rule3: {
+    display: 'flex',
+    flexDirection: {
+      default: 'column',
+      '@container (min-width: 32rem)': 'row',
+    },
+    gap: {
+      default: `calc(${themeLayout['--spacing']} * 8)`,
+      '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 10)`,
+    },
+    alignItems: { default: null, '@container (min-width: 32rem)': 'center' },
+  },
+  rule4: {
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule5: {
+    fontSize: 'var(--text-2xl)',
+    lineHeight: 'var(--tw-leading, var(--text-2xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule6: {
+    maxWidth: 'var(--container-md)',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule7: {
+    marginTop: themeLayout['--spacing'],
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule8: {
+    display: 'flex',
+    cursor: 'pointer',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 40%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 60%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    '--tw-translate-y': {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `calc(${themeLayout['--spacing']} * -.5)`,
+      },
+    },
+    translate: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': 'var(--tw-translate-x) var(--tw-translate-y)',
+      },
+    },
+  },
+  rule9: {
+    display: 'flex',
+    cursor: 'pointer',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 15%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 40%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-background']} 50%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 8%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    '--tw-translate-y': {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `calc(${themeLayout['--spacing']} * -.5)`,
+      },
+    },
+    translate: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': 'var(--tw-translate-x) var(--tw-translate-y)',
+      },
+    },
+  },
+  rule10: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    width: {
+      default: null,
+      '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 72)`,
+    },
+    flexShrink: { default: null, '@container (min-width: 32rem)': 0 },
+  },
+  rule11: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-brand'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule12: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule13: { display: 'flex', gap: `calc(${themeLayout['--spacing']} * 2)` },
+  rule14: {
+    minWidth: 0,
+    flex: 1,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      ':focus': `color-mix(in oklab, ${themeColors['--color-brand']} 40%, transparent)`,
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-dark']} 60%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+    '::placeholder': {
+      color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 30%, transparent)`,
+    },
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus':
+        'var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    boxShadow: {
+      default: null,
+      ':focus':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    '--tw-ring-color': {
+      default: null,
+      ':focus': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+    },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule15: {
+    flexShrink: 0,
+    cursor: 'pointer',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 40%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 60%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-brand'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    '--tw-translate-y': {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `calc(${themeLayout['--spacing']} * -.5)`,
+      },
+    },
+    translate: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': 'var(--tw-translate-x) var(--tw-translate-y)',
+      },
+    },
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      },
+    },
+    pointerEvents: { default: null, ':disabled': 'none' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule16: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-error'],
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -119,21 +422,19 @@ export function BlogCta() {
   )
 
   return (
-    <section className="mt-16 mb-4">
-      <div className="border-brand/20 bg-background-card/30 rounded-2xl border p-6 @lg:p-8">
-        <div className="flex flex-col gap-8 @lg:flex-row @lg:items-center @lg:gap-10">
-          <div className="flex flex-1 flex-col gap-4">
-            <h2 className="text-foreground text-2xl font-semibold tracking-tight select-none">
-              Join the community
-            </h2>
-            <p className="text-foreground-alt/70 max-w-md text-sm leading-relaxed">
+    <section sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>
+        <div sx={stylexStyles2.rule3}>
+          <div sx={stylexStyles2.rule4}>
+            <h2 sx={stylexStyles2.rule5}>Join the community</h2>
+            <p sx={stylexStyles2.rule6}>
               Get development updates and release announcements.
             </p>
-            <div className="mt-1 flex flex-wrap gap-3">
+            <div sx={stylexStyles2.rule7}>
               <button
                 type="button"
                 onClick={goToQuickstart}
-                className="border-brand/40 bg-brand/10 text-foreground hover:border-brand/60 hover:bg-brand/15 flex cursor-pointer items-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium transition duration-300 select-none hover:-translate-y-0.5"
+                sx={stylexStyles2.rule8}
               >
                 Get started
                 <LuArrowRight sx={stylexStyles.rule1} />
@@ -141,7 +442,7 @@ export function BlogCta() {
               <button
                 type="button"
                 onClick={goToCommunity}
-                className="border-foreground/15 bg-background/50 text-foreground hover:border-brand/40 hover:bg-brand/8 flex cursor-pointer items-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium transition duration-300 select-none hover:-translate-y-0.5"
+                sx={stylexStyles2.rule9}
               >
                 <LuGithub sx={stylexStyles.rule1} />
                 Join community
@@ -150,9 +451,9 @@ export function BlogCta() {
           </div>
 
           {!isDesktop && (
-            <div className="flex flex-col gap-3 @lg:w-72 @lg:shrink-0">
+            <div sx={stylexStyles2.rule10}>
               {formState === 'success' ? (
-                <div className="border-brand/20 bg-brand/5 text-brand flex items-center gap-2 rounded-md border px-4 py-2.5 text-sm font-medium select-none">
+                <div sx={stylexStyles2.rule11}>
                   <LuCheck sx={stylexStyles.rule2} />
                   Subscribed. Thanks for joining.
                 </div>
@@ -161,9 +462,9 @@ export function BlogCta() {
                   onSubmit={(e) => {
                     void handleSubmit(e)
                   }}
-                  className="flex flex-col gap-3"
+                  sx={stylexStyles2.rule12}
                 >
-                  <div className="flex gap-2">
+                  <div sx={stylexStyles2.rule13}>
                     <input
                       aria-label="Email address"
                       type="email"
@@ -172,18 +473,18 @@ export function BlogCta() {
                       placeholder="your@email.com"
                       required
                       disabled={formState === 'submitting'}
-                      className="border-foreground/10 bg-background-dark/60 text-foreground placeholder:text-foreground-alt/30 focus:border-brand/40 focus:ring-brand/20 min-w-0 flex-1 rounded-md border px-4 py-2.5 text-sm transition-colors outline-none focus:ring-1 disabled:opacity-50"
+                      sx={stylexStyles2.rule14}
                     />
                     <button
                       type="submit"
                       disabled={formState === 'submitting'}
-                      className="border-brand/40 text-brand hover:bg-brand/10 hover:border-brand/60 shrink-0 cursor-pointer rounded-md border px-5 py-2.5 text-sm font-medium transition duration-300 select-none hover:-translate-y-0.5 disabled:pointer-events-none disabled:opacity-50"
+                      sx={stylexStyles2.rule15}
                     >
                       {formState === 'submitting' ? 'Sending…' : 'Subscribe'}
                     </button>
                   </div>
                   {formState === 'error' && errorMessage && (
-                    <p className="text-error text-xs">{errorMessage}</p>
+                    <p sx={stylexStyles2.rule16}>{errorMessage}</p>
                   )}
                   {turnstileActive && (
                     <Turnstile

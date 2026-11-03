@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import { LuDownload } from '@s4wave/web/images/icons.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import { Button } from '@s4wave/web/ui/button.js'
 import { EmptyState } from '@s4wave/web/ui/EmptyState.js'
 
@@ -16,6 +15,124 @@ import {
 
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+import {
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    minHeight: 0,
+    flexDirection: 'column',
+  },
+  rule2: {
+    display: 'flex',
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule3: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+    '--tw-numeric-spacing': 'tabular-nums',
+    fontVariantNumeric:
+      'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+  },
+  rule4: { flex: 1 },
+  rule5: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+  },
+  rule6: { minHeight: 0, flex: 1, overflow: 'auto' },
+  rule7: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    textAlign: 'left',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule8: {
+    position: 'sticky',
+    top: 0,
+    zIndex: 10,
+    backgroundColor: themeColors['--color-background-primary'],
+  },
+  rule9: {
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+  },
+  rule10: {
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    textAlign: 'right',
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+    '--tw-numeric-spacing': 'tabular-nums',
+    fontVariantNumeric:
+      'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+  },
+  rule11: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    whiteSpace: 'nowrap',
+    color: themeColors['--color-foreground'],
+  },
+  rule12: {
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+  },
+  rule13: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+    textAlign: 'right',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+    '--tw-numeric-spacing': 'tabular-nums',
+    fontVariantNumeric:
+      'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+  },
+  rule14: {
+    maxWidth: 'var(--container-md)',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: themeLayout['--spacing'],
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    color: themeColors['--color-foreground'],
+  },
+  rule15: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+    fontStyle: 'italic',
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -85,17 +202,17 @@ export function SqlResultGrid({
   const lastRow = Math.min(data.rows.length, (safePage + 1) * PAGE_SIZE)
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="border-foreground/8 flex shrink-0 items-center gap-2 border-b px-3 py-1.5">
-        <span className="text-foreground-alt/60 text-xs tabular-nums">
+    <div sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>
+        <span sx={stylexStyles2.rule3}>
           {data.rows.length === 0
             ? '0 rows'
             : `${firstRow}–${lastRow} of ${data.rows.length}`}
           {data.truncated ? ' (truncated)' : ''}
         </span>
-        <div className="flex-1" />
+        <div sx={stylexStyles2.rule4} />
         {pageCount > 1 ? (
-          <div className="flex items-center gap-1">
+          <div sx={stylexStyles2.rule5}>
             <Button
               variant="ghost"
               onClick={handlePrev}
@@ -104,7 +221,7 @@ export function SqlResultGrid({
             >
               Prev
             </Button>
-            <span className="text-foreground-alt/60 text-xs tabular-nums">
+            <span sx={stylexStyles2.rule3}>
               {safePage + 1}/{pageCount}
             </span>
             <Button
@@ -129,14 +246,11 @@ export function SqlResultGrid({
           </Button>
         ) : null}
       </div>
-      <div className="min-h-0 flex-1 overflow-auto">
-        <table className="w-full border-collapse text-left text-xs">
-          <thead className="bg-background-primary sticky top-0 z-10">
-            <tr className="border-foreground/8 border-b">
-              <th
-                aria-label="Row number"
-                className="text-foreground-alt/40 w-10 px-2 py-1.5 text-right font-medium tabular-nums"
-              >
+      <div sx={stylexStyles2.rule6}>
+        <table sx={stylexStyles2.rule7}>
+          <thead sx={stylexStyles2.rule8}>
+            <tr sx={stylexStyles2.rule9}>
+              <th aria-label="Row number" sx={stylexStyles2.rule10}>
                 #
               </th>
               {data.columns.map((column, index) => (
@@ -146,7 +260,7 @@ export function SqlResultGrid({
                   // index is the stable column identity.
                   // eslint-disable-next-line react-doctor/no-array-index-as-key
                   key={`${columnName(column, index)}-${index}`}
-                  className="text-foreground px-3 py-1.5 font-medium whitespace-nowrap"
+                  sx={stylexStyles2.rule11}
                   title={column.databaseTypeName || undefined}
                 >
                   {columnName(column, index)}
@@ -158,9 +272,9 @@ export function SqlResultGrid({
             {pageRows.map((row, rowIndex) => (
               <tr
                 key={safePage * PAGE_SIZE + rowIndex}
-                className="border-foreground/5 hover:bg-foreground/5 border-b"
+                sx={stylexStyles2.rule12}
               >
-                <td className="text-foreground-alt/40 px-2 py-1 text-right tabular-nums">
+                <td sx={stylexStyles2.rule13}>
                   {safePage * PAGE_SIZE + rowIndex + 1}
                 </td>
                 {data.columns.map((_column, colIndex) => {
@@ -169,10 +283,10 @@ export function SqlResultGrid({
                   return (
                     <td
                       key={colIndex}
-                      className={cn(
-                        'text-foreground max-w-md truncate px-3 py-1 font-mono',
-                        isNull && 'text-foreground-alt/40 italic',
-                      )}
+                      sx={[
+                        stylexStyles2.rule14,
+                        !!isNull && stylexStyles2.rule15,
+                      ]}
                       title={formatCell(value)}
                     >
                       {isNull ? SQL_NULL : formatCell(value)}

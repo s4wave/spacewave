@@ -6,6 +6,12 @@ import { Input } from '@s4wave/web/ui/input.js'
 import { Label } from '@s4wave/web/ui/label.js'
 import { Config } from '@s4wave/net/stream/echo/echo.pb.js'
 
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: { display: 'grid', gap: `calc(${themeLayout['--spacing']} * 2)` },
+})
+
 // StreamEchoEditor edits the echo protocol while retaining the Device peer.
 export default function StreamEchoEditor({
   sx,
@@ -18,7 +24,7 @@ export default function StreamEchoEditor({
   const inputId = useId()
   const config = Config.fromBinary(value)
   return (
-    <div sx={sx} className="grid gap-2">
+    <div sx={[stylexStyles.rule1, sx]}>
       <Label htmlFor={inputId}>Echo protocol</Label>
       <Input
         id={inputId}

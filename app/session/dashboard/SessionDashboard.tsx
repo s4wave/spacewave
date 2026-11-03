@@ -820,7 +820,7 @@ export function SessionDashboard({
         {!isEmpty && (
           <AnimatedLogo
             followMouse={true}
-            containerClassName="mb-8 very-short:hidden"
+            containerSx={logoContainerStyles.root}
           />
         )}
 
@@ -1936,5 +1936,13 @@ const nativeChildSpacingNextNextNext = stylex.create({
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
     },
+  },
+})
+
+// logoContainerStyles preserves the caller's logo spacing and height threshold.
+const logoContainerStyles = stylex.create({
+  root: {
+    marginBottom: 'calc(var(--spacing) * 8)',
+    display: { default: null, '@media (max-height: 470px)': 'none' },
   },
 })

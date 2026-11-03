@@ -45,6 +45,93 @@ import { ObjectViewer } from '@s4wave/web/object/ObjectViewer.js'
 import { ObjectViewerNotFoundState } from '@s4wave/web/object/ObjectViewerNotFoundState.js'
 import type { ObjectInfo } from '@s4wave/web/object/object.pb.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    minHeight: 0,
+    width: '100%',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule2: { width: '100%', maxWidth: 'var(--container-sm)' },
+  rule3: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: themeColors['--color-background-primary'],
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule4: {
+    display: 'flex',
+    maxWidth: 'var(--container-sm)',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule5: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+    color: themeColors['--color-destructive'],
+  },
+  rule6: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+  },
+  rule7: { minWidth: 0 },
+  rule8: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule9: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    overflowWrap: 'break-word',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule10: {
+    height: '100%',
+    width: '100%',
+    backgroundColor: themeColors['--color-background-primary'],
+  },
+})
+
 interface DisplayStatusCardProps {
   state: LoadingState
   title: string
@@ -61,8 +148,8 @@ function DisplayStatusCard({
   onRetry,
 }: DisplayStatusCardProps) {
   return (
-    <div className="flex h-full min-h-0 w-full flex-1 items-center justify-center p-6">
-      <div className="w-full max-w-sm">
+    <div sx={stylexStyles.rule1}>
+      <div sx={stylexStyles.rule2}>
         <LoadingCard
           view={{
             state,
@@ -89,18 +176,16 @@ function DisplayComponentNotFoundState({
   typeID,
 }: DisplayComponentNotFoundStateProps) {
   return (
-    <div className="bg-background-primary flex h-full w-full flex-1 items-center justify-center p-4">
-      <div className="border-foreground/6 bg-background-card/30 flex max-w-sm items-start gap-3 rounded-lg border p-3.5">
-        <div className="bg-destructive/10 text-destructive flex size-8 shrink-0 items-center justify-center rounded-md">
-          <span className="text-sm font-semibold" aria-hidden="true">
+    <div sx={stylexStyles.rule3}>
+      <div sx={stylexStyles.rule4}>
+        <div sx={stylexStyles.rule5}>
+          <span sx={stylexStyles.rule6} aria-hidden="true">
             !
           </span>
         </div>
-        <div className="min-w-0">
-          <p className="text-foreground text-sm font-semibold tracking-tight select-none">
-            Display component not found
-          </p>
-          <p className="text-foreground-alt/60 mt-1 text-xs leading-relaxed break-words">
+        <div sx={stylexStyles.rule7}>
+          <p sx={stylexStyles.rule8}>Display component not found</p>
+          <p sx={stylexStyles.rule9}>
             {componentID} is not installed for {objectKey} ({typeID}).
           </p>
         </div>
@@ -658,7 +743,7 @@ function DisplayContent({ controller }: { controller: DisplayController }) {
 export function DisplayContainer() {
   const controller = useDisplayController()
   return (
-    <div className="bg-background-primary h-full w-full">
+    <div sx={stylexStyles.rule10}>
       <DisplayContent controller={controller} />
     </div>
   )

@@ -7,6 +7,40 @@ import { AppLogo } from '@s4wave/web/images/AppLogo.js'
 
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+import {
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = frameStyles.create({
+  rule1: {
+    color: `color-mix(in oklab, ${themeColors['--color-white']} 72%, transparent)`,
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule2: {
+    marginInline: 'auto',
+    display: 'flex',
+    alignItems: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule3: {
+    fontSize: 'var(--text-xl)',
+    lineHeight: 'var(--tw-leading, var(--text-xl--line-height))',
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    '--tw-outline-style': { default: null, ':focus': 'none' },
+    outlineStyle: { default: null, ':focus': 'none' },
+  },
+  rule4: { display: 'flex', flex: 1, alignItems: 'center' },
+})
+
 const stylexStyles = frameStyles.create({
   rule1: { WebkitUserSelect: 'none', userSelect: 'none' },
   rule2: { maxHeight: themeLayout['--spacing-bar'] },
@@ -56,11 +90,11 @@ export function WindowFrame({ sx, ...props }: IWindowFrameProps) {
         ]}
         topbarHeight={props.topBarHeight}
       />
-      <span className="text-white/72 select-none">{props.title}</span>
+      <span sx={stylexStyles2.rule1}>{props.title}</span>
     </>
   )
   if (props.centerTopBar) {
-    header = <div className="mx-auto flex items-center text-xs">{header}</div>
+    header = <div sx={stylexStyles2.rule2}>{header}</div>
   }
 
   // Show only the window actions supplied by this platform.
@@ -72,7 +106,7 @@ export function WindowFrame({ sx, ...props }: IWindowFrameProps) {
         key="close"
         title="Close Window"
         onClick={props.onClose}
-        className="text-foreground-alt/50 hover:text-foreground text-xl focus:outline-none"
+        sx={stylexStyles2.rule3}
       >
         &times;
       </button>,
@@ -95,10 +129,7 @@ export function WindowFrame({ sx, ...props }: IWindowFrameProps) {
         },
         right: buttons,
         left: (
-          <div
-            className="flex flex-1 items-center"
-            data-window-drag-region="true"
-          >
+          <div sx={stylexStyles2.rule4} data-window-drag-region="true">
             {header}
           </div>
         ),

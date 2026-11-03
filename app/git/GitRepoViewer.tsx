@@ -27,6 +27,65 @@ import { useGitBrowsingState } from './useGitBrowsingState.js'
 import { useGitFileEntries } from './useGitFileEntries.js'
 import { useGitNavigation } from './useGitNavigation.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+  layout as themeLayout,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule2: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule3: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-brand'],
+    textDecorationLine: 'underline',
+  },
+  rule4: {
+    display: 'flex',
+    minHeight: 0,
+    flex: 1,
+    flexDirection: 'column',
+    overflow: 'hidden',
+    backgroundColor: themeColors['--color-file-back'],
+  },
+  rule5: {
+    display: 'flex',
+    minHeight: 0,
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    backgroundColor: themeColors['--color-file-back'],
+  },
+  rule6: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule7: {
+    display: 'flex',
+    minHeight: 0,
+    flex: 1,
+    flexDirection: 'column',
+    overflow: 'auto',
+    backgroundColor: themeColors['--color-file-back'],
+  },
+})
+
 // GitRepoTypeID is the type identifier for git/repo objects.
 export const GitRepoTypeID = 'git/repo'
 
@@ -163,11 +222,7 @@ function GitRepoLoadState({ controller }: { controller: GitRepoController }) {
   if (gitResource.loading) {
     return (
       <GitViewerCenteredState
-        title={
-          <span className="text-foreground-alt text-xs">
-            Loading repository…
-          </span>
-        }
+        title={<span sx={stylexStyles.rule1}>Loading repository…</span>}
       />
     )
   }
@@ -175,16 +230,12 @@ function GitRepoLoadState({ controller }: { controller: GitRepoController }) {
   if (gitResource.error) {
     return (
       <GitViewerCenteredState
-        title={
-          <span className="text-destructive text-xs">
-            Error loading repository
-          </span>
-        }
+        title={<span sx={stylexStyles.rule2}>Error loading repository</span>}
         detail={gitResource.error.message}
         action={
           <button
             type="button"
-            className="text-brand mt-2 text-xs underline"
+            sx={stylexStyles.rule3}
             onClick={gitResource.retry}
           >
             Retry
@@ -196,11 +247,7 @@ function GitRepoLoadState({ controller }: { controller: GitRepoController }) {
 
   return (
     <GitViewerCenteredState
-      title={
-        <span className="text-foreground-alt text-xs">
-          Git repository not found
-        </span>
-      }
+      title={<span sx={stylexStyles.rule1}>Git repository not found</span>}
       detail={`Object: ${objectKey || 'none'}`}
     />
   )
@@ -273,7 +320,7 @@ function GitRepoFileStatus({ controller, view }: GitRepoFileStatusProps) {
     return (
       <GitViewerFrame {...bareFrameProps}>
         {staleEntries.length > 0 ? (
-          <div className="bg-file-back flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div sx={stylexStyles.rule4}>
             <FileTree
               entries={staleEntries}
               onOpen={nav.handleOpen}
@@ -281,8 +328,8 @@ function GitRepoFileStatus({ controller, view }: GitRepoFileStatusProps) {
             />
           </div>
         ) : (
-          <div className="bg-file-back flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden">
-            <div className="text-foreground-alt text-xs">Loading files…</div>
+          <div sx={stylexStyles.rule5}>
+            <div sx={stylexStyles.rule1}>Loading files…</div>
           </div>
         )}
       </GitViewerFrame>
@@ -292,16 +339,10 @@ function GitRepoFileStatus({ controller, view }: GitRepoFileStatusProps) {
   const failed = fileResources(controller).find((resource) => resource.error)
   return (
     <GitViewerFrame {...bareFrameProps}>
-      <div className="bg-file-back flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden">
-        <div className="text-destructive text-xs">Error loading files</div>
-        <div className="text-foreground-alt/70 mt-1 text-xs">
-          {failed?.error?.message}
-        </div>
-        <button
-          type="button"
-          className="text-brand mt-2 text-xs underline"
-          onClick={failed?.retry}
-        >
+      <div sx={stylexStyles.rule5}>
+        <div sx={stylexStyles.rule2}>Error loading files</div>
+        <div sx={stylexStyles.rule6}>{failed?.error?.message}</div>
+        <button type="button" sx={stylexStyles.rule3} onClick={failed?.retry}>
           Retry
         </button>
       </div>
@@ -409,7 +450,7 @@ function GitRepoContent({ controller }: { controller: GitRepoController }) {
       onModeChange={isCommit ? undefined : nav.handleModeChange}
       hasReadme={!!readmePath}
     >
-      <div className="bg-file-back flex min-h-0 flex-1 flex-col overflow-auto">
+      <div sx={stylexStyles.rule7}>
         <GitRepoRouteBody controller={controller} handle={handle} />
       </div>
     </GitViewerFrame>

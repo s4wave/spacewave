@@ -9,6 +9,21 @@ import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 
 import { inviteRoute, joinRoute, storePendingRoute } from './pendingRoute.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule2: { width: '100%', maxWidth: 'var(--container-sm)' },
+})
+
 const LazyPairCodePage = lazy(async () => {
   const { PairCodePage } = await import('@s4wave/app/pair/PairCodePage.js')
   return { default: PairCodePage }
@@ -31,8 +46,8 @@ function SessionRedirect({
 
   if (resource.loading) {
     return (
-      <div className="flex h-full w-full items-center justify-center p-6">
-        <div className="w-full max-w-sm">
+      <div sx={stylexStyles.rule1}>
+        <div sx={stylexStyles.rule2}>
           <LoadingCard
             view={{
               state: 'loading',

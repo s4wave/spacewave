@@ -1,9 +1,64 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import { useMemo, useCallback, useRef } from 'react'
-
-import { cn } from '@s4wave/web/style/utils.js'
 
 import type { CanvasNodeData, Viewport } from './types.js'
 import type { ContainerSize } from './useVisibleNodes.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  colors as themeColors,
+  utilityState as themeUtilityState,
+} from '../../web/style/tokens.stylex.js'
+
+import {
+  layout as themeLayout,
+  radii as themeRadii,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    width: 'var(--minimap-width)',
+    height: 'var(--minimap-height)',
+    position: 'absolute',
+    right: `calc(${themeLayout['--spacing']} * 4)`,
+    bottom: `calc(${themeLayout['--spacing']} * 4)`,
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+  },
+})
+
+const stylexStyles = stylex.create({
+  rule1: {
+    left: 'var(--minimap-left)',
+    top: 'var(--minimap-top)',
+    width: 'var(--minimap-rect-width)',
+    height: 'var(--minimap-rect-height)',
+    position: 'absolute',
+    borderRadius: 'var(--radius-xs)',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 25%, transparent)`,
+  },
+  rule2: {
+    left: 'var(--minimap-left)',
+    top: 'var(--minimap-top)',
+    width: 'var(--minimap-rect-width)',
+    height: 'var(--minimap-rect-height)',
+    position: 'absolute',
+    borderRadius: 'var(--radius-sm)',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+  },
+})
 
 // DEFAULT_MINIMAP_WIDTH is the default width of the minimap in pixels.
 export const DEFAULT_MINIMAP_WIDTH = 200
@@ -16,13 +71,14 @@ const MINIMAP_PADDING = 10
 
 // CanvasMinimapProps are the props for CanvasMinimap.
 interface CanvasMinimapProps {
+  className?: never
   nodes: Map<string, CanvasNodeData>
   viewport: Viewport
   containerSize: ContainerSize
   onViewportChange: (v: Viewport) => void
   width?: number
   height?: number
-  className?: string
+  sx?: ComponentStyles
 }
 
 // CanvasMinimap renders a small overview of all nodes with a viewport indicator.
@@ -33,8 +89,11 @@ export function CanvasMinimap({
   onViewportChange,
   width: MINIMAP_WIDTH = DEFAULT_MINIMAP_WIDTH,
   height: MINIMAP_HEIGHT = DEFAULT_MINIMAP_HEIGHT,
-  className,
-}: CanvasMinimapProps) {
+  sx,
+}: Omit<CanvasMinimapProps, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
   const minimapRef = useRef<HTMLDivElement | null>(null)
 
   // Compute the bounding box of all nodes.
@@ -158,10 +217,7 @@ export function CanvasMinimap({
   return (
     <div
       ref={minimapRef}
-      className={cn(
-        'minimap-size bg-background-card/30 border-foreground/6 absolute right-4 bottom-4 overflow-hidden rounded-lg border backdrop-blur-sm',
-        className,
-      )}
+      sx={[stylexStyles2.rule1, sx]}
       style={{
         '--minimap-width': `${MINIMAP_WIDTH}px`,
         '--minimap-height': `${MINIMAP_HEIGHT}px`,
@@ -175,7 +231,7 @@ export function CanvasMinimap({
       {nodeRects.map((r) => (
         <div
           key={r.key}
-          className="minimap-rect bg-foreground-alt/25 absolute rounded-xs"
+          sx={stylexStyles.rule1}
           style={{
             '--minimap-left': `${r.x}px`,
             '--minimap-top': `${r.y}px`,
@@ -185,7 +241,7 @@ export function CanvasMinimap({
         />
       ))}
       <div
-        className="minimap-rect border-brand/30 bg-brand/5 absolute rounded-sm border"
+        sx={stylexStyles.rule2}
         style={{
           '--minimap-left': `${vpRect.x}px`,
           '--minimap-top': `${vpRect.y}px`,

@@ -1,6 +1,5 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import { useCallback, useEffect, useRef } from 'react'
-
-import { cn } from '@s4wave/web/style/utils.js'
 
 import type { CanvasNodeData, Viewport } from './types.js'
 import {
@@ -10,6 +9,14 @@ import {
   type CanvasPoint,
 } from './geometry.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: { position: 'absolute', inset: 0, height: '100%', width: '100%' },
+  rule2: { pointerEvents: 'auto', cursor: 'crosshair' },
+  rule3: { pointerEvents: 'none' },
+})
+
 interface Stroke {
   points: CanvasPoint[]
 }
@@ -17,12 +24,13 @@ interface Stroke {
 const STROKE_PADDING = 8
 
 interface CanvasDrawingLayerProps {
+  className?: never
   visible: boolean
   viewport: Viewport
   kind?: CanvasGeometryKind
   color?: string
   onStrokeComplete?: (node: CanvasNodeData) => void
-  className?: string
+  sx?: ComponentStyles
 }
 
 function screenToCanvas(sx: number, sy: number, vp: Viewport): CanvasPoint {
@@ -39,8 +47,11 @@ export function CanvasDrawingLayer({
   kind = 'pen',
   color = DEFAULT_CANVAS_COLOR,
   onStrokeComplete,
-  className,
-}: CanvasDrawingLayerProps) {
+  sx,
+}: Omit<CanvasDrawingLayerProps, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const currentStroke = useRef<Stroke | null>(null)
   const drawing = useRef(false)
@@ -244,15 +255,12 @@ export function CanvasDrawingLayer({
   return (
     <canvas
       ref={canvasRef}
-      className={cn(
-        'canvas-layer-z-index',
-        'absolute inset-0 h-full w-full',
-        visible
-          ? 'pointer-events-auto cursor-crosshair'
-          : 'pointer-events-none',
-        className,
-      )}
-      style={{ '--canvas-layer-z-index': visible ? 10 : -1 }}
+      sx={[
+        stylexStyles.rule1,
+        visible ? stylexStyles.rule2 : stylexStyles.rule3,
+        drawingLayerStyles.layer(visible ? 10 : -1),
+        sx,
+      ]}
       data-canvas-drawing-color={color}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
@@ -260,3 +268,8 @@ export function CanvasDrawingLayer({
     />
   )
 }
+
+// drawingLayerStyles keeps the dynamic integer layer in the native compiler.
+const drawingLayerStyles = stylex.create({
+  layer: (zIndex: number) => ({ zIndex }),
+})

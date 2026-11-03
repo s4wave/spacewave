@@ -1,7 +1,58 @@
 import { useMemo } from 'react'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import type { ViewMode } from './route.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * .5)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+  },
+  rule2: {
+    borderRadius: '.25rem',
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule3: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-white']} 8%, transparent)`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule4: {
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-white']} 3%, transparent)`,
+      },
+    },
+  },
+})
 
 // ViewModeSelectorProps are props for the ViewModeSelector component.
 export interface ViewModeSelectorProps {
@@ -45,17 +96,15 @@ export function ViewModeSelector({
   }, [availableModes, hasReadme])
 
   return (
-    <div className="border-foreground/8 flex items-center gap-0.5 border-b px-2 py-0.5">
+    <div sx={stylexStyles.rule1}>
       {tabs.map((tab) => (
         <button
           type="button"
           key={tab.key}
-          className={cn(
-            'rounded px-2 py-0.5 text-xs select-none',
-            mode === tab.key
-              ? 'text-foreground bg-white/[0.08] font-medium'
-              : 'text-foreground-alt hover:text-foreground hover:bg-white/[0.03]',
-          )}
+          sx={[
+            stylexStyles.rule2,
+            mode === tab.key ? stylexStyles.rule3 : stylexStyles.rule4,
+          ]}
           onClick={() => onModeChange(tab.key)}
         >
           {tab.label}

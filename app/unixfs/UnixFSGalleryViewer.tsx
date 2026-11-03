@@ -16,7 +16,7 @@ import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource
 import { usePath } from '@s4wave/web/router/router.js'
 import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { downloadURL } from '@s4wave/web/download.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 
@@ -39,6 +39,209 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
+
+import {
+  fonts as themeFonts,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    height: `calc(${themeLayout['--spacing']} * 14)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    textAlign: 'left',
+  },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    aspectRatio: 1,
+    overflow: 'hidden',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+  },
+  rule2: { height: '100%', width: '100%', objectFit: 'cover' },
+  rule3: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule4: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule5: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule6: {
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 20%, transparent)`,
+  },
+  rule7: { cursor: 'zoom-in', textAlign: 'left' },
+  rule8: {
+    marginRight: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule9: {
+    borderRadius: '3.40282e38px',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-white']} 20%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-white']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-white']} 20%, transparent)`,
+      },
+    },
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
+    color: themeColors['--color-white'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule10: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 3)`,
+    display: 'flex',
+    minHeight: `calc(${themeLayout['--spacing']} * 6)`,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule11: {
+    minWidth: 0,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule12: {
+    display: 'flex',
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule13: {
+    borderRadius: '3.40282e38px',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-destructive'],
+  },
+  rule14: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: '3.40282e38px',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule15: {
+    display: 'flex',
+    height: '100%',
+    minHeight: `calc(${themeLayout['--spacing']} * 48)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rule16: {
+    display: 'flex',
+    maxWidth: 'var(--container-xs)',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 5)`,
+    textAlign: 'center',
+  },
+  rule17: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule18: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(var(--gallery-columns), minmax(0, 1fr))',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule19: { height: '100%' },
+  rule20: {
+    position: 'relative',
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule21: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: 'color-mix(in oklab, currentcolor 20%, transparent)',
+    backgroundColor: 'color-mix(in oklab, currentcolor 10%, transparent)',
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule22: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule23: { minHeight: 0, flex: 1 },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -89,39 +292,37 @@ function GalleryTile({
 }) {
   const body = (
     <>
-      <div className="bg-foreground/5 aspect-square overflow-hidden">
+      <div sx={stylexStyles2.rule1}>
         {item.previewURL ? (
           <img
             alt={item.label}
-            className="h-full w-full object-cover"
+            sx={stylexStyles2.rule2}
             loading="lazy"
             src={item.previewURL}
           />
         ) : (
-          <div className="text-foreground-alt/40 flex h-full w-full items-center justify-center">
+          <div sx={stylexStyles2.rule3}>
             <LuImage sx={stylexStyles.rule1} />
           </div>
         )}
       </div>
-      <div className="h-14 space-y-1 px-3 py-2 text-left">
+      <div sx={stylexStyles3.rule1}>
         <div
-          className="text-foreground truncate text-xs font-medium"
+          sx={[nativeChildSpacing.s1, stylexStyles2.rule4]}
           title={item.label}
         >
           {item.label}
         </div>
-        <div className="text-foreground-alt/50 truncate text-xs">
+        <div sx={[nativeChildSpacing.s1, stylexStyles2.rule5]}>
           {item.mimeType}
         </div>
       </div>
     </>
   )
-  const className =
-    'border-foreground/8 bg-background-card/20 overflow-hidden rounded-lg border'
 
   if (!interactive) {
     return (
-      <div data-testid="unixfs-gallery-item" className={className}>
+      <div data-testid="unixfs-gallery-item" sx={stylexStyles2.rule6}>
         {body}
       </div>
     )
@@ -131,16 +332,13 @@ function GalleryTile({
     <button
       data-testid="unixfs-gallery-item"
       type="button"
-      className={cn(className, 'cursor-zoom-in text-left')}
+      sx={[stylexStyles2.rule6, stylexStyles2.rule7]}
       onClick={onClick}
     >
       {body}
     </button>
   )
 }
-
-const lightboxButtonClassName =
-  'rounded-full border border-white/20 bg-white/10 p-2 text-white transition hover:bg-white/20'
 
 interface LightboxSource {
   spaceId: string | null
@@ -169,10 +367,10 @@ function LightboxToolbar({
   }
 
   return (
-    <div className="mr-2 flex items-center gap-2">
+    <div sx={stylexStyles2.rule8}>
       <button
         type="button"
-        className={lightboxButtonClassName}
+        sx={stylexStyles2.rule9}
         onClick={() => window.open(previewURL, '_blank', 'noopener,noreferrer')}
         title="Open In Browser"
       >
@@ -180,7 +378,7 @@ function LightboxToolbar({
       </button>
       <button
         type="button"
-        className={lightboxButtonClassName}
+        sx={stylexStyles2.rule9}
         onClick={handleDownload}
         title="Download"
       >
@@ -304,20 +502,20 @@ function GalleryHeader({
   isScanning,
 }: GalleryHeaderProps) {
   return (
-    <div className="mb-3 flex min-h-6 items-center justify-between gap-3">
-      <div className="text-foreground-alt/60 min-w-0 truncate text-xs">
+    <div sx={stylexStyles2.rule10}>
+      <div sx={stylexStyles2.rule11}>
         {imageCount} image
         {imageCount === 1 ? '' : 's'} under {scopePath}
       </div>
-      <div className="flex shrink-0 items-center gap-2">
+      <div sx={stylexStyles2.rule12}>
         {issueCount > 0 && (
-          <div className="border-destructive/20 bg-destructive/10 text-destructive rounded-full border px-2 py-0.5 text-xs font-medium">
+          <div sx={stylexStyles2.rule13}>
             {issueCount} issue
             {issueCount === 1 ? '' : 's'}
           </div>
         )}
         {isScanning && (
-          <div className="border-foreground/10 bg-foreground/5 text-foreground-alt flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium">
+          <div sx={stylexStyles2.rule14}>
             <Spinner size="sm" />
             Scanning
           </div>
@@ -330,10 +528,10 @@ function GalleryHeader({
 /** GalleryEmptyState explains an empty gallery: still scanning, or no images found. */
 function GalleryEmptyState({ isScanning }: { isScanning: boolean }) {
   return (
-    <div className="flex h-full min-h-48 items-center justify-center">
-      <div className="border-foreground/6 bg-background-card/30 flex max-w-xs flex-col items-center gap-2 rounded-lg border px-4 py-5 text-center">
+    <div sx={stylexStyles2.rule15}>
+      <div sx={stylexStyles2.rule16}>
         <LuImage sx={stylexStyles.rule3} />
-        <div className="text-foreground text-sm font-semibold">
+        <div sx={stylexStyles2.rule17}>
           {isScanning ? 'Scanning for images' : 'No images under this path'}
         </div>
       </div>
@@ -359,10 +557,7 @@ function GalleryRow({
   const rowItems = items.slice(index * columns, (index + 1) * columns)
   return (
     <div style={style} {...ariaAttributes}>
-      <div
-        className="grid-cols-gallery grid gap-3"
-        style={{ '--gallery-columns': columns }}
-      >
+      <div sx={stylexStyles2.rule18} style={{ '--gallery-columns': columns }}>
         {rowItems.map((item) => (
           <GalleryTile
             key={item.path}
@@ -404,7 +599,7 @@ function GalleryGrid({
   return (
     <List
       data-testid="unixfs-gallery-grid"
-      className="h-full"
+      {...stylex.props(stylexStyles2.rule19)}
       data-columns={columns}
       defaultHeight={600}
       onResize={(size) => setWidth(size.width)}
@@ -469,7 +664,7 @@ function UnixFSGalleryBody({
     <div
       data-testid="unixfs-gallery-viewer"
       ref={handlePortalContainer}
-      className="relative flex h-full w-full flex-col px-4 py-3"
+      sx={stylexStyles2.rule20}
     >
       <GalleryHeader
         imageCount={previewItems.length}
@@ -478,28 +673,26 @@ function UnixFSGalleryBody({
         isScanning={isScanning}
       />
       {galleryState.error && (
-        <div className="text-destructive rounded-lg border border-current/20 bg-current/10 px-3 py-2 text-xs">
-          {galleryState.error.message}
-        </div>
+        <div sx={stylexStyles2.rule21}>{galleryState.error.message}</div>
       )}
       {!galleryState.error && galleryState.value?.truncated && (
-        <div className="text-foreground-alt/60 mb-3 text-xs">
+        <div sx={stylexStyles2.rule22}>
           Showing the first {previewItems.length} images. Open a subdirectory to
           see the rest.
         </div>
       )}
       {!galleryState.error && galleryErrors.length > 0 && (
-        <div className="text-foreground-alt/60 mb-3 text-xs">
+        <div sx={stylexStyles2.rule22}>
           Some descendants could not be scanned. Discovered images remain
           visible.
         </div>
       )}
       {!galleryState.error && !sessionIndex && (
-        <div className="text-foreground-alt/60 mb-3 text-xs">
+        <div sx={stylexStyles2.rule22}>
           Inline previews require a mounted session context.
         </div>
       )}
-      <div className="min-h-0 flex-1">
+      <div sx={stylexStyles2.rule23}>
         {!galleryState.error && !hasItems && (
           <GalleryEmptyState isScanning={isScanning} />
         )}
@@ -508,7 +701,9 @@ function UnixFSGalleryBody({
         )}
       </div>
       <PhotoSlider
-        className="!absolute inset-0 h-full w-full"
+        className={
+          /* TODO(stylex): global or unknown class: unixfs-photo-slider */ 'unixfs-photo-slider'
+        }
         images={lightboxImages}
         index={Math.max(lightboxIndex, 0)}
         onClose={() => setLightboxPath(null)}
@@ -545,3 +740,18 @@ export function UnixFSGalleryViewer({
     />
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s1: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

@@ -1,16 +1,67 @@
 import * as ownerStylex from '@stylexjs/stylex'
-import { cn as ownerClasses } from '@s4wave/web/style/utils.js'
 import { codeGroupMarker as ownercodeGroupMarker } from '@s4wave/web/style/relations.stylex.js'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { LuCheck, LuCopy } from '@s4wave/web/images/icons.js'
 
 import { usePromise } from '@s4wave/web/hooks/usePromise.js'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import { highlightCode } from './highlight.js'
 
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+import {
+  radii as themeRadii,
+  motion as themeMotion,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+import { codeGroupMarker as codeGroupMarker3 } from '../../web/style/relations.stylex.js'
+
+const stylexStyles2 = ownerStylex.create({
+  rule1: {
+    position: 'absolute',
+    top: `calc(${themeLayout['--spacing']} * 2.5)`,
+    right: `calc(${themeLayout['--spacing']} * 2.5)`,
+    zIndex: 10,
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 7)`,
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    opacity: {
+      default: 0,
+      '@media (hover: hover)': {
+        default: null,
+        [ownerStylex.when.ancestor(':is(:hover)', codeGroupMarker3)]: 1,
+      },
+    },
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule2: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+    color: themeColors['--color-brand'],
+  },
+  rule3: {
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      },
+    },
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground-alt'],
+      },
+    },
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -23,14 +74,15 @@ const stylexStyles = stylex.create({
 export interface CodeBlockProps {
   code: string
   language?: string
-  className?: string
+  sx?: ownerStylex.StyleXStyles
+  className?: never
 }
 
 /**
  * CodeBlock renders highlighted code with a copy button. It shows plain text
  * while the grammar loads and when Shiki does not know the language.
  */
-export function CodeBlock({ code, language, className }: CodeBlockProps) {
+export function CodeBlock({ code, language, sx }: CodeBlockProps) {
   const { data: html } = usePromise(
     useCallback(
       () => highlightCode(code, language || 'text'),
@@ -52,27 +104,14 @@ export function CodeBlock({ code, language, className }: CodeBlockProps) {
   }, [code])
 
   return (
-    <div
-      className={
-        /* TODO(stylex): dynamic class or forwarded className */ cn(
-          ownerClasses(
-            'group/code relative',
-            ownerStylex.props(ownercodeGroupMarker).className,
-          ),
-          className,
-        )
-      }
-    >
+    <div sx={[codeContainerStyles.root, ownercodeGroupMarker, sx]}>
       <button
         type="button"
         onClick={handleCopy}
-        className={cn(
-          'absolute top-2.5 right-2.5 z-10 flex size-7 items-center justify-center rounded-md transition-all',
-          'opacity-0 group-hover/code:opacity-100',
-          copied
-            ? 'bg-brand/20 text-brand'
-            : 'bg-foreground/5 text-foreground-alt/40 hover:bg-foreground/10 hover:text-foreground-alt',
-        )}
+        sx={[
+          stylexStyles2.rule1,
+          copied ? stylexStyles2.rule2 : stylexStyles2.rule3,
+        ]}
         title="Copy code"
       >
         {copied ? (
@@ -92,3 +131,8 @@ export function CodeBlock({ code, language, className }: CodeBlockProps) {
     </div>
   )
 }
+
+// codeContainerStyles owns the code group positioned around its copy action.
+const codeContainerStyles = ownerStylex.create({
+  root: { position: 'relative' },
+})

@@ -5,6 +5,53 @@ import { ViewModeSelector } from './layout/ViewModeSelector.js'
 import type { ViewMode } from './layout/route.js'
 import { SelectedRefBar } from './refs/SelectedRefBar.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+  layout as themeLayout,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  rule2: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule3: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule4: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule5: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    overflow: 'hidden',
+  },
+})
+
 export function GitViewerCenteredState({
   containerRef,
   title,
@@ -19,19 +66,10 @@ export function GitViewerCenteredState({
   action?: ReactNode
 }) {
   return (
-    <div
-      ref={containerRef}
-      className="flex h-full w-full flex-col items-center justify-center overflow-hidden"
-    >
-      <div className="text-foreground text-sm font-semibold">{title}</div>
-      {subtitle && (
-        <div className="text-foreground-alt mt-1 text-xs font-medium">
-          {subtitle}
-        </div>
-      )}
-      {detail && (
-        <div className="text-foreground-alt/70 mt-2 text-xs">{detail}</div>
-      )}
+    <div ref={containerRef} sx={stylexStyles.rule1}>
+      <div sx={stylexStyles.rule2}>{title}</div>
+      {subtitle && <div sx={stylexStyles.rule3}>{subtitle}</div>}
+      {detail && <div sx={stylexStyles.rule4}>{detail}</div>}
       {action}
     </div>
   )
@@ -57,10 +95,7 @@ export function GitViewerFrame({
   children: ReactNode
 }) {
   return (
-    <div
-      ref={containerRef}
-      className="flex h-full w-full flex-col overflow-hidden"
-    >
+    <div ref={containerRef} sx={stylexStyles.rule5}>
       <GitToolbar {...toolbarProps} />
       {refBarProps && <SelectedRefBar {...refBarProps} />}
       {mode && onModeChange && (

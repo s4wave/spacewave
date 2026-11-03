@@ -33,6 +33,31 @@ import { VmRunningView } from './VmRunningView.js'
 
 import * as stylex from '@stylexjs/stylex'
 
+import {
+  colors as themeColors,
+  layout as themeLayout,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: themeColors['--color-background-primary'],
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    overflow: 'hidden',
+    backgroundColor: themeColors['--color-background-primary'],
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: { width: '100%', maxWidth: 'var(--container-sm)' },
 })
@@ -205,7 +230,7 @@ export default function VmV86Viewer({
   // Hold the view until the VM record loads, so no default stands in for it.
   if (!vm.loaded) {
     return (
-      <div className="bg-background-primary flex h-full w-full items-center justify-center p-4">
+      <div sx={stylexStyles2.rule1}>
         {vm.loadError ? (
           <VmErrorBanner
             title="Could not load this virtual machine"
@@ -231,7 +256,7 @@ export default function VmV86Viewer({
     (vm.desired === VmState.VmState_RUNNING ||
       vm.state !== VmState.VmState_STOPPED)
   return (
-    <div className="bg-background-primary flex h-full w-full flex-col overflow-hidden">
+    <div sx={stylexStyles2.rule2}>
       {running ? (
         <VmRunningView
           objectKey={objectKey}

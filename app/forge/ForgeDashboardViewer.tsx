@@ -46,6 +46,203 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule2: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule3: {
+    display: 'grid',
+    gridTemplateColumns: {
+      default: 'repeat(2, minmax(0, 1fr))',
+      '@media (min-width: 40rem)': 'repeat(4, minmax(0, 1fr))',
+    },
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule4: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule5: {
+    marginBottom: themeLayout['--spacing'],
+    fontSize: '.6rem',
+    lineHeight: 1.5,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-widest)',
+    letterSpacing: 'var(--tracking-widest)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+    textTransform: 'uppercase',
+  },
+  rule6: {
+    fontSize: 'var(--text-xl)',
+    lineHeight: 'var(--tw-leading, var(--text-xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+    '--tw-numeric-spacing': 'tabular-nums',
+    fontVariantNumeric:
+      'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+  },
+  rule7: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    display: 'inline-flex',
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 40%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 60%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 2.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+  },
+  rule8: {
+    display: 'grid',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    gridTemplateColumns: {
+      default: null,
+      '@media (min-width: 64rem)': 'repeat(2, minmax(0, 1fr))',
+    },
+  },
+  rule9: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule10: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    '--tw-numeric-spacing': 'tabular-nums',
+    fontVariantNumeric:
+      'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+  },
+  rule11: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule12: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule13: { minWidth: 0 },
+  rule14: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule15: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule16: {
+    display: 'flex',
+    minWidth: 0,
+    flex: 1,
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * .5)`,
+  },
+  rule17: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule18: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule19: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  rule20: {
+    flexShrink: 0,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 15%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-destructive'],
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -327,11 +524,11 @@ export function ForgeDashboardViewer({
         id: 'overview',
         label: 'Overview',
         content: (
-          <div className="space-y-3">
+          <div sx={false}>
             {openingAction && (
               <div
                 role="status"
-                className="border-brand/20 bg-brand/5 text-foreground-alt/70 rounded-lg border px-3.5 py-2.5 text-xs"
+                sx={[nativeChildSpacing.s3, stylexStyles2.rule1]}
               >
                 Opening Forge {openingAction}…
               </div>
@@ -339,6 +536,7 @@ export function ForgeDashboardViewer({
 
             {worldError ? (
               <LoadingCard
+                sx={nativeChildSpacing.s3}
                 view={{
                   state: 'error',
                   title: 'Forge entities unavailable',
@@ -352,6 +550,7 @@ export function ForgeDashboardViewer({
               entitiesLoading &&
               entities.length === 0 && (
                 <LoadingCard
+                  sx={nativeChildSpacing.s3}
                   view={{
                     state: 'loading',
                     title: 'Loading Forge entities…',
@@ -364,10 +563,11 @@ export function ForgeDashboardViewer({
 
             {!worldError && !entitiesLoading && entities.length === 0 && (
               <InfoCard
+                sx={nativeChildSpacing.s3}
                 icon={<LuLayoutDashboard sx={stylexStyles.rule2} />}
                 title="No Forge work yet"
               >
-                <p className="text-foreground-alt/70 text-xs leading-relaxed">
+                <p sx={stylexStyles2.rule2}>
                   Create a Job to define work, or create a Cluster to attach
                   execution capacity.
                 </p>
@@ -375,18 +575,11 @@ export function ForgeDashboardViewer({
             )}
 
             {entities.length > 0 && (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div sx={[nativeChildSpacing.s3, stylexStyles2.rule3]}>
                 {summaryMetrics.map((metric) => (
-                  <div
-                    key={metric.label}
-                    className="border-foreground/6 bg-background-card/30 rounded-lg border p-3"
-                  >
-                    <div className="text-foreground-alt/60 micro-text mb-1 font-medium tracking-widest uppercase">
-                      {metric.label}
-                    </div>
-                    <div className="text-foreground text-xl font-semibold tabular-nums">
-                      {metric.count}
-                    </div>
+                  <div key={metric.label} sx={stylexStyles2.rule4}>
+                    <div sx={stylexStyles2.rule5}>{metric.label}</div>
+                    <div sx={stylexStyles2.rule6}>{metric.count}</div>
                   </div>
                 ))}
               </div>
@@ -394,6 +587,7 @@ export function ForgeDashboardViewer({
 
             {pendingWorkers.length > 0 && (
               <InfoCard
+                sx={nativeChildSpacing.s3}
                 icon={<LuPlus sx={stylexStyles.rule2} />}
                 title={
                   pendingWorkers.length === 1
@@ -401,17 +595,16 @@ export function ForgeDashboardViewer({
                     : 'Workers ready to start'
                 }
               >
-                <p className="text-foreground-alt/70 text-xs leading-relaxed">
+                <p sx={stylexStyles2.rule2}>
                   Approve the quickstart worker process binding to start task
                   execution in this session.
                 </p>
                 <button
-                  sx={forgeControlStyles.required}
                   type="button"
                   onClick={() => {
                     void handleStartWorkers()
                   }}
-                  className="border-brand/40 bg-brand/10 hover:border-brand/60 hover:bg-brand/15 text-foreground mt-3 inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition duration-150"
+                  sx={[stylexStyles2.rule7, forgeControlStyles.required]}
                 >
                   <LuPlus sx={stylexStyles.rule1} />
                   {pendingWorkers.length === 1
@@ -422,21 +615,19 @@ export function ForgeDashboardViewer({
             )}
 
             {entities.length > 0 && (
-              <div className="grid gap-3 lg:grid-cols-2">
+              <div sx={[nativeChildSpacing.s3, stylexStyles2.rule8]}>
                 <InfoCard
                   icon={<LuBox sx={stylexStyles.rule3} />}
                   title="Entity health"
                 >
-                  <div className="space-y-1.5">
+                  <div sx={false}>
                     {Object.entries(typeCounts).map(([label, count]) => (
                       <div
                         key={label}
-                        className="text-foreground-alt/70 flex items-center justify-between gap-3 text-xs"
+                        sx={[nativeChildSpacing.s1_5, stylexStyles2.rule9]}
                       >
                         <span>{label}</span>
-                        <span className="text-foreground font-medium tabular-nums">
-                          {count} linked
-                        </span>
+                        <span sx={stylexStyles2.rule10}>{count} linked</span>
                       </div>
                     ))}
                   </div>
@@ -447,30 +638,23 @@ export function ForgeDashboardViewer({
                   title="Recent activity"
                 >
                   {activityLoading && activityEntries.length === 0 && (
-                    <div className="text-foreground-alt/60 flex items-center gap-2 text-xs">
+                    <div sx={stylexStyles2.rule11}>
                       <LuActivity sx={stylexStyles.rule4} />
                       <span>Loading Forge activity…</span>
                     </div>
                   )}
                   {!activityLoading && activityEntries.length === 0 && (
-                    <p className="text-foreground-alt/60 text-xs leading-relaxed">
+                    <p sx={stylexStyles2.rule12}>
                       No recent activity yet. Activity will appear as Forge work
                       changes; no action is required.
                     </p>
                   )}
                   {activityEntries.slice(0, 3).map((entry) => (
-                    <div
-                      key={entry.id}
-                      className="border-foreground/6 flex items-start gap-2 border-b py-2 last:border-b-0 last:pb-0"
-                    >
+                    <div key={entry.id} sx={activityRowStyles.row}>
                       <LuActivity sx={stylexStyles.rule5} />
-                      <div className="min-w-0">
-                        <div className="text-foreground text-xs font-medium">
-                          {entry.title}
-                        </div>
-                        <div className="text-foreground-alt/50 truncate text-xs">
-                          {entry.detail}
-                        </div>
+                      <div sx={stylexStyles2.rule13}>
+                        <div sx={stylexStyles2.rule14}>{entry.title}</div>
+                        <div sx={stylexStyles2.rule15}>{entry.detail}</div>
                       </div>
                     </div>
                   ))}
@@ -484,9 +668,10 @@ export function ForgeDashboardViewer({
         id: 'activity',
         label: 'Activity',
         content: (
-          <div className="space-y-2">
+          <div sx={false}>
             {worldError ? (
               <LoadingCard
+                sx={nativeChildSpacing.s2}
                 view={{
                   state: 'error',
                   title: 'Forge activity unavailable',
@@ -497,6 +682,7 @@ export function ForgeDashboardViewer({
               />
             ) : activityLoading && activityEntries.length === 0 ? (
               <LoadingCard
+                sx={nativeChildSpacing.s2}
                 view={{
                   state: 'loading',
                   title: 'Loading Forge activity…',
@@ -506,10 +692,11 @@ export function ForgeDashboardViewer({
               />
             ) : !activityLoading && activityEntries.length === 0 ? (
               <InfoCard
+                sx={nativeChildSpacing.s2}
                 icon={<LuActivity sx={stylexStyles.rule3} />}
                 title="No recent activity yet"
               >
-                <p className="text-foreground-alt/60 text-xs leading-relaxed">
+                <p sx={stylexStyles2.rule12}>
                   Activity will appear as Forge work changes; no action is
                   required.
                 </p>
@@ -517,14 +704,10 @@ export function ForgeDashboardViewer({
             ) : null}
             {activityEntries.map((entry) => {
               const content = (
-                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <div className="text-foreground text-xs font-medium">
-                    {entry.title}
-                  </div>
-                  <div className="text-foreground-alt/50 truncate text-xs">
-                    {entry.detail}
-                  </div>
-                  <div className="text-foreground-alt/50 text-xs">
+                <div sx={stylexStyles2.rule16}>
+                  <div sx={stylexStyles2.rule14}>{entry.title}</div>
+                  <div sx={stylexStyles2.rule15}>{entry.detail}</div>
+                  <div sx={stylexStyles2.rule17}>
                     {entry.timestamp.toISOString()}
                   </div>
                 </div>
@@ -533,6 +716,7 @@ export function ForgeDashboardViewer({
               if (entry.objectKey) {
                 return (
                   <ForgeEntityLink
+                    sx={nativeChildSpacing.s2}
                     key={entry.id}
                     objectKey={entry.objectKey}
                     icon={<LuActivity sx={stylexStyles.rule6} />}
@@ -545,7 +729,7 @@ export function ForgeDashboardViewer({
               return (
                 <div
                   key={entry.id}
-                  className="border-foreground/6 bg-background-card/30 flex items-start gap-2 rounded-lg border p-3"
+                  sx={[nativeChildSpacing.s2, stylexStyles2.rule18]}
                 >
                   <LuActivity sx={stylexStyles.rule5} />
                   {content}
@@ -559,9 +743,10 @@ export function ForgeDashboardViewer({
         id: 'entities',
         label: 'Entities',
         content: (
-          <div className="space-y-2">
+          <div sx={false}>
             {worldError ? (
               <LoadingCard
+                sx={nativeChildSpacing.s2}
                 view={{
                   state: 'error',
                   title: 'Forge entities unavailable',
@@ -573,6 +758,7 @@ export function ForgeDashboardViewer({
               />
             ) : entitiesLoading && entities.length === 0 ? (
               <LoadingCard
+                sx={nativeChildSpacing.s2}
                 view={{
                   state: 'loading',
                   title: 'Loading Forge entities…',
@@ -582,10 +768,11 @@ export function ForgeDashboardViewer({
               />
             ) : !entitiesLoading && entities.length === 0 ? (
               <InfoCard
+                sx={nativeChildSpacing.s2}
                 icon={<LuBox sx={stylexStyles.rule3} />}
                 title="No linked Forge entities"
               >
-                <p className="text-foreground-alt/60 text-xs leading-relaxed">
+                <p sx={stylexStyles2.rule12}>
                   Create a Job or Cluster to add Forge entities to this
                   dashboard.
                 </p>
@@ -593,6 +780,7 @@ export function ForgeDashboardViewer({
             ) : null}
             {entities.map((entity) => (
               <ForgeEntityLink
+                sx={nativeChildSpacing.s2}
                 key={entity.objectKey}
                 objectKey={entity.objectKey}
                 icon={<LuBox sx={stylexStyles.rule6} />}
@@ -606,7 +794,7 @@ export function ForgeDashboardViewer({
                     variant="dot"
                   />
                 )}
-                <span className="text-sm font-medium">{entity.objectKey}</span>
+                <span sx={stylexStyles2.rule19}>{entity.objectKey}</span>
               </ForgeEntityLink>
             ))}
           </div>
@@ -616,9 +804,10 @@ export function ForgeDashboardViewer({
         id: 'bindings',
         label: 'Bindings',
         content: (
-          <div className="space-y-2">
+          <div sx={false}>
             {bindingsError ? (
               <LoadingCard
+                sx={nativeChildSpacingNext.s2}
                 view={{
                   state: 'error',
                   title: 'Process bindings unavailable',
@@ -629,6 +818,7 @@ export function ForgeDashboardViewer({
               />
             ) : bindingsLoading ? (
               <LoadingCard
+                sx={nativeChildSpacingNext.s2}
                 view={{
                   state: 'loading',
                   title: 'Loading process bindings…',
@@ -638,6 +828,7 @@ export function ForgeDashboardViewer({
               />
             ) : bindings.length > 0 ? (
               <ProcessBindingList
+                sx={nativeChildSpacingNext.s2}
                 bindings={bindings}
                 onToggle={(bindingObjectKey, approved) => {
                   void handleToggle(bindingObjectKey, approved)
@@ -645,10 +836,11 @@ export function ForgeDashboardViewer({
               />
             ) : (
               <InfoCard
+                sx={nativeChildSpacingNext.s2}
                 icon={<LuBox sx={stylexStyles.rule3} />}
                 title="No process bindings"
               >
-                <p className="text-foreground-alt/60 text-xs leading-relaxed">
+                <p sx={stylexStyles2.rule12}>
                   Bindings appear when Forge workers are linked; no action is
                   required yet.
                 </p>
@@ -686,10 +878,7 @@ export function ForgeDashboardViewer({
       headerActions={headerActions}
       headerStatus={
         creationError ? (
-          <div
-            className="border-destructive/15 bg-destructive/5 text-destructive shrink-0 border-b px-4 py-2 text-xs leading-relaxed"
-            role="alert"
-          >
+          <div sx={stylexStyles2.rule20} role="alert">
             {creationError}
           </div>
         ) : undefined
@@ -698,3 +887,69 @@ export function ForgeDashboardViewer({
     />
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s1_5: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// activityRowStyles preserves the final activity row's shorter bottom inset.
+const activityRowStyles = stylex.create({
+  row: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: 'calc(var(--spacing) * 2)',
+    borderBottomWidth: { default: '1px', ':last-child': 0 },
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderColor: 'color-mix(in oklab, var(--color-foreground) 6%, transparent)',
+    paddingTop: 'calc(var(--spacing) * 2)',
+    paddingBottom: { default: 'calc(var(--spacing) * 2)', ':last-child': 0 },
+  },
+})
