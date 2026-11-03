@@ -299,11 +299,17 @@ const routesManifest: ParityManifest = {
       '/settings/storage',
       'h1:has-text("Storage health")',
     ),
-    sessionState(
-      'session-plugins',
-      '/settings/plugins',
-      'h1:has-text("Plugins")',
-    ),
+    sessionState('session-plugins', '/settings/plugins', async (page) => {
+      await page
+        .getByRole('heading', { name: 'Plugins', exact: true })
+        .waitFor()
+      await page
+        .getByText(
+          'Fetching needs a desktop or command-line Device linked to your developer Space. Link one, then add the repository.',
+          { exact: true },
+        )
+        .waitFor()
+    }),
     sessionState(
       'session-transfers',
       '/settings/transfer',

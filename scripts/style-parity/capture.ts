@@ -132,12 +132,10 @@ export async function capture(
               if (errors.length)
                 throw new Error(`${state.id}: ${errors.join('\n')}`)
               stage = 'screenshot'
-              const png = await page.screenshot({
-                path: join(out, `${relative}.png`),
-                fullPage: true,
-                caret: 'hide',
-                animations: 'disabled',
-              })
+              const png = await screenshotPage(
+                page,
+                join(out, `${relative}.png`),
+              )
               // Screenshot cleanup can restart CSS timelines; observe the same static sample as its pixels.
               stage = 'resample'
               await settle(page)
@@ -259,6 +257,66 @@ export async function capture(
       `${failures.length} captures failed: ${failures.join(', ')}; see *.failure.json`,
     )
   return paths
+}
+
+// screenshotPage preserves the complete document when an engine cannot snapshot one large rectangle.
+async function screenshotPage(page: Page, path: string): Promise<Buffer> {
+  // Match Playwright's full-page dimensions in the capture's one-device-pixel context.
+  const size = await page.evaluate(() => {
+    const boxes = [document.documentElement, document.body].filter(Boolean)
+    return {
+      width: Math.max(
+        ...boxes.flatMap((box) => [
+          box.scrollWidth,
+          box.offsetWidth,
+          box.clientWidth,
+        ]),
+      ),
+      height: Math.max(
+        ...boxes.flatMap((box) => [
+          box.scrollHeight,
+          box.offsetHeight,
+          box.clientHeight,
+        ]),
+      ),
+    }
+  })
+  const options = {
+    fullPage: true,
+    caret: 'hide',
+    animations: 'disabled',
+  } as const
+  if (size.width <= 32767 && size.height <= 32767)
+    return page.screenshot({ ...options, path })
+
+  // Read document clips without scrolling, so fixed and sticky content keeps its full-page position.
+  const image = new PNG(size)
+  for (let y = 0; y < size.height; y += 16384) {
+    for (let x = 0; x < size.width; x += 16384) {
+      const width = Math.min(16384, size.width - x)
+      const height = Math.min(16384, size.height - y)
+      const last = x + width === size.width && y + height === size.height
+      const tile = PNG.sync.read(
+        await page.screenshot({
+          ...options,
+          clip: { x, y, width, height },
+          path: last ? path : undefined,
+        }),
+      )
+      for (let row = 0; row < height; row++)
+        tile.data.copy(
+          image.data,
+          ((y + row) * size.width + x) * 4,
+          row * width * 4,
+          (row + 1) * width * 4,
+        )
+    }
+  }
+
+  // Replace the last clip with the complete image before publishing the observation.
+  const bytes = PNG.sync.write(image)
+  await writeFile(path, bytes)
+  return bytes
 }
 
 // settle finishes finite transitions and stops repeating effects before sampling static styles.
