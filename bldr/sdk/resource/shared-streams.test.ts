@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { SharedStreams } from './shared-streams.js'
 
@@ -121,5 +121,37 @@ describe('SharedStreams', () => {
     expect((await reopened).value).toBe(3)
     expect(src.opens).toBe(2)
     await c.return?.()
+  })
+})
+
+// Idle streams retain one source until their configured linger ends.
+describe('SharedStreams linger', () => {
+  it('rejoins an idle source and releases it at expiry', async () => {
+    // Read a snapshot, then leave the idle source running.
+    vi.useFakeTimers()
+    try {
+      const streams = new SharedStreams(30_000)
+      const src = source()
+      const first = streams.watch('k', src.open)[Symbol.asyncIterator]()
+      const pending = first.next()
+      src.push(7)
+      expect((await pending).value).toBe(7)
+      await first.return?.()
+      expect(src.aborts).toBe(0)
+
+      // Rejoin before expiry and keep the same source past the old expiry.
+      const second = streams.watch('k', src.open)[Symbol.asyncIterator]()
+      expect((await second.next()).value).toBe(7)
+      await vi.advanceTimersByTimeAsync(30_000)
+      expect(src.opens).toBe(1)
+      expect(src.aborts).toBe(0)
+
+      // The final departure starts a fresh linger which ends the source.
+      await second.return?.()
+      await vi.advanceTimersByTimeAsync(30_000)
+      expect(src.aborts).toBe(1)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

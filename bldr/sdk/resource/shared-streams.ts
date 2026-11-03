@@ -1,12 +1,15 @@
 /**
  * SharedStreams multicasts snapshot streams by key. The subscribers of one key
  * share one source stream, which opens with the first subscriber and is
- * aborted when the last one leaves. Each subscriber receives the latest
- * snapshot, then each later one it is ready for: a slow subscriber skips to
+ * aborted after the last subscriber leaves and its optional linger expires.
+ * Each subscriber receives the latest snapshot, then each later one it is ready for: a slow subscriber skips to
  * the newest. Share only streams whose every message is a full snapshot.
  */
 export class SharedStreams {
   private readonly streams = new Map<string, SharedStream<unknown>>()
+
+  /** linger keeps an idle source available for a later subscriber. */
+  constructor(private readonly linger = 0) {}
 
   /**
    * watch subscribes to the stream at key, opening it with open when no
@@ -19,14 +22,21 @@ export class SharedStreams {
     open: (signal: AbortSignal) => AsyncIterable<T>,
     signal?: AbortSignal,
   ): AsyncIterable<T> {
+    // An already aborted subscriber must not open a source.
+    signal?.throwIfAborted()
+
     // Join the running source or open one for this subscriber.
     let stream = this.streams.get(key) as SharedStream<T> | undefined
     if (!stream) {
-      const opened = new SharedStream<T>(open, () => {
-        if (this.streams.get(key) === opened) {
-          this.streams.delete(key)
-        }
-      })
+      const opened = new SharedStream<T>(
+        open,
+        () => {
+          if (this.streams.get(key) === opened) {
+            this.streams.delete(key)
+          }
+        },
+        this.linger,
+      )
       this.streams.set(key, opened)
       stream = opened
     }
@@ -52,10 +62,13 @@ class SharedStream<T> {
   private waiters = new Set<() => void>()
   // subscribers counts the subscribers iterating the stream.
   private subscribers = 0
+  // idle ends a source that stays without subscribers through linger.
+  private idle: ReturnType<typeof setTimeout> | undefined
 
   constructor(
     open: (signal: AbortSignal) => AsyncIterable<T>,
     private readonly onEnd: () => void,
+    private readonly linger: number,
   ) {
     void this.run(open)
   }
@@ -63,6 +76,7 @@ class SharedStream<T> {
   /** subscribe yields the latest snapshot and each later one until the source ends or signal aborts. */
   public async *subscribe(signal?: AbortSignal): AsyncIterable<T> {
     // Count this subscriber while it iterates.
+    clearTimeout(this.idle)
     this.subscribers++
     try {
       let seen = 0
@@ -85,11 +99,20 @@ class SharedStream<T> {
     } finally {
       // Stop the source with its last subscriber.
       this.subscribers--
-      if (this.subscribers === 0) {
-        this.abort.abort()
-        this.onEnd()
+      if (this.subscribers === 0 && !this.done) {
+        if (this.linger > 0) {
+          this.idle = setTimeout(() => this.close(), this.linger)
+        } else {
+          this.close()
+        }
       }
     }
+  }
+
+  /** close aborts an idle source and releases its key. */
+  private close() {
+    this.abort.abort()
+    this.onEnd()
   }
 
   /** run reads the source until it ends, fails or is aborted, then wakes every subscriber. */
@@ -108,6 +131,7 @@ class SharedStream<T> {
     }
 
     // Release the key for a fresh source and report the end.
+    clearTimeout(this.idle)
     this.done = true
     this.onEnd()
     this.wake()
@@ -137,4 +161,11 @@ class SharedStream<T> {
       wake()
     }
   }
+}
+
+/** watchKey names one method's snapshot stream and its request, including bigint values. */
+export function watchKey(method: string, ...request: unknown[]): string {
+  return JSON.stringify([method, ...request], (_key, value: unknown) =>
+    typeof value === 'bigint' ? `${value}n` : value,
+  )
 }
