@@ -81,13 +81,15 @@ const styles = stylex.create({
   },
 })
 
-// CopyableField displays a labeled value that can be copied to clipboard.
+// CopyableFieldProps configures the label, copied value and native root styles.
 export interface CopyableFieldProps {
+  sx?: stylex.StyleXStyles
   label: string
   value: string
 }
 
-export function CopyableField({ label, value }: CopyableFieldProps) {
+// CopyableField displays a labeled value that can be copied to clipboard.
+export function CopyableField({ label, value, sx }: CopyableFieldProps) {
   const [copied, setCopied] = useState(false)
 
   const handleCopy = useCallback(() => {
@@ -97,7 +99,7 @@ export function CopyableField({ label, value }: CopyableFieldProps) {
   }, [value])
 
   return (
-    <div sx={styles.root}>
+    <div sx={[styles.root, sx]}>
       <span sx={styles.label}>{label}</span>
       <button
         type="button"

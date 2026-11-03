@@ -80,6 +80,25 @@ export function OwnedStyles({ optional = false }: { optional?: boolean } = {}) {
           </span>
         </div>
       ))}
+      <div
+        aria-label="Mixed native styles"
+        className="p-1"
+        sx={compiledStyles.override}
+      >
+        Mixed native styles
+      </div>
+      {[false, true].map((selected) => (
+        <button
+          key={String(selected)}
+          aria-label={'Finite selected ' + selected}
+          className={cn(
+            'border border-foreground/10 hover:border-foreground/20 hover:bg-foreground/5 p-2',
+            selected && 'border-brand/30 bg-brand/10',
+          )}
+        >
+          Finite {String(selected)}
+        </button>
+      ))}
       <Box />
       <Box label="Default box">Default</Box>
       <Box

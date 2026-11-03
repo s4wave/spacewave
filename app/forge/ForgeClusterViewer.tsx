@@ -52,6 +52,29 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    minWidth: 0,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule2: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -298,7 +321,7 @@ export function ForgeClusterViewer({
                 <div className="flex items-center justify-between gap-3">
                   <ForgeEntityLink
                     objectKey={worker.objectKey}
-                    className="text-foreground min-w-0 text-sm font-medium"
+                    sx={stylexStyles2.rule1}
                   >
                     {worker.data.name || worker.objectKey}
                   </ForgeEntityLink>
@@ -376,7 +399,7 @@ export function ForgeClusterViewer({
                         <div className="min-w-0">
                           <ForgeEntityLink
                             objectKey={job.objectKey}
-                            className="text-foreground truncate text-sm font-medium"
+                            sx={stylexStyles2.rule2}
                           />
                           <div className="text-foreground-alt/50 mt-1 text-xs">
                             {completeTasks}/{jobTasks.length} tasks complete

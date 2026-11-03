@@ -19,6 +19,31 @@ import {
   utilityState as themeUtilityState,
 } from '../style/tokens.stylex.js'
 
+const childSpacing = stylex.create({
+  s4: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
@@ -169,7 +194,9 @@ const stylexStyles = stylex.create({
   },
 })
 
-export function KeybindingBindingsSection() {
+export function KeybindingBindingsSection({
+  sx,
+}: { sx?: stylex.StyleXStyles } = {}) {
   const {
     cancelCapture,
     capture,
@@ -192,11 +219,11 @@ export function KeybindingBindingsSection() {
 
   return (
     <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4'
+      sx={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ sx
       }
     >
-      <div>
+      <div sx={childSpacing.s4}>
         <div sx={stylexStyles.rule1}>
           <h3 sx={stylexStyles.rule2}>Shortcuts</h3>
           <Button
@@ -216,15 +243,11 @@ export function KeybindingBindingsSection() {
             command palette or menu.
           </div>
         ) : (
-          <div
-            className={
-              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-            }
-          >
+          <div>
             {selectedBindings.map((binding) => (
               <div
                 key={`${binding.sourceLayer}:${binding.bindingId}:${binding.display}`}
-                sx={stylexStyles.rule4}
+                sx={[stylexStyles.rule4, childSpacing.s2]}
               >
                 <div sx={stylexStyles.rule5}>
                   <div sx={stylexStyles.rule6}>
@@ -259,7 +282,7 @@ export function KeybindingBindingsSection() {
           role="status"
           tabIndex={-1}
           aria-live="polite"
-          sx={stylexStyles.rule8}
+          sx={[stylexStyles.rule8, childSpacing.s4]}
         >
           <div sx={stylexStyles.rule9}>Recording shortcut</div>
           <div sx={stylexStyles.rule10}>
@@ -285,7 +308,7 @@ export function KeybindingBindingsSection() {
       )}
 
       {pendingBinding && (
-        <div sx={stylexStyles.rule13}>
+        <div sx={[stylexStyles.rule13, childSpacing.s4]}>
           <div sx={stylexStyles.rule14}>
             {pendingReplace ? 'Replace with' : 'Add'}
           </div>
@@ -338,9 +361,11 @@ export function KeybindingBindingsSection() {
         </div>
       )}
 
-      {captureError && <div sx={stylexStyles.rule18}>{captureError}</div>}
+      {captureError && (
+        <div sx={[stylexStyles.rule18, childSpacing.s4]}>{captureError}</div>
+      )}
 
-      <div sx={stylexStyles.rule19}>
+      <div sx={[stylexStyles.rule19, childSpacing.s4]}>
         <Button
           type="button"
           variant="outline"

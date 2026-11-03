@@ -22,6 +22,35 @@ import {
   radii as themeRadii,
 } from '../style/tokens.stylex.js'
 
+const stylexStyles2 = stylex.create({
+  rule1: { marginInline: 'auto', maxWidth: 'var(--container-lg)' },
+})
+
+const childSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     display: 'flex',
@@ -202,23 +231,25 @@ export function SessionSettingsDebug() {
 
       <div sx={stylexStyles.rule6}>
         <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'mx-auto max-w-lg space-y-3'
+          sx={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ stylexStyles2.rule1
           }
         >
           <CollapsibleSection
+            sx={childSpacing.s3}
             title="Security"
             icon={<LuShield sx={stylexStyles.rule7} />}
             open={securityOpen}
             onOpenChange={setSecurityOpen}
           >
-            <div
-              className={
-                /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-              }
-            >
-              <PlaceholderRow label="Session Lock" detail="PIN lock enabled" />
+            <div>
               <PlaceholderRow
+                sx={childSpacing.s2}
+                label="Session Lock"
+                detail="PIN lock enabled"
+              />
+              <PlaceholderRow
+                sx={childSpacing.s2}
                 label="Security Level"
                 detail="Standard (any one method)"
               />
@@ -226,22 +257,21 @@ export function SessionSettingsDebug() {
           </CollapsibleSection>
 
           <CollapsibleSection
+            sx={childSpacing.s3}
             title="Billing"
             icon={<LuCreditCard sx={stylexStyles.rule7} />}
             open={billingOpen}
             onOpenChange={setBillingOpen}
             badge={<StatusBadge label="Active" />}
           >
-            <div
-              className={
-                /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-              }
-            >
+            <div>
               <PlaceholderCard
+                sx={childSpacing.s2}
                 title="Personal"
                 detail="Active Monthly | Next: May 12"
               />
               <PlaceholderCard
+                sx={childSpacing.s2}
                 title="Acme Corp"
                 detail="Active Annual | Next: Jan 1"
               />
@@ -249,55 +279,76 @@ export function SessionSettingsDebug() {
           </CollapsibleSection>
 
           <CollapsibleSection
+            sx={childSpacing.s3}
             title="Organizations"
             icon={<LuBuilding2 sx={stylexStyles.rule7} />}
             open={orgsOpen}
             onOpenChange={setOrgsOpen}
             badge={<CountBadge count={2} />}
           >
-            <div
-              className={
-                /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-              }
-            >
-              <PlaceholderRow label="Acme Corp" detail="3 members" action />
-              <PlaceholderRow label="Side Project" detail="1 member" action />
-              <button type="button" sx={stylexStyles.rule8}>
+            <div>
+              <PlaceholderRow
+                sx={childSpacing.s2}
+                label="Acme Corp"
+                detail="3 members"
+                action
+              />
+              <PlaceholderRow
+                sx={childSpacing.s2}
+                label="Side Project"
+                detail="1 member"
+                action
+              />
+              <button type="button" sx={[stylexStyles.rule8, childSpacing.s2]}>
                 + Create Organization
               </button>
             </div>
           </CollapsibleSection>
 
           <CollapsibleSection
+            sx={childSpacing.s3}
             title="Crypto & Keys"
             icon={<LuKey sx={stylexStyles.rule7} />}
             open={cryptoOpen}
             onOpenChange={setCryptoOpen}
           >
-            <div
-              className={
-                /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-              }
-            >
-              <PlaceholderRow label="Key Type" detail="Ed25519" />
-              <PlaceholderRow label="Export Public Key (PEM)" action />
+            <div>
+              <PlaceholderRow
+                sx={childSpacing.s2}
+                label="Key Type"
+                detail="Ed25519"
+              />
+              <PlaceholderRow
+                sx={childSpacing.s2}
+                label="Export Public Key (PEM)"
+                action
+              />
             </div>
           </CollapsibleSection>
 
           <CollapsibleSection
+            sx={childSpacing.s3}
             title="Identifiers"
             icon={<LuFingerprint sx={stylexStyles.rule7} />}
             open={identifiersOpen}
             onOpenChange={setIdentifiersOpen}
           >
-            <div
-              className={
-                /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-              }
-            >
-              <PlaceholderRow label="Session ID" detail="abc123...def456" />
-              <PlaceholderRow label="Peer ID" detail="12D3KooW...xyz" />
-              <PlaceholderRow label="Account ID" detail="01HXYZ...789" />
+            <div>
+              <PlaceholderRow
+                sx={childSpacing.s2}
+                label="Session ID"
+                detail="abc123...def456"
+              />
+              <PlaceholderRow
+                sx={childSpacing.s2}
+                label="Peer ID"
+                detail="12D3KooW...xyz"
+              />
+              <PlaceholderRow
+                sx={childSpacing.s2}
+                label="Account ID"
+                detail="01HXYZ...789"
+              />
             </div>
           </CollapsibleSection>
         </div>
@@ -310,13 +361,15 @@ function PlaceholderRow({
   label,
   detail,
   action,
+  sx,
 }: {
   label: string
   detail?: string
   action?: boolean
+  sx?: stylex.StyleXStyles
 }) {
   return (
-    <div sx={stylexStyles.rule9}>
+    <div sx={[stylexStyles.rule9, sx]}>
       <span sx={stylexStyles.rule10}>{label}</span>
       {detail && <span sx={stylexStyles.rule11}>{detail}</span>}
       {action && !detail && <span sx={stylexStyles.rule12}>Export</span>}
@@ -325,9 +378,17 @@ function PlaceholderRow({
   )
 }
 
-function PlaceholderCard({ title, detail }: { title: string; detail: string }) {
+function PlaceholderCard({
+  title,
+  detail,
+  sx,
+}: {
+  title: string
+  detail: string
+  sx?: stylex.StyleXStyles
+}) {
   return (
-    <div sx={stylexStyles.rule14}>
+    <div sx={[stylexStyles.rule14, sx]}>
       <div sx={stylexStyles.rule15}>
         <span sx={stylexStyles.rule16}>{title}</span>
         <span sx={stylexStyles.rule12}>Manage</span>

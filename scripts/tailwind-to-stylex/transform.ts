@@ -1,4 +1,5 @@
 import { isDefaultObjectParameter } from './parameters.js'
+import { compileFiniteClasses } from './finite.js'
 import { parseSync, traverse } from '@babel/core'
 import type { Node, CallExpression } from '@babel/types'
 import { dirname, relative, resolve } from 'node:path'
@@ -763,24 +764,66 @@ export function transform(
             : value
         const checkpoint = new Map(namespaces)
         const markerCheckpoint = new Map(markerBindings)
+        const restoreCheckpoint = () => {
+          namespaces.clear()
+          markerBindings.clear()
+          for (const [key, name] of markerCheckpoint)
+            markerBindings.set(key, name)
+          for (const [key, entry] of checkpoint) namespaces.set(key, entry)
+        }
         try {
-          const styles = expression(content)
-          checkComposition(styles)
+          let styles = expression(content)
+          try {
+            checkComposition(styles)
+          } catch (error) {
+            if (
+              !(error as Error).message.startsWith(
+                'conditional property composition:',
+              )
+            )
+              throw error
+            restoreCheckpoint()
+            styles = compileFiniteClasses(content, {
+              slice: (node) => slice(node as Syntax),
+              literal,
+              normalize: oracle.normalize,
+              resolveBinding,
+              isUnbound,
+              isStyleInput,
+              isClassHelper,
+              consumed: (name) => consumedBindings.add(name),
+            })
+            checkComposition(styles)
+          }
+          // Existing native sx remains the caller override of converted class defaults.
+          const existing =
+            (native || owned) &&
+            (opening.attributes as Syntax[]).find(
+              (candidate) =>
+                candidate.type === 'JSXAttribute' &&
+                (candidate.name as Syntax).name === 'sx',
+            )
+          let composed = styles
+          if (existing) {
+            const input = existing.value as Syntax
+            if (input.type !== 'JSXExpressionContainer')
+              throw new Error('non-expression sx input')
+            composed = `[${styles},${slice(input.expression as Syntax)}]`
+            edits.push({ start: existing.start!, end: existing.end!, text: '' })
+          }
+
+          // One attribute owns the final native composition and its dynamic variables.
           converted++
           edits.push({
             start: attribute.start!,
             end: attribute.end!,
             text:
               native || owned
-                ? `sx={${styles}}`
+                ? `sx={${composed}}`
                 : `{...${binding}.props(${styles})}`,
           })
         } catch (error) {
-          namespaces.clear()
-          markerBindings.clear()
-          for (const [key, name] of markerCheckpoint)
-            markerBindings.set(key, name)
-          for (const [key, entry] of checkpoint) namespaces.set(key, entry)
+          restoreCheckpoint()
           const reason = (error as Error).message
           remaining.push({
             line: attribute.loc!.start.line,

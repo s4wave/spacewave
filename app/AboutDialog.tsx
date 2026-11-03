@@ -15,6 +15,16 @@ import {
 
 import * as stylex from '@stylexjs/stylex'
 
+import { layout as themeLayout } from '../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 4)`,
+    width: `calc(${themeLayout['--spacing']} * 20)`,
+    height: `calc(${themeLayout['--spacing']} * 20)`,
+  },
+})
+
 const dialogStyles = stylex.create({
   content: {
     overflow: 'hidden',
@@ -65,7 +75,7 @@ export function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
 
         {/* Header with logo */}
         <div className="flex flex-col items-center px-6 pt-8 pb-2">
-          <AppLogo className="mb-4 size-20" alt="Spacewave" />
+          <AppLogo sx={stylexStyles.rule1} alt="Spacewave" />
           <h2 className="text-xl font-semibold tracking-tight">Spacewave</h2>
           {buildInfo.runtimeLabel && (
             <p className="text-foreground-alt/40 mt-1 text-xs">

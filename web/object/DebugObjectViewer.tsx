@@ -18,6 +18,35 @@ import {
   radii as themeRadii,
 } from '../style/tokens.stylex.js'
 
+const stylexStyles2 = stylex.create({
+  rule1: { marginInline: 'auto', maxWidth: 'var(--container-3xl)' },
+})
+
+const childSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     display: 'flex',
@@ -199,12 +228,12 @@ export function DebugObjectViewer({
 
       <div sx={stylexStyles.rule6}>
         <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'mx-auto max-w-3xl space-y-3'
+          sx={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ stylexStyles2.rule1
           }
         >
           {untyped && (
-            <div sx={stylexStyles.rule7}>
+            <div sx={[stylexStyles.rule7, childSpacing.s3]}>
               <div sx={stylexStyles.rule8}>
                 <LuCircleAlert sx={stylexStyles.rule4} />
               </div>
@@ -219,7 +248,7 @@ export function DebugObjectViewer({
             </div>
           )}
 
-          <section>
+          <section sx={childSpacing.s3}>
             <div sx={stylexStyles.rule12}>
               <h2 sx={stylexStyles.rule13}>
                 <LuBug sx={stylexStyles.rule14} />
@@ -228,16 +257,14 @@ export function DebugObjectViewer({
             </div>
 
             <InfoCard>
-              <div
-                className={
-                  /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-                }
-              >
+              <div>
                 <CopyableField
+                  sx={childSpacing.s2}
                   label="Object Key"
                   value={objectKey || '(none)'}
                 />
                 <CopyableField
+                  sx={childSpacing.s2}
                   label="Type ID (resolved)"
                   value={
                     resolving
@@ -249,6 +276,7 @@ export function DebugObjectViewer({
                 />
                 {hintTypeID && hintTypeID !== resolvedTypeID ? (
                   <CopyableField
+                    sx={childSpacing.s2}
                     label="Type ID (route hint)"
                     value={hintTypeID}
                   />
@@ -257,7 +285,7 @@ export function DebugObjectViewer({
             </InfoCard>
           </section>
 
-          <section>
+          <section sx={childSpacing.s3}>
             <div sx={stylexStyles.rule12}>
               <h2 sx={stylexStyles.rule15}>Object State</h2>
             </div>
