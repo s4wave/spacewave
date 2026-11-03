@@ -110,6 +110,18 @@ func TestPaceCancellation(t *testing.T) {
 		done := make(chan error, 1)
 		go func() { done <- rate.Admit(wait, 100) }()
 		synctest.Wait()
+
+		// A second pass can leave while the first pass still holds the policy.
+		second, cancelSecond := context.WithCancel(t.Context())
+		secondDone := make(chan error, 1)
+		go func() { secondDone <- rate.Admit(second, 100) }()
+		synctest.Wait()
+		cancelSecond()
+		if err := <-secondDone; !errors.Is(err, context.Canceled) {
+			t.Fatal(err)
+		}
+
+		// Cancelling the active pass also ends its rate timer.
 		cancel()
 		if err := <-done; !errors.Is(err, context.Canceled) {
 			t.Fatal(err)

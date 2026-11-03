@@ -7,7 +7,9 @@ VARIABLES phase, cancelled, paused, due, pressure, waited
 vars == <<phase,cancelled,paused,due,pressure,waited>>
 Init == /\ phase = "ready" /\ cancelled = FALSE /\ paused \in BOOLEAN
         /\ due \in BOOLEAN /\ pressure \in BOOLEAN /\ waited = 0
-Start == /\ phase = "ready"
+Start == /\ phase = "ready" /\ phase' = "serial"
+         /\ UNCHANGED <<cancelled,paused,due,pressure,waited>>
+Acquire == /\ phase = "serial"
          /\ phase' = IF paused THEN "paused" ELSE IF due THEN "rate" ELSE "pressure"
          /\ UNCHANGED <<cancelled,paused,due,pressure,waited>>
 RatePass == /\ phase = "rate" /\ ~cancelled /\ due' = FALSE /\ phase' = "pressure"
@@ -20,7 +22,7 @@ Admit == /\ phase = "pressure" /\ (~pressure \/ waited = 3) /\ ~cancelled
          /\ phase' = "admitted" /\ UNCHANGED <<cancelled,paused,due,pressure,waited>>
 Cancel == /\ phase \notin {"admitted","cancelled"} /\ cancelled' = TRUE
           /\ phase' = "cancelled" /\ UNCHANGED <<paused,due,pressure,waited>>
-Next == Start \/ RatePass \/ Backoff \/ Recover \/ Admit \/ Cancel
+Next == Start \/ Acquire \/ RatePass \/ Backoff \/ Recover \/ Admit \/ Cancel
 Spec == Init /\ [][Next]_vars
 PauseHolds == phase = "admitted" => ~paused
 RateHeld == phase = "admitted" => ~due

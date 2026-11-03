@@ -2,9 +2,9 @@ package pace
 
 import (
 	"context"
-	"sync"
 	"time"
 
+	"github.com/aperturerobotics/util/csync"
 	"github.com/sirupsen/logrus"
 )
 
@@ -38,7 +38,7 @@ type Pace struct {
 	// sleep waits d or until ctx ends.
 	sleep func(ctx context.Context, d time.Duration) error
 
-	mtx sync.Mutex
+	mtx csync.Mutex
 	// last is when the last batch was admitted.
 	last time.Time
 	// prev holds the stats at the last sample, if sampled.
@@ -64,8 +64,13 @@ func (p *Pace) Admit(ctx context.Context, lastBytes int64) error {
 		<-ctx.Done()
 		return context.Cause(ctx)
 	}
-	p.mtx.Lock()
-	defer p.mtx.Unlock()
+
+	// Let a queued eviction leave without waiting for another pass's timer.
+	release, err := p.mtx.Lock(ctx)
+	if err != nil {
+		return err
+	}
+	defer release()
 	start := time.Now()
 
 	// Space batches to the rate cap.
@@ -127,7 +132,7 @@ func (p *Pace) slow() bool {
 	if flushes == 0 {
 		return false
 	}
-	return (st.FlushTime-prev.FlushTime)/time.Duration(flushes) > p.flushMax
+	return float64(st.FlushTime-prev.FlushTime)/float64(flushes) > float64(p.flushMax)
 }
 
 // sleepCtx waits d or until ctx ends.
