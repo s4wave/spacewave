@@ -144,6 +144,12 @@ func WatchViewWith(
 		}
 	}
 
+	// Keep one change feed subscription across the waits, so each rerun's
+	// wait moves it by the reads that changed instead of renaming them all.
+	slot := &WatchSlot{}
+	defer slot.Close()
+	waitCtx := WithWatchSlot(ctx, slot)
+
 	// Record each evaluation's starting seqno before reading its dependencies.
 	for {
 		// Do not start another evaluation after cancellation.
@@ -163,7 +169,7 @@ func WatchViewWith(
 		}
 
 		// Wait for a relevant change, bounded by the evaluation's deadline.
-		if err := reads.wait(ctx, source, seqno); err != nil {
+		if err := reads.wait(waitCtx, source, seqno); err != nil {
 			return err
 		}
 

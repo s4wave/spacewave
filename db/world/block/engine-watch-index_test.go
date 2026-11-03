@@ -2,6 +2,7 @@ package world_block
 
 import (
 	"context"
+	"errors"
 	"slices"
 	"testing"
 	"time"
@@ -57,6 +58,95 @@ func TestWatchIndexedReadSetGrows(t *testing.T) {
 	waitIndexedName(t, ctx, e, "grow/next")
 	createWatchTestObject(t, ctx, ws, "grow/next")
 	expectIndexedWait(t, ctx, result, headSeqno(t, ctx, e))
+}
+
+// TestWatchViewKeepsSubscription checks that a view's reruns share one
+// change subscriber whose index entry follows the reads of each run, that a
+// change committed while a rerun evaluates, when the kept subscriber merges
+// nothing, still reruns the view, and that the subscriber leaves the watch
+// when the view ends.
+func TestWatchViewKeepsSubscription(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+	e := newRetirementTestEngine(t, ctx)
+	ws := world.NewEngineWorldState(e, true)
+
+	// Run a view that reads keep/a, then keep/b while the test holds it, then
+	// keep/c.
+	keys := []string{"keep/a", "keep/b", "keep/c"}
+	runs := make(chan int, len(keys))
+	hold := make(chan struct{})
+	viewCtx, stopView := context.WithCancel(ctx)
+	viewDone := make(chan error, 1)
+	run := 0
+	go func() {
+		viewDone <- world.WatchViewWith(viewCtx, e, world.WatchViewOptions{}, func(ctx context.Context, view world.WorldState) error {
+			n := run
+			run++
+			readWatchTestObject(t, ctx, view, keys[min(n, len(keys)-1)])
+			runs <- n
+			if n == 1 {
+				<-hold
+			}
+			return nil
+		})
+	}()
+	expectRun := func(want int) {
+		t.Helper()
+		select {
+		case n := <-runs:
+			if n != want {
+				t.Fatalf("view ran %d, want %d", n, want)
+			}
+		case <-ctx.Done():
+			t.Fatalf("view did not run %d", want)
+		}
+	}
+
+	// The first wait names keep/a; an unread commit does not rerun it.
+	expectRun(0)
+	waitIndexedName(t, ctx, e, "keep/a")
+	sub := waitIndexedSubscriber(t, ctx, e)
+	createWatchTestObject(t, ctx, ws, "keep/other")
+	createWatchTestObject(t, ctx, ws, "keep/a")
+	expectRun(1)
+
+	// Commit keep/b while the second run evaluates: its wait catches up past
+	// the run's seqno and reruns the view at once.
+	createWatchTestObject(t, ctx, ws, "keep/b")
+	close(hold)
+	expectRun(2)
+
+	// The third wait reuses the subscriber, indexed by keep/c alone.
+	waitIndexedName(t, ctx, e, "keep/c")
+	if got := waitIndexedSubscriber(t, ctx, e); got != sub {
+		t.Fatal("a rerun subscribed anew instead of keeping the subscriber")
+	}
+	for _, key := range keys[:2] {
+		if slices.Contains(e.indexCandidates(&world.ChangeSet{Keys: []string{key}}), sub) {
+			t.Fatalf("an earlier run's read %q still names the subscriber", key)
+		}
+	}
+	select {
+	case n := <-runs:
+		t.Fatalf("view reran %d without a change to its reads", n)
+	default:
+	}
+
+	// Ending the view leaves the watch.
+	stopView()
+	if err := <-viewDone; !errors.Is(err, context.Canceled) {
+		t.Fatalf("view ended with %v", err)
+	}
+	locked := e.bcast.Lock()
+	var subs int
+	if w := e.changeWatch; w != nil {
+		subs = len(w.subs)
+	}
+	locked.Unlock()
+	if subs != 0 || len(e.indexedSubscribers()) != 0 {
+		t.Fatalf("change watch holds %d subscribers after the view ended", subs)
+	}
 }
 
 // TestWatchIndexWriteNotBlocked checks that a World write commits while the

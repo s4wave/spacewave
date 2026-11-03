@@ -1,6 +1,7 @@
 package world
 
 import (
+	"maps"
 	"math/rand/v2"
 	"slices"
 	"strconv"
@@ -250,8 +251,9 @@ func TestChangeIndexSound(t *testing.T) {
 	x := NewChangeIndex[int]()
 	sets := make([]*ReadSet, 200)
 	shared := make([][]*ReadSet, len(sets))
-	for i := range sets {
+	index := func(i int) {
 		sets[i] = randomReadSet(rng, pick, maybe)
+		shared[i] = nil
 		for range rng.IntN(3) {
 			shared[i] = append(shared[i], pool[rng.IntN(len(pool))])
 		}
@@ -266,29 +268,43 @@ func TestChangeIndexSound(t *testing.T) {
 		interest.shared = append(interest.shared, shared[i]...)
 		x.Add(i, interest)
 	}
+	for i := range sets {
+		index(i)
+	}
 
 	// Each random ChangeSet names every set it touches, and accepts without a
 	// test only sets it touches.
-	for range 2000 {
-		changes := &ChangeSet{}
-		for range rng.IntN(3) {
-			changes.Keys = append(changes.Keys, pick())
-		}
-		for range rng.IntN(3) {
-			changes.Quads = append(changes.Quads, NewGraphQuad(pick(), pick(), pick(), maybe()))
-		}
-		accepted, tested := x.Candidates(changes)
-		for i, set := range sets {
-			touched := set.Touched(changes) || slices.ContainsFunc(shared[i], func(s *ReadSet) bool { return s.Touched(changes) })
-			isAccepted, isTested := slices.Contains(accepted, i), slices.Contains(tested, i)
-			if touched && !isAccepted && !isTested {
-				t.Fatalf("set %d touched by %+v is not a candidate", i, changes)
+	check := func() {
+		t.Helper()
+		for range 2000 {
+			changes := &ChangeSet{}
+			for range rng.IntN(3) {
+				changes.Keys = append(changes.Keys, pick())
 			}
-			if isAccepted && (!touched || isTested) {
-				t.Fatalf("set %d accepted for %+v: touched %v, also tested %v", i, changes, touched, isTested)
+			for range rng.IntN(3) {
+				changes.Quads = append(changes.Quads, NewGraphQuad(pick(), pick(), pick(), maybe()))
+			}
+			accepted, tested := x.Candidates(changes)
+			for i, set := range sets {
+				touched := set.Touched(changes) || slices.ContainsFunc(shared[i], func(s *ReadSet) bool { return s.Touched(changes) })
+				isAccepted, isTested := slices.Contains(accepted, i), slices.Contains(tested, i)
+				if touched && !isAccepted && !isTested {
+					t.Fatalf("set %d touched by %+v is not a candidate", i, changes)
+				}
+				if isAccepted && (!touched || isTested) {
+					t.Fatalf("set %d accepted for %+v: touched %v, also tested %v", i, changes, touched, isTested)
+				}
 			}
 		}
 	}
+	check()
+
+	// Replacing every watcher's interest, as a view's rerun does, moves its
+	// entry by the diff and keeps the index sound.
+	for i := range sets {
+		index(i)
+	}
+	check()
 
 	// Removing every watcher leaves no name behind.
 	for i := range sets {
@@ -446,4 +462,33 @@ func BenchmarkChangeIndexMergedDeliver(b *testing.B) {
 	}
 	b.Run("test-all", func(b *testing.B) { deliver(b, true) })
 	b.Run("accept-keyed", func(b *testing.B) { deliver(b, false) })
+}
+
+// TestNameEntriesPromoteOnRemove keeps every other entry of a name reachable
+// when the entry held inline leaves, and drops the name with its last entry.
+func TestNameEntriesPromoteOnRemove(t *testing.T) {
+	index := make(map[string]nameEntries[int])
+	for w := range 3 {
+		addIndexed(index, "k", w)
+	}
+	addIndexed(index, "k", 1)
+	found := func() map[int]struct{} {
+		out := make(map[int]struct{})
+		if entries, ok := index["k"]; ok {
+			entries.collect(out)
+		}
+		return out
+	}
+	want := map[int]struct{}{0: {}, 1: {}, 2: {}}
+	for _, w := range []int{0, 2, 1} {
+		removeIndexed(index, "k", w)
+		removeIndexed(index, "k", w)
+		delete(want, w)
+		if got := found(); !maps.Equal(got, want) {
+			t.Fatalf("found %v after removing %d, want %v", got, w, want)
+		}
+	}
+	if len(index) != 0 {
+		t.Fatalf("index keeps %v after its last entry left", index)
+	}
 }

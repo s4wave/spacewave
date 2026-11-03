@@ -66,19 +66,28 @@ func (x *ChangeIndex[T]) All() iter.Seq[T] {
 }
 
 // Add indexes watcher w by the names in interest, replacing an earlier entry.
-// A nil interest is tested on every change.
+// A nil interest is tested on every change. Replacing an entry touches only
+// the names and shared sets that differ, so a watcher that renews a similar
+// interest after each change costs what changed, not every name it holds.
 func (x *ChangeIndex[T]) Add(w T, interest *ChangeInterest) {
-	// Replace an earlier entry, then index the watcher's own names.
-	x.Remove(w)
+	// Index the watcher's own names, moving an earlier entry by its diff.
+	prev, replaced := x.interests[w]
 	x.interests[w] = interest
-	x.watchers.add(w, interest)
-	if interest == nil || interest.all {
-		return
+	if !replaced {
+		x.watchers.add(w, interest)
+	} else {
+		x.watchers.replace(w, prev, interest)
 	}
 
-	// Hold each shared set for w.
-	for _, set := range interest.shared {
-		x.hold(set).watchers[w] = struct{}{}
+	// Hold each shared set for w, then release the earlier ones it no
+	// longer holds, so a set held by both stays indexed.
+	if interest != nil && !interest.all {
+		for _, set := range interest.shared {
+			x.hold(set).watchers[w] = struct{}{}
+		}
+	}
+	if replaced {
+		x.releaseShared(w, prev, interest)
 	}
 }
 
@@ -91,12 +100,28 @@ func (x *ChangeIndex[T]) Remove(w T) {
 	}
 	delete(x.interests, w)
 	x.watchers.remove(w, interest)
-	if interest == nil || interest.all {
+	x.releaseShared(w, interest, nil)
+}
+
+// releaseShared releases each shared set prev held for w that next does not
+// hold.
+func (x *ChangeIndex[T]) releaseShared(w T, prev, next *ChangeInterest) {
+	// Entries without named shared sets hold nothing to release.
+	if prev == nil || prev.all {
 		return
 	}
 
-	// Release each shared set w held.
-	for _, set := range interest.shared {
+	// Index the retained sets once instead of comparing every pair.
+	keep := make(map[*ReadSet]struct{})
+	if next != nil && !next.all {
+		for _, set := range next.shared {
+			keep[set] = struct{}{}
+		}
+	}
+	for _, set := range prev.shared {
+		if _, ok := keep[set]; ok {
+			continue
+		}
 		if entry := x.held[set]; entry != nil {
 			delete(entry.watchers, w)
 			x.releaseUnheld(entry)
@@ -223,9 +248,9 @@ func (x *ChangeIndex[T]) releaseUnheld(entry *heldSet[T]) {
 // collected for every change.
 type nameIndex[T comparable] struct {
 	// keys maps each named object key to its entries.
-	keys map[string]map[T]struct{}
+	keys map[string]nameEntries[T]
 	// terms maps each named quad field to its entries.
-	terms map[quadTerm]map[T]struct{}
+	terms map[quadTerm]nameEntries[T]
 	// all holds the entries collected for every change.
 	all map[T]struct{}
 }
@@ -233,8 +258,8 @@ type nameIndex[T comparable] struct {
 // newNameIndex constructs an empty nameIndex.
 func newNameIndex[T comparable]() nameIndex[T] {
 	return nameIndex[T]{
-		keys:  make(map[string]map[T]struct{}),
-		terms: make(map[quadTerm]map[T]struct{}),
+		keys:  make(map[string]nameEntries[T]),
+		terms: make(map[quadTerm]nameEntries[T]),
 		all:   make(map[T]struct{}),
 	}
 }
@@ -273,10 +298,49 @@ func (x *nameIndex[T]) remove(e T, names *ChangeInterest) {
 	}
 }
 
+// replace moves e from the names in prev to those in next, adding and
+// dropping only the names that differ.
+func (x *nameIndex[T]) replace(e T, prev, next *ChangeInterest) {
+	// An entry that sees every change on either side moves whole.
+	if prev == nil || prev.all || next == nil || next.all {
+		x.remove(e, prev)
+		x.add(e, next)
+		return
+	}
+
+	// Index the new names, then drop the old names next lacks.
+	replaceIndexed(x.keys, e, prev.keys, next.keys)
+	replaceIndexed(x.terms, e, prev.terms, next.terms)
+}
+
+// replaceIndexed moves w from the names in prev to those in next. A name in
+// both stays as it is, so the shared index sees only the names that differ.
+func replaceIndexed[K comparable, T comparable](index map[K]nameEntries[T], w T, prev, next []K) {
+	// Add the new names, crossing off each old name next keeps.
+	dropped := make(map[K]struct{}, len(prev))
+	for _, name := range prev {
+		dropped[name] = struct{}{}
+	}
+	for _, name := range next {
+		if _, ok := dropped[name]; ok {
+			delete(dropped, name)
+			continue
+		}
+		addIndexed(index, name, w)
+	}
+
+	// Drop the old names next lacks.
+	for name := range dropped {
+		removeIndexed(index, name, w)
+	}
+}
+
 // collectKeys adds to found the entries a changed object key names.
 func (x *nameIndex[T]) collectKeys(changes *ChangeSet, found map[T]struct{}) {
 	for _, key := range changes.Keys {
-		maps.Copy(found, x.keys[key])
+		if entries, ok := x.keys[key]; ok {
+			entries.collect(found)
+		}
 	}
 }
 
@@ -286,26 +350,63 @@ func (x *nameIndex[T]) collectOthers(changes *ChangeSet, found map[T]struct{}) {
 	maps.Copy(found, x.all)
 	for _, q := range changes.Quads {
 		for _, term := range quadTerms(q) {
-			maps.Copy(found, x.terms[term])
+			if entries, ok := x.terms[term]; ok {
+				entries.collect(found)
+			}
 		}
 	}
 }
 
+// nameEntries are the entries one name indexes. Most names index one entry,
+// so the first is held inline and only the others take a map; an index of
+// many names then costs no map per name.
+type nameEntries[T comparable] struct {
+	// first is an entry of the name; every name in an index has one.
+	first T
+	// rest holds the name's other entries, or nil.
+	rest map[T]struct{}
+}
+
+// collect adds the entries to found.
+func (n nameEntries[T]) collect(found map[T]struct{}) {
+	found[n.first] = struct{}{}
+	maps.Copy(found, n.rest)
+}
+
 // addIndexed adds w to the watchers of name.
-func addIndexed[K comparable, T comparable](index map[K]map[T]struct{}, name K, w T) {
-	set := index[name]
-	if set == nil {
-		set = make(map[T]struct{})
-		index[name] = set
+func addIndexed[K comparable, T comparable](index map[K]nameEntries[T], name K, w T) {
+	entries, ok := index[name]
+	switch {
+	case !ok:
+		index[name] = nameEntries[T]{first: w}
+	case entries.first == w:
+	case entries.rest == nil:
+		entries.rest = map[T]struct{}{w: {}}
+		index[name] = entries
+	default:
+		entries.rest[w] = struct{}{}
 	}
-	set[w] = struct{}{}
 }
 
 // removeIndexed removes w from the watchers of name, and name once empty.
-func removeIndexed[K comparable, T comparable](index map[K]map[T]struct{}, name K, w T) {
-	set := index[name]
-	delete(set, w)
-	if len(set) == 0 {
-		delete(index, name)
+func removeIndexed[K comparable, T comparable](index map[K]nameEntries[T], name K, w T) {
+	// Remove the entry, promoting an overflow entry when needed.
+	entries, ok := index[name]
+	if !ok {
+		return
 	}
+	if entries.first != w {
+		delete(entries.rest, w)
+		return
+	}
+	for next := range entries.rest {
+		delete(entries.rest, next)
+		entries.first = next
+		if len(entries.rest) == 0 {
+			entries.rest = nil
+		}
+		index[name] = entries
+		return
+	}
+	delete(index, name)
 }

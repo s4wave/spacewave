@@ -4,6 +4,7 @@ import (
 	"context"
 	"slices"
 	"sync"
+	"sync/atomic"
 
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
@@ -24,17 +25,39 @@ type watchedHead struct {
 // changeSubscriber is one WatchChanges call on the change watch. Its pending
 // changes have their own lock, so merging them never holds the Engine bcast.
 type changeSubscriber struct {
-	// interest selects the changes that wake the subscriber.
-	interest *world.ChangeInterest
+	// interest selects the changes that wake the subscriber. A subscriber a
+	// WatchSlot keeps swaps it on each call, while the change watch reads it.
+	interest atomic.Pointer[world.ChangeInterest]
 	// wake receives a value when changes is set or the watch loses track.
 	wake chan struct{}
 
-	// mtx guards seqno and changes.
+	// mtx guards the fields below.
 	mtx sync.Mutex
+	// idle is set while a WatchSlot keeps the subscriber between calls; it
+	// merges no changes then, since the next call catches up from its own
+	// afterSeqno.
+	idle bool
 	// seqno is the seqno of the newest head merged into changes.
 	seqno uint64
 	// changes merges the changes not yet reported, or is nil.
 	changes *world.ChangeSet
+}
+
+// slotSubscriber is a changeSubscriber a WatchSlot keeps between the calls of
+// one watcher, still joined to its change watch and indexed by the interest of
+// its last call.
+type slotSubscriber struct {
+	// e is the Engine whose watch sub joined.
+	e *Engine
+	// w is the change watch sub joined.
+	w *engineChangeWatch
+	// sub is the kept subscriber.
+	sub *changeSubscriber
+}
+
+// ReleaseWatch leaves the change watch.
+func (s *slotSubscriber) ReleaseWatch() {
+	s.e.leaveChangeWatch(s.w, s.sub)
 }
 
 // WatchChanges calls cb with each later seqno whose changes touches accepts,
@@ -76,40 +99,16 @@ func (e *Engine) WatchIndexedChanges(
 ) error {
 	// Subscribe to the change watch, which keeps it running until the
 	// subscriber leaves.
-	sub := &changeSubscriber{interest: interest, wake: make(chan struct{}, 1)}
-	locked := e.bcast.Lock()
-	w, err := e.startChangeWatchLocked()
+	w, sub, done, err := e.subscribeChanges(ctx, interest)
 	if err != nil {
-		locked.Unlock()
 		return err
 	}
-	w.subs[sub] = struct{}{}
-	locked.Unlock()
-	defer func() {
-		// Leave the index first, under its own lock.
-		w.indexMtx.Lock()
-		w.index.Remove(sub)
-		w.indexMtx.Unlock()
-
-		// Then leave the watch, which may let it go idle.
-		locked := e.bcast.Lock()
-		delete(w.subs, sub)
-		w.checkIdleLocked()
-		locked.Unlock()
-	}()
-
-	// Index the subscriber by its interest's names outside the publication
-	// lock, so World writes never wait behind the naming. It indexes before it
-	// reads the base below, so the watch hands it every span it records past
-	// that base.
-	w.indexMtx.Lock()
-	w.index.Add(sub, interest)
-	w.indexMtx.Unlock()
+	defer done()
 
 	// Copy the recorded spans when the change watch starts past afterSeqno and
 	// recorded every span since the head at afterSeqno. A reconnect wave
 	// subscribes thousands of watchers at once, so the merge runs unlocked.
-	locked = e.bcast.Lock()
+	locked := e.bcast.Lock()
 	caughtUp := afterSeqno >= w.baseSeqno
 	var spans []changeSpan
 	if base := e.watchedHeadLocked(afterSeqno); !caughtUp && base != nil {
@@ -158,6 +157,113 @@ func (e *Engine) WatchIndexedChanges(
 		}
 		afterSeqno = seqno
 	}
+}
+
+// subscribeChanges joins the change watch with a subscriber indexed by
+// interest, and returns done, which ends the call. A subscriber keeps the
+// watch running until it leaves.
+//
+// With a WatchSlot in ctx, it reuses the subscriber the slot kept from an
+// earlier call on the same watch, emptied of what it merged, and moves its
+// index entry by the difference between the interests, so a view that reruns
+// after each change touches only the names its reads gained or lost; done
+// puts the subscriber back in the slot, which leaves the watch when it
+// closes. The reuse keeps a fresh subscriber's order, indexing before the
+// caller reads the watch's base, so the caller's catch-up from afterSeqno
+// covers every change the emptied subscriber dropped. Without a slot, done
+// leaves the watch.
+func (e *Engine) subscribeChanges(ctx context.Context, interest *world.ChangeInterest) (*engineChangeWatch, *changeSubscriber, func(), error) {
+	// Claim the slot and the subscriber it kept on this Engine.
+	slot := world.WatchSlotFromContext(ctx)
+	var kept *slotSubscriber
+	if slot != nil {
+		held, ok := slot.Take()
+		if !ok {
+			slot = nil
+		} else if held != nil {
+			if kept, _ = held.(*slotSubscriber); kept == nil || kept.e != e {
+				held.ReleaseWatch()
+				kept = nil
+			}
+		}
+	}
+
+	// Join the running watch, keeping the subscriber when it joined the same
+	// one; a stopped watch took its subscribers with it.
+	locked := e.bcast.Lock()
+	w, err := e.startChangeWatchLocked()
+	var stale *slotSubscriber
+	if kept != nil && kept.w != w {
+		stale, kept = kept, nil
+	}
+	var sub *changeSubscriber
+	if err == nil {
+		if kept != nil {
+			sub = kept.sub
+		} else {
+			sub = &changeSubscriber{wake: make(chan struct{}, 1)}
+			w.subs[sub] = struct{}{}
+		}
+	}
+	locked.Unlock()
+
+	// Release an obsolete subscription before completing this claim.
+	if stale != nil {
+		stale.ReleaseWatch()
+	}
+	if err != nil {
+		if slot != nil {
+			slot.Put(nil)
+		}
+		return nil, nil, nil, err
+	}
+
+	// Empty a kept subscriber of the changes it merged for the last call, so
+	// this call reports only what its catch-up and the watch hand it.
+	if kept != nil {
+		sub.mtx.Lock()
+		sub.idle, sub.seqno, sub.changes = false, 0, nil
+		sub.mtx.Unlock()
+		select {
+		case <-sub.wake:
+		default:
+		}
+	}
+
+	// Index the subscriber by its interest's names outside the publication
+	// lock, so World writes never wait behind the naming. It indexes before
+	// the caller reads the base, so the watch hands it every span it records
+	// past that base.
+	sub.interest.Store(interest)
+	w.indexMtx.Lock()
+	w.index.Add(sub, interest)
+	w.indexMtx.Unlock()
+
+	// End the call by keeping the subscriber in the slot, idle, or by leaving.
+	if slot == nil {
+		return w, sub, func() { e.leaveChangeWatch(w, sub) }, nil
+	}
+	return w, sub, func() {
+		sub.mtx.Lock()
+		sub.idle, sub.changes = true, nil
+		sub.mtx.Unlock()
+		slot.Put(&slotSubscriber{e: e, w: w, sub: sub})
+	}, nil
+}
+
+// leaveChangeWatch removes sub from w's index and then from w, which may let
+// w go idle.
+func (e *Engine) leaveChangeWatch(w *engineChangeWatch, sub *changeSubscriber) {
+	// Leave the index first, under its own lock.
+	w.indexMtx.Lock()
+	w.index.Remove(sub)
+	w.indexMtx.Unlock()
+
+	// Then leave the watch.
+	locked := e.bcast.Lock()
+	delete(w.subs, sub)
+	w.checkIdleLocked()
+	locked.Unlock()
 }
 
 // watchedHeadLocked returns the one recorded root at seqno, or nil when the
@@ -212,6 +318,10 @@ func (e *Engine) recordWatchedHeadLocked(root *bucket_lookup.Cursor, seqno uint6
 func (s *changeSubscriber) add(seqno uint64, changes *world.ChangeSet) {
 	// Merge under the subscriber's lock, then wake it.
 	s.mtx.Lock()
+	if s.idle {
+		s.mtx.Unlock()
+		return
+	}
 	s.seqno = max(s.seqno, seqno)
 	s.changes = world.MergeChangeSets(s.changes, changes, changeDiffLimit)
 	s.mtx.Unlock()

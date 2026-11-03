@@ -313,7 +313,7 @@ func (e *Engine) runChangeWatch(w *engineChangeWatch) {
 			sub.add(nextSeqno, changes)
 		}
 		for _, sub := range tested {
-			if sub.interest.Accepts(changes) {
+			if sub.interest.Load().Accepts(changes) {
 				sub.add(nextSeqno, changes)
 			}
 		}
