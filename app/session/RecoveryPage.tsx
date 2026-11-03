@@ -1,3 +1,4 @@
+import { controlTargetStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import { isDesktop } from '@aptre/bldr'
 import { useCallback, useId, useMemo, useRef, useState } from 'react'
 import {
@@ -588,7 +589,7 @@ export function RecoveryPage() {
         <button
           type="button"
           onClick={handleBack}
-          sx={[stylexStyles3.rule1, buttonSx]}
+          sx={[stylexStyles3.rule1, buttonSx, controlTargetStyles.minimum]}
         >
           <LuArrowLeft sx={stylexStyles.rule1} />
           <span sx={stylexStyles3.rule2}>Back to home</span>
@@ -699,6 +700,7 @@ function RequestRecoveryForm({
           sx={[
             nativeChildSpacingNextNextNext.s4,
             [[stylexStyles2.rule1, groupMarker]],
+            controlTargetStyles.minimum,
           ]}
         >
           <span sx={stylexStyles3.rule10}>Back to login</span>
@@ -754,6 +756,7 @@ function RequestRecoveryForm({
         sx={[
           nativeChildSpacingNextNextNext.s4,
           [[stylexStyles2.rule2, groupMarker]],
+          controlTargetStyles.minimum,
         ]}
         disabled={loading}
       >
@@ -769,7 +772,11 @@ function RequestRecoveryForm({
       <button
         type="button"
         onClick={onGoToLogin}
-        sx={[nativeChildSpacingNextNextNext.s4, stylexStyles3.rule14]}
+        sx={[
+          nativeChildSpacingNextNextNext.s4,
+          stylexStyles3.rule14,
+          controlTargetStyles.minimum,
+        ]}
       >
         Back to login
       </button>
@@ -814,6 +821,7 @@ function VerifyingStep({ loading, error, onGoToLogin }: VerifyingStepProps) {
           sx={[
             nativeChildSpacingNextNextNext.s4,
             [[stylexStyles2.rule1, groupMarker]],
+            controlTargetStyles.minimum,
           ]}
         >
           <span sx={stylexStyles3.rule10}>Back to login</span>
@@ -938,6 +946,7 @@ function PasswordForm({
         sx={[
           nativeChildSpacingNextNextNext.s4,
           [[stylexStyles2.rule2, groupMarker]],
+          controlTargetStyles.minimum,
         ]}
       >
         <LuRefreshCw sx={stylexStyles.rule4} />
@@ -1026,6 +1035,7 @@ function DoneStep({ onGoToLogin }: { onGoToLogin: () => void }) {
         sx={[
           nativeChildSpacingNextNextNext.s4,
           [[stylexStyles2.rule1, groupMarker]],
+          controlTargetStyles.minimum,
         ]}
       >
         <span sx={stylexStyles3.rule10}>Go to login</span>

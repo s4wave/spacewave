@@ -1,3 +1,4 @@
+import { controlTargetStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { LuArrowLeft, LuChevronDown } from '@s4wave/web/images/icons.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
@@ -295,7 +296,11 @@ export function Changelog() {
     <div ref={scrollRef} sx={stylexStyles2.rule1}>
       {/* Back button */}
       <div sx={stylexStyles2.rule2}>
-        <button type="button" onClick={goBack} sx={stylexStyles2.rule3}>
+        <button
+          type="button"
+          onClick={goBack}
+          sx={[stylexStyles2.rule3, controlTargetStyles.minimum]}
+        >
           <LuArrowLeft sx={stylexStyles.rule1} />
           Back
         </button>
@@ -314,7 +319,11 @@ export function Changelog() {
             <button
               type="button"
               onClick={toggleDropdown}
-              sx={[stylexStyles2.rule9, !!dropdownOpen && stylexStyles2.rule10]}
+              sx={[
+                stylexStyles2.rule9,
+                !!dropdownOpen && stylexStyles2.rule10,
+                controlTargetStyles.minimum,
+              ]}
             >
               {latestVersion ? `v${latestVersion}` : 'Versions'}
               <LuChevronDown
@@ -328,7 +337,7 @@ export function Changelog() {
                     type="button"
                     key={release.version}
                     onClick={() => scrollToVersion(release.version ?? '')}
-                    sx={stylexStyles2.rule12}
+                    sx={[stylexStyles2.rule12, controlTargetStyles.minimum]}
                   >
                     v{release.version}
                   </button>

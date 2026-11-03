@@ -1,3 +1,4 @@
+import { controlTargetStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import { useCallback, useMemo, useState } from 'react'
 
 import { LuX } from '@s4wave/web/images/icons.js'
@@ -224,6 +225,7 @@ export function BlogReadingView({
                 sx={[
                   stylexStyles2.rule4,
                   tagFilter === tag ? stylexStyles2.rule5 : stylexStyles2.rule6,
+                  controlTargetStyles.minimum,
                 ]}
               >
                 {tag}
@@ -233,7 +235,7 @@ export function BlogReadingView({
               <button
                 type="button"
                 onClick={handleClearFilter}
-                sx={stylexStyles2.rule7}
+                sx={[stylexStyles2.rule7, controlTargetStyles.minimum]}
               >
                 <LuX sx={stylexStyles.rule1} />
                 Clear

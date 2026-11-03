@@ -1,3 +1,4 @@
+import { controlTargetStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import { useCallback } from 'react'
 import { LuArrowLeft } from '@s4wave/web/images/icons.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
@@ -205,7 +206,11 @@ export function BlogIndex({ posts }: BlogIndexProps) {
   return (
     <div sx={stylexStyles2.rule1}>
       {/* Back to home */}
-      <button type="button" onClick={goHome} sx={stylexStyles2.rule2}>
+      <button
+        type="button"
+        onClick={goHome}
+        sx={[stylexStyles2.rule2, controlTargetStyles.minimum]}
+      >
         <LuArrowLeft sx={stylexStyles.rule1} />
         <span sx={stylexStyles2.rule3}>Back to home</span>
       </button>
