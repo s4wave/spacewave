@@ -13,7 +13,7 @@ import type { Plugin, ResolvedConfig, ModuleNode, Rollup } from 'vite'
 import { stylexLayersBefore } from '../../bldr/stylex-priorities.js'
 
 // stylexCssSuffix identifies generated native CSS dependencies.
-const stylexCssSuffix = '.bldr-stylex.css'
+export const stylexCssSuffix = '.bldr-stylex.css'
 // sourceRuntimeFile initializes one shared document order in every browser entry path.
 const sourceRuntimeFile = resolve(
   dirname(fileURLToPath(import.meta.url)),

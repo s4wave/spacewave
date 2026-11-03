@@ -153,6 +153,13 @@ export default defineConfig({
       },
     },
     {
+      files: ['scripts/style-parity/**/*.ts'],
+      jsPlugins: [
+        { name: 'native-style', specifier: './scripts/native-style-lint.mjs' },
+      ],
+      rules: { 'native-style/native-classes': 'error' },
+    },
+    {
       // Test probes capture hook results during render, and layout mocks
       // invoke render callbacks the way the real layout does.
       files: ['**/*.test.{ts,tsx}', '**/*.e2e.{ts,tsx}'],

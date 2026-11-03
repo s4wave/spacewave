@@ -146,7 +146,7 @@ function DocsViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
       emptyText="No sources configured for this documentation"
       sources={sources}
     >
-      <div sx={stylexStyles.rule1}>
+      <div data-docs-viewer sx={stylexStyles.rule1}>
         {/* Tree sidebar */}
         <div sx={stylexStyles.rule2}>
           <DocsSidebar

@@ -57,7 +57,7 @@ func writeSpaceColorsFiles(t *testing.T, ctx context.Context, tb *testbed.Testbe
 	t.Helper()
 	files := map[string]string{
 		"package.json":   `{"type":"module","dependencies":{"zod":"4.3.6"},"devDependencies":{"@vitejs/plugin-react":"6.0.5","vite":"8.2.2"}}`,
-		"vite.config.ts": "import react from '@vitejs/plugin-react'\nexport default { plugins: [react()] }\n",
+		"vite.config.ts": "import react from '@vitejs/plugin-react'\nimport { resolve } from 'node:path'\nexport default { plugins: [react()], resolve: { alias: { '@s4wave/web': resolve(process.env.BLDR_DIST_ROOT, 'web') } } }\n",
 	}
 	for _, name := range []string{"backend.ts", "app.ts", "ColorViewer.tsx"} {
 		data, err := os.ReadFile(filepath.Join("../../../plugin/colors", name))

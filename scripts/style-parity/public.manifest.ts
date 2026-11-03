@@ -21,7 +21,7 @@ const publicManifest: ParityManifest = {
           if (!matchMedia('(hover: hover) and (pointer: fine)').matches)
             return true
           const transform = document
-            .querySelector<HTMLElement>('.animated-logo-transform')
+            .querySelector<HTMLElement>('[style*="--animated-logo-transform"]')
             ?.style.getPropertyValue('--animated-logo-transform')
           return (
             !!transform && transform !== 'rotateX(0deg) rotateY(0deg) scale(1)'

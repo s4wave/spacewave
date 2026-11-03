@@ -173,7 +173,8 @@ func TestWebPkgChunksKeepStableNames(t *testing.T) {
 		for _, source := range []string{"web/ui/InfoCard.tsx", "app/vm/VmErrorBanner.tsx", "plugin/notes/blog/TagChip.tsx"} {
 			resp, err := client.BuildWebPkg(ctx, &bldr_vite.BuildWebPkgRequest{
 				PkgId: "stylex-pilots", PkgRoot: root, Imports: []string{source},
-				ExternalPkgs: []string{"@stylexjs/stylex", "react", "react-icons"},
+				PackageRoots: map[string]string{"@s4wave/web": filepath.Join(root, "web")},
+				ExternalPkgs: []string{"@stylexjs/stylex", "react", "react-icons", "@s4wave/web"},
 				OutDir:       outDir, WebPkgBasePath: "/b/pkg/", IsRelease: true,
 			})
 			if err != nil {

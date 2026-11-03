@@ -17,7 +17,7 @@ describe('CanvasTextNode', () => {
   })
 
   it('preserves whitespace in view mode', () => {
-    render(<CanvasTextNode content="  indented\n  text" />)
+    render(<CanvasTextNode content={'  indented\n  text'} />)
     const pre = screen.getByText('indented', { exact: false })
     expect(pre.textContent).toBe('  indented\n  text')
   })

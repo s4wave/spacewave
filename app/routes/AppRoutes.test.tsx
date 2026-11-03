@@ -139,6 +139,8 @@ describe('AppRoutes direct index routes', () => {
   })
 
   it('resolves /debug through the app and debug route tables to the debug index', async () => {
+    // Prepare the real deferred table so this case checks route matching.
+    await import('./DebugRoutes.js')
     renderAppRoute('/debug')
 
     const heading = await screen.findByRole('heading', { name: 'Debug tools' })
