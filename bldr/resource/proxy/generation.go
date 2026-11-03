@@ -12,8 +12,8 @@ import (
 )
 
 var (
-	// errRefused is a call the proxy sent again that a new upstream refused.
-	errRefused = errors.New("the server refused a call this connection depends on")
+	// errReplayFailed is a call the proxy sent again that a new upstream refused.
+	errReplayFailed = errors.New("the server refused a call this connection depends on")
 	// errGenerationEnded ends a call whose generation ended first.
 	errGenerationEnded = errors.New("resource client ended")
 )
@@ -44,6 +44,8 @@ type generation struct {
 	// controls holds the control IDs the upstream has not acknowledged,
 	// oldest first: the client's, or 0 for one the proxy sent itself.
 	controls []uint32
+	// replays holds the last successful call of each Replay method.
+	replays []replay
 	// children holds the live children in the order they were opened, so
 	// each parent opens again before its children.
 	children []*child
@@ -200,7 +202,7 @@ func (g *generation) keepBound() error {
 			return err
 		}
 		b, err := g.bind(up)
-		if g.ctx.Err() != nil {
+		if errors.Is(err, errReplayFailed) || g.ctx.Err() != nil {
 			return err
 		}
 		if err != nil {
@@ -256,6 +258,18 @@ func (g *generation) bind(up *upstream) (*binding, error) {
 		stream:   stream,
 		root:     resp.GetInit().GetRootResourceId(),
 		children: make(map[uint32]*child),
+	}
+
+	// Send the Replay calls again before any other call reaches the root.
+	var replays []replay
+	g.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		replays = slices.Clone(g.replays)
+	})
+	for _, r := range replays {
+		if _, err := replayCall(ctx, up.service, b.root, r); err != nil {
+			cancel()
+			return nil, err
+		}
 	}
 
 	// Open the children again and publish the binding.
@@ -323,7 +337,7 @@ func (g *generation) rebindChild(ctx context.Context, b *binding, ch *child) err
 	msg, err := replayCall(ctx, b.up.service, parent, ch.call)
 	up, ok := readChildID(msg)
 	var failure *resource.ResourceFailure
-	refused := errors.Is(err, errRefused) || (ch.parent != nil && errors.As(err, &failure)) || (err == nil && !ok)
+	refused := errors.Is(err, errReplayFailed) || (ch.parent != nil && errors.As(err, &failure)) || (err == nil && !ok)
 	if err != nil && !refused {
 		return err
 	}
@@ -476,8 +490,22 @@ func (g *generation) open(ctx context.Context, ch *child) (resource.SRPCResource
 	}
 }
 
+// record keeps a successful Replay call to send again on each new upstream,
+// replacing the method's earlier call.
+func (g *generation) record(r replay) {
+	g.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		for i := range g.replays {
+			if g.replays[i].service == r.service && g.replays[i].method == r.method {
+				g.replays[i] = r
+				return
+			}
+		}
+		g.replays = append(g.replays, r)
+	})
+}
+
 // replayCall sends r to target on service, waits for its result and returns
-// its last message. A refusal returns errRefused, and a refused route
+// its last message. A refusal returns errReplayFailed, and a refused route
 // its ResourceFailure; a transport failure returns its own error, so the
 // caller tries the next upstream.
 func replayCall(ctx context.Context, service resource.SRPCResourceServiceClient, target uint32, r replay) ([]byte, error) {
@@ -515,7 +543,7 @@ func replayCall(ctx context.Context, service resource.SRPCResourceServiceClient,
 			continue
 		}
 		if data.GetError() != "" || data.GetErrorCode() != srpc.ErrorCode_ERROR_CODE_UNKNOWN {
-			return nil, errors.Wrapf(errRefused, "%s.%s: %s", r.service, r.method, data.GetError())
+			return nil, errors.Wrapf(errReplayFailed, "%s.%s: %s", r.service, r.method, data.GetError())
 		}
 		_ = route.CloseSend()
 		return msg, nil

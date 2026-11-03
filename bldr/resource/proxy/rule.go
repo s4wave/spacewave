@@ -31,6 +31,16 @@ const (
 	// gets Open only when a second open leaves nothing behind the first did
 	// not.
 	Open
+	// Resume is Reopen for a versioned watch, whose messages carry a
+	// ViewVersion as field 1000 and whose request takes the version its
+	// client holds as field 1000. The reopened request names the version of
+	// the last message forwarded, so an unchanged view answers with the
+	// version alone, and the first upstream message is dropped when it is
+	// that version.
+	Resume
+	// Replay binds state to the connection. The proxy sends its last
+	// successful request again on each new upstream, before any other call.
+	Replay
 )
 
 // String returns the rule's name.
@@ -38,10 +48,14 @@ func (r Rule) String() string {
 	switch r {
 	case Reopen:
 		return "REOPEN"
+	case Resume:
+		return "RESUME"
 	case Retry:
 		return "RETRY"
 	case Once:
 		return "ONCE"
+	case Replay:
+		return "REPLAY"
 	case Open:
 		return "OPEN"
 	default:

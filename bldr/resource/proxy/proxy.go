@@ -43,6 +43,11 @@ type Proxy struct {
 	rules Rules
 	// dial opens a new upstream.
 	dial Dialer
+	// limits cap the unary calls the proxy holds.
+	limits []*Limit
+	// resumed, when set, learns of each Resume call's first message after a
+	// reopen: quiet when the proxy dropped it as the view the client holds.
+	resumed func(quiet bool)
 
 	// bcast guards the fields below and wakes their waiters.
 	bcast broadcast.Broadcast
@@ -71,16 +76,25 @@ type upstream struct {
 }
 
 // NewProxy constructs a proxy that serves its client from the upstreams dial
-// opens, applying rules to the calls open when one is replaced. It dials
-// when a generation first needs an upstream and stops when ctx ends.
-func NewProxy(ctx context.Context, rules Rules, dial Dialer) *Proxy {
+// opens, applying rules to the calls open when one is replaced. Each unary
+// call it holds counts against every one of limits. It dials when a
+// generation first needs an upstream and stops when ctx ends.
+func NewProxy(ctx context.Context, rules Rules, dial Dialer, limits ...*Limit) *Proxy {
 	return &Proxy{
 		ctx:         ctx,
 		rules:       rules,
 		dial:        dial,
+		limits:      limits,
 		generations: make(map[uint32]*generation),
 		children:    make(map[uint32]*child),
 	}
+}
+
+// OnResume sets resumed to learn of each Resume call's first message after a
+// reopen, quiet when the client already held its view. It returns p.
+func (p *Proxy) OnResume(resumed func(quiet bool)) *Proxy {
+	p.resumed = resumed
+	return p
 }
 
 // ResourceClient serves one client generation from the proxy's own root.

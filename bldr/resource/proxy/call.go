@@ -6,10 +6,15 @@ import (
 	"io"
 	"slices"
 
+	"github.com/aperturerobotics/protobuf-go-lite/encoding/protowire"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/bldr/resource"
 )
+
+// viewField is the field number of the ViewVersion a versioned watch's
+// messages carry, and of the held version its request takes.
+const viewField = 1000
 
 // errStale ends an attempt whose answer came from a binding the generation
 // left, so the call opens again on the next.
@@ -38,12 +43,20 @@ type call struct {
 	// sent holds the srpc packets the client sent, for a rule that sends
 	// them again.
 	sent [][]byte
+	// unsent holds the packets read before the first upstream route, for a
+	// rule that does not send them again.
+	unsent []*resource.ResourceRpcPacket
+	// put gives back the call's places in the proxy's limits while the call
+	// awaits its answer, and is nil otherwise.
+	put func()
 	// clientDone is set once the client closed its side of the route.
 	clientDone bool
 	// forwarded is set once an upstream packet reached the client.
 	forwarded bool
 	// last is the last message forwarded to the client.
 	last []byte
+	// held is the version of the last message forwarded of a Resume call.
+	held string
 }
 
 // newCall constructs a call on the client route to g's root, or to its child
@@ -59,11 +72,32 @@ func (c *call) run() error {
 	in := make(chan inbound)
 	go pump(ctx, c.client, in)
 
+	// Read the call's start, and count a unary call while the proxy holds
+	// it; past a limit it ends at once.
+	select {
+	case <-ctx.Done():
+		return nil
+	case m := <-in:
+		if m.err != nil {
+			return nil
+		}
+		c.keep(m.pkt)
+	}
+	if c.rule.unary() {
+		put, ok := takeAll(c.g.p.limits)
+		if !ok {
+			return c.reset()
+		}
+		c.put = put
+		defer c.release()
+	}
+
+	// Rebind the route until the call completes or its rule ends it.
 	for again := false; ; again = true {
 		// Open an upstream route, holding the call while there is none.
 		up, b, err := c.g.open(ctx, c.on)
 		if err != nil {
-			if c.start == nil || ctx.Err() != nil {
+			if !again || ctx.Err() != nil {
 				return err
 			}
 			return c.reset()
@@ -90,11 +124,21 @@ func (c *call) attempt(
 	b *binding,
 	again bool,
 ) (bool, error) {
-	// Send again what the client sent on the lost route.
-	for _, data := range c.sent {
+	// Send again what the client sent on the lost route, and what it sent
+	// before the first.
+	for i, data := range c.sent {
+		if i == 0 && c.rule == Resume && c.held != "" {
+			data = withHeld(data, c.held)
+		}
 		if up.Send(newData(data)) != nil {
 			return false, nil
 		}
+	}
+	for len(c.unsent) != 0 {
+		if up.Send(c.unsent[0]) != nil {
+			return false, nil
+		}
+		c.unsent = c.unsent[1:]
 	}
 	if c.clientDone {
 		_ = up.CloseSend()
@@ -107,8 +151,8 @@ func (c *call) attempt(
 	go pump(upCtx, up, upIn)
 
 	// A reopened stream's first message repeats what the client holds when
-	// its bytes equal the last one forwarded.
-	dropRepeat := again && c.rule == Reopen
+	// its bytes, or its version, equal the last one forwarded's.
+	dropRepeat := again && (c.rule == Reopen || c.rule == Resume)
 	for {
 		select {
 		case <-ctx.Done():
@@ -138,6 +182,7 @@ func (c *call) attempt(
 				return true, err
 			}
 			if settled {
+				c.release()
 				return true, c.finish(ctx, in, up)
 			}
 		}
@@ -147,19 +192,37 @@ func (c *call) attempt(
 // fromClient sends a client packet upstream, keeping it when the call's rule
 // may send it again. A failed send shows as the upstream route's end.
 func (c *call) fromClient(up resource.SRPCResourceService_ResourceRpcClient, pkt *resource.ResourceRpcPacket) {
-	if data := pkt.GetData(); data != nil {
-		if c.start == nil {
-			var p srpc.Packet
-			if p.UnmarshalVT(data) == nil && p.GetCallStart() != nil {
-				c.start = p.GetCallStart()
-				c.rule = c.g.p.rules.Rule(c.start.GetRpcService(), c.start.GetRpcMethod())
-			}
-		}
-		if c.rule != End && c.rule != Once {
-			c.sent = append(c.sent, data)
+	c.record(pkt)
+	_ = up.Send(pkt)
+}
+
+// keep holds a packet the client sent before the first upstream route.
+func (c *call) keep(pkt *resource.ResourceRpcPacket) {
+	if !c.record(pkt) {
+		c.unsent = append(c.unsent, pkt)
+	}
+}
+
+// record reads the call's start from a client packet, and keeps the packet
+// when the call's rule may send it again. It reports whether it kept it.
+func (c *call) record(pkt *resource.ResourceRpcPacket) bool {
+	// Read the call method from the first data packet.
+	data := pkt.GetData()
+	if data == nil {
+		return false
+	}
+	if c.start == nil {
+		var p srpc.Packet
+		if p.UnmarshalVT(data) == nil && p.GetCallStart() != nil {
+			c.start = p.GetCallStart()
+			c.rule = c.g.p.rules.Rule(c.start.GetRpcService(), c.start.GetRpcMethod())
 		}
 	}
-	_ = up.Send(pkt)
+	if c.rule == End || c.rule == Once {
+		return false
+	}
+	c.sent = append(c.sent, data)
+	return true
 }
 
 // fromUpstream forwards a packet from the route on b to the client and
@@ -188,25 +251,50 @@ func (c *call) fromUpstream(b *binding, pkt *resource.ResourceRpcPacket, dropRep
 
 	// Drop a repeated first message of a reopened stream.
 	if msg := data.GetData(); len(msg) != 0 || data.GetDataIsZero() {
-		repeat := *dropRepeat && bytes.Equal(msg, c.last)
+		var version string
+		if c.rule == Resume {
+			version = viewVersion(msg)
+		}
+		repeat := *dropRepeat && (bytes.Equal(msg, c.last) || (version != "" && version == c.held))
+		if *dropRepeat && c.rule == Resume && c.g.p.resumed != nil {
+			c.g.p.resumed(repeat)
+		}
 		*dropRepeat = false
 		if repeat && !settles(data) {
 			return false, nil
 		}
 		c.last = msg
+		if version != "" {
+			c.held = version
+		}
 	}
 
-	// Forward it.
+	// Forward it and keep a successful Replay call.
 	if err := c.client.Send(pkt); err != nil {
 		return true, err
 	}
 	c.forwarded = true
-	return settles(data), nil
+	if !settles(data) {
+		return false, nil
+	}
+	ok := data.GetError() == "" && data.GetErrorCode() == srpc.ErrorCode_ERROR_CODE_UNKNOWN
+	if ok && c.rule == Replay && c.on == nil {
+		c.g.record(c.replay())
+	}
+	return true, nil
 }
 
 // replay returns the call as the client sent it, to send again.
 func (c *call) replay() replay {
 	return replay{service: c.start.GetRpcService(), method: c.start.GetRpcMethod(), packets: slices.Clone(c.sent)}
+}
+
+// release gives back the call's places in the proxy's limits, once.
+func (c *call) release() {
+	if c.put != nil {
+		c.put()
+		c.put = nil
+	}
 }
 
 // finish carries the client's last packets, such as an abandonment, to the
@@ -237,9 +325,9 @@ func (c *call) resumes() bool {
 		return true
 	}
 	switch c.rule {
-	case Reopen:
+	case Reopen, Resume:
 		return !c.clientDone
-	case Retry, Open:
+	case Retry, Replay, Open:
 		return !c.forwarded
 	default:
 		return false
@@ -255,6 +343,59 @@ func (c *call) reset() error {
 	return c.client.Send(newData(data))
 }
 
+// withHeld returns the srpc packet data with its call's request naming held
+// as the version the client holds, or data unchanged when it starts no call.
+// The field is appended, so it replaces any version the client sent.
+func withHeld(data []byte, held string) []byte {
+	// Replace the held version in an encoded call start.
+	var p srpc.Packet
+	if p.UnmarshalVT(data) != nil || p.GetCallStart() == nil {
+		return data
+	}
+	start := p.GetCallStart()
+	req := protowire.AppendTag(slices.Clone(start.GetData()), viewField, protowire.BytesType)
+	start.Data, start.DataIsZero = protowire.AppendString(req, held), false
+	out, err := p.MarshalVT()
+	if err != nil {
+		return data
+	}
+	return out
+}
+
+// viewVersion returns the version a versioned watch's message carries, or
+// empty when it carries none.
+func viewVersion(msg []byte) string {
+	view := lastField(msg, viewField)
+	return string(lastField(view, 1))
+}
+
+// lastField returns the last value of the length-delimited field num in
+// msg, or nil when msg holds none or does not parse.
+func lastField(msg []byte, num protowire.Number) []byte {
+	var out []byte
+	for len(msg) != 0 {
+		field, typ, n := protowire.ConsumeTag(msg)
+		if n < 0 {
+			return nil
+		}
+		msg = msg[n:]
+		if field == num && typ == protowire.BytesType {
+			value, m := protowire.ConsumeBytes(msg)
+			if m < 0 {
+				return nil
+			}
+			out, msg = value, msg[m:]
+			continue
+		}
+		m := protowire.ConsumeFieldValue(field, typ, msg)
+		if m < 0 {
+			return nil
+		}
+		msg = msg[m:]
+	}
+	return out
+}
+
 // settles reports whether data ends its call.
 func settles(data *srpc.CallData) bool {
 	return data.GetComplete() || data.GetError() != "" || data.GetErrorCode() != srpc.ErrorCode_ERROR_CODE_UNKNOWN
@@ -267,7 +408,7 @@ func newData(data []byte) *resource.ResourceRpcPacket {
 
 // receiver is a ResourceRpc stream from either side.
 type receiver interface {
-	// Recv returns the next packet, or the error that ended the stream.
+	// Recv reads the next route packet.
 	Recv() (*resource.ResourceRpcPacket, error)
 }
 
