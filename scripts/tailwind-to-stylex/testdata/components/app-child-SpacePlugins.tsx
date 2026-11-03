@@ -1,0 +1,676 @@
+import {
+  type ComponentType,
+  type ReactNode,
+  useCallback,
+  useState,
+} from 'react'
+import { useWatchStateRpc } from '@aptre/bldr-react'
+import { LuLoaderCircle, LuPlus, LuPuzzle, LuTrash2, LuX } from 'react-icons/lu'
+
+import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
+import type { BackgroundPlugin } from '@s4wave/core/session/session.pb.js'
+import type { Space } from '@s4wave/sdk/space/space.js'
+import { useBackgroundPlugins } from '@s4wave/app/session/useBackgroundPlugins.js'
+import {
+  SpaceContentsContext,
+  SpaceContext,
+} from '@s4wave/web/contexts/contexts.js'
+import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
+import { PluginLifecycleBadge } from '@s4wave/web/sdk/app/lifecycle.js'
+import { isValidSpacePluginId } from '@s4wave/core/space/world/world.js'
+import { cn } from '@s4wave/web/style/utils.js'
+import { Button } from '@s4wave/web/ui/button.js'
+import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
+import { Input } from '@s4wave/web/ui/input.js'
+import { toast } from '@s4wave/web/ui/toaster.js'
+import {
+  SpaceContentsState,
+  WatchSpaceContentsStateRequest,
+} from '@s4wave/sdk/space/space.pb.js'
+
+import { SpacePluginBuild } from './SpacePluginBuild.js'
+import { SpacePluginImport } from './SpacePluginImport.js'
+
+import { KNOWN_SPACE_PLUGINS, knownSpacePlugin } from './known-plugins.js'
+
+// CatalogEntry is one browsable plugin row merging the backend catalog with
+// known-plugin presentation metadata (name, icon, fallback description).
+interface CatalogEntry {
+  id: string
+  name: string
+  description: string
+  icon: ComponentType<{ className?: string }>
+  revision: string
+}
+
+// catalogSuggestions merges the backend plugin catalog with known-plugin
+// presentation metadata, keyed by manifest ID, and returns the entries not yet
+// installed sorted by name. The streamed availablePlugins list is the source
+// of truth for what is installable; known-plugins supplies name/icon and a
+// fallback description, and stands in as the browsable set until the catalog
+// syncs.
+function catalogSuggestions(
+  available: NonNullable<SpaceContentsState['availablePlugins']>,
+  installedIds: Set<string>,
+): CatalogEntry[] {
+  const catalogById = new Map<string, CatalogEntry>()
+  for (const known of KNOWN_SPACE_PLUGINS) {
+    catalogById.set(known.id, {
+      id: known.id,
+      name: known.name,
+      description: known.description,
+      icon: known.icon,
+      revision: '',
+    })
+  }
+  for (const plugin of available) {
+    const id = plugin.pluginId ?? ''
+    if (!id) continue
+    const meta = knownSpacePlugin(id)
+    catalogById.set(id, {
+      id,
+      name: meta.name,
+      description: plugin.description || meta.description,
+      icon: meta.icon,
+      revision: plugin.revision ?? '',
+    })
+  }
+  return Array.from(catalogById.values())
+    .filter((entry) => !installedIds.has(entry.id))
+    .sort((a, b) => a.name.localeCompare(b.name))
+}
+
+// BackgroundChoice is the saved background choice for an installed plugin
+// that can run in the background.
+type BackgroundChoice = 'unconfirmed' | 'running' | 'suspended'
+
+// backgroundChoices maps each background plugin of the Space to the Session's
+// saved choice for it.
+function backgroundChoices(
+  available: NonNullable<SpaceContentsState['availablePlugins']>,
+  entries: BackgroundPlugin[],
+  spaceId: string,
+): Map<string, BackgroundChoice> {
+  const choices = new Map<string, BackgroundChoice>()
+  for (const plugin of available) {
+    if (plugin.background && plugin.pluginId) {
+      choices.set(plugin.pluginId, 'unconfirmed')
+    }
+  }
+  for (const entry of entries) {
+    const id = entry.pluginId ?? ''
+    if (entry.spaceId !== spaceId || !choices.has(id)) continue
+    choices.set(id, entry.suspended ? 'suspended' : 'running')
+  }
+  return choices
+}
+
+interface SpacePluginAddPanelProps {
+  draftId: string
+  draftError: string | null
+  pending: string
+  canSubmitDraft: boolean
+  trimmedDraft: string
+  suggestions: CatalogEntry[]
+  onDraftChange: (value: string) => void
+  onAdd: (pluginId: string) => void
+  children?: ReactNode
+}
+
+// SpacePluginAddPanel renders manifest entry, catalog suggestions, and its
+// children while the parent retains mutation and lifecycle state.
+function SpacePluginAddPanel({
+  draftId,
+  draftError,
+  pending,
+  canSubmitDraft,
+  trimmedDraft,
+  suggestions,
+  onDraftChange,
+  onAdd,
+  children,
+}: SpacePluginAddPanelProps) {
+  return (
+    <div className="border-foreground/6 bg-background-card/30 space-y-3 rounded-lg border p-3.5">
+      <div className="space-y-1.5">
+        <label
+          htmlFor="space-plugin-id"
+          className="text-foreground text-xs font-medium select-none"
+        >
+          Plugin manifest ID
+        </label>
+        <div className="flex items-center gap-2">
+          <Input
+            id="space-plugin-id"
+            value={draftId}
+            onChange={(event) => onDraftChange(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && canSubmitDraft) onAdd(trimmedDraft)
+            }}
+            aria-invalid={draftError != null}
+            placeholder="spacewave-notes"
+            disabled={!!pending}
+            variant="plugin"
+            className="flex-1"
+          />
+          <Button
+            type="button"
+            onClick={() => onAdd(trimmedDraft)}
+            disabled={!canSubmitDraft}
+            variant="brandOutline"
+            size="sm"
+          >
+            {pending !== '' && pending === trimmedDraft ? (
+              <LuLoaderCircle className="size-3.5 animate-spin" />
+            ) : (
+              'Add'
+            )}
+          </Button>
+        </div>
+        {draftError && (
+          <p className="text-destructive/80 text-xs">{draftError}</p>
+        )}
+      </div>
+
+      {suggestions.length > 0 && (
+        <div className="space-y-1.5">
+          <span className="text-foreground-alt/50 micro-text font-medium tracking-widest uppercase select-none">
+            Available plugins
+          </span>
+          <div className="flex flex-col gap-1.5">
+            {suggestions.map((plugin) => {
+              const Icon = plugin.icon
+              const isPending = pending === plugin.id
+              return (
+                <button
+                  key={plugin.id}
+                  type="button"
+                  onClick={() => onAdd(plugin.id)}
+                  disabled={!!pending}
+                  className={cn(
+                    'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 flex w-full items-center gap-3 rounded-lg border p-2.5 text-left transition-all duration-150',
+                    !!pending && 'cursor-not-allowed opacity-50',
+                  )}
+                >
+                  <span className="bg-brand/10 flex size-8 shrink-0 items-center justify-center rounded-md">
+                    {isPending ? (
+                      <LuLoaderCircle className="text-brand size-4 animate-spin" />
+                    ) : (
+                      <Icon className="text-brand size-4" />
+                    )}
+                  </span>
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="flex items-center gap-1.5">
+                      <span className="text-foreground text-xs font-medium">
+                        {plugin.name}
+                      </span>
+                      {plugin.revision && (
+                        <span className="text-foreground-alt/50 micro-text tabular-nums">
+                          rev {plugin.revision}
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-foreground-alt/70 micro-text truncate">
+                      {plugin.description}
+                    </span>
+                  </span>
+                  <LuPlus className="text-foreground-alt/50 size-3.5 shrink-0" />
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {children}
+    </div>
+  )
+}
+
+interface RequestedPluginListProps {
+  requestedIds: string[]
+  availableIds: Set<string>
+  pending: string
+  onAdd: (pluginId: string) => void
+}
+
+// RequestedPluginList renders plugins something in the Space is waiting to
+// load but the Space does not list. A plugin whose manifest is stored in the
+// Space can be added in place; otherwise the row names the deploy step.
+function RequestedPluginList({
+  requestedIds,
+  availableIds,
+  pending,
+  onAdd,
+}: RequestedPluginListProps) {
+  return (
+    <>
+      {requestedIds.map((id) => {
+        const stored = availableIds.has(id)
+        const isPending = pending === id
+        return (
+          <div
+            key={id}
+            className="border-warning/20 bg-warning/5 flex flex-col gap-1.5 rounded-lg border px-3 py-2"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex min-w-0 flex-col">
+                <span className="text-foreground truncate text-sm">{id}</span>
+                <span className="text-foreground-alt truncate text-xs">
+                  {stored
+                    ? 'Waiting to load. Add it to this Space to continue.'
+                    : 'Waiting to load. Add it from another Space, or deploy it here.'}
+                </span>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <span className="bg-warning/15 text-warning rounded-full px-2 py-0.5 text-xs">
+                  Requested
+                </span>
+                {stored && (
+                  <Button
+                    type="button"
+                    variant="brandOutline"
+                    size="sm"
+                    onClick={() => onAdd(id)}
+                    disabled={!!pending}
+                    aria-label={`Add ${id}`}
+                  >
+                    {isPending ? (
+                      <LuLoaderCircle className="size-3.5 animate-spin" />
+                    ) : (
+                      'Add'
+                    )}
+                  </Button>
+                )}
+              </div>
+            </div>
+            {!stored && (
+              <code className="text-foreground-alt/80 micro-text truncate font-mono select-all">
+                spacewave space deploy --manifest-id {id}
+              </code>
+            )}
+          </div>
+        )
+      })}
+    </>
+  )
+}
+
+interface InstalledPluginListProps {
+  plugins: NonNullable<SpaceContentsState['plugins']>
+  pending: string
+  confirmingRemoveId: string
+  background: Map<string, BackgroundChoice>
+  askingBackgroundId: string
+  onRequestRemove: (pluginId: string) => void
+  onCancelRemove: () => void
+  onConfirmRemove: (pluginId: string) => void
+  onAskBackground: (pluginId: string) => void
+  onDismissBackground: () => void
+  onAllowBackground: (pluginId: string) => void
+}
+
+// InstalledPluginList renders plugin lifecycle state, the background choice,
+// and the inline removal confirmation without owning mutation state.
+function InstalledPluginList({
+  plugins,
+  pending,
+  confirmingRemoveId,
+  background,
+  askingBackgroundId,
+  onRequestRemove,
+  onCancelRemove,
+  onConfirmRemove,
+  onAskBackground,
+  onDismissBackground,
+  onAllowBackground,
+}: InstalledPluginListProps) {
+  if (plugins.length === 0) {
+    return (
+      <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
+        <LuPuzzle className="size-3.5 shrink-0" />
+        <span className="select-none">No plugins installed</span>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      {plugins.map((plugin) => {
+        const id = plugin.pluginId ?? ''
+        const meta = knownSpacePlugin(id)
+        const desc = plugin.description || meta.description
+        const detail = plugin.detail ?? ''
+        const confirming = confirmingRemoveId === id
+        const isPending = pending === id
+        const choice = background.get(id)
+
+        if (confirming) {
+          return (
+            <div
+              key={id}
+              className="border-destructive/30 bg-destructive/5 flex items-center justify-between gap-2 rounded-lg border px-3 py-2"
+            >
+              <span className="text-destructive/90 min-w-0 flex-1 truncate text-xs select-none">
+                Remove {id}?
+              </span>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => onConfirmRemove(id)}
+                  disabled={isPending}
+                >
+                  {isPending ? (
+                    <LuLoaderCircle className="size-3.5 animate-spin" />
+                  ) : (
+                    'Confirm'
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onCancelRemove}
+                  disabled={isPending}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )
+        }
+
+        if (askingBackgroundId === id && choice === 'unconfirmed') {
+          return (
+            <div
+              key={id}
+              className="border-brand/30 bg-brand/5 flex items-center justify-between gap-2 rounded-lg border px-3 py-2"
+            >
+              <span className="text-foreground min-w-0 flex-1 text-xs select-none">
+                {meta.name} can keep running while this Space is closed. Allow?
+              </span>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <Button
+                  variant="brandOutline"
+                  size="sm"
+                  onClick={() => onAllowBackground(id)}
+                  disabled={isPending}
+                >
+                  {isPending ? (
+                    <LuLoaderCircle className="size-3.5 animate-spin" />
+                  ) : (
+                    'Allow'
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onDismissBackground}
+                  disabled={isPending}
+                >
+                  Not now
+                </Button>
+              </div>
+            </div>
+          )
+        }
+
+        return (
+          <div
+            key={id}
+            className="border-foreground/8 flex items-center justify-between gap-2 rounded-lg border bg-transparent px-3 py-2"
+          >
+            <div className="flex min-w-0 flex-col">
+              <span className="text-foreground truncate text-sm">{id}</span>
+              {desc && (
+                <span className="text-foreground-alt truncate text-xs">
+                  {desc}
+                </span>
+              )}
+              {detail && (
+                <span className="text-foreground-alt/70 truncate text-xs">
+                  {detail}
+                </span>
+              )}
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              {choice === 'unconfirmed' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onAskBackground(id)}
+                  disabled={!!pending}
+                >
+                  Allow background
+                </Button>
+              )}
+              {choice === 'running' && (
+                <span className="bg-brand/10 text-brand rounded-full px-2 py-0.5 text-xs">
+                  Background
+                </span>
+              )}
+              {choice === 'suspended' && (
+                <span className="bg-foreground/5 text-foreground-alt rounded-full px-2 py-0.5 text-xs">
+                  Suspended
+                </span>
+              )}
+              <PluginLifecycleBadge plugin={plugin} />
+              {plugin.account ? (
+                <span
+                  className="bg-foreground/5 text-foreground-alt rounded-full px-2 py-0.5 text-xs"
+                  title="Installed on your account for every Space. Remove it from the account plugin list."
+                >
+                  Account
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onRequestRemove(id)}
+                  disabled={!!pending}
+                  aria-label={`Remove ${id}`}
+                  className={cn(
+                    'text-foreground-alt/50 hover:text-destructive flex size-6 items-center justify-center rounded-md transition-colors',
+                    !!pending && 'cursor-not-allowed opacity-50',
+                  )}
+                >
+                  <LuTrash2 className="size-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// SpacePlugins renders the plugin management UI for a space: the installed
+// plugins with lifecycle badges, an add-by-manifest-ID flow with known-plugin
+// suggestions, a per-row remove with inline confirmation, and the background
+// prompt for plugins that can run while the Space is closed.
+export function SpacePlugins() {
+  const spaceResource = SpaceContext.useContext()
+  const space = useResourceValue(spaceResource)
+  const contentsResource = SpaceContentsContext.useContext()
+  const contents = useResourceValue(contentsResource)
+  const { spaceId } = SpaceContainerContext.useContext()
+  const backgroundPlugins = useBackgroundPlugins()
+
+  const contentsState = useWatchStateRpc(
+    useCallback(
+      (req: WatchSpaceContentsStateRequest, signal: AbortSignal) =>
+        contents?.watchState(req, signal) ?? null,
+      [contents],
+    ),
+    {},
+    WatchSpaceContentsStateRequest.equals,
+    SpaceContentsState.equals,
+  )
+
+  const plugins = contentsState?.plugins ?? []
+  const installedIds = new Set(plugins.map((plugin) => plugin.pluginId ?? ''))
+  const requestedIds = contentsState?.requestedPluginIds ?? []
+  const available = contentsState?.availablePlugins ?? []
+  const background = backgroundChoices(
+    available,
+    backgroundPlugins.entries,
+    spaceId,
+  )
+
+  const [adding, setAdding] = useState(false)
+  const [draftId, setDraftId] = useState('')
+  // pending holds the plugin ID of an in-flight add/remove mutation so its row
+  // and control disable while the RPC runs.
+  const [pending, setPending] = useState('')
+  // confirmingRemoveId holds the plugin ID whose remove row is showing the
+  // inline confirm affordance.
+  const [confirmingRemoveId, setConfirmingRemoveId] = useState('')
+  // askingBackgroundId holds the plugin ID whose row asks whether it may keep
+  // running while the Space is closed.
+  const [askingBackgroundId, setAskingBackgroundId] = useState('')
+
+  // handleAdd installs pluginId, first copying its builds from source when
+  // the plugin comes from another Space.
+  const handleAdd = useCallback(
+    async (pluginId: string, source?: Space) => {
+      if (!space || pending) return
+      setPending(pluginId)
+      try {
+        if (source) await space.importSpacePlugin(source.id, pluginId)
+        await space.addSpacePlugin(pluginId)
+        setDraftId('')
+        setAdding(false)
+        if (background.get(pluginId) === 'unconfirmed') {
+          setAskingBackgroundId(pluginId)
+        }
+      } catch (err) {
+        toast.error('Failed to add plugin', { description: String(err) })
+      } finally {
+        setPending('')
+      }
+    },
+    [space, pending, background],
+  )
+
+  const handleRemove = useCallback(
+    async (pluginId: string) => {
+      if (!space || pending) return
+      setPending(pluginId)
+      try {
+        await space.removeSpacePlugin(pluginId)
+        setConfirmingRemoveId('')
+        const choice = background.get(pluginId)
+        if (choice === 'running' || choice === 'suspended') {
+          await backgroundPlugins.set(spaceId, pluginId, false, false)
+        }
+      } catch (err) {
+        toast.error('Failed to remove plugin', { description: String(err) })
+      } finally {
+        setPending('')
+      }
+    },
+    [space, pending, background, backgroundPlugins, spaceId],
+  )
+
+  const handleAllowBackground = useCallback(
+    async (pluginId: string) => {
+      if (pending) return
+      setPending(pluginId)
+      try {
+        await backgroundPlugins.set(spaceId, pluginId, true, false)
+        setAskingBackgroundId('')
+      } catch (err) {
+        toast.error('Failed to allow background', {
+          description: String(err),
+        })
+      } finally {
+        setPending('')
+      }
+    },
+    [pending, backgroundPlugins, spaceId],
+  )
+
+  const trimmedDraft = draftId.trim()
+  const draftValid = isValidSpacePluginId(trimmedDraft)
+  const draftDuplicate = installedIds.has(trimmedDraft)
+  const draftError =
+    trimmedDraft.length === 0
+      ? null
+      : draftDuplicate
+        ? 'Plugin already installed'
+        : !draftValid
+          ? 'Use a lowercase manifest ID (letters, digits, dashes)'
+          : null
+  const canSubmitDraft = draftValid && !draftDuplicate && !pending
+
+  const suggestions = catalogSuggestions(available, installedIds)
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <span className="text-foreground-alt/50 micro-text font-medium tracking-widest uppercase select-none">
+          {plugins.length} installed
+        </span>
+        <DashboardButton
+          icon={
+            adding ? (
+              <LuX className="size-3.5" />
+            ) : (
+              <LuPlus className="size-3.5" />
+            )
+          }
+          onClick={() => {
+            setAdding((open) => !open)
+            setDraftId('')
+          }}
+          aria-label={adding ? 'Cancel adding plugin' : 'Add plugin'}
+        >
+          {adding ? 'Cancel' : 'Add'}
+        </DashboardButton>
+      </div>
+
+      {adding && (
+        <SpacePluginAddPanel
+          draftId={draftId}
+          draftError={draftError}
+          pending={pending}
+          canSubmitDraft={canSubmitDraft}
+          trimmedDraft={trimmedDraft}
+          suggestions={suggestions}
+          onDraftChange={setDraftId}
+          onAdd={(pluginId) => void handleAdd(pluginId)}
+        >
+          <SpacePluginImport
+            spaceId={spaceId}
+            installedIds={installedIds}
+            pending={pending}
+            onImport={(source, pluginId) => void handleAdd(pluginId, source)}
+          />
+        </SpacePluginAddPanel>
+      )}
+
+      <SpacePluginBuild space={space} />
+
+      <RequestedPluginList
+        requestedIds={requestedIds}
+        availableIds={new Set(available.map((plugin) => plugin.pluginId ?? ''))}
+        pending={pending}
+        onAdd={(pluginId) => void handleAdd(pluginId)}
+      />
+
+      <InstalledPluginList
+        plugins={plugins}
+        pending={pending}
+        confirmingRemoveId={confirmingRemoveId}
+        background={background}
+        askingBackgroundId={askingBackgroundId}
+        onRequestRemove={setConfirmingRemoveId}
+        onCancelRemove={() => setConfirmingRemoveId('')}
+        onConfirmRemove={(pluginId) => void handleRemove(pluginId)}
+        onAskBackground={setAskingBackgroundId}
+        onDismissBackground={() => setAskingBackgroundId('')}
+        onAllowBackground={(pluginId) => void handleAllowBackground(pluginId)}
+      />
+    </div>
+  )
+}

@@ -1,8 +1,9 @@
+import { utilityState as listUtilityState } from '@s4wave/web/style/tokens.stylex.js'
+
 import { useDeferredValue, useMemo, useState, type ReactNode } from 'react'
 import { LuChevronRight, LuSearch } from '@s4wave/web/images/icons.js'
 
 import type { ControllerInfo, StoreInfo } from '@s4wave/sdk/status/status.pb.js'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import { DirectiveTreeView } from './DirectiveTreeView.js'
 import type { DirectiveTree } from './directiveTree.js'
@@ -22,6 +23,25 @@ import {
   utilityState as themeUtilityState,
   fonts as themeFonts,
 } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles5 = stylex.create({
+  rule1: {
+    borderRadius: '.25rem',
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+  },
+})
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-success']} 10%, transparent)`,
+    color: themeColors['--color-success'],
+  },
+  rule2: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    color: themeColors['--color-brand'],
+  },
+})
 
 const stylexStyles3 = stylex.create({
   rule1: {
@@ -601,9 +621,17 @@ export function RuntimeInspector({
             }
             count={visiblePlugins.length}
           >
-            {pluginHosts.map((group) => (
-              <PluginHostGroup key={group.spaceId} group={group} />
-            ))}
+            {(childSx) => (
+              <>
+                {pluginHosts.map((group) => (
+                  <PluginHostGroup
+                    sx={childSx}
+                    key={group.spaceId}
+                    group={group}
+                  />
+                ))}
+              </>
+            )}
           </Listing>
         )}
 
@@ -615,9 +643,13 @@ export function RuntimeInspector({
             }
             count={visibleControllers.length}
           >
-            {visibleControllers.map((group) => (
-              <ControllerRow key={group.key} group={group} />
-            ))}
+            {(childSx) => (
+              <>
+                {visibleControllers.map((group) => (
+                  <ControllerRow sx={childSx} key={group.key} group={group} />
+                ))}
+              </>
+            )}
           </Listing>
         )}
 
@@ -674,14 +706,18 @@ function DirectivesPanel({
           empty="No directives are active."
           count={directiveTree?.nodes.size ?? 0}
         >
-          {directiveTree && (
-            <li>
-              <DirectiveTreeView
-                tree={directiveTree}
-                query={query}
-                configKey={rootKey}
-              />
-            </li>
+          {(childSx) => (
+            <>
+              {directiveTree && (
+                <li sx={childSx}>
+                  <DirectiveTreeView
+                    tree={directiveTree}
+                    query={query}
+                    configKey={rootKey}
+                  />
+                </li>
+              )}
+            </>
           )}
         </Listing>
       ) : (
@@ -690,13 +726,18 @@ function DirectivesPanel({
           empty={query ? 'No directives match.' : 'No directives are active.'}
           count={visibleDirectives.length}
         >
-          {visibleDirectives.map((group) => (
-            <DirectiveRow
-              key={group.name}
-              group={group}
-              largest={directives?.[0]?.idents.length ?? 1}
-            />
-          ))}
+          {(childSx) => (
+            <>
+              {visibleDirectives.map((group) => (
+                <DirectiveRow
+                  sx={childSx}
+                  key={group.name}
+                  group={group}
+                  largest={directives?.[0]?.idents.length ?? 1}
+                />
+              ))}
+            </>
+          )}
         </Listing>
       )}
     </>
@@ -732,7 +773,13 @@ function groupControllers(controllers: ControllerInfo[]): ControllerGroup[] {
 
 // ControllerRow is one controller, or several identical ones. A controller
 // holding a block store it built itself opens into that store's parts.
-function ControllerRow({ group }: { group: ControllerGroup }) {
+function ControllerRow({
+  sx,
+  group,
+}: { group: ControllerGroup } & {
+  sx?: stylex.StyleXStyles
+  className?: never
+}) {
   const [open, setOpen] = useState(false)
   const { controller, count } = group
   const store = controller.store
@@ -760,10 +807,10 @@ function ControllerRow({ group }: { group: ControllerGroup }) {
   )
 
   if (!store) {
-    return <li sx={stylexStyles2.rule16}>{label}</li>
+    return <li sx={[stylexStyles2.rule16, sx]}>{label}</li>
   }
   return (
-    <li>
+    <li sx={sx}>
       <button
         type="button"
         aria-expanded={open}
@@ -820,7 +867,7 @@ function Listing({
   loading: boolean
   empty: string
   count: number
-  children: ReactNode
+  children: (childSx: stylex.StyleXStyles) => ReactNode
 }) {
   if (loading) {
     return <p sx={stylexStyles2.rule22}>Reading the runtime…</p>
@@ -828,15 +875,7 @@ function Listing({
   if (!count) {
     return <p sx={stylexStyles2.rule22}>{empty}</p>
   }
-  return (
-    <ul
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: divide-y */ 'divide-foreground/6 divide-y'
-      }
-    >
-      {children}
-    </ul>
-  )
+  return <ul sx={false}>{children?.(slotChildren.child)}</ul>
 }
 
 // PluginHost is the plugins one host runs: the root plugin host or a Space
@@ -866,42 +905,44 @@ function groupByHost(plugins: PluginView[]): PluginHost[] {
 }
 
 // PluginHostGroup is one host's heading followed by its plugin rows.
-function PluginHostGroup({ group }: { group: PluginHost }) {
+function PluginHostGroup({
+  sx,
+  group,
+}: { group: PluginHost } & { sx?: stylex.StyleXStyles; className?: never }) {
   const running = group.plugins.filter(
     (plugin) => plugin.state === 'running',
   ).length
 
   return (
-    <li>
+    <li sx={sx}>
       <h4 sx={stylexStyles2.rule23}>
         <span sx={stylexStyles2.rule24}>{group.host}</span>
         <span sx={stylexStyles2.rule25}>
           {formatCount(running)}/{formatCount(group.plugins.length)} running
         </span>
       </h4>
-      <ul
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: divide-y */ 'divide-foreground/6 divide-y'
-        }
-      >
+      <ul>
         {group.plugins.map((plugin) => (
-          <PluginRow key={plugin.key} plugin={plugin} />
+          <PluginRow sx={nativeDividers.t6} key={plugin.key} plugin={plugin} />
         ))}
       </ul>
     </li>
   )
 }
 
-// pluginStateClass colors the plugin lifecycle: running is healthy and
+// pluginStateStyles colors the plugin lifecycle: running is healthy and
 // requested is still loading.
-const pluginStateClass: Record<string, string> = {
-  running: 'bg-success/10 text-success',
-  requested: 'bg-brand/10 text-brand',
+const pluginStateStyles: Record<string, stylex.StyleXStyles> = {
+  running: stylexStyles4.rule1,
+  requested: stylexStyles4.rule2,
 }
 
 // PluginRow is one plugin host instance. It expands to the manifest recovery
 // and native package facts retained for the plugin.
-function PluginRow({ plugin }: { plugin: PluginView }) {
+function PluginRow({
+  sx,
+  plugin,
+}: { plugin: PluginView } & { sx?: stylex.StyleXStyles; className?: never }) {
   const [open, setOpen] = useState(false)
   const manifest = plugin.manifest
   const nativePackage = plugin.nativePackage
@@ -909,7 +950,7 @@ function PluginRow({ plugin }: { plugin: PluginView }) {
     !!manifest?.quarantinedCandidateCount || !!nativePackage?.lastError
 
   return (
-    <li>
+    <li sx={sx}>
       <button
         type="button"
         aria-expanded={open}
@@ -928,12 +969,10 @@ function PluginRow({ plugin }: { plugin: PluginView }) {
         </span>
         {flagged && <span sx={stylexStyles2.rule26}>Needs attention</span>}
         <span
-          className={
-            /* TODO(stylex): fallback class expression */ cn(
-              'rounded px-1.5 py-0.5',
-              pluginStateClass[plugin.state] ?? 'bg-warning/10 text-warning',
-            )
-          }
+          sx={[
+            [stylexStyles5.rule1],
+            [pluginStateStyles[plugin.state] ?? pluginFallbackStyles.pending],
+          ]}
         >
           {plugin.state}
         </span>
@@ -1037,16 +1076,17 @@ function countFact(count?: number, summary?: string): string | null {
 // DirectiveRow is one directive type with a bar scaled to the largest group.
 // It expands to the identity of every active instance.
 function DirectiveRow({
+  sx,
   group,
   largest,
 }: {
   group: DirectiveGroup
   largest: number
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   const [open, setOpen] = useState(false)
 
   return (
-    <li>
+    <li sx={sx}>
       <button
         type="button"
         aria-expanded={open}
@@ -1163,6 +1203,71 @@ const nativeChildSpacing = stylex.create({
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// pluginFallbackStyles retains the warning tone of an unknown lifecycle state.
+const pluginFallbackStyles = stylex.create({
+  pending: {
+    backgroundColor:
+      'color-mix(in oklab, var(--color-warning) 10%, transparent)',
+    color: 'var(--color-warning)',
+  },
+})
+
+// nativeDividers applies the list border only to its nonfinal physical rows.
+const nativeDividers = stylex.create({
+  t6: {
+    '--tw-divide-y-reverse': { default: null, ':not(:last-child)': 0 },
+    borderBottomStyle: {
+      default: null,
+      ':not(:last-child)': themeUtilityState['--tw-border-style'],
+    },
+    borderTopStyle: {
+      default: null,
+      ':not(:last-child)': themeUtilityState['--tw-border-style'],
+    },
+    borderTopWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * var(--tw-divide-y-reverse))',
+    },
+    borderBottomWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * calc(1 - var(--tw-divide-y-reverse)))',
+    },
+    borderColor: {
+      default: null,
+      ':not(:last-child)':
+        'color-mix(in oklab, var(--color-foreground) 6%, transparent)',
+    },
+  },
+})
+
+// slotChildren keeps the optional action in the original physical child sequence.
+const slotChildren = stylex.create({
+  child: {
+    '--tw-divide-y-reverse': { default: null, ':not(:last-child)': 0 },
+    borderTopStyle: {
+      default: null,
+      ':not(:last-child)': listUtilityState['--tw-border-style'],
+    },
+    borderBottomStyle: {
+      default: null,
+      ':not(:last-child)': listUtilityState['--tw-border-style'],
+    },
+    borderTopWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * var(--tw-divide-y-reverse))',
+    },
+    borderBottomWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * calc(1 - var(--tw-divide-y-reverse)))',
+    },
+    borderColor: {
+      default: null,
+      ':not(:last-child)':
+        'color-mix(in oklab, var(--color-foreground) 6%, transparent)',
     },
   },
 })

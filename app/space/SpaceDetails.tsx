@@ -145,15 +145,13 @@ export function SpaceDetails({
           </button>
         ) : undefined
       }
-      orgInfoSection={
+      renderOrgInfoSection={(childSx) =>
         org ? (
-          <div
-            className={
-              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1 */ 'space-y-1'
-            }
-          >
-            <div sx={stylexStyles2.rule3}>Organization</div>
-            <div sx={stylexStyles2.rule4}>
+          <div sx={childSx}>
+            <div sx={[nativeChildSpacing.s1, stylexStyles2.rule3]}>
+              Organization
+            </div>
+            <div sx={[nativeChildSpacing.s1, stylexStyles2.rule4]}>
               <LuBuilding2 sx={stylexStyles.rule2} />
               <span sx={stylexStyles2.rule5}>{org.displayName || orgId}</span>
               <span sx={stylexStyles2.rule6}>
@@ -191,8 +189,23 @@ export function SpaceDetails({
           onRenameStart={onRename}
         />
       }
-      dataSection={<SpaceDataSection />}
+      renderDataSection={(childSx) => <SpaceDataSection sx={childSx} />}
       pluginsSection={<SpacePlugins />}
     />
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s1: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

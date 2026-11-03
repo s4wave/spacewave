@@ -21,6 +21,47 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+import { motion as themeMotion } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    color: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-brand'],
+      },
+    },
+    textDecorationLine: {
+      default: null,
+      '@media (hover: hover)': { default: null, ':hover': 'underline' },
+    },
+  },
+  rule2: {
+    color: {
+      default: themeColors['--color-foreground'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-brand'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    textDecorationLine: {
+      default: null,
+      '@media (hover: hover)': { default: null, ':hover': 'underline' },
+    },
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3)`,
@@ -156,10 +197,7 @@ function LicenseGroup({
                 )}
                 <span className="text-foreground text-sm">
                   {entry.repo ? (
-                    <ExternalLink
-                      href={entry.repo}
-                      className="hover:text-brand transition-colors hover:underline"
-                    >
+                    <ExternalLink href={entry.repo} sx={stylexStyles2.rule1}>
                       {entry.name}
                     </ExternalLink>
                   ) : (
@@ -239,10 +277,7 @@ function VmImageNotice() {
       <ul className="mb-3 space-y-2">
         {vmComponents.map((c) => (
           <li key={c.name} className="text-xs">
-            <ExternalLink
-              href={c.href}
-              className="text-foreground hover:text-brand transition-colors hover:underline"
-            >
+            <ExternalLink href={c.href} sx={stylexStyles2.rule2}>
               {c.name}
             </ExternalLink>{' '}
             <SpdxBadge spdx={c.spdx} />

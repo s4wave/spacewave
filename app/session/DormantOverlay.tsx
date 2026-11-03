@@ -27,6 +27,10 @@ import { groupMarker } from '../../web/style/relations.stylex.js'
 
 import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
 
+const stylexStyles4 = stylex.create({
+  rule1: { padding: `calc(${themeLayout['--spacing']} * 6)` },
+})
+
 const stylexStyles3 = stylex.create({
   rule1: {
     position: 'relative',
@@ -274,18 +278,14 @@ export function DormantOverlay({ metadata }: DormantOverlayProps) {
         </div>
 
         <div sx={stylexStyles3.rule8}>
-          <div
-            className={
-              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4 p-6'
-            }
-          >
-            <div sx={stylexStyles3.rule3}>
+          <div sx={stylexStyles4.rule1}>
+            <div sx={[nativeChildSpacing.s4, stylexStyles3.rule3]}>
               <div sx={stylexStyles3.rule9}>
                 <LuMoon sx={stylexStyles.rule1} />
               </div>
             </div>
 
-            <p sx={stylexStyles3.rule10}>
+            <p sx={[nativeChildSpacing.s4, stylexStyles3.rule10]}>
               This cloud session is paused because the subscription is not
               active. Reactivate the subscription to continue, or open a local
               session in the meantime.
@@ -297,7 +297,7 @@ export function DormantOverlay({ metadata }: DormantOverlayProps) {
                 void handleReactivate()
               }}
               disabled={resolving}
-              sx={[[stylexStyles2.rule1, groupMarker]]}
+              sx={[nativeChildSpacing.s4, [[stylexStyles2.rule1, groupMarker]]]}
             >
               <LuSparkles sx={stylexStyles.rule2} />
               <span sx={stylexStyles3.rule11}>
@@ -305,12 +305,14 @@ export function DormantOverlay({ metadata }: DormantOverlayProps) {
               </span>
             </button>
 
-            {error && <p sx={stylexStyles3.rule12}>{error}</p>}
+            {error && (
+              <p sx={[nativeChildSpacing.s4, stylexStyles3.rule12]}>{error}</p>
+            )}
 
             <button
               type="button"
               onClick={handleOpenLocal}
-              sx={[[stylexStyles2.rule2, groupMarker]]}
+              sx={[nativeChildSpacing.s4, [[stylexStyles2.rule2, groupMarker]]]}
             >
               <LuUser sx={stylexStyles.rule2} />
               <span sx={stylexStyles3.rule11}>Open a local session</span>
@@ -321,3 +323,18 @@ export function DormantOverlay({ metadata }: DormantOverlayProps) {
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s4: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

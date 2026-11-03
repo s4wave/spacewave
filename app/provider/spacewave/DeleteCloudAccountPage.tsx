@@ -25,7 +25,7 @@ import { useMountAccount } from '@s4wave/web/hooks/useMountAccount.js'
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { credentialInputStyles } from '@s4wave/web/ui/credential/CredentialProofInput.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { AccountLifecycleState } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
@@ -42,6 +42,26 @@ import {
   radii as themeRadii,
   utilityState as themeUtilityState,
 } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+    backgroundColor: themeColors['--color-background-get-started'],
+    padding: `calc(${themeLayout['--spacing']} * 5)`,
+    '--tw-shadow':
+      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+  },
+})
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -469,10 +489,6 @@ const stylexStyles = stylex.create({
   },
 })
 
-const cardClass = cn(
-  'border-foreground/20 bg-background-get-started rounded-lg border p-5 shadow-lg backdrop-blur-sm',
-)
-
 function formatMoney(
   amount: bigint | number | null | undefined,
   currency: string,
@@ -760,15 +776,8 @@ function InitiateDeleteView({
         </ul>
       </div>
 
-      <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ cn(
-            cardClass,
-            'space-y-4',
-          )
-        }
-      >
-        <div sx={stylexStyles2.rule10}>
+      <div sx={[[stylexStyles3.rule1], false]}>
+        <div sx={[nativeChildSpacingNext.s4, stylexStyles2.rule10]}>
           <div sx={stylexStyles2.rule11}>
             <LuTriangleAlert sx={stylexStyles.rule5} />
           </div>
@@ -792,7 +801,7 @@ function InitiateDeleteView({
           type="button"
           onClick={onSend}
           disabled={!canSend}
-          sx={[stylexStyles2.rule16]}
+          sx={[nativeChildSpacingNext.s4, [stylexStyles2.rule16]]}
         >
           {sending ? (
             <Spinner />
@@ -812,12 +821,11 @@ function InitiateDeleteView({
           </span>
         </button>
 
-        <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ 'space-y-1.5'
-          }
-        >
-          <label sx={stylexStyles2.rule17} htmlFor={deleteCodeId}>
+        <div sx={nativeChildSpacingNext.s4}>
+          <label
+            sx={[nativeChildSpacing.s1_5, stylexStyles2.rule17]}
+            htmlFor={deleteCodeId}
+          >
             6-digit delete code
           </label>
           <input
@@ -828,11 +836,14 @@ function InitiateDeleteView({
             value={code}
             onChange={(e) => onCodeChange(e.target.value.replace(/\D/g, ''))}
             placeholder="000000"
-            sx={[credentialInputStyles.input, credentialInputStyles.code]}
+            sx={[
+              nativeChildSpacing.s1_5,
+              [credentialInputStyles.input, credentialInputStyles.code],
+            ]}
           />
         </div>
 
-        <div sx={stylexStyles2.rule18}>
+        <div sx={[nativeChildSpacingNext.s4, stylexStyles2.rule18]}>
           <button
             type="button"
             onClick={onConfirm}
@@ -884,24 +895,17 @@ function PendingDeleteView({
         </div>
       )}
 
-      <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ cn(
-            cardClass,
-            'space-y-3',
-          )
-        }
-      >
+      <div sx={[[stylexStyles3.rule1], false]}>
         <button
           type="button"
           onClick={onUndo}
           disabled={undoing}
-          sx={[stylexStyles2.rule26]}
+          sx={[nativeChildSpacingNext.s3, [stylexStyles2.rule26]]}
         >
           {undoing ? <Spinner /> : <LuRotateCcw sx={stylexStyles.rule6} />}
           {undoing ? 'Canceling…' : 'Undo deletion'}
         </button>
-        <p sx={stylexStyles2.rule27}>
+        <p sx={[nativeChildSpacingNext.s3, stylexStyles2.rule27]}>
           Undo stops deletion, but the account stays lapsed and read-only until
           you start a new subscription.
         </p>
@@ -946,3 +950,44 @@ function InfoRow({
     </li>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s1_5: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s4: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

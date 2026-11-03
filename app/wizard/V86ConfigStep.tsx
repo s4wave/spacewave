@@ -102,17 +102,18 @@ export interface V86ConfigStepProps {
 // V86ConfigStep is the second wizard step: the VM's memory and a summary of
 // the image it boots.
 export function V86ConfigStep({
+  sx,
   cfg,
   memoryMb,
   onMemoryChange,
   inSpaceImages,
   cdnImage,
   existingDefault,
-}: V86ConfigStepProps) {
+}: V86ConfigStepProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const fromCatalog = cfg.source === V86WizardConfig_Source.LINK_FROM_CDN
 
   return (
-    <div sx={stylexStyles3.rule1}>
+    <div sx={[stylexStyles3.rule1, sx]}>
       <section>
         <h3 sx={stylexStyles3.rule2}>
           <LuCpu sx={stylexStyles2.rule1} />

@@ -24,6 +24,54 @@ import {
   radii as themeRadii,
 } from '../../web/style/tokens.stylex.js'
 
+const stylexStyles3 = stylex.create({
+  rule1: {
+    position: 'absolute',
+    top: `calc(${themeLayout['--spacing']} * 12)`,
+    right: `calc(${themeLayout['--spacing']} * 4)`,
+    zIndex: 30,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    gap: themeLayout['--spacing'],
+  },
+  rule2: {
+    position: 'absolute',
+    top: '42%',
+    left: `calc(${themeLayout['--spacing']} * 8)`,
+    zIndex: 30,
+    display: 'flex',
+    '--tw-translate-y': 'calc(calc(1 / 2 * 100%) * -1)',
+    translate: 'var(--tw-translate-x) var(--tw-translate-y)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+  },
+  rule3: {
+    position: 'absolute',
+    right: `calc(${themeLayout['--spacing']} * 12)`,
+    bottom: `calc(${themeLayout['--spacing']} * 24)`,
+    zIndex: 30,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    gap: themeLayout['--spacing'],
+  },
+  rule4: {
+    position: 'absolute',
+    top: '40%',
+    left: '50%',
+    zIndex: 30,
+    display: 'flex',
+    '--tw-translate-x': 'calc(calc(1 / 2 * 100%) * -1)',
+    translate: 'var(--tw-translate-x) var(--tw-translate-y)',
+    '--tw-translate-y': 'calc(calc(1 / 2 * 100%) * -1)',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: { pointerEvents: 'none', position: 'absolute', inset: 0, zIndex: 20 },
   rule2: {
@@ -275,7 +323,7 @@ export function IntroWizardOverlay({
 }
 
 interface CalloutLayout {
-  container: string
+  container: stylex.StyleXStyles
   arrow: ReactNode
   arrowPosition: 'before' | 'after' | 'none'
 }
@@ -283,11 +331,7 @@ interface CalloutLayout {
 function IntroCallout({ callout }: { callout: IntroWizardCallout }) {
   const layout = calloutLayout(callout.region)
   return (
-    <div
-      className={
-        /* TODO(stylex): dynamic class or forwarded className */ layout.container
-      }
-    >
+    <div sx={layout.container}>
       {layout.arrowPosition === 'before' && layout.arrow}
       <div sx={stylexStyles2.rule12}>
         <div sx={stylexStyles2.rule13}>{callout.title}</div>
@@ -306,28 +350,25 @@ function calloutLayout(region: IntroWizardRegion | undefined): CalloutLayout {
   switch (region) {
     case IntroWizardRegion.TOP:
       return {
-        container: 'absolute right-4 top-12 z-30 flex flex-col items-end gap-1',
+        container: stylexStyles3.rule1,
         arrow: <LuArrowUp sx={stylexStyles.rule2} />,
         arrowPosition: 'before',
       }
     case IntroWizardRegion.LEFT:
       return {
-        container:
-          'absolute left-8 top-[42%] z-30 flex -translate-y-1/2 flex-row items-center gap-1',
+        container: stylexStyles3.rule2,
         arrow: <LuArrowLeft sx={stylexStyles.rule3} />,
         arrowPosition: 'before',
       }
     case IntroWizardRegion.BOTTOM_RIGHT:
       return {
-        container:
-          'absolute right-12 bottom-24 z-30 flex flex-col items-end gap-1',
+        container: stylexStyles3.rule3,
         arrow: <LuArrowDownRight sx={stylexStyles.rule3} />,
         arrowPosition: 'after',
       }
     default:
       return {
-        container:
-          'absolute left-1/2 top-[40%] z-30 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1',
+        container: stylexStyles3.rule4,
         arrow: null,
         arrowPosition: 'none',
       }

@@ -84,6 +84,8 @@ const stylexStyles = stylex.create({
 })
 
 export interface SecurityLevelSectionProps {
+  sx?: stylex.StyleXStyles
+  className?: never
   account: Resource<Account>
   retainStepUp?: boolean
   // embedded hides the section heading and outer wrapper when rendered inside
@@ -94,6 +96,7 @@ export interface SecurityLevelSectionProps {
 // SecurityLevelSection displays the current security level and threshold
 // configuration when multiple auth methods are available.
 export function SecurityLevelSection({
+  sx,
   account,
   retainStepUp = false,
   embedded,
@@ -102,6 +105,7 @@ export function SecurityLevelSection({
   if (state) {
     return (
       <SecurityLevelSectionContent
+        sx={sx}
         account={account}
         retainStepUp={retainStepUp}
         embedded={embedded}
@@ -112,6 +116,7 @@ export function SecurityLevelSection({
 
   return (
     <SecurityLevelSectionWithWatch
+      sx={sx}
       account={account}
       retainStepUp={retainStepUp}
       embedded={embedded}
@@ -139,6 +144,7 @@ interface SecurityLevelSectionContentProps extends SecurityLevelSectionProps {
 }
 
 function SecurityLevelSectionContent({
+  sx,
   account,
   retainStepUp = false,
   embedded,
@@ -166,22 +172,24 @@ function SecurityLevelSectionContent({
   const content =
     !loading && info && keypairCount <= 1 ? null : (
       <>
-        {loading && <p sx={stylexStyles2.rule1}>Loading security info…</p>}
+        {loading && (
+          <p sx={[stylexStyles2.rule1, embedded && sx]}>
+            Loading security info…
+          </p>
+        )}
         {!loading && info && keypairCount > 1 && (
-          <div
-            className={
-              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
-            }
-          >
-            <div sx={stylexStyles2.rule2}>
+          <div sx={embedded && sx}>
+            <div sx={[nativeChildSpacingNext.s3, stylexStyles2.rule2]}>
               <span sx={stylexStyles2.rule3}>{level.label}</span>
               <span sx={stylexStyles2.rule4}>
                 {threshold + 1} of {keypairCount} required
               </span>
             </div>
-            <p sx={stylexStyles2.rule5}>{level.description}</p>
+            <p sx={[nativeChildSpacingNext.s3, stylexStyles2.rule5]}>
+              {level.description}
+            </p>
 
-            <div>
+            <div sx={nativeChildSpacingNext.s3}>
               {securityLevels(keypairCount).map((opt) => (
                 <RadioOption
                   sx={nativeChildSpacing.s1_5}
@@ -198,7 +206,7 @@ function SecurityLevelSectionContent({
               ))}
             </div>
 
-            <p sx={stylexStyles2.rule6}>
+            <p sx={[nativeChildSpacingNext.s3, stylexStyles2.rule6]}>
               Changing security level requires account re-authentication.
             </p>
           </div>
@@ -229,7 +237,7 @@ function SecurityLevelSectionContent({
   if (embedded) return content
 
   return (
-    <section>
+    <section sx={sx}>
       <div sx={stylexStyles2.rule7}>
         <h2 sx={stylexStyles2.rule8}>
           <LuShield sx={stylexStyles.rule1} />
@@ -305,6 +313,21 @@ const nativeChildSpacing = stylex.create({
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 1.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
     },
   },
 })

@@ -36,6 +36,10 @@ import {
   utilityState as themeUtilityState,
 } from '../../web/style/tokens.stylex.js'
 
+const stylexStyles5 = stylex.create({
+  rule1: { padding: `calc(${themeLayout['--spacing']} * 3)` },
+})
+
 const stylexStyles4 = stylex.create({
   rule1: {
     borderTopStyle: themeUtilityState['--tw-border-style'],
@@ -266,12 +270,10 @@ function SessionSelfEnrollmentStatusPopover({
 
   return (
     <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3 p-3'
-      }
+      sx={stylexStyles5.rule1}
       data-testid="session-self-enrollment-status-popover"
     >
-      <div sx={stylexStyles3.rule1}>
+      <div sx={[nativeChildSpacingNext.s3, stylexStyles3.rule1]}>
         <div
           sx={[
             stylexStyles3.rule2,
@@ -292,17 +294,25 @@ function SessionSelfEnrollmentStatusPopover({
 
       {status.progressVisible && (
         <ProgressBar
+          sx={nativeChildSpacingNext.s3}
           value={status.progress}
           indeterminate={status.progressIndeterminate}
         />
       )}
 
-      <FailedSpacesList failures={status.failures} />
+      <FailedSpacesList
+        sx={nativeChildSpacingNext.s3}
+        failures={status.failures}
+      />
 
-      {actionError && <div sx={stylexStyles3.rule10}>{actionError}</div>}
+      {actionError && (
+        <div sx={[nativeChildSpacingNext.s3, stylexStyles3.rule10]}>
+          {actionError}
+        </div>
+      )}
 
       {status.startVisible && (
-        <div sx={stylexStyles3.rule11}>
+        <div sx={[nativeChildSpacingNext.s3, stylexStyles3.rule11]}>
           <Button
             type="button"
             variant="outline"
@@ -373,6 +383,21 @@ const nativeChildSpacing = stylex.create({
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 1.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
     },
   },
 })

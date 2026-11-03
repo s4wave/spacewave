@@ -1,3 +1,8 @@
+import { IconStylesProvider } from '@s4wave/web/images/IconStylesProvider.js'
+import {
+  inspectorIconMarker,
+  iconRequired,
+} from '@s4wave/web/style/icon-defaults.stylex.js'
 import {
   useEffect,
   useRef,
@@ -76,6 +81,21 @@ import { groupMarker } from '../../web/style/relations.stylex.js'
 
 import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
 import { groupMarker as groupMarker2 } from '../../web/style/relations.stylex.js'
+
+const stylexStyles6 = stylex.create({
+  rule1: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+  },
+})
 
 const stylexStyles5 = stylex.create({
   rule1: {
@@ -843,11 +863,11 @@ export function SystemStatusDashboard({ onClose }: SystemStatusDashboardProps) {
               <div>
                 <h2
                   id="system-inspector-title"
-                  className={
-                    /* TODO(stylex): a descendant, group, peer or compound selector: [&>svg]:size-4 */ 'text-foreground flex items-center gap-2 text-lg font-semibold tracking-tight [&>svg]:size-4'
-                  }
+                  sx={[stylexStyles6.rule1, inspectorIconMarker]}
                 >
-                  {inspectorMeta[inspector].icon}
+                  <IconStylesProvider requiredSx={iconRequired.inspector}>
+                    {inspectorMeta[inspector].icon}
+                  </IconStylesProvider>
                   {inspectorMeta[inspector].title}
                 </h2>
                 <p sx={stylexStyles3.rule4}>

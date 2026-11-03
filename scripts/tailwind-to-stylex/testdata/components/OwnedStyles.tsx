@@ -6,7 +6,7 @@ import { Label } from './label.js'
 const ComponentStyles = 'existing-binding'
 const compiledStyles = compiled.create({
   override: { padding: 12 },
-  dynamic: (minWidth: number) => ({ minWidth }),
+  dynamic: (minWidth: number, zIndex: number) => ({ minWidth, zIndex }),
 })
 
 interface BoxProps extends React.ComponentProps<'div'> {
@@ -120,7 +120,7 @@ export function OwnedStyles({ optional = false }: { optional?: boolean } = {}) {
       <Box label="Default box">Default</Box>
       <Box
         label="Dynamic native caller"
-        className="min-w-[123px]"
+        className="min-w-[123px] z-3"
         style={{ '--owned-native-test': 'retained' }}
       >
         Dynamic caller
@@ -142,6 +142,7 @@ export function OwnedStyles({ optional = false }: { optional?: boolean } = {}) {
       >
         Attribute state
       </button>
+      <div className="relative -z-10">Negative layer</div>
     </section>
   )
 }

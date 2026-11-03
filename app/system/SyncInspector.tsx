@@ -1,3 +1,4 @@
+import { utilityState as themeUtilityState } from '@s4wave/web/style/tokens.stylex.js'
 import type { SessionSyncStatusView } from '@s4wave/app/session/SessionSyncStatusContext.js'
 
 import { Facts } from './Facts.js'
@@ -124,13 +125,12 @@ export function SyncInspector({ sync }: { sync: SessionSyncStatusView }) {
         {sync.localCopies.length === 0 ? (
           <p sx={stylexStyles.rule2}>No local copies reported.</p>
         ) : (
-          <ul
-            className={
-              /* TODO(stylex): a descendant, group, peer or compound selector: divide-y */ 'divide-foreground/6 divide-y'
-            }
-          >
+          <ul>
             {sync.localCopies.map((copy) => (
-              <li key={copy.id} sx={[false, edgeSpacing.s2]}>
+              <li
+                key={copy.id}
+                sx={[[false, edgeSpacing.s2], nativeDividers.t6]}
+              >
                 <div sx={stylexStyles.rule3}>
                   <span sx={stylexStyles.rule4}>{copy.name}</span>
                   <span sx={stylexStyles.rule5}>{copy.status}</span>
@@ -150,13 +150,12 @@ export function SyncInspector({ sync }: { sync: SessionSyncStatusView }) {
         {sync.peers.length === 0 ? (
           <p sx={stylexStyles.rule2}>No peers are exchanging data right now.</p>
         ) : (
-          <ul
-            className={
-              /* TODO(stylex): a descendant, group, peer or compound selector: divide-y */ 'divide-foreground/6 divide-y'
-            }
-          >
+          <ul>
             {sync.peers.map((peer) => (
-              <li key={peer.id} sx={[false, edgeSpacing.s2]}>
+              <li
+                key={peer.id}
+                sx={[[false, edgeSpacing.s2], nativeDividers.t6]}
+              >
                 <div sx={stylexStyles.rule3}>
                   <span sx={stylexStyles.rule4}>{peer.name}</span>
                   <span sx={stylexStyles.rule5}>{peer.state}</span>
@@ -198,5 +197,33 @@ const edgeSpacing = stylex.create({
   s2: {
     paddingTop: { default: 'calc(var(--spacing) * 2)', ':first-child': 0 },
     paddingBottom: { default: 'calc(var(--spacing) * 2)', ':last-child': 0 },
+  },
+})
+
+// nativeDividers applies the list border only to its nonfinal physical rows.
+const nativeDividers = stylex.create({
+  t6: {
+    '--tw-divide-y-reverse': { default: null, ':not(:last-child)': 0 },
+    borderBottomStyle: {
+      default: null,
+      ':not(:last-child)': themeUtilityState['--tw-border-style'],
+    },
+    borderTopStyle: {
+      default: null,
+      ':not(:last-child)': themeUtilityState['--tw-border-style'],
+    },
+    borderTopWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * var(--tw-divide-y-reverse))',
+    },
+    borderBottomWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * calc(1 - var(--tw-divide-y-reverse)))',
+    },
+    borderColor: {
+      default: null,
+      ':not(:last-child)':
+        'color-mix(in oklab, var(--color-foreground) 6%, transparent)',
+    },
   },
 })

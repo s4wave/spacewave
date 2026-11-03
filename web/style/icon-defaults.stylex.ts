@@ -19,6 +19,11 @@ export const codeTitleIconMarker = stylex.defineMarker()
 /** bottomBarIconMarker scopes direct-child bar icon requirements. */
 export const bottomBarIconMarker = stylex.defineMarker()
 
+/** inspectorIconMarker scopes the inspector heading's direct glyph. */
+export const inspectorIconMarker = stylex.defineMarker()
+/** agentPanelIconMarker scopes glyphs in a connection action. */
+export const agentPanelIconMarker = stylex.defineMarker()
+
 /** iconDefaults composes DOM-scoped defaults before an icon's explicit caller styles. */
 export const iconDefaults = stylex.create({
   menu: {
@@ -87,6 +92,26 @@ export const iconDefaults = stylex.create({
 
 /** iconRequired retains menu interaction rules independently of explicit caller defaults. */
 export const iconRequired = stylex.create({
+  inspector: {
+    width: {
+      default: null,
+      [stylex.when.ancestor(':is(*) >', inspectorIconMarker)]: 16,
+    },
+    height: {
+      default: null,
+      [stylex.when.ancestor(':is(*) >', inspectorIconMarker)]: 16,
+    },
+  },
+  agentPanel: {
+    width: {
+      default: null,
+      [stylex.when.ancestor(':is(*)', agentPanelIconMarker)]: 14,
+    },
+    height: {
+      default: null,
+      [stylex.when.ancestor(':is(*)', agentPanelIconMarker)]: 14,
+    },
+  },
   bottomBar: {
     width: {
       default: null,

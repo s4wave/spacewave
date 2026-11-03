@@ -10,6 +10,41 @@ import { ExternalLink } from './ExternalLink.js'
 import GetStarted from './GetStarted.js'
 import { NavigationLinks } from './NavigationLinks.js'
 
+import {
+  motion as themeMotion,
+  colors as themeColors,
+  layout as themeLayout,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    textDecorationLine: 'underline',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    color: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-brand'],
+      },
+    },
+    display: { default: null, '@media (pointer: coarse)': 'inline-flex' },
+    minHeight: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+    minWidth: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+    alignItems: { default: null, '@media (pointer: coarse)': 'center' },
+    justifyContent: { default: null, '@media (pointer: coarse)': 'center' },
+  },
+})
+
 interface GetStartedSectionProps {
   homeRef: React.RefObject<HTMLDivElement | null>
   showScrollIndicator: boolean
@@ -101,10 +136,7 @@ export function GetStartedSection({
           <span aria-hidden>·</span>
           <span>Free software</span>
           <span aria-hidden>·</span>
-          <ExternalLink
-            href="https://spacemacs.org"
-            className="hover:text-brand underline transition-colors [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11 [@media(pointer:coarse)]:items-center [@media(pointer:coarse)]:justify-center"
-          >
+          <ExternalLink href="https://spacemacs.org" sx={stylexStyles.rule1}>
             Inspired by Spacemacs
           </ExternalLink>
         </div>

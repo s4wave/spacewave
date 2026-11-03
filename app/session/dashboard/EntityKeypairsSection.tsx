@@ -279,6 +279,8 @@ const stylexStyles = stylex.create({
 })
 
 export interface EntityKeypairsSectionProps {
+  sx?: stylex.StyleXStyles
+  className?: never
   // embedded hides the section heading and outer wrapper when rendered inside
   // a parent CollapsibleSection.
   embedded?: boolean
@@ -286,6 +288,7 @@ export interface EntityKeypairsSectionProps {
 
 // EntityKeypairsSection displays and manages entity keypairs for local sessions.
 export function EntityKeypairsSection({
+  sx,
   embedded,
 }: EntityKeypairsSectionProps) {
   const sessionResource = SessionContext.useContext()
@@ -321,9 +324,11 @@ export function EntityKeypairsSection({
 
   const content = (
     <>
-      {loading && <p sx={stylexStyles2.rule1}>Loading keypairs…</p>}
+      {loading && (
+        <p sx={[stylexStyles2.rule1, embedded && sx]}>Loading keypairs…</p>
+      )}
       {!loading && keypairs.length === 0 && !showAdd && (
-        <div sx={stylexStyles2.rule2}>
+        <div sx={[stylexStyles2.rule2, embedded && sx]}>
           <p sx={stylexStyles2.rule1}>No entity keypairs yet.</p>
           <button
             type="button"
@@ -335,7 +340,7 @@ export function EntityKeypairsSection({
         </div>
       )}
       {!loading && keypairs.length > 0 && (
-        <div>
+        <div sx={embedded && sx}>
           {keypairs.map((kp) => (
             <KeypairRow
               sx={nativeChildSpacingNext.s2}
@@ -363,6 +368,7 @@ export function EntityKeypairsSection({
 
       {showAdd && (
         <AddKeypairPanel
+          sx={embedded && sx}
           session={session}
           account={accountResource.value}
           error={error}
@@ -376,7 +382,7 @@ export function EntityKeypairsSection({
   if (embedded) return content
 
   return (
-    <section>
+    <section sx={sx}>
       <div sx={stylexStyles2.rule6}>
         <h2 sx={stylexStyles2.rule7}>
           <LuKey sx={stylexStyles.rule2} />
@@ -391,6 +397,7 @@ export function EntityKeypairsSection({
 // AddKeypairPanel adds a password key or a downloaded backup key. It owns the
 // credential draft, and reports failures through onError.
 function AddKeypairPanel({
+  sx,
   session,
   account,
   error,
@@ -402,7 +409,7 @@ function AddKeypairPanel({
   error: string | null
   onError: (error: string | null) => void
   onClose: () => void
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   const [adding, setAdding] = useState(false)
   const [exporting, setExporting] = useState(false)
   const cred = useCredentialProof()
@@ -443,7 +450,7 @@ function AddKeypairPanel({
   }
 
   return (
-    <div sx={stylexStyles4.rule1}>
+    <div sx={[stylexStyles4.rule1, sx]}>
       <div sx={[nativeChildSpacingNext.s3, stylexStyles3.rule1]}>
         <div sx={nativeChildSpacing.s3}>
           <p sx={stylexStyles2.rule8}>Password key</p>

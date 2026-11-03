@@ -420,13 +420,10 @@ function InvitesSection({
   return (
     <div sx={[!!bordered && stylexStyles2.rule1]}>
       <div sx={stylexStyles2.rule2}>Invites</div>
-      <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1 */ 'space-y-1'
-        }
-      >
+      <div>
         {invites.map((inv) => (
           <InviteRow
+            sx={nativeChildSpacing.s1}
             key={inv.inviteId}
             invite={inv}
             canRevoke={canRevoke}
@@ -455,13 +452,10 @@ function PendingRequestsSection({
     <div sx={[!!bordered && stylexStyles2.rule1]}>
       <div sx={stylexStyles2.rule2}>Pending Requests</div>
       {entries.length > 0 ? (
-        <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1 */ 'space-y-1'
-          }
-        >
+        <div>
           {entries.map((entry) => (
             <PendingRequestRow
+              sx={nativeChildSpacing.s1}
               key={String(entry.id)}
               entry={entry}
               processing={processingEntry === entry.id}
@@ -538,14 +532,10 @@ export function SpaceMembersPanel({ compact = false }: SpaceMembersPanelProps) {
       )}
 
       {participantInfo.length > 0 && (
-        <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1 */ 'space-y-1'
-          }
-          data-testid="space-members-panel"
-        >
+        <div data-testid="space-members-panel">
           {participantInfo.map((member) => (
             <MemberRow
+              sx={nativeChildSpacing.s1}
               key={getParticipantKey(member)}
               memberId={getParticipantKey(member)}
               primaryLabel={getParticipantPrimaryLabel(member)}
@@ -587,20 +577,22 @@ export function SpaceMembersPanel({ compact = false }: SpaceMembersPanelProps) {
   )
 }
 
-function MemberRow(props: {
-  memberId: string
-  primaryLabel: string
-  secondaryLabel: string
-  role: SOParticipantRole
-  isSelf: boolean
-  deviceCount: number
-  canRemove: boolean
-  removing: boolean
-  onRemove: () => void
-}) {
+function MemberRow(
+  props: {
+    memberId: string
+    primaryLabel: string
+    secondaryLabel: string
+    role: SOParticipantRole
+    isSelf: boolean
+    deviceCount: number
+    canRemove: boolean
+    removing: boolean
+    onRemove: () => void
+  } & { sx?: stylex.StyleXStyles; className?: never },
+) {
   return (
     <div
-      sx={stylexStyles2.rule7}
+      sx={[stylexStyles2.rule7, props.sx]}
       data-testid="space-member-row"
       data-member-id={props.memberId}
     >
@@ -640,19 +632,21 @@ function MemberRow(props: {
   )
 }
 
-function InviteRow(props: {
-  invite: SOInvite
-  canRevoke: boolean
-  revoking: boolean
-  onRevoke: () => void
-}) {
+function InviteRow(
+  props: {
+    invite: SOInvite
+    canRevoke: boolean
+    revoking: boolean
+    onRevoke: () => void
+  } & { sx?: stylex.StyleXStyles; className?: never },
+) {
   const inv = props.invite
   const usageText = inv.maxUses
     ? `${inv.uses ?? 0}/${inv.maxUses} uses`
     : `${inv.uses ?? 0} uses`
 
   return (
-    <div sx={stylexStyles2.rule7}>
+    <div sx={[stylexStyles2.rule7, props.sx]}>
       <span sx={stylexStyles2.rule15}>
         {truncatePeerId(inv.inviteId ?? '')}
       </span>
@@ -679,18 +673,20 @@ function InviteRow(props: {
   )
 }
 
-function PendingRequestRow(props: {
-  entry: MailboxEntryInfo
-  processing: boolean
-  onAccept: () => void
-  onReject: () => void
-}) {
+function PendingRequestRow(
+  props: {
+    entry: MailboxEntryInfo
+    processing: boolean
+    onAccept: () => void
+    onReject: () => void
+  } & { sx?: stylex.StyleXStyles; className?: never },
+) {
   const primaryLabel = getMailboxEntryPrimaryLabel(props.entry)
   const secondaryLabel = getMailboxEntrySecondaryLabel(props.entry)
   const inviteLabel = getMailboxEntryInviteLabel(props.entry)
 
   return (
-    <div sx={stylexStyles2.rule7}>
+    <div sx={[stylexStyles2.rule7, props.sx]}>
       <div sx={stylexStyles2.rule8}>
         <div sx={stylexStyles2.rule9} data-testid="pending-request-label">
           {primaryLabel}
@@ -725,3 +721,18 @@ function PendingRequestRow(props: {
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s1: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

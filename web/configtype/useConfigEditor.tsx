@@ -1,3 +1,4 @@
+import type { StyleXStyles } from '@stylexjs/stylex'
 import { useCallback, useMemo, createElement } from 'react'
 
 import type { StaticConfigTypeRegistration } from './configtype.js'
@@ -5,8 +6,8 @@ import { useAllConfigTypes } from './ConfigTypeRegistryContext.js'
 
 // ConfigEditorResult is the result of useConfigEditor.
 export interface ConfigEditorResult {
-  // element is the rendered config editor, or null if no editor is registered.
-  element: React.ReactElement | null
+  // render applies caller styles at the registered editor's physical root.
+  render: (sx?: StyleXStyles) => React.ReactElement | null
   // registration is the matched registration, or undefined if not found.
   registration: StaticConfigTypeRegistration | undefined
   // value is the decoded config message, or undefined if not available.
@@ -27,6 +28,7 @@ export function useConfigEditor(
   configData: Uint8Array | undefined,
   onConfigDataChange: (data: Uint8Array) => void,
 ): ConfigEditorResult {
+  // Resolve the registration and its optional protobuf codec.
   const registrations = useAllConfigTypes()
   const reg = useMemo(
     () => registrations.find((r) => r.configId === configId),
@@ -34,6 +36,7 @@ export function useConfigEditor(
   )
   const messageType = reg?.messageType as BinaryMessageType | undefined
 
+  // Decode the controlled value without mutating the stored bytes.
   const value = useMemo(() => {
     if (!reg) return undefined
     // Dynamic registrations without messageType pass raw bytes.
@@ -52,6 +55,7 @@ export function useConfigEditor(
     }
   }, [reg, messageType, configData])
 
+  // Encode edits through the same registration that decoded the value.
   const onValueChange = useCallback(
     (newValue: unknown) => {
       if (!reg) return
@@ -64,10 +68,14 @@ export function useConfigEditor(
     [reg, messageType, onConfigDataChange],
   )
 
-  const element = useMemo(() => {
-    if (!reg || !value) return null
-    return createElement(reg.component as never, { value, onValueChange })
-  }, [reg, value, onValueChange])
+  // Render styles at the registered component rather than at an added wrapper.
+  const render = useCallback(
+    (sx?: StyleXStyles) => {
+      if (!reg || !value) return null
+      return createElement(reg.component as never, { value, onValueChange, sx })
+    },
+    [reg, value, onValueChange],
+  )
 
-  return { element, registration: reg, value }
+  return { render, registration: reg, value }
 }

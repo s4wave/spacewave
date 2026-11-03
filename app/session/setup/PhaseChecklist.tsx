@@ -1,7 +1,6 @@
 import { LuCheck } from '@s4wave/web/images/icons.js'
 
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
@@ -11,6 +10,10 @@ import {
   utilityState as themeUtilityState,
   fonts as themeFonts,
 } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: { paddingInline: `calc(${themeLayout['--spacing']} * 2)` },
+})
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -59,23 +62,21 @@ export interface PhaseChecklistItem {
 
 export interface PhaseChecklistProps {
   phases: PhaseChecklistItem[]
-  className?: string
+  sx?: stylex.StyleXStyles
+  className?: never
 }
 
 // PhaseChecklist renders an ordered list of phases as a vertical checklist
 // with a check, spinner, or pending dot per item.
-export function PhaseChecklist({ phases, className }: PhaseChecklistProps) {
+export function PhaseChecklist({ phases, sx }: PhaseChecklistProps) {
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ cn(
-          'space-y-2 px-2',
-          className,
-        )
-      }
-    >
+    <div sx={[stylexStyles3.rule1, sx]}>
       {phases.map((phase) => (
-        <PhaseChecklistRow key={phase.label} {...phase} />
+        <PhaseChecklistRow
+          key={phase.label}
+          {...phase}
+          sx={phaseChildren.row}
+        />
       ))}
     </div>
   )
@@ -112,3 +113,20 @@ function PhaseChecklistRow({
     </div>
   )
 }
+
+// phaseChildren preserves the phase list margins at each rendered row.
+const phaseChildren = stylex.create({
+  row: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)':
+        'calc(var(--spacing) * 2 * var(--tw-space-y-reverse))',
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)':
+        'calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))',
+    },
+  },
+})

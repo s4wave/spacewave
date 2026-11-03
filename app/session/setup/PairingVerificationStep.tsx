@@ -217,10 +217,14 @@ function usePairingStatus(session: Session | null | undefined) {
 // PairingVerificationStep presents the selected account and follows the provider's
 // bilateral approval and enrollment operation across every pairing entry point.
 export function PairingVerificationStep({
+  sx,
   session,
   onContinue,
   onAbort,
-}: PairingVerificationStepProps) {
+}: PairingVerificationStepProps & {
+  sx?: stylex.StyleXStyles
+  className?: never
+}) {
   const { snapshot, error, setError } = usePairingStatus(session)
   const [submitted, setSubmitted] = useState(false)
   const continuePairing = useEffectEvent(onContinue)
@@ -250,6 +254,7 @@ export function PairingVerificationStep({
   ) {
     return (
       <PairingAccountChoice
+        sx={sx}
         choice={snapshot.choice}
         receiving={snapshot.receiving ?? false}
         onChoose={async (outcome) => {
@@ -263,7 +268,7 @@ export function PairingVerificationStep({
 
   if (error) {
     return (
-      <div sx={stylexStyles3.rule1}>
+      <div sx={[stylexStyles3.rule1, sx]}>
         <h2 sx={[nativeChildSpacing.s4, stylexStyles2.rule1]}>
           Pairing failed
         </h2>
@@ -281,6 +286,7 @@ export function PairingVerificationStep({
 
   return (
     <PairingVerification
+      sx={sx}
       snapshot={snapshot}
       submitted={submitted}
       onConfirm={(approved) => void confirm(approved)}
@@ -351,6 +357,7 @@ function describePairing(
 // PairingVerification shows the verification emoji and the confirm actions, or
 // a spinner while enrollment or the other device is pending.
 function PairingVerification({
+  sx,
   snapshot,
   submitted,
   onConfirm,
@@ -358,17 +365,13 @@ function PairingVerification({
   snapshot: WatchPairingStatusResponse | undefined
   submitted: boolean
   onConfirm: (approved: boolean) => void
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   const { busy, summary, heading, body } = describePairing(snapshot, submitted)
   const emoji = snapshot?.emoji ?? []
 
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4'
-      }
-    >
-      <div sx={stylexStyles2.rule4}>
+    <div sx={sx}>
+      <div sx={[nativeChildSpacingNext.s4, stylexStyles2.rule4]}>
         <div sx={stylexStyles2.rule5}>
           <LuShieldCheck sx={stylexStyles.rule1} />
         </div>
@@ -378,7 +381,10 @@ function PairingVerification({
       </div>
 
       {emoji.length > 0 && (
-        <div sx={stylexStyles2.rule8} aria-label="Verification emoji">
+        <div
+          sx={[nativeChildSpacingNext.s4, stylexStyles2.rule8]}
+          aria-label="Verification emoji"
+        >
           {emoji.map((symbol, index) => (
             <div key={`${index}-${symbol}`} sx={stylexStyles2.rule9}>
               {symbol}
@@ -387,13 +393,16 @@ function PairingVerification({
         </div>
       )}
       {busy ? (
-        <div sx={stylexStyles2.rule10}>
+        <div sx={[nativeChildSpacingNext.s4, stylexStyles2.rule10]}>
           <Spinner size="lg" />
         </div>
       ) : emoji.length === 0 ? (
-        <PairingChannelProgress status={snapshot?.status} />
+        <PairingChannelProgress
+          sx={nativeChildSpacingNext.s4}
+          status={snapshot?.status}
+        />
       ) : (
-        <div sx={stylexStyles2.rule11}>
+        <div sx={[nativeChildSpacingNext.s4, stylexStyles2.rule11]}>
           <button
             type="button"
             onClick={() => onConfirm(false)}
@@ -418,6 +427,21 @@ function PairingVerification({
 
 // nativeChildSpacing preserves the original margins at each rendered child.
 const nativeChildSpacing = stylex.create({
+  s4: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
   s4: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
     marginBlockStart: {

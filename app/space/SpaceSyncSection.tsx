@@ -221,25 +221,23 @@ export function SpaceSyncSection() {
     <div sx={stylexStyles2.rule1}>
       <h3 sx={stylexStyles2.rule2}>How edits sync</h3>
       <InfoCard>
-        <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-          }
-        >
+        <div>
           <SyncChoice
+            sx={nativeChildSpacingNextNext.s2}
             sequencer={sequencer}
             choices={choices}
             disabled={!canManage}
             onChoose={(next) => void choose(next)}
           />
           <SyncStatus
+            sx={nativeChildSpacingNextNext.s2}
             state={spaceSharingState}
             sequencer={sequencer}
             switching={switching}
             unordered={health?.unorderedCount ?? 0}
           />
           {canTakeOver && (
-            <div sx={stylexStyles2.rule3}>
+            <div sx={[nativeChildSpacingNextNext.s2, stylexStyles2.rule3]}>
               <DashboardButton
                 icon={<LuMonitor sx={stylexStyles.rule1} />}
                 onClick={() => setTakeOver(MAKE_MAIN)}
@@ -256,12 +254,14 @@ export function SpaceSyncSection() {
           )}
           {health && (
             <SyncPeerList
+              sx={nativeChildSpacingNextNext.s2}
               state={spaceSharingState}
               peers={health.syncPeers ?? []}
               showDetails={showDetails}
             />
           )}
           <TechnicalDetails
+            sx={nativeChildSpacingNextNext.s2}
             merged={merged}
             peerId={spaceSharingState.sequencerPeerId}
             show={showDetails}
@@ -347,6 +347,7 @@ function useSharedObjectHealth(
 // SyncChoice is the Merge or One order radio pair. One order appoints the
 // provider or this device, whichever the choices offer.
 function SyncChoice({
+  sx,
   sequencer,
   choices,
   disabled,
@@ -356,7 +357,7 @@ function SyncChoice({
   choices: SpaceSequencer[]
   disabled: boolean
   onChoose: (sequencer: SpaceSequencer) => void
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   const merged = sequencer === SpaceSequencer.SpaceSequencer_MERGE
   const oneOrder = choices.find(
     (c) =>
@@ -364,7 +365,7 @@ function SyncChoice({
       c === SpaceSequencer.SpaceSequencer_THIS_DEVICE,
   )
   return (
-    <div role="radiogroup" aria-label="How edits sync">
+    <div sx={sx} role="radiogroup" aria-label="How edits sync">
       <RadioOption
         sx={nativeChildSpacingNext.s1_5}
         selected={merged}
@@ -390,6 +391,7 @@ function SyncChoice({
 // SyncStatus says whose order the Space follows and how many edits wait for
 // it, or which way the Space is switching to while a change is pending.
 function SyncStatus({
+  sx,
   state,
   sequencer,
   switching,
@@ -399,20 +401,20 @@ function SyncStatus({
   sequencer: SpaceSequencer
   switching: boolean
   unordered: number
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   const merged = sequencer === SpaceSequencer.SpaceSequencer_MERGE
   if (switching) {
     return (
-      <p sx={stylexStyles2.rule4} role="status">
+      <p sx={[stylexStyles2.rule4, sx]} role="status">
         {switchingStatus(sequencer)}
       </p>
     )
   }
   return (
     <>
-      <p sx={stylexStyles2.rule4}>{sequencerStatus(state, sequencer)}</p>
+      <p sx={[stylexStyles2.rule4, sx]}>{sequencerStatus(state, sequencer)}</p>
       {!merged && unordered > 0 && (
-        <p sx={stylexStyles2.rule5}>
+        <p sx={[stylexStyles2.rule5, sx]}>
           {unordered === 1
             ? '1 edit is waiting to be put in order.'
             : `${unordered} edits are waiting to be put in order.`}
@@ -425,6 +427,7 @@ function SyncStatus({
 // TechnicalDetails shows the sequencer terms behind the plain wording, behind
 // the global technical details toggle.
 function TechnicalDetails({
+  sx,
   merged,
   peerId,
   show,
@@ -434,14 +437,14 @@ function TechnicalDetails({
   peerId?: string
   show: boolean
   onToggle: () => void
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
     <>
-      <button type="button" sx={stylexStyles2.rule6} onClick={onToggle}>
+      <button type="button" sx={[stylexStyles2.rule6, sx]} onClick={onToggle}>
         {show ? 'Hide technical details' : 'Show technical details'}
       </button>
       {show && (
-        <div>
+        <div sx={sx}>
           <p sx={[nativeChildSpacing.s1_5, stylexStyles2.rule4]}>
             {merged
               ? 'No sequencer is appointed. Each operation becomes stable once every device has acknowledged it.'
@@ -571,6 +574,21 @@ const nativeChildSpacingNext = stylex.create({
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 1.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNextNext = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
     },
   },
 })

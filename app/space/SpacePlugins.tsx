@@ -49,6 +49,17 @@ import {
   motion as themeMotion,
 } from '../../web/style/tokens.stylex.js'
 
+const stylexStyles5 = stylex.create({
+  rule1: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+})
+
 const stylexStyles4 = stylex.create({
   rule1: {
     fontSize: themeFonts['--text-xs'],
@@ -490,7 +501,7 @@ interface SpacePluginAddPanelProps {
   suggestions: CatalogEntry[]
   onDraftChange: (value: string) => void
   onAdd: (pluginId: string) => void
-  children?: ReactNode
+  children?: (childSx: stylex.StyleXStyles) => ReactNode
 }
 
 // SpacePluginAddPanel renders manifest entry, catalog suggestions, and its
@@ -507,12 +518,8 @@ function SpacePluginAddPanel({
   children,
 }: SpacePluginAddPanelProps) {
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'border-foreground/6 bg-background-card/30 space-y-3 rounded-lg border p-3.5'
-      }
-    >
-      <div>
+    <div sx={stylexStyles5.rule1}>
+      <div sx={slotChildren.child}>
         <label
           htmlFor="space-plugin-id"
           sx={[nativeChildSpacing.s1_5, stylexStyles4.rule1]}
@@ -555,7 +562,7 @@ function SpacePluginAddPanel({
       </div>
 
       {suggestions.length > 0 && (
-        <div>
+        <div sx={slotChildren.child}>
           <span sx={[nativeChildSpacing.s1_5, stylexStyles4.rule4]}>
             Available plugins
           </span>
@@ -597,7 +604,7 @@ function SpacePluginAddPanel({
         </div>
       )}
 
-      {children}
+      {children?.(slotChildren.child)}
     </div>
   )
 }
@@ -982,12 +989,19 @@ export function SpacePlugins() {
           onDraftChange={setDraftId}
           onAdd={(pluginId) => void handleAdd(pluginId)}
         >
-          <SpacePluginImport
-            spaceId={spaceId}
-            installedIds={installedIds}
-            pending={pending}
-            onImport={(source, pluginId) => void handleAdd(pluginId, source)}
-          />
+          {(childSx) => (
+            <>
+              <SpacePluginImport
+                sx={childSx}
+                spaceId={spaceId}
+                installedIds={installedIds}
+                pending={pending}
+                onImport={(source, pluginId) =>
+                  void handleAdd(pluginId, source)
+                }
+              />
+            </>
+          )}
         </SpacePluginAddPanel>
       )}
 
@@ -1028,6 +1042,23 @@ const nativeChildSpacing = stylex.create({
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 1.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// slotChildren keeps the optional action in the original physical child sequence.
+const slotChildren = stylex.create({
+  child: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)':
+        'calc(var(--spacing) * 3 * var(--tw-space-y-reverse))',
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)':
+        'calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))',
     },
   },
 })

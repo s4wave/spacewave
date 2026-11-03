@@ -29,10 +29,14 @@ interface StorageHealthSectionProps {
 
 // StorageHealthSection places the shared storage-health surface in settings home.
 export function StorageHealthSection({
+  sx,
   open,
   onOpenChange,
   onNavigateToPath,
-}: StorageHealthSectionProps) {
+}: StorageHealthSectionProps & {
+  sx?: stylex.StyleXStyles
+  className?: never
+}) {
   const handleOpenRecovery = useCallback(() => {
     onNavigateToPath('settings/storage/recovery')
   }, [onNavigateToPath])
@@ -45,6 +49,7 @@ export function StorageHealthSection({
 
   return (
     <CollapsibleSection
+      sx={sx}
       title="Storage"
       icon={<LuDatabase sx={stylexStyles.rule1} />}
       open={open}

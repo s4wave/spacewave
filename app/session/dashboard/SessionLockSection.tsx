@@ -185,13 +185,15 @@ const stylexStyles = stylex.create({
 })
 
 export interface SessionLockSectionProps {
+  sx?: stylex.StyleXStyles
+  className?: never
   // embedded hides the section heading and outer wrapper when rendered inside
   // a parent CollapsibleSection.
   embedded?: boolean
 }
 
 // SessionLockSection displays session lock mode controls.
-export function SessionLockSection({ embedded }: SessionLockSectionProps) {
+export function SessionLockSection({ sx, embedded }: SessionLockSectionProps) {
   const sessionResource = SessionContext.useContext()
   const session = useResourceValue(sessionResource)
   const lockStateResource = useStreamingResource(
@@ -255,18 +257,20 @@ export function SessionLockSection({ embedded }: SessionLockSectionProps) {
   const isPinMode = displayMode === 'pin'
   const needsPin = isPinMode && hasChanges
 
+  const contentSx = getEmbeddedContentStyles(embedded, sx)
   const content = (
     <>
       {loading && (
-        <LoadingInline label="Loading lock state" tone="muted" size="sm" />
+        <LoadingInline
+          sx={contentSx}
+          label="Loading lock state"
+          tone="muted"
+          size="sm"
+        />
       )}
       {!loading && (
-        <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
-          }
-        >
-          <div>
+        <div sx={contentSx}>
+          <div sx={nativeChildSpacingNextNext.s3}>
             <RadioOption
               sx={nativeChildSpacingNext.s1_5}
               selected={displayMode === 'auto'}
@@ -287,6 +291,7 @@ export function SessionLockSection({ embedded }: SessionLockSectionProps) {
 
           {needsPin && (
             <PinFields
+              sx={nativeChildSpacingNextNext.s3}
               pin={pin}
               confirmPin={confirmPin}
               onPinChange={setPin}
@@ -298,16 +303,20 @@ export function SessionLockSection({ embedded }: SessionLockSectionProps) {
             <button
               type="button"
               onClick={() => setChangingPin(true)}
-              sx={stylexStyles2.rule1}
+              sx={[nativeChildSpacingNextNext.s3, stylexStyles2.rule1]}
             >
               Change PIN
             </button>
           )}
 
-          {error && <p sx={stylexStyles2.rule2}>{error}</p>}
+          {error && (
+            <p sx={[nativeChildSpacingNextNext.s3, stylexStyles2.rule2]}>
+              {error}
+            </p>
+          )}
 
           {hasChanges && (
-            <div sx={stylexStyles2.rule3}>
+            <div sx={[nativeChildSpacingNextNext.s3, stylexStyles2.rule3]}>
               <button
                 type="button"
                 onClick={() => void handleSave()}
@@ -326,7 +335,7 @@ export function SessionLockSection({ embedded }: SessionLockSectionProps) {
             </div>
           )}
 
-          <p sx={stylexStyles2.rule6}>
+          <p sx={[nativeChildSpacingNextNext.s3, stylexStyles2.rule6]}>
             Changing lock mode only requires your current session. No account
             re-auth needed.
           </p>
@@ -338,7 +347,7 @@ export function SessionLockSection({ embedded }: SessionLockSectionProps) {
   if (embedded) return content
 
   return (
-    <section>
+    <section sx={sx}>
       <div sx={stylexStyles2.rule7}>
         <h2 sx={stylexStyles2.rule8}>
           <LuLock sx={stylexStyles.rule2} />
@@ -441,3 +450,26 @@ const nativeChildSpacingNext = stylex.create({
     },
   },
 })
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNextNext = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// getEmbeddedContentStyles applies frame spacing only when there is no outer section.
+function getEmbeddedContentStyles(
+  embedded: boolean | undefined,
+  sx: stylex.StyleXStyles,
+): stylex.StyleXStyles {
+  return embedded && sx
+}

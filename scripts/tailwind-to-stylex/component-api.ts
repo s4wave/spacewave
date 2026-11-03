@@ -325,6 +325,32 @@ export function prepareComponentStyles(
           input.isAssignmentPattern() && isDefaultObjectParameter(input.node)
             ? input.get('left')
             : input
+        // Props objects expose the same native input as a destructured sx parameter.
+        if (parameter.isIdentifier()) {
+          const annotation = parameter.node.typeAnnotation
+          const type =
+            annotation?.type === 'TSTypeAnnotation'
+              ? annotation.typeAnnotation
+              : undefined
+          const parts =
+            type?.type === 'TSIntersectionType' ? type.types : [type]
+          const styled = parts.some(
+            (part) =>
+              part?.type === 'TSTypeLiteral' &&
+              part.members.some(
+                (member) =>
+                  member.type === 'TSPropertySignature' &&
+                  member.key.type === 'Identifier' &&
+                  member.key.name === 'sx',
+              ),
+          )
+          if (
+            styled &&
+            path.node.type === 'FunctionDeclaration' &&
+            path.node.id
+          )
+            components.add(path.node.id.name)
+        }
         if (!parameter.isObjectPattern()) continue
         for (const property of parameter.get('properties')) {
           if (!property.isObjectProperty() || property.node.computed) continue

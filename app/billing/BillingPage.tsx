@@ -434,7 +434,13 @@ function InlineError({ message }: { message: string | null }) {
 }
 
 /** BillingStatusRow shows the plan status, interval, and renewal or end date. */
-function BillingStatusRow({ billing }: { billing: BillingAccountInfo }) {
+function BillingStatusRow({
+  sx,
+  billing,
+}: { billing: BillingAccountInfo } & {
+  sx?: stylex.StyleXStyles
+  className?: never
+}) {
   const status = billing.status
   const intLabel = intervalLabel(billing.billingInterval)
   const isCancelScheduled = isStatusActive(status) && !!billing.cancelAt
@@ -442,7 +448,7 @@ function BillingStatusRow({ billing }: { billing: BillingAccountInfo }) {
 
   return (
     <>
-      <div sx={stylexStyles2.rule7}>
+      <div sx={[stylexStyles2.rule7, sx]}>
         <span sx={[[stylexStyles4.rule1], [statusBadgeStyles(status)]]}>
           {statusLabel(status)}
         </span>
@@ -455,7 +461,7 @@ function BillingStatusRow({ billing }: { billing: BillingAccountInfo }) {
         )}
       </div>
       {isCancelScheduled && renewalAt && (
-        <div sx={stylexStyles2.rule10}>
+        <div sx={[stylexStyles2.rule10, sx]}>
           Your subscription is set to end on{' '}
           <span suppressHydrationWarning sx={stylexStyles2.rule11}>
             {formatBillingDate(renewalAt)}
@@ -513,13 +519,10 @@ export function BillingPage() {
           </div>
         )}
         {billing && (
-          <div
-            className={
-              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-6 */ 'space-y-6'
-            }
-          >
-            <BillingStatusRow billing={billing} />
+          <div sx={false}>
+            <BillingStatusRow sx={nativeChildSpacing.s6} billing={billing} />
             <UsageBars
+              sx={nativeChildSpacing.s6}
               actions={
                 <DashboardButton
                   icon={
@@ -539,6 +542,7 @@ export function BillingPage() {
             />
             {baId && (
               <BillingAssignmentsSection
+                sx={nativeChildSpacing.s6}
                 baId={baId}
                 managedBillingAccount={managed.account}
                 loading={managed.loading}
@@ -546,12 +550,14 @@ export function BillingPage() {
               />
             )}
             <PlanControls
+              sx={nativeChildSpacing.s6}
               status={billing.status}
               cancelAt={billing.cancelAt}
               showSelfService={billingState.selfServiceAllowed}
             />
             {baId && (
               <DeleteBillingAccountSection
+                sx={nativeChildSpacing.s6}
                 billingAccountId={baId}
                 displayName={title}
                 status={billing.status}
@@ -566,3 +572,18 @@ export function BillingPage() {
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s6: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 6 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 6 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

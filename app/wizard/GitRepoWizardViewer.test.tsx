@@ -81,7 +81,7 @@ vi.mock('./useWizardState.js', () => ({
       },
     },
     configEditor: {
-      element: <div>Git Repo Config</div>,
+      render: () => <div>Git Repo Config</div>,
       value: configValue,
     },
     configData: undefined,

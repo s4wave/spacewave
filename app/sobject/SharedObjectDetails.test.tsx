@@ -15,7 +15,10 @@ vi.mock('@s4wave/web/ui/tooltip.js', () => ({
   ),
   TooltipContent: () => null,
 }))
-vi.mock('@s4wave/web/ui/CollapsibleSection.js', () => ({
+vi.mock('@s4wave/web/ui/CollapsibleSection.js', async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import('@s4wave/web/ui/CollapsibleSection.js')
+  >()),
   CollapsibleSection: ({
     title,
     badge,
@@ -335,12 +338,12 @@ describe('SharedObjectDetails', () => {
     it('renders org info section in identifiers when provided', () => {
       renderWithContext(
         <SharedObjectDetails
-          orgInfoSection={
-            <div>
+          renderOrgInfoSection={(sx) => (
+            <div sx={sx}>
               <span>My Organization</span>
               <span>Owner</span>
             </div>
-          }
+          )}
         />,
       )
       expect(screen.getByText('My Organization')).toBeDefined()

@@ -111,7 +111,11 @@ interface StorageBackendRowProps {
 // StorageBackendRow shows one storage backend with its check result and
 // stored size, the upload state of each Space placed on it, and its check,
 // default, and remove actions.
-export function StorageBackendRow({ info, isDefault }: StorageBackendRowProps) {
+export function StorageBackendRow({
+  sx,
+  info,
+  isDefault,
+}: StorageBackendRowProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const sessionResource = SessionContext.useContext()
   const session = useResourceValue(sessionResource)
   const [check, setCheck] = useState<StorageCheckView | null>(null)
@@ -168,7 +172,7 @@ export function StorageBackendRow({ info, isDefault }: StorageBackendRowProps) {
   }, [confirmRemove, id, run, session])
 
   return (
-    <div sx={[false, edgeSpacing.s3]} data-testid="storage-backend-row">
+    <div sx={[[false, edgeSpacing.s3], sx]} data-testid="storage-backend-row">
       <div sx={stylexStyles2.rule1}>
         <div sx={stylexStyles2.rule2}>
           <div sx={stylexStyles2.rule3}>

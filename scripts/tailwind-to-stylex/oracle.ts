@@ -58,7 +58,16 @@ function readRule(container: Container, selector: string): StyleRule {
           outlineStyle: 'solid',
           outlineColor: '#0000',
         })
-      } else style[propertyName(declaration.prop)] = declaration.value
+      } else {
+        // CSS integer properties need numeric values for StyleX's public style type.
+        const negativeInteger =
+          declaration.prop === 'z-index'
+            ? declaration.value.match(/^calc\((\d+) \* -1\)$/)
+            : null
+        style[propertyName(declaration.prop)] = negativeInteger
+          ? -Number(negativeInteger[1])
+          : declaration.value
+      }
     } else if (node.type === 'atrule') {
       if (!['media', 'container', 'supports'].includes(node.name))
         throw new Error(`@${node.name} rule`)

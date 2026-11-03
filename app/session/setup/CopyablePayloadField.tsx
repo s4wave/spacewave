@@ -80,9 +80,13 @@ export interface CopyablePayloadFieldProps {
 // CopyablePayloadField shows a pairing payload in a select-all field with a
 // button that copies it to the clipboard.
 export function CopyablePayloadField({
+  sx,
   value,
   label,
-}: CopyablePayloadFieldProps) {
+}: CopyablePayloadFieldProps & {
+  sx?: stylex.StyleXStyles
+  className?: never
+}) {
   const [copied, setCopied] = useState(false)
 
   const handleCopy = () => {
@@ -92,7 +96,7 @@ export function CopyablePayloadField({
   }
 
   return (
-    <div sx={stylexStyles2.rule1}>
+    <div sx={[stylexStyles2.rule1, sx]}>
       <input
         readOnly
         value={value}

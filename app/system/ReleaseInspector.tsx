@@ -1,3 +1,4 @@
+import { utilityState as themeUtilityState } from '@s4wave/web/style/tokens.stylex.js'
 import type { AppBuildInfo } from '@s4wave/app/build-info.js'
 import type { RecoveryStatus } from '@s4wave/sdk/status/status.pb.js'
 
@@ -11,6 +12,13 @@ import {
   colors as themeColors,
   layout as themeLayout,
 } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -334,15 +342,11 @@ function NativePackagesSection({
       {nativePackages.length === 0 ? (
         <p sx={stylexStyles.rule1}>No native packages on this device.</p>
       ) : (
-        <ul
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: divide-y */ 'divide-foreground/6 divide-y text-xs'
-          }
-        >
+        <ul sx={stylexStyles2.rule1}>
           {nativePackages.map((pkg) => (
             <li
               key={`${pkg.pluginId}:${pkg.distDir}`}
-              sx={[false, edgeSpacing.s2]}
+              sx={[[false, edgeSpacing.s2], nativeDividers.t6]}
             >
               <div sx={stylexStyles.rule2}>
                 <span sx={stylexStyles.rule3}>{pkg.pluginId}</span>
@@ -401,5 +405,33 @@ const edgeSpacing = stylex.create({
   s2: {
     paddingTop: { default: 'calc(var(--spacing) * 2)', ':first-child': 0 },
     paddingBottom: { default: 'calc(var(--spacing) * 2)', ':last-child': 0 },
+  },
+})
+
+// nativeDividers applies the list border only to its nonfinal physical rows.
+const nativeDividers = stylex.create({
+  t6: {
+    '--tw-divide-y-reverse': { default: null, ':not(:last-child)': 0 },
+    borderBottomStyle: {
+      default: null,
+      ':not(:last-child)': themeUtilityState['--tw-border-style'],
+    },
+    borderTopStyle: {
+      default: null,
+      ':not(:last-child)': themeUtilityState['--tw-border-style'],
+    },
+    borderTopWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * var(--tw-divide-y-reverse))',
+    },
+    borderBottomWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * calc(1 - var(--tw-divide-y-reverse)))',
+    },
+    borderColor: {
+      default: null,
+      ':not(:last-child)':
+        'color-mix(in oklab, var(--color-foreground) 6%, transparent)',
+    },
   },
 })

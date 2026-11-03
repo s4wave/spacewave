@@ -7,7 +7,7 @@ import {
   LuLock,
   LuServer,
 } from '@s4wave/web/images/icons.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
 import { ExternalLink } from './ExternalLink.js'
 import { LegalPageLayout } from './LegalPageLayout.js'
@@ -23,6 +23,61 @@ import {
   motion as themeMotion,
 } from '../../web/style/tokens.stylex.js'
 import { groupMarker } from '../../web/style/relations.stylex.js'
+
+import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 40%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 60%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    textDecorationLine: 'none',
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    '--tw-translate-y': {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `calc(${themeLayout['--spacing']} * -.5)`,
+      },
+    },
+    translate: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': 'var(--tw-translate-x) var(--tw-translate-y)',
+      },
+    },
+  },
+})
 
 const stylexStyles3 = stylex.create({
   rule1: {
@@ -221,10 +276,7 @@ export function LandingHydra() {
         <div className="flex flex-wrap justify-center gap-3">
           <ExternalLink
             href="https://github.com/s4wave/spacewave/db"
-            className={cn(
-              'border-brand/40 bg-brand/10 text-foreground hover:border-brand/60 hover:bg-brand/15',
-              'flex items-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium no-underline transition-all duration-300 select-none hover:-translate-y-0.5',
-            )}
+            sx={[stylexStyles4.rule1]}
           >
             <LuGithub sx={stylexStyles.rule2} />
             <span>View on GitHub</span>

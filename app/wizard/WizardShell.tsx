@@ -150,7 +150,7 @@ export interface WizardShellProps {
   canBack?: boolean
   onCancel: () => void
   // Content slot rendered between header and buttons.
-  children?: ReactNode
+  children?: (childSx: stylex.StyleXStyles) => React.ReactNode
   // Name input configuration.
   nameLabel?: string
   namePlaceholder?: string
@@ -370,19 +370,17 @@ export function WizardShell({
         <WizardHeader title={title} onCancel={onCancel} />
 
         <div sx={stylexStyles2.rule11}>
-          <div
-            className={
-              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
-            }
-          >
-            <div sx={stylexStyles2.rule12}>
+          <div sx={false}>
+            <div sx={[setupChildren.child, stylexStyles2.rule12]}>
               <span sx={stylexStyles2.rule13}>{stepLabel}</span>
               {stepName && <span sx={stylexStyles2.rule14}>{stepName}</span>}
             </div>
 
-            {step === nameStep && <WizardNameField {...rest} />}
+            {step === nameStep && (
+              <WizardNameField sx={setupChildren.child} {...rest} />
+            )}
 
-            {children}
+            {children?.(setupChildren.child)}
           </div>
         </div>
 
@@ -395,3 +393,20 @@ export function WizardShell({
     </div>
   )
 }
+
+// setupChildren preserves the original spacing through the content slot.
+const setupChildren = stylex.create({
+  child: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)':
+        'calc(var(--spacing) * 3 * var(--tw-space-y-reverse))',
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)':
+        'calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))',
+    },
+  },
+})

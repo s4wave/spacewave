@@ -922,17 +922,18 @@ export function PlanFaqItem({
 
 // FaqAccordion renders a list of FAQ items as an accordion.
 export function FaqAccordion({
+  sx,
   items,
 }: {
   items: { question: string; answer: React.ReactNode }[]
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   const [openIndex, setOpenIndex] = useState<number>(-1)
   const handleToggle = useCallback((index: number) => {
     setOpenIndex((prev) => (prev === index ? -1 : index))
   }, [])
 
   return (
-    <div sx={stylexStyles4.rule53}>
+    <div sx={[stylexStyles4.rule53, sx]}>
       {items.map((item, index) => (
         <PlanFaqItem
           key={item.question}

@@ -34,9 +34,13 @@ const stylexStyles = stylex.create({
 // GitRepoConfigEditor edits the config-specific fields of a CreateGitRepoWizardOp.
 // Renders a new/clone toggle and clone options (URL, ref, depth, recursive).
 export function GitRepoConfigEditor({
+  sx,
   value,
   onValueChange,
-}: ConfigEditorProps<CreateGitRepoWizardOp>) {
+}: ConfigEditorProps<CreateGitRepoWizardOp> & {
+  sx?: stylex.StyleXStyles
+  className?: never
+}) {
   const cloneOpts = value.cloneOpts ?? {}
   const cloneUrlId = useId()
   const cloneRefId = useId()
@@ -46,7 +50,7 @@ export function GitRepoConfigEditor({
   }
 
   return (
-    <div className="space-y-3">
+    <div sx={sx} className="space-y-3">
       <section>
         <div className="mb-2 flex items-center justify-between">
           <h3 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">

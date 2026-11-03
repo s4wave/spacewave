@@ -39,6 +39,26 @@ import {
   utilityState as themeUtilityState,
 } from '../../../web/style/tokens.stylex.js'
 
+const stylexStyles3 = stylex.create({
+  rule1: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+    backgroundColor: themeColors['--color-background-get-started'],
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+    '--tw-shadow':
+      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     display: 'flex',
@@ -203,24 +223,24 @@ export function PluginRepositoriesPage() {
           </p>
         </div>
 
-        <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'border-foreground/20 bg-background-get-started space-y-4 rounded-lg border p-6 shadow-lg backdrop-blur-sm'
-          }
-        >
+        <div sx={stylexStyles3.rule1}>
           {loadError && (
-            <p role="alert" sx={stylexStyles2.rule7}>
+            <p
+              role="alert"
+              sx={[nativeChildSpacingNext.s4, stylexStyles2.rule7]}
+            >
               {loadError.message}
             </p>
           )}
           {inventory.value && devices.length === 0 && (
-            <p sx={stylexStyles2.rule8}>
+            <p sx={[nativeChildSpacingNext.s4, stylexStyles2.rule8]}>
               Fetching needs a desktop or command-line Device linked to your
               developer Space. Link one, then add the repository.
             </p>
           )}
           {devices.length > 1 && (
             <DeviceSelect
+              sx={nativeChildSpacingNext.s4}
               devices={devices}
               value={device}
               disabled={jobs.busy}
@@ -228,23 +248,24 @@ export function PluginRepositoriesPage() {
             />
           )}
           <AddRepositoryForm
+            sx={nativeChildSpacingNext.s4}
             disabled={!canFetch}
             busy={jobs.busy}
             onAdd={(repository) => void jobs.fetchRepository(repository)}
           />
           {message && (
-            <p role="status" sx={stylexStyles2.rule8}>
+            <p
+              role="status"
+              sx={[nativeChildSpacingNext.s4, stylexStyles2.rule8]}
+            >
               {message}
             </p>
           )}
           {repositories.length > 0 && (
-            <ul
-              className={
-                /* TODO(stylex): a descendant, group, peer or compound selector: divide-y */ 'divide-foreground/10 divide-y'
-              }
-            >
+            <ul sx={nativeChildSpacingNext.s4}>
               {repositories.map((repo) => (
                 <PluginRepositoryRow
+                  sx={nativeDividers.t10}
                   key={repo.name}
                   repository={repo}
                   disabled={!canFetch || review.pending}
@@ -591,6 +612,7 @@ function shortCommit(hash: string): string {
  * offers a review of the pinned commit before it builds.
  */
 function PluginRepositoryRow({
+  sx,
   repository,
   disabled,
   onCheck,
@@ -600,12 +622,12 @@ function PluginRepositoryRow({
   disabled: boolean
   onCheck: () => void
   onReview: () => void
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   const { name, pinnedCommit, fetchedCommit } = repository
   const update = fetchedCommit !== '' && fetchedCommit !== pinnedCommit
 
   return (
-    <li sx={stylexStyles2.rule12}>
+    <li sx={[stylexStyles2.rule12, sx]}>
       <LuGitBranch sx={stylexStyles.rule2} />
       <div sx={stylexStyles2.rule13}>
         <p sx={stylexStyles2.rule14}>{name}</p>
@@ -637,6 +659,49 @@ const nativeChildSpacing = stylex.create({
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeDividers applies the list border only to its nonfinal physical rows.
+const nativeDividers = stylex.create({
+  t10: {
+    '--tw-divide-y-reverse': { default: null, ':not(:last-child)': 0 },
+    borderBottomStyle: {
+      default: null,
+      ':not(:last-child)': themeUtilityState['--tw-border-style'],
+    },
+    borderTopStyle: {
+      default: null,
+      ':not(:last-child)': themeUtilityState['--tw-border-style'],
+    },
+    borderTopWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * var(--tw-divide-y-reverse))',
+    },
+    borderBottomWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * calc(1 - var(--tw-divide-y-reverse)))',
+    },
+    borderColor: {
+      default: null,
+      ':not(:last-child)':
+        'color-mix(in oklab, var(--color-foreground) 10%, transparent)',
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s4: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
     },
   },
 })

@@ -143,11 +143,15 @@ export interface BillingAssignmentsSectionProps {
 // to their personal account or an owned organization, and detach existing
 // assignments. Mirrors the controls rendered on the billing accounts list.
 export function BillingAssignmentsSection({
+  sx,
   baId,
   managedBillingAccount,
   loading,
   onChanged,
-}: BillingAssignmentsSectionProps) {
+}: BillingAssignmentsSectionProps & {
+  sx?: stylex.StyleXStyles
+  className?: never
+}) {
   const sessionResource = SessionContext.useContext()
   const session = useResourceValue(sessionResource)
   const orgList = SpacewaveOrgListContext.useContext()
@@ -237,7 +241,7 @@ export function BillingAssignmentsSection({
   const menuDisabled = !session || assigning || noTargets
 
   return (
-    <div>
+    <div sx={sx}>
       <div sx={[nativeChildSpacing.s3, stylexStyles2.rule1]}>Assigned to</div>
       {loading && !managedBillingAccount && (
         <LoadingInline

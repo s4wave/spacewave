@@ -21,6 +21,10 @@ import { groupMarker } from '../../../web/style/relations.stylex.js'
 
 import { fonts as themeFonts } from '../../../web/style/tokens.stylex.js'
 
+const stylexStyles4 = stylex.create({
+  rule1: { padding: `calc(${themeLayout['--spacing']} * 6)` },
+})
+
 const stylexStyles3 = stylex.create({
   rule1: {
     position: 'relative',
@@ -161,12 +165,9 @@ export function ProviderSetup() {
         </div>
 
         <div sx={stylexStyles3.rule6}>
-          <div
-            className={
-              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3 p-6'
-            }
-          >
+          <div sx={stylexStyles4.rule1}>
             <RadioOption
+              sx={nativeChildSpacing.s3}
               selected={false}
               onSelect={handleCloud}
               icon={<LuCloud sx={stylexStyles.rule1} />}
@@ -178,7 +179,7 @@ export function ProviderSetup() {
             <button
               type="button"
               onClick={handleLocal}
-              sx={[[stylexStyles2.rule1, groupMarker]]}
+              sx={[nativeChildSpacing.s3, [[stylexStyles2.rule1, groupMarker]]]}
             >
               <LuHardDrive sx={stylexStyles.rule2} />
               <span sx={stylexStyles3.rule7}>Continue with local storage</span>
@@ -191,3 +192,18 @@ export function ProviderSetup() {
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

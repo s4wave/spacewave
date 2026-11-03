@@ -220,10 +220,7 @@ export function VmCreationProgressScreen({
           />
         </div>
 
-        <PhaseChecklist
-          phases={phases}
-          {...stylex.props(stylexStyles2.rule9)}
-        />
+        <PhaseChecklist phases={phases} sx={stylexStyles2.rule9} />
 
         {error && onRetry ? (
           <button type="button" onClick={onRetry} sx={stylexStyles2.rule10}>

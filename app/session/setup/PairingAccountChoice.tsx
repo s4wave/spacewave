@@ -161,11 +161,15 @@ function accountLabel(account: AccountOffer | undefined): string {
 // PairingAccountChoice shows both accounts and lets the code-entering client
 // propose the relationship that both clients must subsequently approve.
 export function PairingAccountChoice({
+  sx,
   choice,
   receiving,
   onChoose,
   onAbort,
-}: PairingAccountChoiceProps) {
+}: PairingAccountChoiceProps & {
+  sx?: stylex.StyleXStyles
+  className?: never
+}) {
   const [selected, setSelected] = useState(
     AccountOutcome.AccountOutcome_SIGN_IN_OFFERED,
   )
@@ -219,7 +223,7 @@ export function PairingAccountChoice({
   }
 
   return (
-    <div>
+    <div sx={sx}>
       <div sx={[nativeChildSpacingNextNext.s4, stylexStyles3.rule1]}>
         <h2 sx={[nativeChildSpacingNext.s2, stylexStyles.rule1]}>
           Choose an account

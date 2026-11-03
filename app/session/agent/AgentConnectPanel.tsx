@@ -1,3 +1,8 @@
+import { IconStylesProvider } from '@s4wave/web/images/IconStylesProvider.js'
+import {
+  agentPanelIconMarker,
+  iconRequired,
+} from '@s4wave/web/style/icon-defaults.stylex.js'
 import { useEffect, useState } from 'react'
 import {
   LuBot,
@@ -13,7 +18,6 @@ import type { Session } from '@s4wave/sdk/session/session.js'
 import { useMountAccount } from '@s4wave/web/hooks/useMountAccount.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import { SessionsSection } from '../dashboard/SessionsSection.js'
 import { PairingVerificationStep } from '../setup/PairingVerificationStep.js'
@@ -29,6 +33,58 @@ import {
   fonts as themeFonts,
   utilityState as themeUtilityState,
 } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: {
+      default: `calc(${themeLayout['--spacing']} * 11)`,
+      '@media (min-width: 40rem)': {
+        default: null,
+        '@media (pointer: fine)': `calc(${themeLayout['--spacing']} * 8)`,
+      },
+    },
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule2: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    color: themeColors['--color-foreground'],
+  },
+  rule3: {
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 15%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 30%, transparent)`,
+      },
+    },
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    maxHeight: `calc(${themeLayout['--spacing']} * 128)`,
+    overflowY: 'auto',
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -250,13 +306,8 @@ export function AgentConnectPanel({
   const [sessionsOpen, setSessionsOpen] = useState(false)
 
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'max-h-128 space-y-3 overflow-y-auto p-3'
-      }
-      data-testid="agent-connect-panel"
-    >
-      <div sx={stylexStyles2.rule1}>
+    <div sx={stylexStyles3.rule1} data-testid="agent-connect-panel">
+      <div sx={[nativeChildSpacingNext.s3, stylexStyles2.rule1]}>
         <div sx={stylexStyles2.rule2}>
           <LuBot sx={stylexStyles.rule1} aria-hidden="true" />
         </div>
@@ -276,12 +327,14 @@ export function AgentConnectPanel({
 
       {socketPath ? (
         <SocketBody
+          sx={nativeChildSpacingNext.s3}
           socketPath={socketPath}
           connectedClients={connectedClients}
           onCopy={onCopy}
         />
       ) : (
         <PairingBody
+          sx={nativeChildSpacingNext.s3}
           session={session}
           pairing={pairing}
           onCopy={onCopy}
@@ -289,7 +342,7 @@ export function AgentConnectPanel({
         />
       )}
 
-      <div sx={stylexStyles2.rule6}>
+      <div sx={[nativeChildSpacingNext.s3, stylexStyles2.rule6]}>
         <SessionsSection
           account={account}
           isLocal={isLocal}
@@ -323,6 +376,7 @@ function CopyStatus({ copyState }: { copyState: CopyState }) {
 }
 
 function SocketBody({
+  sx,
   socketPath,
   connectedClients,
   onCopy,
@@ -330,29 +384,33 @@ function SocketBody({
   socketPath: string
   connectedClients: number
   onCopy: () => void
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
-      }
-    >
-      <p sx={stylexStyles2.rule10}>
+    <div sx={sx}>
+      <p sx={[nativeChildSpacingNext.s3, stylexStyles2.rule10]}>
         Your agent connects through this app's command-line socket. No approval
         is needed.
       </p>
-      <div sx={stylexStyles2.rule11}>{socketPath}</div>
-      <div sx={stylexStyles2.rule12}>
+      <div sx={[nativeChildSpacingNext.s3, stylexStyles2.rule11]}>
+        {socketPath}
+      </div>
+      <div sx={[nativeChildSpacingNext.s3, stylexStyles2.rule12]}>
         {connectedClients === 1
           ? '1 command-line client connected'
           : `${connectedClients} command-line clients connected`}
       </div>
-      <PanelButton icon={<LuCopy />} label="Copy prompt" onClick={onCopy} />
+      <PanelButton
+        sx={nativeChildSpacingNext.s3}
+        icon={<LuCopy />}
+        label="Copy prompt"
+        onClick={onCopy}
+      />
     </div>
   )
 }
 
 function PairingBody({
+  sx,
   session,
   pairing,
   onCopy,
@@ -362,21 +420,18 @@ function PairingBody({
   pairing: AgentPairing | null
   onCopy: () => void
   onNewCode: () => void
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   const [approved, setApproved] = useState('')
 
   if (!pairing) {
     return (
-      <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
-        }
-      >
-        <p sx={stylexStyles2.rule10}>
+      <div sx={sx}>
+        <p sx={[nativeChildSpacingNext.s3, stylexStyles2.rule10]}>
           The prompt carries a pairing code. Your agent runs the Spacewave CLI
           and asks you to approve it here.
         </p>
         <PanelButton
+          sx={nativeChildSpacingNext.s3}
           icon={<LuCopy />}
           label="Copy prompt"
           onClick={onCopy}
@@ -388,16 +443,13 @@ function PairingBody({
 
   if (pairing.error) {
     return (
-      <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
-        }
-      >
-        <div sx={stylexStyles2.rule13}>
+      <div sx={sx}>
+        <div sx={[nativeChildSpacingNext.s3, stylexStyles2.rule13]}>
           <LuCircleAlert sx={stylexStyles.rule3} />
           <span sx={stylexStyles2.rule14}>{pairing.error}</span>
         </div>
         <PanelButton
+          sx={nativeChildSpacingNext.s3}
           icon={<LuRefreshCw />}
           label="New code"
           onClick={onNewCode}
@@ -410,6 +462,7 @@ function PairingBody({
   if (remotePeerId && approved === remotePeerId) {
     return (
       <AgentConnected
+        sx={sx}
         session={session}
         remotePeerId={remotePeerId}
         onNewCode={onNewCode}
@@ -419,6 +472,7 @@ function PairingBody({
   if (remotePeerId) {
     return (
       <PairingVerificationStep
+        sx={sx}
         key={remotePeerId}
         session={session}
         onContinue={() => setApproved(remotePeerId)}
@@ -429,6 +483,7 @@ function PairingBody({
 
   return (
     <CodeWaiting
+      sx={sx}
       code={pairing.code}
       expiresAt={pairing.expiresAt}
       onCopy={onCopy}
@@ -438,6 +493,7 @@ function PairingBody({
 }
 
 function CodeWaiting({
+  sx,
   code,
   expiresAt,
   onCopy,
@@ -447,7 +503,7 @@ function CodeWaiting({
   expiresAt: number
   onCopy: () => void
   onNewCode: () => void
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   const secondsLeft = useSecondsUntil(expiresAt)
   const expired = !!code && secondsLeft === 0
   const formatted = code ? `${code.slice(0, 4)} ${code.slice(4)}` : ''
@@ -456,7 +512,7 @@ function CodeWaiting({
     .padStart(2, '0')}`
 
   return (
-    <div>
+    <div sx={sx}>
       <div sx={[nativeChildSpacing.s3, stylexStyles2.rule15]}>
         <div
           sx={[stylexStyles2.rule16, !!expired && stylexStyles2.rule17]}
@@ -494,6 +550,7 @@ function CodeWaiting({
 }
 
 function AgentConnected({
+  sx,
   session,
   remotePeerId,
   onNewCode,
@@ -501,7 +558,7 @@ function AgentConnected({
   session: Session | null | undefined
   remotePeerId: string
   onNewCode: () => void
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   const completion = useResource(
     async (signal) =>
       session ? session.confirmPairing(remotePeerId, '', signal) : null,
@@ -511,16 +568,13 @@ function AgentConnected({
 
   if (error) {
     return (
-      <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
-        }
-      >
-        <div sx={stylexStyles2.rule13}>
+      <div sx={sx}>
+        <div sx={[nativeChildSpacingNext.s3, stylexStyles2.rule13]}>
           <LuCircleAlert sx={stylexStyles.rule3} />
           <span sx={stylexStyles2.rule14}>{error}</span>
         </div>
         <PanelButton
+          sx={nativeChildSpacingNext.s3}
           icon={<LuRefreshCw />}
           label="New code"
           onClick={onNewCode}
@@ -531,12 +585,8 @@ function AgentConnected({
 
   const done = !completion.loading && !!completion.value
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
-      }
-    >
-      <div sx={stylexStyles2.rule19}>
+    <div sx={sx}>
+      <div sx={[nativeChildSpacingNext.s3, stylexStyles2.rule19]}>
         {done ? (
           <LuCircleCheck sx={stylexStyles.rule4} />
         ) : (
@@ -545,12 +595,13 @@ function AgentConnected({
         <span>{done ? 'Agent connected' : 'Finishing connection…'}</span>
       </div>
       {done && (
-        <p sx={stylexStyles2.rule10}>
+        <p sx={[nativeChildSpacingNext.s3, stylexStyles2.rule10]}>
           The agent can now use your account from its CLI. Remove it under
           Sessions to end its access.
         </p>
       )}
       <PanelButton
+        sx={nativeChildSpacingNext.s3}
         icon={<LuBot />}
         label="Connect another agent"
         onClick={onNewCode}
@@ -560,6 +611,7 @@ function AgentConnected({
 }
 
 function PanelButton({
+  sx,
   icon,
   label,
   onClick,
@@ -569,23 +621,24 @@ function PanelButton({
   label: string
   onClick: () => void
   primary?: boolean
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: [&_svg]:size-3.5 */ cn(
-          'flex h-11 flex-1 items-center justify-center gap-1.5 rounded-md border px-2 text-xs sm:fine-pointer:h-8 [&_svg]:size-3.5',
-          primary
-            ? 'border-brand/30 bg-brand/10 hover:bg-brand/20 text-foreground'
-            : 'border-foreground/15 hover:border-foreground/30 text-foreground-alt',
-        )
-      }
-    >
-      {icon}
-      {label}
-    </button>
+    <IconStylesProvider requiredSx={iconRequired.agentPanel}>
+      <button
+        type="button"
+        onClick={onClick}
+        sx={[
+          [
+            stylexStyles4.rule1,
+            primary ? stylexStyles4.rule2 : stylexStyles4.rule3,
+          ],
+          [agentPanelIconMarker, sx],
+        ]}
+      >
+        {icon}
+        {label}
+      </button>
+    </IconStylesProvider>
   )
 }
 
@@ -615,6 +668,21 @@ function useSecondsUntil(deadline: number): number {
 
 // nativeChildSpacing preserves the original margins at each rendered child.
 const nativeChildSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
   s3: {
     '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
     marginBlockStart: {

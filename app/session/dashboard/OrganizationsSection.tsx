@@ -180,10 +180,14 @@ export interface OrganizationsSectionProps {
 
 // OrganizationsSection shows a collapsible list of orgs with create button.
 export function OrganizationsSection({
+  sx,
   open,
   onOpenChange,
   onNavigateToOrganization,
-}: OrganizationsSectionProps) {
+}: OrganizationsSectionProps & {
+  sx?: stylex.StyleXStyles
+  className?: never
+}) {
   const ns = useStateNamespace(['session-settings'])
   const [storedOpen, setStoredOpen] = useStateAtom(ns, 'orgs', false)
   const sectionOpen = open ?? storedOpen
@@ -215,6 +219,7 @@ export function OrganizationsSection({
 
   return (
     <CollapsibleSection
+      sx={sx}
       title="Organizations"
       icon={<LuBuilding2 sx={stylexStyles.rule1} />}
       open={sectionOpen}

@@ -94,13 +94,14 @@ export interface QRScannerModalProps {
 
 // QRScannerModal renders a camera-based QR scanner overlay using html5-qrcode.
 export function QRScannerModal({
+  sx,
   title,
   hint,
   containerId,
   qrboxSize,
   onDecoded,
   onClose,
-}: QRScannerModalProps) {
+}: QRScannerModalProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const handleDecoded = useEffectEvent(onDecoded)
 
@@ -127,7 +128,7 @@ export function QRScannerModal({
   }, [qrboxSize])
 
   return (
-    <div sx={stylexStyles2.rule1}>
+    <div sx={[stylexStyles2.rule1, sx]}>
       <div sx={stylexStyles2.rule2}>
         <div sx={stylexStyles2.rule3}>
           <h3 sx={stylexStyles2.rule4}>{title}</h3>

@@ -63,6 +63,7 @@ export interface TypedConfirmFieldProps {
 // TypedConfirmField is the labelled text input of a destructive confirmation
 // step. Enter submits when canSubmit holds, except while an IME composes.
 export function TypedConfirmField({
+  sx,
   label,
   value,
   onChange,
@@ -70,7 +71,7 @@ export function TypedConfirmField({
   ariaLabel,
   canSubmit,
   onSubmit,
-}: TypedConfirmFieldProps) {
+}: TypedConfirmFieldProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const inputId = useId()
 
   function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
@@ -81,7 +82,7 @@ export function TypedConfirmField({
   }
 
   return (
-    <div>
+    <div sx={sx}>
       <label htmlFor={inputId} sx={stylexStyles.rule1}>
         {label}
       </label>

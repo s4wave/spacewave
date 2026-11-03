@@ -1,6 +1,32 @@
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
 import { ExternalLink } from './ExternalLink.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-white']} 80%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-white'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+})
+
 // LegalFooter renders the footer for legal pages (ToS, Privacy, Pricing, DMCA).
 export function LegalFooter() {
   const tosHref = useStaticHref('/tos')
@@ -18,7 +44,7 @@ export function LegalFooter() {
           &copy; 2018&ndash;2026{' '}
           <ExternalLink
             href="https://github.com/aperturerobotics"
-            className="font-medium text-white/80 transition-colors hover:text-white"
+            sx={stylexStyles.rule1}
           >
             Aperture Robotics
           </ExternalLink>

@@ -29,6 +29,10 @@ import { groupMarker } from '../../web/style/relations.stylex.js'
 
 import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
 
+const stylexStyles4 = stylex.create({
+  rule1: { padding: `calc(${themeLayout['--spacing']} * 6)` },
+})
+
 const stylexStyles3 = stylex.create({
   rule1: {
     position: 'relative',
@@ -339,12 +343,8 @@ export function PinUnlockOverlay({
         </div>
 
         <div sx={stylexStyles3.rule4}>
-          <div
-            className={
-              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4 p-6'
-            }
-          >
-            <div sx={stylexStyles3.rule3}>
+          <div sx={stylexStyles4.rule1}>
+            <div sx={[nativeChildSpacingNext.s4, stylexStyles3.rule3]}>
               <div sx={stylexStyles3.rule5}>
                 <LuLock sx={stylexStyles.rule1} />
               </div>
@@ -358,7 +358,7 @@ export function PinUnlockOverlay({
 
             {!showRecovery ? (
               <>
-                <div>
+                <div sx={nativeChildSpacingNext.s4}>
                   <label htmlFor={pinInputId} sx={stylexStyles3.rule8}>
                     Enter PIN to unlock
                   </label>
@@ -375,14 +375,21 @@ export function PinUnlockOverlay({
                   />
                 </div>
 
-                {error && <p sx={stylexStyles3.rule11}>{error}</p>}
+                {error && (
+                  <p sx={[nativeChildSpacingNext.s4, stylexStyles3.rule11]}>
+                    {error}
+                  </p>
+                )}
 
                 <button
                   type="button"
                   data-testid="pin-unlock-submit"
                   onClick={() => void handleUnlock()}
                   disabled={unlocking || pin.length === 0}
-                  sx={[[stylexStyles2.rule1, groupMarker]]}
+                  sx={[
+                    nativeChildSpacingNext.s4,
+                    [[stylexStyles2.rule1, groupMarker]],
+                  ]}
                 >
                   <LuLockOpen sx={stylexStyles.rule2} />
                   <span sx={stylexStyles3.rule12}>
@@ -393,14 +400,14 @@ export function PinUnlockOverlay({
                 <button
                   type="button"
                   onClick={() => setShowRecovery(true)}
-                  sx={stylexStyles3.rule13}
+                  sx={[nativeChildSpacingNext.s4, stylexStyles3.rule13]}
                 >
                   Forgot PIN?
                 </button>
               </>
             ) : recoveryUnavailable ? (
               <>
-                <div>
+                <div sx={nativeChildSpacingNext.s4}>
                   <p sx={[nativeChildSpacing.s2, stylexStyles3.rule14]}>
                     This local session has no recovery password or backup key.
                   </p>
@@ -415,19 +422,20 @@ export function PinUnlockOverlay({
                 <button
                   type="button"
                   onClick={() => setShowRecovery(false)}
-                  sx={stylexStyles3.rule13}
+                  sx={[nativeChildSpacingNext.s4, stylexStyles3.rule13]}
                 >
                   Back to PIN entry
                 </button>
               </>
             ) : (
               <>
-                <p sx={stylexStyles3.rule14}>
+                <p sx={[nativeChildSpacingNext.s4, stylexStyles3.rule14]}>
                   Re-authenticate with your account password or backup key to
                   reset this session. This generates a new session key.
                 </p>
 
                 <CredentialProofInput
+                  sx={nativeChildSpacingNext.s4}
                   password={cred.password}
                   onPasswordChange={cred.setPassword}
                   pemFileName={cred.pemFileName}
@@ -442,7 +450,10 @@ export function PinUnlockOverlay({
                   type="button"
                   onClick={() => void handleReset()}
                   disabled={resetting || !cred.hasCredential}
-                  sx={[[stylexStyles2.rule1, groupMarker]]}
+                  sx={[
+                    nativeChildSpacingNext.s4,
+                    [[stylexStyles2.rule1, groupMarker]],
+                  ]}
                 >
                   <span sx={stylexStyles3.rule12}>
                     {resetting ? 'Resetting…' : 'Reset session'}
@@ -452,7 +463,7 @@ export function PinUnlockOverlay({
                 <button
                   type="button"
                   onClick={() => setShowRecovery(false)}
-                  sx={stylexStyles3.rule13}
+                  sx={[nativeChildSpacingNext.s4, stylexStyles3.rule13]}
                 >
                   Back to PIN entry
                 </button>
@@ -481,6 +492,21 @@ const nativeChildSpacing = stylex.create({
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s4: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
     },
   },
 })

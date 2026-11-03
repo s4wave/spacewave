@@ -566,48 +566,57 @@ function ChooseStep({
   onSkip,
 }: ChooseStepProps) {
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-5 */ 'space-y-5'
-      }
-    >
-      <p sx={stylexStyles4.rule4}>
+    <div>
+      <p sx={[nativeChildSpacingNext.s5, stylexStyles4.rule4]}>
         Connect another device to sync your data peer-to-peer.
       </p>
 
-      <OptionGroup label="On this device">
-        <ChooseOption
-          icon={LuSmartphone}
-          label="Generate code for another device"
-          description="Show a pairing code for your other device to enter"
-          recommended
-          onClick={onGenerate}
-        />
-        <ChooseOption
-          icon={LuWifi}
-          label="Show QR code"
-          description="Display a QR code for your other device to scan"
-          onClick={onDirectOffer}
-        />
+      <OptionGroup sx={nativeChildSpacingNext.s5} label="On this device">
+        {(childSx) => (
+          <>
+            <ChooseOption
+              sx={childSx}
+              icon={LuSmartphone}
+              label="Generate code for another device"
+              description="Show a pairing code for your other device to enter"
+              recommended
+              onClick={onGenerate}
+            />
+            <ChooseOption
+              sx={childSx}
+              icon={LuWifi}
+              label="Show QR code"
+              description="Display a QR code for your other device to scan"
+              onClick={onDirectOffer}
+            />
+          </>
+        )}
       </OptionGroup>
 
-      <OptionGroup label="On your other device">
-        <ChooseOption
-          icon={LuKeyboard}
-          label="Enter a code from another device"
-          description="Type a code shown on your other device"
-          onClick={onEnterCode}
-        />
-        <ChooseOption
-          icon={LuCamera}
-          label="Scan QR code"
-          description="Scan a QR code shown on your other device"
-          onClick={onDirectAnswer}
-        />
+      <OptionGroup sx={nativeChildSpacingNext.s5} label="On your other device">
+        {(childSx) => (
+          <>
+            <ChooseOption
+              sx={childSx}
+              icon={LuKeyboard}
+              label="Enter a code from another device"
+              description="Type a code shown on your other device"
+              onClick={onEnterCode}
+            />
+            <ChooseOption
+              sx={childSx}
+              icon={LuCamera}
+              label="Scan QR code"
+              description="Scan a QR code shown on your other device"
+              onClick={onDirectAnswer}
+            />
+          </>
+        )}
       </OptionGroup>
 
       {!isDesktop && (
         <ChooseOption
+          sx={nativeChildSpacingNext.s5}
           icon={LuMonitor}
           label="Download desktop app"
           description="Install Spacewave on your computer"
@@ -615,7 +624,11 @@ function ChooseStep({
         />
       )}
 
-      <button type="button" onClick={onSkip} sx={stylexStyles4.rule7}>
+      <button
+        type="button"
+        onClick={onSkip}
+        sx={[nativeChildSpacingNext.s5, stylexStyles4.rule7]}
+      >
         Skip for now
       </button>
     </div>
@@ -624,21 +637,21 @@ function ChooseStep({
 
 interface OptionGroupProps {
   label: string
-  children: React.ReactNode
+  children: (childSx: stylex.StyleXStyles) => React.ReactNode
 }
 
 // OptionGroup labels a set of linking options by which device shows the pairing
 // code, so the two capture directions read as distinct paths instead of one
 // flat list of near-identical rows.
-function OptionGroup({ label, children }: OptionGroupProps) {
+function OptionGroup({
+  sx,
+  label,
+  children,
+}: OptionGroupProps & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-      }
-    >
-      <h3 sx={stylexStyles4.rule8}>{label}</h3>
-      {children}
+    <div sx={[false, sx]}>
+      <h3 sx={[setupChildren.child, stylexStyles4.rule8]}>{label}</h3>
+      {children(setupChildren.child)}
     </div>
   )
 }
@@ -683,12 +696,8 @@ interface DownloadStepProps {
 
 function DownloadStep({ onContinue, onBack }: DownloadStepProps) {
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4'
-      }
-    >
-      <div sx={stylexStyles4.rule15}>
+    <div>
+      <div sx={[nativeChildSpacingNextNextNext.s4, stylexStyles4.rule15]}>
         <div sx={stylexStyles4.rule16}>
           <LuMonitor sx={stylexStyles.rule4} />
         </div>
@@ -701,18 +710,14 @@ function DownloadStep({ onContinue, onBack }: DownloadStepProps) {
         </div>
       </div>
 
-      <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-        }
-      >
+      <div sx={nativeChildSpacingNextNextNext.s4}>
         <ExternalLink
           href={`${SPACEWAVE_PUBLIC_BASE_URL}/#/download`}
-          {...stylex.props(stylexStyles4.rule18)}
+          sx={[nativeChildSpacingNextNext.s2, stylexStyles4.rule18]}
         >
           Choose a desktop download
         </ExternalLink>
-        <p sx={stylexStyles4.rule19}>
+        <p sx={[nativeChildSpacingNextNext.s2, stylexStyles4.rule19]}>
           macOS, Windows, and Linux. Opens in a new tab.
         </p>
       </div>
@@ -720,13 +725,20 @@ function DownloadStep({ onContinue, onBack }: DownloadStepProps) {
       <button
         type="button"
         onClick={onContinue}
-        sx={[[stylexStyles3.rule1, groupMarker]]}
+        sx={[
+          nativeChildSpacingNextNextNext.s4,
+          [[stylexStyles3.rule1, groupMarker]],
+        ]}
       >
         <span sx={stylexStyles4.rule6}>I have the desktop app</span>
         <LuArrowRight sx={stylexStyles.rule2} />
       </button>
 
-      <button type="button" onClick={onBack} sx={stylexStyles4.rule7}>
+      <button
+        type="button"
+        onClick={onBack}
+        sx={[nativeChildSpacingNextNextNext.s4, stylexStyles4.rule7]}
+      >
         Back
       </button>
     </div>
@@ -744,6 +756,68 @@ const nativeChildSpacing = stylex.create({
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s5: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 5 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNextNext = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNextNextNext = stylex.create({
+  s4: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// setupChildren preserves the original spacing through the content slot.
+const setupChildren = stylex.create({
+  child: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)':
+        'calc(var(--spacing) * 2 * var(--tw-space-y-reverse))',
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)':
+        'calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))',
     },
   },
 })

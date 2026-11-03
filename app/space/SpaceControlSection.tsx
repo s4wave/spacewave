@@ -221,12 +221,12 @@ export function SpaceControlSection() {
     <div sx={stylexStyles2.rule1}>
       <h3 sx={stylexStyles2.rule2}>Who controls the Space</h3>
       <InfoCard>
-        <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-          }
-        >
-          <div role="radiogroup" aria-label="Who controls the Space">
+        <div>
+          <div
+            sx={nativeChildSpacingNextNextNext.s2}
+            role="radiogroup"
+            aria-label="Who controls the Space"
+          >
             <RadioOption
               sx={nativeChildSpacingNextNext.s1_5}
               selected={!group}
@@ -246,16 +246,22 @@ export function SpaceControlSection() {
               description="No one changes members or settings alone, including the owner."
             />
           </div>
-          <p sx={stylexStyles2.rule3}>{controlStatus(spaceSharingState)}</p>
+          <p sx={[nativeChildSpacingNextNextNext.s2, stylexStyles2.rule3]}>
+            {controlStatus(spaceSharingState)}
+          </p>
           {group && changes.length !== 0 && (
             <GroupChanges
+              sx={nativeChildSpacingNextNextNext.s2}
               state={spaceSharingState}
               changes={changes}
               canAgree={!!spaceSharingState.canVote && !pending}
               onAgree={(hash) => void agree(hash)}
             />
           )}
-          <TechnicalDetails state={spaceSharingState} />
+          <TechnicalDetails
+            sx={nativeChildSpacingNextNextNext.s2}
+            state={spaceSharingState}
+          />
         </div>
       </InfoCard>
       <Dialog
@@ -352,7 +358,13 @@ function GroupChanges({
 
 // TechnicalDetails shows the voting terms behind the plain wording, behind the
 // global technical details toggle.
-function TechnicalDetails({ state }: { state: SpaceSharingState }) {
+function TechnicalDetails({
+  sx,
+  state,
+}: { state: SpaceSharingState } & {
+  sx?: stylex.StyleXStyles
+  className?: never
+}) {
   const [show, setShow] = useStateAtom<boolean>(
     null,
     'showTechnicalDetails',
@@ -363,13 +375,13 @@ function TechnicalDetails({ state }: { state: SpaceSharingState }) {
     <>
       <button
         type="button"
-        sx={stylexStyles2.rule11}
+        sx={[stylexStyles2.rule11, sx]}
         onClick={() => setShow(!show)}
       >
         {show ? 'Hide technical details' : 'Show technical details'}
       </button>
       {show && (
-        <p sx={stylexStyles2.rule3}>
+        <p sx={[stylexStyles2.rule3, sx]}>
           {group
             ? `Group control: voters decide each control record and checkpoint in rounds. A decision needs precommits from more than two thirds of the voting weight, ${state.quorumWeight ?? 0n} of ${state.totalWeight ?? 0n}. Each member's first writing device votes.`
             : 'Owner control: any owner device signs control records and checkpoints alone.'}
@@ -500,6 +512,21 @@ const nativeChildSpacingNextNext = stylex.create({
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 1.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNextNextNext = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
     },
   },
 })

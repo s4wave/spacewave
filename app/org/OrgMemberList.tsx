@@ -114,13 +114,10 @@ export function OrgMemberList(props: {
   }
 
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1 */ 'space-y-1'
-      }
-    >
+    <div>
       {props.members.map((member) => (
         <OrgMemberRow
+          sx={nativeChildSpacing.s1}
           key={member.id}
           member={member}
           isOwner={props.isOwner}
@@ -131,11 +128,13 @@ export function OrgMemberList(props: {
   )
 }
 
-function OrgMemberRow(props: {
-  member: OrgMemberInfo
-  isOwner: boolean
-  onRemove?: (memberId: string) => Promise<void>
-}) {
+function OrgMemberRow(
+  props: {
+    member: OrgMemberInfo
+    isOwner: boolean
+    onRemove?: (memberId: string) => Promise<void>
+  } & { sx?: stylex.StyleXStyles; className?: never },
+) {
   const { member, isOwner, onRemove } = props
   const [removing, setRemoving] = useState(false)
   const isMemberOwner = member.roleId === ORG_ROLE_OWNER
@@ -155,7 +154,7 @@ function OrgMemberRow(props: {
   }, [onRemove, removing, member.subjectId])
 
   return (
-    <div sx={stylexStyles2.rule2}>
+    <div sx={[stylexStyles2.rule2, props.sx]}>
       <div sx={stylexStyles2.rule3}>
         <div sx={stylexStyles2.rule4}>{getOrgMemberPrimaryLabel(member)}</div>
         {getOrgMemberSecondaryLabel(member) && (
@@ -188,3 +187,18 @@ function OrgMemberRow(props: {
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s1: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

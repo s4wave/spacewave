@@ -81,13 +81,14 @@ export interface V86SourceStepProps {
 // V86SourceStep is the first wizard step: choose the image the VM boots,
 // from this Space or from the published catalog.
 export function V86SourceStep({
+  sx,
   cfg,
   existingDefault,
   inSpaceImages,
   pending,
   onSelectInSpace,
   onOpenCatalog,
-}: V86SourceStepProps) {
+}: V86SourceStepProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const fromSpace = cfg.source === V86WizardConfig_Source.EXISTING_IN_SPACE
   const inheritKey = existingDefault?.imageKey ?? ''
   const inheritImage = inSpaceImages.find((e) => e.objectKey === inheritKey)
@@ -95,7 +96,7 @@ export function V86SourceStep({
   const empty = !inheritKey && inSpaceImages.length === 0
 
   return (
-    <section sx={stylexStyles3.rule1}>
+    <section sx={[stylexStyles3.rule1, sx]}>
       <h3 sx={stylexStyles3.rule2}>
         <LuMonitor sx={stylexStyles2.rule1} />
         Choose a VM image

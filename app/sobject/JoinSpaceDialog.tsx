@@ -52,6 +52,13 @@ import {
   motion as themeMotion,
 } from '../../web/style/tokens.stylex.js'
 
+const stylexStyles3 = stylex.create({
+  rule1: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 6)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 5)`,
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: { textAlign: 'center' },
   rule2: {
@@ -435,6 +442,7 @@ function joinResultAction(
 
 /** JoinNoticePanel renders a terminal join outcome with a close action. */
 function JoinNoticePanel({
+  sx,
   title,
   onClose,
   children,
@@ -442,9 +450,9 @@ function JoinNoticePanel({
   title: string
   onClose: () => void
   children: ReactNode
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
-    <div sx={stylexStyles2.rule1}>
+    <div sx={[stylexStyles2.rule1, sx]}>
       <p sx={stylexStyles2.rule2}>{title}</p>
       <p sx={stylexStyles2.rule3}>{children}</p>
       <button type="button" onClick={onClose} sx={[stylexStyles2.rule4]}>
@@ -455,9 +463,12 @@ function JoinNoticePanel({
 }
 
 /** JoinEnrolledPanel renders the success state with the open action. */
-function JoinEnrolledPanel({ onOpen }: { onOpen: () => void }) {
+function JoinEnrolledPanel({
+  sx,
+  onOpen,
+}: { onOpen: () => void } & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
-    <div sx={stylexStyles2.rule5}>
+    <div sx={[stylexStyles2.rule5, sx]}>
       <LuCheck sx={stylexStyles.rule1} />
       <p sx={stylexStyles2.rule2}>Joined successfully!</p>
       <p sx={stylexStyles2.rule3}>Your shared Space is ready.</p>
@@ -470,6 +481,7 @@ function JoinEnrolledPanel({ onOpen }: { onOpen: () => void }) {
 
 /** JoinSubmitControls renders the busy status or the submit button. */
 function JoinSubmitControls({
+  sx,
   state,
   busy,
   canSubmit,
@@ -477,17 +489,21 @@ function JoinSubmitControls({
   state: JoinState
   busy: boolean
   canSubmit: boolean
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   if (busy) {
     return (
-      <div sx={stylexStyles2.rule6}>
+      <div sx={[stylexStyles2.rule6, sx]}>
         <Spinner variant="muted" />
         <span sx={stylexStyles2.rule7}>{phaseLabels[state.phase]}</span>
       </div>
     )
   }
   return (
-    <button type="submit" disabled={!canSubmit} sx={[stylexStyles2.rule8]}>
+    <button
+      type="submit"
+      disabled={!canSubmit}
+      sx={[[stylexStyles2.rule8], sx]}
+    >
       {state.phase === 'error' ? 'Try again' : 'Join Space'}
     </button>
   )
@@ -495,6 +511,7 @@ function JoinSubmitControls({
 
 /** JoinPhasePanel renders the part of the form that depends on the join phase. */
 function JoinPhasePanel({
+  sx,
   state,
   backfill,
   busy,
@@ -508,11 +525,12 @@ function JoinPhasePanel({
   canSubmit: boolean
   onAccepted: (sharedObjectId: string) => void
   onClose: () => void
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   switch (state.phase) {
     case 'enrolled':
       return (
         <JoinEnrolledPanel
+          sx={sx}
           onOpen={() => {
             if (state.spaceId) onAccepted(state.spaceId)
           }}
@@ -520,7 +538,11 @@ function JoinPhasePanel({
       )
     case 'pending':
       return (
-        <JoinNoticePanel title="Awaiting owner approval" onClose={onClose}>
+        <JoinNoticePanel
+          sx={sx}
+          title="Awaiting owner approval"
+          onClose={onClose}
+        >
           The owner must approve this invite before you can open the shared
           Space. Return here to retry after approval.
           {backfill &&
@@ -530,27 +552,36 @@ function JoinPhasePanel({
     case 'owner_online_required':
       if (state.serverAddr.trim()) {
         return (
-          <JoinNoticePanel title="Server did not answer" onClose={onClose}>
+          <JoinNoticePanel
+            sx={sx}
+            title="Server did not answer"
+            onClose={onClose}
+          >
             No reply from {state.serverAddr.trim()}. Check the address and that
             the server lists this Session.
           </JoinNoticePanel>
         )
       }
       return (
-        <JoinNoticePanel title="Owner must be online" onClose={onClose}>
+        <JoinNoticePanel sx={sx} title="Owner must be online" onClose={onClose}>
           This local-first join path completes directly through the space owner.
           Ask the owner to open the space, then try this invite link again.
         </JoinNoticePanel>
       )
     case 'rejected':
       return (
-        <JoinNoticePanel title="Invite rejected" onClose={onClose}>
+        <JoinNoticePanel sx={sx} title="Invite rejected" onClose={onClose}>
           This invite was denied or is no longer valid.
         </JoinNoticePanel>
       )
     default:
       return (
-        <JoinSubmitControls state={state} busy={busy} canSubmit={canSubmit} />
+        <JoinSubmitControls
+          sx={sx}
+          state={state}
+          busy={busy}
+          canSubmit={canSubmit}
+        />
       )
   }
 }
@@ -756,15 +787,14 @@ export function JoinSpaceDialog({
         </DialogHeader>
 
         <form
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4 px-6 py-5'
-          }
+          sx={stylexStyles3.rule1}
           onSubmit={(event) => {
             event.preventDefault()
             if (!busy) void handleSubmit()
           }}
         >
           <JoinInviteField
+            sx={nativeChildSpacingNext.s4}
             inputId={inputId}
             state={state}
             isCloud={isCloud}
@@ -774,6 +804,7 @@ export function JoinSpaceDialog({
 
           {showServer && (
             <JoinServerField
+              sx={nativeChildSpacingNext.s4}
               inputId={serverInputId}
               state={state}
               peerId={peerId}
@@ -785,7 +816,7 @@ export function JoinSpaceDialog({
           )}
 
           {showBackfill && (
-            <label sx={stylexStyles2.rule16}>
+            <label sx={[nativeChildSpacingNext.s4, stylexStyles2.rule16]}>
               <input
                 type="checkbox"
                 sx={stylexStyles2.rule17}
@@ -801,6 +832,7 @@ export function JoinSpaceDialog({
           )}
 
           <JoinPhasePanel
+            sx={nativeChildSpacingNext.s4}
             state={state}
             backfill={backfill}
             busy={busy}
@@ -810,7 +842,11 @@ export function JoinSpaceDialog({
           />
 
           {state.error && (
-            <JoinError id={`${inputId}-error`} message={state.error} />
+            <JoinError
+              sx={nativeChildSpacingNext.s4}
+              id={`${inputId}-error`}
+              message={state.error}
+            />
           )}
         </form>
       </DialogContent>
@@ -897,6 +933,21 @@ const nativeChildSpacing = stylex.create({
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s4: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
     },
   },
 })

@@ -136,12 +136,13 @@ interface StorageCheckResultProps {
 // StorageCheckResult shows a bucket check as a result line, or as the
 // failure's cause and the change that fixes it.
 export function StorageCheckResult({
+  sx,
   check,
   corsRule,
-}: StorageCheckResultProps) {
+}: StorageCheckResultProps & { sx?: stylex.StyleXStyles; className?: never }) {
   if (check.ok) {
     return (
-      <p sx={stylexStyles2.rule1} role="status">
+      <p sx={[stylexStyles2.rule1, sx]} role="status">
         <LuCircleCheck sx={stylexStyles.rule1} aria-hidden="true" />
         Connected. A test object was written, read, and deleted.
         <span sx={stylexStyles2.rule2}>Holds {check.usage}.</span>
@@ -150,7 +151,7 @@ export function StorageCheckResult({
   }
 
   return (
-    <div sx={stylexStyles2.rule3} role="alert">
+    <div sx={[stylexStyles2.rule3, sx]} role="alert">
       <div sx={stylexStyles2.rule4}>
         <LuTriangleAlert sx={stylexStyles.rule2} aria-hidden="true" />
         <div sx={stylexStyles2.rule5}>

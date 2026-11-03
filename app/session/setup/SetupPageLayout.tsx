@@ -1,4 +1,3 @@
-import { cn } from '@s4wave/web/style/utils.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 
 import * as stylex from '@stylexjs/stylex'
@@ -7,6 +6,18 @@ import {
   colors as themeColors,
   fonts as themeFonts,
 } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    position: 'relative',
+    zIndex: 10,
+    display: 'flex',
+    width: '100%',
+    maxWidth: 'var(--container-md)',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -57,7 +68,9 @@ const stylexStyles = stylex.create({
 export interface SetupPageLayoutProps {
   title: string
   subtitle?: string
-  maxWidth?: string
+  sx?: stylex.StyleXStyles
+  contentSx?: stylex.StyleXStyles
+  className?: never
   topLeft?: React.ReactNode
   showHeader?: boolean
   children: React.ReactNode
@@ -67,22 +80,16 @@ export interface SetupPageLayoutProps {
 export function SetupPageLayout({
   title,
   subtitle,
-  maxWidth = 'max-w-md',
+  sx,
+  contentSx,
   topLeft,
   showHeader = true,
   children,
 }: SetupPageLayoutProps) {
   return (
-    <div sx={stylexStyles.rule1}>
+    <div sx={[stylexStyles.rule1, sx]}>
       {topLeft && <div sx={stylexStyles.rule2}>{topLeft}</div>}
-      <div
-        className={
-          /* TODO(stylex): dynamic class or forwarded className */ cn(
-            'relative z-10 flex w-full flex-col gap-6',
-            maxWidth,
-          )
-        }
-      >
+      <div sx={[stylexStyles2.rule1, contentSx]}>
         {showHeader && (
           <div sx={stylexStyles.rule3}>
             <AnimatedLogo followMouse={false} />

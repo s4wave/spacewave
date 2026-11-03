@@ -121,11 +121,12 @@ export interface BillingSectionProps {
 // BillingSection shows a collapsible billing section with personal and org
 // billing account cards. Cloud-only.
 export function BillingSection({
+  sx,
   isLocal,
   open,
   onOpenChange,
   onNavigateToPath,
-}: BillingSectionProps) {
+}: BillingSectionProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const ns = useStateNamespace(['session-settings'])
   const [storedOpen, setStoredOpen] = useStateAtom(ns, 'billing', true)
   const sectionOpen = open ?? storedOpen
@@ -158,6 +159,7 @@ export function BillingSection({
 
   return (
     <CollapsibleSection
+      sx={sx}
       title="Billing"
       icon={<LuCreditCard sx={stylexStyles.rule1} />}
       open={sectionOpen}
@@ -166,13 +168,10 @@ export function BillingSection({
         hasActive ? <span sx={stylexStyles2.rule1}>Active</span> : undefined
       }
     >
-      <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-        }
-      >
+      <div>
         {billing && billing.status !== BillingStatus.BillingStatus_NONE && (
           <BillingAccountCard
+            sx={nativeChildSpacing.s2}
             label="Personal"
             billing={billing}
             onManage={() => {
@@ -190,7 +189,7 @@ export function BillingSection({
             onClick={() => {
               handleNavigate('plan')
             }}
-            sx={stylexStyles2.rule2}
+            sx={[nativeChildSpacing.s2, stylexStyles2.rule2]}
           >
             <span sx={stylexStyles2.rule3}>Upgrade to Cloud</span>
             <p sx={stylexStyles2.rule4}>
@@ -199,7 +198,12 @@ export function BillingSection({
           </button>
         )}
         {!billing && (
-          <LoadingInline label="Loading billing info" tone="muted" size="sm" />
+          <LoadingInline
+            sx={nativeChildSpacing.s2}
+            label="Loading billing info"
+            tone="muted"
+            size="sm"
+          />
         )}
         {orgs.flatMap((org) =>
           org.billingAccountId
@@ -210,7 +214,7 @@ export function BillingSection({
                   onClick={() => {
                     handleNavigate(`org/${org.id}/billing`)
                   }}
-                  sx={stylexStyles2.rule5}
+                  sx={[nativeChildSpacing.s2, stylexStyles2.rule5]}
                 >
                   <div sx={stylexStyles2.rule6}>
                     <span sx={stylexStyles2.rule3}>
@@ -226,3 +230,18 @@ export function BillingSection({
     </CollapsibleSection>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

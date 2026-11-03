@@ -17,6 +17,19 @@ import {
   fonts as themeFonts,
 } from '../../../web/style/tokens.stylex.js'
 
+import { utilityState as themeUtilityState } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 2%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     display: 'flex',
@@ -96,9 +109,13 @@ function getPairingProgress(status: PairingStatus) {
 // PairingChannelProgress renders the current channel setup state from the
 // pairing status stream before pairing can show the verification phrase.
 export function PairingChannelProgress({
+  sx,
   status = PairingStatus.PairingStatus_WAITING_FOR_PEER,
   stallTimeoutMs = PAIRING_STALL_TIMEOUT_MS,
-}: PairingChannelProgressProps) {
+}: PairingChannelProgressProps & {
+  sx?: stylex.StyleXStyles
+  className?: never
+}) {
   const progress = getPairingProgress(status)
   const phases = pairingPhaseLabels.map((label, index) => ({
     label,
@@ -120,12 +137,8 @@ export function PairingChannelProgress({
   }, [progress.active, stallTimeoutMs, status])
 
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'border-foreground/10 bg-foreground/[0.02] space-y-4 rounded-lg border p-4'
-      }
-    >
-      <div sx={stylexStyles2.rule1}>
+    <div sx={[stylexStyles3.rule1, sx]}>
+      <div sx={[nativeChildSpacing.s4, stylexStyles2.rule1]}>
         <div sx={stylexStyles2.rule2}>
           <LuLink sx={stylexStyles.rule1} aria-hidden="true" />
         </div>
@@ -142,11 +155,29 @@ export function PairingChannelProgress({
         </div>
       </div>
 
-      <div data-progress={progressValue}>
+      <div sx={nativeChildSpacing.s4} data-progress={progressValue}>
         <ProgressBar value={progressValue} />
       </div>
 
-      <PhaseChecklist phases={phases} {...stylex.props(stylexStyles2.rule7)} />
+      <PhaseChecklist
+        phases={phases}
+        sx={[nativeChildSpacing.s4, stylexStyles2.rule7]}
+      />
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s4: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

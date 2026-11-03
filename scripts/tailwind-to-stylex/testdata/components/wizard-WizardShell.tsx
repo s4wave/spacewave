@@ -1,0 +1,273 @@
+import { useCallback, type FocusEvent, type ReactNode } from 'react'
+import { LuArrowLeft, LuCheck, LuTrash2 } from 'react-icons/lu'
+
+import { Button } from '@s4wave/web/ui/button.js'
+import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@s4wave/web/ui/tooltip.js'
+import { cn } from '@s4wave/web/style/utils.js'
+
+import { WizardField } from './WizardField.js'
+
+export interface WizardShellProps {
+  title: ReactNode
+  step: number
+  totalSteps?: number
+  stepName?: string
+  localName: string
+  onUpdateName: (name: string) => void
+  onBack: () => void
+  canBack?: boolean
+  onCancel: () => void
+  // Content slot rendered between header and buttons.
+  children?: ReactNode
+  // Name input configuration.
+  nameLabel?: string
+  namePlaceholder?: string
+  nameHelp?: string
+  nameError?: string
+  // Which step shows the name input. Defaults to 0.
+  nameStep?: number
+  // Selects the existing default name when the name input receives focus.
+  selectNameOnFocus?: boolean
+  // Primary action button.
+  creating: boolean
+  createLabel?: string
+  creatingLabel?: string
+  onFinalize: () => void
+  canFinalize?: boolean
+  // Optional next button for multi-step wizards where step 0 is config.
+  onNext?: () => void
+  canNext?: boolean
+  nextLabel?: string
+  nextBusyLabel?: string
+  nextBusy?: boolean
+  // Which step shows the finalize button. Defaults to 0 (single-step).
+  finalizeStep?: number
+  // Long-form steps can opt into the established wide wizard width.
+  width?: 'default' | 'wide'
+}
+
+/** WizardHeader renders the title bar with the delete action. */
+function WizardHeader({
+  title,
+  onCancel,
+}: Pick<WizardShellProps, 'title' | 'onCancel'>) {
+  return (
+    <div className="border-foreground/8 flex min-h-9 shrink-0 items-center justify-between border-b px-4">
+      <h2 className="text-foreground flex min-w-0 items-center text-sm font-semibold tracking-tight select-none">
+        {title}
+      </h2>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DashboardButton
+            icon={<LuTrash2 className="size-3.5" />}
+            onClick={onCancel}
+            aria-label="Delete wizard"
+            variant="destructive"
+          />
+        </TooltipTrigger>
+        <TooltipContent side="bottom">Delete wizard</TooltipContent>
+      </Tooltip>
+    </div>
+  )
+}
+
+type WizardNameFieldProps = Pick<
+  WizardShellProps,
+  | 'localName'
+  | 'onUpdateName'
+  | 'nameLabel'
+  | 'namePlaceholder'
+  | 'nameHelp'
+  | 'nameError'
+  | 'selectNameOnFocus'
+>
+
+/** WizardNameField renders the name input with its optional error message. */
+function WizardNameField({
+  localName,
+  onUpdateName,
+  nameLabel = 'Name',
+  namePlaceholder = 'Enter a name...',
+  nameHelp,
+  nameError,
+  selectNameOnFocus = false,
+}: WizardNameFieldProps) {
+  const handleNameInputRef = useCallback(
+    (node: HTMLInputElement | null) => {
+      node?.focus()
+      if (selectNameOnFocus) node?.select()
+    },
+    [selectNameOnFocus],
+  )
+  const handleNameFocus = useCallback(
+    (event: FocusEvent<HTMLInputElement>) => {
+      if (selectNameOnFocus) event.currentTarget.select()
+    },
+    [selectNameOnFocus],
+  )
+
+  return (
+    <section>
+      <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
+        <WizardField
+          inputRef={handleNameInputRef}
+          label={nameLabel}
+          value={localName}
+          onChange={(e) => onUpdateName(e.target.value)}
+          placeholder={namePlaceholder}
+          help={nameHelp}
+          aria-invalid={nameError ? true : undefined}
+          aria-describedby={nameError ? 'wizard-name-error' : undefined}
+          variant={nameError ? 'error' : 'default'}
+          onFocus={handleNameFocus}
+        />
+        {nameError && (
+          <p id="wizard-name-error" className="text-destructive mt-1.5 text-xs">
+            {nameError}
+          </p>
+        )}
+      </div>
+    </section>
+  )
+}
+
+type WizardFooterProps = Pick<
+  WizardShellProps,
+  | 'step'
+  | 'onBack'
+  | 'canBack'
+  | 'creating'
+  | 'createLabel'
+  | 'creatingLabel'
+  | 'onFinalize'
+  | 'canFinalize'
+  | 'onNext'
+  | 'canNext'
+  | 'nextLabel'
+  | 'nextBusyLabel'
+  | 'nextBusy'
+  | 'finalizeStep'
+> & { canSubmit: boolean }
+
+/** WizardFooter renders the back, next, and finalize buttons for the current step. */
+function WizardFooter({
+  step,
+  onBack,
+  canBack = true,
+  creating,
+  createLabel = 'Create',
+  creatingLabel = 'Creating...',
+  onFinalize,
+  canFinalize = true,
+  onNext,
+  canNext = true,
+  nextLabel = 'Next',
+  nextBusyLabel = 'Opening…',
+  nextBusy = false,
+  finalizeStep,
+  canSubmit,
+}: WizardFooterProps) {
+  const showFinalize = finalizeStep === undefined || step === finalizeStep
+
+  return (
+    <div className="border-foreground/8 flex items-center justify-between gap-2 border-t px-4 py-3">
+      <div>
+        {step > 0 && (
+          <DashboardButton
+            icon={<LuArrowLeft className="size-3.5" />}
+            onClick={onBack}
+            disabled={!canBack}
+          >
+            Back
+          </DashboardButton>
+        )}
+      </div>
+      <div className="flex gap-2">
+        {onNext && step < (finalizeStep ?? 0) && (
+          <Button
+            onClick={onNext}
+            disabled={nextBusy || !canNext}
+            variant="brandOutline"
+            size="toolbarWide"
+          >
+            {nextBusy ? nextBusyLabel : nextLabel}
+          </Button>
+        )}
+        {showFinalize && (
+          <Button
+            onClick={onFinalize}
+            disabled={creating || !canSubmit || !canFinalize}
+            variant="brandOutline"
+            size="toolbarWide"
+          >
+            <LuCheck className="size-3.5" />
+            {creating ? creatingLabel : createLabel}
+          </Button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// WizardShell renders the shared wizard layout: header, step indicator,
+// content slot, name input, and button grid. The content scrolls between the
+// header and the buttons, so a short window keeps the buttons in reach.
+export function WizardShell({
+  title,
+  step,
+  totalSteps,
+  stepName,
+  onCancel,
+  children,
+  nameStep = 0,
+  width = 'default',
+  ...rest
+}: WizardShellProps) {
+  const stepLabel =
+    totalSteps !== undefined
+      ? `Step ${step + 1} of ${totalSteps}`
+      : `Step ${step + 1}`
+
+  return (
+    <div className="very-short:py-2 flex h-full w-full items-start justify-center px-4 py-10">
+      <div
+        className={cn(
+          'border-foreground/6 bg-background-card/30 flex max-h-full w-full flex-col overflow-hidden rounded-xl border',
+          width === 'wide' ? 'max-w-2xl' : 'max-w-lg',
+        )}
+      >
+        <WizardHeader title={title} onCancel={onCancel} />
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+          <div className="space-y-3">
+            <div className="text-foreground-alt/50 flex items-center gap-2 select-none">
+              <span className="micro-text font-medium tracking-widest uppercase">
+                {stepLabel}
+              </span>
+              {stepName && (
+                <span className="text-foreground-alt/80 text-xs font-medium">
+                  {stepName}
+                </span>
+              )}
+            </div>
+
+            {step === nameStep && <WizardNameField {...rest} />}
+
+            {children}
+          </div>
+        </div>
+
+        <WizardFooter
+          step={step}
+          canSubmit={!!rest.localName.trim()}
+          {...rest}
+        />
+      </div>
+    </div>
+  )
+}

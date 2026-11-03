@@ -25,9 +25,10 @@ export interface IdentifiersSectionProps {
 // IdentifiersSection wraps session, peer, and account IDs in a collapsible
 // section. Defaults to closed since these are rarely needed.
 export function IdentifiersSection({
+  sx,
   open,
   onOpenChange,
-}: IdentifiersSectionProps) {
+}: IdentifiersSectionProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const ns = useStateNamespace(['session-settings'])
   const [storedOpen, setStoredOpen] = useStateAtom(ns, 'identifiers', false)
   const sectionOpen = open ?? storedOpen
@@ -45,6 +46,7 @@ export function IdentifiersSection({
 
   return (
     <CollapsibleSection
+      sx={sx}
       title="Identifiers"
       icon={<LuFingerprint sx={stylexStyles.rule1} />}
       open={sectionOpen}

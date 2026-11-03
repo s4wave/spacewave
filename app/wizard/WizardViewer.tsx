@@ -188,7 +188,7 @@ export function WizardViewer(props: ObjectViewerComponentProps) {
       onFinalize={handleFinalizeClick}
       canFinalize={!nameError}
     >
-      {configEditor.element}
+      {(childSx) => <>{configEditor.render(childSx)}</>}
     </WizardShell>
   )
 }

@@ -313,33 +313,31 @@ export interface OrgActionsSectionProps {
 // OrgActionsSection renders owner-only actions (currently Delete) using the
 // same button-card layout as SessionDetails Actions.
 export function OrgActionsSection({
+  sx,
   orgId,
   displayName,
   spaceCount,
-}: OrgActionsSectionProps) {
+}: OrgActionsSectionProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const blocked = spaceCount > 0
 
   return (
-    <section>
+    <section sx={sx}>
       <div sx={stylexStyles2.rule1}>
         <h2 sx={stylexStyles2.rule2}>Actions</h2>
       </div>
 
-      <div
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-        }
-      >
+      <div>
         <button
           type="button"
           onClick={() => setDialogOpen(true)}
           disabled={blocked}
-          sx={
+          sx={[
+            nativeChildSpacing.s2,
             blocked
               ? [stylexStyles3.rule1, groupMarker4]
-              : [stylexStyles3.rule2, groupMarker4]
-          }
+              : [stylexStyles3.rule2, groupMarker4],
+          ]}
         >
           <div sx={stylexStyles2.rule3}>
             <LuTrash2 sx={stylexStyles.rule1} />
@@ -470,3 +468,18 @@ function DeleteOrgDialog({
     </Dialog>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

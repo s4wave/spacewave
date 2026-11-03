@@ -84,9 +84,13 @@ function fitTaskKeys(keys: string[], count: number): string[] {
 // ForgeJobConfigEditor edits the config-specific fields of a ForgeJobCreateOp.
 // Renders a cluster picker and task definitions list.
 export function ForgeJobConfigEditor({
+  sx,
   value,
   onValueChange,
-}: ConfigEditorProps<ForgeJobCreateOp>) {
+}: ConfigEditorProps<ForgeJobCreateOp> & {
+  sx?: stylex.StyleXStyles
+  className?: never
+}) {
   const { spaceWorldResource } = SpaceContainerContext.useContext()
 
   const clustersResource = useResource(
@@ -149,7 +153,7 @@ export function ForgeJobConfigEditor({
   )
 
   return (
-    <div className="space-y-3">
+    <div sx={sx} className="space-y-3">
       <section>
         <div className="mb-2 flex items-center justify-between">
           <h3 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">

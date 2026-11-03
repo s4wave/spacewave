@@ -151,10 +151,12 @@ const stylexStyles = stylex.create({
 })
 
 // SessionSyncStatusSummary renders a compact sync status card for SessionDetails.
-export function SessionSyncStatusSummary() {
+export function SessionSyncStatusSummary({
+  sx,
+}: { sx?: stylex.StyleXStyles; className?: never } = {}) {
   const status = useSessionSyncStatus()
   return (
-    <InfoCard>
+    <InfoCard sx={sx}>
       <div sx={stylexStyles3.rule1} data-testid="session-sync-status-summary">
         <div sx={stylexStyles3.rule2}>
           <div

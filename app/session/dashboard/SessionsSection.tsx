@@ -358,13 +358,14 @@ function useSessionActions(account: Resource<Account>) {
 // SessionsSection renders the provider-account attached session list for both
 // local and cloud providers.
 export function SessionsSection({
+  sx,
   account,
   isLocal,
   retainStepUp = false,
   open,
   onOpenChange,
   onLinkDeviceClick,
-}: SessionsSectionProps) {
+}: SessionsSectionProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const navigateSession = useSessionNavigate()
   const sessionsResource = useStreamingResource(
     account,
@@ -390,6 +391,7 @@ export function SessionsSection({
 
   return (
     <CollapsibleSection
+      sx={sx}
       title="Sessions"
       icon={<LuCloud sx={stylexStyles.rule1} />}
       open={isOpen}

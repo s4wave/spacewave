@@ -229,6 +229,8 @@ const stylexStyles = stylex.create({
 })
 
 export interface AuthMethodsSectionProps {
+  sx?: stylex.StyleXStyles
+  className?: never
   account: Resource<Account>
   retainStepUp?: boolean
   open?: boolean
@@ -243,6 +245,7 @@ type AuthMethodType = 'pem' | 'passkey' | 'google' | 'github'
 // AuthMutationWizard for multi-sig unlock. Otherwise, falls back to the
 // simple AuthConfirmDialog.
 export function AuthMethodsSection({
+  sx,
   account,
   retainStepUp = false,
   open,
@@ -252,6 +255,7 @@ export function AuthMethodsSection({
   if (state) {
     return (
       <AuthMethodsSectionContent
+        sx={sx}
         account={account}
         retainStepUp={retainStepUp}
         open={open}
@@ -264,6 +268,7 @@ export function AuthMethodsSection({
 
   return (
     <AuthMethodsSectionWithWatches
+      sx={sx}
       account={account}
       retainStepUp={retainStepUp}
       open={open}
@@ -299,6 +304,7 @@ interface AuthMethodsSectionContentProps extends AuthMethodsSectionProps {
 }
 
 function AuthMethodsSectionContent({
+  sx,
   account,
   retainStepUp = false,
   open,
@@ -353,6 +359,7 @@ function AuthMethodsSectionContent({
   return (
     <>
       <CollapsibleSection
+        sx={sx}
         title="Auth Methods"
         icon={<LuKey sx={stylexStyles.rule1} />}
         open={sectionOpen}

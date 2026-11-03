@@ -68,6 +68,16 @@ import {
   utilityState as themeUtilityState,
 } from '../../../web/style/tokens.stylex.js'
 
+const stylexStyles5 = stylex.create({
+  rule1: {
+    marginTop: `calc(${themeLayout['--spacing']} * 8)`,
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    paddingTop: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+})
+
 const stylexStyles4 = stylex.create({
   rule1: {
     containerType: 'inline-size',
@@ -870,23 +880,32 @@ export function CommandLineSetupPage() {
 
         <InAppTerminalLauncher onOpen={handleOpenTerminal} />
 
-        <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'border-foreground/10 mt-8 space-y-4 border-t pt-6'
-          }
-        >
-          <InstallGuidanceSection />
+        <div sx={stylexStyles5.rule1}>
+          <InstallGuidanceSection sx={nativeChildSpacingNextNext.s4} />
           {isDesktop && (
             <DesktopCLIInstallCard
+              sx={nativeChildSpacingNextNext.s4}
               state={cliInstall.value?.state}
               loading={cliInstall.loading}
               error={cliInstall.error}
               onInvokeAction={handleCLIInstallAction}
             />
           )}
-          {isDesktop && <ListenerStatusChip />}
-          {isDesktop && <WalkthroughSection opts={opts} />}
-          {isDesktop && <MoreCommandsSection opts={opts} />}
+          {isDesktop && (
+            <ListenerStatusChip sx={nativeChildSpacingNextNext.s4} />
+          )}
+          {isDesktop && (
+            <WalkthroughSection
+              sx={nativeChildSpacingNextNext.s4}
+              opts={opts}
+            />
+          )}
+          {isDesktop && (
+            <MoreCommandsSection
+              sx={nativeChildSpacingNextNext.s4}
+              opts={opts}
+            />
+          )}
         </div>
       </div>
     </div>
@@ -923,17 +942,13 @@ function InAppTerminalLauncher({ onOpen }: { onOpen: () => void }) {
           Try these at the <code sx={stylexStyles4.rule13}>spacewave&gt;</code>{' '}
           prompt
         </div>
-        <dl
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: divide-y */ 'divide-foreground/8 divide-y'
-          }
-        >
+        <dl>
           {[
             ['help', 'Explore available commands'],
             ['status', 'Check the current session'],
             ['space list', 'List your spaces'],
           ].map(([command, description]) => (
-            <div key={command} sx={stylexStyles4.rule14}>
+            <div key={command} sx={[stylexStyles4.rule14, nativeDividers.t8]}>
               <dt sx={stylexStyles4.rule15}>{command}</dt>
               <dd sx={stylexStyles4.rule16}>{description}</dd>
               <CopyButton text={command} label={`Copy ${command}`} />
@@ -1388,7 +1403,10 @@ function InstallGuidanceSection({
 // next set of useful CLI commands without pulling them into the
 // walkthrough. Covers the web listener, file listing, git helpers, and
 // the developer docs index.
-function MoreCommandsSection({ opts }: { opts: CommandOptions }) {
+function MoreCommandsSection({
+  sx,
+  opts,
+}: { opts: CommandOptions } & { sx?: stylex.StyleXStyles; className?: never }) {
   const ns = useStateNamespace(['cli-setup'])
   const [open, setOpen] = useStateAtom<boolean>(ns, 'more-open', false)
   const developerCliHref = useStaticHref(
@@ -1397,6 +1415,7 @@ function MoreCommandsSection({ opts }: { opts: CommandOptions }) {
 
   return (
     <CollapsibleSection
+      sx={sx}
       title="More commands"
       open={open}
       onOpenChange={setOpen}
@@ -1617,6 +1636,49 @@ const nativeChildSpacingNext = stylex.create({
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNextNext = stylex.create({
+  s4: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeDividers applies the list border only to its nonfinal physical rows.
+const nativeDividers = stylex.create({
+  t8: {
+    '--tw-divide-y-reverse': { default: null, ':not(:last-child)': 0 },
+    borderBottomStyle: {
+      default: null,
+      ':not(:last-child)': themeUtilityState['--tw-border-style'],
+    },
+    borderTopStyle: {
+      default: null,
+      ':not(:last-child)': themeUtilityState['--tw-border-style'],
+    },
+    borderTopWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * var(--tw-divide-y-reverse))',
+    },
+    borderBottomWidth: {
+      default: null,
+      ':not(:last-child)': 'calc(1px * calc(1 - var(--tw-divide-y-reverse)))',
+    },
+    borderColor: {
+      default: null,
+      ':not(:last-child)':
+        'color-mix(in oklab, var(--color-foreground) 8%, transparent)',
     },
   },
 })

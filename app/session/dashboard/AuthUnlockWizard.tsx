@@ -475,12 +475,8 @@ function AuthUnlockWizardContent({
         {loading && <p sx={stylexStyles2.rule1}>Loading keypairs…</p>}
 
         {!loading && keypairs.length > 0 && (
-          <div
-            className={
-              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
-            }
-          >
-            <div sx={stylexStyles2.rule2}>
+          <div>
+            <div sx={[nativeChildSpacingNextNext.s2, stylexStyles2.rule2]}>
               <span sx={stylexStyles2.rule1}>
                 {unlockedCount} of {required} unlocked
               </span>
@@ -494,7 +490,7 @@ function AuthUnlockWizardContent({
               </div>
             </div>
 
-            <div sx={stylexStyles2.rule6}>
+            <div sx={[nativeChildSpacingNextNext.s2, stylexStyles2.rule6]}>
               <div
                 sx={stylexStyles2.rule7}
                 style={{
@@ -503,13 +499,10 @@ function AuthUnlockWizardContent({
               />
             </div>
 
-            <div
-              className={
-                /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ 'space-y-1.5'
-              }
-            >
+            <div sx={nativeChildSpacingNextNext.s2}>
               {keypairs.map((kp) => (
                 <KeypairRow
+                  sx={nativeChildSpacingNext.s1_5}
                   key={kp.keypair?.peerId ?? 'unknown'}
                   keypairState={kp}
                   account={account}
@@ -556,11 +549,12 @@ interface KeypairRowProps {
 // KeypairRow renders a single entity keypair with its lock status and the
 // unlock controls its auth method needs.
 function KeypairRow({
+  sx,
   keypairState,
   account,
   disabled,
   onError,
-}: KeypairRowProps) {
+}: KeypairRowProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const peerId = keypairState.keypair?.peerId ?? ''
   const method = keypairState.keypair?.authMethod ?? 'unknown'
   const props = {
@@ -573,16 +567,16 @@ function KeypairRow({
   }
 
   if (keypairState.unlocked) {
-    return <UnlockedKeypairRow {...props} />
+    return <UnlockedKeypairRow sx={sx} {...props} />
   }
   if (
     method === 'passkey' ||
     method === 'google_sso' ||
     method === 'github_sso'
   ) {
-    return <BrowserKeypairRow {...props} />
+    return <BrowserKeypairRow sx={sx} {...props} />
   }
-  return <CredentialKeypairRow {...props} />
+  return <CredentialKeypairRow sx={sx} {...props} />
 }
 
 interface KeypairRowStateProps {
@@ -596,13 +590,14 @@ interface KeypairRowStateProps {
 
 // UnlockedKeypairRow renders an unlocked keypair with its lock control.
 function UnlockedKeypairRow({
+  sx,
   account,
   peerId,
   method,
   truncated,
   disabled,
   onError,
-}: KeypairRowStateProps) {
+}: KeypairRowStateProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const handleLock = async () => {
     if (!account.value || !peerId) {
       return
@@ -615,7 +610,7 @@ function UnlockedKeypairRow({
   }
 
   return (
-    <div sx={stylexStyles2.rule11}>
+    <div sx={[stylexStyles2.rule11, sx]}>
       <div sx={stylexStyles2.rule12}>
         <LuLockOpen sx={stylexStyles.rule1} />
         <div sx={stylexStyles2.rule13}>
@@ -637,13 +632,14 @@ function UnlockedKeypairRow({
 
 // CredentialKeypairRow unlocks a password or backup-key keypair.
 function CredentialKeypairRow({
+  sx,
   account,
   peerId,
   method,
   truncated,
   disabled,
   onError,
-}: KeypairRowStateProps) {
+}: KeypairRowStateProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const runner = useUnlockRunner(onError)
   const { credential, unlockWithCredential } = useCredentialUnlock(
     account,
@@ -653,6 +649,7 @@ function CredentialKeypairRow({
 
   return (
     <CredentialUnlockCard
+      sx={sx}
       method={method}
       truncated={truncated}
       credential={credential}
@@ -667,13 +664,14 @@ function CredentialKeypairRow({
 // BrowserKeypairRow unlocks a passkey or SSO keypair through a browser or
 // desktop ceremony, resuming with a PIN when the recovered key is PIN wrapped.
 function BrowserKeypairRow({
+  sx,
   account,
   peerId,
   method,
   truncated,
   disabled,
   onError,
-}: KeypairRowStateProps) {
+}: KeypairRowStateProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const runner = useUnlockRunner(onError)
   const recovered = useRecoveredUnlock(account, peerId, runner)
   const flow = useBrowserFlow()
@@ -692,6 +690,7 @@ function BrowserKeypairRow({
 
   return (
     <BrowserUnlockCard
+      sx={sx}
       method={method}
       truncated={truncated}
       pin={recovered.pin}
@@ -1025,6 +1024,7 @@ interface CredentialUnlockCardProps {
 // CredentialUnlockCard renders the shared password / backup-key unlock form
 // used by the settings escalation shell.
 function CredentialUnlockCard({
+  sx,
   method,
   truncated,
   credential,
@@ -1032,11 +1032,14 @@ function CredentialUnlockCard({
   unlocking,
   showPassword,
   onUnlock,
-}: CredentialUnlockCardProps) {
+}: CredentialUnlockCardProps & {
+  sx?: stylex.StyleXStyles
+  className?: never
+}) {
   const canUnlock = showPassword ? !!credential.password : !!credential.pemData
 
   return (
-    <div sx={stylexStyles3.rule1}>
+    <div sx={[stylexStyles3.rule1, sx]}>
       <UnlockCardHeader
         sx={nativeChildSpacing.s3}
         method={method}
@@ -1184,6 +1187,7 @@ function PinField({
 // BrowserUnlockCard renders the shared passkey / SSO unlock states for browser
 // ceremonies, including waiting, PIN resume, cancel, and retry.
 function BrowserUnlockCard({
+  sx,
   method,
   truncated,
   pin,
@@ -1196,7 +1200,7 @@ function BrowserUnlockCard({
   onStart,
   onCancel,
   onUnlockPin,
-}: BrowserUnlockCardProps) {
+}: BrowserUnlockCardProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const helperText = describeBrowserUnlock(
     method,
     needsPin,
@@ -1205,7 +1209,7 @@ function BrowserUnlockCard({
   )
 
   return (
-    <div sx={stylexStyles3.rule1}>
+    <div sx={[stylexStyles3.rule1, sx]}>
       <UnlockCardHeader
         sx={nativeChildSpacing.s3}
         method={method}
@@ -1285,6 +1289,36 @@ const nativeChildSpacing = stylex.create({
     marginBlockEnd: {
       default: null,
       ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s1_5: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNextNext = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
     },
   },
 })
