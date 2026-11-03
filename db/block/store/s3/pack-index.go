@@ -17,16 +17,19 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// The local KV a PackStore keeps its pack index in holds three kinds of rows:
+// The local KV a PackStore keeps its pack index in holds these rows:
 //
 //	e/{pack id}   the PackfileEntry of the pack, as the entries/ object holds it
 //	p/{pack id}   the pack's number and whether its keys are all in h rows
 //	h{digest tail} the number of a pack that holds the block, 4 bytes
 //	t/{pack id}   the raw kvfile index tail of the pack, as its reader read it
+//	n/next        the lowest pack number not yet given, 4 bytes
 //
 // Pack numbers grow by one for each pack the index learns and are never reused,
 // so an h row of a removed pack names a number no pack holds and reads as a
-// miss. The number table is the only place the id strings live: a block costs
+// miss. A remove records the next number, since the removed packs may have
+// held the highest ones and the p/ rows alone would give them out again after
+// a restart, pointing their stale h rows at packs that lack the blocks. The number table is the only place the id strings live: a block costs
 // its key and 4 bytes, not a 20 byte id.
 //
 // Invariants:
@@ -49,6 +52,7 @@ const (
 	indexPackPrefix  = "p/"
 	indexHashPrefix  = "h"
 	indexTailPrefix  = "t/"
+	indexNextKey     = "n/next"
 	// indexKeyBytes is the bytes of a block key an h row key keeps.
 	indexKeyBytes = 16
 
@@ -147,13 +151,16 @@ func (x *packIndex) load(ctx context.Context) ([]*packfile.PackfileEntry, error)
 
 	// Read the pack table, which names every pack that may have a cached
 	// entry, and register it.
-	rows, ids, err := x.loadTable(ctx)
+	rows, ids, nextNum, err := x.loadTable(ctx)
 	if err != nil {
 		return nil, err
 	}
 	x.mtx.Lock()
 	for _, id := range ids {
 		x.registerRowLocked(id, rows[id])
+	}
+	for uint32(len(x.ids)) < nextNum { //nolint:gosec // 2^32 packs cannot exist.
+		x.ids = append(x.ids, "")
 	}
 	x.mtx.Unlock()
 	tableLoaded()
@@ -204,17 +211,24 @@ func (x *packIndex) load(ctx context.Context) ([]*packfile.PackfileEntry, error)
 	return entries, nil
 }
 
-// loadTable reads the pack table and the ids of its packs in key order. It
+// loadTable reads the pack table, the ids of its packs in key order and the
+// next pack number the index recorded, 0 when it recorded none. It
 // reads only the table, whose rows are a few bytes each, and no entry: listing
 // the entries' keys would read every entry's pages, bloom filter included,
 // once here and again in load, and load already skips a pack with no entry.
-func (x *packIndex) loadTable(ctx context.Context) (map[string]packRow, []string, error) {
+func (x *packIndex) loadTable(ctx context.Context) (map[string]packRow, []string, uint32, error) {
 	// Hold one read snapshot while listing the cached pack table.
 	tx, err := x.store.NewTransaction(ctx, false)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, 0, err
 	}
 	defer tx.Discard()
+
+	// Read the next number the removes recorded.
+	next, err := readNext(ctx, tx)
+	if err != nil {
+		return nil, nil, 0, err
+	}
 
 	// Read the pack table in key order.
 	rows := make(map[string]packRow)
@@ -231,9 +245,18 @@ func (x *packIndex) loadTable(ctx context.Context) (map[string]packRow, []string
 		return nil
 	})
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "read pack table")
+		return nil, nil, 0, errors.Wrap(err, "read pack table")
 	}
-	return rows, ids, nil
+	return rows, ids, next, nil
+}
+
+// readNext reads the recorded next pack number, 0 when none is recorded.
+func readNext(ctx context.Context, tx kvtx.Tx) (uint32, error) {
+	value, ok, err := tx.Get(ctx, []byte(indexNextKey))
+	if err != nil || !ok || len(value) != 4 {
+		return 0, err
+	}
+	return binary.BigEndian.Uint32(value), nil
 }
 
 // register adds a persisted pack to the table.
@@ -440,9 +463,13 @@ func (x *packIndex) namesLivePack(ctx context.Context, tx kvtx.Tx, rowKey []byte
 // remove drops packs from the table and the cache. Their h rows stay: no pack
 // holds their number again.
 func (x *packIndex) remove(ctx context.Context, ids []string) error {
+	// Nothing to remove.
 	if len(ids) == 0 {
 		return nil
 	}
+
+	// Forget the packs in memory and note the next number, which no removed
+	// pack can reach.
 	x.mtx.Lock()
 	for _, id := range ids {
 		if row, ok := x.rows[id]; ok {
@@ -451,14 +478,27 @@ func (x *packIndex) remove(ctx context.Context, ids []string) error {
 		delete(x.rows, id)
 		delete(x.pending, id)
 	}
+	next := uint32(len(x.ids)) //nolint:gosec // 2^32 packs cannot exist.
 	x.version.Add(1)
 	x.mtx.Unlock()
 
+	// Record the next number, keeping a higher one a concurrent remove wrote.
 	tx, err := x.store.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 	defer tx.Discard()
+	stored, err := readNext(ctx, tx)
+	if err != nil {
+		return err
+	}
+	if next > stored {
+		if err := tx.Set(ctx, []byte(indexNextKey), binary.BigEndian.AppendUint32(nil, next)); err != nil {
+			return err
+		}
+	}
+
+	// Delete the packs' rows.
 	for _, id := range ids {
 		if err := tx.Delete(ctx, []byte(indexEntryPrefix+id)); err != nil {
 			return err

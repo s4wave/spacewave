@@ -247,6 +247,63 @@ func TestPackStoreIndex(t *testing.T) {
 			t.Fatalf("preserved row names %q, want %q", got, livePack)
 		}
 	}
+
+	// A row that names a live pack lacking the block still reads it: the
+	// lookup tests every filter once the located pack misses.
+	numOf := func(id string) uint32 {
+		store.index.mtx.RLock()
+		defer store.index.mtx.RUnlock()
+		return store.index.rows[id].num
+	}
+	misplaced := refs[len(refs)-3]
+	setRow(t, kv, misplaced, numOf(otherPack))
+	if data, found, err := store.GetBlock(ctx, misplaced); err != nil || !found || string(data) != "pack 3 block 17" {
+		t.Fatalf("misplaced read = %q, %v, %v", data, found, err)
+	}
+
+	// Removing the newest pack and restarting does not give its number to the
+	// next pack, which would point the removed pack's rows at it.
+	newestNum := numOf(livePack)
+	if err := client.DeleteObject(ctx, "bucket", "p/"+entryDir+livePack); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, "newest pack leaves the index", func() bool {
+		id, found, _ := store.index.Locate(ctx, hashKey(duplicates[0]))
+		return found && id == ""
+	})
+	store.Close()
+	next := putPack(5, 1)
+	store, _ = open()
+	t.Cleanup(store.Close)
+	if _, found, err := store.GetBlock(ctx, refs[25]); err != nil || !found {
+		t.Fatalf("read after restart = %v, %v", found, err)
+	}
+	waitFor(t, "next pack indexed", func() bool {
+		id := packOf(t, store, next[0])
+		return id != "" && store.index.Indexed(id)
+	})
+	if got := numOf(packOf(t, store, next[0])); got <= newestNum {
+		t.Fatalf("next pack numbered %d, want above the removed %d", got, newestNum)
+	}
+	if id, found, err := store.index.Locate(ctx, hashKey(duplicates[1])); err != nil || !found || id != "" {
+		t.Fatalf("removed pack's row after restart = %q, %v, %v", id, found, err)
+	}
+}
+
+// setRow points the h row of ref at pack number num.
+func setRow(t *testing.T, kv kvtx.Store, ref *block.BlockRef, num uint32) {
+	t.Helper()
+	tx, err := kv.NewTransaction(t.Context(), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	if err := tx.Set(t.Context(), hashRowKey(hashKey(ref)), binary.BigEndian.AppendUint32(nil, num)); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(t.Context()); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func hashKey(ref *block.BlockRef) []byte {

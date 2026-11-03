@@ -18,7 +18,9 @@ type Locator interface {
 	// Locate returns the id of the pack that holds key, and false when no
 	// indexed pack does. The pack may have left the manifest since, and a
 	// found key may carry an empty id when the locator knows its pack is
-	// gone; either way the store tests every filter.
+	// gone; either way the store tests every filter. A located pack that
+	// lacks the key also sends the store to every filter, so a wrong answer
+	// costs a slow lookup rather than a lost block.
 	Locate(ctx context.Context, key []byte) (packID string, found bool, err error)
 	// Indexed reports whether Locate knows every key of the pack.
 	Indexed(packID string) bool
@@ -109,19 +111,19 @@ func (v *ManifestSnapshot) entryByID(id string) *manifestEntry {
 }
 
 // candidates returns the packs of view that may hold key, the pack the locator
-// places it in first.
-func (s *PackfileStore) candidates(ctx context.Context, view *ManifestSnapshot, key []byte) ([]*manifestEntry, error) {
+// places it in first, and whether that first pack came from the locator.
+func (s *PackfileStore) candidates(ctx context.Context, view *ManifestSnapshot, key []byte) ([]*manifestEntry, bool, error) {
 	// Without a locator every pack tests its filter.
 	bloomKey := bloom.NewKey(key)
 	loc := s.locator
 	if loc == nil {
-		return view.filterCandidates(bloomKey), nil
+		return view.filterCandidates(bloomKey), false, nil
 	}
 
 	// Ask the locator which pack holds the key.
 	located, found, err := loc.Locate(ctx, key)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	// Place the located pack first. When it left the manifest, the index
@@ -131,7 +133,7 @@ func (s *PackfileStore) candidates(ctx context.Context, view *ManifestSnapshot, 
 	if found {
 		hit := view.entryByID(located)
 		if hit == nil {
-			return view.filterCandidates(bloomKey), nil
+			return view.filterCandidates(bloomKey), false, nil
 		}
 		out = append(out, hit)
 	}
@@ -146,7 +148,7 @@ func (s *PackfileStore) candidates(ctx context.Context, view *ManifestSnapshot, 
 		}
 		return true
 	})
-	return out, nil
+	return out, found, nil
 }
 
 // filterCandidates returns every pack of view whose filter may hold key.
