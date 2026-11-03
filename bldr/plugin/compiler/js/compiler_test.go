@@ -176,26 +176,27 @@ func TestPluginCompilerJs(t *testing.T) {
 		t.Fatal("expected persisted Vite builder result")
 	}
 
-	// Assert the startup inputs cover the module, entrypoint, and dist deps.
-	var foundModuleInput, foundEntrypointInput, foundDistDepsInput bool
-	for _, inputFile := range buildResult.GetInputManifest().GetFiles() {
-		inputPath := filepath.ToSlash(inputFile.GetPath())
-		switch {
-		case strings.HasSuffix(inputPath, "bldr/plugin/host/wazero-quickjs/plugin-quickjs_test.ts"):
-			foundModuleInput = true
-		case strings.HasSuffix(inputPath, "bldr/plugin/compiler/js/entrypoint.ts"):
-			foundEntrypointInput = true
-		case strings.HasSuffix(inputPath, "bldr/dist/deps/package.json"):
-			foundDistDepsInput = true
-		}
+	// The outer startup cache must fingerprint the compiler and its declared patches too.
+	wantInputs := []string{
+		"bldr/plugin/host/wazero-quickjs/plugin-quickjs_test.ts",
+		"bldr/plugin/compiler/js/entrypoint.ts",
+		"bldr/dist/deps/package.json",
+		"bldr/web/bundler/vite/vite.ts",
+		"bldr/web/bundler/vite/stylex.ts",
+		"bldr/web/bundler/rolldown/run-build.ts",
+		"bldr/dist/deps/patches/@stylexjs%2Fbabel-plugin@0.19.1.patch",
 	}
-	if !foundModuleInput || !foundEntrypointInput || !foundDistDepsInput {
-		t.Fatalf(
-			"startup inputs missing module=%t entrypoint=%t dist-deps=%t",
-			foundModuleInput,
-			foundEntrypointInput,
-			foundDistDepsInput,
-		)
+	for _, want := range wantInputs {
+		found := false
+		for _, input := range buildResult.GetInputManifest().GetFiles() {
+			if strings.HasSuffix(filepath.ToSlash(input.GetPath()), want) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("startup input missing %s", want)
+		}
 	}
 	if _, err := os.Stat(staleEntryPath); !os.IsNotExist(err) {
 		t.Fatalf("stale plugin entrypoint survived rebuild: %v", err)

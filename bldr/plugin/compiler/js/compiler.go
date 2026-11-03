@@ -653,6 +653,16 @@ func (c *Controller) BuildManifest(
 		return nil, err
 	}
 
+	// Retain toolchain provenance at the outer startup cache, which can bypass bundle caches.
+	startupInputPaths = append(startupInputPaths,
+		bldr_web_bundler_rolldown.ToolchainInputs(distSourcePath, distpath.Resolve(distSourcePath, "web", "bundler", "rolldown"))...,
+	)
+	if len(viteBundleMetas) != 0 {
+		startupInputPaths = append(startupInputPaths,
+			bldr_web_bundler_rolldown.ToolchainInputs(distSourcePath, distpath.Resolve(distSourcePath, "web", "bundler", "vite"))...,
+		)
+	}
+
 	// Include declared hook files among the startup inputs.
 	startupInputPaths = append(startupInputPaths, hookStartupInputPaths...)
 
