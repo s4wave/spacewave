@@ -53,8 +53,8 @@ require (
 	github.com/fatih/color v1.19.0
 	github.com/fclairamb/ftpserverlib v0.32.7
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-git/go-billy/v6 v6.0.0-beta.1.0.20261016211742-fd38f5ac32fe // main
-	github.com/go-git/go-git/v6 v6.0.0-beta.1.0.20261030225847-a0088e429af9 // main
+	github.com/go-git/go-billy/v6 v6.0.0-beta.1.0.20261102114623-3dcdd520bf27 // main
+	github.com/go-git/go-git/v6 v6.0.0-beta.1.0.20261102125716-dba33177304c // main
 	github.com/go-sql-driver/mysql v1.10.1
 	github.com/goccy/go-json v0.12.0
 	github.com/gomodule/redigo v2.0.0+incompatible
@@ -84,7 +84,7 @@ require (
 	github.com/prometheus/prometheus v0.315.1
 	github.com/quic-go/quic-go v0.64.1
 	github.com/restic/chunker v0.5.0
-	github.com/s4wave/goscript v0.6.4-0.20261102230420-330fbb093273
+	github.com/s4wave/goscript v0.6.4-0.20261103004250-0dd2738852f7
 	github.com/sasha-s/go-deadlock v0.3.9
 	github.com/satori/go.uuid v1.2.0
 	github.com/sergi/go-diff v1.4.0
