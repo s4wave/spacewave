@@ -1,3 +1,4 @@
+import { controlTargetStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { LuFolderOpen, LuLink } from '@s4wave/web/images/icons.js'
 
@@ -249,7 +250,7 @@ export function AppLogin({
           <button
             type="button"
             onClick={() => navigate({ path: '/pair' })}
-            sx={[stylexStyles2.rule6, buttonSx]}
+            sx={[stylexStyles2.rule6, buttonSx, controlTargetStyles.minimum]}
           >
             <LuLink sx={stylexStyles.rule1} />
             <span sx={stylexStyles2.rule7}>Link to existing device</span>
@@ -269,7 +270,7 @@ export function AppLogin({
                 .catch(() => {})
             }}
             disabled={!addRootAlias.canAdd}
-            sx={[stylexStyles2.rule8, buttonSx]}
+            sx={[stylexStyles2.rule8, buttonSx, controlTargetStyles.minimum]}
           >
             <LuFolderOpen sx={stylexStyles.rule1} />
             <span sx={stylexStyles2.rule7}>Open local state root</span>

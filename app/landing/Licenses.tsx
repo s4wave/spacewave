@@ -1,3 +1,4 @@
+import { controlTargetStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import { useState, useMemo, useCallback } from 'react'
 import {
   LuScale,
@@ -420,7 +421,11 @@ function LicenseGroup({
           {entries.length} {entries.length === 1 ? 'package' : 'packages'}
         </span>
         {baseText && (
-          <button type="button" onClick={toggleBase} sx={stylexStyles3.rule7}>
+          <button
+            type="button"
+            onClick={toggleBase}
+            sx={[stylexStyles3.rule7, controlTargetStyles.minimum]}
+          >
             {showBase ? 'Hide' : 'Show'} license text
             {showBase ? (
               <LuChevronDown sx={stylexStyles.rule1} />
@@ -454,7 +459,7 @@ function LicenseGroup({
                     onClick={() => toggleEntry(entryKey)}
                     aria-expanded={isExpanded}
                     aria-label={buttonLabel}
-                    sx={stylexStyles3.rule13}
+                    sx={[stylexStyles3.rule13, controlTargetStyles.minimum]}
                   >
                     {isExpanded ? (
                       <LuChevronDown sx={stylexStyles.rule2} />

@@ -1,3 +1,4 @@
+import { controlTargetStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import { useCallback, useId, useState } from 'react'
 import { LuArrowLeft, LuGitBranch } from '@s4wave/web/images/icons.js'
 import {
@@ -209,7 +210,7 @@ export function PluginRepositoriesPage() {
         <button
           type="button"
           onClick={() => navigate({ path: '../../' })}
-          sx={stylexStyles2.rule3}
+          sx={[stylexStyles2.rule3, controlTargetStyles.minimum]}
         >
           <LuArrowLeft sx={stylexStyles.rule1} />
           Back to dashboard

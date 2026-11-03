@@ -1,3 +1,4 @@
+import { controlTargetStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import { useCallback, useMemo, useState } from 'react'
 import {
   LuArrowLeft,
@@ -588,7 +589,7 @@ function TransferWizardSteps({
             shownStep === 'select' ? handleBack : () => setStep('select')
           }
           disabled={shownStep === 'progress' || shownStep === 'complete'}
-          sx={stylexStyles2.rule3}
+          sx={[stylexStyles2.rule3, controlTargetStyles.minimum]}
         >
           <LuArrowLeft sx={stylexStyles.rule1} />
           {shownStep === 'select' ? 'Back to dashboard' : 'Back'}
@@ -772,7 +773,7 @@ function WizardAction({
           type="button"
           onClick={onNext}
           disabled={!canProceed}
-          sx={[stylexStyles2.rule10]}
+          sx={[stylexStyles2.rule10, controlTargetStyles.minimum]}
         >
           Next
           <LuArrowRight sx={stylexStyles.rule2} />
@@ -784,7 +785,7 @@ function WizardAction({
           type="button"
           onClick={onStart}
           disabled={!hasSelection}
-          sx={[stylexStyles2.rule10]}
+          sx={[stylexStyles2.rule10, controlTargetStyles.minimum]}
         >
           <LuMerge sx={stylexStyles.rule2} />
           Start Transfer
@@ -792,14 +793,22 @@ function WizardAction({
       )
     case 'progress':
       return (
-        <button type="button" onClick={onCancel} sx={[stylexStyles2.rule11]}>
+        <button
+          type="button"
+          onClick={onCancel}
+          sx={[stylexStyles2.rule11, controlTargetStyles.minimum]}
+        >
           <LuX sx={stylexStyles.rule2} />
           Cancel
         </button>
       )
     case 'complete':
       return (
-        <button type="button" onClick={onComplete} sx={[stylexStyles2.rule10]}>
+        <button
+          type="button"
+          onClick={onComplete}
+          sx={[stylexStyles2.rule10, controlTargetStyles.minimum]}
+        >
           <LuCheck sx={stylexStyles.rule2} />
           Go to Session
         </button>
@@ -956,6 +965,7 @@ function InventoryStep({
                   stylexStyles2.rule16,
                   checked ? stylexStyles2.rule17 : stylexStyles2.rule18,
                 ],
+                controlTargetStyles.minimum,
               ]}
             >
               <div sx={stylexStyles2.rule19}>

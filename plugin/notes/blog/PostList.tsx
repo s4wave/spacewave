@@ -1,3 +1,4 @@
+import { controlTargetStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import { useCallback } from 'react'
 
 import { LuArrowRight } from '@s4wave/web/images/icons.js'
@@ -184,7 +185,7 @@ function PostListItem({ post, onSelectPost }: PostListItemProps) {
           <button
             type="button"
             onClick={handlePostSelect}
-            sx={stylexStyles3.rule3}
+            sx={[stylexStyles3.rule3, controlTargetStyles.minimum]}
           >
             {post.title}
           </button>
