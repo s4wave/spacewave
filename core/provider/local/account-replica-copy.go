@@ -176,13 +176,19 @@ func (a *ProviderAccount) copyAccountWorldHead(
 			return err
 		}
 
-		// Wait for a source that may hold the block with its refs, or for a
-		// newer head.
-		if !logged {
-			a.le.WithError(err).Info("waiting for a peer that holds a World block with its refs")
-		}
+		// Log this captured advertisement's first missing role once per head.
 		var holes *worldHolesError
 		errors.As(err, &holes)
+		if !logged {
+			le := a.le.WithError(err).WithField("shared-object-id", so.GetSharedObjectID()).WithField("copy-root", cur.head.GetRootRef().MarshalString())
+			if holes != nil && len(holes.refs) != 0 {
+				missing := holes.refs[0]
+				le = le.WithField("missing-ref", missing.MarshalString()).WithField("missing-role", replicaHoleRole(cur, missing))
+			}
+			le.Info("waiting for a peer that holds a World block with its refs")
+		}
+
+		// Wait for a source that may hold the block with its refs, or a newer head.
 		waitCtx, cancel := context.WithCancel(ctx)
 		go func() {
 			_, _ = latest.WaitValueChange(waitCtx, cur, nil)
@@ -204,6 +210,45 @@ func (a *ProviderAccount) copyAccountWorldHead(
 			return err
 		}
 	}
+}
+
+// replicaHoleRole classifies a hole using only the captured advertisement.
+// Decoding and root comparisons run once per missing head, outside any writer;
+// no block lookup, replay, fence or network request is added.
+func replicaHoleRole(advertisement *replicaHead, missing *block.BlockRef) string {
+	// Without a span, the advertised root is the checkpoint World itself.
+	if advertisement.span == nil {
+		if missing.EqualsRef(advertisement.head.GetRootRef()) {
+			return "checkpoint-world"
+		}
+		return "descendant"
+	}
+
+	// A generated span is distinct from its checkpoint and operation inputs.
+	if missing.EqualsRef(advertisement.head.GetRootRef()) {
+		return "advertised-span"
+	}
+
+	// Decode the already encoded root lists without reading any block.
+	span := &sobject_world_engine.ReplaySpan{}
+	if err := span.UnmarshalVT(advertisement.span.Data); err != nil {
+		return "span-decode-failed"
+	}
+
+	// Prefer the checkpoint role if a root also appears among the payloads.
+	for _, ref := range span.GetWorlds() {
+		if missing.EqualsRef(ref) {
+			return "checkpoint-world"
+		}
+	}
+
+	// The remaining named inputs are operation payload roots.
+	for _, ref := range span.GetPayloads() {
+		if missing.EqualsRef(ref) {
+			return "operation-payload"
+		}
+	}
+	return "descendant"
 }
 
 // waitWorldHoles waits for a peer session to start on exchange. When holes
