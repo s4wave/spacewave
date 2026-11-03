@@ -7,7 +7,6 @@ import (
 	"cmp"
 	"context"
 	"io"
-	"maps"
 	"slices"
 	"strings"
 	"sync"
@@ -126,6 +125,10 @@ type PackStore struct {
 	// loaded is set once a listing completed, which makes the entries the
 	// bucket's own.
 	loaded atomic.Bool
+	// loadedCh is closed once loaded is set.
+	loadedCh chan struct{}
+	// early counts the early lookups by outcome until the full load.
+	early earlyCounts
 
 	// bcast guards entries and writes.
 	bcast broadcast.Broadcast
@@ -229,6 +232,7 @@ func NewPackStore(le *logrus.Entry, client ObjectStore, bucket, prefix string, o
 		pricing:   pricing,
 		keepPacks: opts.KeepPacks,
 		entries:   make(map[string]*packfile.PackfileEntry),
+		loadedCh:  make(chan struct{}),
 		compactor: routine.NewRoutineContainerWithLogger(
 			le.WithField("routine", "pack-compaction"),
 			routine.WithRetry(compactBackoff),
@@ -437,7 +441,7 @@ func (s *PackStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*b
 		return nil, block.ErrEmptyBlockRef
 	}
 	var stored *block.StoredBlock
-	err := s.lookup(ctx, func() (bool, error) {
+	err := s.lookup(ctx, ref, func() (bool, error) {
 		var err error
 		stored, err = s.packs.GetStoredBlock(ctx, ref)
 		return stored != nil, err
@@ -448,7 +452,7 @@ func (s *PackStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*b
 // GetBlockExists checks the packfiles for the block.
 func (s *PackStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	var exists bool
-	err := s.lookup(ctx, func() (bool, error) {
+	err := s.lookup(ctx, ref, func() (bool, error) {
 		var err error
 		exists, err = s.packs.GetBlockExists(ctx, ref)
 		return exists, err
@@ -459,7 +463,7 @@ func (s *PackStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bo
 // GetBlockExistsBatch checks the packfiles for each block.
 func (s *PackStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	var exists []bool
-	err := s.lookup(ctx, func() (bool, error) {
+	err := s.lookup(ctx, nil, func() (bool, error) {
 		var err error
 		exists, err = s.packs.GetBlockExistsBatch(ctx, refs)
 		return err == nil && !slices.Contains(exists, false), err
@@ -470,7 +474,7 @@ func (s *PackStore) GetBlockExistsBatch(ctx context.Context, refs []*block.Block
 // StatBlock returns the block's metadata, or nil if the block is not found.
 func (s *PackStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
 	var stat *block.BlockStat
-	err := s.lookup(ctx, func() (bool, error) {
+	err := s.lookup(ctx, ref, func() (bool, error) {
 		var err error
 		stat, err = s.packs.StatBlock(ctx, ref)
 		return stat != nil, err
@@ -495,17 +499,25 @@ func (s *PackStore) Sync(context.Context) (bool, error) {
 // packfile, and runs find again. It repeats while each listing drops a
 // packfile, so a reader crosses any number of tail merges that replace its
 // packfile while it lists, and stops when a listing drops none.
-func (s *PackStore) lookup(ctx context.Context, find func() (bool, error)) error {
-	// Load the packfile entries before the first lookup and keep them fresh.
-	if err := s.loadEntries(ctx); err != nil {
+//
+// While the cached entries load after a start, a lookup of ref first tries the
+// one pack the index places it in (lookupEarly), so the first commit, which
+// holds the writer, does not wait for every entry to load. A nil ref waits.
+func (s *PackStore) lookup(ctx context.Context, ref *block.BlockRef, find func() (bool, error)) error {
+	// Load the packfile entries before the first lookup and keep them fresh,
+	// trying the early lookup meanwhile.
+	if ref != nil && !s.loaded.Load() {
+		loaded := make(chan error, 1)
+		go func() { loaded <- s.Preload(ctx) }()
+		if found, err := s.lookupEarly(ctx, ref, find); found || err != nil {
+			return err
+		}
+		if err := <-loaded; err != nil {
+			return err
+		}
+	} else if err := s.Preload(ctx); err != nil {
 		return err
 	}
-	s.refreshOnce.Do(func() {
-		s.refresher.SetContext(context.Background(), false)
-		if s.indexer != nil {
-			s.indexer.SetContext(context.Background(), false)
-		}
-	})
 
 	// Look for the block in the known packfiles, and list the entries again
 	// after each deleted packfile while the listings drop packfiles.
@@ -524,10 +536,109 @@ func (s *PackStore) lookup(ctx context.Context, find func() (bool, error)) error
 	}
 }
 
-// loadEntries lists the packfile entries unless a listing completed.
+// earlyCounts counts the early lookups by outcome.
+type earlyCounts struct {
+	// located found the block in the pack its h row names.
+	located atomic.Int64
+	// waited missed there and waited for the full load.
+	waited atomic.Int64
+}
+
+// lookupEarly runs find once the index places ref in a pack, after publishing
+// that pack's cached entry, while the other entries still load. It reports
+// false when the index holds no table, places ref nowhere, or find
+// misses: only a full load makes a miss final, so the caller waits for it.
+func (s *PackStore) lookupEarly(ctx context.Context, ref *block.BlockRef, find func() (bool, error)) (bool, error) {
+	// Wait for the pack table, then locate the requested block.
+	h := ref.GetHash()
+	if s.index == nil || h == nil {
+		return false, nil
+	}
+	if ok, err := s.index.waitTable(ctx); err != nil || !ok {
+		return false, err
+	}
+	id, ok, err := s.index.Locate(ctx, packfile.BlockKey(h))
+	if err != nil {
+		return false, err
+	}
+	if !ok {
+		s.early.waited.Add(1)
+		return false, nil
+	}
+
+	// Publish the pack's entry unless the load or an earlier lookup did.
+	var known bool
+	s.bcast.HoldLock(func(func(), func() <-chan struct{}) {
+		_, known = s.entries[id]
+	})
+	if !known {
+		entry, err := s.index.readEntry(ctx, id)
+		if err != nil {
+			return false, err
+		}
+		if entry == nil {
+			s.early.waited.Add(1)
+			return false, nil
+		}
+		s.updateEntries([]*packfile.PackfileEntry{entry}, nil)
+	}
+
+	// A miss or a deleted pack falls back to the full load.
+	found, err := find()
+	if err != nil && errors.Is(err, ErrNotFound) {
+		s.early.waited.Add(1)
+		return false, nil
+	}
+	s.early.located.Add(1)
+	return found, err
+}
+
+// Preload reads the cached packfile entries, or lists them when the cache is
+// empty, and starts the refresher, as the first lookup would. A mount calls it
+// in the background so the first read after a start, often a commit holding
+// the writer, does not wait behind a cold read of the entry cache. A lookup
+// that arrives during the load waits for it rather than starting another.
+func (s *PackStore) Preload(ctx context.Context) error {
+	if err := s.loadEntries(ctx); err != nil {
+		return err
+	}
+	s.refreshOnce.Do(func() {
+		s.refresher.SetContext(context.Background(), false)
+		if s.indexer != nil {
+			s.indexer.SetContext(context.Background(), false)
+		}
+	})
+	return nil
+}
+
+// loadEntries lists the packfile entries unless a listing completed. A load
+// waiting for the listing lock stops waiting once another load completes, so
+// a lookup after a start does not wait behind the refresher's first listing,
+// which takes the lock as soon as the cached entries are read.
 func (s *PackStore) loadEntries(ctx context.Context) error {
 	for !s.loaded.Load() {
-		if err := s.listEntries(ctx, s.listings.Load()); err != nil {
+		listed := s.listings.Load()
+		lockCtx, cancel := context.WithCancel(ctx)
+		go func() {
+			select {
+			case <-s.loadedCh:
+				cancel()
+			case <-lockCtx.Done():
+			}
+		}()
+		release, err := s.listMtx.Lock(lockCtx)
+		cancel()
+		if err != nil {
+			if s.loaded.Load() {
+				return nil
+			}
+			return err
+		}
+		if !s.loaded.Load() && s.listings.Load() == listed {
+			err = s.listEntriesLocked(ctx)
+		}
+		release()
+		if err != nil {
 			return err
 		}
 	}
@@ -569,18 +680,30 @@ func (s *PackStore) listEntries(ctx context.Context, listed uint64) error {
 	if s.listings.Load() != listed {
 		return nil
 	}
+	return s.listEntriesLocked(ctx)
+}
 
+// listEntriesLocked runs listEntries' listing. Call with listMtx held.
+func (s *PackStore) listEntriesLocked(ctx context.Context) error {
 	// Start from the cached entries when there are any, and list in the
 	// background: the cache holds the packs the last run knew.
 	if s.index != nil && !s.cacheLoaded {
 		s.cacheLoaded = true
+		start := time.Now()
 		cached, err := s.index.load(ctx)
 		if err != nil {
 			return err
 		}
 		if len(cached) != 0 {
 			s.updateEntries(cached, nil)
-			s.loaded.Store(true)
+			s.setLoaded()
+			s.le.WithFields(logrus.Fields{
+				"entries":       len(cached),
+				"unindexed":     len(s.index.pendingIDs()),
+				"elapsed":       time.Since(start).Round(time.Millisecond).String(),
+				"early-located": s.early.located.Load(),
+				"early-waited":  s.early.waited.Load(),
+			}).Info("loaded the cached packfile entries")
 			return nil
 		}
 	}
@@ -603,6 +726,7 @@ func (s *PackStore) listEntries(ctx context.Context, listed uint64) error {
 	var ids map[string]bool
 	for {
 		var vanished bool
+		var err error
 		ids, vanished, err = s.listOnce(ctx, known, read)
 		if err != nil {
 			return err
@@ -638,8 +762,16 @@ func (s *PackStore) listEntries(ctx context.Context, listed uint64) error {
 		}
 	}
 	s.updateEntries(entries, removed)
-	s.loaded.Store(true)
+	s.setLoaded()
 	return nil
+}
+
+// setLoaded marks the entries loaded and wakes the loads waiting for it.
+// Call with listMtx held.
+func (s *PackStore) setLoaded() {
+	if s.loaded.CompareAndSwap(false, true) {
+		close(s.loadedCh)
+	}
 }
 
 // listOnce lists the packfile entries and reads each one neither known nor in
@@ -723,13 +855,20 @@ func (s *PackStore) readEntry(ctx context.Context, id string) (*packfile.Packfil
 	return entry, nil
 }
 
-// updateEntries adds and removes known packfiles and publishes the result to
-// the reader. Publishing under the lock keeps concurrent updates in order.
+// updateEntries adds and removes known packfiles and publishes the change to
+// the reader as a delta, so an upload costs the packs it changes rather than
+// the whole catalog. Every catalog change passes through here, so the reader's
+// manifest stays equal to entries. Publishing under the lock keeps concurrent
+// updates in order. The index forgets a removed pack only after the reader's
+// manifest drops it, since the reader trusts an indexed pack to stay indexed
+// while the manifest holds it.
 func (s *PackStore) updateEntries(add []*packfile.PackfileEntry, remove []string) {
 	if s.index != nil {
-		if err := s.index.remove(context.Background(), remove); err != nil {
-			s.le.WithError(err).Warn("drop packs from the index")
-		}
+		defer func() {
+			if err := s.index.remove(context.Background(), remove); err != nil {
+				s.le.WithError(err).Warn("drop packs from the index")
+			}
+		}()
 	}
 	s.bcast.HoldLock(func(func(), func() <-chan struct{}) {
 		for _, id := range remove {
@@ -739,7 +878,7 @@ func (s *PackStore) updateEntries(add []*packfile.PackfileEntry, remove []string
 		for _, entry := range add {
 			s.entries[entry.GetId()] = entry
 		}
-		s.packs.UpdateManifest(slices.Collect(maps.Values(s.entries)))
+		s.packs.ApplyManifestDelta(add, remove)
 	})
 }
 

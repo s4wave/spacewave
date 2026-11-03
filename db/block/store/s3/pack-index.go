@@ -14,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/packfile"
+	"golang.org/x/sync/errgroup"
 )
 
 // The local KV a PackStore keeps its pack index in holds three kinds of rows:
@@ -109,6 +110,12 @@ type packIndex struct {
 	// version counts the changes to rows, so Indexed answers stay valid
 	// while it holds. Changed with mtx held.
 	version atomic.Uint64
+
+	// tableLoaded is closed once load has registered the pack table, before
+	// it reads the entries, or once load failed or found the cache empty.
+	// From then on Locate answers for every indexed pack while the entries
+	// are still loading.
+	tableLoaded chan struct{}
 }
 
 func newPackIndex(store kvtx.Store) *packIndex {
@@ -117,66 +124,182 @@ func newPackIndex(store kvtx.Store) *packIndex {
 		rows:    make(map[string]packRow),
 		pending: make(map[string]*packfile.PackfileEntry),
 		work:    make(chan struct{}, 1),
+
+		tableLoaded: make(chan struct{}),
 	}
 }
 
-// load reads the pack table and the cached entries.
+// loadReaders is the number of read transactions that read the cached entries
+// at once. Each entry is a value of its own in the KV store, one random read,
+// so a cold start that reads them one at a time waits on the disk once per
+// pack while every lookup waits behind it.
+const loadReaders = 16
+
+// load reads the pack table and the cached entries. It registers the table
+// before it reads the entries, so a lookup can place a key in its pack and
+// read that pack's entry alone while the rest load. Call it once.
 func (x *packIndex) load(ctx context.Context) ([]*packfile.PackfileEntry, error) {
-	tx, err := x.store.NewTransaction(ctx, false)
+	// Release table waiters on success or failure.
+	tableLoaded := sync.OnceFunc(func() { close(x.tableLoaded) })
+	defer tableLoaded()
+
+	// Read the pack table, which names every pack that may have a cached
+	// entry, and register it.
+	rows, ids, err := x.loadTable(ctx)
 	if err != nil {
 		return nil, err
 	}
+	x.mtx.Lock()
+	for _, id := range ids {
+		x.registerRowLocked(id, rows[id])
+	}
+	x.mtx.Unlock()
+	tableLoaded()
+
+	// Read the entries in parallel, each reader in its own read transaction.
+	// A pack removed since the table read has no entry and is skipped.
+	read := make([]*packfile.PackfileEntry, len(ids))
+	var next atomic.Int64
+	eg, egCtx := errgroup.WithContext(ctx)
+	for range min(loadReaders, len(ids)) {
+		eg.Go(func() error {
+			// Read this worker's assigned descriptors through one snapshot.
+			tx, err := x.store.NewTransaction(egCtx, false)
+			if err != nil {
+				return err
+			}
+			defer tx.Discard()
+			for i := int(next.Add(1) - 1); i < len(ids); i = int(next.Add(1) - 1) {
+				id := ids[i]
+				value, found, err := tx.Get(egCtx, []byte(indexEntryPrefix+id))
+				if err != nil {
+					return errors.Wrap(err, "read cached entry")
+				}
+				entry := &packfile.PackfileEntry{}
+				if !found || entry.UnmarshalVT(value) != nil || entry.GetId() != id {
+					continue
+				}
+				read[i] = entry
+			}
+			return nil
+		})
+	}
+	if err := eg.Wait(); err != nil {
+		return nil, err
+	}
+
+	// Register the entries in key order, and forget the table rows of the
+	// packs with no entry, which the table named before they were removed.
+	entries := make([]*packfile.PackfileEntry, 0, len(read))
+	for i, entry := range read {
+		if entry == nil {
+			x.forgetRow(ids[i], rows[ids[i]])
+			continue
+		}
+		entries = append(entries, entry)
+		x.register(entry.GetId(), rows[entry.GetId()], entry)
+	}
+	return entries, nil
+}
+
+// loadTable reads the pack table and the ids of its packs in key order. It
+// reads only the table, whose rows are a few bytes each, and no entry: listing
+// the entries' keys would read every entry's pages, bloom filter included,
+// once here and again in load, and load already skips a pack with no entry.
+func (x *packIndex) loadTable(ctx context.Context) (map[string]packRow, []string, error) {
+	// Hold one read snapshot while listing the cached pack table.
+	tx, err := x.store.NewTransaction(ctx, false)
+	if err != nil {
+		return nil, nil, err
+	}
 	defer tx.Discard()
 
-	// Read the pack table.
+	// Read the pack table in key order.
 	rows := make(map[string]packRow)
+	var ids []string
 	err = tx.ScanPrefix(ctx, []byte(indexPackPrefix), func(key, value []byte) error {
+		// Decode the pack row and retain its stable identity.
 		row, err := unmarshalPackRow(value)
 		if err != nil {
 			return err
 		}
-		rows[string(key[len(indexPackPrefix):])] = row
+		id := string(key[len(indexPackPrefix):])
+		rows[id] = row
+		ids = append(ids, id)
 		return nil
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "read pack table")
+		return nil, nil, errors.Wrap(err, "read pack table")
 	}
-
-	// Read the entries of the packs in the table.
-	var entries []*packfile.PackfileEntry
-	err = tx.ScanPrefix(ctx, []byte(indexEntryPrefix), func(key, value []byte) error {
-		id := string(key[len(indexEntryPrefix):])
-		row, ok := rows[id]
-		if !ok {
-			return nil
-		}
-		entry := &packfile.PackfileEntry{}
-		if err := entry.UnmarshalVT(slices.Clone(value)); err != nil || entry.GetId() != id {
-			return nil
-		}
-		entries = append(entries, entry)
-		x.register(id, row, entry)
-		return nil
-	})
-	if err != nil {
-		return nil, errors.Wrap(err, "read cached entries")
-	}
-	return entries, nil
+	return rows, ids, nil
 }
 
 // register adds a persisted pack to the table.
 func (x *packIndex) register(id string, row packRow, entry *packfile.PackfileEntry) {
 	x.mtx.Lock()
 	defer x.mtx.Unlock()
+	x.registerRowLocked(id, row)
+	if !row.indexed {
+		x.pending[id] = entry
+	}
+}
+
+// registerRowLocked adds a pack's row to the table. Call with mtx held.
+func (x *packIndex) registerRowLocked(id string, row packRow) {
 	x.rows[id] = row
 	x.version.Add(1)
 	for int(row.num) >= len(x.ids) {
 		x.ids = append(x.ids, "")
 	}
 	x.ids[row.num] = id
-	if !row.indexed {
-		x.pending[id] = entry
+}
+
+// forgetRow drops a pack's row from the in-memory table, keeping its number
+// taken.
+func (x *packIndex) forgetRow(id string, row packRow) {
+	// Forget only the exact row this load observed.
+	x.mtx.Lock()
+	defer x.mtx.Unlock()
+	if x.rows[id] != row {
+		return
 	}
+	delete(x.rows, id)
+	x.version.Add(1)
+	if int(row.num) < len(x.ids) && x.ids[row.num] == id {
+		x.ids[row.num] = ""
+	}
+}
+
+// waitTable waits until load has registered the pack table, and reports
+// whether the table holds any pack. The caller makes sure a load runs.
+func (x *packIndex) waitTable(ctx context.Context) (bool, error) {
+	select {
+	case <-x.tableLoaded:
+	case <-ctx.Done():
+		return false, context.Cause(ctx)
+	}
+	x.mtx.RLock()
+	defer x.mtx.RUnlock()
+	return len(x.ids) != 0, nil
+}
+
+// readEntry reads the cached entry of pack id, or nil when it has none.
+func (x *packIndex) readEntry(ctx context.Context, id string) (*packfile.PackfileEntry, error) {
+	// Read one cached descriptor under a scoped transaction.
+	tx, err := x.store.NewTransaction(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Discard()
+	value, found, err := tx.Get(ctx, []byte(indexEntryPrefix+id))
+	if err != nil || !found {
+		return nil, err
+	}
+	entry := &packfile.PackfileEntry{}
+	if entry.UnmarshalVT(value) != nil || entry.GetId() != id {
+		return nil, nil
+	}
+	return entry, nil
 }
 
 // nextRow numbers a new pack. Call with mtx held.

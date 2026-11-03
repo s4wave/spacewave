@@ -199,6 +199,13 @@ type backendStore interface {
 	Close()
 }
 
+// preloader is a backend store that can read its packfile entries before its
+// first read.
+type preloader interface {
+	// Preload starts loading the descriptors needed for later lookups.
+	Preload(ctx context.Context) error
+}
+
 // openBackend is the open store of a storage backend.
 type openBackend struct {
 	// backend is the storage backend the store reads and writes.
@@ -229,6 +236,17 @@ func (t *bstoreTracker) runUpload(
 		}
 		remote = &openBackend{backend: backend, store: store}
 		t.swapRemote(remote)
+
+		// Read the store's packfile entries now, so the first read it serves
+		// after a start, often a commit holding the World writer, does not
+		// wait behind a cold read of them. A failed load retries on that read.
+		if pre, ok := store.(preloader); ok {
+			go func() {
+				if err := pre.Preload(ctx); err != nil && ctx.Err() == nil {
+					t.a.le.WithError(err).Warn("unable to preload the backend's packfile entries")
+				}
+			}()
+		}
 	}
 
 	// Upload the queued blocks, closing the store when the context ends.
