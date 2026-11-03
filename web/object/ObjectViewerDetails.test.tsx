@@ -145,7 +145,6 @@ describe('ObjectViewerDetails', () => {
     const worklistRow = screen.getByRole('button', { name: /Worklist/ })
     expect(debugRow.getAttribute('aria-pressed')).toBe('true')
     expect(worklistRow.getAttribute('aria-pressed')).toBe('false')
-    expect(debugRow.className).toContain('border-brand/30')
     expect(screen.getByText('Active')).toBeDefined()
     expect(screen.getByRole('button', { name: 'Open viewer' })).toBeDefined()
 

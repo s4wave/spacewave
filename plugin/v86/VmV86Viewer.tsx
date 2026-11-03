@@ -36,7 +36,7 @@ import * as stylex from '@stylexjs/stylex'
 import {
   colors as themeColors,
   layout as themeLayout,
-} from '../../web/style/tokens.stylex.js'
+} from '@s4wave/web/style/tokens.stylex.js'
 
 const stylexStyles2 = stylex.create({
   rule1: {

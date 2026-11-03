@@ -11,14 +11,14 @@ import {
 } from '@s4wave/web/images/icons.js'
 
 import * as stylex from '@stylexjs/stylex'
-import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+import { layout as themeLayout } from '@s4wave/web/style/tokens.stylex.js'
 
 import {
   fonts as themeFonts,
   colors as themeColors,
-} from '../../web/style/tokens.stylex.js'
+} from '@s4wave/web/style/tokens.stylex.js'
 
-import { utilityState as themeUtilityState } from '../../web/style/tokens.stylex.js'
+import { utilityState as themeUtilityState } from '@s4wave/web/style/tokens.stylex.js'
 
 const stylexStyles5 = stylex.create({
   rule1: {

@@ -24,13 +24,13 @@ import type { NotebookSource } from '../proto/notebook.pb.js'
 import { isNoteFileName, stripNoteFileExtension } from '../note-files.js'
 
 import * as stylex from '@stylexjs/stylex'
-import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+import { layout as themeLayout } from '@s4wave/web/style/tokens.stylex.js'
 
 import {
   fonts as themeFonts,
   colors as themeColors,
   utilityState as themeUtilityState,
-} from '../../../web/style/tokens.stylex.js'
+} from '@s4wave/web/style/tokens.stylex.js'
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -85,7 +85,7 @@ const stylexStyles2 = stylex.create({
     borderBottomStyle: themeUtilityState['--tw-border-style'],
     borderBottomWidth: '1px',
   },
-  rule6: { flex: 1, paddingBlock: themeLayout['--spacing'], overflowY: 'auto', },
+  rule6: { flex: 1, paddingBlock: themeLayout['--spacing'], overflowY: 'auto' },
   rule7: {
     gap: `calc(${themeLayout['--spacing']} * 1.5)`,
     paddingBlock: themeLayout['--spacing'],
@@ -105,7 +105,7 @@ const stylexStyles2 = stylex.create({
     paddingRight: `calc(${themeLayout['--spacing']} * 2)`,
     width: '100%',
   },
-  rule8: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', },
+  rule8: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   rule9: {
     gap: `calc(${themeLayout['--spacing']} * 1.5)`,
     paddingBlock: themeLayout['--spacing'],

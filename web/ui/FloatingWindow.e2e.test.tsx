@@ -104,6 +104,15 @@ describe('FloatingWindow z-index management', () => {
       expect.element(page.getByTestId('window-window-1')).toBeInTheDocument(),
       expect.element(page.getByTestId('window-window-2')).toBeInTheDocument(),
     ])
+    // Both windows retain all eight actual resize targets after native CSS extraction.
+    for (const id of ['window-window-1', 'window-window-2']) {
+      const handles = Array.from(
+        page.getByTestId(id).element().children,
+      ).filter((element) =>
+        getComputedStyle(element).cursor.endsWith('-resize'),
+      )
+      expect(handles).toHaveLength(8)
+    }
   })
 
   it('brings window to front when clicked on content area', async () => {

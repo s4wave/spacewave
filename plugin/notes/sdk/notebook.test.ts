@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import {
-  Notebook,
-  NotebookSource,
-} from '../proto/notebook.pb.js'
+import { Notebook, NotebookSource } from '../proto/notebook.pb.js'
 import { NotebookHandle, NotebookTypeID } from './notebook.js'
 
 describe('Notebook proto', () => {

@@ -14,14 +14,14 @@ import {
 } from '@s4wave/web/images/icons.js'
 
 import * as stylex from '@stylexjs/stylex'
-import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+import { layout as themeLayout } from '@s4wave/web/style/tokens.stylex.js'
 
 import {
   fonts as themeFonts,
   colors as themeColors,
   radii as themeRadii,
   utilityState as themeUtilityState,
-} from '../../web/style/tokens.stylex.js'
+} from '@s4wave/web/style/tokens.stylex.js'
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -336,6 +336,7 @@ function NotebookSidebar({
                 <button
                   type="button"
                   sx={stylexStyles2.rule10}
+                  aria-current={selected ? 'true' : undefined}
                   onClick={() => {
                     onSelectSource(index)
                     toggleExpanded(index)

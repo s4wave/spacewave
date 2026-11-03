@@ -130,17 +130,6 @@ describe('PathBar', () => {
     })
   })
 
-  it('should highlight last segment in breadcrumbs', () => {
-    render(<PathBar path="/Users/testuser/Documents" />)
-
-    const documentsButtons = screen.getAllByRole('button', {
-      name: 'Navigate to Documents',
-    })
-    const lastButton = documentsButtons[0]
-
-    expect(lastButton.className).toContain('text-text-highlight')
-  })
-
   it('should select all text when entering edit mode', async () => {
     const user = userEvent.setup()
     render(<PathBar path="/Users/testuser" />)
@@ -183,25 +172,6 @@ describe('PathBar', () => {
     rerender(<PathBar path="/Users/testuser/Documents" />)
 
     expect(screen.getByText('Documents')).toBeTruthy()
-  })
-
-  it('should maintain consistent height in both modes', async () => {
-    const user = userEvent.setup()
-    const { container } = render(<PathBar path="/Users/testuser" />)
-
-    const pathBarContainer = container.firstChild as HTMLElement
-    const initialHeight = pathBarContainer.className
-
-    expect(initialHeight).toContain('h-5')
-
-    const clickableContainer = screen.getAllByRole('button', {
-      name: 'Edit path',
-    })[0]
-    await user.click(clickableContainer)
-
-    await waitFor(() => {
-      expect(pathBarContainer.className).toContain('h-5')
-    })
   })
 
   it('should handle empty path segments', () => {

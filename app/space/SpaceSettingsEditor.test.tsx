@@ -149,7 +149,7 @@ describe('SpaceSettingsEditor', () => {
 
   it('shows the display name and rename affordance', () => {
     renderEditor(true)
-    expect(screen.getByText('Test Space').className).toContain('text-xs')
+    expect(screen.getByText('Test Space')).toBeTruthy()
     expect(screen.getByText('Rename')).toBeDefined()
   })
 

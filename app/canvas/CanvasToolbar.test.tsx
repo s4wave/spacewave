@@ -139,7 +139,7 @@ describe('CanvasToolbar', () => {
     expect(actions['organize-nodes']).toHaveBeenCalled()
   })
 
-  it('highlights the active tool button', () => {
+  it('exposes the active tool as pressed', () => {
     render(
       <CanvasToolbar
         tool="draw"
@@ -148,10 +148,10 @@ describe('CanvasToolbar', () => {
       />,
     )
     const drawBtn = screen.getByLabelText('Draw (D)')
-    expect(drawBtn.className).toContain('bg-foreground/10')
+    expect(drawBtn.getAttribute('aria-pressed')).toBe('true')
 
     const selectBtn = screen.getByLabelText('Select (V)')
-    expect(selectBtn.className).not.toContain('bg-foreground/10')
+    expect(selectBtn.getAttribute('aria-pressed')).toBe('false')
   })
 
   it('renders a separator between tool and action buttons', () => {
@@ -162,8 +162,7 @@ describe('CanvasToolbar', () => {
         actions={makeActions()}
       />,
     )
-    // Separator is a div with bg-foreground/6 class.
-    const separator = document.querySelector('.bg-foreground\\/6')
+    const separator = screen.getByRole('separator')
     expect(separator).toBeTruthy()
   })
 

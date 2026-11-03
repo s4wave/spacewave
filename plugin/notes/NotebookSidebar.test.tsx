@@ -56,17 +56,13 @@ describe('NotebookSidebar', () => {
     expect(screen.getByText('Sources')).toBeDefined()
   })
 
-  it('highlights selected source with active selection class', () => {
+  it('exposes the current source', () => {
     const sources = makeSources('Alpha', 'Beta')
     renderSidebar({ sources, selectedSource: 1 })
     const betaButton = screen.getByRole('button', { name: 'Beta' })
-    expect(betaButton.parentElement?.className).toContain(
-      'bg-list-active-selection-background',
-    )
+    expect(betaButton.getAttribute('aria-current')).toBe('true')
     const alphaButton = screen.getByRole('button', { name: 'Alpha' })
-    expect(alphaButton.parentElement?.className).not.toContain(
-      'bg-list-active-selection-background',
-    )
+    expect(alphaButton.hasAttribute('aria-current')).toBe(false)
   })
 
   it('calls onSelectSource when source is clicked', () => {

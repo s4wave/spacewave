@@ -186,44 +186,44 @@ const styles = stylex.create({
   },
   root: { paddingInline: themeLayout['--spacing'] },
   lastSegmentTouch: {
-    flex: { default: null, '@media not all and (min-width: 40rem)': 1 },
+    flex: { default: null, '@media (width < 40rem)': 1 },
     display: 'flex',
-    minWidth: { default: null, '@media not all and (min-width: 40rem)': 0 },
+    minWidth: { default: null, '@media (width < 40rem)': 0 },
   },
   hiddenSegmentTouch: {
     display: {
       default: 'flex',
-      '@media not all and (min-width: 40rem)': 'none',
+      '@media (width < 40rem)': 'none',
     },
   },
   segment: { display: 'flex' },
   crumbTouch: {
-    flex: { default: null, '@media not all and (min-width: 40rem)': 1 },
+    flex: { default: null, '@media (width < 40rem)': 1 },
     overflow: {
       default: null,
-      '@media not all and (min-width: 40rem)': 'hidden',
+      '@media (width < 40rem)': 'hidden',
     },
     paddingInline: {
       default: themeLayout['--spacing'],
-      '@media not all and (min-width: 40rem)': `calc(${themeLayout['--spacing']} * 2)`,
+      '@media (width < 40rem)': `calc(${themeLayout['--spacing']} * 2)`,
     },
     textAlign: {
       default: null,
-      '@media not all and (min-width: 40rem)': 'left',
+      '@media (width < 40rem)': 'left',
     },
     textOverflow: {
       default: null,
-      '@media not all and (min-width: 40rem)': 'ellipsis',
+      '@media (width < 40rem)': 'ellipsis',
     },
     whiteSpace: {
       default: 'nowrap',
-      '@media not all and (min-width: 40rem)': 'nowrap',
+      '@media (width < 40rem)': 'nowrap',
     },
     minHeight: {
       default: null,
       '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
     },
-    minWidth: { default: null, '@media not all and (min-width: 40rem)': 0 },
+    minWidth: { default: null, '@media (width < 40rem)': 0 },
   },
   crumb: { paddingInline: themeLayout['--spacing'], whiteSpace: 'nowrap' },
 })

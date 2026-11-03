@@ -11,13 +11,13 @@ import { useNotebookSavedViews } from './useNotebookSavedViews.js'
 import { ConfirmActionDialog, TextInputDialog } from './NoteDialogs.js'
 
 import * as stylex from '@stylexjs/stylex'
-import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+import { layout as themeLayout } from '@s4wave/web/style/tokens.stylex.js'
 
 import {
   utilityState as themeUtilityState,
   colors as themeColors,
   fonts as themeFonts,
-} from '../../web/style/tokens.stylex.js'
+} from '@s4wave/web/style/tokens.stylex.js'
 
 const stylexStyles2 = stylex.create({
   rule1: {

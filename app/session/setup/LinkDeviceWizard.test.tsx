@@ -233,14 +233,6 @@ describe('LinkDeviceWizard', () => {
     expect(
       screen.queryByRole('heading', { level: 1, name: 'Link My Device' }),
     ).toBeNull()
-    let card: HTMLElement | null = codeButton
-    while (
-      card &&
-      !card.className.toString().includes('border-foreground/20')
-    ) {
-      card = card.parentElement
-    }
-    expect(card).not.toBeNull()
     const generateButton = screen.getByRole('button', {
       name: 'Generate new code',
     })

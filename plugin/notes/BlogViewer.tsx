@@ -27,13 +27,13 @@ import NoteList from './NoteList.js'
 import NoteContentView from './NoteContentView.js'
 
 import * as stylex from '@stylexjs/stylex'
-import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+import { layout as themeLayout } from '@s4wave/web/style/tokens.stylex.js'
 
 import {
   colors as themeColors,
   fonts as themeFonts,
   utilityState as themeUtilityState,
-} from '../../web/style/tokens.stylex.js'
+} from '@s4wave/web/style/tokens.stylex.js'
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -99,8 +99,8 @@ const stylexStyles2 = stylex.create({
   },
   rule7: { color: themeColors['--color-brand'] },
   rule8: { color: themeColors['--color-foreground-alt'] },
-  rule9: { flex: 1, minHeight: 0, },
-  rule10: { overflow: 'hidden', display: 'flex', height: '100%', },
+  rule9: { flex: 1, minHeight: 0 },
+  rule10: { overflow: 'hidden', display: 'flex', height: '100%' },
   rule11: {
     borderColor: themeColors['--color-border'],
     borderRightStyle: themeUtilityState['--tw-border-style'],
@@ -108,7 +108,7 @@ const stylexStyles2 = stylex.create({
     minWidth: `calc(${themeLayout['--spacing']} * 62.5)`,
     width: `calc(${themeLayout['--spacing']} * 62.5)`,
   },
-  rule12: { flex: 1, minWidth: 0, },
+  rule12: { flex: 1, minWidth: 0 },
   rule13: {
     alignItems: 'center',
     color: themeColors['--color-muted-foreground'],

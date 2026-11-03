@@ -85,13 +85,8 @@ vi.mock('./useCommand.js', () => ({
 }))
 
 vi.mock('@s4wave/web/ui/command.js', () => ({
-  CommandDialog: ({
-    open,
-    children,
-  }: {
-    open: boolean
-    children: ReactNode
-  }) => (open ? <div role="dialog">{children}</div> : null),
+  CommandDialog: ({ open, children }: { open: boolean; children: ReactNode }) =>
+    open ? <div role="dialog">{children}</div> : null,
   CommandEmpty: ({ children }: { children: ReactNode }) => (
     <div>{children}</div>
   ),
@@ -411,16 +406,6 @@ describe('CommandPalette', () => {
       expect(
         view.getByText(textContentMatches('Edit Keyboard Shortcuts')),
       ).toBeTruthy()
-      const label = view.getByText(
-        textContentMatches('Edit Keyboard Shortcuts'),
-      )
-      expect(
-        Array.from(label.querySelectorAll('span')).some(
-          (span) =>
-            span.className.includes('text-brand') &&
-            /Keyboard|Shortcuts/.test(span.textContent ?? ''),
-        ),
-      ).toBe(true)
       expect(view.queryByText('Launch Banana')).toBeNull()
     })
   })

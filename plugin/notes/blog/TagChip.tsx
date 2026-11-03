@@ -7,7 +7,7 @@ import {
   layout,
   radii,
   motion,
-} from '../../../web/style/tokens.stylex.js'
+} from '@s4wave/web/style/tokens.stylex.js'
 
 const styles = stylex.create({
   chip: {

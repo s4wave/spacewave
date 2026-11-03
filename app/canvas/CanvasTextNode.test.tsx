@@ -19,7 +19,7 @@ describe('CanvasTextNode', () => {
   it('preserves whitespace in view mode', () => {
     render(<CanvasTextNode content="  indented\n  text" />)
     const pre = screen.getByText('indented', { exact: false })
-    expect(pre.className).toContain('whitespace-pre-wrap')
+    expect(pre.textContent).toBe('  indented\n  text')
   })
 
   it('enters edit mode on double-click when onChange is provided', async () => {

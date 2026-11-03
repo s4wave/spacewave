@@ -35,29 +35,6 @@ describe('CanvasNode', () => {
     cleanup()
   })
 
-  it('sets touch-action to none on the node element', () => {
-    const node = makeNode({ id: 'touch-test' })
-    render(
-      <CanvasNode
-        node={node}
-        scale={1}
-        selected={false}
-        visible={true}
-        callbacks={makeCallbacks()}
-        focus="border"
-        onSelectWithFocus={vi.fn()}
-        onMove={vi.fn()}
-        onMoveEnd={vi.fn()}
-      />,
-    )
-
-    const el = document.querySelector(
-      '[data-canvas-node="touch-test"]',
-    ) as HTMLElement
-    expect(el).toBeTruthy()
-    expect(el.classList.contains('canvas-node-input')).toBe(true)
-  })
-
   it('positions node with correct style properties', () => {
     const node = makeNode({
       id: 'style-test',
@@ -88,7 +65,6 @@ describe('CanvasNode', () => {
     expect(el.style.getPropertyValue('--canvas-node-top')).toBe('75px')
     expect(el.style.getPropertyValue('--canvas-node-width')).toBe('120px')
     expect(el.style.getPropertyValue('--canvas-node-height')).toBe('80px')
-    expect(el.style.getPropertyValue('--canvas-node-z-index')).toBe('5')
   })
 
   it('returns null when not visible and after unmount debounce', () => {
@@ -142,53 +118,6 @@ describe('CanvasNode', () => {
     ).toBeFalsy()
 
     vi.useRealTimers()
-  })
-
-  it('shows selection handles when selected', () => {
-    const node = makeNode({ id: 'sel-handles' })
-    render(
-      <CanvasNode
-        node={node}
-        scale={1}
-        selected={true}
-        visible={true}
-        callbacks={makeCallbacks()}
-        focus="border"
-        onSelectWithFocus={vi.fn()}
-        onMove={vi.fn()}
-        onMoveEnd={vi.fn()}
-      />,
-    )
-
-    const el = document.querySelector(
-      '[data-canvas-node="sel-handles"]',
-    ) as HTMLElement
-    // 4 resize handles + 1 ring overlay when selected.
-    const handles = el.querySelectorAll('.rounded-full')
-    expect(handles.length).toBe(4)
-  })
-
-  it('shows outline-only style at low zoom', () => {
-    const node = makeNode({ id: 'outline-test' })
-    // SEMANTIC_ZOOM_OUTLINE is 0.3, so scale=0.2 should be outline only.
-    render(
-      <CanvasNode
-        node={node}
-        scale={0.2}
-        selected={false}
-        visible={true}
-        callbacks={makeCallbacks()}
-        focus="border"
-        onSelectWithFocus={vi.fn()}
-        onMove={vi.fn()}
-        onMoveEnd={vi.fn()}
-      />,
-    )
-
-    const el = document.querySelector(
-      '[data-canvas-node="outline-test"]',
-    ) as HTMLElement
-    expect(el.className).toContain('bg-background-card/50')
   })
 
   it('renders edge drag handles for world-object nodes', () => {

@@ -47,7 +47,7 @@ import * as stylex from '@stylexjs/stylex'
 import {
   layout as themeLayout,
   colors as themeColors,
-} from '../../web/style/tokens.stylex.js'
+} from '@s4wave/web/style/tokens.stylex.js'
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -78,7 +78,7 @@ const stylexStyles2 = stylex.create({
 })
 
 const stylexStyles = stylex.create({
-  rule1: { flex: 1, overflow: 'auto', position: 'relative', },
+  rule1: { flex: 1, overflow: 'auto', position: 'relative' },
 })
 
 // validateLinkUrl rejects dangerous URL schemes (javascript:, data:, vbscript:).

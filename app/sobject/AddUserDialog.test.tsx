@@ -31,7 +31,8 @@ vi.mock('@s4wave/web/ui/dialog.js', () => ({
   ),
 }))
 
-vi.mock('@s4wave/web/ui/tabs.js', () => ({
+vi.mock('@s4wave/web/ui/tabs.js', async (importOriginal) => ({
+  ...(await importOriginal()),
   Tabs: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   TabsList: ({ children }: { children: React.ReactNode }) => (
     <div>{children}</div>

@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   parseSync,
@@ -15,8 +15,9 @@ import { stylexLayersBefore } from '../../bldr/stylex-priorities.js'
 // stylexCssSuffix identifies generated native CSS dependencies.
 const stylexCssSuffix = '.bldr-stylex.css'
 // sourceRuntimeFile initializes one shared document order in every browser entry path.
-const sourceRuntimeFile = fileURLToPath(
-  new URL('../../bldr/stylex-client.ts', import.meta.url),
+const sourceRuntimeFile = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  '../../bldr/stylex-client.ts',
 )
 // Rules are the official compiler metadata consumed by its CSS extractor.
 type Rules = Parameters<typeof stylexPlugin.processStylexRules>[0]

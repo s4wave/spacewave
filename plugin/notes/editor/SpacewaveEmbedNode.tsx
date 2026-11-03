@@ -11,14 +11,14 @@ import { DecoratorNode } from 'lexical'
 import { LuLayers } from '@s4wave/web/images/icons.js'
 
 import * as stylex from '@stylexjs/stylex'
-import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+import { layout as themeLayout } from '@s4wave/web/style/tokens.stylex.js'
 
 import {
   radii as themeRadii,
   utilityState as themeUtilityState,
   colors as themeColors,
   fonts as themeFonts,
-} from '../../../web/style/tokens.stylex.js'
+} from '@s4wave/web/style/tokens.stylex.js'
 
 const stylexStyles3 = stylex.create({
   rule1: { marginBlock: `calc(${themeLayout['--spacing']} * 2)` },
@@ -41,7 +41,7 @@ const stylexStyles2 = stylex.create({
     color: themeColors['--color-brand'],
     display: 'flex',
   },
-  rule3: { flex: 1, minWidth: 0, },
+  rule3: { flex: 1, minWidth: 0 },
   rule4: {
     '--tw-font-weight': themeFonts['--font-weight-medium'],
     overflow: 'hidden',

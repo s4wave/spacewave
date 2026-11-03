@@ -383,8 +383,10 @@ describe('SessionDetails', () => {
 
     it('scrolls overflowing settings and hides the cue at the end', () => {
       const scrollBy = vi.fn()
-      const { container } = renderWithContext(<SessionDetails />)
-      const viewport = container.querySelector<HTMLDivElement>('.overflow-auto')
+      renderWithContext(<SessionDetails />)
+      const viewport = screen.getByRole<HTMLDivElement>('region', {
+        name: 'Account settings',
+      })
       if (!viewport) {
         throw new Error('settings scroll viewport not found')
       }
@@ -477,10 +479,7 @@ describe('SessionDetails', () => {
     it('confirms before logging out from the header action', () => {
       renderWithContext(<SessionDetails />)
 
-      const headerLogout = screen
-        .getAllByText('Logout')
-        .find((el) => el.className && el.className.includes('hidden'))
-        ?.closest('button')
+      const headerLogout = screen.getAllByRole('button', { name: 'Logout' })[0]
       expect(headerLogout).toBeTruthy()
       fireEvent.click(headerLogout!)
 

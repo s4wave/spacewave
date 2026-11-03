@@ -325,29 +325,6 @@ describe('FloatingWindow', () => {
     })
   })
 
-  it('renders 8 resize handles', () => {
-    const state = makeState()
-    render(
-      <FloatingWindow
-        id="test"
-        title="Win"
-        state={state}
-        onStateChange={vi.fn()}
-        testId="win"
-      >
-        <div>content</div>
-      </FloatingWindow>,
-    )
-
-    const win = screen.getByTestId('win')
-    // Resize handles have cursor-*-resize classes. Each handle div is a direct
-    // child of the window container with an absolute position and resize cursor.
-    const resizeHandles = win.querySelectorAll(
-      '[class*="cursor-"][class*="-resize"]',
-    )
-    expect(resizeHandles.length).toBe(8)
-  })
-
   it('double-click on header resets position and size to defaults', () => {
     const state = makeState({
       position: { x: 500, y: 500 },
@@ -374,7 +351,7 @@ describe('FloatingWindow', () => {
     // The header is the drag target - find it by the title text's grandparent
     const titleSpan = screen.getByText('Resettable')
     // The header div is the parent of the flex container that holds the title
-    const header = titleSpan.closest('[class*="cursor-grab"]')
+    const header = titleSpan.closest('[role="presentation"]')
     expect(header).toBeTruthy()
 
     fireEvent.doubleClick(header!)

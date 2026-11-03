@@ -231,8 +231,6 @@ describe('SessionsSection', () => {
     )
 
     expect(description.closest('button')).toBe(linkAction)
-    expect(linkAction.className).toContain('border')
-    expect(linkAction.className).toContain('rounded')
     expect(linkAction.querySelector('svg')).not.toBeNull()
 
     fireEvent.click(linkAction)

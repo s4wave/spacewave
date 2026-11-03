@@ -293,10 +293,7 @@ describe('NotebookViewer', () => {
       sources: [{ name: 'My Docs', ref: 'key/-/docs' }],
     })
 
-    const { container } = renderViewer()
-    // The outer container should have the three-panel flex layout.
-    const outer = container.firstElementChild as HTMLElement
-    expect(outer.className).toContain('flex')
+    renderViewer()
     // Should render the sidebar with source name.
     expect(screen.getAllByText('My Docs')).toHaveLength(2)
   })

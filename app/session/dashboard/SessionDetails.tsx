@@ -414,6 +414,8 @@ export function SessionDetails({
 
             <div
               ref={scrollCue.scrollRef}
+              role="region"
+              aria-label="Account settings"
               sx={stylexStyles2.rule2}
               onScroll={scrollCue.update}
             >

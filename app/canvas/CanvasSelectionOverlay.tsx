@@ -50,10 +50,10 @@ export function CanvasSelectionOverlay({
     <div
       sx={[stylexStyles.rule1, sx]}
       style={{
-        '--canvas-selection-left': left,
-        '--canvas-selection-top': top,
-        '--canvas-selection-width': width,
-        '--canvas-selection-height': height,
+        '--canvas-selection-left': `${left}px`,
+        '--canvas-selection-top': `${top}px`,
+        '--canvas-selection-width': `${width}px`,
+        '--canvas-selection-height': `${height}px`,
       }}
     />
   )

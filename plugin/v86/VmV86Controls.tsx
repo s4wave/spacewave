@@ -10,7 +10,7 @@ import { VmViewSwitch } from '@s4wave/app/vm/VmViewSwitch.js'
 import { Button } from '@s4wave/web/ui/button.js'
 
 import * as stylex from '@stylexjs/stylex'
-import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+import { layout as themeLayout } from '@s4wave/web/style/tokens.stylex.js'
 
 const stylexStyles = stylex.create({
   rule1: {
