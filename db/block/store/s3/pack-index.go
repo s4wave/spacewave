@@ -52,7 +52,7 @@ const (
 	// indexKeyBytes is the bytes of a block key an h row key keeps.
 	indexKeyBytes = 16
 
-	// indexBatchKeys bounds the h rows of one background write transaction.
+	// indexBatchKeys bounds the keys inspected by one background write transaction.
 	indexBatchKeys = 2048
 	// indexFlushEntries bounds the entries read from the listing that wait for
 	// their write transaction.
@@ -597,10 +597,12 @@ func (x *packIndex) pendingEntry(id string) *packfile.PackfileEntry {
 }
 
 // writeKeys writes h rows of the pack for the keys scan yields, in
-// transactions of indexBatchKeys keys with pause after each, then marks the
-// pack indexed. scan may reuse the key slice it passes. It returns the keys
-// written.
+// transactions of indexBatchKeys inspected keys with pause after each, then marks
+// the pack indexed. Preserved rows count toward the bound: checking a row still
+// holds the transaction. scan may reuse the key slice it passes. It returns the
+// keys written, excluding preserved rows.
 func (x *packIndex) writeKeys(ctx context.Context, id string, scan func(func(key []byte) error) error, pause func(context.Context) error) (uint64, error) {
+	// Snapshot the pack's stable number before opening any KV transaction.
 	x.mtx.RLock()
 	row, ok := x.rows[id]
 	x.mtx.RUnlock()
@@ -609,6 +611,7 @@ func (x *packIndex) writeKeys(ctx context.Context, id string, scan func(func(key
 	}
 	value := binary.BigEndian.AppendUint32(nil, row.num)
 
+	// Keep at most one bounded batch open and discard it on every exit.
 	var tx kvtx.Tx
 	var inTx int
 	var total uint64
@@ -618,6 +621,7 @@ func (x *packIndex) writeKeys(ctx context.Context, id string, scan func(func(key
 		}
 	}()
 	commit := func() error {
+		// Release the completed batch before giving foreground work its turn.
 		if tx == nil {
 			return nil
 		}
@@ -643,15 +647,17 @@ func (x *packIndex) writeKeys(ctx context.Context, id string, scan func(func(key
 		// later or replaced this one.
 		rowKey := hashRowKey(key)
 		live, err := x.namesLivePack(ctx, tx, rowKey, row.num)
-		if err != nil || live {
+		if err != nil {
 			return err
 		}
 
-		// Write the row and commit each full batch.
-		if err := tx.Set(ctx, rowKey, value); err != nil {
-			return err
+		// Write only replaceable rows, but yield after every inspected batch.
+		if !live {
+			if err := tx.Set(ctx, rowKey, value); err != nil {
+				return err
+			}
+			total++
 		}
-		total++
 		inTx++
 		if inTx >= indexBatchKeys {
 			return commit()
@@ -665,24 +671,30 @@ func (x *packIndex) writeKeys(ctx context.Context, id string, scan func(func(key
 		return total, err
 	}
 
-	// Record that the pack is indexed once all its keys are durable.
+	// Open the final marker transaction after every inspected batch is durable.
 	tx, err = x.store.NewTransaction(ctx, true)
 	if err != nil {
 		return total, err
 	}
 	row.indexed = true
+
+	// A pack removed during the scan needs no indexed marker.
 	x.mtx.RLock()
 	entry := x.pending[id]
 	x.mtx.RUnlock()
 	if entry == nil {
 		return total, nil
 	}
+
+	// Record the completed index and its entry in one durable transaction.
 	if err := putPackRows(ctx, tx, entry, row); err != nil {
 		return total, err
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return total, err
 	}
+
+	// Publish only a pack still in the table and retire its pending work.
 	x.mtx.Lock()
 	if _, ok := x.rows[id]; ok {
 		x.rows[id] = row

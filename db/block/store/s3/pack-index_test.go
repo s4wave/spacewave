@@ -46,10 +46,10 @@ func TestPackStoreIndex(t *testing.T) {
 	// Write three packs with a store that keeps no index.
 	writer := newTestPackStore(t, client)
 	var refs []*block.BlockRef
-	putPack := func(n int) []*block.BlockRef {
+	putPack := func(n, count int) []*block.BlockRef {
 		var batch []*block.PutBatchEntry
 		var out []*block.BlockRef
-		for i := range 20 {
+		for i := range count {
 			data := []byte(fmt.Sprintf("pack %d block %d", n, i))
 			ref, err := block.BuildBlockRef(data, nil)
 			if err != nil {
@@ -64,7 +64,7 @@ func TestPackStoreIndex(t *testing.T) {
 		return out
 	}
 	for n := range 3 {
-		refs = append(refs, putPack(n)...)
+		refs = append(refs, putPack(n, 20)...)
 	}
 
 	// Open a store with an index: the first read lists and reads the entries,
@@ -102,7 +102,7 @@ func TestPackStoreIndex(t *testing.T) {
 	// A pack another writer adds meanwhile, then a restart: the warm start
 	// reads the cached entries and only the new entry from the bucket.
 	store.Close()
-	refs = append(refs, putPack(3)...)
+	refs = append(refs, putPack(3, 20)...)
 	store, objs = open()
 	t.Cleanup(store.Close)
 	if data, found, err := store.GetBlock(ctx, refs[1]); err != nil || !found || len(data) == 0 {
@@ -178,6 +178,74 @@ func TestPackStoreIndex(t *testing.T) {
 	}
 	if objs.rangeReads.Load() != reads {
 		t.Fatal("a miss with a complete index read a pack")
+	}
+
+	// Re-index more than a batch of distinct keys another live pack holds.
+	// Preserving every row must still release the writer for foreground work.
+	duplicates := putPack(4, indexBatchKeys+1)
+	waitFor(t, "duplicate pack indexed", func() bool {
+		return store.index.Indexed(packOf(t, store, duplicates[0]))
+	})
+	livePack := packOf(t, store, duplicates[0])
+	otherPack := packOf(t, store, refs[20])
+	var scanned, pauses int
+	written, err := store.index.writeKeys(ctx, otherPack, func(fn func([]byte) error) error {
+		for _, ref := range duplicates {
+			scanned++
+			if err := fn(hashKey(ref)); err != nil {
+				return err
+			}
+		}
+		return nil
+	}, func(ctx context.Context) error {
+		// A batch ends after inspected rows, even when none needed writing.
+		pauses++
+		if want := min(pauses*indexBatchKeys, len(duplicates)); scanned != want {
+			return fmt.Errorf("yield after %d inspected keys, want %d", scanned, want)
+		}
+
+		// Admit a real foreground writer while the indexer is yielding.
+		admission, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+		done := make(chan error, 1)
+		go func() {
+			tx, err := kv.NewTransaction(admission, true)
+			if err != nil {
+				done <- err
+				return
+			}
+			defer tx.Discard()
+			if err := tx.Set(admission, []byte("foreground-test"), []byte("admitted")); err != nil {
+				done <- err
+				return
+			}
+			done <- tx.Commit(admission)
+		}()
+		select {
+		case err := <-done:
+			return err
+		case <-admission.Done():
+			return admission.Err()
+		}
+	})
+	if err != nil || written != 0 || pauses != 2 {
+		t.Fatalf("preserved batch: writes=%d pauses=%d error=%v", written, pauses, err)
+	}
+	foreground, err := kv.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	value, found, err := foreground.Get(ctx, []byte("foreground-test"))
+	foreground.Discard()
+	if err != nil || !found || string(value) != "admitted" {
+		t.Fatalf("foreground write = %q, %v, %v", value, found, err)
+	}
+
+	// Every preserved key still names its live pack after the bounded scan.
+	for _, ref := range duplicates {
+		if got := packOf(t, store, ref); got != livePack {
+			t.Fatalf("preserved row names %q, want %q", got, livePack)
+		}
 	}
 }
 
