@@ -99,6 +99,23 @@ export function OwnedStyles({ optional = false }: { optional?: boolean } = {}) {
           Finite {String(selected)}
         </button>
       ))}
+      <div
+        aria-label="Unlayered font alias"
+        className="text-text-secondary text-lg leading-tight tracking-wider sm:text-2xl"
+      >
+        Alias typography
+      </div>
+      {[false, true].map((active) => (
+        <div
+          key={'alias' + active}
+          className={cn('text-lg text-text-secondary', active && 'text-brand')}
+        >
+          Alias color {String(active)}
+        </div>
+      ))}
+      <div className="text-text-secondary before:text-xl before:content-['Alias']">
+        Alias pseudo-element
+      </div>
       <Box />
       <Box label="Default box">Default</Box>
       <Box

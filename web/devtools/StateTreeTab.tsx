@@ -6,7 +6,6 @@ import {
   LuDatabase,
 } from '@s4wave/web/images/icons.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import { useStateAtom } from '@s4wave/web/state/persist.js'
 import {
   useSelectedStateAtomId,
@@ -28,6 +27,99 @@ import {
   fonts as themeFonts,
   motion as themeMotion,
 } from '../style/tokens.stylex.js'
+
+const stylexStyles5 = stylex.create({
+  rule1: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+})
+
+const stylexStyles4 = stylex.create({
+  rule1: { color: themeColors['--color-foreground-alt'] },
+  rule2: { color: themeColors['--color-console-output'] },
+  rule3: { color: themeColors['--color-console-info'] },
+  rule4: { color: themeColors['--color-brand'] },
+  rule5: {
+    color: themeColors['--color-text-secondary'],
+    fontSize: themeLayout['--text-ui'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-ui--line-height']})`,
+    letterSpacing: `var(--tw-tracking, ${themeLayout['--text-ui--letter-spacing']})`,
+  },
+})
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    paddingLeft: 'var(--debug-tree-padding-left)',
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    backgroundColor: themeColors['--color-ui-selected'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.1s',
+    '--tw-duration': '.1s',
+  },
+  rule2: {
+    paddingLeft: 'var(--debug-tree-padding-left)',
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    color: themeColors['--color-text-secondary'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.1s',
+    '--tw-duration': '.1s',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-pulldown-hover']} 50%, transparent)`,
+      },
+    },
+    fontSize: themeLayout['--text-ui'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-ui--line-height']})`,
+    letterSpacing: `var(--tw-tracking, ${themeLayout['--text-ui--letter-spacing']})`,
+  },
+  rule3: {
+    paddingLeft: 'var(--debug-tree-padding-left)',
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    color: themeColors['--color-text-secondary'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.1s',
+    '--tw-duration': '.1s',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-pulldown-hover']} 50%, transparent)`,
+      },
+    },
+    fontSize: themeLayout['--text-ui'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-ui--line-height']})`,
+    letterSpacing: `var(--tw-tracking, ${themeLayout['--text-ui--letter-spacing']})`,
+  },
+})
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -349,14 +441,7 @@ function StateEntryNode({
   return (
     <div sx={stylexStyles.rule2}>
       <div
-        className={
-          /* TODO(stylex): global or unknown class: debug-tree-indent */ cn(
-            'debug-tree-indent flex h-6 items-center gap-1 text-xs transition-colors duration-100',
-            isSelected
-              ? 'bg-ui-selected text-foreground'
-              : 'text-text-secondary hover:bg-pulldown-hover/50',
-          )
-        }
+        sx={isSelected ? stylexStyles3.rule1 : stylexStyles3.rule2}
         style={{ '--debug-tree-padding-left': `${level * 12 + 8}px` }}
       >
         <button
@@ -445,12 +530,7 @@ function StateTreeNodeInner({
   return (
     <div sx={stylexStyles.rule2}>
       <div
-        className={
-          /* TODO(stylex): global or unknown class: debug-tree-indent */ cn(
-            'debug-tree-indent flex h-5 items-center gap-1 text-xs',
-            'text-text-secondary hover:bg-pulldown-hover/50 transition-colors duration-100',
-          )
-        }
+        sx={[stylexStyles3.rule3]}
         style={{ '--debug-tree-padding-left': `${level * 12 + 8}px` }}
       >
         <button
@@ -469,16 +549,7 @@ function StateTreeNodeInner({
 
         <button type="button" onClick={handleSelect} sx={stylexStyles.rule11}>
           <span sx={stylexStyles.rule15}>{nodeKey}:</span>
-          <span
-            className={
-              /* TODO(stylex): computed class helper */ cn(
-                'truncate font-mono text-xs',
-                valueColor,
-              )
-            }
-          >
-            {displayValue}
-          </span>
+          <span sx={[[stylexStyles5.rule1], [valueColor]]}>{displayValue}</span>
         </button>
       </div>
 
@@ -638,11 +709,11 @@ function formatValuePreview(value: unknown): string {
   return Object.prototype.toString.call(value)
 }
 
-function getValueColor(value: unknown): string {
+function getValueColor(value: unknown): stylex.StyleXStyles {
   // Use muted tones for absence and semantic tones for scalar values.
-  if (value === null || value === undefined) return 'text-foreground-alt'
-  if (typeof value === 'string') return 'text-console-output'
-  if (typeof value === 'number') return 'text-console-info'
-  if (typeof value === 'boolean') return 'text-brand'
-  return 'text-text-secondary'
+  if (value === null || value === undefined) return [stylexStyles4.rule1]
+  if (typeof value === 'string') return [stylexStyles4.rule2]
+  if (typeof value === 'number') return [stylexStyles4.rule3]
+  if (typeof value === 'boolean') return [stylexStyles4.rule4]
+  return [stylexStyles4.rule5]
 }

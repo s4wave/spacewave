@@ -181,6 +181,41 @@ function readComponentClasses(
   return rules
 }
 
+// readFontAliases keeps only single unlayered typography aliases with no other selectors.
+function readFontAliases(
+  css: string,
+  names: ReadonlySet<string>,
+): Map<string, StyleRule> {
+  // Count every selector occurrence before accepting an alias's complete declarations.
+  const counts = new Map<string, number>()
+  const candidates = new Map<string, StyleRule>()
+  postcss.parse(css).walkRules((rule) => {
+    for (const selector of rule.selectors) {
+      const name = selector.match(/^\.([\w-]+)(?:$|[:[.])/)?.[1]
+      if (!name || !names.has(name)) continue
+      counts.set(name, (counts.get(name) ?? 0) + 1)
+      if (
+        selector !== '.' + name ||
+        rule.parent?.type !== 'root' ||
+        !rule.nodes.length ||
+        !rule.nodes.every(
+          (node) =>
+            node.type === 'decl' &&
+            !node.important &&
+            ['font-size', 'line-height', 'letter-spacing'].includes(node.prop),
+        )
+      )
+        continue
+      candidates.set(name, readRule(rule, selector))
+    }
+  })
+
+  // A second rule would add a cascade contract this typography-only path does not represent.
+  for (const name of candidates.keys())
+    if (counts.get(name) !== 1) candidates.delete(name)
+  return candidates
+}
+
 /** createOracle translates utilities using the repository's actual Tailwind theme. */
 export async function createOracle(theme: string) {
   // Load imports, custom utilities and variants through Tailwind's own Node resolver.
@@ -246,7 +281,9 @@ export async function createOracle(theme: string) {
   }
 
   // The token inventory distinguishes runtime color variables from unresolved background recipes.
-  const componentClasses = readComponentClasses(application.build([]), tokens)
+  const applicationCss = application.build([])
+  const componentClasses = readComponentClasses(applicationCss, tokens)
+  const fontAliases = readFontAliases(applicationCss, globalAliases)
 
   // Cache utility translations and their required property registrations for this one conversion.
   const cache = new Map<string, Translation>()
@@ -263,15 +300,17 @@ export async function createOracle(theme: string) {
     let result: Translation
     if (relationMarkers[candidate])
       result = { kind: 'marker', marker: candidate }
-    else if (globalAliases.has(candidate))
+    else if (globalAliases.has(candidate) && !fontAliases.has(candidate))
       result = {
         kind: 'manual',
         reason: 'global class adds declarations outside the utility compiler',
       }
     else if (!css)
-      result = componentClasses.has(candidate)
-        ? { kind: 'style', style: componentClasses.get(candidate)!.style }
-        : { kind: 'manual', reason: 'global or unknown class' }
+      result = fontAliases.has(candidate)
+        ? { kind: 'style', style: {} }
+        : componentClasses.has(candidate)
+          ? { kind: 'style', style: componentClasses.get(candidate)!.style }
+          : { kind: 'manual', reason: 'global or unknown class' }
     else {
       try {
         const declarations = postcss.parse(css)
@@ -339,6 +378,7 @@ export async function createOracle(theme: string) {
       .map(([candidate]) => candidate)
   return {
     translate,
+    fontAliases,
     order,
     globalRules,
     tokens,

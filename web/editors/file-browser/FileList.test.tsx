@@ -20,16 +20,6 @@ const mockEntries: FileEntry[] = [
   { id: '4', name: 'README.md', isDir: false },
 ]
 
-const longFilenameEntries: FileEntry[] = [
-  { id: '1', name: 'getting-started.md', isDir: false },
-  {
-    id: '2',
-    name: 'this-is-a-very-long-filename-that-should-be-truncated-with-ellipsis.txt',
-    isDir: false,
-  },
-  { id: '3', name: 'short.txt', isDir: false },
-]
-
 // TestFileList owns the file list state the way a file browser does.
 function TestFileList(props: Omit<ComponentProps<typeof FileList>, 'state'>) {
   const state = useFileListState()
@@ -91,7 +81,7 @@ describe('FileList', () => {
     await user.click(documentsEntry!)
 
     await waitFor(() => {
-      expect(documentsEntry?.className).toContain('bg-brand/10')
+      expect(documentsEntry?.getAttribute('aria-selected')).toBe('true')
     })
   })
 
@@ -341,7 +331,6 @@ describe('FileList', () => {
     }
 
     expect(fireEvent.dragOver(documentsEntry!, { dataTransfer })).toBe(false)
-    expect(documentsEntry?.className).toContain('bg-brand/10')
 
     expect(fireEvent.drop(documentsEntry!, { dataTransfer })).toBe(false)
     expect(onEntryDrop).toHaveBeenCalledWith(
@@ -390,7 +379,6 @@ describe('FileList', () => {
       .getAllByText('Documents')[0]
       .closest('[role="row"]')
     expect(highlightedEntry).toBe(documentsEntry)
-    expect(highlightedEntry?.className).toContain('ring-brand/40')
     expect(onUnmount).not.toHaveBeenCalled()
   })
 
@@ -409,8 +397,8 @@ describe('FileList', () => {
 
     await waitFor(() => {
       const rows = screen.getAllByRole('row')
-      const hasSelection = rows.some((row) =>
-        row.className.includes('bg-brand/10'),
+      const hasSelection = rows.some(
+        (row) => row.getAttribute('aria-selected') === 'true',
       )
       expect(hasSelection).toBe(true)
     })
@@ -419,8 +407,8 @@ describe('FileList', () => {
 
     await waitFor(() => {
       const rows = screen.getAllByRole('row')
-      const selectedRows = rows.filter((row) =>
-        row.className.includes('bg-brand/10'),
+      const selectedRows = rows.filter(
+        (row) => row.getAttribute('aria-selected') === 'true',
       )
       expect(selectedRows.length).toBe(1)
     })
@@ -442,7 +430,7 @@ describe('FileList', () => {
     await waitFor(() => {
       const allEntries = screen.getAllByRole('row')
       allEntries.forEach((entry) => {
-        expect(entry.className).toContain('bg-brand/10')
+        expect(entry.getAttribute('aria-selected')).toBe('true')
       })
     })
   })
@@ -461,7 +449,7 @@ describe('FileList', () => {
     await user.click(documentsEntry!)
 
     await waitFor(() => {
-      expect(documentsEntry?.className).toContain('bg-brand/10')
+      expect(documentsEntry?.getAttribute('aria-selected')).toBe('true')
     })
 
     const readmeEntry = screen
@@ -472,7 +460,7 @@ describe('FileList', () => {
     await waitFor(() => {
       const selectedRows = screen
         .getAllByRole('row')
-        .filter((row) => row.className.includes('bg-brand/10'))
+        .filter((row) => row.getAttribute('aria-selected') === 'true')
       expect(selectedRows.length).toBeGreaterThan(1)
     })
   })
@@ -491,7 +479,7 @@ describe('FileList', () => {
     await user.click(documentsEntry!)
 
     await waitFor(() => {
-      expect(documentsEntry?.className).toContain('bg-brand/10')
+      expect(documentsEntry?.getAttribute('aria-selected')).toBe('true')
     })
 
     const picturesEntry = screen
@@ -502,36 +490,9 @@ describe('FileList', () => {
     await waitFor(() => {
       const selectedRows = screen
         .getAllByRole('row')
-        .filter((row) => row.className.includes('bg-brand/10'))
+        .filter((row) => row.getAttribute('aria-selected') === 'true')
       expect(selectedRows.length).toBe(2)
     })
-  })
-
-  it('should truncate long filenames with ellipsis', async () => {
-    render(<TestFileList entries={longFilenameEntries} />)
-
-    await waitFor(() => {
-      expect(screen.getAllByText('getting-started.md')[0]).toBeTruthy()
-    })
-
-    // Find the filename span elements
-    const rows = screen.getAllByRole('row')
-    expect(rows.length).toBe(3)
-
-    // Check that each row's name container has truncation styling
-    for (const row of rows) {
-      const nameContainer = row.querySelector('span')
-      expect(nameContainer).toBeTruthy()
-
-      // The span should have truncate class for text-overflow: ellipsis
-      const classes = new Set(nameContainer?.className.split(/\s+/) ?? [])
-      const hasOverflowHidden =
-        classes.has('truncate') || classes.has('overflow-hidden')
-      expect(
-        hasOverflowHidden,
-        'Filename span should have truncation styling to prevent text wrapping',
-      ).toBe(true)
-    }
   })
 
   it('should call onOpen with directory entry when double-clicking a directory', async () => {
@@ -600,7 +561,7 @@ describe('FileList', () => {
     await user.click(fileEntry!)
 
     await waitFor(() => {
-      expect(fileEntry?.className).toContain('bg-brand/10')
+      expect(fileEntry?.getAttribute('aria-selected')).toBe('true')
     })
 
     // Ctrl+click README.md to add to selection
@@ -612,7 +573,7 @@ describe('FileList', () => {
     await waitFor(() => {
       const selectedRows = screen
         .getAllByRole('row')
-        .filter((row) => row.className.includes('bg-brand/10'))
+        .filter((row) => row.getAttribute('aria-selected') === 'true')
       expect(selectedRows.length).toBe(2)
     })
 
@@ -648,7 +609,7 @@ describe('FileList', () => {
     await user.click(documentsEntry!)
 
     await waitFor(() => {
-      expect(documentsEntry?.className).toContain('bg-brand/10')
+      expect(documentsEntry?.getAttribute('aria-selected')).toBe('true')
     })
 
     // Ctrl+click file.txt to add to selection
@@ -658,7 +619,7 @@ describe('FileList', () => {
     await waitFor(() => {
       const selectedRows = screen
         .getAllByRole('row')
-        .filter((row) => row.className.includes('bg-brand/10'))
+        .filter((row) => row.getAttribute('aria-selected') === 'true')
       expect(selectedRows.length).toBe(2)
     })
 

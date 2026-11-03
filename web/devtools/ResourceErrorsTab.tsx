@@ -1,7 +1,6 @@
 import { useCallback, useMemo } from 'react'
 import { RiErrorWarningLine } from '@s4wave/web/images/icons.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import {
   useResourceDevToolsContext,
   useTrackedResources,
@@ -16,6 +15,61 @@ import {
   fonts as themeFonts,
   colors as themeColors,
 } from '../style/tokens.stylex.js'
+
+import {
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+} from '../style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-popover-border']} 30%, transparent)`,
+    backgroundColor: themeColors['--color-ui-selected'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    textAlign: 'left',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.1s',
+    '--tw-duration': '.1s',
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-popover-border']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    textAlign: 'left',
+    color: themeColors['--color-text-secondary'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.1s',
+    '--tw-duration': '.1s',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-pulldown-hover']} 50%, transparent)`,
+      },
+    },
+    fontSize: themeLayout['--text-ui'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-ui--line-height']})`,
+    letterSpacing: `var(--tw-tracking, ${themeLayout['--text-ui--letter-spacing']})`,
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -119,16 +173,7 @@ function ErrorRow({ resource }: ErrorRowProps) {
     <button
       type="button"
       onClick={handleResourceSelect}
-      className={
-        /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ cn(
-          'flex items-center gap-2 px-3 py-1.5 text-left text-xs',
-          'border-popover-border/30 border-b',
-          'transition-colors duration-100',
-          isSelected
-            ? 'bg-ui-selected text-foreground'
-            : 'text-text-secondary hover:bg-pulldown-hover/50',
-        )
-      }
+      sx={isSelected ? stylexStyles2.rule1 : stylexStyles2.rule2}
       data-testid="resource-error-row"
     >
       <span sx={stylexStyles.rule4} />

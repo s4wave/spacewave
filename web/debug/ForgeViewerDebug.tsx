@@ -1,3 +1,5 @@
+import { rowDividers } from '@s4wave/web/style/row-dividers.stylex.js'
+
 import { useCallback, useState, type ReactNode } from 'react'
 import {
   LuActivity,
@@ -12,7 +14,6 @@ import {
 } from '@s4wave/web/images/icons.js'
 
 import { useNavigate } from '@s4wave/web/router/router.js'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import * as stylex from '@stylexjs/stylex'
 import {
@@ -27,6 +28,78 @@ import {
 import { groupMarker } from '../style/relations.stylex.js'
 
 import { groupMarker as groupMarker2 } from '../style/relations.stylex.js'
+
+const stylexStyles7 = stylex.create({
+  rule1: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+  },
+})
+
+const stylexStyles6 = stylex.create({
+  rule1: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    borderRadius: '3.40282e38px',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: '.6rem',
+    lineHeight: 1.5,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-widest)',
+    letterSpacing: 'var(--tracking-widest)',
+    textTransform: 'uppercase',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule2: {
+    width: `calc(${themeLayout['--spacing']} * 1.5)`,
+    height: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: '3.40282e38px',
+  },
+})
+
+const stylexStyles5 = stylex.create({
+  rule1: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 15%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule2: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-blue-400']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-blue-400']} 8%, transparent)`,
+    color: themeColors['--color-blue-300'],
+  },
+  rule3: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-emerald-400']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-emerald-400']} 8%, transparent)`,
+    color: themeColors['--color-emerald-300'],
+  },
+  rule4: {
+    borderColor: 'color-mix(in oklab, var(--color-amber-400) 20%, transparent)',
+    backgroundColor:
+      'color-mix(in oklab, var(--color-amber-400) 8%, transparent)',
+    color: 'var(--color-amber-300)',
+  },
+  rule5: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 8%, transparent)`,
+    color: themeColors['--color-destructive'],
+  },
+  rule6: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 30%, transparent)`,
+  },
+  rule7: { backgroundColor: themeColors['--color-blue-400'] },
+  rule8: { backgroundColor: themeColors['--color-emerald-400'] },
+  rule9: { backgroundColor: 'var(--color-amber-400)' },
+  rule10: { backgroundColor: themeColors['--color-destructive'] },
+})
 
 const stylexStyles4 = stylex.create({
   rule1: { marginInline: 'auto', maxWidth: 'var(--container-3xl)' },
@@ -1094,48 +1167,30 @@ function CurrentBadge({ label }: StateSpec) {
   )
 }
 
-const TONE_TINT: Record<StateTone, string> = {
-  idle: 'border-foreground/15 bg-foreground/5 text-foreground-alt/70',
-  active: 'border-blue-400/20 bg-blue-400/8 text-blue-300',
-  success: 'border-emerald-400/20 bg-emerald-400/8 text-emerald-300',
-  warning: 'border-amber-400/20 bg-amber-400/8 text-amber-300',
-  error: 'border-destructive/30 bg-destructive/8 text-destructive',
+const TONE_TINT: Record<StateTone, stylex.StyleXStyles> = {
+  idle: [stylexStyles5.rule1],
+  active: [stylexStyles5.rule2],
+  success: [stylexStyles5.rule3],
+  warning: [stylexStyles5.rule4],
+  error: [stylexStyles5.rule5],
 }
 
 function TintedBadge({ label, tone }: StateSpec) {
-  return (
-    <span
-      className={
-        /* TODO(stylex): dynamic class or forwarded className */ cn(
-          'inline-flex items-center rounded-full border px-2 py-0.5 micro-text font-medium tracking-widest uppercase select-none',
-          TONE_TINT[tone],
-        )
-      }
-    >
-      {label}
-    </span>
-  )
+  return <span sx={[[stylexStyles6.rule1], [TONE_TINT[tone]]]}>{label}</span>
 }
 
-const TONE_DOT: Record<StateTone, string> = {
-  idle: 'bg-foreground/30',
-  active: 'bg-blue-400',
-  success: 'bg-emerald-400',
-  warning: 'bg-amber-400',
-  error: 'bg-destructive',
+const TONE_DOT: Record<StateTone, stylex.StyleXStyles> = {
+  idle: [stylexStyles5.rule6],
+  active: [stylexStyles5.rule7],
+  success: [stylexStyles5.rule8],
+  warning: [stylexStyles5.rule9],
+  error: [stylexStyles5.rule10],
 }
 
 function DotBadge({ label, tone }: StateSpec) {
   return (
     <span sx={stylexStyles.rule23}>
-      <span
-        className={
-          /* TODO(stylex): dynamic class or forwarded className */ cn(
-            'size-1.5 rounded-full',
-            TONE_DOT[tone],
-          )
-        }
-      />
+      <span sx={[[stylexStyles6.rule2], [TONE_DOT[tone]]]} />
       {label}
     </span>
   )
@@ -1210,13 +1265,13 @@ function EntityRowSection({ sx }: { sx?: stylex.StyleXStyles } = {}) {
         label="C. Compact dense single-line"
         note="One line, leading icon, brand divider, badge tail"
       >
-        <div
-          className={
-            /* TODO(stylex): a descendant, group, peer or compound selector: divide-y */ 'border-foreground/6 bg-background-card/30 divide-foreground/6 divide-y rounded-lg border'
-          }
-        >
-          {ROW_SAMPLES.map((s) => (
-            <DenseRow key={s.name} sample={s} />
+        <div sx={stylexStyles7.rule1}>
+          {ROW_SAMPLES.map((s, index) => (
+            <DenseRow
+              divided={index < ROW_SAMPLES.length - 1}
+              key={s.name}
+              sample={s}
+            />
           ))}
         </div>
       </Variant>
@@ -1265,9 +1320,15 @@ function GlassRow({
   )
 }
 
-function DenseRow({ sample }: { sample: RowSample }) {
+function DenseRow({
+  sample,
+  divided,
+}: {
+  sample: RowSample
+  divided?: boolean
+}) {
   return (
-    <div sx={stylexStyles.rule31}>
+    <div sx={[stylexStyles.rule31, divided && rowDividers.regular]}>
       <LuListTodo sx={stylexStyles.rule32} />
       <span sx={stylexStyles.rule33}>{sample.name}</span>
       <span sx={stylexStyles.rule34}>{sample.meta}</span>

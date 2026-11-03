@@ -9,7 +9,6 @@ import {
 } from '@s4wave/web/images/icons.js'
 
 import { useNavigate } from '@s4wave/web/router/router.js'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import * as stylex from '@stylexjs/stylex'
 import {
@@ -20,6 +19,47 @@ import {
   fonts as themeFonts,
   radii as themeRadii,
 } from '../style/tokens.stylex.js'
+
+const stylexStyles6 = stylex.create({
+  rule1: {
+    position: 'absolute',
+    insetBlock: 0,
+    width: '33.3333%',
+    borderRadius: '3.40282e38px',
+    backgroundColor: themeColors['--color-brand'],
+  },
+})
+
+const stylexStyles5 = stylex.create({
+  rule1: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+  },
+})
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule2: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    color: themeColors['--color-brand'],
+  },
+  rule3: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    color: themeColors['--color-brand'],
+  },
+  rule4: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+    color: themeColors['--color-destructive'],
+  },
+})
 
 const stylexStyles3 = stylex.create({
   rule1: { marginInline: 'auto', maxWidth: 'var(--container-3xl)' },
@@ -680,11 +720,7 @@ function ProgressBar({
     <div sx={stylexStyles.rule17}>
       <div sx={stylexStyles.rule18}>
         {indeterminate ? (
-          <div
-            className={
-              /* TODO(stylex): global or unknown class: animate-progress-indeterminate */ 'bg-brand animate-progress-indeterminate absolute inset-y-0 w-1/3 rounded-full'
-            }
-          />
+          <div sx={[stylexStyles6.rule1, progressAnimation.sweep]} />
         ) : (
           <div
             sx={stylexStyles2.rule1}
@@ -772,11 +808,11 @@ interface LoadingView {
   onCancel?: () => void
 }
 
-const loadingTileTone: Record<LoadingState, string> = {
-  loading: 'bg-foreground/5 text-foreground-alt',
-  active: 'bg-brand/10 text-brand',
-  synced: 'bg-foreground/5 text-brand',
-  error: 'bg-destructive/10 text-destructive',
+const loadingTileTone: Record<LoadingState, stylex.StyleXStyles> = {
+  loading: [stylexStyles4.rule1],
+  active: [stylexStyles4.rule2],
+  synced: [stylexStyles4.rule3],
+  error: [stylexStyles4.rule4],
 }
 
 // LoadingCardProgress renders the progress bar, or the transfer rates when no
@@ -826,14 +862,7 @@ function LoadingCard({ view }: { view: LoadingView }) {
   return (
     <div sx={stylexStyles.rule7}>
       <div sx={stylexStyles.rule28}>
-        <div
-          className={
-            /* TODO(stylex): dynamic class or forwarded className */ cn(
-              'flex size-8 shrink-0 items-center justify-center rounded-md',
-              loadingTileTone[view.state],
-            )
-          }
-        >
+        <div sx={[[stylexStyles5.rule1], [loadingTileTone[view.state]]]}>
           <LoadingCardIcon state={view.state} />
         </div>
         <div sx={stylexStyles.rule29}>
@@ -1072,3 +1101,17 @@ function LoadingScreenSection({ sx }: { sx?: stylex.StyleXStyles } = {}) {
     </Section>
   )
 }
+
+const progressAnimation = stylex.create({
+  sweep: {
+    animationName: 'progress-indeterminate',
+    animationDuration: '1.4s',
+    animationTimingFunction: 'ease-in-out',
+    animationIterationCount: 'infinite',
+    animationDirection: 'normal',
+    animationPlayState: 'running',
+    animationDelay: '0s',
+    animationFillMode: 'none',
+    animationTimeline: 'auto',
+  },
+})

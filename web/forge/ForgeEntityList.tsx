@@ -15,6 +15,16 @@ import {
   motion as themeMotion,
 } from '../style/tokens.stylex.js'
 
+const stylexStyles2 = stylex.create({
+  rule1: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     borderRadius: themeRadii['--radius-lg'],
@@ -106,6 +116,9 @@ interface ForgeEntityListProps {
   icon: ReactNode
   loadingLabel?: string
   emptyLabel?: string
+
+  sx?: stylex.StyleXStyles
+  className?: never
 }
 
 // ForgeEntityList renders a compact dense list of forge entities with a
@@ -116,10 +129,11 @@ export function ForgeEntityList({
   icon,
   loadingLabel = 'Loading linked entities',
   emptyLabel = 'None linked yet',
+  sx,
 }: ForgeEntityListProps) {
   if (loading && entities.length === 0) {
     return (
-      <div sx={stylexStyles.rule1}>
+      <div sx={[stylexStyles.rule1, sx]}>
         <div sx={stylexStyles.rule2}>
           <LoadingInline label={loadingLabel} size="sm" tone="subtle" />
         </div>
@@ -128,7 +142,7 @@ export function ForgeEntityList({
   }
   if (entities.length === 0) {
     return (
-      <div sx={stylexStyles.rule1}>
+      <div sx={[stylexStyles.rule1, sx]}>
         <div sx={stylexStyles.rule2}>
           <span sx={stylexStyles.rule3}>{icon}</span>
           <span>{emptyLabel}</span>
@@ -137,11 +151,7 @@ export function ForgeEntityList({
     )
   }
   return (
-    <div
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: divide-y */ 'border-foreground/6 bg-background-card/30 divide-foreground/6 divide-y rounded-lg border'
-      }
-    >
+    <div sx={[stylexStyles2.rule1, sx]}>
       {entities.map((entity) => (
         <DenseEntityRow key={entity.objectKey} entity={entity} icon={icon} />
       ))}

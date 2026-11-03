@@ -22,6 +22,17 @@ import {
   fonts as themeFonts,
 } from '../style/tokens.stylex.js'
 
+const stylexStyles2 = stylex.create({
+  rule1: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-text-secondary'],
+    fontSize: themeLayout['--text-ui'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-ui--line-height']})`,
+    letterSpacing: `var(--tw-tracking, ${themeLayout['--text-ui--letter-spacing']})`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     display: 'flex',
@@ -110,13 +121,7 @@ export function ResourceTreeTab() {
     <div sx={stylexStyles.rule1}>
       {/* Section header */}
       <div sx={[stylexStyles.rule2]}>
-        <span
-          className={
-            /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary text-xs font-medium'
-          }
-        >
-          Resources
-        </span>
+        <span sx={stylexStyles2.rule1}>Resources</span>
         <span sx={stylexStyles.rule3}>{resourceCount}</span>
       </div>
 

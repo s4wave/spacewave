@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { LuCopy, LuRefreshCw, LuX } from '@s4wave/web/images/icons.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import {
   useResourceDevToolsContext,
   type TrackedResource,
@@ -15,6 +14,79 @@ import {
   motion as themeMotion,
   fonts as themeFonts,
 } from '../style/tokens.stylex.js'
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule2: {
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+  },
+})
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    fontSize: themeLayout['--text-devtools'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-devtools--line-height']})`,
+  },
+  rule2: {
+    color: themeColors['--color-text-secondary'],
+    fontSize: themeLayout['--text-ui'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-ui--line-height']})`,
+    letterSpacing: `var(--tw-tracking, ${themeLayout['--text-ui--letter-spacing']})`,
+  },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-text-secondary'],
+    fontSize: themeLayout['--text-ui'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-ui--line-height']})`,
+    letterSpacing: `var(--tw-tracking, ${themeLayout['--text-ui--letter-spacing']})`,
+  },
+  rule2: {
+    display: 'flex',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: themeLayout['--spacing'],
+    borderRadius: '.25rem',
+    backgroundColor: {
+      default: themeColors['--color-background-deep'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-pulldown-hover'],
+      },
+    },
+    paddingBlock: themeLayout['--spacing'],
+    color: {
+      default: themeColors['--color-text-secondary'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.1s',
+    '--tw-duration': '.1s',
+    fontSize: themeLayout['--text-ui'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-ui--line-height']})`,
+    letterSpacing: `var(--tw-tracking, ${themeLayout['--text-ui--letter-spacing']})`,
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -155,10 +227,16 @@ const stylexStyles = stylex.create({
 
 interface ResourceDetailsPanelProps {
   resource: TrackedResource
+
+  sx?: stylex.StyleXStyles
+  className?: never
 }
 
 // ResourceDetailsPanel displays detailed information about a selected resource.
-export function ResourceDetailsPanel({ resource }: ResourceDetailsPanelProps) {
+export function ResourceDetailsPanel({
+  resource,
+  sx,
+}: ResourceDetailsPanelProps) {
   const devtools = useResourceDevToolsContext()
 
   const handleRetry = useCallback(() => {
@@ -213,23 +291,20 @@ export function ResourceDetailsPanel({ resource }: ResourceDetailsPanelProps) {
   }, [resource.createdAt, now])
 
   const stateColor = useMemo(() => {
-    if (resource.state === 'ready') return 'text-devtools-success'
-    if (resource.state === 'loading') return 'text-devtools-warning'
-    if (resource.state === 'error') return 'text-devtools-error'
-    return 'text-text-secondary'
+    if (resource.state === 'ready')
+      return [stylexStyles3.rule1, resourceTones.success]
+    if (resource.state === 'loading')
+      return [stylexStyles3.rule1, resourceTones.warning]
+    if (resource.state === 'error')
+      return [stylexStyles3.rule1, resourceTones.error]
+    return [stylexStyles3.rule2]
   }, [resource.state])
 
   return (
-    <div sx={[stylexStyles.rule1]} data-testid="resource-details-panel">
+    <div sx={[[stylexStyles.rule1], sx]} data-testid="resource-details-panel">
       {/* Header */}
       <div sx={[stylexStyles.rule2]}>
-        <span
-          className={
-            /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ 'text-text-secondary text-xs font-medium'
-          }
-        >
-          Details
-        </span>
+        <span sx={stylexStyles2.rule1}>Details</span>
         <button type="button" onClick={handleClose} sx={[stylexStyles.rule3]}>
           <LuX sx={stylexStyles.rule4} />
         </button>
@@ -258,20 +333,22 @@ export function ResourceDetailsPanel({ resource }: ResourceDetailsPanelProps) {
           <DetailRow
             label="State"
             value={resource.state}
-            valueClassName={stateColor}
+            valueSx={stateColor}
           />
           {resource.state === 'loading' && (
             <DetailRow
               label="Duration"
               value={durationStr}
-              valueClassName="text-devtools-warning"
+              valueSx={[[stylexStyles3.rule1], resourceTones.warning]}
             />
           )}
           <DetailRow
             label="Released"
             value={resource.released ? 'Yes' : 'No'}
-            valueClassName={
-              resource.released ? 'text-devtools-muted' : undefined
+            valueSx={
+              resource.released
+                ? [stylexStyles3.rule1, resourceTones.muted]
+                : undefined
             }
           />
           <DetailRow label="Created" value={createdAtStr} />
@@ -307,10 +384,16 @@ export function ResourceDetailsPanel({ resource }: ResourceDetailsPanelProps) {
 
       {/* Actions footer */}
       <div sx={[stylexStyles.rule11]}>
-        <ActionButton onClick={handleRetry} icon={<LuRefreshCw />}>
+        <ActionButton
+          onClick={handleRetry}
+          icon={<LuRefreshCw sx={actionIcons.small} />}
+        >
           Retry
         </ActionButton>
-        <ActionButton onClick={handleCopy} icon={<LuCopy />}>
+        <ActionButton
+          onClick={handleCopy}
+          icon={<LuCopy sx={actionIcons.small} />}
+        >
           Copy
         </ActionButton>
       </div>
@@ -322,21 +405,18 @@ interface DetailRowProps {
   label: string
   value: string
   mono?: boolean
-  valueClassName?: string
+  valueSx?: stylex.StyleXStyles
 }
 
-function DetailRow({ label, value, mono, valueClassName }: DetailRowProps) {
+function DetailRow({ label, value, mono, valueSx }: DetailRowProps) {
   return (
     <div sx={stylexStyles.rule12}>
       <span sx={stylexStyles.rule13}>{label}</span>
       <span
-        className={
-          /* TODO(stylex): dynamic class or forwarded className */ cn(
-            'text-foreground truncate text-xs',
-            mono && 'font-mono',
-            valueClassName,
-          )
-        }
+        sx={[
+          [stylexStyles4.rule1, !!mono && stylexStyles4.rule2, false],
+          [valueSx],
+        ]}
       >
         {value}
       </span>
@@ -352,26 +432,18 @@ interface ActionButtonProps {
 
 function ActionButton({ onClick, icon, children }: ActionButtonProps) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={
-        /* TODO(stylex): global class adds declarations outside the utility compiler: text-text-secondary */ cn(
-          'flex flex-1 items-center justify-center gap-1 rounded py-1 text-xs',
-          'bg-background-deep text-text-secondary',
-          'hover:bg-pulldown-hover hover:text-foreground',
-          'transition-colors duration-100',
-        )
-      }
-    >
-      <span
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: [&>svg]:h-3 */ '[&>svg]:h-3 [&>svg]:w-3'
-        }
-      >
-        {icon}
-      </span>
+    <button type="button" onClick={onClick} sx={[stylexStyles2.rule2]}>
+      <span>{icon}</span>
       {children}
     </button>
   )
 }
+
+const actionIcons = stylex.create({ small: { width: 12, height: 12 } })
+
+const resourceTones = stylex.create({
+  success: { color: 'var(--color-success)' },
+  warning: { color: 'var(--color-warning)' },
+  error: { color: 'var(--color-error)' },
+  muted: { color: 'var(--color-text-muted)' },
+})
