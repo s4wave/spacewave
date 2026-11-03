@@ -47,6 +47,23 @@ import {
   colors as themeColors,
 } from '../style/tokens.stylex.js'
 
+import { fonts as themeFonts } from '../style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    position: 'relative',
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    gap: themeLayout['--spacing'],
+    overflow: 'hidden',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: { textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' },
   rule2: {
@@ -257,9 +274,7 @@ function useObjectLayoutController({
         <button
           key="object-layout-close-tab"
           type="button"
-          className={
-            /* TODO(stylex): global or unknown class: flexlayout__tab_button_trailing */ 'flexlayout__tab_button_trailing'
-          }
+          className={'flexlayout__tab_button_trailing'}
           title="Close"
           aria-label={`Close ${node.getName()}`}
           disabled={!canCloseTabs}
@@ -457,9 +472,13 @@ function useObjectLayoutController({
 
 // LayoutObjectViewer renders an ObjectLayout world object using BaseLayout.
 export function LayoutObjectViewer({
+  sx,
   objectInfo,
   worldState,
-}: ObjectViewerComponentProps) {
+}: ObjectViewerComponentProps & {
+  sx?: stylex.StyleXStyles
+  className?: never
+}) {
   const {
     contextMenu,
     contextMenuItems,
@@ -474,7 +493,7 @@ export function LayoutObjectViewer({
 
   if (layoutHost === null) {
     return (
-      <div sx={stylexStyles2.rule4}>
+      <div sx={[stylexStyles2.rule4, sx]}>
         <LoadingCard
           view={{ state: 'loading', title: 'Loading layout' }}
           sx={stylexStyles.rule1}
@@ -484,15 +503,11 @@ export function LayoutObjectViewer({
   }
 
   if (layoutHost === undefined) {
-    return <div sx={stylexStyles2.rule5}>Failed to load layout</div>
+    return <div sx={[stylexStyles2.rule5, sx]}>Failed to load layout</div>
   }
 
   return (
-    <div
-      className={
-        /* TODO(stylex): global or unknown class: space-flexlayout */ 'space-flexlayout bg-foreground/6 relative flex h-full w-full flex-col gap-1 overflow-hidden text-xs'
-      }
-    >
+    <div className="space-flexlayout" sx={[stylexStyles3.rule1, sx]}>
       <div sx={stylexStyles2.rule6}>
         <DocumentTitleFocusContext.Provider value={focusedTabId}>
           <BaseLayout

@@ -193,10 +193,14 @@ type WorldStateValue = ObjectViewerComponentProps['worldState']['value']
 // Registered as the wildcard viewer ('*'), so it also handles untyped world
 // objects (objects that exist in the world graph without a type predicate).
 export function DebugObjectViewer({
+  sx,
   objectInfo,
   worldState,
   objectState,
-}: ObjectViewerComponentProps) {
+}: ObjectViewerComponentProps & {
+  sx?: stylex.StyleXStyles
+  className?: never
+}) {
   const objectKey = getObjectKey(objectInfo)
   const hintTypeID = getTypeID(objectInfo)
 
@@ -218,7 +222,7 @@ export function DebugObjectViewer({
   const untyped = !resolving && !effectiveTypeID
 
   return (
-    <div sx={stylexStyles.rule1}>
+    <div sx={[stylexStyles.rule1, sx]}>
       <div sx={stylexStyles.rule2}>
         <div sx={stylexStyles.rule3}>
           <LuBug sx={stylexStyles.rule4} />
@@ -227,11 +231,7 @@ export function DebugObjectViewer({
       </div>
 
       <div sx={stylexStyles.rule6}>
-        <div
-          sx={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ stylexStyles2.rule1
-          }
-        >
+        <div sx={stylexStyles2.rule1}>
           {untyped && (
             <div sx={[stylexStyles.rule7, childSpacing.s3]}>
               <div sx={stylexStyles.rule8}>

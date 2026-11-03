@@ -218,11 +218,7 @@ export function KeybindingBindingsSection({
   } = useKeybindingEditorContext()
 
   return (
-    <div
-      sx={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ sx
-      }
-    >
+    <div sx={sx}>
       <div sx={childSpacing.s4}>
         <div sx={stylexStyles.rule1}>
           <h3 sx={stylexStyles.rule2}>Shortcuts</h3>

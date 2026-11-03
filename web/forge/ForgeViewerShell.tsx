@@ -1,3 +1,8 @@
+import { ControlStylesProvider } from '@s4wave/web/style/ControlStylesProvider.js'
+import {
+  forgeControlStyles,
+  forgeViewerMarker,
+} from '@s4wave/web/style/forge-controls.stylex.js'
 import { type ReactNode, useCallback, useMemo } from 'react'
 
 import { useStateNamespace, useStateAtom } from '@s4wave/web/state/index.js'
@@ -19,6 +24,17 @@ import {
   radii as themeRadii,
   motion as themeMotion,
 } from '../style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    overflow: 'hidden',
+    backgroundColor: themeColors['--color-background-primary'],
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -222,6 +238,8 @@ export interface ForgeAction {
 }
 
 interface ForgeViewerShellProps {
+  sx?: stylex.StyleXStyles
+  className?: never
   icon: ReactNode
   title: string
   state?: number
@@ -249,6 +267,7 @@ export function ForgeViewerShell({
   headerStatus,
   stateKey,
   children,
+  sx,
 }: ForgeViewerShellProps) {
   // Keep tab selection in the viewer’s existing personal state namespace.
   const ns = useStateNamespace(['forge-viewer', stateKey ?? title])
@@ -269,32 +288,95 @@ export function ForgeViewerShell({
 
   // Apply the touch floor to viewer-supplied controls as well as shared chrome.
   return (
-    <div
-      data-testid="forge-viewer"
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: pointer-coarse:[&_button]:min-h-11 */ 'bg-background-primary flex h-full w-full flex-col overflow-hidden pointer-coarse:[&_button]:min-h-11 pointer-coarse:[&_button]:min-w-11'
-      }
-    >
-      {/* Header */}
-      <div sx={stylexStyles.rule1}>
-        <div sx={stylexStyles.rule2}>
-          {icon}
-          <span sx={stylexStyles.rule3}>{title}</span>
-          {stateLabels && state !== undefined && (
-            <StateBadge state={state} labels={stateLabels} />
+    <ControlStylesProvider styles={forgeControlStyles.required}>
+      <div
+        data-testid="forge-viewer"
+        sx={[stylexStyles2.rule1, [forgeViewerMarker, sx]]}
+      >
+        {/* Header */}
+        <div sx={stylexStyles.rule1}>
+          <div sx={stylexStyles.rule2}>
+            {icon}
+            <span sx={stylexStyles.rule3}>{title}</span>
+            {stateLabels && state !== undefined && (
+              <StateBadge state={state} labels={stateLabels} />
+            )}
+          </div>
+          {headerActions && headerActions.length > 0 && (
+            <div
+              data-testid="forge-viewer-header-actions"
+              sx={stylexStyles.rule4}
+            >
+              {headerActions.map((action) => (
+                <Tooltip key={action.label}>
+                  <TooltipTrigger asChild>
+                    <DashboardButton
+                      icon={action.icon}
+                      sx={stylexStyles.rule5}
+                      onClick={action.onClick}
+                      disabled={action.disabled}
+                      variant={
+                        action.variant === 'primary'
+                          ? 'primary'
+                          : action.variant === 'destructive'
+                            ? 'destructive'
+                            : undefined
+                      }
+                    >
+                      {action.label}
+                    </DashboardButton>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">{action.label}</TooltipContent>
+                </Tooltip>
+              ))}
+            </div>
           )}
         </div>
-        {headerActions && headerActions.length > 0 && (
-          <div
-            data-testid="forge-viewer-header-actions"
-            sx={stylexStyles.rule4}
-          >
-            {headerActions.map((action) => (
+        {headerStatus}
+
+        {/* Tab bar */}
+        {tabs && tabs.length > 1 && (
+          <div sx={stylexStyles.rule6}>
+            <div sx={stylexStyles.rule7}>
+              <div sx={stylexStyles.rule8}>
+                {tabs.map((tab) => (
+                  <button
+                    type="button"
+                    key={tab.id}
+                    onClick={() => onTabClick(tab.id)}
+                    sx={[
+                      [
+                        stylexStyles.rule9,
+                        resolvedTab?.id === tab.id
+                          ? stylexStyles.rule10
+                          : stylexStyles.rule11,
+                      ],
+                      forgeControlStyles.required,
+                    ]}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Content */}
+        <div sx={stylexStyles.rule12}>
+          <div sx={stylexStyles.rule7}>
+            {resolvedTab ? resolvedTab.content : children}
+          </div>
+        </div>
+
+        {/* Action bar: reserved for actions on the current object/selection. */}
+        {actions && actions.length > 0 && (
+          <div data-testid="forge-viewer-action-bar" sx={stylexStyles.rule13}>
+            {actions.map((action) => (
               <Tooltip key={action.label}>
                 <TooltipTrigger asChild>
                   <DashboardButton
                     icon={action.icon}
-                    sx={stylexStyles.rule5}
                     onClick={action.onClick}
                     disabled={action.disabled}
                     variant={
@@ -308,72 +390,12 @@ export function ForgeViewerShell({
                     {action.label}
                   </DashboardButton>
                 </TooltipTrigger>
-                <TooltipContent side="bottom">{action.label}</TooltipContent>
+                <TooltipContent side="top">{action.label}</TooltipContent>
               </Tooltip>
             ))}
           </div>
         )}
       </div>
-      {headerStatus}
-
-      {/* Tab bar */}
-      {tabs && tabs.length > 1 && (
-        <div sx={stylexStyles.rule6}>
-          <div sx={stylexStyles.rule7}>
-            <div sx={stylexStyles.rule8}>
-              {tabs.map((tab) => (
-                <button
-                  type="button"
-                  key={tab.id}
-                  onClick={() => onTabClick(tab.id)}
-                  sx={[
-                    stylexStyles.rule9,
-                    resolvedTab?.id === tab.id
-                      ? stylexStyles.rule10
-                      : stylexStyles.rule11,
-                  ]}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Content */}
-      <div sx={stylexStyles.rule12}>
-        <div sx={stylexStyles.rule7}>
-          {resolvedTab ? resolvedTab.content : children}
-        </div>
-      </div>
-
-      {/* Action bar: reserved for actions on the current object/selection. */}
-      {actions && actions.length > 0 && (
-        <div data-testid="forge-viewer-action-bar" sx={stylexStyles.rule13}>
-          {actions.map((action) => (
-            <Tooltip key={action.label}>
-              <TooltipTrigger asChild>
-                <DashboardButton
-                  icon={action.icon}
-                  onClick={action.onClick}
-                  disabled={action.disabled}
-                  variant={
-                    action.variant === 'primary'
-                      ? 'primary'
-                      : action.variant === 'destructive'
-                        ? 'destructive'
-                        : undefined
-                  }
-                >
-                  {action.label}
-                </DashboardButton>
-              </TooltipTrigger>
-              <TooltipContent side="top">{action.label}</TooltipContent>
-            </Tooltip>
-          ))}
-        </div>
-      )}
-    </div>
+    </ControlStylesProvider>
   )
 }

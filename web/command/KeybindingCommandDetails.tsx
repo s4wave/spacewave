@@ -133,7 +133,9 @@ const stylexStyles = stylex.create({
   },
 })
 
-export function KeybindingCommandDetails() {
+export function KeybindingCommandDetails({
+  sx,
+}: { sx?: stylex.StyleXStyles; className?: never } = {}) {
   const {
     commandConflicts,
     pendingConflict,
@@ -145,7 +147,7 @@ export function KeybindingCommandDetails() {
 
   if (!selectedRow) {
     return (
-      <section sx={stylexStyles.rule1}>
+      <section sx={[stylexStyles.rule1, sx]}>
         Choose a command to see its shortcuts.
       </section>
     )
@@ -154,7 +156,9 @@ export function KeybindingCommandDetails() {
   const conflicts = pendingConflict ? [pendingConflict] : commandConflicts
 
   return (
-    <section sx={selectedCommandId ? stylexStyles.rule2 : stylexStyles.rule3}>
+    <section
+      sx={[selectedCommandId ? stylexStyles.rule2 : stylexStyles.rule3, sx]}
+    >
       <div sx={stylexStyles.rule4}>
         <button
           type="button"
@@ -174,11 +178,7 @@ export function KeybindingCommandDetails() {
         </div>
       </div>
       <div sx={stylexStyles.rule10}>
-        <div
-          sx={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ stylexStyles2.rule1
-          }
-        >
+        <div sx={stylexStyles2.rule1}>
           {selectedLayerStatus && (
             <div sx={[stylexStyles.rule11, childSpacing.s4]}>
               {selectedLayerStatus}

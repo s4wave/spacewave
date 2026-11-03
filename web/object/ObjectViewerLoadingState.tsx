@@ -26,14 +26,15 @@ const stylexStyles = stylex.create({
 
 // ObjectViewerLoadingState renders the shared object-viewer loading surface.
 export function ObjectViewerLoadingState({
+  sx,
   title = 'Loading object',
   detail = 'Resolving object type and preparing the viewer.',
 }: {
   title?: string
   detail?: string
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
-    <div sx={stylexStyles2.rule1}>
+    <div sx={[stylexStyles2.rule1, sx]}>
       <LoadingCard
         view={{
           state: 'loading',

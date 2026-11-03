@@ -1,3 +1,4 @@
+import { forgeControlStyles } from '@s4wave/web/style/forge-controls.stylex.js'
 import { useCallback, type ReactNode } from 'react'
 
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
@@ -94,7 +95,11 @@ export function ForgeEntityLink({
   }
 
   return (
-    <button type="button" onClick={onClick} sx={sx ?? stylexStyles2.rule1}>
+    <button
+      type="button"
+      onClick={onClick}
+      sx={[sx ?? stylexStyles2.rule1, forgeControlStyles.required]}
+    >
       {icon}
       <span sx={stylexStyles.rule1}>{children ?? label ?? objectKey}</span>
     </button>

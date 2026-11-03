@@ -1,6 +1,4 @@
 import * as ownerStylex from '@stylexjs/stylex'
-import { cn as ownerClasses } from '@s4wave/web/style/utils.js'
-import { groupMarker as ownergroupMarker } from '@s4wave/web/style/relations.stylex.js'
 import { useCallback, useState, type ReactNode } from 'react'
 import {
   LuArrowLeft,
@@ -17,7 +15,6 @@ import {
 } from '@s4wave/web/images/icons.js'
 
 import { useNavigate } from '@s4wave/web/router/router.js'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import * as stylex from '@stylexjs/stylex'
 import {
@@ -32,6 +29,107 @@ import {
 import { groupMarker } from '../style/relations.stylex.js'
 
 import { groupMarker as groupMarker2 } from '../style/relations.stylex.js'
+
+import { groupMarker as groupMarker4 } from '../style/relations.stylex.js'
+
+const stylexStyles5 = ownerStylex.create({
+  rule1: {
+    display: 'flex',
+    cursor: 'pointer',
+    alignItems: 'center',
+    backgroundColor: {
+      default: themeColors['--color-file-row-alternate'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-ui-selected'],
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    color: themeColors['--color-file-browser-row'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    fontSize: themeLayout['--text-file-browser'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-file-browser--line-height']})`,
+  },
+  rule2: {
+    display: 'flex',
+    cursor: 'pointer',
+    alignItems: 'center',
+    backgroundColor: {
+      default: themeColors['--color-ui-selected'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-ui-selected'],
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    color: themeColors['--color-file-browser-row'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    fontSize: themeLayout['--text-file-browser'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-file-browser--line-height']})`,
+  },
+  rule3: {
+    display: 'flex',
+    cursor: 'pointer',
+    alignItems: 'center',
+    backgroundColor: {
+      default: themeColors['--color-file-row-alternate'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-outliner-selected-highlight'],
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    color: themeColors['--color-file-browser-row'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    fontSize: themeLayout['--text-file-browser'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-file-browser--line-height']})`,
+  },
+  rule4: {
+    display: 'flex',
+    cursor: 'pointer',
+    alignItems: 'center',
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    color: themeColors['--color-file-browser-row'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-outliner-selected-highlight'],
+      },
+    },
+    fontSize: themeLayout['--text-file-browser'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-file-browser--line-height']})`,
+  },
+})
 
 const stylexStyles4 = ownerStylex.create({
   rule1: { marginInline: 'auto', maxWidth: 'var(--container-3xl)' },
@@ -1067,14 +1165,16 @@ const stylexStyles = stylex.create({
 // surfaces (file row, toolbar, empty state, drag overlay, error state,
 // destructive dialog). Each section shows the current production look first,
 // then candidate variants aligned with the app design system.
-export function UnixFSBrowserDebug() {
+export function UnixFSBrowserDebug({
+  sx,
+}: { sx?: stylex.StyleXStyles; className?: never } = {}) {
   const navigate = useNavigate()
   const goBack = useCallback(() => {
     navigate({ path: '/' })
   }, [navigate])
 
   return (
-    <div sx={stylexStyles.rule1}>
+    <div sx={[stylexStyles.rule1, sx]}>
       <div sx={stylexStyles.rule2}>
         <button
           type="button"
@@ -1088,11 +1188,7 @@ export function UnixFSBrowserDebug() {
       </div>
 
       <div sx={stylexStyles.rule6}>
-        <div
-          sx={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-6 */ stylexStyles4.rule1
-          }
-        >
+        <div sx={stylexStyles4.rule1}>
           <Intro sx={childSpacing.s6} />
           <FileRowSection sx={childSpacing.s6} />
           <ToolbarSection sx={childSpacing.s6} />
@@ -1117,11 +1213,7 @@ function Intro({ sx }: { sx?: stylex.StyleXStyles } = {}) {
         variants drawn from the modern token set.
       </p>
       <p sx={stylexStyles.rule10}>Decisions live in production code:</p>
-      <ul
-        sx={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-0.5 */ stylexStyles4.rule2
-        }
-      >
+      <ul sx={stylexStyles4.rule2}>
         <li sx={childSpacing.s0_5}>
           File row: B (compact dense, modern tokens, brand left bar on selected)
           in web/editors/file-browser/FileListEntry.tsx.
@@ -1162,11 +1254,7 @@ interface SectionProps {
 
 function Section({ title, description, children, sx }: SectionProps) {
   return (
-    <section
-      sx={
-        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ sx
-      }
-    >
+    <section sx={sx}>
       <div sx={childSpacing.s3}>
         <h2 sx={stylexStyles.rule5}>{title}</h2>
         <p sx={stylexStyles.rule11}>{description}</p>
@@ -1296,11 +1384,7 @@ function FileRowSection({ sx }: { sx?: stylex.StyleXStyles } = {}) {
         label="C. Card rows (rounded, gapped)"
         note="Each row a glass card; readable in lists < 12 entries"
       >
-        <div
-          sx={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ stylexStyles4.rule4
-          }
-        >
+        <div sx={stylexStyles4.rule4}>
           {FILE_ROWS.map((row) => (
             <CardRow
               sx={childSpacing.s1_5}
@@ -1337,16 +1421,14 @@ function CurrentRow({
         event.preventDefault()
         onSelect()
       }}
-      className={
-        /* TODO(stylex): global or unknown class: group */ cn(
-          ownerClasses(
-            'group text-file-browser-row flex items-center px-3 py-1.5 text-xs',
-            ownerStylex.props(ownergroupMarker).className,
-          ),
-          'hover:bg-outliner-selected-highlight cursor-pointer transition-colors select-none',
-          selected && 'bg-ui-selected hover:bg-ui-selected',
-          index % 2 === 1 && !selected && 'bg-file-row-alternate',
-        )
+      sx={
+        selected
+          ? index % 2 === 1 && !selected
+            ? [stylexStyles5.rule1, groupMarker4]
+            : [stylexStyles5.rule2, groupMarker4]
+          : index % 2 === 1 && !selected
+            ? [stylexStyles5.rule3, groupMarker4]
+            : [stylexStyles5.rule4, groupMarker4]
       }
     >
       <div sx={stylexStyles.rule17}>

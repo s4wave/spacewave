@@ -23,6 +23,8 @@ const stylexStyles = stylex.create({
 })
 
 // ExperimentalBadge renders the shared marker for experimental features.
-export function ExperimentalBadge() {
-  return <span sx={stylexStyles.rule1}>Exp</span>
+export function ExperimentalBadge({
+  sx,
+}: { sx?: stylex.StyleXStyles; className?: never } = {}) {
+  return <span sx={[stylexStyles.rule1, sx]}>Exp</span>
 }

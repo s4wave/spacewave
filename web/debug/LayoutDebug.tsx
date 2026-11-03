@@ -15,6 +15,13 @@ import {
 
 import { groupMarker } from '../style/relations.stylex.js'
 
+const stylexStyles3 = stylex.create({
+  rule1: {
+    overflow: 'hidden',
+    backgroundColor: themeColors['--color-editor-border'],
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     display: 'flex',
@@ -452,9 +459,8 @@ function VariantLayout({
 
   return (
     <div
-      className={
-        /* TODO(stylex): global or unknown class: layout-debug-frame */ 'layout-debug-frame shell-flexlayout bg-editor-border overflow-hidden'
-      }
+      className="layout-debug-frame shell-flexlayout"
+      sx={stylexStyles3.rule1}
       style={{ '--layout-debug-height': `${height}px` }}
       {...dataAttrs}
     >
@@ -660,7 +666,9 @@ const MODIFIER_SECTIONS: ModifierSection[] = [
   },
 ]
 
-export function LayoutDebug() {
+export function LayoutDebug({
+  sx,
+}: { sx?: stylex.StyleXStyles; className?: never } = {}) {
   const navigate = useNavigate()
   const goBack = useCallback(() => {
     navigate({ path: '/' })
@@ -694,7 +702,7 @@ export function LayoutDebug() {
   }, [selectedVariant, selectedModifiers])
 
   return (
-    <div sx={stylexStyles.rule13}>
+    <div sx={[stylexStyles.rule13, sx]}>
       <div sx={stylexStyles.rule14}>
         <button type="button" onClick={goBack} sx={stylexStyles.rule15}>
           <LuArrowLeft sx={stylexStyles.rule16} />

@@ -1,15 +1,27 @@
+import * as stylex from '@stylexjs/stylex'
+import { forgeControlStyles } from '@s4wave/web/style/forge-controls.stylex.js'
 import { expect, it, vi } from 'vitest'
 import { page, userEvent } from 'vitest/browser'
 import { render } from 'vitest-browser-react'
 
 import { ForgeViewerShell } from './ForgeViewerShell.js'
 
+const styles = stylex.create({
+  root: { height: '100dvh', width: '100%' },
+  compact: {
+    height: '28px',
+    paddingInline: '8px',
+    fontSize: '12px',
+    lineHeight: 1.5,
+  },
+})
+
 it('keeps Forge navigation and actions reachable through touch rotation', async () => {
   // Exercise each control region, including compact controls supplied by a viewer.
   const coarse = matchMedia('(pointer: coarse)').matches
   const openTask = vi.fn()
   await render(
-    <div className="h-dvh w-full">
+    <div sx={styles.root}>
       <ForgeViewerShell
         icon={<span>F</span>}
         title="Job"
@@ -23,8 +35,8 @@ it('keeps Forge navigation and actions reachable through touch rotation', async 
             label: 'Tasks',
             content: (
               <button
+                sx={[styles.compact, forgeControlStyles.required]}
                 type="button"
-                className="h-7 px-2 text-xs"
                 onClick={openTask}
               >
                 Open task

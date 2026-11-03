@@ -781,14 +781,16 @@ function StateCoverage() {
 
 // CanvasGraphLinksDebug renders static graph-link states for Canvas UI
 // iteration before the production graph model is wired.
-export function CanvasGraphLinksDebug() {
+export function CanvasGraphLinksDebug({
+  sx,
+}: { sx?: stylex.StyleXStyles; className?: never } = {}) {
   const navigate = useNavigate()
   const goBack = useCallback(() => {
     navigate({ path: '/' })
   }, [navigate])
 
   return (
-    <div sx={stylexStyles.rule42}>
+    <div sx={[stylexStyles.rule42, sx]}>
       <div sx={stylexStyles.rule43}>
         <button
           type="button"

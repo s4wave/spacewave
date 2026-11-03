@@ -1,3 +1,4 @@
+import * as stylex from '@stylexjs/stylex'
 import type { DragEvent } from 'react'
 import { PathInput } from '../../ui/path/PathInput.js'
 
@@ -14,14 +15,16 @@ interface PathBarProps {
 
 /** PathBar shows the file path with touch-sized breadcrumbs on phones. */
 export function PathBar({
+  sx,
   path,
   onPathChange,
   onNavigate,
   onPathTargetDragOver,
   onPathTargetDrop,
-}: PathBarProps) {
+}: PathBarProps & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
     <PathInput
+      sx={sx}
       path={path}
       mobileTouchTargets
       onPathChange={onPathChange}

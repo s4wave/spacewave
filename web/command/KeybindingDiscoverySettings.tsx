@@ -76,7 +76,9 @@ const stylexStyles = stylex.create({
   rule7: { justifyContent: 'flex-start' },
 })
 
-export function KeybindingDiscoverySettings() {
+export function KeybindingDiscoverySettings({
+  sx,
+}: { sx?: stylex.StyleXStyles; className?: never } = {}) {
   const {
     selectedController,
     selectedSettingsEditable,
@@ -86,7 +88,7 @@ export function KeybindingDiscoverySettings() {
   } = useKeybindingEditorContext()
 
   return (
-    <div sx={stylexStyles.rule1}>
+    <div sx={[stylexStyles.rule1, sx]}>
       <label sx={stylexStyles.rule2}>
         <span sx={stylexStyles.rule3}>Leader key</span>
         <input

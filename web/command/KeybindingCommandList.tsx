@@ -293,7 +293,9 @@ const stylexStyles = stylex.create({
 
 const scopes: KeybindingEditorScope[] = ['local', 'account', 'space']
 
-export function KeybindingCommandList() {
+export function KeybindingCommandList({
+  sx,
+}: { sx?: stylex.StyleXStyles; className?: never } = {}) {
   const {
     accountOverridesAvailable,
     spaceOverridesAvailable,
@@ -316,15 +318,14 @@ export function KeybindingCommandList() {
   return (
     <aside
       sx={[
-        stylexStyles.rule1,
-        selectedCommandId ? stylexStyles.rule2 : stylexStyles.rule3,
+        [
+          stylexStyles.rule1,
+          selectedCommandId ? stylexStyles.rule2 : stylexStyles.rule3,
+        ],
+        sx,
       ]}
     >
-      <div
-        sx={
-          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ stylexStyles2.rule1
-        }
-      >
+      <div sx={stylexStyles2.rule1}>
         <div sx={childSpacing.s3}>
           <div sx={stylexStyles.rule4}>Save changes to</div>
           <div sx={stylexStyles.rule5}>

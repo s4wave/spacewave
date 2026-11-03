@@ -1,3 +1,4 @@
+import { forgeControlStyles } from '@s4wave/web/style/forge-controls.stylex.js'
 import { useCallback } from 'react'
 
 import { cn } from '@s4wave/web/style/utils.js'
@@ -67,6 +68,7 @@ function ProcessBindingRow({ binding, onToggle }: ProcessBindingRowProps) {
         )}
       </div>
       <button
+        sx={forgeControlStyles.required}
         type="button"
         disabled={!onToggle}
         onClick={handleToggle}

@@ -200,7 +200,9 @@ function useSectionOpen(
 
 // SessionSettingsDebug renders CollapsibleSection variants for visual
 // iteration on the settings page redesign.
-export function SessionSettingsDebug() {
+export function SessionSettingsDebug({
+  sx,
+}: { sx?: stylex.StyleXStyles; className?: never } = {}) {
   const navigate = useNavigate()
   const goBack = useCallback(() => {
     navigate({ path: '/' })
@@ -216,7 +218,7 @@ export function SessionSettingsDebug() {
   )
 
   return (
-    <div sx={stylexStyles.rule1}>
+    <div sx={[stylexStyles.rule1, sx]}>
       <div sx={stylexStyles.rule2}>
         <button
           type="button"
@@ -230,11 +232,7 @@ export function SessionSettingsDebug() {
       </div>
 
       <div sx={stylexStyles.rule6}>
-        <div
-          sx={
-            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ stylexStyles2.rule1
-          }
-        >
+        <div sx={stylexStyles2.rule1}>
           <CollapsibleSection
             sx={childSpacing.s3}
             title="Security"

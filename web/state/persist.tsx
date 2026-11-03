@@ -1,3 +1,4 @@
+import * as stylex from '@stylexjs/stylex'
 import React, {
   createContext,
   use,
@@ -595,7 +596,9 @@ function setDeepValue(
  * Component for debugging namespace state
  * Displays the current state for the active namespace
  */
-export function StateDebugger() {
+export function StateDebugger({
+  sx,
+}: { sx?: stylex.StyleXStyles; className?: never } = {}) {
   const { namespace = [], stateAtom = null } = use(StateNamespaceContext) ?? {}
   const state = useSyncExternalStore(
     (callback) => stateAtom?.subscribe(callback) ?? (() => {}),
@@ -613,5 +616,5 @@ export function StateDebugger() {
   }, [state, namespace, stateAtom])
 
   const currentState = getCurrentState
-  return <pre>{JSON.stringify(currentState, null, 2)}</pre>
+  return <pre sx={sx}>{JSON.stringify(currentState, null, 2)}</pre>
 }

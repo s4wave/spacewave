@@ -75,10 +75,14 @@ export interface ObjectViewerNotFoundStateProps {
 
 // ObjectViewerNotFoundState renders the shared missing-object viewer surface.
 export function ObjectViewerNotFoundState({
+  sx,
   objectKey,
-}: ObjectViewerNotFoundStateProps) {
+}: ObjectViewerNotFoundStateProps & {
+  sx?: stylex.StyleXStyles
+  className?: never
+}) {
   return (
-    <div sx={stylexStyles.rule1}>
+    <div sx={[stylexStyles.rule1, sx]}>
       <div sx={stylexStyles.rule2}>
         <div sx={stylexStyles.rule3}>
           <LuCircleAlert sx={stylexStyles.rule4} />

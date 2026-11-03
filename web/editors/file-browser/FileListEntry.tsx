@@ -310,6 +310,8 @@ export type RenderEntryCallback = (props: {
 }) => ReactNode
 
 interface FileListEntryProps extends RowComponentProps<FileEntry> {
+  sx?: stylex.StyleXStyles
+  className?: never
   getEntryDetails?: GetFileEntryDetailsCallback
   loadingId?: string | null
   renderEntry?: RenderEntryCallback
@@ -586,6 +588,7 @@ function FileEntryRow({
   onContextMenu,
   style,
   ariaAttributes,
+  sx,
 }: FileListEntryProps & { entry: FileEntry }) {
   // Bind the row's selection, focus and drag behavior to the shared list state.
   const context = use(ListStateContext)
@@ -634,7 +637,10 @@ function FileEntryRow({
       aria-posinset={ariaAttributes['aria-posinset']}
       aria-setsize={ariaAttributes['aria-setsize']}
       style={style}
-      sx={fileEntryStyles(selected, focused, entry.id === dropTargetEntryId)}
+      sx={[
+        fileEntryStyles(selected, focused, entry.id === dropTargetEntryId),
+        sx,
+      ]}
       draggable={drag.draggable}
       onClick={row.select}
       onKeyDown={row.keyDown}

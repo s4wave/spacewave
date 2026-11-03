@@ -47,23 +47,24 @@ interface ViewerStatusShellProps {
 // ViewerStatusShell renders loading, error, and optionally empty states
 // with consistent styling. Renders children when the resource is ready.
 export function ViewerStatusShell({
+  sx,
   resource,
   state,
   loadingText,
   emptyText,
   sources,
   children,
-}: ViewerStatusShellProps) {
+}: ViewerStatusShellProps & { sx?: stylex.StyleXStyles; className?: never }) {
   if (resource.loading || state.loading) {
-    return <div sx={stylexStyles.rule1}>{loadingText}</div>
+    return <div sx={[stylexStyles.rule1, sx]}>{loadingText}</div>
   }
 
   if (resource.error) {
-    return <div sx={stylexStyles.rule2}>{resource.error.message}</div>
+    return <div sx={[stylexStyles.rule2, sx]}>{resource.error.message}</div>
   }
 
   if (emptyText && sources !== undefined && sources.length === 0) {
-    return <div sx={stylexStyles.rule3}>{emptyText}</div>
+    return <div sx={[stylexStyles.rule3, sx]}>{emptyText}</div>
   }
 
   return <>{children}</>

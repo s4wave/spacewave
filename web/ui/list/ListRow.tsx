@@ -62,13 +62,14 @@ const styles = stylex.create({
 
 // ListRow renders a basic list row with selection state.
 export function ListRow<T>({
+  sx,
   item,
   itemIndex,
   onRowClick,
   onContextMenu,
   style,
   ariaAttributes,
-}: RowComponentProps<T>) {
+}: RowComponentProps<T> & { sx?: stylex.StyleXStyles; className?: never }) {
   // Keep click grouping and its timer within this mounted row.
   const clickCountRef = useRef(0)
   const clickTimerRef = useRef<number | null>(null)
@@ -143,9 +144,12 @@ export function ListRow<T>({
       aria-setsize={ariaAttributes['aria-setsize']}
       style={style}
       sx={[
-        styles.row,
-        selected ? styles.selected : styles.unselected,
-        !!(focused && !selected) && styles.focused,
+        [
+          styles.row,
+          selected ? styles.selected : styles.unselected,
+          !!(focused && !selected) && styles.focused,
+        ],
+        sx,
       ]}
       onClick={handleListRowSelect}
       onKeyDown={handleListRowKeyDown}

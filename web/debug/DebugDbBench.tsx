@@ -698,7 +698,9 @@ function BenchmarkPanel({ debugDb }: { debugDb: Resource<DebugDb> }) {
   )
 }
 
-export function DebugDbBench() {
+export function DebugDbBench({
+  sx,
+}: { sx?: stylex.StyleXStyles; className?: never } = {}) {
   // Keep navigation within the active application router.
   const navigate = useNavigate()
   const goBack = useCallback(() => {
@@ -733,7 +735,7 @@ export function DebugDbBench() {
 
   // Render the resource status and its available benchmark panel.
   return (
-    <div sx={stylexStyles.rule34}>
+    <div sx={[stylexStyles.rule34, sx]}>
       <div sx={stylexStyles.rule35}>
         <button type="button" onClick={goBack} sx={stylexStyles.rule36}>
           <LuArrowLeft sx={stylexStyles.rule37} />

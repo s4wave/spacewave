@@ -1,3 +1,4 @@
+import { forgeControlStyles } from '@s4wave/web/style/forge-controls.stylex.js'
 import { useCallback, type ReactNode } from 'react'
 
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
@@ -180,7 +181,11 @@ function DenseEntityRow({ entity, icon }: DenseEntityRowProps) {
     )
   }
   return (
-    <button type="button" onClick={onClick} sx={[stylexStyles.rule4]}>
+    <button
+      type="button"
+      onClick={onClick}
+      sx={[[stylexStyles.rule4], forgeControlStyles.required]}
+    >
       <span sx={stylexStyles.rule5}>{icon}</span>
       <span sx={stylexStyles.rule6}>{entity.objectKey}</span>
     </button>

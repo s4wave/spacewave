@@ -305,12 +305,14 @@ const SCOPE_LABELS: Record<StateInspectorScope, string> = {
 }
 
 // StateTreeTab displays state atoms and their contents in a grouped tree view.
-export function StateTreeTab() {
+export function StateTreeTab({
+  sx,
+}: { sx?: stylex.StyleXStyles; className?: never } = {}) {
   const entries = useStateInspectorEntries()
   const tree = useMemo(() => buildTree(entries), [entries])
 
   return (
-    <div sx={stylexStyles.rule1}>
+    <div sx={[stylexStyles.rule1, sx]}>
       {tree.map((node) => (
         <StateScopeNode key={node.id} node={node} />
       ))}

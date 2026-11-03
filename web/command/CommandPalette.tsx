@@ -986,7 +986,9 @@ function useCommandPaletteController() {
 
 // CommandPalette renders a searchable command palette dialog with chord and
 // sub-item navigation modes.
-export function CommandPalette() {
+export function CommandPalette({
+  sx,
+}: { sx?: stylex.StyleXStyles; className?: never } = {}) {
   const {
     activeSubItemCommand,
     bindingGraph,
@@ -1014,6 +1016,7 @@ export function CommandPalette() {
 
   return (
     <CommandDialog
+      sx={sx}
       open={open}
       onOpenChange={handleOpenChange}
       showCloseButton={false}

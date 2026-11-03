@@ -46,9 +46,13 @@ interface MenuButtonProps {
   onClick?: () => void
 }
 
-export function MenuButton({ children, onClick }: MenuButtonProps) {
+export function MenuButton({
+  sx,
+  children,
+  onClick,
+}: MenuButtonProps & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
-    <button type="button" onClick={onClick} sx={[stylexStyles.rule1]}>
+    <button type="button" onClick={onClick} sx={[[stylexStyles.rule1], sx]}>
       {children}
     </button>
   )
