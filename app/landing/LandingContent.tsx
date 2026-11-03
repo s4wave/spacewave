@@ -863,7 +863,7 @@ const stylexStyles7 = ownerStylex.create({
     alignItems: 'center',
     color: `color-mix(in oklab, ${themeColors['--color-brand']} 60%, transparent)`,
     display: 'flex',
-    fontSize: '.55rem',
+    fontSize: themeFonts['--text-xs'],
     fontWeight: themeFonts['--font-weight-medium'],
     lineHeight: 1.5,
     transitionDelay: 'var(--landing-stack-delay)',
@@ -909,7 +909,7 @@ const stylexStyles7 = ownerStylex.create({
   },
   rule73: {
     color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
-    fontSize: '10px',
+    fontSize: themeFonts['--text-xs'],
     lineHeight: 1.5,
   },
   rule74: {
@@ -951,7 +951,7 @@ const stylexStyles7 = ownerStylex.create({
     '--tw-font-weight': 'var(--font-weight-semibold)',
     '--tw-tracking': 'var(--tracking-widest)',
     color: themeColors['--color-brand'],
-    fontSize: '.5rem',
+    fontSize: '10px',
     fontWeight: 'var(--font-weight-semibold)',
     letterSpacing: 'var(--tracking-widest)',
     lineHeight: 1.5,
