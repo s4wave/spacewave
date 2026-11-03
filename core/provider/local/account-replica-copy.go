@@ -3,6 +3,7 @@ package provider_local
 import (
 	"bytes"
 	"context"
+	"slices"
 	"time"
 
 	"github.com/aperturerobotics/util/ccontainer"
@@ -236,17 +237,13 @@ func replicaHoleRole(advertisement *replicaHead, missing *block.BlockRef) string
 	}
 
 	// Prefer the checkpoint role if a root also appears among the payloads.
-	for _, ref := range span.GetWorlds() {
-		if missing.EqualsRef(ref) {
-			return "checkpoint-world"
-		}
+	if slices.ContainsFunc(span.GetWorlds(), missing.EqualsRef) {
+		return "checkpoint-world"
 	}
 
 	// The remaining named inputs are operation payload roots.
-	for _, ref := range span.GetPayloads() {
-		if missing.EqualsRef(ref) {
-			return "operation-payload"
-		}
+	if slices.ContainsFunc(span.GetPayloads(), missing.EqualsRef) {
+		return "operation-payload"
 	}
 	return "descendant"
 }
