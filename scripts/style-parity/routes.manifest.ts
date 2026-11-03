@@ -71,7 +71,17 @@ async function quickstartReady(page: Page): Promise<void> {
       state?.state === 'content-ready' && /^#\/u\/\d+\/so\//.test(location.hash)
     )
   })
-  await page.locator('[data-testid="session-account-menu-button"]').waitFor()
+  // The phone shell moves the account action into its overflow menu.
+  await page
+    .locator('[data-testid="session-account-menu-button"]')
+    .or(
+      page.getByRole('button', {
+        name: 'Open hidden bottom bar items',
+        exact: true,
+      }),
+    )
+    .first()
+    .waitFor()
 }
 
 // viewerReady requires loaded viewer content beyond the session shell and its loading status.
