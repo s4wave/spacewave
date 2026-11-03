@@ -1,3 +1,4 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import { createContext, use, useMemo, type ReactNode } from 'react'
 import { CommandFocusContext } from '@s4wave/sdk/command/command.pb.js'
 
@@ -13,18 +14,22 @@ const FocusContextStackContext = createContext<readonly CommandFocusContext[]>(
 )
 
 export interface FocusContextProviderProps {
+  className?: never
   focusContext: CommandFocusContext
   active?: boolean
-  className?: string
+  sx?: ComponentStyles
   children?: ReactNode
 }
 
 export function FocusContextProvider({
   focusContext,
   active = true,
-  className,
+  sx,
   children,
-}: FocusContextProviderProps) {
+}: Omit<FocusContextProviderProps, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
   const parentStack = use(FocusContextStackContext)
   const stack = useMemo(
     () => appendFocusContext(parentStack, active ? focusContext : undefined),
@@ -35,12 +40,7 @@ export function FocusContextProvider({
 
   return (
     <FocusContextStackContext.Provider value={stack}>
-      <div
-        className={
-          /* TODO(stylex): dynamic class or forwarded className */ className
-        }
-        {...focusContextDomProps(focusContext)}
-      >
+      <div sx={sx} {...focusContextDomProps(focusContext)}>
         {children ?? null}
       </div>
     </FocusContextStackContext.Provider>

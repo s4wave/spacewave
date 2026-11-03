@@ -31,6 +31,38 @@ import {
 
 import { groupMarker } from '../style/relations.stylex.js'
 
+import { groupMarker as groupMarker2 } from '../style/relations.stylex.js'
+
+const stylexStyles3 = ownerStylex.create({
+  rule1: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 7)`,
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule2: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
+  },
+  rule3: {
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        [ownerStylex.when.ancestor(':is(:hover)', groupMarker2)]:
+          `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+      },
+    },
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     position: 'relative',
@@ -1318,14 +1350,10 @@ function CardRow({
       ]}
     >
       <span
-        className={
-          /* TODO(stylex): a descendant, group, peer or compound selector: group-hover:bg-foreground/8 */ cn(
-            'flex size-7 shrink-0 items-center justify-center rounded-md transition-colors',
-            selected
-              ? 'bg-brand/15'
-              : 'bg-foreground/5 group-hover:bg-foreground/8',
-          )
-        }
+        sx={[
+          stylexStyles3.rule1,
+          selected ? stylexStyles3.rule2 : stylexStyles3.rule3,
+        ]}
       >
         {row.isDir ? (
           <LuFolder
