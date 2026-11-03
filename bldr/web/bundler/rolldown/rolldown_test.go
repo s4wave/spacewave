@@ -162,7 +162,7 @@ func TestBuildCancellationUsesContextAndReapsRunner(t *testing.T) {
 	// Prepare a fake bundler process that waits for cancellation.
 	root := t.TempDir()
 	req := validTestRequest(root)
-	prepareRunnerFixture(t, root, "sleep 30")
+	prepareRunnerFixture(t, root, "exec sleep 30")
 	fakeBun := prepareFakeBun(t, root)
 	t.Setenv("PATH", filepath.Dir(fakeBun)+string(os.PathListSeparator)+os.Getenv("PATH"))
 
@@ -180,7 +180,11 @@ func TestBuildCancellationUsesContextAndReapsRunner(t *testing.T) {
 func TestBuildConcurrentCallsUsePrivateProtocolFiles(t *testing.T) {
 	// Prepare a runner fixture for concurrent isolated builds.
 	root := t.TempDir()
-	prepareRunnerFixture(t, root, `printf '{"inputs":["%s"],"outputs":[{"path":"main.js","type":"javascript","bytes":"1"}],"tool":{"rolldown_version":"1","bun_version":"1","platform":"darwin","arch":"arm64"}}\n' "$PWD/main.ts" > "$2"`)
+	prepareRunnerFixture(t, root, `set -e
+rm -rf -- "$PWD"/* "$PWD"/.[!.]*
+cat "$1" >/dev/null
+printf 'compiled' > "$PWD/main.js"
+printf '{"inputs":["%s"],"outputs":[{"path":"main.js","type":"javascript","bytes":"8"}],"tool":{"rolldown_version":"1","bun_version":"1","platform":"darwin","arch":"arm64"}}\n' "$PWD/main.ts" > "$2"`)
 	bldrDistRoot := validTestRequest(root).BldrDistRoot
 	fakeBun := prepareFakeBun(t, root)
 	t.Setenv("PATH", filepath.Dir(fakeBun)+string(os.PathListSeparator)+os.Getenv("PATH"))
@@ -199,6 +203,7 @@ func TestBuildConcurrentCallsUsePrivateProtocolFiles(t *testing.T) {
 			callRoot := filepath.Join(root, fmt.Sprintf("call-%d", i))
 			req := validTestRequest(callRoot)
 			req.BldrDistRoot = bldrDistRoot
+			req.OutputRoot = req.WorkingDir
 
 			// Create the worker directory before starting its build.
 			if err := os.MkdirAll(req.WorkingDir, 0o755); err != nil {
@@ -206,9 +211,30 @@ func TestBuildConcurrentCallsUsePrivateProtocolFiles(t *testing.T) {
 				return
 			}
 
+			// Keep a sibling file outside the workspace cleanup boundary.
+			keepPath := filepath.Join(callRoot, "keep.txt")
+			if err := os.WriteFile(keepPath, []byte("keep"), 0o600); err != nil {
+				errs <- err
+				return
+			}
+
 			// Build the worker request and report any failure to the result channel.
 			if _, err := Build(context.Background(), logrus.NewEntry(logrus.New()), "", req.BldrDistRoot, req); err != nil {
 				errs <- err
+				return
+			}
+
+			// Releasing protocol files must preserve the output and sibling data.
+			for file, want := range map[string]string{filepath.Join(req.OutputRoot, "main.js"): "compiled", keepPath: "keep"} {
+				data, err := os.ReadFile(file)
+				if err != nil {
+					errs <- err
+					return
+				}
+				if string(data) != want {
+					errs <- fmt.Errorf("file %s = %q, want %q", file, data, want)
+					return
+				}
 			}
 		}(i)
 	}

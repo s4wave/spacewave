@@ -179,40 +179,23 @@ func Build(ctx context.Context, le *logrus.Entry, stateDir, toolRoot string, req
 		return nil, errors.Wrapf(statErr, "rolldown runner %s", runnerPath)
 	}
 
-	// Create the request protocol file, removing it when the build ends.
-	requestFile, err := os.CreateTemp(req.GetWorkingDir(), ".bldr-rolldown-request-*")
+	// Keep this invocation's protocol files outside mutable build workspaces.
+	// They remain available until the runner exits and its result is read.
+	protocolDir, err := os.MkdirTemp("", ".bldr-rolldown-*")
 	if err != nil {
-		return nil, errors.Wrap(err, "create request protocol file")
+		return nil, errors.Wrap(err, "create protocol directory")
 	}
-	requestPath := requestFile.Name()
-	defer os.Remove(requestPath)
+	defer os.RemoveAll(protocolDir)
+	requestPath := filepath.Join(protocolDir, "request.json")
+	resultPath := filepath.Join(protocolDir, "result.json")
 
-	// Create the result protocol file and close it until the runner writes.
-	resultFile, err := os.CreateTemp(req.GetWorkingDir(), ".bldr-rolldown-result-*")
-	if err != nil {
-		requestFile.Close()
-		os.Remove(requestPath)
-		return nil, errors.Wrap(err, "create result protocol file")
-	}
-	resultPath := resultFile.Name()
-	defer os.Remove(resultPath)
-	if err := resultFile.Close(); err != nil {
-		requestFile.Close()
-		return nil, errors.Wrap(err, "close result protocol file")
-	}
-
-	// Marshal the build request into the request file and close it.
+	// Write the request before starting the runner, which creates its result.
 	requestJSON, err := protojson.Marshal(protojson.MarshalerConfig{}, req)
 	if err != nil {
-		requestFile.Close()
 		return nil, errors.Wrap(err, "marshal build request")
 	}
-	if _, err := requestFile.Write(requestJSON); err != nil {
-		requestFile.Close()
+	if err := os.WriteFile(requestPath, requestJSON, 0o600); err != nil {
 		return nil, errors.Wrap(err, "write build request")
-	}
-	if err := requestFile.Close(); err != nil {
-		return nil, errors.Wrap(err, "close request protocol file")
 	}
 
 	// Run the Rolldown runner through Bun and read back the structured result.
