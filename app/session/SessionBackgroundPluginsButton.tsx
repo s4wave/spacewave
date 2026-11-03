@@ -7,7 +7,7 @@ import { knownSpacePlugin } from '@s4wave/app/space/known-plugins.js'
 import { useWatchSpacesList } from '@s4wave/app/system/useSystemStatus.js'
 import { BottomBarItem } from '@s4wave/web/frame/bottom-bar-item.js'
 import { BottomBarLevel } from '@s4wave/web/frame/bottom-bar-level.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { Button } from '@s4wave/web/ui/button.js'
 import {
   Popover,
@@ -26,6 +26,74 @@ import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 import * as stylex from '@stylexjs/stylex'
 
 import { colors as themeColors } from '../../web/style/tokens.stylex.js'
+
+import {
+  fonts as themeFonts,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+  },
+  rule2: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule3: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: '.6rem',
+    lineHeight: 1.5,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-widest)',
+    letterSpacing: 'var(--tracking-widest)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    textTransform: 'uppercase',
+  },
+  rule4: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule5: {
+    minWidth: 0,
+    flex: 1,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+  },
+  rule6: { flexShrink: 0 },
+  rule7: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule8: { color: themeColors['--color-brand'] },
+  rule9: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+})
 
 const stylexStyles2 = stylex.create({
   rule1: { color: themeColors['--color-brand'] },
@@ -166,14 +234,14 @@ function SessionBackgroundPluginsPopover({
 
   return (
     <div
-      className="space-y-3 p-3"
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3 p-3'
+      }
       data-testid="session-background-plugins-popover"
     >
       <div>
-        <div className="text-sm font-semibold tracking-tight">
-          Background plugins
-        </div>
-        <div className="text-foreground-alt/60 mt-0.5 text-xs">
+        <div sx={stylexStyles3.rule1}>Background plugins</div>
+        <div sx={stylexStyles3.rule2}>
           These keep running while their Space is closed.
         </div>
       </div>
@@ -181,25 +249,22 @@ function SessionBackgroundPluginsPopover({
       {spaces.map((space) => (
         <div
           key={space.spaceId}
-          className="border-foreground/8 space-y-1.5 border-t pt-2"
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ 'border-foreground/8 space-y-1.5 border-t pt-2'
+          }
         >
-          <div className="text-foreground-alt/50 micro-text truncate font-medium tracking-widest uppercase">
-            {space.name}
-          </div>
+          <div sx={stylexStyles3.rule3}>{space.name}</div>
           {space.plugins.map((entry) => {
             const key = `${entry.spaceId}/${entry.pluginId}`
             const name = knownSpacePlugin(entry.pluginId ?? '').name
             return (
-              <div
-                key={key}
-                className="flex items-center justify-between gap-3 text-xs"
-              >
-                <span className="min-w-0 flex-1 truncate">{name}</span>
+              <div key={key} sx={stylexStyles3.rule4}>
+                <span sx={stylexStyles3.rule5}>{name}</span>
                 <span
-                  className={cn(
-                    'shrink-0',
-                    entry.suspended ? 'text-foreground-alt/60' : 'text-brand',
-                  )}
+                  sx={[
+                    stylexStyles3.rule6,
+                    entry.suspended ? stylexStyles3.rule7 : stylexStyles3.rule8,
+                  ]}
                 >
                   {entry.suspended ? 'Suspended' : 'Running'}
                 </span>
@@ -227,11 +292,7 @@ function SessionBackgroundPluginsPopover({
         </div>
       ))}
 
-      {actionError && (
-        <div className="border-destructive/20 bg-destructive/5 text-destructive rounded-md border px-2 py-1.5 text-xs">
-          {actionError}
-        </div>
-      )}
+      {actionError && <div sx={stylexStyles3.rule9}>{actionError}</div>}
     </div>
   )
 }

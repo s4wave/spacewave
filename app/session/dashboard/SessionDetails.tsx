@@ -29,7 +29,7 @@ import {
   useNavigate,
 } from '@s4wave/web/router/router.js'
 import { useStateAtom, useStateNamespace } from '@s4wave/web/state/persist.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import {
   WatchLocalDisplayNameRequest,
   WatchLocalDisplayNameResponse,
@@ -51,6 +51,90 @@ import { StorageHealthSection } from '../storage/StorageHealthSection.js'
 
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
+
+import {
+  colors as themeColors,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+  motion as themeMotion,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    position: 'relative',
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flexDirection: 'column',
+    overflow: 'hidden',
+    backgroundColor: themeColors['--color-background-primary'],
+  },
+  rule2: {
+    minHeight: 0,
+    flex: 1,
+    overflow: 'auto',
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingTop: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBottom: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule3: {
+    display: 'flex',
+    flexShrink: 0,
+    justifyContent: 'flex-end',
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: themeLayout['--spacing'],
+  },
+  rule4: {
+    display: 'flex',
+    minHeight: `calc(${themeLayout['--spacing']} * 11)`,
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderRadius: '3.40282e38px',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 90%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    '--tw-shadow':
+      '0 4px 6px -1px var(--tw-shadow-color, #0000001a), 0 2px 4px -2px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule5: {
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: themeColors['--color-background-primary'],
+  },
+  rule6: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule7: { color: themeColors['--color-destructive'] },
+  rule8: { color: themeColors['--color-foreground-alt'] },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -311,7 +395,7 @@ export function SessionDetails({
           <LazyLinkDeviceWizard exitPath="/" />
         </Route>
         <Route path="/">
-          <div className="bg-background-primary relative flex h-full w-full flex-col overflow-hidden">
+          <div sx={stylexStyles2.rule1}>
             <SessionDetailsHeader
               title={header.title}
               subtitle={header.subtitle}
@@ -330,10 +414,14 @@ export function SessionDetails({
 
             <div
               ref={scrollCue.scrollRef}
-              className="min-h-0 flex-1 overflow-auto px-4 pt-3 pb-3"
+              sx={stylexStyles2.rule2}
               onScroll={scrollCue.update}
             >
-              <div className="space-y-3">
+              <div
+                className={
+                  /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
+                }
+              >
                 <SettingsSections
                   isLocal={isLocal}
                   accountResource={accountResource}
@@ -367,12 +455,12 @@ export function SessionDetails({
               </div>
             </div>
             {scrollCue.showCue && (
-              <div className="border-foreground/8 flex shrink-0 justify-end border-t px-3 py-1">
+              <div sx={stylexStyles2.rule3}>
                 <button
                   type="button"
                   aria-label="Scroll down for more settings"
                   onClick={scrollCue.scrollMore}
-                  className="border-foreground/10 bg-background-card/90 text-foreground-alt hover:text-foreground flex min-h-11 items-center gap-1 rounded-full border px-3 text-xs shadow-md transition-colors"
+                  sx={stylexStyles2.rule4}
                 >
                   More settings
                   <LuChevronDown sx={stylexStyles.rule1} />
@@ -395,12 +483,12 @@ function DetailsStatus({
   children: React.ReactNode
 }) {
   return (
-    <div className="bg-background-primary flex h-full w-full flex-1 items-center justify-center">
+    <div sx={stylexStyles2.rule5}>
       <div
-        className={cn(
-          'text-xs select-none',
-          destructive ? 'text-destructive' : 'text-foreground-alt',
-        )}
+        sx={[
+          stylexStyles2.rule6,
+          destructive ? stylexStyles2.rule7 : stylexStyles2.rule8,
+        ]}
       >
         {children}
       </div>

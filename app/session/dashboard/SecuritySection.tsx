@@ -55,7 +55,11 @@ export function SecuritySection({
       open={sectionOpen}
       onOpenChange={handleOpenChange}
     >
-      <div className="space-y-3">
+      <div
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
+        }
+      >
         <SessionLockSection embedded />
         {!isLocal && accountResource.value && (
           <SecurityLevelSection

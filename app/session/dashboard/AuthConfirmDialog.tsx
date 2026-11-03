@@ -21,6 +21,72 @@ import {
   useAccountEscalationState,
 } from './useAccountEscalationState.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+  radii as themeRadii,
+  layout as themeLayout,
+  motion as themeMotion,
+  utilityState as themeUtilityState,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule2: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule3: {
+    borderRadius: themeRadii['--radius-md'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule4: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+})
+
 // AuthCredential is the resolved signing credential.
 export type AuthCredential =
   | { type: 'tracker' }
@@ -177,17 +243,17 @@ function AuthConfirmDialogContent({
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        <p className="text-foreground-alt text-sm">
+        <p sx={stylexStyles.rule1}>
           Account escalation requires a mounted account resource.
         </p>
-        {error && <p className="text-destructive text-xs">{error}</p>}
+        {error && <p sx={stylexStyles.rule2}>{error}</p>}
 
         <DialogFooter>
           <button
             type="button"
             onClick={() => onOpenChange(false)}
             disabled={submitting}
-            className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
+            sx={stylexStyles.rule3}
           >
             Cancel
           </button>
@@ -195,7 +261,7 @@ function AuthConfirmDialogContent({
             type="button"
             onClick={() => void handleFallbackConfirm()}
             disabled={submitting}
-            className="border-brand/30 bg-brand/10 hover:bg-brand/20 rounded-md border px-4 py-2 text-sm transition disabled:cursor-not-allowed disabled:opacity-50"
+            sx={stylexStyles.rule4}
           >
             {submitting ? 'Confirming…' : confirmLabel}
           </button>

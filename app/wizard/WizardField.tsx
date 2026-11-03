@@ -1,10 +1,16 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import { type ComponentProps, type ReactNode, type Ref } from 'react'
 
 import { Input } from '@s4wave/web/ui/input.js'
 
 import { WizardFieldFrame } from './WizardFieldFrame.js'
 
-export interface WizardFieldProps extends ComponentProps<'input'> {
+export interface WizardFieldProps extends Omit<
+  ComponentProps<'input'>,
+  'className'
+> {
+  className?: never
+  sx?: ComponentStyles
   label: ReactNode
   help?: ReactNode
   fieldClassName?: string
@@ -18,7 +24,7 @@ export function WizardField({
   help,
   fieldClassName,
   labelClassName,
-  className: _className,
+  sx,
   inputRef,
   variant = 'default',
   ...props
@@ -31,6 +37,7 @@ export function WizardField({
       labelClassName={labelClassName}
     >
       <Input
+        sx={sx}
         ref={inputRef}
         variant={
           variant === 'error'

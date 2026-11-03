@@ -5,6 +5,54 @@ import { Facts } from './Facts.js'
 import { InspectorSection } from './InspectorSection.js'
 import { updatePhaseLabel } from './useSystemModel.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+  layout as themeLayout,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule3: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    color: themeColors['--color-foreground'],
+  },
+  rule4: {
+    flexShrink: 0,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule5: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    color: themeColors['--color-destructive'],
+  },
+  rule6: {
+    display: 'grid',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    gridTemplateColumns: {
+      default: null,
+      '@container (min-width: 48rem)': 'repeat(2, minmax(0, 1fr))',
+    },
+  },
+})
+
 type Launcher = NonNullable<RecoveryStatus['launcher']>
 type NativePackage = NonNullable<RecoveryStatus['nativePackages']>[number]
 
@@ -284,21 +332,21 @@ function NativePackagesSection({
       description="Platform binaries unpacked for plugins on this device."
     >
       {nativePackages.length === 0 ? (
-        <p className="text-foreground-alt/50 text-xs">
-          No native packages on this device.
-        </p>
+        <p sx={stylexStyles.rule1}>No native packages on this device.</p>
       ) : (
-        <ul className="divide-foreground/6 divide-y text-xs">
+        <ul
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: divide-y */ 'divide-foreground/6 divide-y text-xs'
+          }
+        >
           {nativePackages.map((pkg) => (
             <li
               key={`${pkg.pluginId}:${pkg.distDir}`}
-              className="py-2 first:pt-0 last:pb-0"
+              sx={[false, edgeSpacing.s2]}
             >
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="text-foreground truncate font-mono">
-                  {pkg.pluginId}
-                </span>
-                <span className="text-foreground-alt/70 shrink-0">
+              <div sx={stylexStyles.rule2}>
+                <span sx={stylexStyles.rule3}>{pkg.pluginId}</span>
+                <span sx={stylexStyles.rule4}>
                   {pkg.invalidated
                     ? 'Invalidated'
                     : pkg.materialized
@@ -306,9 +354,7 @@ function NativePackagesSection({
                       : 'Not unpacked'}
                 </span>
               </div>
-              {pkg.lastError && (
-                <p className="text-destructive mt-0.5">{pkg.lastError}</p>
-              )}
+              {pkg.lastError && <p sx={stylexStyles.rule5}>{pkg.lastError}</p>}
             </li>
           ))}
         </ul>
@@ -329,7 +375,7 @@ export function ReleaseInspector({
 }) {
   const launcher = recovery?.launcher
   return (
-    <div className="grid gap-3 @3xl:grid-cols-2">
+    <div sx={stylexStyles.rule6}>
       <BuildSection build={build} />
       <AppUpdateSection recovery={recovery} launcher={launcher} />
       <DaemonUpdateSection launcher={launcher} />
@@ -349,3 +395,11 @@ function revisionFact(rev?: bigint, source?: string): string | null {
   }
   return source ? `${rev} from ${source}` : String(rev)
 }
+
+// edgeSpacing keeps first and last row padding at the row owner.
+const edgeSpacing = stylex.create({
+  s2: {
+    paddingTop: { default: 'calc(var(--spacing) * 2)', ':first-child': 0 },
+    paddingBottom: { default: 'calc(var(--spacing) * 2)', ':last-child': 0 },
+  },
+})

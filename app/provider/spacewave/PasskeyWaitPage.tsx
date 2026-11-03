@@ -18,7 +18,7 @@ import {
   AuthPrimaryActionButton,
   AuthSecondaryActionButton,
   AuthStatusPanel,
-  authInputClassName,
+  authInputStyles,
   getErrorMessage,
   loginWithEntityPem,
   withSpacewaveProvider,
@@ -35,6 +35,56 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
+
+import { fonts as themeFonts } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule2: {
+    display: 'flex',
+    width: '100%',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule3: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule4: {
+    display: 'flex',
+    width: '100%',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule5: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule6: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule7: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -219,9 +269,7 @@ export function PasskeyWaitPage() {
         intro={
           <>
             <AnimatedLogo followMouse={false} />
-            <h2 className="text-foreground text-lg font-semibold">
-              Passkey sign-in failed
-            </h2>
+            <h2 sx={stylexStyles2.rule1}>Passkey sign-in failed</h2>
           </>
         }
       >
@@ -229,7 +277,7 @@ export function PasskeyWaitPage() {
           icon={<LuCircleAlert sx={stylexStyles.rule1} />}
           message={state.message}
         >
-          <div className="flex w-full flex-col gap-2">
+          <div sx={stylexStyles2.rule2}>
             <AuthPrimaryActionButton
               onClick={handleRetry}
               icon={<LuFingerprint sx={stylexStyles.rule2} />}
@@ -238,7 +286,7 @@ export function PasskeyWaitPage() {
             </AuthPrimaryActionButton>
             <AuthSecondaryActionButton
               onClick={handleCancel}
-              className="flex items-center justify-center gap-2"
+              sx={stylexStyles2.rule3}
             >
               <LuArrowLeft sx={stylexStyles.rule2} />
               Back to login
@@ -255,14 +303,12 @@ export function PasskeyWaitPage() {
         intro={
           <>
             <AnimatedLogo followMouse={false} />
-            <h2 className="text-foreground text-lg font-semibold">
-              Enter your PIN
-            </h2>
+            <h2 sx={stylexStyles2.rule1}>Enter your PIN</h2>
           </>
         }
       >
-        <div className="flex w-full flex-col gap-4">
-          <p className="text-foreground-alt text-sm">
+        <div sx={stylexStyles2.rule4}>
+          <p sx={stylexStyles2.rule5}>
             This passkey protects a PIN-wrapped key. Enter the PIN to finish
             signing in.
           </p>
@@ -275,7 +321,7 @@ export function PasskeyWaitPage() {
               setPin(e.target.value)
               setPinError('')
             }}
-            className={authInputClassName}
+            sx={authInputStyles.base}
             placeholder="PIN"
             onKeyDown={(e) => {
               if (e.nativeEvent.isComposing) return
@@ -284,8 +330,8 @@ export function PasskeyWaitPage() {
               }
             }}
           />
-          {pinError && <p className="text-destructive text-xs">{pinError}</p>}
-          <div className="flex w-full flex-col gap-2">
+          {pinError && <p sx={stylexStyles2.rule6}>{pinError}</p>}
+          <div sx={stylexStyles2.rule2}>
             <AuthPrimaryActionButton
               onClick={() => void handleSubmitPin()}
               icon={<LuFingerprint sx={stylexStyles.rule2} />}
@@ -294,7 +340,7 @@ export function PasskeyWaitPage() {
             </AuthPrimaryActionButton>
             <AuthSecondaryActionButton
               onClick={handleCancel}
-              className="flex items-center justify-center gap-2"
+              sx={stylexStyles2.rule3}
             >
               <LuArrowLeft sx={stylexStyles.rule2} />
               Cancel
@@ -315,7 +361,7 @@ export function PasskeyWaitPage() {
       intro={
         <>
           <AnimatedLogo followMouse={false} />
-          <h2 className="text-foreground flex items-center gap-2 text-lg font-semibold">
+          <h2 sx={stylexStyles2.rule7}>
             <LuFingerprint sx={stylexStyles.rule3} />
             Signing in with Passkey
           </h2>
@@ -327,7 +373,7 @@ export function PasskeyWaitPage() {
         message={statusMessage}
       >
         {state.step === 'waiting' && (
-          <div className="flex w-full flex-col gap-2">
+          <div sx={stylexStyles2.rule2}>
             <AuthPrimaryActionButton
               onClick={handleRetry}
               icon={<LuFingerprint sx={stylexStyles.rule2} />}
@@ -336,7 +382,7 @@ export function PasskeyWaitPage() {
             </AuthPrimaryActionButton>
             <AuthSecondaryActionButton
               onClick={handleCancel}
-              className="flex items-center justify-center gap-2"
+              sx={stylexStyles2.rule3}
             >
               <LuArrowLeft sx={stylexStyles.rule2} />
               Cancel

@@ -5,6 +5,74 @@ import { LuX } from '@s4wave/web/images/icons.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
 
+import {
+  colors as themeColors,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    position: 'fixed',
+    inset: 0,
+    zIndex: 50,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 80%, transparent)`,
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+  },
+  rule2: {
+    width: '100%',
+    maxWidth: 'var(--container-sm)',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+    backgroundColor: themeColors['--color-background'],
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    '--tw-shadow':
+      '0 20px 25px -5px var(--tw-shadow-color, #0000001a), 0 8px 10px -6px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+  },
+  rule3: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 3)`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rule4: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule5: {
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+  },
+  rule6: { overflow: 'hidden', borderRadius: '.25rem' },
+  rule7: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 4)`,
@@ -59,25 +127,21 @@ export function QRScannerModal({
   }, [qrboxSize])
 
   return (
-    <div className="bg-background/80 fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
-      <div className="border-foreground/20 bg-background w-full max-w-sm rounded-lg border p-4 shadow-xl">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-foreground text-sm font-medium">{title}</h3>
+    <div sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>
+        <div sx={stylexStyles2.rule3}>
+          <h3 sx={stylexStyles2.rule4}>{title}</h3>
           <button
             type="button"
             aria-label="Close"
             onClick={onClose}
-            className="text-foreground-alt hover:text-foreground"
+            sx={stylexStyles2.rule5}
           >
             <LuX sx={stylexStyles.rule1} />
           </button>
         </div>
-        <div
-          id={containerId}
-          ref={containerRef}
-          className="overflow-hidden rounded"
-        />
-        <p className="text-foreground-alt mt-2 text-center text-xs">{hint}</p>
+        <div id={containerId} ref={containerRef} sx={stylexStyles2.rule6} />
+        <p sx={stylexStyles2.rule7}>{hint}</p>
       </div>
     </div>
   )

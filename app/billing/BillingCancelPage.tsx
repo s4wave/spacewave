@@ -21,7 +21,7 @@ import {
   PageWrapper,
 } from '@s4wave/app/provider/spacewave/CloudConfirmationPage.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
 import { useBillingAccountCheckout } from '../provider/spacewave/useBillingAccountCheckout.js'
 import { useBillingStateContext } from './BillingStateProvider.js'
@@ -31,6 +31,386 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
+
+import {
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+  radii as themeRadii,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule2: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: '3.40282e38px',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 25%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: themeLayout['--spacing'],
+    fontSize: themeLayout['--text-metadata'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-metadata--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-wide)',
+    letterSpacing: 'var(--tracking-wide)',
+    color: themeColors['--color-brand'],
+    textTransform: 'uppercase',
+  },
+  rule3: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    textAlign: 'center',
+    fontSize: 'var(--text-xl)',
+    lineHeight: 'var(--tw-leading, var(--text-xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-wide)',
+    letterSpacing: 'var(--tracking-wide)',
+  },
+  rule4: {
+    maxWidth: 'var(--container-xl)',
+    textAlign: 'center',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule5: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule6: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 6)`,
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule7: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-lg'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+  },
+  rule8: {
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule9: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule10: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 45%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule11: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule12: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+  },
+  rule13: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule14: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    textWrap: 'balance',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule15: {
+    marginTop: `calc(${themeLayout['--spacing']} * 6)`,
+    display: 'grid',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    gridTemplateColumns: {
+      default: null,
+      '@media (min-width: 40rem)': 'repeat(3, minmax(0, 1fr))',
+    },
+  },
+  rule16: {
+    marginTop: `calc(${themeLayout['--spacing']} * 6)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 45%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule17: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule18: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+  },
+  rule19: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 80%, transparent)`,
+  },
+  rule20: {
+    marginTop: `calc(${themeLayout['--spacing']} * 8)`,
+    display: 'flex',
+    flexDirection: { default: 'column', '@media (min-width: 40rem)': 'row' },
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule21: {
+    display: 'flex',
+    cursor: { default: 'pointer', ':disabled': 'not-allowed' },
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: themeColors['--color-brand'],
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule22: {
+    display: 'flex',
+    cursor: { default: 'pointer', ':disabled': 'not-allowed' },
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 40%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 8%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 12%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-destructive'],
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule23: {
+    display: 'flex',
+    cursor: 'pointer',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 15%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-background']} 40%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+  },
+  rule24: {
+    marginTop: `calc(${themeLayout['--spacing']} * 4)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+  },
+  rule25: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule26: { color: themeColors['--color-foreground'] },
+  rule27: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    display: 'inline-flex',
+    cursor: 'pointer',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule28: { marginTop: `calc(${themeLayout['--spacing']} * 4)` },
+  rule29: {
+    marginTop: `calc(${themeLayout['--spacing']} * 4)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule30: {
+    marginTop: `calc(${themeLayout['--spacing']} * 4)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule31: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    textAlign: 'center',
+  },
+  rule32: {
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+  },
+  rule33: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule34: {
+    display: 'flex',
+    cursor: 'pointer',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-brand'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule35: {
+    overflow: 'hidden',
+    borderRadius: 'var(--radius-xl)',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 55%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 8)`,
+  },
+})
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -252,18 +632,14 @@ interface CancelHeaderProps {
 /** CancelHeader renders the logo, stage badge, title, and subtitle. */
 function CancelHeader({ stage, endLabel }: CancelHeaderProps) {
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div sx={stylexStyles3.rule1}>
       <AnimatedLogo followMouse={false} />
-      <div className="border-brand/25 bg-brand/8 text-brand text-metadata mt-2 inline-flex items-center gap-2 rounded-full border px-3 py-1 font-medium tracking-wide uppercase">
+      <div sx={stylexStyles3.rule2}>
         <LuCalendarX sx={stylexStyles.rule1} />
         {cancelBadgeLabel(stage)}
       </div>
-      <h1 className="mt-2 text-center text-xl font-semibold tracking-wide">
-        {cancelTitle(stage, endLabel)}
-      </h1>
-      <p className="text-foreground-alt max-w-xl text-center text-sm leading-relaxed">
-        {cancelSubtitle(stage)}
-      </p>
+      <h1 sx={stylexStyles3.rule3}>{cancelTitle(stage, endLabel)}</h1>
+      <p sx={stylexStyles3.rule4}>{cancelSubtitle(stage)}</p>
     </div>
   )
 }
@@ -282,9 +658,8 @@ function CancelNextBody({ stage, endLabel }: CancelHeaderProps) {
     return (
       <>
         You keep full access through{' '}
-        <span className="text-foreground font-medium">{endLabel}</span>. After
-        that, your cloud data stays read-only for 30 days so you can export what
-        you need.
+        <span sx={stylexStyles3.rule5}>{endLabel}</span>. After that, your cloud
+        data stays read-only for 30 days so you can export what you need.
       </>
     )
   }
@@ -300,15 +675,15 @@ function CancelNextBody({ stage, endLabel }: CancelHeaderProps) {
 /** CancelNextSection renders the "what happens next" heading and body. */
 function CancelNextSection({ stage, endLabel }: CancelHeaderProps) {
   return (
-    <div className="mb-6 flex items-start gap-3">
-      <div className="bg-brand/10 flex size-10 shrink-0 items-center justify-center rounded-lg">
+    <div sx={stylexStyles3.rule6}>
+      <div sx={stylexStyles3.rule7}>
         <LuCalendarX sx={stylexStyles.rule2} />
       </div>
-      <div className="space-y-2">
-        <h2 className="text-foreground text-lg font-semibold">
+      <div>
+        <h2 sx={[nativeChildSpacing.s2, stylexStyles3.rule8]}>
           {stage === 'active' ? 'If you cancel now' : 'What happens next'}
         </h2>
-        <p className="text-foreground-alt text-sm leading-relaxed">
+        <p sx={[nativeChildSpacing.s2, stylexStyles3.rule9]}>
           <CancelNextBody stage={stage} endLabel={endLabel} />
         </p>
       </div>
@@ -325,16 +700,14 @@ interface CancelInfoCardProps {
 /** CancelInfoCard renders one outcome card with an icon, title, and text. */
 function CancelInfoCard({ icon: Icon, title, children }: CancelInfoCardProps) {
   return (
-    <div className="border-foreground/10 bg-background/45 rounded-lg border p-4">
-      <div className="mb-2 flex items-center gap-2">
-        <div className="bg-brand/10 flex size-8 items-center justify-center rounded-md">
+    <div sx={stylexStyles3.rule10}>
+      <div sx={stylexStyles3.rule11}>
+        <div sx={stylexStyles3.rule12}>
           <Icon sx={stylexStyles2.rule1} />
         </div>
-        <h3 className="text-foreground text-sm font-semibold">{title}</h3>
+        <h3 sx={stylexStyles3.rule13}>{title}</h3>
       </div>
-      <p className="text-foreground-alt text-sm leading-relaxed text-balance">
-        {children}
-      </p>
+      <p sx={stylexStyles3.rule14}>{children}</p>
     </div>
   )
 }
@@ -342,7 +715,7 @@ function CancelInfoCard({ icon: Icon, title, children }: CancelInfoCardProps) {
 /** CancelOutcomeCards renders the access, export window, and undo cards. */
 function CancelOutcomeCards({ stage, endLabel }: CancelHeaderProps) {
   return (
-    <div className="mt-6 grid gap-3 sm:grid-cols-3">
+    <div sx={stylexStyles3.rule15}>
       <CancelInfoCard
         icon={LuClock3}
         title={stage === 'grace' ? 'Read-only access' : 'Full access'}
@@ -363,26 +736,24 @@ function CancelOutcomeCards({ stage, endLabel }: CancelHeaderProps) {
 /** CancelDeletionNote points to account deletion for people who want that. */
 function CancelDeletionNote() {
   return (
-    <div className="border-foreground/10 bg-background/45 mt-6 rounded-lg border p-4">
-      <div className="flex items-start gap-3">
-        <div className="bg-destructive/10 flex size-8 shrink-0 items-center justify-center rounded-md">
+    <div sx={stylexStyles3.rule16}>
+      <div sx={stylexStyles3.rule17}>
+        <div sx={stylexStyles3.rule18}>
           <LuTriangleAlert sx={stylexStyles.rule3} />
         </div>
-        <div className="space-y-1">
-          <h3 className="text-foreground text-sm font-semibold">
+        <div>
+          <h3 sx={[nativeChildSpacing.s1, stylexStyles3.rule13]}>
             Need account deletion instead?
           </h3>
-          <p className="text-foreground-alt text-sm leading-relaxed">
+          <p sx={[nativeChildSpacing.s1, stylexStyles3.rule9]}>
             Deleting your account requires email verification and works
             differently from standard end-of-period cancellation.
           </p>
-          <div className="text-foreground-alt/80 flex items-center gap-2 pt-1 text-sm">
+          <div sx={[nativeChildSpacing.s1, stylexStyles3.rule19]}>
             <LuTrash2 sx={stylexStyles.rule1} />
             Go to account settings and choose{' '}
-            <span className="text-foreground font-medium">
-              Delete account
-            </span>{' '}
-            if that is the path you want.
+            <span sx={stylexStyles3.rule5}>Delete account</span> if that is the
+            path you want.
           </div>
         </div>
       </div>
@@ -411,17 +782,13 @@ function CancelActions({
   onBack,
 }: CancelActionsProps) {
   return (
-    <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+    <div sx={stylexStyles3.rule20}>
       {stage === 'scheduled' ? (
         <button
           type="button"
           onClick={onKeep}
           disabled={action !== 'idle' || polling}
-          className={cn(
-            'flex cursor-pointer items-center justify-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium transition-all duration-300',
-            'border-brand bg-brand/10 text-foreground hover:bg-brand/20',
-            'disabled:cursor-not-allowed disabled:opacity-50',
-          )}
+          sx={[stylexStyles3.rule21]}
         >
           <LuRefreshCw
             sx={[
@@ -438,21 +805,13 @@ function CancelActions({
           type="button"
           onClick={onCancel}
           disabled={action !== 'idle' || !canScheduleCancel}
-          className={cn(
-            'flex cursor-pointer items-center justify-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium transition-all duration-300',
-            'border-destructive/40 bg-destructive/8 text-destructive hover:bg-destructive/12',
-            'disabled:cursor-not-allowed disabled:opacity-50',
-          )}
+          sx={[stylexStyles3.rule22]}
         >
           <LuCalendarX sx={stylexStyles.rule4} />
           {action === 'canceling' ? 'Canceling…' : 'Cancel at period end'}
         </button>
       )}
-      <button
-        type="button"
-        onClick={onBack}
-        className="border-foreground/15 bg-background/40 text-foreground hover:border-brand/30 hover:bg-brand/10 flex cursor-pointer items-center justify-center rounded-md border px-5 py-2.5 text-sm font-medium transition duration-300"
-      >
+      <button type="button" onClick={onBack} sx={stylexStyles3.rule23}>
         {stage === 'scheduled' ? 'Back to billing' : 'Keep my plan'}
       </button>
     </div>
@@ -462,10 +821,10 @@ function CancelActions({
 /** CancelCheckoutNotice shows the reactivation checkout progress and retry. */
 function CancelCheckoutNotice({ checkout }: { checkout: CheckoutState }) {
   return (
-    <div className="border-brand/20 bg-brand/5 mt-4 rounded-lg border p-3 text-sm">
-      <div className="flex items-center gap-2">
+    <div sx={stylexStyles3.rule24}>
+      <div sx={stylexStyles3.rule25}>
         <LuRefreshCw sx={stylexStyles.rule6} />
-        <span className="text-foreground">
+        <span sx={stylexStyles3.rule26}>
           Reactivation is in progress. You will return to billing details when
           Stripe confirms the checkout.
         </span>
@@ -474,7 +833,7 @@ function CancelCheckoutNotice({ checkout }: { checkout: CheckoutState }) {
         <button
           type="button"
           onClick={checkout.continueCheckout}
-          className="border-brand/30 bg-brand/10 hover:bg-brand/20 text-foreground mt-3 inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors"
+          sx={stylexStyles3.rule27}
         >
           <LuRefreshCw sx={stylexStyles.rule1} />
           <span>Continue with Stripe</span>
@@ -505,7 +864,7 @@ function CancelNotices({
   return (
     <>
       {loading && !loaded && (
-        <div className="mt-4">
+        <div sx={stylexStyles3.rule28}>
           <LoadingInline
             label="Loading subscription details"
             tone="muted"
@@ -514,15 +873,13 @@ function CancelNotices({
         </div>
       )}
       {!loading && stage === 'grace' && (
-        <p className="text-foreground-alt/70 mt-4 text-sm leading-relaxed">
+        <p sx={stylexStyles3.rule29}>
           This subscription is already canceled. If you want cloud access again,
           you can start a new checkout from the plan page.
         </p>
       )}
       {checkout.polling && <CancelCheckoutNotice checkout={checkout} />}
-      {displayError && (
-        <p className="text-destructive mt-4 text-sm">{displayError}</p>
-      )}
+      {displayError && <p sx={stylexStyles3.rule30}>{displayError}</p>}
     </>
   )
 }
@@ -530,14 +887,14 @@ function CancelNotices({
 /** CancelFaq renders the cancellation questions. */
 function CancelFaq() {
   return (
-    <div className="space-y-3">
-      <div className="flex flex-col items-center gap-1 text-center">
-        <h2 className="text-foreground text-lg font-semibold tracking-tight">
-          Questions before you cancel?
-        </h2>
-        <p className="text-foreground-alt text-sm">
-          The short version, in plain language.
-        </p>
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
+      }
+    >
+      <div sx={stylexStyles3.rule31}>
+        <h2 sx={stylexStyles3.rule32}>Questions before you cancel?</h2>
+        <p sx={stylexStyles3.rule33}>The short version, in plain language.</p>
       </div>
       <FaqAccordion items={CANCEL_FAQ} />
     </div>
@@ -568,11 +925,7 @@ export function BillingCancelPage() {
   return (
     <PageWrapper
       backButton={
-        <button
-          type="button"
-          onClick={handleBack}
-          className="text-foreground-alt hover:text-brand flex cursor-pointer items-center gap-2 text-sm transition-colors"
-        >
+        <button type="button" onClick={handleBack} sx={stylexStyles3.rule34}>
           <LuArrowLeft sx={stylexStyles.rule4} />
           Back to billing
         </button>
@@ -581,7 +934,7 @@ export function BillingCancelPage() {
       {checkout.consentDialog}
       <CancelHeader stage={stage} endLabel={endLabel} />
 
-      <div className="border-brand/20 bg-background-card/55 overflow-hidden rounded-xl border p-8">
+      <div sx={stylexStyles3.rule35}>
         <CancelNextSection stage={stage} endLabel={endLabel} />
         <CancelOutcomeCards stage={stage} endLabel={endLabel} />
         <CancelDeletionNote />
@@ -608,3 +961,29 @@ export function BillingCancelPage() {
     </PageWrapper>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s1: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

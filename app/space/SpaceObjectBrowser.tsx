@@ -40,6 +40,135 @@ import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
 import { colors as themeColors } from '../../web/style/tokens.stylex.js'
 
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles4 = stylex.create({
+  rule1: { padding: `calc(${themeLayout['--spacing']} * 3.5)` },
+})
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 80)`,
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule2: {
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+  },
+  rule3: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule4: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 5)`,
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+  },
+  rule5: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule6: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule7: {
+    minWidth: 0,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 20%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+  },
+  rule8: {
+    flexShrink: 0,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule9: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule10: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule11: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+  },
+  rule12: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rule13: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -464,34 +593,29 @@ function SpaceObjectBrowserView({
             </DropdownMenuItem>
           </>
         ) : pendingRename ? (
-          <div className="w-80 p-2">
-            <div className="border-foreground/6 bg-background-card/30 overflow-hidden rounded-lg border">
-              <div className="border-foreground/8 flex h-9 items-center gap-2 border-b px-3">
-                <span className="bg-brand/10 flex size-5 shrink-0 items-center justify-center rounded-md">
+          <div sx={stylexStyles3.rule1}>
+            <div sx={stylexStyles3.rule2}>
+              <div sx={stylexStyles3.rule3}>
+                <span sx={stylexStyles3.rule4}>
                   <LuPencil sx={stylexStyles2.rule2} />
                 </span>
-                <div className="text-foreground text-xs font-medium tracking-tight select-none">
-                  Rename object key
-                </div>
+                <div sx={stylexStyles3.rule5}>Rename object key</div>
               </div>
-              <div className="space-y-3 p-3.5">
-                <div className="text-foreground-alt/50 flex items-center gap-2 text-xs">
-                  <span className="border-foreground/6 bg-background/20 min-w-0 truncate rounded-md border px-2 py-1 font-mono">
-                    {pendingRename}
-                  </span>
+              <div sx={stylexStyles4.rule1}>
+                <div sx={[nativeChildSpacingNext.s3, stylexStyles3.rule6]}>
+                  <span sx={stylexStyles3.rule7}>{pendingRename}</span>
                   <LuArrowRight sx={stylexStyles2.rule3} />
-                  <span className="text-foreground-alt/40 shrink-0">
-                    new key
-                  </span>
+                  <span sx={stylexStyles3.rule8}>new key</span>
                 </div>
-                <div className="space-y-2">
+                <div sx={nativeChildSpacingNext.s3}>
                   <label
                     htmlFor={renameInputId}
-                    className="text-foreground text-xs font-medium select-none"
+                    sx={[nativeChildSpacing.s2, stylexStyles3.rule9]}
                   >
                     New object key
                   </label>
                   <Input
+                    sx={nativeChildSpacing.s2}
                     ref={handleRenameInputRef}
                     id={renameInputId}
                     value={renameValue}
@@ -504,12 +628,12 @@ function SpaceObjectBrowserView({
                     aria-label="New object key"
                     variant="configMono"
                   />
-                  <p className="text-foreground-alt/40 text-xs">
+                  <p sx={[nativeChildSpacing.s2, stylexStyles3.rule10]}>
                     Press Enter to rename, or Escape to cancel.
                   </p>
                 </div>
               </div>
-              <div className="border-foreground/8 flex items-center justify-end gap-2 border-t px-3 py-2.5">
+              <div sx={stylexStyles3.rule11}>
                 <DashboardButton
                   type="button"
                   icon={<LuX sx={stylexStyles2.rule1} />}
@@ -588,8 +712,8 @@ function SpaceObjectBrowserView({
 
   return (
     <section>
-      <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
+      <div sx={stylexStyles3.rule12}>
+        <h2 sx={stylexStyles3.rule13}>
           <LuBox sx={stylexStyles2.rule1} />
           Objects
         </h2>
@@ -624,3 +748,33 @@ function rewriteLocalObjectReference(
 }
 
 const treeActionStyles = stylex.create({ dimmed: { opacity: 0.3 } })
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

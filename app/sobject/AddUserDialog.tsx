@@ -53,6 +53,300 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-success']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-success']} 40%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-success']} 5%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-success']} 10%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-success'],
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule2: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 12%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-background-card']} 20%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule3: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 1.5)`,
+    display: 'block',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule4: {
+    width: '100%',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      ':focus': `color-mix(in oklab, ${themeColors['--color-foreground']} 30%, transparent)`,
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+    '::placeholder': {
+      color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    },
+  },
+  rule5: {
+    textAlign: 'center',
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-tracking': 'var(--tracking-widest)',
+    letterSpacing: 'var(--tracking-widest)',
+  },
+  rule6: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule7: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule8: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule9: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rule10: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule11: {
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-success']} 10%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-success'],
+  },
+  rule12: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule13: {
+    width: '100%',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      ':focus': `color-mix(in oklab, ${themeColors['--color-foreground']} 40%, transparent)`,
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 30%, transparent)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingRight: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingLeft: `calc(${themeLayout['--spacing']} * 8)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+    '::placeholder': {
+      color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    },
+  },
+  rule14: {
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule15: {
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule16: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-success']} 5%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    textAlign: 'left',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    cursor: { default: null, ':disabled': 'default' },
+    opacity: { default: null, ':disabled': 0.6 },
+  },
+  rule17: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    textAlign: 'left',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+    cursor: { default: null, ':disabled': 'default' },
+    opacity: { default: null, ':disabled': 0.6 },
+  },
+  rule18: { minWidth: 0, flex: 1 },
+  rule19: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule20: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: '10px',
+    lineHeight: 1.5,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule21: {
+    fontSize: '10px',
+    lineHeight: 1.5,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule22: { flexShrink: 0 },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -163,20 +457,11 @@ function getOrgMemberSecondaryLabel(member: OrgMemberInfo): string {
 }
 
 /** inputClass styles the read-only and text inputs of the invite tabs. */
-const inputClass = cn(
-  'border-foreground/10 bg-background-card/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 text-sm font-mono outline-none transition-colors duration-150',
-  'focus:border-foreground/30',
-)
 
 const actionButtonClass = cn(
   'border-foreground/10 bg-background-card/20 flex w-full items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm transition-all duration-150',
   'hover:border-foreground/12 hover:bg-background-card/50',
   'disabled:cursor-not-allowed disabled:opacity-50',
-)
-
-const successActionClass = cn(
-  'border-success/30 bg-success/5 text-success',
-  'hover:border-success/40 hover:bg-success/10',
 )
 
 /**
@@ -328,7 +613,7 @@ function InviteCopyButton({
     <button
       type="button"
       onClick={onClick}
-      className={cn(actionButtonClass, copied && successActionClass)}
+      sx={copied ? stylexStyles2.rule1 : stylexStyles2.rule2}
     >
       {copied ? (
         <>
@@ -351,18 +636,19 @@ function InviteCodeTab({ flow }: { flow: InviteFlow }) {
 
   if (flow.shortCode) {
     return (
-      <div className="space-y-2">
-        <label
-          htmlFor={inviteCodeId}
-          className="text-foreground-alt mb-1.5 block text-xs select-none"
-        >
+      <div
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
+        }
+      >
+        <label htmlFor={inviteCodeId} sx={stylexStyles2.rule3}>
           Invite code
         </label>
         <input
           id={inviteCodeId}
           value={flow.shortCode}
           readOnly
-          className={cn(inputClass, 'text-center text-lg tracking-widest')}
+          sx={[[stylexStyles2.rule4], stylexStyles2.rule5]}
           onClick={(e) => (e.target as HTMLInputElement).select()}
         />
         <InviteCopyButton
@@ -376,7 +662,7 @@ function InviteCodeTab({ flow }: { flow: InviteFlow }) {
 
   if (flow.inviteResp) {
     return (
-      <p className="text-foreground-alt text-xs">
+      <p sx={stylexStyles2.rule6}>
         Short codes are only available for cloud sessions. Use the Link tab
         instead.
       </p>
@@ -388,7 +674,7 @@ function InviteCodeTab({ flow }: { flow: InviteFlow }) {
       type="button"
       onClick={() => void flow.createInvite()}
       disabled={flow.creating || !flow.hasSession}
-      className={actionButtonClass}
+      sx={[stylexStyles2.rule2]}
     >
       {flow.creating ? 'Creating…' : 'Create Invite Code'}
     </button>
@@ -400,11 +686,12 @@ function InviteUsernameTab({ flow }: { flow: InviteFlow }) {
   const usernameInputId = useId()
 
   return (
-    <div className="space-y-2">
-      <label
-        htmlFor={usernameInputId}
-        className="text-foreground-alt mb-1.5 block text-xs select-none"
-      >
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
+      }
+    >
+      <label htmlFor={usernameInputId} sx={stylexStyles2.rule3}>
         Spacewave username
       </label>
       <input
@@ -412,16 +699,13 @@ function InviteUsernameTab({ flow }: { flow: InviteFlow }) {
         value={flow.username}
         onChange={(e) => flow.setUsername(e.target.value)}
         placeholder="alice"
-        className={inputClass}
+        sx={[stylexStyles2.rule4]}
       />
       <button
         type="button"
         onClick={() => void flow.sendUsernameInvite()}
         disabled={flow.creating || !flow.hasSession || !flow.username.trim()}
-        className={cn(
-          actionButtonClass,
-          flow.usernameSent && successActionClass,
-        )}
+        sx={flow.usernameSent ? stylexStyles2.rule1 : stylexStyles2.rule2}
       >
         {flow.usernameSent ? (
           <>
@@ -446,37 +730,39 @@ function InviteLinkTab({ flow }: { flow: InviteFlow }) {
   return (
     <>
       <div
-        className={cn(
-          tabItemClass,
-          'border-foreground/8 bg-background-card/20 rounded-lg border p-3',
-        )}
+        className={
+          /* TODO(stylex): dynamic class or forwarded className */ cn(
+            tabItemClass,
+            'border-foreground/8 bg-background-card/20 rounded-lg border p-3',
+          )
+        }
       >
-        <div className="text-foreground text-sm font-medium">
-          Share a Space invite
-        </div>
-        <p className="text-foreground-alt/60 mt-1 text-xs leading-relaxed">
+        <div sx={stylexStyles2.rule7}>Share a Space invite</div>
+        <p sx={stylexStyles2.rule8}>
           Create one link for this Space, then send it through a trusted
           channel. The recipient uses Join Space to accept it.
         </p>
       </div>
       {flow.inviteResp?.inviteMessage ? (
-        <div className={cn(tabItemClass, 'space-y-2')}>
-          <div className="flex items-center justify-between">
-            <label
-              htmlFor={inviteLinkId}
-              className="text-foreground-alt text-xs select-none"
-            >
+        <div
+          className={
+            /* TODO(stylex): dynamic class or forwarded className */ cn(
+              tabItemClass,
+              'space-y-2',
+            )
+          }
+        >
+          <div sx={stylexStyles2.rule9}>
+            <label htmlFor={inviteLinkId} sx={stylexStyles2.rule10}>
               Invite link
             </label>
-            <span className="bg-success/10 text-success rounded-full px-2 py-0.5 text-xs font-medium">
-              Ready to share
-            </span>
+            <span sx={stylexStyles2.rule11}>Ready to share</span>
           </div>
           <input
             id={inviteLinkId}
             value={flow.inviteLink}
             readOnly
-            className={inputClass}
+            sx={[stylexStyles2.rule4]}
             onClick={(e) => (e.target as HTMLInputElement).select()}
           />
           <InviteCopyButton
@@ -490,7 +776,12 @@ function InviteLinkTab({ flow }: { flow: InviteFlow }) {
           type="button"
           onClick={() => void flow.createInvite()}
           disabled={flow.creating || !flow.hasSession}
-          className={cn(tabItemClass, actionButtonClass)}
+          className={
+            /* TODO(stylex): dynamic class or forwarded className */ cn(
+              tabItemClass,
+              actionButtonClass,
+            )
+          }
         >
           {flow.creating ? 'Creating secure link…' : 'Create Invite Link'}
         </button>
@@ -603,7 +894,7 @@ export function AddUserDialog({
         </Tabs>
 
         {flow.error && (
-          <p role="alert" className="text-destructive text-xs">
+          <p role="alert" sx={stylexStyles2.rule12}>
             {flow.error}
           </p>
         )}
@@ -694,32 +985,48 @@ function OrgMembersTab({
 
   return (
     <>
-      <p className={cn(tabItemClass, 'text-foreground-alt/60 text-xs')}>
+      <p
+        className={
+          /* TODO(stylex): dynamic class or forwarded className */ cn(
+            tabItemClass,
+            'text-foreground-alt/60 text-xs',
+          )
+        }
+      >
         {isCloudProvider
           ? 'Choose someone already in this organization. Use Username, Code, or Link to share with anyone else.'
           : 'Choose someone already in this organization. Use Code or Link to share with anyone else.'}
       </p>
-      <div className={cn(tabItemClass, 'relative')}>
+      <div
+        className={
+          /* TODO(stylex): dynamic class or forwarded className */ cn(
+            tabItemClass,
+            'relative',
+          )
+        }
+      >
         <LuSearch sx={stylexStyles.rule2} />
         <input
           aria-label="Search org members"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search org members…"
-          className={cn(
-            'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border py-2 pr-3 pl-8 text-sm transition-colors outline-none',
-            'focus:border-foreground/40',
-          )}
+          sx={[stylexStyles2.rule13]}
         />
       </div>
-      <div className={cn(tabItemClass, 'max-h-48 space-y-0.5 overflow-y-auto')}>
+      <div
+        className={
+          /* TODO(stylex): dynamic class or forwarded className */ cn(
+            tabItemClass,
+            'max-h-48 space-y-0.5 overflow-y-auto',
+          )
+        }
+      >
         {loading && filtered.length === 0 && (
-          <p className="text-foreground-alt/50 py-2 text-center text-xs">
-            Loading org members…
-          </p>
+          <p sx={stylexStyles2.rule14}>Loading org members…</p>
         )}
         {!loading && filtered.length === 0 && (
-          <p className="text-foreground-alt/40 py-2 text-center text-xs">
+          <p sx={stylexStyles2.rule15}>
             {search ? 'No matching members' : 'No org members'}
           </p>
         )}
@@ -736,30 +1043,22 @@ function OrgMembersTab({
               key={member.id}
               disabled={isEnrolled || isEnrolling || !session}
               onClick={() => void handleEnroll(accountId)}
-              className={cn(
-                'flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left transition-colors',
-                'hover:bg-foreground/5 disabled:cursor-default disabled:opacity-60',
-                isEnrolled && 'bg-success/5',
-              )}
+              sx={isEnrolled ? stylexStyles2.rule16 : stylexStyles2.rule17}
             >
-              <div className="min-w-0 flex-1">
-                <div className="text-foreground truncate text-xs font-medium">
-                  {primaryLabel}
-                </div>
+              <div sx={stylexStyles2.rule18}>
+                <div sx={stylexStyles2.rule19}>{primaryLabel}</div>
                 {secondaryLabel && (
-                  <div className="text-foreground-alt/50 micro-ten truncate font-mono">
-                    {secondaryLabel}
-                  </div>
+                  <div sx={stylexStyles2.rule20}>{secondaryLabel}</div>
                 )}
-                <div className="text-foreground-alt/50 micro-ten">
+                <div sx={stylexStyles2.rule21}>
                   {member.roleId === 'org:owner' ? 'Owner' : 'Member'}
                 </div>
               </div>
-              <div className="shrink-0">
+              <div sx={stylexStyles2.rule22}>
                 {isEnrolled ? (
                   <LuCheck sx={stylexStyles.rule3} />
                 ) : isEnrolling ? (
-                  <span className="text-foreground-alt text-xs">Adding…</span>
+                  <span sx={stylexStyles2.rule6}>Adding…</span>
                 ) : (
                   <LuUserPlus sx={stylexStyles.rule4} />
                 )}
@@ -768,7 +1067,7 @@ function OrgMembersTab({
           )
         })}
       </div>
-      {enrollError && <p className="text-destructive text-xs">{enrollError}</p>}
+      {enrollError && <p sx={stylexStyles2.rule12}>{enrollError}</p>}
     </>
   )
 }

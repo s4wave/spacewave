@@ -6,6 +6,19 @@ import {
 
 import { cn } from '@s4wave/web/style/utils.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: '0.5rem',
+    fontSize: '0.7rem',
+  },
+})
+
 // BrowserStartupDownloadList renders the live per-asset download breakdown from
 // the boot download registry: one labeled progress bar per boot asset (runtime,
 // app bundle, and any plugin modules) with streamed bytes and percent. It
@@ -26,7 +39,9 @@ export function BrowserStartupDownloadList({
     <ul
       aria-label="Downloads"
       data-sw-startup-downloads
-      className="swb-downloads"
+      className={
+        /* TODO(stylex): global or unknown class: swb-downloads */ 'swb-downloads'
+      }
     >
       {pendingDownloads.map((download) => (
         <li key={download.id} data-sw-startup-download={download.id}>
@@ -45,21 +60,35 @@ function BrowserStartupDownloadRow({ download }: { download: BootDownload }) {
       ? undefined
       : Math.max(0, Math.min(100, Math.round(fraction * 100)))
   return (
-    <div className="swb-dl-row">
-      <div className="swb-dl-head">
-        <span className="swb-dl-label">{download.label}</span>
+    <div
+      className={
+        /* TODO(stylex): global or unknown class: swb-dl-row */ 'swb-dl-row'
+      }
+    >
+      <div sx={stylexStyles.rule1}>
+        <span
+          className={
+            /* TODO(stylex): global or unknown class: swb-dl-label */ 'swb-dl-label'
+          }
+        >
+          {download.label}
+        </span>
         <span
           data-sw-startup-download-detail
-          className={cn(
-            'swb-mono swb-dl-detail',
-            failed && 'swb-dl-detail--error',
-          )}
+          className={
+            /* TODO(stylex): global or unknown class: swb-dl-detail */ cn(
+              'swb-mono swb-dl-detail',
+              failed && 'swb-dl-detail--error',
+            )
+          }
         >
           {downloadDetailText(download)}
         </span>
       </div>
       <div
-        className="swb-bar"
+        className={
+          /* TODO(stylex): global or unknown class: swb-bar */ 'swb-bar'
+        }
         role="progressbar"
         aria-label={download.label}
         aria-valuemin={0}
@@ -67,10 +96,16 @@ function BrowserStartupDownloadRow({ download }: { download: BootDownload }) {
         aria-valuenow={pct}
       >
         {pct === undefined && !failed ? (
-          <div className="swb-bar-fill swb-bar-fill--indeterminate" />
+          <div
+            className={
+              /* TODO(stylex): global or unknown class: swb-bar-fill */ 'swb-bar-fill swb-bar-fill--indeterminate'
+            }
+          />
         ) : (
           <div
-            className="swb-bar-fill browser-progress-width"
+            className={
+              /* TODO(stylex): global or unknown class: swb-bar-fill */ 'swb-bar-fill browser-progress-width'
+            }
             style={{ '--browser-progress-width': `${pct ?? 0}%` }}
           />
         )}

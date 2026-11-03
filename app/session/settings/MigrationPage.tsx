@@ -1,7 +1,6 @@
 import { useCallback } from 'react'
 import { LuArrowLeft, LuCpu } from '@s4wave/web/images/icons.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
@@ -12,6 +11,135 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
+
+import {
+  fonts as themeFonts,
+  motion as themeMotion,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: { padding: `calc(${themeLayout['--spacing']} * 6)` },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    overflowY: 'auto',
+    backgroundColor: themeColors['--color-background-landing'],
+    padding: {
+      default: `calc(${themeLayout['--spacing']} * 6)`,
+      '@media (min-width: 48rem)': `calc(${themeLayout['--spacing']} * 10)`,
+    },
+  },
+  rule2: {
+    marginInline: 'auto',
+    width: '100%',
+    maxWidth: 'var(--container-lg)',
+  },
+  rule3: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 6)`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule4: { marginBottom: `calc(${themeLayout['--spacing']} * 6)` },
+  rule5: {
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-wide)',
+    letterSpacing: 'var(--tracking-wide)',
+    color: themeColors['--color-foreground'],
+  },
+  rule6: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule7: {
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+    backgroundColor: themeColors['--color-background-get-started'],
+    '--tw-shadow':
+      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+  },
+  rule8: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule9: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-lg'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+  },
+  rule10: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule11: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule12: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    textAlign: 'center',
+  },
+  rule13: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule14: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -40,51 +168,37 @@ export function MigrationPage() {
   }, [navigate])
 
   return (
-    <div className="bg-background-landing flex flex-1 flex-col overflow-y-auto p-6 md:p-10">
-      <div className="mx-auto w-full max-w-lg">
-        <button
-          type="button"
-          onClick={handleBack}
-          className="text-foreground-alt hover:text-foreground mb-6 flex items-center gap-1.5 text-sm transition-colors"
-        >
+    <div sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>
+        <button type="button" onClick={handleBack} sx={stylexStyles2.rule3}>
           <LuArrowLeft sx={stylexStyles.rule1} />
           Back to dashboard
         </button>
 
-        <div className="mb-6">
-          <h1 className="text-foreground text-lg font-semibold tracking-wide">
-            Provider Migration
-          </h1>
-          <p className="text-foreground-alt mt-1 text-sm">
-            Manage your data storage provider.
-          </p>
+        <div sx={stylexStyles2.rule4}>
+          <h1 sx={stylexStyles2.rule5}>Provider Migration</h1>
+          <p sx={stylexStyles2.rule6}>Manage your data storage provider.</p>
         </div>
 
-        <div className="border-foreground/20 bg-background-get-started overflow-hidden rounded-lg border shadow-lg backdrop-blur-sm">
-          <div className="space-y-4 p-6">
-            <div className="flex items-center gap-3">
-              <div className="bg-foreground/5 flex size-10 shrink-0 items-center justify-center rounded-lg">
+        <div sx={stylexStyles2.rule7}>
+          <div sx={stylexStyles3.rule1}>
+            <div sx={[nativeChildSpacing.s4, stylexStyles2.rule8]}>
+              <div sx={stylexStyles2.rule9}>
                 <LuCpu sx={stylexStyles.rule2} />
               </div>
               <div>
-                <p className="text-foreground text-sm font-medium">
-                  Current provider
-                </p>
-                <p className="text-foreground-alt text-xs">
+                <p sx={stylexStyles2.rule10}>Current provider</p>
+                <p sx={stylexStyles2.rule11}>
                   {isLocal ? 'Local (browser storage)' : 'Spacewave Cloud'}
                 </p>
               </div>
             </div>
 
-            <div
-              className={cn(
-                'border-foreground/10 rounded-md border p-4 text-center',
-              )}
-            >
-              <p className="text-foreground-alt text-sm">
+            <div sx={[nativeChildSpacing.s4, [stylexStyles2.rule12]]}>
+              <p sx={stylexStyles2.rule13}>
                 Provider migration is coming soon.
               </p>
-              <p className="text-foreground-alt/60 mt-1 text-xs">
+              <p sx={stylexStyles2.rule14}>
                 You will be able to switch between Local and Spacewave Cloud
                 providers here.
               </p>
@@ -95,3 +209,18 @@ export function MigrationPage() {
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s4: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

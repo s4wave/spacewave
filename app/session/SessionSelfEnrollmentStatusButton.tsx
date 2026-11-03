@@ -18,7 +18,6 @@ import {
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 import { ProgressBar } from '@s4wave/web/ui/loading/ProgressBar.js'
 import { Button } from '@s4wave/web/ui/button.js'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import {
   type SessionSelfEnrollmentStatusView,
@@ -30,6 +29,118 @@ import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 import * as stylex from '@stylexjs/stylex'
 
 import { colors as themeColors } from '../../web/style/tokens.stylex.js'
+
+import {
+  radii as themeRadii,
+  fonts as themeFonts,
+  utilityState as themeUtilityState,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingTop: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+})
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule2: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+  },
+  rule3: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+    color: themeColors['--color-destructive'],
+  },
+  rule4: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    color: themeColors['--color-brand'],
+  },
+  rule5: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-warning']} 10%, transparent)`,
+    color: themeColors['--color-warning'],
+  },
+  rule6: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule7: { minWidth: 0, flex: 1 },
+  rule8: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+  },
+  rule9: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule10: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule11: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule12: {
+    fontSize: '.6rem',
+    lineHeight: 1.5,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-widest)',
+    letterSpacing: 'var(--tracking-widest)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    textTransform: 'uppercase',
+  },
+  rule13: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule14: {
+    minWidth: 0,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+  },
+  rule15: { textAlign: 'right', color: themeColors['--color-destructive'] },
+})
 
 const stylexStyles2 = stylex.create({
   rule1: { color: themeColors['--color-brand'] },
@@ -155,29 +266,27 @@ function SessionSelfEnrollmentStatusPopover({
 
   return (
     <div
-      className="space-y-3 p-3"
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3 p-3'
+      }
       data-testid="session-self-enrollment-status-popover"
     >
-      <div className="flex items-start gap-3">
+      <div sx={stylexStyles3.rule1}>
         <div
-          className={cn(
-            'flex size-8 shrink-0 items-center justify-center rounded-md',
-            status.failed && 'bg-destructive/10 text-destructive',
-            status.running && 'bg-brand/10 text-brand',
-            status.credentialRequired && 'bg-warning/10 text-warning',
-            status.skipped && 'bg-foreground/5 text-foreground-alt',
-            status.visualState === 'pending' && 'bg-brand/10 text-brand',
-          )}
+          sx={[
+            stylexStyles3.rule2,
+            !!status.failed && stylexStyles3.rule3,
+            !!status.running && stylexStyles3.rule4,
+            !!status.credentialRequired && stylexStyles3.rule5,
+            !!status.skipped && stylexStyles3.rule6,
+            status.visualState === 'pending' && stylexStyles3.rule4,
+          ]}
         >
           <SessionSelfEnrollmentStatusGlyph status={status} />
         </div>
-        <div className="min-w-0 flex-1">
-          <div className="text-sm font-semibold tracking-tight">
-            {status.summaryLabel}
-          </div>
-          <div className="text-foreground-alt/60 mt-0.5 text-xs">
-            {status.detailLabel}
-          </div>
+        <div sx={stylexStyles3.rule7}>
+          <div sx={stylexStyles3.rule8}>{status.summaryLabel}</div>
+          <div sx={stylexStyles3.rule9}>{status.detailLabel}</div>
         </div>
       </div>
 
@@ -190,14 +299,10 @@ function SessionSelfEnrollmentStatusPopover({
 
       <FailedSpacesList failures={status.failures} />
 
-      {actionError && (
-        <div className="border-destructive/20 bg-destructive/5 text-destructive rounded-md border px-2 py-1.5 text-xs">
-          {actionError}
-        </div>
-      )}
+      {actionError && <div sx={stylexStyles3.rule10}>{actionError}</div>}
 
       {status.startVisible && (
-        <div className="flex flex-wrap justify-end gap-2">
+        <div sx={stylexStyles3.rule11}>
           <Button
             type="button"
             variant="outline"
@@ -232,28 +337,42 @@ function SessionSelfEnrollmentStatusPopover({
 
 // FailedSpacesList lists the first three spaces that failed to enroll.
 function FailedSpacesList({
+  sx,
   failures,
 }: {
   failures: SessionSelfEnrollmentStatusView['failures']
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   if (failures.length === 0) return null
 
   return (
-    <div className="border-foreground/8 space-y-1.5 border-t pt-2">
-      <div className="text-foreground-alt/50 micro-text font-medium tracking-widest uppercase">
+    <div sx={[stylexStyles4.rule1, sx]}>
+      <div sx={[nativeChildSpacing.s1_5, stylexStyles3.rule12]}>
         Failed spaces
       </div>
       {failures.slice(0, 3).map((failure) => (
         <div
           key={failure.sharedObjectId}
-          className="text-foreground-alt/70 flex items-start justify-between gap-3 text-xs"
+          sx={[nativeChildSpacing.s1_5, stylexStyles3.rule13]}
         >
-          <span className="min-w-0 truncate font-mono">
-            {failure.sharedObjectId}
-          </span>
-          <span className="text-destructive text-right">{failure.message}</span>
+          <span sx={stylexStyles3.rule14}>{failure.sharedObjectId}</span>
+          <span sx={stylexStyles3.rule15}>{failure.message}</span>
         </div>
       ))}
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s1_5: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

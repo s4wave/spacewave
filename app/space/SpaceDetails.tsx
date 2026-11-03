@@ -15,6 +15,68 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderRadius: '.25rem',
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-brand'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule2: {
+    maxWidth: `calc(${themeLayout['--spacing']} * 20)`,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+  },
+  rule3: {
+    marginBottom: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule4: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule5: { textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' },
+  rule6: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 2.5)`,
@@ -77,28 +139,24 @@ export function SpaceDetails({
       onRenameStart={onRename}
       orgIndicator={
         orgId ? (
-          <button
-            type="button"
-            onClick={onOrgClick}
-            className="bg-brand/10 text-brand hover:bg-brand/20 flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium transition-colors"
-          >
+          <button type="button" onClick={onOrgClick} sx={stylexStyles2.rule1}>
             <LuBuilding2 sx={stylexStyles.rule1} />
-            <span className="max-w-20 truncate">
-              {org?.displayName || 'Org'}
-            </span>
+            <span sx={stylexStyles2.rule2}>{org?.displayName || 'Org'}</span>
           </button>
         ) : undefined
       }
       orgInfoSection={
         org ? (
-          <div className="space-y-1">
-            <div className="text-foreground-alt mb-0.5 text-xs select-none">
-              Organization
-            </div>
-            <div className="text-foreground flex items-center gap-1.5 text-xs">
+          <div
+            className={
+              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1 */ 'space-y-1'
+            }
+          >
+            <div sx={stylexStyles2.rule3}>Organization</div>
+            <div sx={stylexStyles2.rule4}>
               <LuBuilding2 sx={stylexStyles.rule2} />
-              <span className="truncate">{org.displayName || orgId}</span>
-              <span className="text-foreground-alt/50 text-xs">
+              <span sx={stylexStyles2.rule5}>{org.displayName || orgId}</span>
+              <span sx={stylexStyles2.rule6}>
                 {org.role === 'org:owner' ? 'Owner' : 'Member'}
               </span>
             </div>
@@ -106,7 +164,7 @@ export function SpaceDetails({
         ) : undefined
       }
       objectsBadge={
-        <span className="text-foreground-alt/50 text-xs">
+        <span sx={stylexStyles2.rule6}>
           {spaceObjectTargets?.targets.length ?? 0}
           {spaceObjectTargets?.more ? '+' : ''}
         </span>

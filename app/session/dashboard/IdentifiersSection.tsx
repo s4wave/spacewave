@@ -50,11 +50,38 @@ export function IdentifiersSection({
       open={sectionOpen}
       onOpenChange={handleOpenChange}
     >
-      <div className="space-y-2">
-        <CopyableField label="Session ID" value={sessionId} />
-        <CopyableField label="Peer ID" value={peerId} />
-        <CopyableField label="Account ID" value={accountId} />
+      <div>
+        <CopyableField
+          sx={nativeChildSpacing.s2}
+          label="Session ID"
+          value={sessionId}
+        />
+        <CopyableField
+          sx={nativeChildSpacing.s2}
+          label="Peer ID"
+          value={peerId}
+        />
+        <CopyableField
+          sx={nativeChildSpacing.s2}
+          label="Account ID"
+          value={accountId}
+        />
       </div>
     </CollapsibleSection>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

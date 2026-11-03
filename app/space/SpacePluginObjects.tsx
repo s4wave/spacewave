@@ -9,6 +9,26 @@ import { Button } from '@s4wave/web/ui/button.js'
 
 import { useQuickstartOptions } from '../quickstart/useQuickstartOptions.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  fonts as themeFonts,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule2: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+})
+
 /** SpacePluginObjects runs an installed plugin's creation action in the open Space. */
 export function SpacePluginObjects({
   space,
@@ -47,7 +67,7 @@ export function SpacePluginObjects({
 
   // Only this plugin's registered actions appear beside its build and preview.
   return (
-    <div className="flex flex-wrap gap-2">
+    <div sx={stylexStyles.rule1}>
       {options.flatMap((option) =>
         option.dynamic && option.pluginId === manifestId
           ? [
@@ -64,7 +84,7 @@ export function SpacePluginObjects({
           : [],
       )}
       {error && (
-        <p role="alert" className="text-destructive text-xs">
+        <p role="alert" sx={stylexStyles.rule2}>
           {error}
         </p>
       )}

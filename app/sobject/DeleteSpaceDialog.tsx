@@ -8,7 +8,102 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@s4wave/web/ui/dialog.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  fonts as themeFonts,
+  colors as themeColors,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 1.5)`,
+    display: 'block',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule2: {
+    width: '100%',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      ':focus': `color-mix(in oklab, ${themeColors['--color-destructive']} 50%, transparent)`,
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+    '::placeholder': {
+      color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    },
+  },
+  rule3: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule4: {
+    borderRadius: themeRadii['--radius-md'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule5: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-destructive'],
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+})
 
 export interface DeleteSpaceDialogProps {
   open: boolean
@@ -53,11 +148,6 @@ export function DeleteSpaceDialog({
     }
   }, [onConfirm, handleOpenChange])
 
-  const inputClass = cn(
-    'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 text-sm outline-none transition-colors',
-    'focus:border-destructive/50',
-  )
-
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
@@ -70,10 +160,7 @@ export function DeleteSpaceDialog({
         </DialogHeader>
 
         <div>
-          <label
-            htmlFor={confirmInputId}
-            className="text-foreground-alt mb-1.5 block text-xs select-none"
-          >
+          <label htmlFor={confirmInputId} sx={stylexStyles.rule1}>
             Space name
           </label>
           <input
@@ -81,7 +168,7 @@ export function DeleteSpaceDialog({
             value={confirmText}
             onChange={(e) => setConfirmText(e.target.value)}
             placeholder={spaceName}
-            className={inputClass}
+            sx={[stylexStyles.rule2]}
             onKeyDown={(e) => {
               if (e.nativeEvent.isComposing) return
               if (
@@ -95,14 +182,14 @@ export function DeleteSpaceDialog({
           />
         </div>
 
-        {error && <p className="text-destructive text-xs">{error}</p>}
+        {error && <p sx={stylexStyles.rule3}>{error}</p>}
 
         <DialogFooter>
           <button
             type="button"
             onClick={() => handleOpenChange(false)}
             disabled={submitting}
-            className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
+            sx={stylexStyles.rule4}
           >
             Cancel
           </button>
@@ -110,11 +197,7 @@ export function DeleteSpaceDialog({
             type="button"
             onClick={() => void handleDelete()}
             disabled={confirmText !== spaceName || submitting}
-            className={cn(
-              'rounded-md border px-4 py-2 text-sm transition-all',
-              'border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20',
-              'disabled:cursor-not-allowed disabled:opacity-50',
-            )}
+            sx={[stylexStyles.rule5]}
           >
             {submitting ? 'Deleting…' : 'Delete Space'}
           </button>

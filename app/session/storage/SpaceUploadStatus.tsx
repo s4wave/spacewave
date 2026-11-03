@@ -21,6 +21,38 @@ import {
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
 
+import { fonts as themeFonts } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule3: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-warning'],
+  },
+  rule4: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    overflowWrap: 'break-word',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -74,14 +106,14 @@ export function SpaceUploadStatus({
   )
 
   if (!storage) {
-    return <p className="text-foreground-alt/60 text-xs">Checking upload</p>
+    return <p sx={stylexStyles2.rule1}>Checking upload</p>
   }
 
   const pending = Number(storage.pendingBlocks ?? 0n)
   const pendingLabel = `${plural(pending, 'block')} (${formatBytes(storage.pendingBytes)}) waiting to upload`
   if (!uploadError) {
     return (
-      <p className="text-foreground-alt flex items-center gap-1.5 text-xs">
+      <p sx={stylexStyles2.rule2}>
         {pending === 0 ? (
           <>
             <LuCircleCheck sx={stylexStyles.rule1} aria-hidden="true" />
@@ -98,8 +130,12 @@ export function SpaceUploadStatus({
   }
 
   return (
-    <div className="space-y-2">
-      <p className="text-warning flex items-center gap-1.5 text-xs">
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
+      }
+    >
+      <p sx={stylexStyles2.rule3}>
         <LuUpload sx={stylexStyles.rule2} aria-hidden="true" />
         {pendingLabel}. Uploads are failing.
       </p>
@@ -109,9 +145,7 @@ export function SpaceUploadStatus({
           corsRule={buildStorageCorsRule(preset, window.location.origin)}
         />
       ) : (
-        <p className="text-foreground-alt/60 text-xs break-words">
-          {uploadError}
-        </p>
+        <p sx={stylexStyles2.rule4}>{uploadError}</p>
       )}
     </div>
   )

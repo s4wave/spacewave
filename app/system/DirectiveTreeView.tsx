@@ -18,6 +18,140 @@ import {
   motion as themeMotion,
 } from '../../web/style/tokens.stylex.js'
 
+import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule2: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    textAlign: 'left',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 3%, transparent)`,
+      },
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-foreground']} 4%, transparent)`,
+    },
+  },
+  rule3: {
+    flexShrink: 0,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule4: {
+    minWidth: 0,
+    flex: 1,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    color: themeColors['--color-foreground'],
+  },
+  rule5: {
+    flexShrink: 0,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+    '--tw-numeric-spacing': 'tabular-nums',
+    fontVariantNumeric:
+      'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+  },
+  rule6: { paddingBottom: themeLayout['--spacing'] },
+  rule7: {
+    paddingLeft: 'calc(1rem + var(--tree-depth) * 1.25rem)',
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingRight: `calc(${themeLayout['--spacing']} * 4)`,
+    textAlign: 'left',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 3%, transparent)`,
+      },
+      ':focus-visible': `color-mix(in oklab, ${themeColors['--color-foreground']} 4%, transparent)`,
+    },
+    cursor: { default: null, ':disabled': 'default' },
+  },
+  rule8: {
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule9: {
+    display: { default: 'none', '@container (min-width: 42rem)': 'block' },
+    maxWidth: `calc(${themeLayout['--spacing']} * 60)`,
+    flexShrink: 0,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule10: {
+    maxWidth: `calc(${themeLayout['--spacing']} * 48)`,
+    flexShrink: 0,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    borderRadius: '.25rem',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    color: themeColors['--color-brand'],
+  },
+  rule11: {
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    flexShrink: 0,
+    textAlign: 'right',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    '--tw-numeric-spacing': 'tabular-nums',
+    fontVariantNumeric:
+      'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -139,9 +273,17 @@ function TreeList({
   children: ReactNode
 }) {
   if (!count) {
-    return <p className="text-foreground-alt/50 px-4 py-3 text-xs">{empty}</p>
+    return <p sx={stylexStyles2.rule1}>{empty}</p>
   }
-  return <ul className="divide-foreground/6 divide-y">{children}</ul>
+  return (
+    <ul
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: divide-y */ 'divide-foreground/6 divide-y'
+      }
+    >
+      {children}
+    </ul>
+  )
 }
 
 // OriginGroupRow is one origin outside the directives, with the directives it added.
@@ -170,19 +312,15 @@ function OriginGroupRow({
         type="button"
         aria-expanded={open}
         onClick={() => setOpen(!open)}
-        className="hover:bg-foreground/[0.03] focus-visible:bg-foreground/[0.04] flex w-full items-center gap-3 px-4 py-2 text-left text-xs outline-none"
+        sx={stylexStyles2.rule2}
       >
         <Chevron open={open} />
-        <span className="text-foreground-alt/50 shrink-0">{kind}</span>
-        <span className="text-foreground min-w-0 flex-1 truncate font-mono">
-          {label}
-        </span>
-        <span className="text-foreground-alt/70 shrink-0 font-mono tabular-nums">
-          {formatCount(edges.length)}
-        </span>
+        <span sx={stylexStyles2.rule3}>{kind}</span>
+        <span sx={stylexStyles2.rule4}>{label}</span>
+        <span sx={stylexStyles2.rule5}>{formatCount(edges.length)}</span>
       </button>
       {open && (
-        <ul className="pb-1">
+        <ul sx={stylexStyles2.rule6}>
           {edges.map((edge) => (
             <DirectiveTreeRow
               key={`${edge.id}@${edge.via}`}
@@ -239,7 +377,7 @@ function DirectiveTreeRow({
         disabled={!expandable}
         onClick={() => setOpen(!open)}
         style={{ '--tree-depth': depth }}
-        className="hover:bg-foreground/[0.03] focus-visible:bg-foreground/[0.04] directive-tree-indent flex w-full items-center gap-3 py-1.5 pr-4 text-left text-xs outline-none disabled:cursor-default"
+        sx={stylexStyles2.rule7}
       >
         <DirectiveRowLabel
           node={node}
@@ -291,30 +429,19 @@ function DirectiveRowLabel({
       ) : (
         <Chevron open={open} hidden={!childCount} />
       )}
-      <span className="text-foreground min-w-0 flex-1 truncate font-mono">
+      <span sx={stylexStyles2.rule4}>
         {node.name}
-        {args && <span className="text-foreground-alt/60"> {args}</span>}
+        {args && <span sx={stylexStyles2.rule8}> {args}</span>}
       </span>
-      {backLink && (
-        <span className="text-foreground-alt/50 shrink-0">back link</span>
-      )}
-      {via && (
-        <span className="text-foreground-alt/50 hidden max-w-60 shrink-0 truncate font-mono @2xl:block">
-          via {via}
-        </span>
-      )}
+      {backLink && <span sx={stylexStyles2.rule3}>back link</span>}
+      {via && <span sx={stylexStyles2.rule9}>via {via}</span>}
       {node.configKeys.map((key) => (
-        <span
-          key={key}
-          className="bg-brand/10 text-brand max-w-48 shrink-0 truncate rounded px-1.5 py-0.5 font-mono"
-        >
+        <span key={key} sx={stylexStyles2.rule10}>
           {key}
         </span>
       ))}
       {childCount > 0 && (
-        <span className="text-foreground-alt/50 w-8 shrink-0 text-right font-mono tabular-nums">
-          {formatCount(childCount)}
-        </span>
+        <span sx={stylexStyles2.rule11}>{formatCount(childCount)}</span>
       )}
     </>
   )

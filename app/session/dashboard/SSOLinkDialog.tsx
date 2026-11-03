@@ -15,7 +15,7 @@ import type { Account } from '@s4wave/sdk/account/account.js'
 import { AccountEscalationIntentKind } from '@s4wave/sdk/account/account.pb.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import {
   Dialog,
   DialogContent,
@@ -38,6 +38,131 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
+
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+  motion as themeMotion,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule3: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '3.40282e38px',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 60%, transparent)`,
+  },
+  rule4: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule5: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule6: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+  },
+  rule7: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule8: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule9: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+  },
+  rule10: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule11: {
+    borderRadius: themeRadii['--radius-md'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule12: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+})
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -253,17 +378,17 @@ export function SSOLinkDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3">
-          <div className="border-foreground/10 bg-background/30 rounded-lg border p-4">
-            <div className="flex items-start gap-3">
-              <div className="border-foreground/10 bg-background/60 flex size-10 shrink-0 items-center justify-center rounded-full border">
+        <div>
+          <div sx={[nativeChildSpacing.s3, stylexStyles3.rule1]}>
+            <div sx={stylexStyles3.rule2}>
+              <div sx={stylexStyles3.rule3}>
                 <ProviderIcon provider={provider} sx={stylexStyles2.rule1} />
               </div>
-              <div className="space-y-1">
-                <p className="text-foreground text-sm font-medium">
+              <div>
+                <p sx={[nativeChildSpacing.s1, stylexStyles3.rule4]}>
                   Continue with {getProviderLabel(provider)}
                 </p>
-                <p className="text-foreground-alt text-xs">
+                <p sx={[nativeChildSpacing.s1, stylexStyles3.rule5]}>
                   {isDesktop
                     ? `The provider page opens in your system browser so this
                      app keeps its current account state and unlocked-key
@@ -277,14 +402,14 @@ export function SSOLinkDialog({
           </div>
 
           {waiting && (
-            <div className="border-brand/20 bg-brand/5 rounded-lg border px-3 py-2.5">
-              <div className="flex items-center gap-2">
+            <div sx={[nativeChildSpacing.s3, stylexStyles3.rule6]}>
+              <div sx={stylexStyles3.rule7}>
                 <Spinner variant="brand" />
-                <p className="text-foreground text-sm font-medium">
+                <p sx={stylexStyles3.rule4}>
                   Waiting for {getProviderLabel(provider)}...
                 </p>
               </div>
-              <p className="text-foreground-alt mt-1 text-xs">
+              <p sx={stylexStyles3.rule8}>
                 {isDesktop
                   ? `Finish the provider sign-in in your browser, then return
                    here to confirm the account link.`
@@ -295,10 +420,10 @@ export function SSOLinkDialog({
           )}
 
           {error && (
-            <div className="border-destructive/20 bg-destructive/5 rounded-lg border px-3 py-2.5">
-              <div className="flex items-center gap-2">
+            <div sx={[nativeChildSpacing.s3, stylexStyles3.rule9]}>
+              <div sx={stylexStyles3.rule7}>
                 <LuCircleAlert sx={stylexStyles.rule1} />
-                <p className="text-destructive text-sm">{error}</p>
+                <p sx={stylexStyles3.rule10}>{error}</p>
               </div>
             </div>
           )}
@@ -308,18 +433,14 @@ export function SSOLinkDialog({
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
+            sx={stylexStyles3.rule11}
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={handleStart}
-            className={cn(
-              'rounded-md border px-4 py-2 text-sm transition-all',
-              'border-brand/30 bg-brand/10 hover:bg-brand/20',
-              'inline-flex items-center gap-2',
-            )}
+            sx={[stylexStyles3.rule12]}
           >
             <LuArrowUpRight sx={stylexStyles.rule2} />
             {waiting
@@ -333,3 +454,29 @@ export function SSOLinkDialog({
     </Dialog>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s1: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

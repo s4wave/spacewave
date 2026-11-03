@@ -15,7 +15,7 @@ import {
   type StorageHealthView,
   useStorageHealth,
 } from '@s4wave/app/session/storage/useStorageHealth.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 
@@ -24,6 +24,227 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
+
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-warning']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-warning']} 5%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule3: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-warning']} 10%, transparent)`,
+    color: themeColors['--color-warning'],
+  },
+  rule4: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+  },
+  rule5: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule6: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-success']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-success']} 5%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule7: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-success']} 10%, transparent)`,
+    color: themeColors['--color-success'],
+  },
+  rule8: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-warning']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-warning']} 5%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule9: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 2.5)`,
+  },
+  rule10: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule11: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    paddingTop: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule12: {
+    cursor: 'pointer',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    minHeight: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+    paddingBlock: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 3.5)`,
+    },
+  },
+  rule13: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule14: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule15: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule16: { marginTop: `calc(${themeLayout['--spacing']} * 2)` },
+  rule17: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 7)`,
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+  },
+  rule18: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-success']} 10%, transparent)`,
+    color: themeColors['--color-success'],
+  },
+  rule19: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-warning']} 10%, transparent)`,
+    color: themeColors['--color-warning'],
+  },
+  rule20: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule21: { minWidth: 0, flex: 1 },
+  rule22: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule23: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule24: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule25: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule26: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 7)`,
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -66,22 +287,20 @@ export function StorageHealth({
   )
 
   return (
-    <div className="space-y-4" data-testid={`storage-health-${mode}`}>
+    <div data-testid={`storage-health-${mode}`}>
       {mode === 'recovery' &&
         (storageIncident ? (
           <div
-            className="border-warning/20 bg-warning/5 rounded-lg border p-3.5"
+            sx={[nativeChildSpacingNext.s4, stylexStyles2.rule1]}
             role="alert"
           >
-            <div className="flex items-start gap-3">
-              <div className="bg-warning/10 text-warning flex size-8 shrink-0 items-center justify-center rounded-md">
+            <div sx={stylexStyles2.rule2}>
+              <div sx={stylexStyles2.rule3}>
                 <LuTriangleAlert sx={stylexStyles.rule1} aria-hidden="true" />
               </div>
               <div>
-                <h2 className="text-foreground text-sm font-semibold tracking-tight">
-                  A recent save needs attention
-                </h2>
-                <p className="text-foreground-alt/70 mt-1 text-xs leading-relaxed">
+                <h2 sx={stylexStyles2.rule4}>A recent save needs attention</h2>
+                <p sx={stylexStyles2.rule5}>
                   Spacewave reported a durable write failure. Free unrelated
                   storage before retrying the save.
                 </p>
@@ -90,18 +309,16 @@ export function StorageHealth({
           </div>
         ) : (
           <div
-            className="border-success/20 bg-success/5 rounded-lg border p-3.5"
+            sx={[nativeChildSpacingNext.s4, stylexStyles2.rule6]}
             role="status"
           >
-            <div className="flex items-start gap-3">
-              <div className="bg-success/10 text-success flex size-8 shrink-0 items-center justify-center rounded-md">
+            <div sx={stylexStyles2.rule2}>
+              <div sx={stylexStyles2.rule7}>
                 <LuShieldCheck sx={stylexStyles.rule1} aria-hidden="true" />
               </div>
               <div>
-                <h2 className="text-foreground text-sm font-semibold tracking-tight">
-                  Saving works
-                </h2>
-                <p className="text-foreground-alt/70 mt-1 text-xs leading-relaxed">
+                <h2 sx={stylexStyles2.rule4}>Saving works</h2>
+                <p sx={stylexStyles2.rule5}>
                   No durable write failure is reported on this screen. These
                   actions help protect your Spaces and create another copy.
                 </p>
@@ -111,6 +328,7 @@ export function StorageHealth({
         ))}
 
       <ScopeSection
+        sx={nativeChildSpacingNext.s4}
         title="This browser"
         description="These readings cover all Spacewave data stored by this browser."
       >
@@ -133,17 +351,12 @@ export function StorageHealth({
           tone={health.protectionState === 'protected' ? 'positive' : 'neutral'}
         />
         {mode === 'settings' && health.safariCleanupRisk && (
-          <div
-            className="border-warning/20 bg-warning/5 mt-3 rounded-lg border p-3.5"
-            data-testid="safari-storage-risk"
-          >
-            <div className="flex items-start gap-2.5">
+          <div sx={stylexStyles2.rule8} data-testid="safari-storage-risk">
+            <div sx={stylexStyles2.rule9}>
               <LuTriangleAlert sx={stylexStyles.rule3} aria-hidden="true" />
               <div>
-                <h3 className="text-foreground text-xs font-medium">
-                  Safari storage policy
-                </h3>
-                <p className="text-foreground-alt/70 mt-1 text-xs leading-relaxed">
+                <h3 sx={stylexStyles2.rule10}>Safari storage policy</h3>
+                <p sx={stylexStyles2.rule5}>
                   Safari may remove this site&apos;s local data after seven days
                   without interaction. An exported archive or a verified replica
                   protects against losing this browser copy.
@@ -155,6 +368,7 @@ export function StorageHealth({
       </ScopeSection>
 
       <ScopeSection
+        sx={nativeChildSpacingNext.s4}
         title="This device's store"
         description="These readings describe Spacewave's local block store on this device."
       >
@@ -176,11 +390,9 @@ export function StorageHealth({
           tone="neutral"
         />
         {health.providerSupported && (
-          <details className="border-foreground/6 mt-3 border-t pt-3">
-            <summary className="text-foreground-alt hover:text-foreground cursor-pointer text-xs font-medium [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-3.5">
-              Technical details
-            </summary>
-            <p className="text-foreground-alt/60 mt-2 text-xs leading-relaxed">
+          <details sx={stylexStyles2.rule11}>
+            <summary sx={stylexStyles2.rule12}>Technical details</summary>
+            <p sx={stylexStyles2.rule13}>
               {Number(health.blockCount).toLocaleString()} block entries are
               currently reported by the local store. Entries are a storage
               measurement, not proof of a complete backup.
@@ -190,6 +402,7 @@ export function StorageHealth({
       </ScopeSection>
 
       <ScopeSection
+        sx={nativeChildSpacingNext.s4}
         title="Sync activity"
         description="This shows transfer work that Spacewave can currently see."
       >
@@ -200,28 +413,30 @@ export function StorageHealth({
           detail={transferActivityDetail(health.sync)}
           tone={health.sync.error ? 'warning' : 'neutral'}
         />
-        <details className="border-foreground/6 mt-3 border-t pt-3">
-          <summary className="text-foreground-alt hover:text-foreground cursor-pointer text-xs font-medium [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-3.5">
-            Technical details
-          </summary>
-          <div className="text-foreground-alt/60 mt-2 space-y-1 text-xs leading-relaxed">
-            <p>{health.sync.detailLabel}</p>
-            <p>Upload waiting: {health.sync.pendingUploadLabel}</p>
-            <p>Download waiting: {health.sync.pendingDownloadLabel}</p>
+        <details sx={stylexStyles2.rule11}>
+          <summary sx={stylexStyles2.rule12}>Technical details</summary>
+          <div sx={stylexStyles3.rule1}>
+            <p sx={nativeChildSpacing.s1}>{health.sync.detailLabel}</p>
+            <p sx={nativeChildSpacing.s1}>
+              Upload waiting: {health.sync.pendingUploadLabel}
+            </p>
+            <p sx={nativeChildSpacing.s1}>
+              Download waiting: {health.sync.pendingDownloadLabel}
+            </p>
           </div>
         </details>
       </ScopeSection>
 
-      <section aria-labelledby="storage-solutions-title">
-        <div className="mb-2 flex items-center justify-between gap-3">
+      <section
+        sx={nativeChildSpacingNext.s4}
+        aria-labelledby="storage-solutions-title"
+      >
+        <div sx={stylexStyles2.rule14}>
           <div>
-            <h2
-              id="storage-solutions-title"
-              className="text-foreground text-xs font-medium"
-            >
+            <h2 id="storage-solutions-title" sx={stylexStyles2.rule10}>
               Protect your Spaces
             </h2>
-            <p className="text-foreground-alt/60 mt-0.5 text-xs">
+            <p sx={stylexStyles2.rule15}>
               Choose an action that creates or protects a copy.
             </p>
           </div>
@@ -234,8 +449,9 @@ export function StorageHealth({
             </DashboardButton>
           )}
         </div>
-        <div className="space-y-2">
+        <div>
           <SolutionRow
+            sx={nativeChildSpacingNext.s2}
             icon={<LuShieldCheck sx={stylexStyles.rule2} />}
             title="Request automatic cleanup protection"
             detail="Requesting this protects this browser copy from automatic cleanup. This does not create another copy."
@@ -245,11 +461,13 @@ export function StorageHealth({
             }}
           />
           <SolutionRow
+            sx={nativeChildSpacingNext.s2}
             icon={<LuDatabase sx={stylexStyles.rule2} />}
             title="Export a backup"
             detail="Open an important Space and choose File > Export Space. Keep the archive outside this browser."
           />
           <SolutionRow
+            sx={nativeChildSpacingNext.s2}
             icon={<LuLink sx={stylexStyles.rule2} />}
             title="Link another device"
             detail="Set up another destination for a second copy. Linking alone does not verify that the copy can restore this Space."
@@ -257,6 +475,7 @@ export function StorageHealth({
             onAction={onLinkDevice}
           />
           <SolutionRow
+            sx={nativeChildSpacingNext.s2}
             icon={<LuCloud sx={stylexStyles.rule2} />}
             title="Set up Spacewave Cloud"
             detail="Choose Spacewave Cloud as another destination. Setup alone does not verify a complete copy."
@@ -264,6 +483,7 @@ export function StorageHealth({
             onAction={onUseCloud}
           />
           <SolutionRow
+            sx={nativeChildSpacingNext.s2}
             icon={<LuHardDrive sx={stylexStyles.rule2} />}
             title="Make room for future saves"
             detail="If a save fails, remove unrelated downloads, applications, or site data before retrying. Do not clear Spacewave site data as an ordinary fix."
@@ -275,6 +495,7 @@ export function StorageHealth({
 }
 
 function ScopeSection({
+  sx,
   title,
   description,
   children,
@@ -282,14 +503,14 @@ function ScopeSection({
   title: string
   description: string
   children: ReactNode
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
-    <section aria-labelledby={`${title}-title`}>
-      <h2 id={`${title}-title`} className="text-foreground text-xs font-medium">
+    <section sx={sx} aria-labelledby={`${title}-title`}>
+      <h2 id={`${title}-title`} sx={stylexStyles2.rule10}>
         {title}
       </h2>
-      <p className="text-foreground-alt/60 mt-0.5 text-xs">{description}</p>
-      <div className="mt-2">
+      <p sx={stylexStyles2.rule15}>{description}</p>
+      <div sx={stylexStyles2.rule16}>
         <InfoCard>
           <div>{children}</div>
         </InfoCard>
@@ -312,31 +533,28 @@ function HealthRow({
   tone: 'neutral' | 'positive' | 'warning'
 }) {
   return (
-    <div className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
+    <div sx={[stylexStyles4.rule1, edgeSpacing.s3]}>
       <div
-        className={cn(
-          'flex size-7 shrink-0 items-center justify-center rounded-md',
-          tone === 'positive' && 'bg-success/10 text-success',
-          tone === 'warning' && 'bg-warning/10 text-warning',
-          tone === 'neutral' && 'bg-foreground/5 text-foreground-alt',
-        )}
+        sx={[
+          stylexStyles2.rule17,
+          tone === 'positive' && stylexStyles2.rule18,
+          tone === 'warning' && stylexStyles2.rule19,
+          tone === 'neutral' && stylexStyles2.rule20,
+        ]}
       >
         {icon}
       </div>
-      <div className="min-w-0 flex-1">
-        <div className="text-foreground-alt/60 text-xs">{label}</div>
-        <div className="text-foreground mt-0.5 text-xs font-medium">
-          {value}
-        </div>
-        <p className="text-foreground-alt/60 mt-1 text-xs leading-relaxed">
-          {detail}
-        </p>
+      <div sx={stylexStyles2.rule21}>
+        <div sx={stylexStyles2.rule22}>{label}</div>
+        <div sx={stylexStyles2.rule23}>{value}</div>
+        <p sx={stylexStyles2.rule24}>{detail}</p>
       </div>
     </div>
   )
 }
 
 function SolutionRow({
+  sx,
   icon,
   title,
   detail,
@@ -348,17 +566,13 @@ function SolutionRow({
   detail: string
   action?: string
   onAction?: () => void
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
-    <div className="border-foreground/6 bg-background-card/30 flex items-start gap-3 rounded-lg border p-3.5">
-      <div className="bg-foreground/5 text-foreground-alt flex size-7 shrink-0 items-center justify-center rounded-md">
-        {icon}
-      </div>
-      <div className="min-w-0 flex-1">
-        <h3 className="text-foreground text-xs font-medium">{title}</h3>
-        <p className="text-foreground-alt/60 mt-1 text-xs leading-relaxed">
-          {detail}
-        </p>
+    <div sx={[stylexStyles2.rule25, sx]}>
+      <div sx={stylexStyles2.rule26}>{icon}</div>
+      <div sx={stylexStyles2.rule21}>
+        <h3 sx={stylexStyles2.rule10}>{title}</h3>
+        <p sx={stylexStyles2.rule24}>{detail}</p>
       </div>
       {action && onAction && (
         <DashboardButton
@@ -420,3 +634,52 @@ function formatBytes(bytes: bigint | number): string {
   const amount = value / 1024 ** index
   return `${amount >= 10 || index === 0 ? amount.toFixed(0) : amount.toFixed(1)} ${units[index]}`
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s1: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s4: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// edgeSpacing keeps first and last row padding at the row owner.
+const edgeSpacing = stylex.create({
+  s3: {
+    paddingTop: { default: 'calc(var(--spacing) * 3)', ':first-child': 0 },
+    paddingBottom: { default: 'calc(var(--spacing) * 3)', ':last-child': 0 },
+  },
+})

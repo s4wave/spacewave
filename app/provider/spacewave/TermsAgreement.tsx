@@ -1,5 +1,44 @@
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    display: 'flex',
+    cursor: 'pointer',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule2: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    borderRadius: '.25rem',
+    accentColor: themeColors['--color-brand'],
+  },
+  rule3: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule4: {
+    color: themeColors['--color-brand'],
+    textDecorationLine: {
+      default: null,
+      '@media (hover: hover)': { default: null, ':hover': 'underline' },
+    },
+  },
+})
+
 export interface TermsAgreementProps {
   agreed: boolean
   onChange: (agreed: boolean) => void
@@ -18,21 +57,21 @@ export function TermsAgreement({
   const privacyHref = useStaticHref('/privacy')
 
   return (
-    <label className="flex cursor-pointer items-start gap-2 select-none">
+    <label sx={stylexStyles.rule1}>
       <input
         type="checkbox"
         checked={agreed}
         onChange={(e) => onChange(e.target.checked)}
         disabled={disabled}
-        className="accent-brand mt-0.5 size-4 shrink-0 rounded"
+        sx={stylexStyles.rule2}
       />
-      <span className="text-foreground-alt text-xs leading-relaxed">
+      <span sx={stylexStyles.rule3}>
         I agree to the{' '}
         <a
           href={tosHref}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-brand hover:underline"
+          sx={stylexStyles.rule4}
         >
           Terms of Service
         </a>{' '}
@@ -41,7 +80,7 @@ export function TermsAgreement({
           href={privacyHref}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-brand hover:underline"
+          sx={stylexStyles.rule4}
         >
           Privacy Policy
         </a>

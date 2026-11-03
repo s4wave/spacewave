@@ -6,6 +6,44 @@ import { cn } from '@s4wave/web/style/utils.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
 
+import {
+  colors as themeColors,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule2: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '3.40282e38px',
+    backgroundColor: themeColors['--color-brand'],
+    color: themeColors['--color-background'],
+  },
+  rule3: {
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    borderRadius: '3.40282e38px',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+  },
+  rule4: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule5: { color: themeColors['--color-foreground'] },
+  rule6: { color: themeColors['--color-foreground-alt'] },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3)`,
@@ -28,7 +66,14 @@ export interface PhaseChecklistProps {
 // with a check, spinner, or pending dot per item.
 export function PhaseChecklist({ phases, className }: PhaseChecklistProps) {
   return (
-    <div className={cn('space-y-2 px-2', className)}>
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ cn(
+          'space-y-2 px-2',
+          className,
+        )
+      }
+    >
       {phases.map((phase) => (
         <PhaseChecklistRow key={phase.label} {...phase} />
       ))}
@@ -36,26 +81,31 @@ export function PhaseChecklist({ phases, className }: PhaseChecklistProps) {
   )
 }
 
-function PhaseChecklistRow({ label, done, active }: PhaseChecklistItem) {
+function PhaseChecklistRow({
+  sx,
+  label,
+  done,
+  active,
+}: PhaseChecklistItem & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
     <div
-      className="flex items-center gap-2"
+      sx={[stylexStyles2.rule1, sx]}
       aria-current={active ? 'step' : undefined}
     >
       {done ? (
-        <div className="bg-brand text-background flex size-4 items-center justify-center rounded-full">
+        <div sx={stylexStyles2.rule2}>
           <LuCheck sx={stylexStyles.rule1} />
         </div>
       ) : active ? (
         <Spinner variant="brand" />
       ) : (
-        <div className="border-foreground/20 size-4 rounded-full border" />
+        <div sx={stylexStyles2.rule3} />
       )}
       <span
-        className={cn(
-          'text-xs',
-          done ? 'text-foreground' : 'text-foreground-alt',
-        )}
+        sx={[
+          stylexStyles2.rule4,
+          done ? stylexStyles2.rule5 : stylexStyles2.rule6,
+        ]}
       >
         {label}
       </span>

@@ -11,7 +11,7 @@ import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { CredentialProofInput } from '@s4wave/web/ui/credential/CredentialProofInput.js'
 import { useCredentialProof } from '@s4wave/web/ui/credential/useCredentialProof.js'
 import { truncatePeerId } from '@s4wave/web/ui/credential/auth-utils.js'
@@ -26,6 +26,240 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
+
+import {
+  fonts as themeFonts,
+  motion as themeMotion,
+  utilityState as themeUtilityState,
+} from '../../../web/style/tokens.stylex.js'
+
+import { radii as themeRadii } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    paddingTop: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBlock: themeLayout['--spacing'],
+  },
+  rule3: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: {
+      default: themeColors['--color-brand'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 80%, transparent)`,
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule4: {
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    paddingTop: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule5: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: {
+      default: themeColors['--color-brand'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 80%, transparent)`,
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule6: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rule7: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule8: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule9: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule10: {
+    borderRadius: '.25rem',
+    backgroundColor: {
+      default: themeColors['--color-brand'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 90%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-white'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule11: { cursor: 'not-allowed', opacity: 0.5 },
+  rule12: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule13: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule14: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule15: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule16: {
+    display: 'flex',
+    minWidth: 0,
+    flex: 1,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule17: { minWidth: 0, flex: 1 },
+  rule18: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule19: {
+    display: 'flex',
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderRadius: '.25rem',
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-destructive'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -87,25 +321,24 @@ export function EntityKeypairsSection({
 
   const content = (
     <>
-      {loading && (
-        <p className="text-foreground-alt text-xs">Loading keypairs…</p>
-      )}
+      {loading && <p sx={stylexStyles2.rule1}>Loading keypairs…</p>}
       {!loading && keypairs.length === 0 && !showAdd && (
-        <div className="flex items-center justify-between py-1">
-          <p className="text-foreground-alt text-xs">No entity keypairs yet.</p>
+        <div sx={stylexStyles2.rule2}>
+          <p sx={stylexStyles2.rule1}>No entity keypairs yet.</p>
           <button
             type="button"
             onClick={() => setShowAdd(true)}
-            className="text-brand hover:text-brand/80 text-xs font-medium transition-colors"
+            sx={stylexStyles2.rule3}
           >
             Add keypair
           </button>
         </div>
       )}
       {!loading && keypairs.length > 0 && (
-        <div className="space-y-2">
+        <div>
           {keypairs.map((kp) => (
             <KeypairRow
+              sx={nativeChildSpacingNext.s2}
               key={kp.peerId}
               keypair={kp}
               removing={removing === (kp.peerId ?? '')}
@@ -114,11 +347,11 @@ export function EntityKeypairsSection({
             />
           ))}
           {!showAdd && (
-            <div className="border-foreground/10 border-t pt-2">
+            <div sx={[nativeChildSpacingNext.s2, stylexStyles2.rule4]}>
               <button
                 type="button"
                 onClick={() => setShowAdd(true)}
-                className="text-brand hover:text-brand/80 flex items-center gap-1 text-xs font-medium transition-colors"
+                sx={stylexStyles2.rule5}
               >
                 <LuPlus sx={stylexStyles.rule1} />
                 Add keypair
@@ -144,8 +377,8 @@ export function EntityKeypairsSection({
 
   return (
     <section>
-      <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
+      <div sx={stylexStyles2.rule6}>
+        <h2 sx={stylexStyles2.rule7}>
           <LuKey sx={stylexStyles.rule2} />
           Entity Keypairs
         </h2>
@@ -210,16 +443,17 @@ function AddKeypairPanel({
   }
 
   return (
-    <div className="border-foreground/10 space-y-3 border-t pt-3">
-      <div className="border-foreground/10 space-y-3 rounded-md border p-3">
-        <div>
-          <p className="text-foreground text-xs font-medium">Password key</p>
-          <p className="text-foreground-alt mt-1 text-xs">
+    <div sx={stylexStyles4.rule1}>
+      <div sx={[nativeChildSpacingNext.s3, stylexStyles3.rule1]}>
+        <div sx={nativeChildSpacing.s3}>
+          <p sx={stylexStyles2.rule8}>Password key</p>
+          <p sx={stylexStyles2.rule9}>
             Adds a key derived from this password. Use the password to recover
             this local session if it becomes locked.
           </p>
         </div>
         <CredentialProofInput
+          sx={nativeChildSpacing.s3}
           password={cred.password}
           onPasswordChange={cred.setPassword}
           showPem={false}
@@ -232,18 +466,21 @@ function AddKeypairPanel({
           type="button"
           onClick={() => void handleAddPassword()}
           disabled={busy || !cred.hasCredential}
-          className={cn(
-            'bg-brand hover:bg-brand/90 rounded px-3 py-1.5 text-xs font-medium text-white transition-colors',
-            (busy || !cred.hasCredential) && 'cursor-not-allowed opacity-50',
-          )}
+          sx={[
+            nativeChildSpacing.s3,
+            [
+              stylexStyles2.rule10,
+              !!(busy || !cred.hasCredential) && stylexStyles2.rule11,
+            ],
+          ]}
         >
           {adding ? 'Adding…' : 'Add password key'}
         </button>
       </div>
-      <div className="border-foreground/10 space-y-3 rounded-md border p-3">
-        <div>
-          <p className="text-foreground text-xs font-medium">Backup key</p>
-          <p className="text-foreground-alt mt-1 text-xs">
+      <div sx={[nativeChildSpacingNext.s3, stylexStyles3.rule1]}>
+        <div sx={nativeChildSpacing.s3}>
+          <p sx={stylexStyles2.rule8}>Backup key</p>
+          <p sx={stylexStyles2.rule9}>
             Creates and adds a separate backup key, then downloads its PEM file.
             Use the file to recover this local session if the password is
             unavailable. Store it somewhere safe.
@@ -253,16 +490,18 @@ function AddKeypairPanel({
           type="button"
           onClick={() => void handleAddBackup()}
           disabled={busy}
-          className={cn(
-            'border-foreground/20 hover:border-brand/30 flex items-center gap-1 rounded border px-3 py-1.5 text-xs font-medium transition-colors',
-            busy && 'cursor-not-allowed opacity-50',
-          )}
+          sx={[
+            nativeChildSpacing.s3,
+            [stylexStyles2.rule12, !!busy && stylexStyles2.rule11],
+          ]}
         >
           <LuDownload sx={stylexStyles.rule1} />
           {exporting ? 'Adding…' : 'Add backup key'}
         </button>
       </div>
-      {error && <p className="text-destructive text-xs">{error}</p>}
+      {error && (
+        <p sx={[nativeChildSpacingNext.s3, stylexStyles2.rule13]}>{error}</p>
+      )}
       <button
         type="button"
         onClick={() => {
@@ -271,7 +510,7 @@ function AddKeypairPanel({
           cred.reset()
         }}
         disabled={busy}
-        className="text-foreground-alt hover:text-foreground text-xs transition-colors"
+        sx={[nativeChildSpacingNext.s3, stylexStyles2.rule14]}
       >
         Cancel
       </button>
@@ -287,23 +526,22 @@ interface KeypairRowProps {
 }
 
 function KeypairRow({
+  sx,
   keypair,
   removing,
   onRemove,
   canRemove,
-}: KeypairRowProps) {
+}: KeypairRowProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const peerId = keypair.peerId ?? ''
   const method = keypair.authMethod === 'pem' ? 'Backup PEM' : 'Password'
 
   return (
-    <div className="flex items-center justify-between gap-2">
-      <div className="flex min-w-0 flex-1 items-center gap-2">
+    <div sx={[stylexStyles2.rule15, sx]}>
+      <div sx={stylexStyles2.rule16}>
         <LuKey sx={stylexStyles.rule3} />
-        <div className="min-w-0 flex-1">
-          <p className="text-foreground truncate text-xs font-medium">
-            {truncatePeerId(peerId)}
-          </p>
-          <p className="text-foreground-alt text-xs">{method}</p>
+        <div sx={stylexStyles2.rule17}>
+          <p sx={stylexStyles2.rule18}>{truncatePeerId(peerId)}</p>
+          <p sx={stylexStyles2.rule1}>{method}</p>
         </div>
       </div>
       {canRemove && (
@@ -311,10 +549,7 @@ function KeypairRow({
           type="button"
           onClick={() => void onRemove(peerId)}
           disabled={removing}
-          className={cn(
-            'text-foreground-alt hover:text-destructive flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-xs transition-colors',
-            removing && 'cursor-not-allowed opacity-50',
-          )}
+          sx={[stylexStyles2.rule19, !!removing && stylexStyles2.rule11]}
           title="Remove keypair"
         >
           <LuTrash2 sx={stylexStyles.rule1} />
@@ -323,3 +558,44 @@ function KeypairRow({
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

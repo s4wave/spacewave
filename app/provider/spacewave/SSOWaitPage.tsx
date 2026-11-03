@@ -37,6 +37,55 @@ import { useCloudProviderConfig } from './useSpacewaveAuth.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
 
+import {
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule2: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule3: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule4: {
+    display: 'flex',
+    width: '100%',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule5: {
+    display: 'flex',
+    width: '100%',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule6: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 5)`,
@@ -295,12 +344,8 @@ export function SSOWaitPage() {
         intro={
           <>
             <AnimatedLogo followMouse={false} />
-            <h2 className="text-foreground text-lg font-semibold">
-              Welcome back
-            </h2>
-            <p className="text-foreground-alt text-sm">
-              Enter your PIN to finish signing in
-            </p>
+            <h2 sx={stylexStyles3.rule1}>Welcome back</h2>
+            <p sx={stylexStyles3.rule2}>Enter your PIN to finish signing in</p>
           </>
         }
       >
@@ -325,14 +370,14 @@ export function SSOWaitPage() {
       intro={
         <>
           <AnimatedLogo followMouse={false} />
-          <h2 className="text-foreground flex items-center gap-2 text-lg font-semibold">
+          <h2 sx={stylexStyles3.rule3}>
             <ProviderIcon provider={provider} sx={stylexStyles2.rule1} />
             Signing in with {providerLabel}
           </h2>
         </>
       }
     >
-      <div className="flex w-full flex-col items-center gap-4">
+      <div sx={stylexStyles3.rule4}>
         <LoadingCard
           view={{
             state: 'active',
@@ -341,7 +386,7 @@ export function SSOWaitPage() {
           }}
         />
         {isDesktop && state.step === 'waiting' && (
-          <div className="flex w-full flex-col gap-2">
+          <div sx={stylexStyles3.rule5}>
             <AuthPrimaryActionButton
               onClick={handleRetry}
               icon={
@@ -352,7 +397,7 @@ export function SSOWaitPage() {
             </AuthPrimaryActionButton>
             <AuthSecondaryActionButton
               onClick={handleCancel}
-              className="flex items-center justify-center gap-2"
+              sx={stylexStyles3.rule6}
             >
               <LuArrowLeft sx={stylexStyles.rule1} />
               Cancel
@@ -380,13 +425,11 @@ function SSOWaitError({
       intro={
         <>
           <AnimatedLogo followMouse={false} />
-          <h2 className="text-foreground text-lg font-semibold">
-            Sign-in failed
-          </h2>
+          <h2 sx={stylexStyles3.rule1}>Sign-in failed</h2>
         </>
       }
     >
-      <div className="flex w-full flex-col items-center gap-4">
+      <div sx={stylexStyles3.rule4}>
         <LoadingCard
           view={{
             state: 'error',
@@ -394,7 +437,7 @@ function SSOWaitError({
             error: message,
           }}
         />
-        <div className="flex w-full flex-col gap-2">
+        <div sx={stylexStyles3.rule5}>
           <AuthPrimaryActionButton
             onClick={isDesktop ? onRetry : onCancel}
             icon={<ProviderIcon provider={provider} sx={stylexStyles2.rule2} />}
@@ -403,7 +446,7 @@ function SSOWaitError({
           </AuthPrimaryActionButton>
           <AuthSecondaryActionButton
             onClick={onCancel}
-            className="flex items-center justify-center gap-2"
+            sx={stylexStyles3.rule6}
           >
             <LuArrowLeft sx={stylexStyles.rule1} />
             Back to login

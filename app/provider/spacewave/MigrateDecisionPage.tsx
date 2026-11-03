@@ -34,6 +34,98 @@ import {
 } from '../../../web/style/tokens.stylex.js'
 import { groupMarker as groupMarker2 } from '../../../web/style/relations.stylex.js'
 
+import { fonts as themeFonts } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'flex',
+    cursor: 'pointer',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule2: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule3: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: 'var(--text-xl)',
+    lineHeight: 'var(--tw-leading, var(--text-xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-wide)',
+    letterSpacing: 'var(--tracking-wide)',
+  },
+  rule4: {
+    textAlign: 'center',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule5: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule6: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-lg'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+  },
+  rule7: { flex: 1 },
+  rule8: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule9: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule10: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-lg'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+  },
+  rule11: {
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     cursor: { default: 'pointer', ':disabled': 'not-allowed' },
@@ -212,23 +304,17 @@ export function MigrateDecisionPage() {
   return (
     <PageWrapper
       backButton={
-        <button
-          type="button"
-          onClick={handleBack}
-          className="text-foreground-alt hover:text-foreground flex cursor-pointer items-center gap-2 text-sm transition-colors"
-        >
+        <button type="button" onClick={handleBack} sx={stylexStyles3.rule1}>
           <LuArrowLeft sx={stylexStyles.rule1} />
           Back
         </button>
       }
     >
       {/* Header */}
-      <div className="flex flex-col items-center gap-2">
+      <div sx={stylexStyles3.rule2}>
         <AnimatedLogo followMouse={false} />
-        <h1 className="mt-2 text-xl font-semibold tracking-wide">
-          You have local data
-        </h1>
-        <p className="text-foreground-alt text-center text-sm">
+        <h1 sx={stylexStyles3.rule3}>You have local data</h1>
+        <p sx={stylexStyles3.rule4}>
           Your subscription is active. Choose what to do with your existing
           local session data.
         </p>
@@ -241,15 +327,13 @@ export function MigrateDecisionPage() {
         disabled={unlinking}
         sx={[[stylexStyles2.rule1, groupMarker2]]}
       >
-        <div className="flex items-start gap-4">
-          <div className="bg-brand/10 flex size-10 shrink-0 items-center justify-center rounded-lg">
+        <div sx={stylexStyles3.rule5}>
+          <div sx={stylexStyles3.rule6}>
             <LuCloud sx={stylexStyles.rule2} />
           </div>
-          <div className="flex-1">
-            <h2 className="text-foreground text-sm font-semibold">
-              Migrate my data to Cloud
-            </h2>
-            <p className="text-foreground-alt mt-1 text-xs leading-relaxed">
+          <div sx={stylexStyles3.rule7}>
+            <h2 sx={stylexStyles3.rule8}>Migrate my data to Cloud</h2>
+            <p sx={stylexStyles3.rule9}>
               Move your local files and settings to Spacewave Cloud. Your data
               will be synced across all your devices.
             </p>
@@ -265,19 +349,17 @@ export function MigrateDecisionPage() {
         disabled={unlinking || !session}
         sx={[[stylexStyles2.rule2, groupMarker2]]}
       >
-        <div className="flex items-start gap-4">
-          <div className="bg-foreground/5 flex size-10 shrink-0 items-center justify-center rounded-lg">
+        <div sx={stylexStyles3.rule5}>
+          <div sx={stylexStyles3.rule10}>
             {unlinking ? (
               <Spinner size="md" variant="muted" />
             ) : (
               <LuUnlink sx={stylexStyles.rule4} />
             )}
           </div>
-          <div className="flex-1">
-            <h2 className="text-foreground text-sm font-semibold">
-              Keep sessions separate
-            </h2>
-            <p className="text-foreground-alt mt-1 text-xs leading-relaxed">
+          <div sx={stylexStyles3.rule7}>
+            <h2 sx={stylexStyles3.rule8}>Keep sessions separate</h2>
+            <p sx={stylexStyles3.rule9}>
               Unlink the local session from your cloud account. Both sessions
               remain accessible independently.
             </p>
@@ -286,7 +368,7 @@ export function MigrateDecisionPage() {
         </div>
       </button>
 
-      {error && <p className="text-destructive text-center text-xs">{error}</p>}
+      {error && <p sx={stylexStyles3.rule11}>{error}</p>}
 
       <FaqAccordion items={CLOUD_FAQ} />
 

@@ -31,6 +31,25 @@ import {
 } from '../../../web/style/tokens.stylex.js'
 import { groupMarker } from '../../../web/style/relations.stylex.js'
 
+const stylexStyles3 = stylex.create({
+  rule1: { display: 'flex', minWidth: 0, flex: 1, flexDirection: 'column' },
+  rule2: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rule3: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     borderColor: {
@@ -410,7 +429,7 @@ function ActionCard({
       ]}
     >
       <div sx={[stylexStyles.rule8, tone.iconBox]}>{icon}</div>
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div sx={stylexStyles3.rule1}>
         <h4 sx={[stylexStyles.rule9, tone.title]}>{title}</h4>
         <p sx={[stylexStyles.rule10, tone.description]}>{description}</p>
       </div>
@@ -476,13 +495,15 @@ export function SessionActionsSection({
 
   return (
     <section>
-      <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-foreground-alt text-xs font-medium select-none">
-          Actions
-        </h2>
+      <div sx={stylexStyles3.rule2}>
+        <h2 sx={stylexStyles3.rule3}>Actions</h2>
       </div>
 
-      <div className="space-y-2">
+      <div
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
+        }
+      >
         {isLocal && sessionIdx != null && (
           <ActionCard
             tone={brandTone}
@@ -547,7 +568,11 @@ export function SessionActionsSection({
           open={dangerZoneOpen}
           onOpenChange={onDangerZoneOpenChange}
         >
-          <div className="space-y-2">
+          <div
+            className={
+              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
+            }
+          >
             <ActionCard
               tone={destructiveTone}
               icon={<LuTrash2 sx={destructiveTone.icon} />}

@@ -26,7 +26,6 @@ import { BottomBarLevel } from '@s4wave/web/frame/bottom-bar-level.js'
 import { BottomBarItem } from '@s4wave/web/frame/bottom-bar-item.js'
 import { bottomBarIconProps } from '@s4wave/web/frame/bottom-icon-props.js'
 import { useBottomBarSetOpenMenu } from '@s4wave/web/frame/bottom-bar-context.js'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import { SessionFrame } from '@s4wave/app/session/SessionFrame.js'
 import { SessionSharedObjectContainer } from '@s4wave/app/session/SessionSharedObjectContainer.js'
@@ -34,6 +33,42 @@ import { SessionSharedObjectContainer } from '@s4wave/app/session/SessionSharedO
 import { ORG_ROLE_OWNER } from './org-constants.js'
 import { OrganizationDashboard } from './OrganizationDashboard.js'
 import { OrganizationDetails } from './OrganizationDetails.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    maxWidth: `calc(${themeLayout['--spacing']} * 36)`,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+  },
+  rule2: {
+    marginLeft: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: '3.40282e38px',
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: '9px',
+    lineHeight: 1.5,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-wider)',
+    letterSpacing: 'var(--tracking-wider)',
+    textTransform: 'uppercase',
+  },
+  rule3: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
+    color: themeColors['--color-brand'],
+  },
+  rule4: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+})
 
 // OrgContainerState holds the watched organization state provided to children.
 
@@ -132,9 +167,6 @@ export function OrgContainer() {
   }, [navigate, currentLevelPath])
 
   const roleLabel = isOwner ? 'OWNER' : 'MEMBER'
-  const roleBadgeClass = isOwner
-    ? 'bg-brand/15 text-brand'
-    : 'bg-foreground/10 text-foreground-alt/70'
 
   const orgButton = useCallback(
     (selected: boolean, onClick: () => void, sx?: BottomBarStyles) => (
@@ -151,20 +183,20 @@ export function OrgContainer() {
         ) : (
           <LuBuilding2 {...bottomBarIconProps} aria-hidden="true" />
         )}
-        <div className="max-w-36 truncate">{orgName}</div>
+        <div sx={stylexStyles.rule1}>{orgName}</div>
         {info && (
           <span
-            className={cn(
-              'ml-1.5 rounded-full px-1.5 py-0.5 micro-nine font-semibold tracking-wider uppercase',
-              roleBadgeClass,
-            )}
+            sx={[
+              stylexStyles.rule2,
+              isOwner ? stylexStyles.rule3 : stylexStyles.rule4,
+            ]}
           >
             {roleLabel}
           </span>
         )}
       </BottomBarItem>
     ),
-    [orgName, roleLabel, roleBadgeClass, info],
+    [orgName, roleLabel, isOwner, info],
   )
 
   const orgOverlay = useMemo(

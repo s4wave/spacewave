@@ -11,6 +11,39 @@ import { useStorageBackends } from './useStorageBackends.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule2: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule3: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule4: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -39,15 +72,12 @@ export function StorageBackendsSection() {
       aria-labelledby="storage-backends-title"
       data-testid="storage-backends"
     >
-      <div className="mb-2 flex items-center justify-between gap-3">
+      <div sx={stylexStyles2.rule1}>
         <div>
-          <h2
-            id="storage-backends-title"
-            className="text-foreground text-xs font-medium"
-          >
+          <h2 id="storage-backends-title" sx={stylexStyles2.rule2}>
             Your buckets
           </h2>
-          <p className="text-foreground-alt/60 mt-0.5 text-xs">
+          <p sx={stylexStyles2.rule3}>
             {defaultName
               ? `New Spaces store their data in ${defaultName}.`
               : "New Spaces store their data in the account's own storage."}
@@ -63,12 +93,16 @@ export function StorageBackendsSection() {
 
       <InfoCard>
         {backends.length === 0 ? (
-          <p className="text-foreground-alt/60 text-xs">
+          <p sx={stylexStyles2.rule4}>
             Add an S3-compatible bucket, such as Amazon S3, Cloudflare R2, or
             Backblaze B2, to keep Space data in storage you own.
           </p>
         ) : (
-          <div className="divide-foreground/8 divide-y">
+          <div
+            className={
+              /* TODO(stylex): a descendant, group, peer or compound selector: divide-y */ 'divide-foreground/8 divide-y'
+            }
+          >
             {backends.map((info) => (
               <StorageBackendRow
                 key={info.backend?.id}

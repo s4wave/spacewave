@@ -25,6 +25,125 @@ import {
 } from '../../web/style/tokens.stylex.js'
 import { groupMarker } from '../../web/style/relations.stylex.js'
 
+import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    position: 'relative',
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 6)`,
+    overflowY: 'auto',
+    backgroundColor: themeColors['--color-background-landing'],
+    padding: {
+      default: `calc(${themeLayout['--spacing']} * 6)`,
+      '@media (min-width: 48rem)': `calc(${themeLayout['--spacing']} * 10)`,
+    },
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+  },
+  rule2: {
+    position: 'relative',
+    zIndex: 10,
+    display: 'flex',
+    width: '100%',
+    maxWidth: 'var(--container-sm)',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule3: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule4: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: 'var(--text-xl)',
+    lineHeight: 'var(--tw-leading, var(--text-xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-wide)',
+    letterSpacing: 'var(--tracking-wide)',
+    color: themeColors['--color-foreground'],
+  },
+  rule5: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule6: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule7: {
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-warning']} 15%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: '9px',
+    lineHeight: 1.5,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-wider)',
+    letterSpacing: 'var(--tracking-wider)',
+    color: themeColors['--color-warning'],
+    textTransform: 'uppercase',
+  },
+  rule8: {
+    position: 'relative',
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+    backgroundColor: themeColors['--color-background-get-started'],
+    '--tw-shadow':
+      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+  },
+  rule9: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 12)`,
+    height: `calc(${themeLayout['--spacing']} * 12)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-warning']} 10%, transparent)`,
+  },
+  rule10: {
+    textAlign: 'center',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule11: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule12: {
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-destructive'],
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     display: 'flex',
@@ -138,37 +257,35 @@ export function DormantOverlay({ metadata }: DormantOverlayProps) {
   const providerLabel = metadata.providerDisplayName || 'Cloud'
 
   return (
-    <div className="bg-background-landing relative flex flex-1 flex-col items-center justify-center gap-6 overflow-y-auto p-6 outline-none md:p-10">
+    <div sx={stylexStyles3.rule1}>
       <BackButton floating onClick={handleBack}>
         Sessions
       </BackButton>
-      <div className="relative z-10 flex w-full max-w-sm flex-col gap-6">
-        <div className="flex flex-col items-center gap-2">
+      <div sx={stylexStyles3.rule2}>
+        <div sx={stylexStyles3.rule3}>
           <AnimatedLogo followMouse={false} />
-          <h1 className="text-foreground mt-2 text-xl font-semibold tracking-wide">
-            Subscription inactive
-          </h1>
+          <h1 sx={stylexStyles3.rule4}>Subscription inactive</h1>
           {entityId && (
-            <div className="flex items-center gap-2">
-              <span className="text-foreground text-sm font-medium">
-                {entityId}
-              </span>
-              <span className="bg-warning/15 text-warning micro-nine rounded-full px-1.5 py-0.5 font-semibold tracking-wider uppercase">
-                {providerLabel}
-              </span>
+            <div sx={stylexStyles3.rule5}>
+              <span sx={stylexStyles3.rule6}>{entityId}</span>
+              <span sx={stylexStyles3.rule7}>{providerLabel}</span>
             </div>
           )}
         </div>
 
-        <div className="border-foreground/20 bg-background-get-started relative overflow-hidden rounded-lg border shadow-lg backdrop-blur-sm">
-          <div className="space-y-4 p-6">
-            <div className="flex flex-col items-center gap-2">
-              <div className="bg-warning/10 flex size-12 items-center justify-center rounded-full">
+        <div sx={stylexStyles3.rule8}>
+          <div
+            className={
+              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4 p-6'
+            }
+          >
+            <div sx={stylexStyles3.rule3}>
+              <div sx={stylexStyles3.rule9}>
                 <LuMoon sx={stylexStyles.rule1} />
               </div>
             </div>
 
-            <p className="text-foreground-alt text-center text-sm leading-relaxed">
+            <p sx={stylexStyles3.rule10}>
               This cloud session is paused because the subscription is not
               active. Reactivate the subscription to continue, or open a local
               session in the meantime.
@@ -183,16 +300,12 @@ export function DormantOverlay({ metadata }: DormantOverlayProps) {
               sx={[[stylexStyles2.rule1, groupMarker]]}
             >
               <LuSparkles sx={stylexStyles.rule2} />
-              <span className="text-foreground text-sm">
+              <span sx={stylexStyles3.rule11}>
                 {resolving ? 'Opening billing…' : 'Reactivate subscription'}
               </span>
             </button>
 
-            {error && (
-              <p className="text-destructive text-center text-xs leading-relaxed">
-                {error}
-              </p>
-            )}
+            {error && <p sx={stylexStyles3.rule12}>{error}</p>}
 
             <button
               type="button"
@@ -200,9 +313,7 @@ export function DormantOverlay({ metadata }: DormantOverlayProps) {
               sx={[[stylexStyles2.rule2, groupMarker]]}
             >
               <LuUser sx={stylexStyles.rule2} />
-              <span className="text-foreground text-sm">
-                Open a local session
-              </span>
+              <span sx={stylexStyles3.rule11}>Open a local session</span>
             </button>
           </div>
         </div>

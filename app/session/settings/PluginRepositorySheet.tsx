@@ -16,6 +16,64 @@ import {
 
 import * as stylex from '@stylexjs/stylex'
 
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+  layout as themeLayout,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles5 = stylex.create({
+  rule1: { marginTop: themeLayout['--spacing'] },
+})
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+  },
+})
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    marginTop: themeLayout['--spacing'],
+    listStyleType: 'disc',
+    paddingLeft: `calc(${themeLayout['--spacing']} * 4)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule2: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-destructive'],
+  },
+  rule3: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  rule4: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule5: { color: themeColors['--color-foreground'] },
+  rule6: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: { overflowY: 'auto' },
   rule2: { flexDirection: 'row', justifyContent: 'flex-end' },
@@ -68,42 +126,55 @@ export function PluginRepositorySheet({
             Commit {commit.slice(0, 7)}. Nothing from this repository has run.
           </SheetDescription>
         </SheetHeader>
-        <div className="space-y-4 px-4 text-sm">
+        <div sx={stylexStyles4.rule1}>
           {stale && (
-            <p role="alert" className="text-destructive text-xs">
+            <p
+              role="alert"
+              sx={[nativeChildSpacingNext.s4, stylexStyles2.rule1]}
+            >
               The repository has moved to another commit. Review it again.
             </p>
           )}
           {refusals.length > 0 ? (
-            <section role="alert" aria-label="Refused">
-              <h3 className="text-destructive font-medium">
+            <section
+              sx={nativeChildSpacingNext.s4}
+              role="alert"
+              aria-label="Refused"
+            >
+              <h3 sx={stylexStyles2.rule2}>
                 Spacewave will not build this repository
               </h3>
-              <ul className="text-foreground-alt mt-1 list-disc space-y-1 pl-4 text-xs">
+              <ul sx={stylexStyles3.rule1}>
                 {refusals.map((refusal) => (
-                  <li key={refusal.reason}>{refusal.reason}</li>
+                  <li sx={nativeChildSpacing.s1} key={refusal.reason}>
+                    {refusal.reason}
+                  </li>
                 ))}
               </ul>
             </section>
           ) : (
             <>
-              <section aria-label="Plugins">
-                <h3 className="font-medium">Plugins</h3>
-                <ul className="mt-1 space-y-2">
+              <section sx={nativeChildSpacingNext.s4} aria-label="Plugins">
+                <h3 sx={stylexStyles2.rule3}>Plugins</h3>
+                <ul sx={stylexStyles5.rule1}>
                   {plugins.map((plugin) => (
-                    <PluginItem key={plugin.manifestId} plugin={plugin} />
+                    <PluginItem
+                      sx={nativeChildSpacingNextNext.s2}
+                      key={plugin.manifestId}
+                      plugin={plugin}
+                    />
                   ))}
                 </ul>
               </section>
-              <section aria-label="Dependencies">
-                <h3 className="font-medium">Dependencies</h3>
-                <p className="text-foreground-alt mt-1 text-xs">
+              <section sx={nativeChildSpacingNext.s4} aria-label="Dependencies">
+                <h3 sx={stylexStyles2.rule3}>Dependencies</h3>
+                <p sx={stylexStyles2.rule4}>
                   {dependencySummary(direct, dependencies.length)}
                 </p>
               </section>
-              <section aria-label="Target">
-                <h3 className="font-medium">Target</h3>
-                <p className="text-foreground-alt mt-1 text-xs">
+              <section sx={nativeChildSpacingNext.s4} aria-label="Target">
+                <h3 sx={stylexStyles2.rule3}>Target</h3>
+                <p sx={stylexStyles2.rule4}>
                   Builds on {device} into your developer Space, at this commit
                   only.
                 </p>
@@ -127,14 +198,17 @@ export function PluginRepositorySheet({
 }
 
 /** PluginItem lists one declared plugin and its modules. */
-function PluginItem({ plugin }: { plugin: Plugin }) {
+function PluginItem({
+  sx,
+  plugin,
+}: { plugin: Plugin } & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
-    <li>
-      <p className="text-foreground">{plugin.manifestId}</p>
+    <li sx={sx}>
+      <p sx={stylexStyles2.rule5}>{plugin.manifestId}</p>
       {plugin.description && (
-        <p className="text-foreground-alt text-xs">{plugin.description}</p>
+        <p sx={stylexStyles2.rule6}>{plugin.description}</p>
       )}
-      <ul className="text-foreground-alt text-xs">
+      <ul sx={stylexStyles2.rule6}>
         {(plugin.modules ?? []).map((module) => (
           <li key={module.path}>
             {moduleKinds[module.kind ?? 0] ?? 'Module'}: {module.path}
@@ -159,3 +233,48 @@ function dependencySummary(direct: Dependency[], total: number): string {
   if (names.length === 0) return `${more}, ${pinned}.`
   return `${names.join(', ')} and ${more}, ${pinned}.`
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s1: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s4: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNextNext = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

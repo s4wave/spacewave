@@ -47,6 +47,208 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    position: 'relative',
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    overflowY: 'auto',
+    paddingTop: `calc(${themeLayout['--spacing']} * 16)`,
+    paddingBottom: `calc(${themeLayout['--spacing']} * 8)`,
+  },
+  rule2: {
+    width: '100%',
+    maxWidth: 'var(--container-md)',
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule3: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 6)`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule4: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule5: {
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+  },
+  rule6: {
+    display: 'flex',
+    cursor: { default: 'pointer', ':disabled': 'not-allowed' },
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-brand'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule7: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule8: {
+    marginInline: 'auto',
+    width: '100%',
+    maxWidth: 'var(--container-sm)',
+  },
+  rule9: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule10: {
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule11: {
+    display: 'flex',
+    width: '100%',
+    cursor: 'pointer',
+    flexDirection: 'column',
+    gap: themeLayout['--spacing'],
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    textAlign: 'left',
+  },
+  rule12: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule13: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule14: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule15: {
+    display: 'flex',
+    minWidth: 0,
+    flex: 1,
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+  },
+  rule16: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderRadius: '3.40282e38px',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule17: {
+    cursor: 'pointer',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    color: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-destructive'],
+      },
+    },
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 5)`,
@@ -238,41 +440,31 @@ export function BillingAccountsPage() {
   const accounts: ManagedBillingAccount[] = data?.accounts ?? []
 
   return (
-    <div className="relative flex h-full w-full items-start justify-center overflow-y-auto pt-16 pb-8">
+    <div sx={stylexStyles2.rule1}>
       {consentDialog}
       <BackButton floating onClick={handleBack}>
         Back
       </BackButton>
-      <div className="w-full max-w-md px-4">
-        <div className="mb-6 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
+      <div sx={stylexStyles2.rule2}>
+        <div sx={stylexStyles2.rule3}>
+          <div sx={stylexStyles2.rule4}>
             <LuCreditCard sx={stylexStyles.rule1} />
-            <h1 className="text-foreground text-lg font-semibold tracking-tight">
-              Billing Accounts
-            </h1>
+            <h1 sx={stylexStyles2.rule5}>Billing Accounts</h1>
           </div>
           <button
             type="button"
             onClick={() => void handleCreate()}
             disabled={creating || !checkoutResultBaseUrl}
-            className="border-brand/30 bg-brand/10 hover:bg-brand/20 text-brand flex cursor-pointer items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            sx={stylexStyles2.rule6}
           >
             <LuPlus sx={stylexStyles.rule2} />
             <span>{creating ? 'Creating…' : 'New billing account'}</span>
           </button>
         </div>
-        {createError && (
-          <div className="border-destructive/20 bg-destructive/5 text-destructive mb-3 rounded-md border px-3 py-2 text-sm">
-            {createError}
-          </div>
-        )}
-        {assignError && (
-          <div className="border-destructive/20 bg-destructive/5 text-destructive mb-3 rounded-md border px-3 py-2 text-sm">
-            {assignError}
-          </div>
-        )}
+        {createError && <div sx={stylexStyles2.rule7}>{createError}</div>}
+        {assignError && <div sx={stylexStyles2.rule7}>{assignError}</div>}
         {loading && (
-          <div className="mx-auto w-full max-w-sm">
+          <div sx={stylexStyles2.rule8}>
             <LoadingCard
               view={{
                 state: 'active',
@@ -282,11 +474,7 @@ export function BillingAccountsPage() {
             />
           </div>
         )}
-        {error && (
-          <div className="border-destructive/20 bg-destructive/5 text-destructive rounded-md border px-3 py-2 text-sm">
-            {error.message}
-          </div>
-        )}
+        {error && <div sx={stylexStyles2.rule9}>{error.message}</div>}
         {!loading && !error && accounts.length === 0 && (
           <EmptyState
             icon={<LuCreditCard sx={stylexStyles.rule3} />}
@@ -301,44 +489,40 @@ export function BillingAccountsPage() {
             variant="panel"
           />
         )}
-        {detachError && (
-          <div className="border-destructive/20 bg-destructive/5 text-destructive mb-3 rounded-md border px-3 py-2 text-sm">
-            {detachError}
-          </div>
-        )}
+        {detachError && <div sx={stylexStyles2.rule7}>{detachError}</div>}
         {accounts.length > 0 && (
-          <ul className="space-y-2">
+          <ul
+            className={
+              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
+            }
+          >
             {accounts.map((ba) => {
               const baId = ba.id ?? ''
               const assignees = ba.assignees ?? []
               const isBusy = assigningBaId === baId
               return (
-                <li
-                  key={baId}
-                  className="border-foreground/10 bg-foreground/5 hover:border-brand/30 hover:bg-brand/5 overflow-hidden rounded-md border transition-colors"
-                >
+                <li key={baId} sx={stylexStyles2.rule10}>
                   <button
                     type="button"
                     onClick={() => handleOpen(baId)}
-                    className="flex w-full cursor-pointer flex-col gap-1 p-3 text-left"
+                    sx={stylexStyles2.rule11}
                   >
-                    <div className="flex items-center gap-2">
-                      <span className="text-foreground text-sm font-medium">
+                    <div sx={stylexStyles2.rule4}>
+                      <span sx={stylexStyles2.rule12}>
                         {ba.displayName || baId}
                       </span>
                       <span
-                        className={cn(
-                          'rounded-full px-2 py-0.5 micro-ten font-semibold tracking-wider uppercase',
-                          subscriptionStatusBadgeColor(ba.subscriptionStatus),
-                        )}
+                        className={
+                          /* TODO(stylex): computed class helper */ cn(
+                            'rounded-full px-2 py-0.5 micro-ten font-semibold tracking-wider uppercase',
+                            subscriptionStatusBadgeColor(ba.subscriptionStatus),
+                          )
+                        }
                       >
                         {statusLabel(ba.subscriptionStatus)}
                       </span>
                     </div>
-                    <div
-                      suppressHydrationWarning
-                      className="text-foreground-alt/60 text-xs"
-                    >
+                    <div suppressHydrationWarning sx={stylexStyles2.rule13}>
                       {[
                         lifecycleStateLabel(ba.lifecycleState),
                         ba.createdAt &&
@@ -348,12 +532,10 @@ export function BillingAccountsPage() {
                         .join(' \u00b7 ')}
                     </div>
                   </button>
-                  <div className="border-foreground/5 flex items-center justify-between gap-2 border-t px-3 py-2">
-                    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
+                  <div sx={stylexStyles2.rule14}>
+                    <div sx={stylexStyles2.rule15}>
                       {assignees.length === 0 && (
-                        <span className="text-foreground-alt/60 text-xs">
-                          Unassigned
-                        </span>
+                        <span sx={stylexStyles2.rule13}>Unassigned</span>
                       )}
                       {assignees.map((a) => {
                         const isPersonal =
@@ -365,7 +547,7 @@ export function BillingAccountsPage() {
                         return (
                           <span
                             key={`${a.ownerType}:${a.ownerId}`}
-                            className="border-foreground/10 bg-foreground/5 text-foreground-alt flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs"
+                            sx={stylexStyles2.rule16}
                           >
                             <span>{label}</span>
                             <button
@@ -380,7 +562,7 @@ export function BillingAccountsPage() {
                                 })
                               }
                               aria-label={`Detach ${label}`}
-                              className="hover:text-destructive cursor-pointer transition-colors"
+                              sx={stylexStyles2.rule17}
                             >
                               <LuX sx={stylexStyles.rule4} />
                             </button>

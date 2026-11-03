@@ -26,6 +26,17 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+const stylexStyles3 = stylex.create({
+  rule1: { display: 'flex', minHeight: 0, flex: 1, flexDirection: 'column' },
+  rule2: {
+    minHeight: 0,
+    flex: 1,
+    overflow: 'auto',
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBottom: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 7)`,
@@ -222,7 +233,7 @@ export function SpaceIndex() {
   // Keep the object list beside the prompt when the Space already contains objects.
   if (indexResolution.hasVisibleObjects) {
     return (
-      <div className="flex min-h-0 flex-1 flex-col">
+      <div sx={stylexStyles3.rule1}>
         <EmptyState
           sx={stylexStyles.rule1}
           icon={<LuBox sx={stylexStyles2.rule1} />}
@@ -233,7 +244,7 @@ export function SpaceIndex() {
             onClick: handleCreateClick,
           }}
         />
-        <div className="min-h-0 flex-1 overflow-auto px-4 pb-4">
+        <div sx={stylexStyles3.rule2}>
           <SpaceObjectBrowser embedded={true} />
         </div>
       </div>

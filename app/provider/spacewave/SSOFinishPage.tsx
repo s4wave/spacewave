@@ -30,6 +30,61 @@ import {
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
 
+import { fonts as themeFonts } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    position: 'relative',
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: themeColors['--color-background-landing'],
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule2: {
+    position: 'relative',
+    zIndex: 10,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    textAlign: 'center',
+  },
+  rule3: {
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule4: {
+    maxWidth: 'var(--container-sm)',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule5: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: {
+      default: themeColors['--color-brand'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 80%, transparent)`,
+      },
+    },
+    textDecorationLine: 'underline',
+  },
+  rule6: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 12)`,
@@ -273,22 +328,18 @@ export function SSOFinishPage() {
   // Error state.
   if (state.step === 'error') {
     return (
-      <div className="bg-background-landing relative flex flex-1 flex-col items-center justify-center p-6">
-        <div className="relative z-10 flex flex-col items-center gap-4 text-center">
+      <div sx={stylexStyles2.rule1}>
+        <div sx={stylexStyles2.rule2}>
           <LuCircleAlert sx={stylexStyles.rule1} />
-          <h2 className="text-foreground text-lg font-semibold">
-            Sign-in failed
-          </h2>
-          <p className="text-foreground-alt max-w-sm text-sm">
-            {state.message}
-          </p>
+          <h2 sx={stylexStyles2.rule3}>Sign-in failed</h2>
+          <p sx={stylexStyles2.rule4}>{state.message}</p>
           <button
             type="button"
             onClick={() => {
               clearSSOBrowserBinding()
               navigate({ path: getAuthReturnPath() })
             }}
-            className="text-brand hover:text-brand/80 mt-2 text-sm underline"
+            sx={stylexStyles2.rule5}
           >
             Start sign-in again
           </button>
@@ -308,12 +359,8 @@ export function SSOFinishPage() {
         intro={
           <>
             <AnimatedLogo followMouse={false} />
-            <h2 className="text-foreground text-lg font-semibold">
-              Welcome back
-            </h2>
-            <p className="text-foreground-alt text-sm">
-              Enter your PIN to finish signing in
-            </p>
+            <h2 sx={stylexStyles2.rule3}>Welcome back</h2>
+            <p sx={stylexStyles2.rule6}>Enter your PIN to finish signing in</p>
           </>
         }
       >
@@ -334,15 +381,15 @@ export function SSOFinishPage() {
 
   // Loading/progress states.
   return (
-    <div className="bg-background-landing relative flex flex-1 flex-col items-center justify-center p-6">
-      <div className="relative z-10 flex flex-col items-center gap-4 text-center">
+    <div sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>
         <AnimatedLogo followMouse={false} />
         {state.step === 'complete' ? (
           <LuCheck sx={stylexStyles.rule2} />
         ) : (
           <Spinner size="md" variant="muted" />
         )}
-        <p className="text-foreground-alt text-sm">{statusMessage}</p>
+        <p sx={stylexStyles2.rule6}>{statusMessage}</p>
       </div>
     </div>
   )

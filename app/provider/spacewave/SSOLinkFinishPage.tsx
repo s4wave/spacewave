@@ -13,6 +13,54 @@ import {
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
 
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule2: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+    backgroundColor: themeColors['--color-background-get-started'],
+    padding: `calc(${themeLayout['--spacing']} * 5)`,
+    '--tw-shadow':
+      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+  },
+  rule3: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    textAlign: 'center',
+  },
+  rule4: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 5)`,
@@ -104,21 +152,21 @@ export function SSOLinkFinishPage() {
       intro={
         <>
           <AnimatedLogo followMouse={false} />
-          <h2 className="text-foreground flex items-center gap-2 text-lg font-semibold">
+          <h2 sx={stylexStyles3.rule1}>
             <ProviderIcon provider={provider} sx={stylexStyles2.rule1} />
             {ok ? 'Return to Spacewave' : 'SSO link failed'}
           </h2>
         </>
       }
     >
-      <div className="border-foreground/20 bg-background-get-started rounded-lg border p-5 shadow-lg backdrop-blur-sm">
-        <div className="flex flex-col items-center gap-3 text-center">
+      <div sx={stylexStyles3.rule2}>
+        <div sx={stylexStyles3.rule3}>
           {ok ? (
             <LuCheck sx={stylexStyles.rule1} />
           ) : (
             <LuCircleAlert sx={stylexStyles.rule2} />
           )}
-          <p className="text-foreground-alt text-sm">
+          <p sx={stylexStyles3.rule4}>
             {ok
               ? 'This window can close. Finish confirming the account link in the original Spacewave window.'
               : 'The OAuth callback data was incomplete. Close this window and try linking again.'}

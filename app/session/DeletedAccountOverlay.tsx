@@ -20,6 +20,94 @@ import {
 } from '../../web/style/tokens.stylex.js'
 import { groupMarker } from '../../web/style/relations.stylex.js'
 
+import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    position: 'relative',
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 6)`,
+    overflowY: 'auto',
+    backgroundColor: themeColors['--color-background-landing'],
+    padding: {
+      default: `calc(${themeLayout['--spacing']} * 6)`,
+      '@media (min-width: 48rem)': `calc(${themeLayout['--spacing']} * 10)`,
+    },
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+  },
+  rule2: {
+    position: 'relative',
+    zIndex: 10,
+    display: 'flex',
+    width: '100%',
+    maxWidth: 'var(--container-sm)',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule3: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule4: {
+    position: 'relative',
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+    backgroundColor: themeColors['--color-background-get-started'],
+    '--tw-shadow':
+      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+  },
+  rule5: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 12)`,
+    height: `calc(${themeLayout['--spacing']} * 12)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+  },
+  rule6: {
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule7: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule8: {
+    textAlign: 'center',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule9: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     display: 'flex',
@@ -80,32 +168,34 @@ export function DeletedAccountOverlay({
   }, [handleRemove])
 
   return (
-    <div className="bg-background-landing relative flex flex-1 flex-col items-center justify-center gap-6 overflow-y-auto p-6 outline-none md:p-10">
+    <div sx={stylexStyles3.rule1}>
       <BackButton floating onClick={handleBack}>
         Sessions
       </BackButton>
-      <div className="relative z-10 flex w-full max-w-sm flex-col gap-6">
-        <div className="flex flex-col items-center gap-2">
+      <div sx={stylexStyles3.rule2}>
+        <div sx={stylexStyles3.rule3}>
           <AnimatedLogo followMouse={false} />
         </div>
 
-        <div className="border-foreground/20 bg-background-get-started relative overflow-hidden rounded-lg border shadow-lg backdrop-blur-sm">
-          <div className="space-y-4 p-6">
-            <div className="flex flex-col items-center gap-2">
-              <div className="bg-destructive/10 flex size-12 items-center justify-center rounded-full">
+        <div sx={stylexStyles3.rule4}>
+          <div
+            className={
+              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4 p-6'
+            }
+          >
+            <div sx={stylexStyles3.rule3}>
+              <div sx={stylexStyles3.rule5}>
                 <LuCircleAlert sx={stylexStyles.rule1} />
               </div>
-              <h2 className="text-foreground text-lg font-medium">
+              <h2 sx={stylexStyles3.rule6}>
                 {metadata.displayName || 'Deleted Session'}
               </h2>
               {metadata.providerDisplayName && (
-                <p className="text-foreground-alt text-xs">
-                  {metadata.providerDisplayName}
-                </p>
+                <p sx={stylexStyles3.rule7}>{metadata.providerDisplayName}</p>
               )}
             </div>
 
-            <p className="text-foreground-alt text-center text-sm leading-relaxed">
+            <p sx={stylexStyles3.rule8}>
               This account no longer exists on the cloud. The session cannot
               connect. You can remove it from your session list.
             </p>
@@ -115,7 +205,7 @@ export function DeletedAccountOverlay({
               onClick={handleRemoveClick}
               sx={[[stylexStyles2.rule1, groupMarker]]}
             >
-              <span className="text-foreground text-sm">Remove Session</span>
+              <span sx={stylexStyles3.rule9}>Remove Session</span>
             </button>
           </div>
         </div>

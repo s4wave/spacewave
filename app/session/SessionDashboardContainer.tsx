@@ -40,6 +40,118 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    marginInline: 'auto',
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    width: themeLayout['--width-content-inset'],
+    maxWidth: 'var(--container-3xl)',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-warning']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-warning']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule2: {
+    display: 'flex',
+    flexDirection: { default: 'column', '@media (min-width: 48rem)': 'row' },
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    alignItems: { default: null, '@media (min-width: 48rem)': 'center' },
+    justifyContent: {
+      default: null,
+      '@media (min-width: 48rem)': 'space-between',
+    },
+  },
+  rule3: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule4: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  rule5: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule6: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule7: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    width: {
+      default: null,
+      '@media (min-width: 48rem)': `calc(${themeLayout['--spacing']} * 56)`,
+    },
+  },
+  rule8: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule9: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-warning']} 20%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-warning']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-warning']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     marginTop: `calc(${themeLayout['--spacing']} * .5)`,
@@ -311,15 +423,15 @@ function PendingDeleteNotice({
   }, [onLogout])
 
   return (
-    <div className="border-warning/20 bg-warning/5 w-content-inset mx-auto mt-3 max-w-3xl rounded-lg border px-4 py-3">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-start gap-3">
+    <div sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>
+        <div sx={stylexStyles2.rule3}>
           <LuTriangleAlert sx={stylexStyles.rule1} />
-          <div className="space-y-1">
-            <p className="text-sm font-medium">
+          <div>
+            <p sx={[nativeChildSpacing.s1, stylexStyles2.rule4]}>
               Delete-now is active. This cloud account is read-only.
             </p>
-            <p className="text-foreground-alt text-xs leading-relaxed">
+            <p sx={[nativeChildSpacing.s1, stylexStyles2.rule5]}>
               Export what you need from the dashboard. Undo stops deletion, but
               the account remains lapsed and read-only until you start a fresh
               subscription.
@@ -327,19 +439,19 @@ function PendingDeleteNotice({
             {deleteAt && (
               <p
                 suppressHydrationWarning
-                className="text-foreground-alt text-xs"
+                sx={[nativeChildSpacing.s1, stylexStyles2.rule6]}
               >
                 Scheduled deletion: {formatScheduledDeletion(deleteAt)}
               </p>
             )}
           </div>
         </div>
-        <div className="flex flex-col gap-2 md:w-56">
+        <div sx={stylexStyles2.rule7}>
           <button
             type="button"
             onClick={() => void handleUndoClick()}
             disabled={undoing}
-            className="border-brand/30 bg-brand/10 hover:bg-brand/20 rounded-md border px-3 py-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            sx={stylexStyles2.rule8}
           >
             {undoing ? 'Canceling deletion…' : 'Undo Deletion'}
           </button>
@@ -347,7 +459,7 @@ function PendingDeleteNotice({
             type="button"
             onClick={() => setLogoutOpen(true)}
             disabled={loggingOut}
-            className="border-warning/20 bg-warning/10 hover:bg-warning/20 rounded-md border px-3 py-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            sx={stylexStyles2.rule9}
           >
             {loggingOut ? 'Logging out…' : 'Log Out'}
           </button>
@@ -362,3 +474,18 @@ function PendingDeleteNotice({
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s1: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

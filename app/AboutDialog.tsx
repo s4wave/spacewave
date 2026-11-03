@@ -17,6 +17,107 @@ import * as stylex from '@stylexjs/stylex'
 
 import { layout as themeLayout } from '../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+} from '../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    position: 'absolute',
+    top: `calc(${themeLayout['--spacing']} * 5)`,
+    right: `calc(${themeLayout['--spacing']} * 6)`,
+    textAlign: 'right',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule2: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    paddingInline: `calc(${themeLayout['--spacing']} * 6)`,
+    paddingTop: `calc(${themeLayout['--spacing']} * 8)`,
+    paddingBottom: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule3: {
+    fontSize: 'var(--text-xl)',
+    lineHeight: 'var(--tw-leading, var(--text-xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+  },
+  rule4: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule5: {
+    paddingInline: `calc(${themeLayout['--spacing']} * 6)`,
+    paddingBottom: `calc(${themeLayout['--spacing']} * 4)`,
+    textAlign: 'center',
+  },
+  rule6: {
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule7: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: themeColors['--color-border'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 6)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule8: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule9: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 30%, transparent)`,
+  },
+  rule10: {
+    display: 'block',
+    cursor: 'pointer',
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: themeColors['--color-border'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-muted']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 6)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+    textAlign: 'center',
+  },
+  rule11: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     marginBottom: `calc(${themeLayout['--spacing']} * 4)`,
@@ -69,24 +170,20 @@ export function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
           Free, open-source, local-first platform for file sync, communication,
           device management, and community plugins.
         </DialogDescription>
-        <p className="text-foreground-alt/60 absolute top-5 right-6 text-right text-xs">
-          {buildInfo.version}
-        </p>
+        <p sx={stylexStyles2.rule1}>{buildInfo.version}</p>
 
         {/* Header with logo */}
-        <div className="flex flex-col items-center px-6 pt-8 pb-2">
+        <div sx={stylexStyles2.rule2}>
           <AppLogo sx={stylexStyles.rule1} alt="Spacewave" />
-          <h2 className="text-xl font-semibold tracking-tight">Spacewave</h2>
+          <h2 sx={stylexStyles2.rule3}>Spacewave</h2>
           {buildInfo.runtimeLabel && (
-            <p className="text-foreground-alt/40 mt-1 text-xs">
-              {buildInfo.runtimeLabel}
-            </p>
+            <p sx={stylexStyles2.rule4}>{buildInfo.runtimeLabel}</p>
           )}
         </div>
 
         {/* Description */}
-        <div className="px-6 pb-4 text-center">
-          <p className="text-foreground-alt py-2 text-sm leading-relaxed">
+        <div sx={stylexStyles2.rule5}>
+          <p sx={stylexStyles2.rule6}>
             Free, open-source, local-first platform for file sync,
             communication, device management, and more with community plugins.
             End-to-end encrypted. Runs directly in the web browser.
@@ -94,29 +191,26 @@ export function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
         </div>
 
         {/* Links */}
-        <div className="border-border flex items-center justify-center gap-4 border-t px-6 py-3">
+        <div sx={stylexStyles2.rule7}>
           <a
             href={GITHUB_REPO_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-foreground-alt hover:text-foreground text-xs transition-colors"
+            sx={stylexStyles2.rule8}
           >
             GitHub
           </a>
-          <span className="text-foreground-alt/30 text-xs">|</span>
+          <span sx={stylexStyles2.rule9}>|</span>
           <a
             href={DISCORD_INVITE_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-foreground-alt hover:text-foreground text-xs transition-colors"
+            sx={stylexStyles2.rule8}
           >
             Discord
           </a>
-          <span className="text-foreground-alt/30 text-xs">|</span>
-          <a
-            href="#/docs"
-            className="text-foreground-alt hover:text-foreground text-xs transition-colors"
-          >
+          <span sx={stylexStyles2.rule9}>|</span>
+          <a href="#/docs" sx={stylexStyles2.rule8}>
             Documentation
           </a>
         </div>
@@ -129,15 +223,17 @@ export function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
               onClick={() =>
                 window.open('https://cjs.zip', '_blank', 'noopener,noreferrer')
               }
-              className="bg-muted/30 border-border block cursor-pointer border-t px-6 py-3 text-center"
+              sx={stylexStyles2.rule10}
             >
-              <p className="text-foreground-alt/50 text-xs">
-                Created by Christian Stewart
-              </p>
+              <p sx={stylexStyles2.rule11}>Created by Christian Stewart</p>
             </button>
           </TooltipTrigger>
           <TooltipContent side="bottom">
-            <div className="space-y-1 text-xs">
+            <div
+              className={
+                /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1 */ 'space-y-1 text-xs'
+              }
+            >
               <p>Dedicated to my father, Jim, and my cat, May.</p>
               <p>May they rest in peace ❤ ~ CJS, 2024</p>
             </div>

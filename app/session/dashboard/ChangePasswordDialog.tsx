@@ -8,9 +8,110 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@s4wave/web/ui/dialog.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import type { Account } from '@s4wave/sdk/account/account.js'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  fonts as themeFonts,
+  colors as themeColors,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 1.5)`,
+    display: 'block',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule2: {
+    width: '100%',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      ':focus': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 30%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+    '::placeholder': {
+      color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    },
+  },
+  rule3: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule4: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule5: {
+    borderRadius: themeRadii['--radius-md'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule6: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+})
 
 export interface ChangePasswordDialogProps {
   open: boolean
@@ -79,11 +180,6 @@ export function ChangePasswordDialog({
     [onOpenChange],
   )
 
-  const inputClass = cn(
-    'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 text-sm outline-none transition-colors',
-    'focus:border-brand/50',
-  )
-
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
@@ -94,12 +190,9 @@ export function ChangePasswordDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3">
-          <div>
-            <label
-              className="text-foreground-alt mb-1.5 block text-xs select-none"
-              htmlFor={currentPasswordId}
-            >
+        <div>
+          <div sx={nativeChildSpacing.s3}>
+            <label sx={stylexStyles.rule1} htmlFor={currentPasswordId}>
               Current password
             </label>
             <input
@@ -108,14 +201,11 @@ export function ChangePasswordDialog({
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder="Enter current password"
-              className={inputClass}
+              sx={[stylexStyles.rule2]}
             />
           </div>
-          <div>
-            <label
-              className="text-foreground-alt mb-1.5 block text-xs select-none"
-              htmlFor={newPasswordId}
-            >
+          <div sx={nativeChildSpacing.s3}>
+            <label sx={stylexStyles.rule1} htmlFor={newPasswordId}>
               New password
             </label>
             <input
@@ -124,14 +214,11 @@ export function ChangePasswordDialog({
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="Enter new password"
-              className={inputClass}
+              sx={[stylexStyles.rule2]}
             />
           </div>
-          <div>
-            <label
-              className="text-foreground-alt mb-1.5 block text-xs select-none"
-              htmlFor={confirmPasswordId}
-            >
+          <div sx={nativeChildSpacing.s3}>
+            <label sx={stylexStyles.rule1} htmlFor={confirmPasswordId}>
               Confirm new password
             </label>
             <input
@@ -143,24 +230,22 @@ export function ChangePasswordDialog({
               onKeyDown={(e) => {
                 if (e.key === 'Enter') void handleSubmit()
               }}
-              className={inputClass}
+              sx={[stylexStyles.rule2]}
             />
             {confirmPassword && !passwordsMatch && (
-              <p className="text-destructive mt-1 text-xs">
-                Passwords do not match.
-              </p>
+              <p sx={stylexStyles.rule3}>Passwords do not match.</p>
             )}
           </div>
         </div>
 
-        {error && <p className="text-destructive text-xs">{error}</p>}
+        {error && <p sx={stylexStyles.rule4}>{error}</p>}
 
         <DialogFooter>
           <button
             type="button"
             onClick={() => handleOpenChange(false)}
             disabled={submitting}
-            className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
+            sx={stylexStyles.rule5}
           >
             Cancel
           </button>
@@ -168,11 +253,7 @@ export function ChangePasswordDialog({
             type="button"
             onClick={() => void handleSubmit()}
             disabled={!canSubmit}
-            className={cn(
-              'rounded-md border px-4 py-2 text-sm transition-all',
-              'border-brand/30 bg-brand/10 hover:bg-brand/20',
-              'disabled:cursor-not-allowed disabled:opacity-50',
-            )}
+            sx={[stylexStyles.rule6]}
           >
             {submitting ? 'Changing…' : 'Change password'}
           </button>
@@ -181,3 +262,18 @@ export function ChangePasswordDialog({
     </Dialog>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

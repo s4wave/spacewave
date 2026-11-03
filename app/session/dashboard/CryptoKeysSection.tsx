@@ -16,6 +16,77 @@ import {
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
 
+import {
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+  radii as themeRadii,
+  motion as themeMotion,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rule3: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule4: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: themeRadii['--radius-md'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+  },
+  rule5: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    paddingTop: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule6: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -63,11 +134,15 @@ export function CryptoKeysSection({
       open={sectionOpen}
       onOpenChange={handleOpenChange}
     >
-      <div className="space-y-3">
+      <div
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
+        }
+      >
         {crypto && <CryptoIdentity crypto={crypto} />}
         {isLocal && (
           <>
-            {crypto && <div className="border-foreground/10 border-t" />}
+            {crypto && <div sx={stylexStyles2.rule1} />}
             <EntityKeypairsSection embedded />
           </>
         )}
@@ -78,7 +153,13 @@ export function CryptoKeysSection({
 
 // CryptoIdentity shows the session key type, a public key export, and the
 // space and storage totals.
-function CryptoIdentity({ crypto }: { crypto: SessionCryptoInfo }) {
+function CryptoIdentity({
+  sx,
+  crypto,
+}: { crypto: SessionCryptoInfo } & {
+  sx?: stylex.StyleXStyles
+  className?: never
+}) {
   const [pemCopied, setPemCopied] = useState(false)
   const handleCopyPem = () => {
     const pem = crypto.publicKeyPem
@@ -89,16 +170,16 @@ function CryptoIdentity({ crypto }: { crypto: SessionCryptoInfo }) {
   }
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
+    <div sx={sx}>
+      <div sx={[nativeChildSpacing.s2, stylexStyles2.rule2]}>
         {crypto.keyType && (
-          <span className="text-foreground-alt text-xs">{crypto.keyType}</span>
+          <span sx={stylexStyles2.rule3}>{crypto.keyType}</span>
         )}
         {crypto.publicKeyPem && (
           <button
             type="button"
             onClick={handleCopyPem}
-            className="hover:bg-foreground/5 text-foreground-alt hover:text-foreground flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs transition-colors"
+            sx={stylexStyles2.rule4}
             aria-label={pemCopied ? 'Copied!' : 'Copy public key PEM'}
           >
             {pemCopied ? (
@@ -111,15 +192,15 @@ function CryptoIdentity({ crypto }: { crypto: SessionCryptoInfo }) {
         )}
       </div>
       {(crypto.spaceCount ?? 0) > 0 && (
-        <div className="border-foreground/10 flex items-center gap-4 border-t pt-2">
-          <div className="text-foreground-alt flex items-center gap-1 text-xs">
+        <div sx={[nativeChildSpacing.s2, stylexStyles2.rule5]}>
+          <div sx={stylexStyles2.rule6}>
             <LuDatabase sx={stylexStyles.rule3} />
             <span>
               {crypto.spaceCount} {crypto.spaceCount === 1 ? 'space' : 'spaces'}
             </span>
           </div>
           {(crypto.totalStorageBytes ?? 0n) > 0n && (
-            <div className="text-foreground-alt text-xs">
+            <div sx={stylexStyles2.rule3}>
               {formatBytes(crypto.totalStorageBytes ?? 0n)}
             </div>
           )}
@@ -128,3 +209,18 @@ function CryptoIdentity({ crypto }: { crypto: SessionCryptoInfo }) {
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

@@ -20,7 +20,7 @@ import {
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { PluginLifecycleBadge } from '@s4wave/web/sdk/app/lifecycle.js'
 import { isValidSpacePluginId } from '@s4wave/core/space/world/world.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { Button } from '@s4wave/web/ui/button.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { Input } from '@s4wave/web/ui/input.js'
@@ -41,6 +41,318 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
+
+import {
+  fonts as themeFonts,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule3: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-destructive']} 80%, transparent)`,
+  },
+  rule4: {
+    fontSize: '.6rem',
+    lineHeight: 1.5,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-widest)',
+    letterSpacing: 'var(--tracking-widest)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    textTransform: 'uppercase',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule5: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule6: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 12%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+      },
+    },
+    padding: `calc(${themeLayout['--spacing']} * 2.5)`,
+    textAlign: 'left',
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.15s',
+    '--tw-duration': '.15s',
+  },
+  rule7: { cursor: 'not-allowed', opacity: 0.5 },
+  rule8: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+  },
+  rule9: { display: 'flex', minWidth: 0, flex: 1, flexDirection: 'column' },
+  rule10: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule11: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule12: {
+    fontSize: '.6rem',
+    lineHeight: 1.5,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    '--tw-numeric-spacing': 'tabular-nums',
+    fontVariantNumeric:
+      'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+  },
+  rule13: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: '.6rem',
+    lineHeight: 1.5,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule14: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-warning']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-warning']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule15: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule16: { display: 'flex', minWidth: 0, flexDirection: 'column' },
+  rule17: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule18: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule19: {
+    display: 'flex',
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule20: {
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-warning']} 15%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-warning'],
+  },
+  rule21: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: '.6rem',
+    lineHeight: 1.5,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 80%, transparent)`,
+    WebkitUserSelect: 'all',
+    userSelect: 'all',
+  },
+  rule22: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    padding: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule23: { WebkitUserSelect: 'none', userSelect: 'none' },
+  rule24: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule25: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule26: {
+    minWidth: 0,
+    flex: 1,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-destructive']} 90%, transparent)`,
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule27: {
+    display: 'flex',
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule28: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule29: {
+    minWidth: 0,
+    flex: 1,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule30: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    backgroundColor: '#0000',
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule31: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule32: {
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-brand'],
+  },
+  rule33: {
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule34: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 6)`,
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-destructive'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule35: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+})
 
 const stylexStyles3 = stylex.create({
   rule1: {
@@ -195,15 +507,19 @@ function SpacePluginAddPanel({
   children,
 }: SpacePluginAddPanelProps) {
   return (
-    <div className="border-foreground/6 bg-background-card/30 space-y-3 rounded-lg border p-3.5">
-      <div className="space-y-1.5">
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'border-foreground/6 bg-background-card/30 space-y-3 rounded-lg border p-3.5'
+      }
+    >
+      <div>
         <label
           htmlFor="space-plugin-id"
-          className="text-foreground text-xs font-medium select-none"
+          sx={[nativeChildSpacing.s1_5, stylexStyles4.rule1]}
         >
           Plugin manifest ID
         </label>
-        <div className="flex items-center gap-2">
+        <div sx={[nativeChildSpacing.s1_5, stylexStyles4.rule2]}>
           <Input
             id="space-plugin-id"
             value={draftId}
@@ -232,16 +548,18 @@ function SpacePluginAddPanel({
           </Button>
         </div>
         {draftError && (
-          <p className="text-destructive/80 text-xs">{draftError}</p>
+          <p sx={[nativeChildSpacing.s1_5, stylexStyles4.rule3]}>
+            {draftError}
+          </p>
         )}
       </div>
 
       {suggestions.length > 0 && (
-        <div className="space-y-1.5">
-          <span className="text-foreground-alt/50 micro-text font-medium tracking-widest uppercase select-none">
+        <div>
+          <span sx={[nativeChildSpacing.s1_5, stylexStyles4.rule4]}>
             Available plugins
           </span>
-          <div className="flex flex-col gap-1.5">
+          <div sx={[nativeChildSpacing.s1_5, stylexStyles4.rule5]}>
             {suggestions.map((plugin) => {
               const Icon = plugin.icon
               const isPending = pending === plugin.id
@@ -251,32 +569,25 @@ function SpacePluginAddPanel({
                   type="button"
                   onClick={() => onAdd(plugin.id)}
                   disabled={!!pending}
-                  className={cn(
-                    'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 flex w-full items-center gap-3 rounded-lg border p-2.5 text-left transition-all duration-150',
-                    !!pending && 'cursor-not-allowed opacity-50',
-                  )}
+                  sx={[stylexStyles4.rule6, !!pending && stylexStyles4.rule7]}
                 >
-                  <span className="bg-brand/10 flex size-8 shrink-0 items-center justify-center rounded-md">
+                  <span sx={stylexStyles4.rule8}>
                     {isPending ? (
                       <LuLoaderCircle sx={stylexStyles2.rule2} />
                     ) : (
                       <Icon sx={stylexStyles3.rule1} />
                     )}
                   </span>
-                  <span className="flex min-w-0 flex-1 flex-col">
-                    <span className="flex items-center gap-1.5">
-                      <span className="text-foreground text-xs font-medium">
-                        {plugin.name}
-                      </span>
+                  <span sx={stylexStyles4.rule9}>
+                    <span sx={stylexStyles4.rule10}>
+                      <span sx={stylexStyles4.rule11}>{plugin.name}</span>
                       {plugin.revision && (
-                        <span className="text-foreground-alt/50 micro-text tabular-nums">
+                        <span sx={stylexStyles4.rule12}>
                           rev {plugin.revision}
                         </span>
                       )}
                     </span>
-                    <span className="text-foreground-alt/70 micro-text truncate">
-                      {plugin.description}
-                    </span>
+                    <span sx={stylexStyles4.rule13}>{plugin.description}</span>
                   </span>
                   <LuPlus sx={stylexStyles2.rule3} />
                 </button>
@@ -313,23 +624,18 @@ function RequestedPluginList({
         const stored = availableIds.has(id)
         const isPending = pending === id
         return (
-          <div
-            key={id}
-            className="border-warning/20 bg-warning/5 flex flex-col gap-1.5 rounded-lg border px-3 py-2"
-          >
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex min-w-0 flex-col">
-                <span className="text-foreground truncate text-sm">{id}</span>
-                <span className="text-foreground-alt truncate text-xs">
+          <div key={id} sx={stylexStyles4.rule14}>
+            <div sx={stylexStyles4.rule15}>
+              <div sx={stylexStyles4.rule16}>
+                <span sx={stylexStyles4.rule17}>{id}</span>
+                <span sx={stylexStyles4.rule18}>
                   {stored
                     ? 'Waiting to load. Add it to this Space to continue.'
                     : 'Waiting to load. Add it from another Space, or deploy it here.'}
                 </span>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <span className="bg-warning/15 text-warning rounded-full px-2 py-0.5 text-xs">
-                  Requested
-                </span>
+              <div sx={stylexStyles4.rule19}>
+                <span sx={stylexStyles4.rule20}>Requested</span>
                 {stored && (
                   <Button
                     type="button"
@@ -349,7 +655,7 @@ function RequestedPluginList({
               </div>
             </div>
             {!stored && (
-              <code className="text-foreground-alt/80 micro-text truncate font-mono select-all">
+              <code sx={stylexStyles4.rule21}>
                 spacewave space deploy --manifest-id {id}
               </code>
             )}
@@ -391,15 +697,15 @@ function InstalledPluginList({
 }: InstalledPluginListProps) {
   if (plugins.length === 0) {
     return (
-      <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
+      <div sx={stylexStyles4.rule22}>
         <LuPuzzle sx={stylexStyles2.rule4} />
-        <span className="select-none">No plugins installed</span>
+        <span sx={stylexStyles4.rule23}>No plugins installed</span>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div sx={stylexStyles4.rule24}>
       {plugins.map((plugin) => {
         const id = plugin.pluginId ?? ''
         const meta = knownSpacePlugin(id)
@@ -411,14 +717,9 @@ function InstalledPluginList({
 
         if (confirming) {
           return (
-            <div
-              key={id}
-              className="border-destructive/30 bg-destructive/5 flex items-center justify-between gap-2 rounded-lg border px-3 py-2"
-            >
-              <span className="text-destructive/90 min-w-0 flex-1 truncate text-xs select-none">
-                Remove {id}?
-              </span>
-              <div className="flex shrink-0 items-center gap-1.5">
+            <div key={id} sx={stylexStyles4.rule25}>
+              <span sx={stylexStyles4.rule26}>Remove {id}?</span>
+              <div sx={stylexStyles4.rule27}>
                 <Button
                   variant="destructive"
                   size="sm"
@@ -446,14 +747,11 @@ function InstalledPluginList({
 
         if (askingBackgroundId === id && choice === 'unconfirmed') {
           return (
-            <div
-              key={id}
-              className="border-brand/30 bg-brand/5 flex items-center justify-between gap-2 rounded-lg border px-3 py-2"
-            >
-              <span className="text-foreground min-w-0 flex-1 text-xs select-none">
+            <div key={id} sx={stylexStyles4.rule28}>
+              <span sx={stylexStyles4.rule29}>
                 {meta.name} can keep running while this Space is closed. Allow?
               </span>
-              <div className="flex shrink-0 items-center gap-1.5">
+              <div sx={stylexStyles4.rule27}>
                 <Button
                   variant="brandOutline"
                   size="sm"
@@ -480,24 +778,13 @@ function InstalledPluginList({
         }
 
         return (
-          <div
-            key={id}
-            className="border-foreground/8 flex items-center justify-between gap-2 rounded-lg border bg-transparent px-3 py-2"
-          >
-            <div className="flex min-w-0 flex-col">
-              <span className="text-foreground truncate text-sm">{id}</span>
-              {desc && (
-                <span className="text-foreground-alt truncate text-xs">
-                  {desc}
-                </span>
-              )}
-              {detail && (
-                <span className="text-foreground-alt/70 truncate text-xs">
-                  {detail}
-                </span>
-              )}
+          <div key={id} sx={stylexStyles4.rule30}>
+            <div sx={stylexStyles4.rule16}>
+              <span sx={stylexStyles4.rule17}>{id}</span>
+              {desc && <span sx={stylexStyles4.rule18}>{desc}</span>}
+              {detail && <span sx={stylexStyles4.rule31}>{detail}</span>}
             </div>
-            <div className="flex shrink-0 items-center gap-2">
+            <div sx={stylexStyles4.rule19}>
               {choice === 'unconfirmed' && (
                 <Button
                   variant="ghost"
@@ -509,19 +796,15 @@ function InstalledPluginList({
                 </Button>
               )}
               {choice === 'running' && (
-                <span className="bg-brand/10 text-brand rounded-full px-2 py-0.5 text-xs">
-                  Background
-                </span>
+                <span sx={stylexStyles4.rule32}>Background</span>
               )}
               {choice === 'suspended' && (
-                <span className="bg-foreground/5 text-foreground-alt rounded-full px-2 py-0.5 text-xs">
-                  Suspended
-                </span>
+                <span sx={stylexStyles4.rule33}>Suspended</span>
               )}
               <PluginLifecycleBadge plugin={plugin} />
               {plugin.account ? (
                 <span
-                  className="bg-foreground/5 text-foreground-alt rounded-full px-2 py-0.5 text-xs"
+                  sx={stylexStyles4.rule33}
                   title="Installed on your account for every Space. Remove it from the account plugin list."
                 >
                   Account
@@ -532,10 +815,7 @@ function InstalledPluginList({
                   onClick={() => onRequestRemove(id)}
                   disabled={!!pending}
                   aria-label={`Remove ${id}`}
-                  className={cn(
-                    'text-foreground-alt/50 hover:text-destructive flex size-6 items-center justify-center rounded-md transition-colors',
-                    !!pending && 'cursor-not-allowed opacity-50',
-                  )}
+                  sx={[stylexStyles4.rule34, !!pending && stylexStyles4.rule7]}
                 >
                   <LuTrash2 sx={stylexStyles2.rule5} />
                 </button>
@@ -670,11 +950,9 @@ export function SpacePlugins() {
   const suggestions = catalogSuggestions(available, installedIds)
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <span className="text-foreground-alt/50 micro-text font-medium tracking-widest uppercase select-none">
-          {plugins.length} installed
-        </span>
+    <div sx={stylexStyles4.rule24}>
+      <div sx={stylexStyles4.rule35}>
+        <span sx={stylexStyles4.rule4}>{plugins.length} installed</span>
         <DashboardButton
           icon={
             adding ? (
@@ -738,3 +1016,18 @@ export function SpacePlugins() {
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s1_5: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

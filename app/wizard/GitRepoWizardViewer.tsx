@@ -21,6 +21,52 @@ import { WizardShell } from './WizardShell.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule2: { width: '100%', maxWidth: 'var(--container-sm)' },
+  rule3: { marginBottom: `calc(${themeLayout['--spacing']} * 2)` },
+  rule4: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-wider)',
+    letterSpacing: 'var(--tracking-wider)',
+    color: themeColors['--color-foreground'],
+    textTransform: 'uppercase',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule5: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-warning']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-warning']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-warning'],
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     marginRight: `calc(${themeLayout['--spacing']} * 2)`,
@@ -179,8 +225,8 @@ function cloneUrlErrorFor(isClone: boolean, url: string): string {
 /** GitRepoWizardLoading is shown until the wizard state arrives. */
 function GitRepoWizardLoading() {
   return (
-    <div className="flex flex-1 items-center justify-center p-6">
-      <div className="w-full max-w-sm">
+    <div sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>
         <LoadingCard
           view={{
             state: 'active',
@@ -297,10 +343,8 @@ function GitCloneProgressStep({
 
   return (
     <section>
-      <div className="mb-2">
-        <h3 className="text-foreground text-xs font-medium tracking-wider uppercase select-none">
-          Clone Progress
-        </h3>
+      <div sx={stylexStyles2.rule3}>
+        <h3 sx={stylexStyles2.rule4}>Clone Progress</h3>
       </div>
       {failed ? (
         <LoadingCard
@@ -325,7 +369,7 @@ function GitCloneProgressStep({
 
 function GitCloneUrlError({ message }: { message: string }) {
   return (
-    <div className="border-warning/20 bg-warning/5 text-warning flex items-start gap-2 rounded-lg border px-3 py-2 text-xs">
+    <div sx={stylexStyles2.rule5}>
       <LuTriangleAlert sx={stylexStyles.rule2} />
       <p>{message}</p>
     </div>

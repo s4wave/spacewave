@@ -19,6 +19,62 @@ import { groupMarker } from '../../web/style/relations.stylex.js'
 
 import { groupMarker as groupMarker2 } from '../../web/style/relations.stylex.js'
 
+import {
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+import { groupMarker as groupMarker3 } from '../../web/style/relations.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center',
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+  },
+  rule2: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 80%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker3)]:
+          themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule3: {
+    flexShrink: 0,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     display: 'flex',
@@ -112,21 +168,19 @@ export function SetupBanner() {
   if (!visible) return null
 
   return (
-    <div className="border-brand/20 bg-brand/5 relative flex items-center border-b">
+    <div sx={stylexStyles3.rule1}>
       <button
         type="button"
         onClick={handleSetupClick}
         sx={[stylexStyles2.rule1, groupMarker2]}
       >
-        <p className="text-foreground/80 group-hover:text-foreground text-xs font-medium transition-colors select-none">
-          Finish setting up your account
-        </p>
+        <p sx={stylexStyles3.rule2}>Finish setting up your account</p>
         <LuArrowRight sx={stylexStyles.rule1} />
       </button>
       <button
         type="button"
         onClick={handleDismiss}
-        className="text-foreground-alt hover:text-foreground shrink-0 px-2 py-1.5 transition-colors"
+        sx={stylexStyles3.rule3}
         aria-label="Dismiss setup banner"
       >
         <LuX sx={stylexStyles.rule2} />

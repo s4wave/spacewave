@@ -22,7 +22,6 @@ import {
 
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import {
   PLAN_PRICE_MONTHLY,
   OVERAGE_EXPLANATION,
@@ -45,6 +44,411 @@ import {
   fonts as themeFonts,
 } from '../../../web/style/tokens.stylex.js'
 import { groupMarker as groupMarker2 } from '../../../web/style/relations.stylex.js'
+
+import { groupMarker as groupMarker3 } from '../../../web/style/relations.stylex.js'
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    color: themeColors['--color-brand'],
+    textDecorationLine: {
+      default: null,
+      '@media (hover: hover)': { default: null, ':hover': 'underline' },
+    },
+  },
+  rule2: {
+    display: 'flex',
+    cursor: 'pointer',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule3: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule4: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: 'var(--text-xl)',
+    lineHeight: 'var(--tw-leading, var(--text-xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-wide)',
+    letterSpacing: 'var(--tracking-wide)',
+  },
+  rule5: {
+    textAlign: 'center',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule6: {
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 8)`,
+  },
+  rule7: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 6)`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rule8: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule9: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-lg'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+  },
+  rule10: {
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule11: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule12: {
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: themeLayout['--spacing'],
+  },
+  rule13: {
+    fontSize: 'var(--text-3xl)',
+    lineHeight: 'var(--tw-leading, var(--text-3xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-bold)',
+    fontWeight: 'var(--font-weight-bold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule14: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule15: { marginTop: `calc(${themeLayout['--spacing']} * 6)` },
+  rule16: {
+    marginTop: `calc(${themeLayout['--spacing']} * 8)`,
+    display: 'flex',
+    gap: themeLayout['--spacing'],
+  },
+  rule17: {
+    display: 'flex',
+    flex: 1,
+    cursor: { default: 'pointer', ':disabled': 'not-allowed' },
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: themeColors['--color-brand'],
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule18: { borderTopRightRadius: 0, borderBottomRightRadius: 0 },
+  rule19: {
+    display: 'flex',
+    cursor: 'pointer',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderTopRightRadius: themeRadii['--radius-md'],
+    borderBottomRightRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderLeftStyle: themeUtilityState['--tw-border-style'],
+    borderLeftWidth: 0,
+    borderColor: themeColors['--color-brand'],
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+  },
+  rule20: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule21: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 6)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule22: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule23: {
+    display: 'flex',
+    flexDirection: { default: 'column', '@media (min-width: 40rem)': 'row' },
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    '--tw-gradient-position': 'to right in oklab',
+    backgroundImage: 'linear-gradient(var(--tw-gradient-stops))',
+    '--tw-gradient-from': `color-mix(in oklab, ${themeColors['--color-blue-500']} 5%, transparent)`,
+    '--tw-gradient-stops':
+      'var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position))',
+    '--tw-gradient-via': `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+    '--tw-gradient-via-stops':
+      'var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-via) var(--tw-gradient-via-position), var(--tw-gradient-to) var(--tw-gradient-to-position)',
+    '--tw-gradient-to': `color-mix(in oklab, ${themeColors['--color-cyan-500']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 6)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 5)`,
+  },
+  rule24: {
+    borderRadius: themeRadii['--radius-lg'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-blue-500']} 10%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 2.5)`,
+  },
+  rule25: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule26: { WebkitUserSelect: 'none', userSelect: 'none' },
+  rule27: {
+    position: 'relative',
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    overflowY: 'auto',
+    backgroundColor: themeColors['--color-background-landing'],
+    padding: {
+      default: `calc(${themeLayout['--spacing']} * 6)`,
+      '@media (min-width: 48rem)': `calc(${themeLayout['--spacing']} * 10)`,
+    },
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+  },
+  rule28: {
+    position: 'relative',
+    zIndex: 10,
+    width: '100%',
+    maxWidth: 'var(--container-2xl)',
+  },
+  rule29: {
+    position: 'relative',
+    zIndex: 10,
+    marginBlock: 'auto',
+    display: 'flex',
+    width: '100%',
+    maxWidth: 'var(--container-2xl)',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule30: { paddingTop: `calc(${themeLayout['--spacing']} * 6)` },
+  rule31: {
+    display: 'grid',
+    gridTemplateColumns: {
+      default: 'repeat(1, minmax(0, 1fr))',
+      '@media (min-width: 40rem)': 'repeat(2, minmax(0, 1fr))',
+    },
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule32: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule33: {
+    paddingTop: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule34: { display: 'block' },
+  rule35: {
+    color: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 50%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 70%, transparent)`,
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule36: { marginTop: themeLayout['--spacing'], display: 'block' },
+  rule37: { marginInline: `calc(${themeLayout['--spacing']} * 1.5)` },
+  rule38: {
+    cursor: 'pointer',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule39: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 12%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 60%, transparent)`,
+  },
+  rule40: {
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 12%, transparent)`,
+      },
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 20%, transparent)`,
+  },
+  rule41: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule42: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule43: { color: themeColors['--color-foreground'] },
+  rule44: {
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        [stylex.when.ancestor(':is(:hover)', groupMarker3)]:
+          themeColors['--color-foreground'],
+      },
+    },
+  },
+  rule45: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 4)`,
+    height: `calc(${themeLayout['--spacing']} * 4)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '.25rem',
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule46: {
+    rotate: '45deg',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 12%, transparent)`,
+    color: themeColors['--color-brand'],
+  },
+  rule47: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule48: {
+    display: 'grid',
+    transitionProperty: 'all',
+    transitionTimingFunction: 'var(--ease-in-out)',
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    '--tw-ease': 'var(--ease-in-out)',
+  },
+  rule49: { gridTemplateRows: '1fr', opacity: 1 },
+  rule50: { gridTemplateRows: '0fr', opacity: 0 },
+  rule51: { overflow: 'hidden' },
+  rule52: {
+    paddingTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule53: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+})
 
 const stylexStyles3 = stylex.create({
   rule1: {
@@ -186,7 +590,7 @@ const E2E_ENCRYPTION_LINK = (
     href="https://www.cloudflare.com/learning/privacy/what-is-end-to-end-encryption/"
     target="_blank"
     rel="noopener noreferrer"
-    className="text-brand hover:underline"
+    sx={stylexStyles4.rule1}
     onClick={(e) => e.stopPropagation()}
   >
     a standard approach to data protection
@@ -257,51 +661,43 @@ export function CloudConfirmationPage({
   return (
     <PageWrapper
       backButton={
-        <button
-          type="button"
-          onClick={onBack}
-          className="text-foreground-alt hover:text-foreground flex cursor-pointer items-center gap-2 text-sm transition-colors"
-        >
+        <button type="button" onClick={onBack} sx={stylexStyles4.rule2}>
           <LuArrowLeft sx={stylexStyles.rule1} />
           Back to plan selection
         </button>
       }
     >
       {/* Header */}
-      <div className="flex flex-col items-center gap-2">
+      <div sx={stylexStyles4.rule3}>
         <AnimatedLogo followMouse={false} />
-        <h1 className="mt-2 text-xl font-semibold tracking-wide">
-          Spacewave Cloud
-        </h1>
-        <p className="text-foreground-alt text-center text-sm">
+        <h1 sx={stylexStyles4.rule4}>Spacewave Cloud</h1>
+        <p sx={stylexStyles4.rule5}>
           Always-on sync, backup, and collaboration
         </p>
       </div>
 
       {/* Expanded cloud card */}
-      <div className="border-brand/30 bg-background-card/50 overflow-hidden rounded-lg border p-8">
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-brand/10 flex size-10 items-center justify-center rounded-lg">
+      <div sx={stylexStyles4.rule6}>
+        <div sx={stylexStyles4.rule7}>
+          <div sx={stylexStyles4.rule8}>
+            <div sx={stylexStyles4.rule9}>
               <LuCloud sx={stylexStyles.rule2} />
             </div>
             <div>
-              <h2 className="text-foreground text-lg font-semibold">Cloud</h2>
-              <p className="text-foreground-alt text-xs">Everything you need</p>
+              <h2 sx={stylexStyles4.rule10}>Cloud</h2>
+              <p sx={stylexStyles4.rule11}>Everything you need</p>
             </div>
           </div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-foreground text-3xl font-bold">
-              ${PLAN_PRICE_MONTHLY}
-            </span>
-            <span className="text-foreground-alt text-sm">/ month</span>
+          <div sx={stylexStyles4.rule12}>
+            <span sx={stylexStyles4.rule13}>${PLAN_PRICE_MONTHLY}</span>
+            <span sx={stylexStyles4.rule14}>/ month</span>
           </div>
         </div>
 
         <FeatureGrid features={CLOUD_EXPANDED_FEATURES} />
 
         {!checkoutUrl && !polling && (
-          <div className="mt-6">
+          <div sx={stylexStyles4.rule15}>
             <BillingConsentForm
               disabled={loading || !root}
               onAccept={onRetry}
@@ -310,7 +706,7 @@ export function CloudConfirmationPage({
         )}
         {/* Checkout continuation */}
         {(checkoutUrl || polling) && (
-          <div className="mt-8 flex gap-1">
+          <div sx={stylexStyles4.rule16}>
             <button
               type="button"
               onClick={() => {
@@ -322,12 +718,10 @@ export function CloudConfirmationPage({
                 }
               }}
               disabled={loading || !root}
-              className={cn(
-                'flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium transition-all duration-300 select-none',
-                'border-brand bg-brand/10 text-foreground hover:bg-brand/20',
-                'disabled:cursor-not-allowed disabled:opacity-50',
-                showRetry ? 'rounded-r-none' : '',
-              )}
+              sx={[
+                stylexStyles4.rule17,
+                showRetry ? stylexStyles4.rule18 : false,
+              ]}
             >
               {loading ? (
                 <>
@@ -344,7 +738,7 @@ export function CloudConfirmationPage({
               <button
                 type="button"
                 onClick={() => onRetry()}
-                className="border-brand bg-brand/10 text-foreground hover:bg-brand/20 flex cursor-pointer items-center justify-center rounded-r-md border border-l-0 px-3 transition duration-300"
+                sx={stylexStyles4.rule19}
                 title="Retry"
               >
                 <LuRefreshCw sx={stylexStyles.rule1} />
@@ -353,15 +747,13 @@ export function CloudConfirmationPage({
           </div>
         )}
 
-        {error && (
-          <p className="text-destructive mt-3 text-center text-xs">{error}</p>
-        )}
+        {error && <p sx={stylexStyles4.rule20}>{error}</p>}
       </div>
 
       {/* Trust signals */}
-      <div className="text-foreground-alt flex flex-wrap items-center justify-center gap-6 text-xs">
+      <div sx={stylexStyles4.rule21}>
         {TRUST_SIGNALS.map((text) => (
-          <span key={text} className="flex items-center gap-1.5">
+          <span key={text} sx={stylexStyles4.rule22}>
             <LuCheck sx={stylexStyles.rule3} />
             {text}
           </span>
@@ -372,18 +764,14 @@ export function CloudConfirmationPage({
       <FaqAccordion items={CLOUD_FAQ} />
 
       {/* Open source footer */}
-      <div className="border-foreground/6 via-brand/5 flex flex-col items-center justify-between gap-4 rounded-lg border bg-gradient-to-r from-blue-500/5 to-cyan-500/5 px-6 py-5 sm:flex-row">
-        <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-blue-500/10 p-2.5">
+      <div sx={stylexStyles4.rule23}>
+        <div sx={stylexStyles4.rule8}>
+          <div sx={stylexStyles4.rule24}>
             <LuCode sx={stylexStyles.rule2} />
           </div>
           <div>
-            <h3 className="text-foreground text-sm font-semibold">
-              Open Source Software
-            </h3>
-            <p className="text-foreground-alt text-xs">
-              Built in the open, for everyone
-            </p>
+            <h3 sx={stylexStyles4.rule25}>Open Source Software</h3>
+            <p sx={stylexStyles4.rule11}>Built in the open, for everyone</p>
           </div>
         </div>
         <a
@@ -393,7 +781,7 @@ export function CloudConfirmationPage({
           sx={[stylexStyles3.rule1, groupMarker2]}
         >
           <LuGithub sx={stylexStyles.rule4} />
-          <span className="select-none">View on GitHub</span>
+          <span sx={stylexStyles4.rule26}>View on GitHub</span>
         </a>
       </div>
 
@@ -411,16 +799,9 @@ export function PageWrapper({
   children: React.ReactNode
 }) {
   return (
-    <div className="bg-background-landing relative flex flex-1 flex-col items-center overflow-y-auto p-6 outline-none md:p-10">
-      {backButton && (
-        <div className="relative z-10 w-full max-w-2xl">{backButton}</div>
-      )}
-      <div
-        className={cn(
-          'relative z-10 my-auto flex w-full max-w-2xl flex-col gap-6',
-          backButton && 'pt-6',
-        )}
-      >
+    <div sx={stylexStyles4.rule27}>
+      {backButton && <div sx={stylexStyles4.rule28}>{backButton}</div>}
+      <div sx={[stylexStyles4.rule29, !!backButton && stylexStyles4.rule30]}>
         {children}
       </div>
     </div>
@@ -437,11 +818,11 @@ export function FeatureGrid({
   }[]
 }) {
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <div sx={stylexStyles4.rule31}>
       {features.map((feature) => (
-        <div key={feature.text} className="flex items-start gap-2">
+        <div key={feature.text} sx={stylexStyles4.rule32}>
           <feature.icon sx={stylexStyles2.rule1} />
-          <span className="text-foreground-alt text-sm">{feature.text}</span>
+          <span sx={stylexStyles4.rule14}>{feature.text}</span>
         </div>
       ))}
     </div>
@@ -451,27 +832,24 @@ export function FeatureGrid({
 // PageFooter renders the bottom attribution and legal links.
 export function PageFooter() {
   return (
-    <p className="text-foreground-alt/40 pt-4 pb-2 text-center text-xs">
-      <span className="block">
+    <p sx={stylexStyles4.rule33}>
+      <span sx={stylexStyles4.rule34}>
         Spacewave Cloud by{' '}
         <a
           href="https://aperture.us"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-foreground/50 hover:text-foreground/70 transition-colors"
+          sx={stylexStyles4.rule35}
         >
           Aperture Robotics
         </a>
         , LLC. powered by Cloudflare
       </span>
-      <span className="mt-1 block">
+      <span sx={stylexStyles4.rule36}>
         {FOOTER_LINKS.map((link, index) => (
           <span key={link.href}>
-            {index > 0 && <span className="mx-1.5">|</span>}
-            <a
-              href={link.href}
-              className="text-foreground/50 hover:text-foreground/70 transition-colors"
-            >
+            {index > 0 && <span sx={stylexStyles4.rule37}>|</span>}
+            <a href={link.href} sx={stylexStyles4.rule35}>
               {link.label}
             </a>
           </span>
@@ -503,49 +881,39 @@ export function PlanFaqItem({
     <div
       role="button"
       tabIndex={0}
-      className={cn(
-        'cursor-pointer rounded-lg border p-4 transition-all',
-        isOpen
-          ? 'border-foreground/12 bg-background-card/60'
-          : 'border-foreground/6 bg-background-card/20 hover:border-foreground/12',
-      )}
+      sx={[
+        stylexStyles4.rule38,
+        isOpen ? stylexStyles4.rule39 : stylexStyles4.rule40,
+      ]}
       onClick={onToggle}
       onKeyDown={handleFaqKeyDown}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div sx={stylexStyles4.rule41}>
         <h3
-          className={cn(
-            'text-xs leading-relaxed font-medium transition-colors',
-            isOpen
-              ? 'text-foreground'
-              : 'text-foreground-alt group-hover:text-foreground',
-          )}
+          sx={[
+            stylexStyles4.rule42,
+            isOpen ? stylexStyles4.rule43 : stylexStyles4.rule44,
+          ]}
         >
           {question}
         </h3>
         <div
-          className={cn(
-            'mt-0.5 flex size-4 shrink-0 items-center justify-center rounded transition-all',
-            isOpen
-              ? 'bg-brand/12 text-brand rotate-45'
-              : 'bg-foreground/6 text-foreground-alt',
-          )}
+          sx={[
+            stylexStyles4.rule45,
+            isOpen ? stylexStyles4.rule46 : stylexStyles4.rule47,
+          ]}
         >
           <LuPlus sx={stylexStyles.rule5} />
         </div>
       </div>
       <div
-        className={cn(
-          'grid transition-all duration-300 ease-in-out',
-          isOpen
-            ? 'grid-rows-expand opacity-100'
-            : 'grid-rows-collapse opacity-0',
-        )}
+        sx={[
+          stylexStyles4.rule48,
+          isOpen ? stylexStyles4.rule49 : stylexStyles4.rule50,
+        ]}
       >
-        <div className="overflow-hidden">
-          <p className="text-foreground-alt pt-2 text-xs leading-relaxed">
-            {answer}
-          </p>
+        <div sx={stylexStyles4.rule51}>
+          <p sx={stylexStyles4.rule52}>{answer}</p>
         </div>
       </div>
     </div>
@@ -564,7 +932,7 @@ export function FaqAccordion({
   }, [])
 
   return (
-    <div className="flex flex-col gap-2">
+    <div sx={stylexStyles4.rule53}>
       {items.map((item, index) => (
         <PlanFaqItem
           key={item.question}

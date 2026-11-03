@@ -27,6 +27,57 @@ import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
 
 import * as stylex from '@stylexjs/stylex'
 
+import {
+  colors as themeColors,
+  fonts as themeFonts,
+  utilityState as themeUtilityState,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    flexShrink: 1,
+    flexGrow: 1,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+  },
+  rule2: {
+    marginInline: `calc(${themeLayout['--spacing']} * 2)`,
+    height: `calc(${themeLayout['--spacing']} * 3)`,
+    width: '1px',
+    backgroundColor: themeColors['--color-border'],
+  },
+  rule3: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-muted-foreground'],
+  },
+  rule4: {
+    display: 'flex',
+    minHeight: 0,
+    flex: 1,
+    flexDirection: 'column',
+    overflow: 'hidden',
+    backgroundColor: themeColors['--color-background-dark'],
+  },
+  rule5: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     marginRight: `calc(${themeLayout['--spacing']} * 1.5)`,
@@ -95,9 +146,9 @@ export function CliTerminalPage() {
     (selected: boolean, onClick: () => void, sx?: BottomBarStyles) => (
       <BottomBarItem selected={selected} onClick={onClick} sx={sx}>
         <LuTerminal sx={stylexStyles.rule1} />
-        <div className="flex-shrink flex-grow truncate">Terminal</div>
-        <div className="bg-border mx-2 h-3 w-px" />
-        <div className="text-muted-foreground truncate text-xs">CLI</div>
+        <div sx={stylexStyles2.rule1}>Terminal</div>
+        <div sx={stylexStyles2.rule2} />
+        <div sx={stylexStyles2.rule3}>CLI</div>
       </BottomBarItem>
     ),
     [],
@@ -110,10 +161,8 @@ export function CliTerminalPage() {
         button={renderTerminalBarItem}
         menuLabel="Terminal"
       >
-        <div className="bg-background-dark flex min-h-0 flex-1 flex-col overflow-hidden">
-          <div className="border-foreground/8 text-foreground-alt/70 flex h-7 shrink-0 items-center border-b px-3 text-xs">
-            Spacewave CLI · This session
-          </div>
+        <div sx={stylexStyles2.rule4}>
+          <div sx={stylexStyles2.rule5}>Spacewave CLI · This session</div>
           <TerminalPane session="cli" connectTerminal={connectTerminal} />
         </div>
       </BottomBarLevel>

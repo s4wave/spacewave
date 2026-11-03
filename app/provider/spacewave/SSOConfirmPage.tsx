@@ -6,7 +6,7 @@ import { LuArrowLeft, LuCheck, LuUserPlus } from '@s4wave/web/images/icons.js'
 import { useNavigate, useParams } from '@s4wave/web/router/router.js'
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import {
   Dialog,
   DialogContent,
@@ -38,7 +38,7 @@ import {
   AuthPrimaryActionButton,
   AuthSecondaryActionButton,
   AuthStatusPanel,
-  authInputClassName,
+  authInputStyles,
   getProviderLabel,
   getErrorMessage,
   isUsernameTakenError,
@@ -55,6 +55,132 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
+
+import {
+  fonts as themeFonts,
+  radii as themeRadii,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'flex',
+    width: '100%',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    color: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-brand'],
+      },
+    },
+  },
+  rule3: {
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule4: {
+    display: 'flex',
+    width: '100%',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule5: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule6: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule7: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule8: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule9: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule10: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule11: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 4)`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule12: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-lg'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+  },
+  rule13: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule14: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule15: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'center',
+    columnGap: `calc(${themeLayout['--spacing']} * 6)`,
+    rowGap: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule16: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule17: {
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule18: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+})
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -305,7 +431,7 @@ function SSORecoveryActions({
   onCancel,
 }: SSORecoveryActionsProps) {
   return (
-    <div className="flex w-full flex-col gap-2">
+    <div sx={stylexStyles3.rule1}>
       {isDesktop && routeProvider && (
         <AuthPrimaryActionButton onClick={onRestartDesktop}>
           Restart sign-in
@@ -325,10 +451,7 @@ function BackToLoginButton({
   children: ReactNode
 }) {
   return (
-    <AuthSecondaryActionButton
-      onClick={onClick}
-      className="hover:text-brand flex items-center justify-center gap-1.5"
-    >
+    <AuthSecondaryActionButton onClick={onClick} sx={stylexStyles3.rule2}>
       <LuArrowLeft sx={stylexStyles.rule1} />
       {children}
     </AuthSecondaryActionButton>
@@ -342,9 +465,7 @@ function SSOExpiredView(props: SSORecoveryActionsProps) {
       intro={
         <>
           <AnimatedLogo followMouse={false} />
-          <h2 className="text-foreground text-lg font-semibold">
-            Session expired
-          </h2>
+          <h2 sx={stylexStyles3.rule3}>Session expired</h2>
         </>
       }
     >
@@ -368,13 +489,11 @@ function SSOErrorView({
       intro={
         <>
           <AnimatedLogo followMouse={false} />
-          <h2 className="text-foreground text-lg font-semibold">
-            Account creation failed
-          </h2>
+          <h2 sx={stylexStyles3.rule3}>Account creation failed</h2>
         </>
       }
     >
-      <div className="flex w-full flex-col items-center gap-4">
+      <div sx={stylexStyles3.rule4}>
         <LoadingCard
           view={{
             state: 'error',
@@ -415,10 +534,10 @@ function SSOProgressView({
       intro={
         <>
           <AnimatedLogo followMouse={false} />
-          <h2 className="text-foreground text-lg font-semibold">
+          <h2 sx={stylexStyles3.rule3}>
             {loggingIn ? 'Signing in…' : 'Creating account…'}
           </h2>
-          {email && <p className="text-foreground-alt text-sm">{email}</p>}
+          {email && <p sx={stylexStyles3.rule5}>{email}</p>}
         </>
       }
     >
@@ -449,17 +568,16 @@ function SSOUsernameField({
   }, [])
 
   return (
-    <label className="flex flex-col gap-1.5">
-      <span className="text-foreground-alt text-xs select-none">Username</span>
+    <label sx={stylexStyles3.rule6}>
+      <span sx={stylexStyles3.rule7}>Username</span>
       <input
         ref={handleInputRef}
         value={username}
         onChange={handleUsernameChange}
         placeholder="your-name"
-        className={cn(
-          authInputClassName,
-          usernameError && 'border-destructive/50',
-        )}
+        sx={
+          usernameError ? authInputStyles.invalidSubtle : authInputStyles.base
+        }
         onKeyDown={(event) => {
           if (event.nativeEvent.isComposing) return
           if (event.key === 'Enter') {
@@ -468,11 +586,9 @@ function SSOUsernameField({
         }}
       />
       {usernameError ? (
-        <p className="text-destructive text-xs">{usernameError}</p>
+        <p sx={stylexStyles3.rule8}>{usernameError}</p>
       ) : (
-        <p className="text-foreground-alt/50 text-xs">
-          Lowercase letters, numbers, and hyphens
-        </p>
+        <p sx={stylexStyles3.rule9}>Lowercase letters, numbers, and hyphens</p>
       )}
     </label>
   )
@@ -495,29 +611,27 @@ function SSOSignupForm({
   const { username, usernameError, pin, confirmPin, pinError, agreed } = fields
 
   return (
-    <div className="flex flex-col gap-4">
+    <div sx={stylexStyles3.rule10}>
       <AuthCard>
         {/* Provider context header */}
-        <div className="mb-4 flex items-center gap-3">
-          <div className="bg-brand/10 flex size-10 items-center justify-center rounded-lg">
+        <div sx={stylexStyles3.rule11}>
+          <div sx={stylexStyles3.rule12}>
             <ProviderIcon
               provider={pendingState.provider}
               sx={stylexStyles2.rule1}
             />
           </div>
           <div>
-            <h2 className="text-foreground text-sm font-semibold">
+            <h2 sx={stylexStyles3.rule13}>
               Sign up with {getProviderLabel(pendingState.provider)}
             </h2>
             {pendingState.email && (
-              <p className="text-foreground-alt text-xs">
-                {pendingState.email}
-              </p>
+              <p sx={stylexStyles3.rule14}>{pendingState.email}</p>
             )}
           </div>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div sx={stylexStyles3.rule10}>
           <SSOUsernameField fields={fields} onSubmit={onRequestConfirm} />
           <OptionalPinLock
             pin={pin}
@@ -549,9 +663,9 @@ function SSOSignupForm({
       </AuthCard>
 
       {/* Trust signals */}
-      <div className="text-foreground-alt flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-xs">
+      <div sx={stylexStyles3.rule15}>
         {SIGNUP_HIGHLIGHTS.map((text) => (
-          <span key={text} className="flex items-center gap-1.5">
+          <span key={text} sx={stylexStyles3.rule16}>
             <LuCheck sx={stylexStyles.rule3} />
             {text}
           </span>
@@ -587,11 +701,11 @@ function ConfirmUsernameDialog({
           <DialogTitle>Confirm your username</DialogTitle>
           <DialogDescription>
             Your account will be created as{' '}
-            <span className="text-foreground font-semibold">{username}</span>.
-            This username is permanent and cannot be changed later.
+            <span sx={stylexStyles3.rule17}>{username}</span>. This username is
+            permanent and cannot be changed later.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col gap-2">
+        <div sx={stylexStyles3.rule18}>
           <AuthPrimaryActionButton
             onClick={onConfirm}
             icon={<LuUserPlus sx={stylexStyles.rule2} />}
@@ -668,12 +782,8 @@ export function SSOConfirmPage() {
       intro={
         <>
           <AnimatedLogo followMouse={false} />
-          <h2 className="text-foreground text-lg font-semibold">
-            Welcome to Spacewave
-          </h2>
-          <p className="text-foreground-alt text-sm">
-            Choose a username to finish signing up
-          </p>
+          <h2 sx={stylexStyles3.rule3}>Welcome to Spacewave</h2>
+          <p sx={stylexStyles3.rule5}>Choose a username to finish signing up</p>
         </>
       }
     >

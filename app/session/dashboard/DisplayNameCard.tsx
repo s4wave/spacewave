@@ -10,6 +10,65 @@ import { Input } from '@s4wave/web/ui/input.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+  motion as themeMotion,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    marginBottom: themeLayout['--spacing'],
+    display: 'block',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule3: {
+    minWidth: 0,
+    flex: 1,
+    cursor: 'text',
+    textAlign: 'left',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground-alt'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    minHeight: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+  },
+  rule4: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule5: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -122,21 +181,18 @@ export function DisplayNameCard({
       onOpenChange={onOpenChange}
     >
       <InfoCard>
-        <div className="space-y-2">
-          <div>
-            <label
-              htmlFor={inputId}
-              className="text-foreground-alt mb-1 block text-xs select-none"
-            >
+        <div>
+          <div sx={nativeChildSpacing.s2}>
+            <label htmlFor={inputId} sx={stylexStyles2.rule1}>
               Display Name
             </label>
             {editor.editing ? (
               <DisplayNameForm inputId={inputId} editor={editor} />
             ) : (
-              <div className="flex items-center justify-between gap-2">
+              <div sx={stylexStyles2.rule2}>
                 <button
                   type="button"
-                  className="text-foreground hover:text-foreground-alt min-w-0 flex-1 cursor-text text-left text-xs transition-colors [@media(pointer:coarse)]:min-h-11"
+                  sx={stylexStyles2.rule3}
                   onClick={editor.start}
                 >
                   {currentDisplayName || 'Unnamed account'}
@@ -167,7 +223,7 @@ function DisplayNameForm({
 }) {
   return (
     <>
-      <div className="flex items-center gap-2">
+      <div sx={stylexStyles2.rule4}>
         <Input
           id={inputId}
           value={editor.displayName}
@@ -202,9 +258,22 @@ function DisplayNameForm({
           Cancel
         </DashboardButton>
       </div>
-      {editor.error && (
-        <div className="text-destructive mt-1 text-xs">{editor.error}</div>
-      )}
+      {editor.error && <div sx={stylexStyles2.rule5}>{editor.error}</div>}
     </>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

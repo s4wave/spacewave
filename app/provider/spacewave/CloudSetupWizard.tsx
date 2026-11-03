@@ -14,7 +14,6 @@ import {
   LuZap,
 } from '@s4wave/web/images/icons.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import {
   CredentialProofInput,
   credentialInputStyles,
@@ -36,6 +35,210 @@ import {
   utilityState as themeUtilityState,
 } from '../../../web/style/tokens.stylex.js'
 import { groupMarker } from '../../../web/style/relations.stylex.js'
+
+import { fonts as themeFonts } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule2: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 4)`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule3: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-lg'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+  },
+  rule4: {
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule5: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule6: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule7: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule8: {
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+    backgroundColor: themeColors['--color-background-get-started'],
+    '--tw-shadow':
+      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+  },
+  rule9: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule10: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-lg'],
+  },
+  rule11: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+  },
+  rule12: {
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+  },
+  rule13: { flex: 1, textAlign: 'left' },
+  rule14: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule15: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-brand'],
+  },
+  rule16: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule17: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule18: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule19: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 1.5)`,
+    display: 'block',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule20: {
+    position: 'relative',
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    overflowY: 'auto',
+    backgroundColor: themeColors['--color-background-landing'],
+    padding: {
+      default: `calc(${themeLayout['--spacing']} * 6)`,
+      '@media (min-width: 48rem)': `calc(${themeLayout['--spacing']} * 10)`,
+    },
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+  },
+  rule21: {
+    position: 'relative',
+    zIndex: 10,
+    marginBlock: 'auto',
+    display: 'flex',
+    width: '100%',
+    maxWidth: 'var(--container-lg)',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule22: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule23: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: 'var(--text-xl)',
+    lineHeight: 'var(--tw-leading, var(--text-xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-wide)',
+    letterSpacing: 'var(--tracking-wide)',
+  },
+  rule24: {
+    textAlign: 'center',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule25: {
+    display: 'flex',
+    width: '100%',
+    cursor: 'pointer',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: themeColors['--color-brand'],
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+})
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -120,23 +323,21 @@ const CLOUD_PERKS = [
 /** CloudPerksCard confirms the active subscription and lists what it enables. */
 function CloudPerksCard() {
   return (
-    <div className="border-brand/30 bg-background-card/50 overflow-hidden rounded-lg border p-6">
-      <div className="mb-4 flex items-center gap-3">
-        <div className="bg-brand/10 flex size-10 items-center justify-center rounded-lg">
+    <div sx={stylexStyles3.rule1}>
+      <div sx={stylexStyles3.rule2}>
+        <div sx={stylexStyles3.rule3}>
           <LuCloud sx={stylexStyles.rule1} />
         </div>
         <div>
-          <h2 className="text-foreground font-semibold">You are all set!</h2>
-          <p className="text-foreground-alt text-xs">
-            Your cloud subscription is now active.
-          </p>
+          <h2 sx={stylexStyles3.rule4}>You are all set!</h2>
+          <p sx={stylexStyles3.rule5}>Your cloud subscription is now active.</p>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div sx={stylexStyles3.rule6}>
         {CLOUD_PERKS.map(({ text }) => (
-          <div key={text} className="flex items-start gap-2">
+          <div key={text} sx={stylexStyles3.rule7}>
             <LuCheck sx={stylexStyles.rule2} />
-            <span className="text-foreground-alt text-xs">{text}</span>
+            <span sx={stylexStyles3.rule5}>{text}</span>
           </div>
         ))}
       </div>
@@ -167,27 +368,19 @@ function SetupCard({
   children,
 }: SetupCardProps) {
   return (
-    <div className="border-foreground/20 bg-background-get-started overflow-hidden rounded-lg border shadow-lg backdrop-blur-sm">
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex w-full items-center gap-3 p-4"
-      >
+    <div sx={stylexStyles3.rule8}>
+      <button type="button" onClick={onToggle} sx={stylexStyles3.rule9}>
         <div
-          className={cn(
-            'flex size-8 shrink-0 items-center justify-center rounded-lg',
-            done ? 'bg-brand/20' : 'bg-brand/10',
-          )}
+          sx={[
+            stylexStyles3.rule10,
+            done ? stylexStyles3.rule11 : stylexStyles3.rule12,
+          ]}
         >
           {done ? <LuCheck sx={stylexStyles.rule3} /> : icon}
         </div>
-        <div className="flex-1 text-left">
-          <h3 className="text-foreground text-sm font-medium">{title}</h3>
-          <p
-            className={
-              done ? 'text-brand text-xs' : 'text-foreground-alt text-xs'
-            }
-          >
+        <div sx={stylexStyles3.rule13}>
+          <h3 sx={stylexStyles3.rule14}>{title}</h3>
+          <p sx={done ? stylexStyles3.rule15 : stylexStyles3.rule5}>
             {done ? doneHint : hint}
           </p>
         </div>
@@ -196,7 +389,11 @@ function SetupCard({
         />
       </button>
       {expanded && (
-        <div className="border-foreground/10 space-y-3 border-t px-4 pt-3 pb-4">
+        <div
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'border-foreground/10 space-y-3 border-t px-4 pt-3 pb-4'
+          }
+        >
           {children}
         </div>
       )}
@@ -230,7 +427,7 @@ function BackupKeyCard({ wiz, expanded, onToggle, onDone }: CardActionProps) {
       expanded={expanded}
       onToggle={onToggle}
     >
-      <p className="text-foreground-alt text-xs leading-relaxed">
+      <p sx={stylexStyles3.rule16}>
         A backup key gives you a second way to recover your account. Verify your
         identity to generate one.
       </p>
@@ -253,11 +450,11 @@ function BackupKeyCard({ wiz, expanded, onToggle, onDone }: CardActionProps) {
         sx={[[stylexStyles2.rule1, groupMarker]]}
       >
         <LuDownload sx={stylexStyles.rule6} />
-        <span className="text-foreground text-sm">
+        <span sx={stylexStyles3.rule17}>
           {wiz.downloading ? 'Generating key…' : 'Download backup .pem'}
         </span>
       </button>
-      {wiz.error && <p className="text-destructive text-xs">{wiz.error}</p>}
+      {wiz.error && <p sx={stylexStyles3.rule18}>{wiz.error}</p>}
     </SetupCard>
   )
 }
@@ -269,12 +466,9 @@ function PinFields({ wiz }: { wiz: SetupWizardState }) {
   const mismatch = wiz.confirmPin.length > 0 && wiz.pin !== wiz.confirmPin
 
   return (
-    <div className="space-y-3">
-      <div>
-        <label
-          htmlFor={pinInputId}
-          className="text-foreground-alt mb-1.5 block text-xs select-none"
-        >
+    <div>
+      <div sx={nativeChildSpacing.s3}>
+        <label htmlFor={pinInputId} sx={stylexStyles3.rule19}>
           PIN
         </label>
         <input
@@ -286,11 +480,8 @@ function PinFields({ wiz }: { wiz: SetupWizardState }) {
           sx={[credentialInputStyles.input]}
         />
       </div>
-      <div>
-        <label
-          htmlFor={confirmPinInputId}
-          className="text-foreground-alt mb-1.5 block text-xs select-none"
-        >
+      <div sx={nativeChildSpacing.s3}>
+        <label htmlFor={confirmPinInputId} sx={stylexStyles3.rule19}>
           Confirm PIN
         </label>
         <input
@@ -326,7 +517,11 @@ function PinLockCard({ wiz, expanded, onToggle, onDone }: CardActionProps) {
       expanded={expanded}
       onToggle={onToggle}
     >
-      <div className="space-y-2">
+      <div
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
+        }
+      >
         <RadioOption
           selected={wiz.lockMode === 'auto'}
           onSelect={() => wiz.setLockMode('auto')}
@@ -343,14 +538,14 @@ function PinLockCard({ wiz, expanded, onToggle, onDone }: CardActionProps) {
         />
       </div>
       {wiz.lockMode === 'pin' && <PinFields wiz={wiz} />}
-      {wiz.error && <p className="text-destructive text-xs">{wiz.error}</p>}
+      {wiz.error && <p sx={stylexStyles3.rule18}>{wiz.error}</p>}
       <button
         type="button"
         onClick={() => void handleFinishLock()}
         disabled={wiz.saving}
         sx={[[stylexStyles2.rule1, groupMarker]]}
       >
-        <span className="text-foreground text-sm">
+        <span sx={stylexStyles3.rule17}>
           {wiz.saving ? 'Saving…' : 'Set lock mode'}
         </span>
         {!wiz.saving && <LuArrowRight sx={stylexStyles.rule8} />}
@@ -376,14 +571,12 @@ export function CloudSetupWizard({
   const collapse = useCallback(() => setExpandedCard(null), [])
 
   return (
-    <div className="bg-background-landing relative flex flex-1 flex-col items-center overflow-y-auto p-6 outline-none md:p-10">
-      <div className="relative z-10 my-auto flex w-full max-w-lg flex-col gap-4">
-        <div className="flex flex-col items-center gap-2">
+    <div sx={stylexStyles3.rule20}>
+      <div sx={stylexStyles3.rule21}>
+        <div sx={stylexStyles3.rule22}>
           <AnimatedLogo followMouse={false} />
-          <h1 className="mt-2 text-xl font-semibold tracking-wide">
-            Welcome to Spacewave Cloud!
-          </h1>
-          <p className="text-foreground-alt text-center text-sm">
+          <h1 sx={stylexStyles3.rule23}>Welcome to Spacewave Cloud!</h1>
+          <p sx={stylexStyles3.rule24}>
             Your subscription is active. A few optional steps to secure your
             account.
           </p>
@@ -412,10 +605,7 @@ export function CloudSetupWizard({
         <button
           type="button"
           onClick={() => navigate({ path: exitPath })}
-          className={cn(
-            'flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium transition-all duration-300 select-none',
-            'border-brand bg-brand/10 text-foreground hover:bg-brand/20',
-          )}
+          sx={[stylexStyles3.rule25]}
         >
           Continue to app
           <LuArrowRight sx={stylexStyles.rule7} />
@@ -424,3 +614,18 @@ export function CloudSetupWizard({
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

@@ -8,9 +8,125 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@s4wave/web/ui/dialog.js'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import { TypedConfirmField } from './TypedConfirmField.js'
+
+import * as stylex from '@stylexjs/stylex'
+import {
+  radii as themeRadii,
+  layout as themeLayout,
+  fonts as themeFonts,
+  colors as themeColors,
+  motion as themeMotion,
+  utilityState as themeUtilityState,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    borderRadius: themeRadii['--radius-md'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule2: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-destructive'],
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule3: {
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-destructive'],
+  },
+  rule4: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-destructive'],
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule5: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule6: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule7: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: themeColors['--color-destructive'],
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-destructive'],
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+})
 
 export interface DeleteAccountDialogProps {
   open: boolean
@@ -79,17 +195,14 @@ export function DeleteAccountDialog({
             <button
               type="button"
               onClick={() => handleOpenChange(false)}
-              className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
+              sx={stylexStyles.rule1}
             >
               Cancel
             </button>
             <button
               type="button"
               onClick={() => setStep('confirm')}
-              className={cn(
-                'rounded-md border px-4 py-2 text-sm transition-all',
-                'border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20',
-              )}
+              sx={[stylexStyles.rule2]}
             >
               Review deletion
             </button>
@@ -101,9 +214,7 @@ export function DeleteAccountDialog({
             <TypedConfirmField
               label={
                 <>
-                  Type{' '}
-                  <span className="text-destructive font-medium">DELETE</span>{' '}
-                  to confirm
+                  Type <span sx={stylexStyles.rule3}>DELETE</span> to confirm
                 </>
               }
               value={typedName}
@@ -119,7 +230,7 @@ export function DeleteAccountDialog({
                   setStep('warning')
                   setTypedName('')
                 }}
-                className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
+                sx={stylexStyles.rule1}
               >
                 Back
               </button>
@@ -127,11 +238,7 @@ export function DeleteAccountDialog({
                 type="button"
                 disabled={typedName !== 'DELETE'}
                 onClick={() => setStep('final')}
-                className={cn(
-                  'rounded-md border px-4 py-2 text-sm transition-all',
-                  'border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20',
-                  'disabled:cursor-not-allowed disabled:opacity-50',
-                )}
+                sx={[stylexStyles.rule4]}
               >
                 Confirm
               </button>
@@ -141,20 +248,20 @@ export function DeleteAccountDialog({
 
         {step === 'final' && (
           <>
-            <p className="text-destructive text-sm">
+            <p sx={stylexStyles.rule5}>
               {isCloud
                 ? 'Continue to the delete confirmation screen to send the email code and finalize the 24-hour delete countdown.'
                 : 'This action cannot be undone. All local data will be permanently deleted.'}
             </p>
 
-            {error && <p className="text-destructive text-xs">{error}</p>}
+            {error && <p sx={stylexStyles.rule6}>{error}</p>}
 
             <DialogFooter>
               <button
                 type="button"
                 onClick={() => setStep('confirm')}
                 disabled={submitting}
-                className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
+                sx={stylexStyles.rule1}
               >
                 Back
               </button>
@@ -162,11 +269,7 @@ export function DeleteAccountDialog({
                 type="button"
                 onClick={() => void handleDelete()}
                 disabled={submitting}
-                className={cn(
-                  'rounded-md border px-4 py-2 text-sm transition-all',
-                  'border-destructive bg-destructive/20 text-destructive hover:bg-destructive/30',
-                  'disabled:cursor-not-allowed disabled:opacity-50',
-                )}
+                sx={[stylexStyles.rule7]}
               >
                 {submitting
                   ? 'Deleting…'

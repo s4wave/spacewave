@@ -18,6 +18,51 @@ import {
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule3: {
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule4: {
+    minWidth: 0,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 15%, transparent)`,
+      ':focus': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 40%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -93,24 +138,21 @@ export function SpaceStorageMove({
   }
   if (moving) {
     return (
-      <p
-        className="text-foreground-alt text-xs"
-        data-testid="space-storage-move-progress"
-      >
+      <p sx={stylexStyles2.rule1} data-testid="space-storage-move-progress">
         {progress || `Moving to ${selected.name}`}
       </p>
     )
   }
   return (
-    <div className="flex items-center gap-2 text-xs">
-      <label htmlFor={id} className="text-foreground-alt select-none">
+    <div sx={stylexStyles2.rule2}>
+      <label htmlFor={id} sx={stylexStyles2.rule3}>
         Move to
       </label>
       <select
         id={id}
         value={selected.id}
         onChange={(e) => setTarget(e.target.value)}
-        className="border-foreground/15 bg-background/40 text-foreground focus:border-brand/50 min-w-0 rounded-md border px-2 py-1 text-xs outline-none"
+        sx={stylexStyles2.rule4}
         data-testid="space-storage-move-target"
       >
         {destinations.map((d) => (

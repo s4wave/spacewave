@@ -12,7 +12,7 @@ import {
 import { SpaceContext } from '@s4wave/web/contexts/contexts.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { useStateAtom } from '@s4wave/web/state/index.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import {
   Dialog,
@@ -28,6 +28,125 @@ import { toast } from '@s4wave/web/ui/toaster.js'
 
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+import {
+  fonts as themeFonts,
+  colors as themeColors,
+  radii as themeRadii,
+  motion as themeMotion,
+  utilityState as themeUtilityState,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: { marginTop: `calc(${themeLayout['--spacing']} * 2)` },
+  rule2: {
+    marginBottom: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule3: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule4: {
+    borderRadius: themeRadii['--radius-md'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule5: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule6: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule7: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule8: { minWidth: 0, flex: 1 },
+  rule9: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule10: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule11: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -99,14 +218,18 @@ export function SpaceControlSection() {
   const changes = spaceSharingState.groupChanges ?? []
 
   return (
-    <div className="mt-2">
-      <h3 className="text-foreground-alt mb-1 text-xs select-none">
-        Who controls the Space
-      </h3>
+    <div sx={stylexStyles2.rule1}>
+      <h3 sx={stylexStyles2.rule2}>Who controls the Space</h3>
       <InfoCard>
-        <div className="space-y-2">
+        <div
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-2 */ 'space-y-2'
+          }
+        >
           <div
-            className="space-y-1.5"
+            className={
+              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ 'space-y-1.5'
+            }
             role="radiogroup"
             aria-label="Who controls the Space"
           >
@@ -127,9 +250,7 @@ export function SpaceControlSection() {
               description="No one changes members or settings alone, including the owner."
             />
           </div>
-          <p className="text-foreground-alt text-xs">
-            {controlStatus(spaceSharingState)}
-          </p>
+          <p sx={stylexStyles2.rule3}>{controlStatus(spaceSharingState)}</p>
           {group && changes.length !== 0 && (
             <GroupChanges
               state={spaceSharingState}
@@ -159,7 +280,7 @@ export function SpaceControlSection() {
               type="button"
               onClick={() => setConfirmGroup(false)}
               disabled={pending}
-              className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
+              sx={stylexStyles2.rule4}
             >
               Cancel
             </button>
@@ -167,11 +288,7 @@ export function SpaceControlSection() {
               type="button"
               onClick={() => void choose(SpaceControl.SpaceControl_GROUP)}
               disabled={pending}
-              className={cn(
-                'rounded-md border px-4 py-2 text-sm transition-all',
-                'border-brand/30 bg-brand/10 hover:bg-brand/20',
-                'disabled:cursor-not-allowed disabled:opacity-50',
-              )}
+              sx={[stylexStyles2.rule5]}
             >
               Hand control to the group
             </button>
@@ -197,26 +314,24 @@ function GroupChanges({
 }) {
   const quorum = state.quorumWeight ?? 0n
   return (
-    <div className="space-y-1.5">
-      <h4 className="text-foreground text-xs font-medium select-none">
+    <div>
+      <h4 sx={[nativeChildSpacingNext.s1_5, stylexStyles2.rule6]}>
         Waiting for the group
       </h4>
-      <ul className="space-y-1.5">
+      <ul sx={nativeChildSpacingNext.s1_5}>
         {changes.map((change) => (
           <li
             key={hashKey(change.hash)}
-            className="border-foreground/10 flex items-center gap-2 rounded-md border p-2"
+            sx={[nativeChildSpacing.s1_5, stylexStyles2.rule7]}
           >
-            <div className="min-w-0 flex-1">
-              <p className="text-foreground truncate text-xs">
-                {describeChange(state, change)}
-              </p>
-              <p className="text-foreground-alt text-xs">
+            <div sx={stylexStyles2.rule8}>
+              <p sx={stylexStyles2.rule9}>{describeChange(state, change)}</p>
+              <p sx={stylexStyles2.rule3}>
                 {`${change.weight ?? 0n} of ${quorum} votes`}
               </p>
             </div>
             {change.viewerAgreed ? (
-              <span className="text-foreground-alt flex items-center gap-1 text-xs">
+              <span sx={stylexStyles2.rule10}>
                 <LuCheck sx={stylexStyles.rule2} />
                 You agreed
               </span>
@@ -251,13 +366,13 @@ function TechnicalDetails({ state }: { state: SpaceSharingState }) {
     <>
       <button
         type="button"
-        className="text-foreground-alt hover:text-foreground text-xs transition-colors"
+        sx={stylexStyles2.rule11}
         onClick={() => setShow(!show)}
       >
         {show ? 'Hide technical details' : 'Show technical details'}
       </button>
       {show && (
-        <p className="text-foreground-alt text-xs">
+        <p sx={stylexStyles2.rule3}>
           {group
             ? `Group control: voters decide each control record and checkpoint in rounds. A decision needs precommits from more than two thirds of the voting weight, ${state.quorumWeight ?? 0n} of ${state.totalWeight ?? 0n}. Each member's first writing device votes.`
             : 'Owner control: any owner device signs control records and checkpoints alone.'}
@@ -346,3 +461,33 @@ function names(
 function hashKey(hash: Uint8Array | undefined): string {
   return Array.from(hash ?? [], (b) => b.toString(16).padStart(2, '0')).join('')
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s1_5: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacingNext = stylex.create({
+  s1_5: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1.5 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

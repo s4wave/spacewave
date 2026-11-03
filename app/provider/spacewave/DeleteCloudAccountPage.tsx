@@ -36,6 +36,404 @@ import {
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  motion as themeMotion,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    position: 'relative',
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    overflowY: 'auto',
+    backgroundColor: themeColors['--color-background-landing'],
+    padding: {
+      default: `calc(${themeLayout['--spacing']} * 6)`,
+      '@media (min-width: 48rem)': `calc(${themeLayout['--spacing']} * 10)`,
+    },
+    '--tw-outline-style': 'none',
+    outlineStyle: 'none',
+  },
+  rule2: {
+    position: 'relative',
+    zIndex: 10,
+    marginBlock: 'auto',
+    display: 'flex',
+    width: '100%',
+    maxWidth: 'var(--container-lg)',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule3: {
+    marginBottom: `calc(${themeLayout['--spacing']} * -2)`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    alignSelf: 'flex-start',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule4: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule5: {
+    marginTop: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: 'var(--text-xl)',
+    lineHeight: 'var(--tw-leading, var(--text-xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-wide)',
+    letterSpacing: 'var(--tracking-wide)',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule6: {
+    maxWidth: 'var(--container-sm)',
+    textAlign: 'center',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule7: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+    backgroundColor: themeColors['--color-background-get-started'],
+    padding: `calc(${themeLayout['--spacing']} * 5)`,
+    '--tw-shadow':
+      '0 10px 15px -3px var(--tw-shadow-color, #0000001a), 0 4px 6px -4px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    '--tw-backdrop-blur': 'blur(var(--blur-sm))',
+    WebkitBackdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+    backdropFilter:
+      'var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, )',
+  },
+  rule8: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    '--tw-tracking': 'var(--tracking-wide)',
+    letterSpacing: 'var(--tracking-wide)',
+    color: themeColors['--color-foreground'],
+    textTransform: 'uppercase',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule9: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule10: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule11: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-lg'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+  },
+  rule12: { flex: 1 },
+  rule13: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule14: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule15: { color: themeColors['--color-foreground'] },
+  rule16: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule17: {
+    display: 'block',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule18: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingTop: themeLayout['--spacing'],
+  },
+  rule19: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 20%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-destructive'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule20: {
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule21: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderColor: `color-mix(in oklab, ${themeColors['--color-warning']} 30%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-warning']} 5%, transparent)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  rule22: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-tracking': 'var(--tracking-wider)',
+    letterSpacing: 'var(--tracking-wider)',
+    color: themeColors['--color-foreground-alt'],
+    textTransform: 'uppercase',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule23: {
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: 'var(--text-4xl)',
+    lineHeight: 'var(--tw-leading, var(--text-4xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+    '--tw-numeric-spacing': 'tabular-nums',
+    fontVariantNumeric:
+      'var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, )',
+  },
+  rule24: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule25: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: '.65rem',
+    lineHeight: 1.5,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule26: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 40%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 15%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 25%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule27: {
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule28: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule29: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule30: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule31: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 7)`,
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+  },
+  rule32: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -257,23 +655,19 @@ export function DeleteCloudAccountPage() {
 
   return (
     <SessionFrame>
-      <div className="bg-background-landing relative flex flex-1 flex-col items-center overflow-y-auto p-6 outline-none md:p-10">
-        <div className="relative z-10 my-auto flex w-full max-w-lg flex-col gap-4">
-          <button
-            type="button"
-            onClick={handleBack}
-            className="text-foreground-alt hover:text-foreground -mb-2 flex items-center gap-1.5 self-start text-xs transition-colors select-none"
-          >
+      <div sx={stylexStyles2.rule1}>
+        <div sx={stylexStyles2.rule2}>
+          <button type="button" onClick={handleBack} sx={stylexStyles2.rule3}>
             <LuArrowLeft sx={stylexStyles.rule1} />
             Back
           </button>
 
-          <div className="flex flex-col items-center gap-2">
+          <div sx={stylexStyles2.rule4}>
             <AnimatedLogo followMouse={false} />
-            <h1 className="mt-2 text-xl font-semibold tracking-wide select-none">
+            <h1 sx={stylexStyles2.rule5}>
               {isPendingDelete ? 'Deletion Scheduled' : 'Delete Account'}
             </h1>
-            <p className="text-foreground-alt max-w-sm text-center text-sm">
+            <p sx={stylexStyles2.rule6}>
               {isPendingDelete
                 ? 'Your cloud account is read-only. You can still undo before the window closes.'
                 : "Close your Spacewave Cloud account. You'll have 24 hours to undo it before deletion is final."}
@@ -345,11 +739,9 @@ function InitiateDeleteView({
 
   return (
     <>
-      <div className={cardClass}>
-        <h2 className="text-foreground mb-3 text-xs font-medium tracking-wide uppercase select-none">
-          What happens
-        </h2>
-        <ul className="flex flex-col gap-3">
+      <div sx={[stylexStyles2.rule7]}>
+        <h2 sx={stylexStyles2.rule8}>What happens</h2>
+        <ul sx={stylexStyles2.rule9}>
           <InfoRow
             icon={<LuTimer sx={stylexStyles.rule2} />}
             title="Subscription ends now"
@@ -368,21 +760,26 @@ function InitiateDeleteView({
         </ul>
       </div>
 
-      <div className={cn(cardClass, 'space-y-4')}>
-        <div className="flex items-start gap-3">
-          <div className="bg-destructive/10 flex size-10 shrink-0 items-center justify-center rounded-lg">
+      <div
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ cn(
+            cardClass,
+            'space-y-4',
+          )
+        }
+      >
+        <div sx={stylexStyles2.rule10}>
+          <div sx={stylexStyles2.rule11}>
             <LuTriangleAlert sx={stylexStyles.rule5} />
           </div>
-          <div className="flex-1">
-            <h2 className="text-foreground text-sm font-semibold select-none">
-              Confirm by email
-            </h2>
-            <p className="text-foreground-alt text-xs leading-relaxed">
+          <div sx={stylexStyles2.rule12}>
+            <h2 sx={stylexStyles2.rule13}>Confirm by email</h2>
+            <p sx={stylexStyles2.rule14}>
               {email ? (
                 <>
                   We sent a link and 6-digit code to{' '}
-                  <strong className="text-foreground">{email}</strong>. Click
-                  the link or enter the code below.
+                  <strong sx={stylexStyles2.rule15}>{email}</strong>. Click the
+                  link or enter the code below.
                 </>
               ) : (
                 "We'll email you a confirmation link and a 6-digit code. Use either to finalize deletion."
@@ -395,11 +792,7 @@ function InitiateDeleteView({
           type="button"
           onClick={onSend}
           disabled={!canSend}
-          className={cn(
-            'flex w-full items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm transition-colors',
-            'border-brand/30 bg-brand/10 hover:bg-brand/20',
-            'disabled:cursor-not-allowed disabled:opacity-50',
-          )}
+          sx={[stylexStyles2.rule16]}
         >
           {sending ? (
             <Spinner />
@@ -408,7 +801,7 @@ function InitiateDeleteView({
           ) : (
             <LuMail sx={stylexStyles.rule6} />
           )}
-          <span className="text-foreground">
+          <span sx={stylexStyles2.rule15}>
             {sending
               ? 'Sending…'
               : retryAfter > 0
@@ -419,11 +812,12 @@ function InitiateDeleteView({
           </span>
         </button>
 
-        <div className="space-y-1.5">
-          <label
-            className="text-foreground-alt block text-xs select-none"
-            htmlFor={deleteCodeId}
-          >
+        <div
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1.5 */ 'space-y-1.5'
+          }
+        >
+          <label sx={stylexStyles2.rule17} htmlFor={deleteCodeId}>
             6-digit delete code
           </label>
           <input
@@ -438,25 +832,17 @@ function InitiateDeleteView({
           />
         </div>
 
-        <div className="flex flex-col gap-2 pt-1">
+        <div sx={stylexStyles2.rule18}>
           <button
             type="button"
             onClick={onConfirm}
             disabled={verifying || !codeValid}
-            className={cn(
-              'flex w-full items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors',
-              'border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20',
-              'disabled:cursor-not-allowed disabled:opacity-50',
-            )}
+            sx={[stylexStyles2.rule19]}
           >
             {verifying && <Spinner />}
             {verifying ? 'Confirming…' : 'Confirm delete account'}
           </button>
-          <button
-            type="button"
-            onClick={onCancel}
-            className="text-foreground-alt hover:text-foreground text-center text-xs transition-colors select-none"
-          >
+          <button type="button" onClick={onCancel} sx={stylexStyles2.rule20}>
             Cancel and return to dashboard
           </button>
         </div>
@@ -486,53 +872,43 @@ function PendingDeleteView({
   return (
     <>
       {countdown && (
-        <div
-          className={cn(
-            cardClass,
-            'border-warning/30 bg-warning/5 flex flex-col items-center gap-1 py-6',
-          )}
-        >
-          <span className="text-foreground-alt text-xs tracking-wider uppercase select-none">
-            Undo window
-          </span>
-          <span className="text-foreground font-mono text-4xl font-semibold tabular-nums">
-            {countdown.label}
-          </span>
-          <span className="text-foreground-alt text-xs">{countdown.sub}</span>
+        <div sx={[[stylexStyles2.rule7], stylexStyles2.rule21]}>
+          <span sx={stylexStyles2.rule22}>Undo window</span>
+          <span sx={stylexStyles2.rule23}>{countdown.label}</span>
+          <span sx={stylexStyles2.rule24}>{countdown.sub}</span>
           {deleteAtLabel && (
-            <span className="text-foreground-alt/70 micro-label mt-1">
+            <span sx={stylexStyles2.rule25}>
               Deletion final at {deleteAtLabel}
             </span>
           )}
         </div>
       )}
 
-      <div className={cn(cardClass, 'space-y-3')}>
+      <div
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ cn(
+            cardClass,
+            'space-y-3',
+          )
+        }
+      >
         <button
           type="button"
           onClick={onUndo}
           disabled={undoing}
-          className={cn(
-            'flex w-full items-center justify-center gap-2 rounded-md border px-4 py-2.5 text-sm font-medium transition-colors',
-            'border-brand/40 bg-brand/15 text-foreground hover:bg-brand/25',
-            'disabled:cursor-not-allowed disabled:opacity-50',
-          )}
+          sx={[stylexStyles2.rule26]}
         >
           {undoing ? <Spinner /> : <LuRotateCcw sx={stylexStyles.rule6} />}
           {undoing ? 'Canceling…' : 'Undo deletion'}
         </button>
-        <p className="text-foreground-alt text-center text-xs leading-relaxed">
+        <p sx={stylexStyles2.rule27}>
           Undo stops deletion, but the account stays lapsed and read-only until
           you start a new subscription.
         </p>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <button
-          type="button"
-          onClick={onDashboard}
-          className="text-foreground-alt hover:text-foreground flex items-center justify-center gap-1.5 text-xs transition-colors select-none"
-        >
+      <div sx={stylexStyles2.rule28}>
+        <button type="button" onClick={onDashboard} sx={stylexStyles2.rule29}>
           <LuArrowLeft sx={stylexStyles.rule7} />
           Return to dashboard
         </button>
@@ -540,7 +916,7 @@ function PendingDeleteView({
           type="button"
           onClick={onLogout}
           disabled={loggingOut}
-          className="text-foreground-alt hover:text-foreground flex items-center justify-center gap-1.5 text-xs transition-colors select-none disabled:cursor-not-allowed disabled:opacity-50"
+          sx={stylexStyles2.rule30}
         >
           <LuLogOut sx={stylexStyles.rule7} />
           {loggingOut ? 'Logging out…' : 'Log out of this device'}
@@ -561,15 +937,11 @@ function InfoRow({
   body: string
 }) {
   return (
-    <li className="flex items-start gap-3">
-      <div className="bg-foreground/5 mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md">
-        {icon}
-      </div>
-      <div className="flex-1">
-        <p className="text-foreground text-sm font-medium select-none">
-          {title}
-        </p>
-        <p className="text-foreground-alt text-xs leading-relaxed">{body}</p>
+    <li sx={stylexStyles2.rule10}>
+      <div sx={stylexStyles2.rule31}>{icon}</div>
+      <div sx={stylexStyles2.rule12}>
+        <p sx={stylexStyles2.rule32}>{title}</p>
+        <p sx={stylexStyles2.rule14}>{body}</p>
       </div>
     </li>
   )

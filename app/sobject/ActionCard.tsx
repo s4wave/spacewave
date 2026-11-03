@@ -1,9 +1,375 @@
 import * as ownerStylex from '@stylexjs/stylex'
-import { cn as ownerClasses } from '@s4wave/web/style/utils.js'
-import { groupMarker as ownergroupMarker } from '@s4wave/web/style/relations.stylex.js'
+
 import React from 'react'
 
-import { cn } from '@s4wave/web/style/utils.js'
+import {
+  layout as themeLayout,
+  radii as themeRadii,
+  colors as themeColors,
+  motion as themeMotion,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+import { groupMarker as groupMarker3 } from '../../web/style/relations.stylex.js'
+
+import { utilityState as themeUtilityState } from '../../web/style/tokens.stylex.js'
+import { groupMarker as groupMarker4 } from '../../web/style/relations.stylex.js'
+
+const stylexStyles2 = ownerStylex.create({
+  rule1: {
+    display: 'flex',
+    width: '100%',
+    cursor: 'not-allowed',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+      },
+    },
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
+    textAlign: 'left',
+    opacity: 0.5,
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule2: {
+    display: 'flex',
+    width: '100%',
+    cursor: 'pointer',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+      },
+    },
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
+    textAlign: 'left',
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule3: {
+    display: 'flex',
+    width: '100%',
+    cursor: 'not-allowed',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 12%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+      },
+    },
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
+    textAlign: 'left',
+    opacity: 0.5,
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule4: {
+    display: 'flex',
+    width: '100%',
+    cursor: 'pointer',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 12%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+      },
+    },
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
+    textAlign: 'left',
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule5: {
+    display: 'flex',
+    width: '100%',
+    cursor: 'not-allowed',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+      },
+    },
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    textAlign: 'left',
+    opacity: 0.5,
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule6: {
+    display: 'flex',
+    width: '100%',
+    cursor: 'pointer',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 30%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-destructive']} 5%, transparent)`,
+      },
+    },
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    textAlign: 'left',
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule7: {
+    display: 'flex',
+    width: '100%',
+    cursor: 'not-allowed',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 12%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+      },
+    },
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    textAlign: 'left',
+    opacity: 0.5,
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule8: {
+    display: 'flex',
+    width: '100%',
+    cursor: 'pointer',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 12%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+      },
+    },
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    textAlign: 'left',
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+})
+
+const stylexStyles = ownerStylex.create({
+  rule1: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    width: `calc(${themeLayout['--spacing']} * 7)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        [ownerStylex.when.ancestor(':is(:hover)', groupMarker3)]:
+          `color-mix(in oklab, ${themeColors['--color-destructive']} 15%, transparent)`,
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule2: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    width: `calc(${themeLayout['--spacing']} * 7)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        [ownerStylex.when.ancestor(':is(:hover)', groupMarker3)]:
+          `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule3: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-destructive']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        [ownerStylex.when.ancestor(':is(:hover)', groupMarker3)]:
+          `color-mix(in oklab, ${themeColors['--color-destructive']} 15%, transparent)`,
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule4: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        [ownerStylex.when.ancestor(':is(:hover)', groupMarker3)]:
+          `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule5: { color: themeColors['--color-foreground-alt'] },
+  rule6: { color: themeColors['--color-destructive'] },
+  rule7: { display: 'flex', minWidth: 0, flex: 1, flexDirection: 'column' },
+  rule8: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule9: {
+    fontSize: '.6rem',
+    lineHeight: 1.5,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+})
 
 // ActionCard renders an interactive card with icon, label, and description.
 export interface ActionCardProps {
@@ -29,46 +395,55 @@ export function ActionCard({
       type="button"
       onClick={onClick}
       disabled={!onClick}
-      className={
-        /* TODO(stylex): conditional property composition: borderColor */ cn(
-          ownerClasses(
-            'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 group flex w-full cursor-pointer items-center rounded-lg border text-left transition-all',
-            ownerStylex.props(ownergroupMarker).className,
-          ),
-          compact ? 'gap-2 p-2' : 'gap-3 p-3',
-          variant === 'destructive' &&
-            'hover:border-destructive/30 hover:bg-destructive/5',
-          !onClick && 'cursor-not-allowed opacity-50',
-        )
-      }
+      sx={actionCardStyles(compact, variant === 'destructive', !onClick)}
     >
       <div
-        className={cn(
-          'bg-foreground/5 group-hover:bg-foreground/8 flex shrink-0 items-center justify-center rounded-md transition-colors',
-          compact ? 'h-7 w-7' : 'h-8 w-8',
-          variant === 'destructive' &&
-            'bg-destructive/10 group-hover:bg-destructive/15',
-        )}
+        sx={
+          compact
+            ? variant === 'destructive'
+              ? stylexStyles.rule1
+              : stylexStyles.rule2
+            : variant === 'destructive'
+              ? stylexStyles.rule3
+              : stylexStyles.rule4
+        }
       >
         <div
-          className={cn(
-            'text-foreground-alt',
-            variant === 'destructive' && 'text-destructive',
-          )}
+          sx={[
+            stylexStyles.rule5,
+            variant === 'destructive' && stylexStyles.rule6,
+          ]}
         >
           {icon}
         </div>
       </div>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <h4 className="text-foreground text-xs font-medium select-none">
-          {label}
-        </h4>
-        {!compact && (
-          <p className="text-foreground-alt/50 micro-text select-none">
-            {description}
-          </p>
-        )}
+      <div sx={stylexStyles.rule7}>
+        <h4 sx={stylexStyles.rule8}>{label}</h4>
+        {!compact && <p sx={stylexStyles.rule9}>{description}</p>}
       </div>
     </button>
   )
+}
+
+// actionCardStyles selects one complete hover and disabled recipe for the card.
+function actionCardStyles(
+  compact: boolean,
+  destructive: boolean,
+  disabled: boolean,
+): ownerStylex.StyleXStyles {
+  return compact
+    ? destructive
+      ? disabled
+        ? [stylexStyles2.rule1, groupMarker4]
+        : [stylexStyles2.rule2, groupMarker4]
+      : disabled
+        ? [stylexStyles2.rule3, groupMarker4]
+        : [stylexStyles2.rule4, groupMarker4]
+    : destructive
+      ? disabled
+        ? [stylexStyles2.rule5, groupMarker4]
+        : [stylexStyles2.rule6, groupMarker4]
+      : disabled
+        ? [stylexStyles2.rule7, groupMarker4]
+        : [stylexStyles2.rule8, groupMarker4]
 }

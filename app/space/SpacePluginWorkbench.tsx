@@ -24,6 +24,73 @@ import { Button } from '@s4wave/web/ui/button.js'
 
 import { SpacePluginObjects } from './SpacePluginObjects.js'
 
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: { display: 'flex', minHeight: 0, flex: 1, flexDirection: 'column' },
+  rule2: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule3: { color: themeColors['--color-destructive'] },
+  rule4: {
+    display: 'flex',
+    minHeight: `calc(${themeLayout['--spacing']} * 64)`,
+    minWidth: 0,
+    flexDirection: 'column',
+  },
+  rule5: {
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+  },
+  rule6: { minHeight: 0, flex: 1 },
+  rule7: {
+    display: 'grid',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule8: {
+    borderRadius: '.25rem',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    backgroundColor: themeColors['--color-background'],
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule9: {
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+})
+
 // previewObjectLimit bounds the preview picker to one World listing page.
 const previewObjectLimit = 1000
 
@@ -112,14 +179,11 @@ export function SpacePluginWorkbench({
 
   // Keep compiler feedback separate from source editing and accepted app data.
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div
-        role="status"
-        className="border-foreground/10 flex flex-wrap items-center gap-2 border-b px-4 py-2 text-xs"
-      >
+    <div sx={stylexStyles.rule1}>
+      <div role="status" sx={stylexStyles.rule2}>
         {frontend.error ? (
           <>
-            <span role="alert" className="text-destructive">
+            <span role="alert" sx={stylexStyles.rule3}>
               {frontend.error.message}
             </span>
             <Button size="sm" variant="ghost" onClick={frontend.retry}>
@@ -133,15 +197,14 @@ export function SpacePluginWorkbench({
         )}
       </div>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 divide-y md:grid-cols-2 md:divide-x md:divide-y-0">
-        <section
-          className="flex min-h-64 min-w-0 flex-col"
-          aria-label="Plugin source"
-        >
-          <h3 className="border-foreground/10 border-b px-4 py-2 text-xs font-medium">
-            Source
-          </h3>
-          <div className="min-h-0 flex-1">
+      <div
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: divide-y */ 'grid min-h-0 flex-1 grid-cols-1 divide-y md:grid-cols-2 md:divide-x md:divide-y-0'
+        }
+      >
+        <section sx={stylexStyles.rule4} aria-label="Plugin source">
+          <h3 sx={stylexStyles.rule5}>Source</h3>
+          <div sx={stylexStyles.rule6}>
             <ObjectViewer
               objectInfo={sourceInfo}
               worldState={spaceWorldResource}
@@ -159,11 +222,8 @@ export function SpacePluginWorkbench({
           </div>
         </section>
 
-        <section
-          className="flex min-h-64 min-w-0 flex-col"
-          aria-label="Plugin preview"
-        >
-          <div className="border-foreground/10 grid gap-2 border-b p-3 text-xs">
+        <section sx={stylexStyles.rule4} aria-label="Plugin preview">
+          <div sx={stylexStyles.rule7}>
             {space.value && (
               <SpacePluginObjects
                 space={space.value}
@@ -176,7 +236,7 @@ export function SpacePluginWorkbench({
               id={`${id}-entry`}
               value={entrypoint ?? ''}
               onChange={(event) => setEntry(event.target.value)}
-              className="bg-background rounded border p-2"
+              sx={stylexStyles.rule8}
               disabled={!entrypoints.length}
             >
               {!entrypoints.length && (
@@ -193,7 +253,7 @@ export function SpacePluginWorkbench({
               id={`${id}-object`}
               value={objectKey}
               onChange={(event) => setObjectKey(event.target.value)}
-              className="bg-background rounded border p-2"
+              sx={stylexStyles.rule8}
             >
               <option value="">Choose an object created by this plugin</option>
               {objectKeys?.flatMap((key) =>
@@ -207,7 +267,7 @@ export function SpacePluginWorkbench({
               )}
             </select>
           </div>
-          <div className="min-h-0 flex-1">
+          <div sx={stylexStyles.rule6}>
             {viewers.length > 0 ? (
               <ViewerRegistryProvider staticViewers={viewers}>
                 <ObjectViewer
@@ -221,7 +281,7 @@ export function SpacePluginWorkbench({
                 />
               </ViewerRegistryProvider>
             ) : (
-              <p className="text-foreground-alt/70 p-4 text-sm">
+              <p sx={stylexStyles.rule9}>
                 Build and install the plugin, create one of its objects, then
                 select it here.
               </p>

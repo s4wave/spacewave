@@ -11,7 +11,6 @@ import superjson from 'superjson'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import { PLAN_PRICE_MONTHLY } from '@s4wave/app/provider/spacewave/pricing.js'
 import { useLocalSessionOnboardingContext } from '@s4wave/app/session/setup/LocalSessionOnboardingContext.js'
@@ -37,6 +36,166 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
+
+import {
+  fonts as themeFonts,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  motion as themeMotion,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule2: {
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule3: {
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 50%, transparent)`,
+  },
+  rule4: { padding: `calc(${themeLayout['--spacing']} * 6)` },
+  rule5: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 4)`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule6: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-lg'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+  },
+  rule7: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule8: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule9: {
+    display: 'flex',
+    width: '100%',
+    cursor: 'default',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    textAlign: 'left',
+    opacity: 0.6,
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule10: {
+    display: 'flex',
+    width: '100%',
+    cursor: 'pointer',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+      },
+    },
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    textAlign: 'left',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+      },
+    },
+  },
+  rule11: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 8)`,
+    height: `calc(${themeLayout['--spacing']} * 8)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+  },
+  rule12: { minWidth: 0, flex: 1 },
+  rule13: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule14: {
+    display: 'flex',
+    width: '100%',
+    cursor: 'pointer',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+      },
+    },
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+    textAlign: 'left',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+      },
+    },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -98,7 +257,7 @@ function PreparingLocalStorageScreen() {
       title="Preparing local storage"
       subtitle="Opening your full local setup flow."
     >
-      <div className="flex flex-col items-center gap-2">
+      <div sx={stylexStyles2.rule1}>
         <Spinner size="lg" variant="muted" />
       </div>
     </SetupPageLayout>
@@ -172,7 +331,7 @@ function LocalSessionSetupCloudScreen({
         title="Could not prepare local storage"
         subtitle="Please try again from the plan page."
       >
-        <p className="text-destructive text-center text-xs">{error}</p>
+        <p sx={stylexStyles2.rule2}>{error}</p>
       </SetupPageLayout>
     )
   }
@@ -267,46 +426,40 @@ export function WarningCard({
   upgradeLoading?: boolean
 }) {
   return (
-    <div className="border-foreground/20 bg-background-card/50 overflow-hidden rounded-lg border">
-      <div className="p-6">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="bg-brand/10 flex size-10 shrink-0 items-center justify-center rounded-lg">
+    <div sx={stylexStyles2.rule3}>
+      <div sx={stylexStyles2.rule4}>
+        <div sx={stylexStyles2.rule5}>
+          <div sx={stylexStyles2.rule6}>
             <LuTriangleAlert sx={stylexStyles.rule1} />
           </div>
           <div>
-            <h2 className="text-foreground text-sm font-medium">
-              Backup your data
-            </h2>
-            <p className="text-foreground-alt mt-1 text-xs leading-relaxed">
+            <h2 sx={stylexStyles2.rule7}>Backup your data</h2>
+            <p sx={stylexStyles2.rule8}>
               Your browser may clear stored data if disk space is low.
             </p>
           </div>
         </div>
 
-        <div className="space-y-3">
+        <div>
           <button
             type="button"
             onClick={onDownload}
             disabled={isDesktop}
-            className={cn(
-              'border-foreground/10 flex w-full items-center gap-3 rounded-md border p-3 text-left transition-colors',
-              isDesktop
-                ? 'cursor-default opacity-60'
-                : 'hover:border-brand/30 hover:bg-brand/5 cursor-pointer',
-            )}
+            sx={[
+              nativeChildSpacing.s3,
+              isDesktop ? stylexStyles2.rule9 : stylexStyles2.rule10,
+            ]}
           >
-            <div className="bg-foreground/5 flex size-8 shrink-0 items-center justify-center rounded-md">
+            <div sx={stylexStyles2.rule11}>
               {isDesktop ? (
                 <LuCheck sx={stylexStyles.rule2} />
               ) : (
                 <LuMonitor sx={stylexStyles.rule2} />
               )}
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-foreground text-sm font-medium">
-                Download the desktop app
-              </p>
-              <p className="text-foreground-alt mt-0.5 text-xs">
+            <div sx={stylexStyles2.rule12}>
+              <p sx={stylexStyles2.rule7}>Download the desktop app</p>
+              <p sx={stylexStyles2.rule13}>
                 Persistent storage on your computer.
               </p>
             </div>
@@ -317,20 +470,18 @@ export function WarningCard({
             type="button"
             onClick={onUpgrade}
             disabled={upgradeLoading}
-            className="border-foreground/10 hover:border-brand/30 hover:bg-brand/5 flex w-full cursor-pointer items-center gap-3 rounded-md border p-3 text-left transition-colors disabled:opacity-50"
+            sx={[nativeChildSpacing.s3, stylexStyles2.rule14]}
           >
-            <div className="bg-foreground/5 flex size-8 shrink-0 items-center justify-center rounded-md">
+            <div sx={stylexStyles2.rule11}>
               {upgradeLoading ? (
                 <Spinner variant="muted" />
               ) : (
                 <LuCloud sx={stylexStyles.rule2} />
               )}
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-foreground text-sm font-medium">
-                Upgrade to Cloud
-              </p>
-              <p className="text-foreground-alt mt-0.5 text-xs">
+            <div sx={stylexStyles2.rule12}>
+              <p sx={stylexStyles2.rule7}>Upgrade to Cloud</p>
+              <p sx={stylexStyles2.rule13}>
                 Cloud sync and backup for ${PLAN_PRICE_MONTHLY}/mo.
               </p>
             </div>
@@ -341,3 +492,18 @@ export function WarningCard({
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

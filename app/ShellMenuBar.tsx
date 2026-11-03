@@ -2,7 +2,6 @@ import { CommandSurface } from '@s4wave/sdk/command/command.pb.js'
 import { useMemo, useCallback } from 'react'
 import { LuMenu } from '@s4wave/web/images/icons.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import { AppLogo } from '@s4wave/web/images/AppLogo.js'
 import {
   Menubar,
@@ -31,6 +30,117 @@ import { useKeybindingGraph } from '@s4wave/web/command/useKeybindingGraph.js'
 
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../web/style/tokens.stylex.js'
+
+import {
+  radii as themeRadii,
+  colors as themeColors,
+  motion as themeMotion,
+} from '../web/style/tokens.stylex.js'
+
+const stylexStyles5 = stylex.create({
+  rule1: {
+    display: 'flex',
+    height: '100%',
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: '1px',
+    paddingRight: themeLayout['--spacing'],
+    paddingLeft: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule2: {
+    marginTop: '-1px',
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 7)`,
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    cursor: 'pointer',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rule3: { display: 'none', height: '100%', alignItems: 'center' },
+  rule4: {
+    display: 'flex',
+    height: '100%',
+    alignItems: 'center',
+    gap: '1px',
+    overflow: 'hidden',
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.2s',
+    '--tw-duration': '.2s',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    width: { default: null, '@media (max-width: 640px)': 0 },
+    opacity: { default: null, '@media (max-width: 640px)': 0 },
+  },
+})
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    display: 'flex',
+    width: {
+      default: `calc(${themeLayout['--spacing']} * 7)`,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+    height: {
+      default: `calc(${themeLayout['--spacing']} * 7)`,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-menu-button'],
+    color: {
+      default: themeColors['--color-topbar-button-text'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-topbar-button-text-hi'],
+      },
+    },
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-pulldown-hover'],
+      },
+    },
+    fontSize: themeLayout['--text-ui'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-ui--line-height']})`,
+    letterSpacing: `var(--tw-tracking, ${themeLayout['--text-ui--letter-spacing']})`,
+  },
+  rule2: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 5)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-menu-button'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.75)`,
+    whiteSpace: 'nowrap',
+    color: {
+      default: themeColors['--color-topbar-button-text'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-topbar-button-text-hi'],
+      },
+      ':is([data-state="open"])': themeColors['--color-topbar-button-text-hi'],
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    textShadow: themeLayout['--text-shadow-glow'],
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-pulldown-hover'],
+      },
+      ':is([data-state="open"])': themeColors['--color-pulldown-hover'],
+    },
+    fontSize: themeLayout['--text-ui'],
+    lineHeight: `var(--tw-leading, ${themeLayout['--text-ui--line-height']})`,
+    letterSpacing: `var(--tw-tracking, ${themeLayout['--text-ui--letter-spacing']})`,
+  },
+})
 
 const stylexStyles3 = stylex.create({
   rule1: {
@@ -260,24 +370,25 @@ export function ShellMenuBar() {
   }, [openCommand])
 
   return (
-    <div className="shell-menu-bar flex h-full shrink-0 items-center gap-px pr-1 pl-1.5">
+    <div className="shell-menu-bar" sx={stylexStyles5.rule1}>
       <button
+        className="shell-menu-palette"
         type="button"
         aria-label="Open command palette"
-        className="shell-menu-palette -mt-px flex size-7 cursor-pointer items-center justify-center"
+        sx={stylexStyles5.rule2}
         onClick={handleLogoClick}
         title="Open command palette"
       >
         <AppLogo sx={stylexStyles3.rule1} />
       </button>
-      <div className="shell-menu-mobile hidden h-full items-center">
+      <div className="shell-menu-mobile" sx={stylexStyles5.rule3}>
         <Menubar variant="shell" sx={stylexStyles2.rule1}>
           <MenubarMenu>
             <MenubarTrigger asChild>
               <button
                 type="button"
                 aria-label="Open app menu"
-                className="text-topbar-button-text hover:text-topbar-button-text-hi hover:bg-pulldown-hover rounded-menu-button flex size-7 items-center justify-center pointer-coarse:size-11"
+                sx={stylexStyles4.rule1}
               >
                 <LuMenu sx={stylexStyles.rule1} />
               </button>
@@ -315,12 +426,7 @@ export function ShellMenuBar() {
           </MenubarMenu>
         </Menubar>
       </div>
-      <div
-        className={cn(
-          'shell-menu-collapsible flex h-full items-center gap-px overflow-hidden transition-all duration-200 select-none',
-          'narrow:w-0 narrow:opacity-0',
-        )}
-      >
+      <div className="shell-menu-collapsible" sx={[stylexStyles5.rule4]}>
         <Menubar variant="shell" sx={stylexStyles2.rule1}>
           {topLevelMenus.map((name) => {
             const node = menuTree.get(name)
@@ -328,10 +434,7 @@ export function ShellMenuBar() {
             return (
               <MenubarMenu key={name}>
                 <MenubarTrigger asChild>
-                  <button
-                    type="button"
-                    className="rounded-menu-button text-topbar-button-text hover:text-topbar-button-text-hi hover:bg-pulldown-hover data-[state=open]:text-topbar-button-text-hi data-[state=open]:bg-pulldown-hover text-topbar-menu ui-text-shadow flex h-5 items-center justify-center px-1.75 whitespace-nowrap transition-colors"
-                  >
+                  <button type="button" sx={stylexStyles4.rule2}>
                     {name}
                   </button>
                 </MenubarTrigger>

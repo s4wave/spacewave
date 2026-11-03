@@ -17,7 +17,6 @@ import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'
 import { useBottomBarSetOpenMenu } from '@s4wave/web/frame/bottom-bar-context.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import { Facts } from './Facts.js'
 import { InspectorSection } from './InspectorSection.js'
@@ -36,6 +35,106 @@ import {
   fonts as themeFonts,
 } from '../../web/style/tokens.stylex.js'
 import { groupMarker as groupMarker2 } from '../../web/style/relations.stylex.js'
+
+import { utilityState as themeUtilityState } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'grid',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    gridTemplateColumns: {
+      default: null,
+      '@container (min-width: 48rem)': 'repeat(2, minmax(0, 1fr))',
+    },
+  },
+  rule2: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule3: { minWidth: 0, flex: 1 },
+  rule4: {
+    display: 'block',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule5: {
+    display: 'block',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule6: {
+    flexShrink: 0,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule7: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule8: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+  },
+  rule9: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+  },
+  rule10: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule11: {
+    minWidth: 0,
+    flex: 1,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule12: {
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule13: { color: themeColors['--color-brand'] },
+  rule14: { marginTop: `calc(${themeLayout['--spacing']} * 2)` },
+  rule15: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule16: {
+    marginRight: 'auto',
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+})
 
 const stylexStyles2 = stylex.create({
   rule1: {
@@ -121,15 +220,19 @@ export function SpacesInspector({
   const sessionIndex = useSessionIndex()
 
   return (
-    <div className="grid gap-3 @3xl:grid-cols-2">
+    <div sx={stylexStyles3.rule1}>
       <InspectorSection
         title="Accounts"
         description="Every session on this device. Each one keeps its own keys and Spaces."
       >
         {!sessions ? (
-          <p className="text-foreground-alt/50 text-xs">Reading sessions…</p>
+          <p sx={stylexStyles3.rule2}>Reading sessions…</p>
         ) : (
-          <ul className="space-y-3">
+          <ul
+            className={
+              /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
+            }
+          >
             {sessions.map((session) => (
               <SessionRow
                 key={session.sessionIndex}
@@ -147,13 +250,15 @@ export function SpacesInspector({
         description="Spaces mounted by the current session."
       >
         {!spaces ? (
-          <p className="text-foreground-alt/50 text-xs">Reading Spaces…</p>
+          <p sx={stylexStyles3.rule2}>Reading Spaces…</p>
         ) : spaces.length === 0 ? (
-          <p className="text-foreground-alt/50 text-xs">
-            This session has no Spaces yet.
-          </p>
+          <p sx={stylexStyles3.rule2}>This session has no Spaces yet.</p>
         ) : (
-          <ul className="divide-foreground/6 -mx-2 divide-y">
+          <ul
+            className={
+              /* TODO(stylex): a descendant, group, peer or compound selector: divide-y */ 'divide-foreground/6 -mx-2 divide-y'
+            }
+          >
             {spaces.map((space) => {
               const id = space.entry?.ref?.providerResourceRef?.id ?? ''
               const name = space.spaceMeta?.name || 'Untitled Space'
@@ -169,15 +274,11 @@ export function SpacesInspector({
                     sx={[stylexStyles2.rule1, groupMarker2]}
                     aria-label={`Open ${name}`}
                   >
-                    <span className="min-w-0 flex-1">
-                      <span className="text-foreground block truncate font-medium">
-                        {name}
-                      </span>
-                      <span className="text-foreground-alt/50 block truncate font-mono">
-                        {id || 'unknown'}
-                      </span>
+                    <span sx={stylexStyles3.rule3}>
+                      <span sx={stylexStyles3.rule4}>{name}</span>
+                      <span sx={stylexStyles3.rule5}>{id || 'unknown'}</span>
                     </span>
-                    <span className="text-foreground-alt/60 shrink-0">
+                    <span sx={stylexStyles3.rule6}>
                       {space.entry?.source === 'shared' ? 'Shared' : 'Owned'}
                     </span>
                     <LuArrowRight sx={stylexStyles.rule1} aria-hidden="true" />
@@ -210,23 +311,19 @@ function SessionRow({
 
   return (
     <li
-      className={cn(
-        'rounded-md border p-3',
-        current ? 'border-brand/30 bg-brand/5' : 'border-foreground/8',
-      )}
+      sx={[
+        stylexStyles3.rule7,
+        current ? stylexStyles3.rule8 : stylexStyles3.rule9,
+      ]}
     >
-      <div className="flex items-center gap-2 text-xs">
+      <div sx={stylexStyles3.rule10}>
         <LuUser sx={stylexStyles.rule2} aria-hidden="true" />
-        <span className="text-foreground min-w-0 flex-1 truncate font-medium">
-          {name}
-        </span>
-        <span className="text-foreground-alt/50 font-mono">
-          /u/{sessionIndex}
-        </span>
-        {current && <span className="text-brand">Current</span>}
+        <span sx={stylexStyles3.rule11}>{name}</span>
+        <span sx={stylexStyles3.rule12}>/u/{sessionIndex}</span>
+        {current && <span sx={stylexStyles3.rule13}>Current</span>}
       </div>
 
-      <div className="mt-2">
+      <div sx={stylexStyles3.rule14}>
         <Facts
           facts={[
             { label: 'Provider', value: metadata?.providerDisplayName },
@@ -249,9 +346,9 @@ function SessionRow({
         />
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-2">
+      <div sx={stylexStyles3.rule15}>
         {metadata?.lockMode != null && (
-          <span className="text-foreground-alt/60 mr-auto flex items-center gap-1.5 text-xs">
+          <span sx={stylexStyles3.rule16}>
             {autoUnlock ? (
               <LuLockOpen sx={stylexStyles.rule3} aria-hidden="true" />
             ) : (

@@ -48,7 +48,6 @@ import { CollapsibleSection } from '@s4wave/web/ui/CollapsibleSection.js'
 import { Button } from '@s4wave/web/ui/button.js'
 import { CopyButton } from '@s4wave/web/ui/CopyButton.js'
 import { useStateAtom, useStateNamespace } from '@s4wave/web/state/persist.js'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import {
   buildSpacewaveCommand,
@@ -61,6 +60,716 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
+
+import {
+  fonts as themeFonts,
+  motion as themeMotion,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles4 = stylex.create({
+  rule1: {
+    containerType: 'inline-size',
+    display: 'flex',
+    minWidth: 0,
+    flex: 1,
+    flexDirection: 'column',
+    overflowY: 'auto',
+    backgroundColor: themeColors['--color-background-landing'],
+  },
+  rule2: {
+    marginInline: 'auto',
+    width: '100%',
+    maxWidth: 'var(--container-3xl)',
+    paddingInline: {
+      default: `calc(${themeLayout['--spacing']} * 5)`,
+      '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 10)`,
+    },
+    paddingBlock: {
+      default: `calc(${themeLayout['--spacing']} * 6)`,
+      '@container (min-width: 32rem)': `calc(${themeLayout['--spacing']} * 8)`,
+    },
+  },
+  rule3: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 6)`,
+    display: 'inline-flex',
+    minHeight: `calc(${themeLayout['--spacing']} * 9)`,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: '.25rem',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': themeColors['--color-brand'],
+    },
+    '--tw-outline-style': { default: null, ':focus-visible': 'none' },
+    outlineStyle: { default: null, ':focus-visible': 'none' },
+  },
+  rule4: { marginBottom: `calc(${themeLayout['--spacing']} * 7)` },
+  rule5: {
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule6: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule7: {
+    display: 'flex',
+    flexDirection: {
+      default: 'column',
+      '@container (min-width: 32rem)': 'row',
+    },
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 4)`,
+    justifyContent: {
+      default: null,
+      '@container (min-width: 32rem)': 'space-between',
+    },
+  },
+  rule8: { minWidth: 0 },
+  rule9: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-foreground'],
+  },
+  rule10: {
+    marginTop: themeLayout['--spacing'],
+    maxWidth: 'var(--container-md)',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule11: {
+    marginTop: `calc(${themeLayout['--spacing']} * 5)`,
+    overflow: 'hidden',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+  },
+  rule12: {
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 3%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule13: {
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    color: themeColors['--color-foreground'],
+  },
+  rule14: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    columnGap: `calc(${themeLayout['--spacing']} * 4)`,
+    rowGap: themeLayout['--spacing'],
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2.5)`,
+  },
+  rule15: {
+    width: `calc(${themeLayout['--spacing']} * 24)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule16: {
+    flex: 1,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule17: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule18: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 3)`,
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule19: { minWidth: 0, flex: 1 },
+  rule20: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+  },
+  rule21: {
+    marginTop: `calc(${themeLayout['--spacing']} * .5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule22: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule23: {
+    display: 'grid',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    gridTemplateColumns: {
+      default: null,
+      '@media (min-width: 48rem)': 'repeat(2, minmax(0, 1fr))',
+    },
+  },
+  rule24: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-amber-500']} 20%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-amber-500']} 5%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule25: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule26: {
+    marginTop: themeLayout['--spacing'],
+    display: 'block',
+    maxWidth: '100%',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: '.7rem',
+    lineHeight: 1.5,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 90%, transparent)`,
+  },
+  rule27: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-danger'],
+  },
+  rule28: {
+    marginBottom: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground-alt'],
+    textTransform: 'uppercase',
+  },
+  rule29: {
+    display: 'block',
+    maxWidth: '100%',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    borderRadius: '.25rem',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: themeLayout['--spacing'],
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: '.7rem',
+    lineHeight: 1.5,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 90%, transparent)`,
+  },
+  rule30: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule31: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule32: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    paddingTop: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule33: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground-alt'],
+    textTransform: 'uppercase',
+  },
+  rule34: { display: 'grid', gap: `calc(${themeLayout['--spacing']} * 2)` },
+  rule35: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 40%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    textAlign: 'left',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.7 },
+  },
+  rule36: {
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      },
+    },
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 2%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 2)`,
+    textAlign: 'left',
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.7 },
+  },
+  rule37: {
+    display: 'block',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule38: {
+    marginTop: themeLayout['--spacing'],
+    display: 'block',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: '.68rem',
+    lineHeight: 1.5,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 90%, transparent)`,
+  },
+  rule39: {
+    marginTop: themeLayout['--spacing'],
+    display: 'block',
+    fontSize: '.68rem',
+    lineHeight: 1.5,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule40: {
+    display: 'flex',
+    flexShrink: 0,
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+  },
+  rule41: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 7)`,
+    height: `calc(${themeLayout['--spacing']} * 7)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+      ':disabled': `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 30%, transparent)`,
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+      },
+    },
+    cursor: { default: null, ':disabled': 'not-allowed' },
+  },
+  rule42: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 3)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+  },
+  rule43: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 4)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule44: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule45: {
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+  },
+  rule46: {
+    marginTop: `calc(${themeLayout['--spacing']} * 3)`,
+    display: 'flex',
+    flexWrap: 'wrap',
+    columnGap: `calc(${themeLayout['--spacing']} * 5)`,
+    rowGap: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+  },
+  rule47: {
+    display: 'inline-flex',
+    minHeight: `calc(${themeLayout['--spacing']} * 9)`,
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    borderRadius: '.25rem',
+    color: {
+      default: themeColors['--color-foreground'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-brand'],
+      },
+    },
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': themeColors['--color-brand'],
+    },
+    '--tw-outline-style': { default: null, ':focus-visible': 'none' },
+    outlineStyle: { default: null, ':focus-visible': 'none' },
+  },
+  rule48: {
+    display: 'inline-flex',
+    minHeight: `calc(${themeLayout['--spacing']} * 9)`,
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    borderRadius: '.25rem',
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    '--tw-ring-shadow': {
+      default: null,
+      ':focus-visible':
+        'var(--tw-ring-inset, ) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)',
+    },
+    boxShadow: {
+      default: null,
+      ':focus-visible':
+        'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+    },
+    '--tw-ring-color': {
+      default: null,
+      ':focus-visible': themeColors['--color-brand'],
+    },
+    '--tw-outline-style': { default: null, ':focus-visible': 'none' },
+    outlineStyle: { default: null, ':focus-visible': 'none' },
+  },
+  rule49: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: {
+      default: themeColors['--color-brand'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 80%, transparent)`,
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule50: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * .5)`,
+  },
+  rule51: {
+    width: 'fit-content',
+    maxWidth: '100%',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    borderRadius: '.25rem',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+    fontVariantLigatures: 'none',
+  },
+  rule52: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule53: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule54: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 6)`,
+    height: `calc(${themeLayout['--spacing']} * 6)`,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: themeColors['--color-brand'],
+  },
+  rule55: {
+    display: 'flex',
+    minWidth: 0,
+    flex: 1,
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule56: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 40%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 2.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 1.5)`,
+  },
+  rule57: {
+    minWidth: 0,
+    flex: 1,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+    fontVariantLigatures: 'none',
+  },
+  rule58: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule59: { display: 'flex', minWidth: 0, flex: 1, flexDirection: 'column' },
+  rule60: {
+    width: 'fit-content',
+    maxWidth: '100%',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    borderRadius: '.25rem',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: '.65rem',
+    lineHeight: 1.5,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 80%, transparent)`,
+  },
+  rule61: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule62: {
+    display: 'flex',
+    minWidth: 0,
+    flex: 1,
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * .5)`,
+  },
+  rule63: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule64: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+  },
+  rule65: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: themeLayout['--spacing'],
+    fontSize: '.65rem',
+    lineHeight: 1.5,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule66: {
+    fontSize: '.7rem',
+    lineHeight: 1.5,
+    color: themeColors['--color-foreground-alt'],
+  },
+})
 
 const stylexStyles3 = stylex.create({
   rule1: {
@@ -145,29 +854,27 @@ export function CommandLineSetupPage() {
   )
 
   return (
-    <div className="bg-background-landing @container flex min-w-0 flex-1 flex-col overflow-y-auto">
-      <div className="mx-auto w-full max-w-3xl px-5 py-6 @lg:px-10 @lg:py-8">
-        <button
-          type="button"
-          onClick={handleBack}
-          className="text-foreground-alt hover:text-foreground focus-visible:ring-brand mb-6 inline-flex min-h-9 items-center gap-1.5 rounded text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
-        >
+    <div sx={stylexStyles4.rule1}>
+      <div sx={stylexStyles4.rule2}>
+        <button type="button" onClick={handleBack} sx={stylexStyles4.rule3}>
           <LuArrowLeft aria-hidden="true" sx={stylexStyles2.rule1} />
           Back to dashboard
         </button>
 
-        <header className="mb-7">
-          <h1 className="text-foreground text-lg font-semibold">
-            Command Line
-          </h1>
-          <p className="text-foreground-alt mt-1 text-sm">
+        <header sx={stylexStyles4.rule4}>
+          <h1 sx={stylexStyles4.rule5}>Command Line</h1>
+          <p sx={stylexStyles4.rule6}>
             Work with your spaces from the Spacewave CLI.
           </p>
         </header>
 
         <InAppTerminalLauncher onOpen={handleOpenTerminal} />
 
-        <div className="border-foreground/10 mt-8 space-y-4 border-t pt-6">
+        <div
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'border-foreground/10 mt-8 space-y-4 border-t pt-6'
+          }
+        >
           <InstallGuidanceSection />
           {isDesktop && (
             <DesktopCLIInstallCard
@@ -190,15 +897,12 @@ export function CommandLineSetupPage() {
 function InAppTerminalLauncher({ onOpen }: { onOpen: () => void }) {
   return (
     <section aria-labelledby="built-in-cli-title">
-      <div className="flex flex-col items-start gap-4 @lg:flex-row @lg:justify-between">
-        <div className="min-w-0">
-          <h2
-            id="built-in-cli-title"
-            className="text-foreground text-sm font-semibold"
-          >
+      <div sx={stylexStyles4.rule7}>
+        <div sx={stylexStyles4.rule8}>
+          <h2 id="built-in-cli-title" sx={stylexStyles4.rule9}>
             Built-in terminal
           </h2>
-          <p className="text-foreground-alt mt-1 max-w-md text-sm leading-relaxed">
+          <p sx={stylexStyles4.rule10}>
             Open a new shell tab with the Spacewave CLI, connected to this
             session. No installation needed.
           </p>
@@ -214,28 +918,24 @@ function InAppTerminalLauncher({ onOpen }: { onOpen: () => void }) {
         </Button>
       </div>
 
-      <div className="border-foreground/10 mt-5 overflow-hidden rounded-md border">
-        <div className="bg-foreground/3 text-foreground-alt border-foreground/10 border-b px-4 py-2 text-xs">
-          Try these at the{' '}
-          <code className="text-foreground font-mono">spacewave&gt;</code>{' '}
+      <div sx={stylexStyles4.rule11}>
+        <div sx={stylexStyles4.rule12}>
+          Try these at the <code sx={stylexStyles4.rule13}>spacewave&gt;</code>{' '}
           prompt
         </div>
-        <dl className="divide-foreground/8 divide-y">
+        <dl
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: divide-y */ 'divide-foreground/8 divide-y'
+          }
+        >
           {[
             ['help', 'Explore available commands'],
             ['status', 'Check the current session'],
             ['space list', 'List your spaces'],
           ].map(([command, description]) => (
-            <div
-              key={command}
-              className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5"
-            >
-              <dt className="text-foreground w-24 font-mono text-sm">
-                {command}
-              </dt>
-              <dd className="text-foreground-alt flex-1 text-sm">
-                {description}
-              </dd>
+            <div key={command} sx={stylexStyles4.rule14}>
+              <dt sx={stylexStyles4.rule15}>{command}</dt>
+              <dd sx={stylexStyles4.rule16}>{description}</dd>
               <CopyButton text={command} label={`Copy ${command}`} />
             </div>
           ))}
@@ -330,6 +1030,7 @@ function visibleInstallError(state?: DesktopCLIInstallState): string {
 }
 
 export function DesktopCLIInstallCard({
+  sx,
   state,
   loading,
   error,
@@ -339,7 +1040,7 @@ export function DesktopCLIInstallCard({
   loading?: boolean
   error?: Error | null
   onInvokeAction?: (action: DesktopCLIInstallActionItem) => void | Promise<void>
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   const checkTimedOut = useCheckTimedOut(!error && (loading || !state))
   const presentation = desktopCLIInstallPresentation(
     state,
@@ -350,27 +1051,21 @@ export function DesktopCLIInstallCard({
   const actions = state?.actions ?? []
   const errorMessage = visibleInstallError(state)
   return (
-    <section className="border-foreground/6 bg-background-card/30 rounded-lg border p-4">
-      <div className="mb-3 flex items-start gap-3">
+    <section sx={[stylexStyles4.rule17, sx]}>
+      <div sx={stylexStyles4.rule18}>
         <StatusDot tone={presentation.tone} />
-        <div className="min-w-0 flex-1">
-          <h2 className="text-foreground text-sm font-semibold tracking-tight">
-            Desktop CLI install
-          </h2>
-          <p className="text-foreground-alt mt-0.5 text-xs">
-            {presentation.label}
-          </p>
+        <div sx={stylexStyles4.rule19}>
+          <h2 sx={stylexStyles4.rule20}>Desktop CLI install</h2>
+          <p sx={stylexStyles4.rule21}>{presentation.label}</p>
         </div>
         <ActionButtons actions={actions} onInvokeAction={onInvokeAction} />
       </div>
 
       {presentation.detail && (
-        <p className="text-foreground-alt mb-3 text-xs">
-          {presentation.detail}
-        </p>
+        <p sx={stylexStyles4.rule22}>{presentation.detail}</p>
       )}
 
-      <div className="grid gap-3 md:grid-cols-2">
+      <div sx={stylexStyles4.rule23}>
         <SelectedTarget state={state} />
         <ReleaseIdentity state={state} />
       </div>
@@ -382,17 +1077,13 @@ export function DesktopCLIInstallCard({
       />
 
       {state?.conflictPath && (
-        <div className="mt-3 rounded-md border border-amber-500/20 bg-amber-500/5 p-3">
-          <p className="text-foreground text-xs font-medium">PATH conflict</p>
-          <code className="text-foreground-alt/90 micro-seven mt-1 block max-w-full truncate font-mono">
-            {state.conflictPath}
-          </code>
+        <div sx={stylexStyles4.rule24}>
+          <p sx={stylexStyles4.rule25}>PATH conflict</p>
+          <code sx={stylexStyles4.rule26}>{state.conflictPath}</code>
         </div>
       )}
 
-      {errorMessage && (
-        <p className="text-danger mt-3 text-xs">{errorMessage}</p>
-      )}
+      {errorMessage && <p sx={stylexStyles4.rule27}>{errorMessage}</p>}
     </section>
   )
 }
@@ -402,17 +1093,13 @@ function SelectedTarget({ state }: { state?: DesktopCLIInstallState }) {
   const selectedTarget = state?.targets?.find((target) => target.selected)
 
   return (
-    <div className="min-w-0">
-      <p className="text-foreground-alt mb-1 text-xs font-medium uppercase">
-        Selected target
-      </p>
-      <code className="text-foreground-alt/90 bg-foreground/5 micro-seven block max-w-full truncate rounded px-1.5 py-1 font-mono">
+    <div sx={stylexStyles4.rule8}>
+      <p sx={stylexStyles4.rule28}>Selected target</p>
+      <code sx={stylexStyles4.rule29}>
         {selectedTarget?.path || 'Not selected'}
       </code>
       {selectedTarget && (
-        <p className="text-foreground-alt mt-1 text-xs">
-          {describeTarget(selectedTarget)}
-        </p>
+        <p sx={stylexStyles4.rule30}>{describeTarget(selectedTarget)}</p>
       )}
     </div>
   )
@@ -421,15 +1108,13 @@ function SelectedTarget({ state }: { state?: DesktopCLIInstallState }) {
 // ReleaseIdentity shows the available and installed CLI releases.
 function ReleaseIdentity({ state }: { state?: DesktopCLIInstallState }) {
   return (
-    <div className="min-w-0">
-      <p className="text-foreground-alt mb-1 text-xs font-medium uppercase">
-        Release identity
-      </p>
-      <p className="text-foreground text-xs">
+    <div sx={stylexStyles4.rule8}>
+      <p sx={stylexStyles4.rule28}>Release identity</p>
+      <p sx={stylexStyles4.rule31}>
         {formatCLIIdentity(state?.available) || 'Waiting for release metadata'}
       </p>
       {state?.installed?.manifestId && (
-        <p className="text-foreground-alt mt-1 text-xs">
+        <p sx={stylexStyles4.rule30}>
           Installed {formatCLIIdentity(state.installed)}
         </p>
       )}
@@ -449,11 +1134,9 @@ function TargetOptions({
   const targets = state?.targets ?? []
   if (targets.length <= 1) return null
   return (
-    <div className="border-foreground/10 mt-3 border-t pt-3">
-      <p className="text-foreground-alt mb-2 text-xs font-medium uppercase">
-        Install target
-      </p>
-      <div className="grid gap-2">
+    <div sx={stylexStyles4.rule32}>
+      <p sx={stylexStyles4.rule33}>Install target</p>
+      <div sx={stylexStyles4.rule34}>
         {targets.map((target) => {
           const action = actions.find(
             (item) =>
@@ -470,22 +1153,13 @@ function TargetOptions({
               aria-pressed={selected}
               aria-label={`Use ${target.label || target.path || target.id}`}
               onClick={() => action && void onInvokeAction?.(action)}
-              className={cn(
-                'border-foreground/10 bg-foreground/[0.02] text-left transition-colors',
-                'hover:border-foreground/20 hover:bg-foreground/5 rounded-md border px-3 py-2',
-                'disabled:cursor-not-allowed disabled:opacity-70',
-                selected && 'border-brand/40 bg-brand/10',
-              )}
+              sx={selected ? stylexStyles4.rule35 : stylexStyles4.rule36}
             >
-              <span className="text-foreground block text-xs font-medium">
+              <span sx={stylexStyles4.rule37}>
                 {target.label || target.id || 'Target'}
               </span>
-              <code className="text-foreground-alt/90 micro-compact mt-1 block truncate font-mono">
-                {target.path}
-              </code>
-              <span className="text-foreground-alt micro-compact mt-1 block">
-                {describeTarget(target)}
-              </span>
+              <code sx={stylexStyles4.rule38}>{target.path}</code>
+              <span sx={stylexStyles4.rule39}>{describeTarget(target)}</span>
             </button>
           )
         })}
@@ -515,7 +1189,7 @@ function ActionButtons({
   if (visibleActions.length === 0) return null
 
   return (
-    <div className="flex shrink-0 items-center gap-1">
+    <div sx={stylexStyles4.rule40}>
       {visibleActions.map((action) => {
         const Icon =
           action.kind ===
@@ -535,7 +1209,7 @@ function ActionButtons({
             title={action.label || action.id}
             aria-label={action.label || action.id}
             onClick={() => void onInvokeAction?.(action)}
-            className="border-foreground/10 text-foreground-alt hover:text-foreground hover:bg-foreground/5 disabled:text-foreground-alt/30 flex size-7 items-center justify-center rounded-md border transition-colors disabled:cursor-not-allowed"
+            sx={stylexStyles4.rule41}
           >
             <Icon sx={stylexStyles3.rule1} />
           </button>
@@ -644,28 +1318,32 @@ function formatCLIIdentity(
 
 // WalkthroughSection renders the three-step CLI walkthrough bound to
 // the active session (status, whoami, space list).
-export function WalkthroughSection({ opts }: { opts: CommandOptions }) {
+export function WalkthroughSection({
+  sx,
+  opts,
+}: { opts: CommandOptions } & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
-    <section className="border-foreground/6 bg-background-card/30 rounded-lg border p-4">
-      <h2 className="text-foreground mb-3 text-sm font-semibold tracking-tight">
-        Try it out
-      </h2>
-      <p className="text-foreground-alt mb-4 text-xs">
+    <section sx={[stylexStyles4.rule17, sx]}>
+      <h2 sx={stylexStyles4.rule42}>Try it out</h2>
+      <p sx={stylexStyles4.rule43}>
         Run these three commands in a terminal to confirm the CLI is talking to
         this session.
       </p>
-      <ol className="space-y-3">
+      <ol>
         <CommandStep
+          sx={nativeChildSpacing.s3}
           index={1}
           command={buildSpacewaveCommand('status', opts)}
           explanation="Proves the CLI reached the desktop app session and reports socket, lock, and space count."
         />
         <CommandStep
+          sx={nativeChildSpacing.s3}
           index={2}
           command={buildSpacewaveCommand('whoami', opts)}
           explanation="Confirms the session identity the CLI is acting as."
         />
         <CommandStep
+          sx={nativeChildSpacing.s3}
           index={3}
           command={buildSpacewaveCommand('space list', opts)}
           explanation="Lists the spaces visible to this session."
@@ -676,35 +1354,28 @@ export function WalkthroughSection({ opts }: { opts: CommandOptions }) {
 }
 
 // InstallGuidanceSection links to the desktop CLI for an external shell.
-function InstallGuidanceSection() {
+function InstallGuidanceSection({
+  sx,
+}: { sx?: stylex.StyleXStyles; className?: never } = {}) {
   const cliDownloadHref = useStaticHref('/download/cli')
   const cliInstallHref = useStaticHref('/docs/users/cli/install')
 
   return (
-    <section aria-labelledby="desktop-cli-title">
-      <h2
-        id="desktop-cli-title"
-        className="text-foreground text-sm font-semibold"
-      >
+    <section sx={sx} aria-labelledby="desktop-cli-title">
+      <h2 id="desktop-cli-title" sx={stylexStyles4.rule9}>
         Use your own terminal
       </h2>
-      <p className="text-foreground-alt mt-1 text-sm leading-relaxed">
+      <p sx={stylexStyles4.rule44}>
         Install the desktop CLI to run{' '}
-        <code className="font-mono">spacewave</code> commands from your
+        <code sx={stylexStyles4.rule45}>spacewave</code> commands from your
         computer’s shell. It connects to the Spacewave desktop app.
       </p>
-      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-        <a
-          href={cliDownloadHref}
-          className="text-foreground hover:text-brand focus-visible:ring-brand inline-flex min-h-9 items-center gap-1.5 rounded focus-visible:ring-2 focus-visible:outline-none"
-        >
+      <div sx={stylexStyles4.rule46}>
+        <a href={cliDownloadHref} sx={stylexStyles4.rule47}>
           <LuDownload aria-hidden="true" sx={stylexStyles2.rule1} />
           Download the spacewave CLI
         </a>
-        <a
-          href={cliInstallHref}
-          className="text-foreground-alt hover:text-foreground focus-visible:ring-brand inline-flex min-h-9 items-center gap-1 rounded focus-visible:ring-2 focus-visible:outline-none"
-        >
+        <a href={cliInstallHref} sx={stylexStyles4.rule48}>
           Install and quickstart guide
           <LuArrowUpRight aria-hidden="true" sx={stylexStyles2.rule2} />
         </a>
@@ -730,25 +1401,29 @@ function MoreCommandsSection({ opts }: { opts: CommandOptions }) {
       open={open}
       onOpenChange={setOpen}
     >
-      <div className="space-y-3">
-        <ul className="space-y-2">
+      <div
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'space-y-3'
+        }
+      >
+        <ul>
           <MoreCommandRow
+            sx={nativeChildSpacing.s2}
             command={buildSpacewaveCommand('web --bg', opts)}
             explanation="Open a local web listener that stays running in the background."
           />
           <MoreCommandRow
+            sx={nativeChildSpacing.s2}
             command={buildSpacewaveCommand('fs ls', opts)}
             explanation="List files in the current space."
           />
           <MoreCommandRow
+            sx={nativeChildSpacing.s2}
             command={buildSpacewaveCommand('git', opts)}
             explanation="Drive git helpers against a selected space."
           />
         </ul>
-        <a
-          href={developerCliHref}
-          className="text-brand hover:text-brand/80 inline-flex items-center gap-1.5 text-xs transition-colors"
-        >
+        <a href={developerCliHref} sx={stylexStyles4.rule49}>
           Developer CLI reference
         </a>
       </div>
@@ -760,24 +1435,24 @@ function MoreCommandsSection({ opts }: { opts: CommandOptions }) {
 // button. The walkthrough step handles copy; this section is for
 // orientation only.
 function MoreCommandRow({
+  sx,
   command,
   explanation,
 }: {
   command: string
   explanation: string
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
-    <li className="flex flex-col gap-0.5">
-      <code className="text-foreground bg-foreground/5 font-no-ligatures w-fit max-w-full truncate rounded px-1.5 py-0.5 font-mono text-xs">
-        {command}
-      </code>
-      <p className="text-foreground-alt text-xs">{explanation}</p>
+    <li sx={[stylexStyles4.rule50, sx]}>
+      <code sx={stylexStyles4.rule51}>{command}</code>
+      <p sx={stylexStyles4.rule52}>{explanation}</p>
     </li>
   )
 }
 
 // CommandStep renders a single walkthrough row with a copy button.
 function CommandStep({
+  sx,
   index,
   command,
   explanation,
@@ -785,20 +1460,16 @@ function CommandStep({
   index: number
   command: string
   explanation: string
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   return (
-    <li className="flex items-start gap-3">
-      <div className="bg-brand/10 text-brand flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
-        {index}
-      </div>
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        <div className="border-foreground/10 bg-background/40 flex items-center gap-2 rounded-md border px-2.5 py-1.5">
-          <code className="text-foreground font-no-ligatures min-w-0 flex-1 truncate font-mono text-xs">
-            {command}
-          </code>
+    <li sx={[stylexStyles4.rule53, sx]}>
+      <div sx={stylexStyles4.rule54}>{index}</div>
+      <div sx={stylexStyles4.rule55}>
+        <div sx={stylexStyles4.rule56}>
+          <code sx={stylexStyles4.rule57}>{command}</code>
           <CopyButton text={command} label="Copy command" />
         </div>
-        <p className="text-foreground-alt text-xs">{explanation}</p>
+        <p sx={stylexStyles4.rule52}>{explanation}</p>
       </div>
     </li>
   )
@@ -811,19 +1482,21 @@ function CommandStep({
 // runs against the desktop app instead of a misleading "Not listening"
 // state. While a remote runtime has taken the socket, shows "Not
 // listening" with a note pointing at the reclaim affordance.
-function ListenerStatusChip() {
+function ListenerStatusChip({
+  sx,
+}: { sx?: stylex.StyleXStyles; className?: never } = {}) {
   const status = useListenerStatus()
   const handoff = useRuntimeHandoff()
 
   if (!isDesktop) {
     return (
-      <div className="border-foreground/10 bg-background-card/30 flex items-center gap-3 rounded-md border p-3">
+      <div sx={[stylexStyles4.rule58, sx]}>
         <StatusDot tone="muted" />
-        <div className="flex min-w-0 flex-1 flex-col">
-          <span className="text-foreground text-xs font-medium">
+        <div sx={stylexStyles4.rule59}>
+          <span sx={stylexStyles4.rule25}>
             CLI runs against the desktop app
           </span>
-          <span className="text-foreground-alt text-xs">
+          <span sx={stylexStyles4.rule52}>
             Install the Spacewave desktop app to expose a local CLI socket.
           </span>
         </div>
@@ -836,33 +1509,21 @@ function ListenerStatusChip() {
 
   let socketRow: ReactNode
   if (status?.socketPath) {
-    socketRow = (
-      <code className="text-foreground-alt/80 bg-foreground/5 micro-label w-fit max-w-full truncate rounded px-1.5 py-0.5 font-mono">
-        {status.socketPath}
-      </code>
-    )
+    socketRow = <code sx={stylexStyles4.rule60}>{status.socketPath}</code>
   } else {
     socketRow = (
-      <span className="text-foreground-alt text-xs">
-        Socket path not yet resolved.
-      </span>
+      <span sx={stylexStyles4.rule52}>Socket path not yet resolved.</span>
     )
   }
 
   return (
-    <div
-      className={cn(
-        'border-foreground/10 bg-background-card/30 flex flex-wrap items-center gap-3 rounded-md border p-3',
-      )}
-    >
+    <div sx={[[stylexStyles4.rule61], sx]}>
       <StatusDot tone={tone} />
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <div className="flex items-center gap-2">
-          <span className="text-foreground text-xs font-semibold tracking-tight">
-            {label}
-          </span>
+      <div sx={stylexStyles4.rule62}>
+        <div sx={stylexStyles4.rule63}>
+          <span sx={stylexStyles4.rule64}>{label}</span>
           {listening && (
-            <span className="text-foreground-alt micro-label inline-flex items-center gap-1">
+            <span sx={stylexStyles4.rule65}>
               <LuUsers sx={stylexStyles2.rule3} />
               {status?.connectedClients ?? 0} connected
             </span>
@@ -870,7 +1531,7 @@ function ListenerStatusChip() {
         </div>
         {socketRow}
         {handoff.active && (
-          <span className="text-foreground-alt micro-seven">
+          <span sx={stylexStyles4.rule66}>
             Runtime is handed off to{' '}
             {handoff.requesterName || 'spacewave serve'}. Reclaim it from the
             banner above to resume listening.
@@ -919,3 +1580,29 @@ function StatusDot({
     />
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s3: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 3 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+  s2: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 2 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

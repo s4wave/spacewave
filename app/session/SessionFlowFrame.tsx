@@ -6,6 +6,18 @@ import { BackButton } from '@s4wave/web/ui/BackButton.js'
 
 import { SessionFrame } from './SessionFrame.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    position: 'relative',
+    display: 'flex',
+    minHeight: 0,
+    flex: 1,
+    overflow: 'hidden',
+  },
+})
+
 // SessionFlowFrameProps configures the session subflow frame.
 export interface SessionFlowFrameProps {
   fallbackPath: string
@@ -34,7 +46,7 @@ export function SessionFlowFrame({
 
   return (
     <SessionFrame>
-      <div className="relative flex min-h-0 flex-1 overflow-hidden">
+      <div sx={stylexStyles.rule1}>
         <BackButton floating onClick={handleBack}>
           Back
         </BackButton>

@@ -10,6 +10,53 @@ import {
   colors as themeColors,
 } from '../../web/style/tokens.stylex.js'
 
+import { fonts as themeFonts } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    padding: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 40%, transparent)`,
+  },
+  rule2: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingBlock: themeLayout['--spacing'],
+  },
+  rule3: { minWidth: 0, flex: 1 },
+  rule4: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule5: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule6: {
+    marginLeft: `calc(${themeLayout['--spacing']} * 5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+  },
+  rule7: { display: 'flex', flexShrink: 0, gap: themeLayout['--spacing'] },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -36,9 +83,13 @@ export function OrgInviteSection(props: {
   onRevoke: (inviteId: string) => Promise<void>
 }) {
   return (
-    <div className="space-y-1">
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1 */ 'space-y-1'
+      }
+    >
       {props.invites.length === 0 && (
-        <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
+        <div sx={stylexStyles2.rule1}>
           <LuLink sx={stylexStyles.rule1} />
           <span>No active invites</span>
         </div>
@@ -85,17 +136,15 @@ function InviteRow(props: {
     : `${invite.uses ?? 0} uses`
 
   return (
-    <div className="flex items-center justify-between gap-2 py-1">
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
+    <div sx={stylexStyles2.rule2}>
+      <div sx={stylexStyles2.rule3}>
+        <div sx={stylexStyles2.rule4}>
           <LuLink sx={stylexStyles.rule2} />
-          <span className="text-foreground truncate font-mono text-xs">
-            {invite.token}
-          </span>
+          <span sx={stylexStyles2.rule5}>{invite.token}</span>
         </div>
-        <div className="text-foreground-alt/50 ml-5 text-xs">{usesLabel}</div>
+        <div sx={stylexStyles2.rule6}>{usesLabel}</div>
       </div>
-      <div className="flex shrink-0 gap-1">
+      <div sx={stylexStyles2.rule7}>
         <DashboardButton
           icon={
             <LuClipboard

@@ -13,6 +13,50 @@ import {
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
 
+import { fonts as themeFonts } from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    position: 'relative',
+    display: 'flex',
+    height: '100%',
+    width: '100%',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    overflowY: 'auto',
+    backgroundColor: themeColors['--color-background-primary'],
+    paddingTop: `calc(${themeLayout['--spacing']} * 16)`,
+    paddingBottom: `calc(${themeLayout['--spacing']} * 10)`,
+  },
+  rule2: {
+    width: '100%',
+    maxWidth: 'var(--container-md)',
+    paddingInline: `calc(${themeLayout['--spacing']} * 4)`,
+  },
+  rule3: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 6)`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule4: {
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-tight)',
+    letterSpacing: 'var(--tracking-tight)',
+    color: themeColors['--color-foreground'],
+  },
+  rule5: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
+  },
+  rule6: { marginTop: `calc(${themeLayout['--spacing']} * 4)` },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 5)`,
@@ -48,18 +92,18 @@ export function StorageHealthPage({
 
   const Icon = recovery ? LuShieldCheck : LuDatabase
   return (
-    <div className="bg-background-primary relative flex h-full w-full items-start justify-center overflow-y-auto pt-16 pb-10">
-      <main className="w-full max-w-md px-4">
+    <div sx={stylexStyles2.rule1}>
+      <main sx={stylexStyles2.rule2}>
         <BackButton floating onClick={handleBack}>
           Back
         </BackButton>
-        <div className="mb-6 flex items-center gap-2">
+        <div sx={stylexStyles2.rule3}>
           <Icon sx={stylexStyles.rule1} aria-hidden="true" />
           <div>
-            <h1 className="text-foreground text-lg font-semibold tracking-tight">
+            <h1 sx={stylexStyles2.rule4}>
               {recovery ? 'Storage recovery' : 'Storage health'}
             </h1>
-            <p className="text-foreground-alt/60 mt-1 text-xs">
+            <p sx={stylexStyles2.rule5}>
               {recovery
                 ? 'Review browser protection and backup options.'
                 : 'See what this browser, this device, and sync activity report.'}
@@ -75,7 +119,7 @@ export function StorageHealthPage({
           onUseCloud={handleUseCloud}
         />
         {!recovery && (
-          <div className="mt-4">
+          <div sx={stylexStyles2.rule6}>
             <StorageBackendsSection />
           </div>
         )}

@@ -29,6 +29,72 @@ import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
 import { layout as themeLayout2 } from '../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule2: {
+    width: '100%',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: themeColors['--color-background'],
+    padding: `calc(${themeLayout2['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    height: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout2['--spacing']} * 11)`,
+    },
+  },
+  rule3: {
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    padding: `calc(${themeLayout2['--spacing']} * 3)`,
+  },
+  rule4: {
+    cursor: 'pointer',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    minHeight: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout2['--spacing']} * 11)`,
+    },
+    paddingBlock: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout2['--spacing']} * 3.5)`,
+    },
+  },
+  rule5: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+  rule6: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: `calc(${themeLayout2['--spacing']} * 2)`,
+  },
+  rule7: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     minHeight: {
@@ -187,9 +253,6 @@ function buildMessage(
   return ''
 }
 
-const selectClass =
-  'border-foreground/10 bg-background w-full rounded-md border p-2 text-xs [@media(pointer:coarse)]:h-11'
-
 interface BuildSelectProps {
   label: string
   value: string
@@ -213,13 +276,17 @@ function BuildSelect({
   const id = useId()
 
   return (
-    <div className="space-y-1">
-      <label htmlFor={id} className="text-xs">
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-1 */ 'space-y-1'
+      }
+    >
+      <label htmlFor={id} sx={stylexStyles3.rule1}>
         {label}
       </label>
       <select
         id={id}
-        className={selectClass}
+        sx={stylexStyles3.rule2}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         disabled={disabled}
@@ -296,12 +363,14 @@ function BuildPanel({
 
   // Use the existing settings layout and a retained source-and-preview dialog.
   return (
-    <details className="border-foreground/10 rounded-lg border p-3">
-      <summary className="cursor-pointer text-xs font-medium [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-3.5">
-        Build a TypeScript plugin
-      </summary>
-      <div className="mt-3 space-y-3">
-        <p className="text-foreground-alt/70 text-xs">
+    <details sx={stylexStyles3.rule3}>
+      <summary sx={stylexStyles3.rule4}>Build a TypeScript plugin</summary>
+      <div
+        className={
+          /* TODO(stylex): a descendant, group, peer or compound selector: space-y-3 */ 'mt-3 space-y-3'
+        }
+      >
+        <p sx={stylexStyles3.rule5}>
           Choose a source folder with bldr.yaml and a registered build device. A
           completed build installs into this Space.
         </p>
@@ -340,8 +409,11 @@ function BuildPanel({
           disabled={locked}
           onChange={setDeviceKey}
         />
-        <div className="space-y-1">
-          <label htmlFor={`${id}-manifest`} className="text-xs">
+        <div>
+          <label
+            htmlFor={`${id}-manifest`}
+            sx={[nativeChildSpacing.s1, stylexStyles3.rule1]}
+          >
             Plugin manifest ID
           </label>
           <Input
@@ -350,11 +422,11 @@ function BuildPanel({
             onChange={(event) => setManifestId(event.target.value)}
             placeholder="my-colors"
             variant="plugin"
-            sx={stylexStyles.rule1}
+            sx={[nativeChildSpacing.s1, stylexStyles.rule1]}
             disabled={locked}
           />
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div sx={stylexStyles3.rule6}>
           <Button
             size="sm"
             variant="brandOutline"
@@ -384,7 +456,7 @@ function BuildPanel({
             </Button>
           )}
         </div>
-        <div role="status" className="text-foreground-alt/70 text-xs">
+        <div role="status" sx={stylexStyles3.rule5}>
           {message}
         </div>
         <SpacePluginObjects
@@ -393,12 +465,12 @@ function BuildPanel({
           onCreated={(key) => navigateToObjects([key])}
         />
         {error && (
-          <p role="alert" className="text-destructive text-xs">
+          <p role="alert" sx={stylexStyles3.rule7}>
             {error}
           </p>
         )}
         {status.error && (
-          <div role="alert" className="text-destructive text-xs">
+          <div role="alert" sx={stylexStyles3.rule7}>
             {status.error.message}
             <Button
               size="sm"
@@ -419,3 +491,18 @@ function BuildPanel({
     </details>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s1: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

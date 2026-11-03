@@ -60,6 +60,20 @@ import { buildShellExternalDrag } from './shell-app-drag.js'
 import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../web/style/tokens.stylex.js'
 
+import { colors as themeColors } from '../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    gap: themeLayout['--spacing'],
+    overflow: 'hidden',
+    backgroundColor: themeColors['--color-editor-border'],
+    padding: themeLayout['--spacing'],
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3)`,
@@ -364,7 +378,9 @@ function useShellGridController() {
         <button
           type="button"
           key="close-tab"
-          className="flexlayout__tab_toolbar_button"
+          className={
+            /* TODO(stylex): global or unknown class: flexlayout__tab_toolbar_button */ 'flexlayout__tab_toolbar_button'
+          }
           onClick={() => selectedTabId && handleCloseTab(selectedTabId)}
           title="Close tab"
           disabled={tabCount <= 1}
@@ -374,7 +390,9 @@ function useShellGridController() {
         <button
           type="button"
           key="add-tab"
-          className="flexlayout__tab_toolbar_button"
+          className={
+            /* TODO(stylex): global or unknown class: flexlayout__tab_toolbar_button */ 'flexlayout__tab_toolbar_button'
+          }
           onClick={handleAddTab}
           title="Add tab"
         >
@@ -383,7 +401,9 @@ function useShellGridController() {
         <button
           type="button"
           key="popout-tab"
-          className="flexlayout__tab_toolbar_button"
+          className={
+            /* TODO(stylex): global or unknown class: flexlayout__tab_toolbar_button */ 'flexlayout__tab_toolbar_button'
+          }
           onClick={() => selectedTabId && handlePopoutTab(selectedTabId)}
           title="Open in new tab"
         >
@@ -497,7 +517,7 @@ export function ShellGridLayout() {
   }
 
   return (
-    <div className="shell-flexlayout bg-editor-border flex flex-1 flex-col gap-1 overflow-hidden p-1">
+    <div className="shell-flexlayout" sx={stylexStyles2.rule1}>
       <OptimizedLayout
         model={model}
         renderTab={renderTab}

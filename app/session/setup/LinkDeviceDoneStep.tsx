@@ -16,6 +16,111 @@ import {
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({ rule1: { textAlign: 'center' } })
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule2: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule3: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 40%, transparent)`,
+      },
+    },
+  },
+  rule4: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+  rule5: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    textAlign: 'center',
+  },
+  rule6: {
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 12)`,
+    height: `calc(${themeLayout['--spacing']} * 12)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '3.40282e38px',
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+  },
+  rule7: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule8: { display: 'flex', gap: `calc(${themeLayout['--spacing']} * 2)` },
+  rule9: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 40%, transparent)`,
+      },
+    },
+  },
+  rule10: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 4)`,
@@ -56,56 +161,56 @@ export function LinkDeviceDoneStep({
 
   if (error) {
     return (
-      <div className="space-y-4 text-center">
-        <h2 className="text-foreground text-sm font-medium">Pairing failed</h2>
-        <p className="text-destructive text-xs">{error}</p>
+      <div sx={stylexStyles3.rule1}>
+        <h2 sx={[nativeChildSpacing.s4, stylexStyles2.rule1]}>
+          Pairing failed
+        </h2>
+        <p sx={[nativeChildSpacing.s4, stylexStyles2.rule2]}>{error}</p>
         <button
           type="button"
           onClick={() => onLinkMore()}
-          className="border-foreground/20 hover:border-foreground/40 flex h-10 w-full items-center justify-center gap-2 rounded-md border"
+          sx={[nativeChildSpacing.s4, stylexStyles2.rule3]}
         >
           <LuRefreshCw sx={stylexStyles.rule1} />
-          <span className="text-foreground text-sm">Try again</span>
+          <span sx={stylexStyles2.rule4}>Try again</span>
         </button>
       </div>
     )
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col items-center gap-3 text-center">
-        <div className="bg-brand/10 flex size-12 items-center justify-center rounded-full">
+    <div>
+      <div sx={[nativeChildSpacing.s4, stylexStyles2.rule5]}>
+        <div sx={stylexStyles2.rule6}>
           {result ? (
             <LuCircleCheck sx={stylexStyles.rule2} />
           ) : (
             <Spinner size="lg" variant="brand" />
           )}
         </div>
-        <h2 className="text-foreground text-sm font-medium">
+        <h2 sx={stylexStyles2.rule1}>
           {result ? 'Account connected' : 'Opening paired account…'}
         </h2>
         {result && (
-          <p className="text-foreground-alt text-xs">
-            Your Spaces are ready to open.
-          </p>
+          <p sx={stylexStyles2.rule7}>Your Spaces are ready to open.</p>
         )}
       </div>
       {result && (
-        <div className="flex gap-2">
+        <div sx={[nativeChildSpacing.s4, stylexStyles2.rule8]}>
           <button
             type="button"
             onClick={() => onLinkMore(result.sessionListEntry)}
-            className="border-foreground/20 hover:border-foreground/40 flex h-10 flex-1 items-center justify-center gap-2 rounded-md border"
+            sx={stylexStyles2.rule9}
           >
             <LuLink sx={stylexStyles.rule1} />
-            <span className="text-foreground text-sm">Link more</span>
+            <span sx={stylexStyles2.rule4}>Link more</span>
           </button>
           <button
             type="button"
             onClick={() => onDone(result.sessionListEntry)}
-            className="border-brand/30 bg-brand/10 hover:bg-brand/20 flex h-10 flex-1 items-center justify-center gap-2 rounded-md border"
+            sx={stylexStyles2.rule10}
           >
-            <span className="text-foreground text-sm">Open account</span>
+            <span sx={stylexStyles2.rule4}>Open account</span>
             <LuArrowRight sx={stylexStyles.rule1} />
           </button>
         </div>
@@ -113,3 +218,18 @@ export function LinkDeviceDoneStep({
     </div>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s4: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 4 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})

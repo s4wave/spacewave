@@ -14,6 +14,68 @@ import * as stylex from '@stylexjs/stylex'
 
 import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
 
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../../web/style/tokens.stylex.js'
+
+const stylexStyles3 = stylex.create({
+  rule1: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    borderRadius: themeRadii['--radius-lg'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 6%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background-card']} 30%, transparent)`,
+    padding: `calc(${themeLayout['--spacing']} * 3.5)`,
+  },
+  rule2: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  },
+  rule3: {
+    display: 'grid',
+    gridTemplateColumns: {
+      default: 'repeat(2, minmax(0, 1fr))',
+      '@media (min-width: 40rem)': 'repeat(3, minmax(0, 1fr))',
+    },
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+  },
+  rule4: {
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 8%, transparent)`,
+    paddingTop: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule5: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule6: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 70%, transparent)`,
+  },
+})
+
 const stylexStyles2 = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 3.5)`,
@@ -50,17 +112,13 @@ export function V86ConfigStep({
   const fromCatalog = cfg.source === V86WizardConfig_Source.LINK_FROM_CDN
 
   return (
-    <div className="border-foreground/6 bg-background-card/30 flex flex-col gap-3 rounded-lg border p-3.5">
+    <div sx={stylexStyles3.rule1}>
       <section>
-        <h3 className="text-foreground mb-2 flex items-center gap-1.5 text-xs font-medium select-none">
+        <h3 sx={stylexStyles3.rule2}>
           <LuCpu sx={stylexStyles2.rule1} />
           Memory
         </h3>
-        <div
-          role="group"
-          aria-label="Memory"
-          className="grid grid-cols-2 gap-2 sm:grid-cols-3"
-        >
+        <div role="group" aria-label="Memory" sx={stylexStyles3.rule3}>
           {memoryOptions.map((mb) => (
             <Button
               type="button"
@@ -76,15 +134,15 @@ export function V86ConfigStep({
           ))}
         </div>
       </section>
-      <section className="border-foreground/8 border-t pt-3">
-        <h3 className="text-foreground mb-2 flex items-center gap-1.5 text-xs font-medium select-none">
+      <section sx={stylexStyles3.rule4}>
+        <h3 sx={stylexStyles3.rule2}>
           <LuHardDrive sx={stylexStyles2.rule1} />
           Image
         </h3>
-        <div className="text-foreground text-sm font-medium">
+        <div sx={stylexStyles3.rule5}>
           {describeImage(cfg, inSpaceImages, cdnImage, existingDefault)}
         </div>
-        <p className="text-foreground-alt/70 mt-1 text-xs leading-relaxed">
+        <p sx={stylexStyles3.rule6}>
           {fromCatalog
             ? 'The VM reads the published image as it runs.'
             : 'The VM uses an image already stored in this Space.'}

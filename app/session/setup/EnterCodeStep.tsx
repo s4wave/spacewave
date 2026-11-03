@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { LuCamera, LuLink } from '@s4wave/web/images/icons.js'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import type { Session } from '@s4wave/sdk/session/session.js'
@@ -15,6 +14,144 @@ import {
   layout as themeLayout,
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
+
+import {
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+  fonts as themeFonts,
+  motion as themeMotion,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: { display: 'flex', justifyContent: 'center' },
+  rule2: {
+    height: `calc(${themeLayout['--spacing']} * 14)`,
+    width: `calc(${themeLayout['--spacing']} * 48)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      ':focus': `color-mix(in oklab, ${themeColors['--color-brand']} 50%, transparent)`,
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 5%, transparent)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 3)`,
+    textAlign: 'center',
+    fontFamily: themeFonts['--font-mono'],
+    WebkitFontSmoothing: 'subpixel-antialiased',
+    MozOsxFontSmoothing: 'auto',
+    textRendering: 'auto',
+    textShadow: '0 0 0.25px currentColor',
+    fontSize: 'var(--text-2xl)',
+    lineHeight: 'var(--tw-leading, var(--text-2xl--line-height))',
+    '--tw-font-weight': 'var(--font-weight-bold)',
+    fontWeight: 'var(--font-weight-bold)',
+    letterSpacing: '.2em',
+    color: themeColors['--color-foreground'],
+    '::placeholder': {
+      color: `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+    },
+    '--tw-outline-style': { default: null, ':focus': 'none' },
+    outlineStyle: { default: null, ':focus': 'none' },
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule3: { textAlign: 'center' },
+  rule4: {
+    marginInline: 'auto',
+    marginBottom: `calc(${themeLayout['--spacing']} * 2)`,
+    display: 'flex',
+    width: `calc(${themeLayout['--spacing']} * 10)`,
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rule5: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+  rule6: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: 'var(--leading-relaxed)',
+    '--tw-leading': 'var(--leading-relaxed)',
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule7: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 9)`,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+      },
+    },
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    backgroundColor: {
+      default: null,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+      },
+    },
+  },
+  rule8: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule9: {
+    textAlign: 'center',
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule10: { display: 'flex', gap: `calc(${themeLayout['--spacing']} * 2)` },
+  rule11: {
+    display: 'flex',
+    height: `calc(${themeLayout['--spacing']} * 10)`,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
+      },
+    },
+    transitionProperty: 'all',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration: '.3s',
+    '--tw-duration': '.3s',
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.5 },
+  },
+  rule12: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground'],
+  },
+})
 
 const stylexStyles = stylex.create({
   rule1: {
@@ -62,12 +199,13 @@ interface CodeInputProps {
 
 // CodeInput renders an OTP-style 8-character pairing code input with paste support.
 function CodeInput({
+  sx,
   value,
   onChange,
   onPaste,
   onSubmit,
   disabled,
-}: CodeInputProps) {
+}: CodeInputProps & { sx?: stylex.StyleXStyles; className?: never }) {
   const formatted =
     value.length > 4 ? `${value.slice(0, 4)} ${value.slice(4)}` : value
 
@@ -81,7 +219,7 @@ function CodeInput({
   }
 
   return (
-    <div className="flex justify-center">
+    <div sx={[stylexStyles2.rule1, sx]}>
       <input
         ref={handleInputRef}
         type="text"
@@ -93,12 +231,7 @@ function CodeInput({
         placeholder="XXXX XXXX"
         maxLength={9}
         disabled={disabled}
-        className={cn(
-          'border-foreground/20 bg-foreground/5 text-foreground w-48 rounded-md border text-center font-mono text-2xl font-bold tracking-brand-wide',
-          'placeholder:text-foreground/20 focus:border-brand/50 focus:outline-none',
-          'disabled:cursor-not-allowed disabled:opacity-50',
-          'h-14 px-3',
-        )}
+        sx={[stylexStyles2.rule2]}
       />
     </div>
   )
@@ -160,7 +293,11 @@ export function EnterCodeStep({
   }
 
   return (
-    <div className="space-y-4">
+    <div
+      className={
+        /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'space-y-4'
+      }
+    >
       {scanning && (
         <QRScannerModal
           title="Scan QR code"
@@ -172,14 +309,12 @@ export function EnterCodeStep({
         />
       )}
 
-      <div className="text-center">
-        <div className="mx-auto mb-2 flex size-10 items-center justify-center">
+      <div sx={stylexStyles2.rule3}>
+        <div sx={stylexStyles2.rule4}>
           <LuLink sx={stylexStyles.rule1} />
         </div>
-        <h2 className="text-foreground text-sm font-medium">
-          Pair another device
-        </h2>
-        <p className="text-foreground-alt mt-1 text-xs leading-relaxed">
+        <h2 sx={stylexStyles2.rule5}>Pair another device</h2>
+        <p sx={stylexStyles2.rule6}>
           Enter the 8-character code shown on your other device.
         </p>
       </div>
@@ -197,19 +332,15 @@ export function EnterCodeStep({
       <button
         type="button"
         onClick={() => setScanning(true)}
-        className={cn(
-          'w-full rounded-md border transition-all duration-300',
-          'border-foreground/10 hover:border-brand/30 hover:bg-brand/5',
-          'flex h-9 items-center justify-center gap-2',
-        )}
+        sx={[stylexStyles2.rule7]}
       >
         <LuCamera sx={stylexStyles.rule2} />
-        <span className="text-foreground-alt text-xs">Scan QR code</span>
+        <span sx={stylexStyles2.rule8}>Scan QR code</span>
       </button>
 
-      {error && <p className="text-destructive text-center text-xs">{error}</p>}
+      {error && <p sx={stylexStyles2.rule9}>{error}</p>}
 
-      <div className="flex gap-2">
+      <div sx={stylexStyles2.rule10}>
         <LinkDeviceBackButton onClick={onBack} />
         <button
           type="button"
@@ -217,19 +348,14 @@ export function EnterCodeStep({
             void handleSubmit()
           }}
           disabled={loading || code.length < 8 || !session}
-          className={cn(
-            'flex-1 rounded-md border transition-all duration-300',
-            'border-brand/30 bg-brand/10 hover:bg-brand/20',
-            'disabled:cursor-not-allowed disabled:opacity-50',
-            'flex h-10 items-center justify-center gap-2',
-          )}
+          sx={[stylexStyles2.rule11]}
         >
           {loading ? (
             <Spinner />
           ) : (
             <>
               <LuLink sx={stylexStyles.rule3} />
-              <span className="text-foreground text-sm">Connect</span>
+              <span sx={stylexStyles2.rule12}>Connect</span>
             </>
           )}
         </button>

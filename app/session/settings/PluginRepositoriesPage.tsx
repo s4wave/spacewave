@@ -32,6 +32,111 @@ import {
   colors as themeColors,
 } from '../../../web/style/tokens.stylex.js'
 
+import {
+  fonts as themeFonts,
+  motion as themeMotion,
+  radii as themeRadii,
+  utilityState as themeUtilityState,
+} from '../../../web/style/tokens.stylex.js'
+
+const stylexStyles2 = stylex.create({
+  rule1: {
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    overflowY: 'auto',
+    backgroundColor: themeColors['--color-background-landing'],
+    padding: {
+      default: `calc(${themeLayout['--spacing']} * 6)`,
+      '@media (min-width: 48rem)': `calc(${themeLayout['--spacing']} * 10)`,
+    },
+  },
+  rule2: {
+    marginInline: 'auto',
+    width: '100%',
+    maxWidth: 'var(--container-lg)',
+  },
+  rule3: {
+    marginBottom: `calc(${themeLayout['--spacing']} * 6)`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 1.5)`,
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: {
+      default: themeColors['--color-foreground-alt'],
+      '@media (hover: hover)': {
+        default: null,
+        ':hover': themeColors['--color-foreground'],
+      },
+    },
+    transitionProperty:
+      'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    transitionDuration:
+      'var(--tw-duration, var(--default-transition-duration))',
+  },
+  rule4: { marginBottom: `calc(${themeLayout['--spacing']} * 6)` },
+  rule5: {
+    fontSize: 'var(--text-lg)',
+    lineHeight: 'var(--tw-leading, var(--text-lg--line-height))',
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+    '--tw-tracking': 'var(--tracking-wide)',
+    letterSpacing: 'var(--tracking-wide)',
+    color: themeColors['--color-foreground'],
+  },
+  rule6: {
+    marginTop: themeLayout['--spacing'],
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule7: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-destructive'],
+  },
+  rule8: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+    color: themeColors['--color-foreground-alt'],
+  },
+  rule9: {
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule10: { display: 'flex', gap: `calc(${themeLayout['--spacing']} * 2)` },
+  rule11: {
+    width: '100%',
+    borderRadius: themeRadii['--radius-md'],
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+    backgroundColor: themeColors['--color-background'],
+    padding: `calc(${themeLayout['--spacing']} * 2)`,
+    fontSize: themeFonts['--text-xs'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
+  },
+  rule12: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: `calc(${themeLayout['--spacing']} * 3)`,
+    paddingBlock: `calc(${themeLayout['--spacing']} * 3)`,
+  },
+  rule13: { minWidth: 0, flex: 1 },
+  rule14: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    '--tw-font-weight': themeFonts['--font-weight-medium'],
+    fontWeight: themeFonts['--font-weight-medium'],
+    color: themeColors['--color-foreground'],
+  },
+})
+
 const stylexStyles = stylex.create({
   rule1: {
     width: `calc(${themeLayout['--spacing']} * 4)`,
@@ -79,35 +184,37 @@ export function PluginRepositoriesPage() {
   const loadError = spaceResource.error ?? inventory.error
 
   return (
-    <div className="bg-background-landing flex flex-1 flex-col overflow-y-auto p-6 md:p-10">
-      <div className="mx-auto w-full max-w-lg">
+    <div sx={stylexStyles2.rule1}>
+      <div sx={stylexStyles2.rule2}>
         <button
           type="button"
           onClick={() => navigate({ path: '../../' })}
-          className="text-foreground-alt hover:text-foreground mb-6 flex items-center gap-1.5 text-sm transition-colors"
+          sx={stylexStyles2.rule3}
         >
           <LuArrowLeft sx={stylexStyles.rule1} />
           Back to dashboard
         </button>
 
-        <div className="mb-6">
-          <h1 className="text-foreground text-lg font-semibold tracking-wide">
-            Plugins
-          </h1>
-          <p className="text-foreground-alt mt-1 text-sm">
+        <div sx={stylexStyles2.rule4}>
+          <h1 sx={stylexStyles2.rule5}>Plugins</h1>
+          <p sx={stylexStyles2.rule6}>
             Add a plugin from GitHub. Spacewave stores its newest commit in your
             developer Space and keeps it pinned until you update.
           </p>
         </div>
 
-        <div className="border-foreground/20 bg-background-get-started space-y-4 rounded-lg border p-6 shadow-lg backdrop-blur-sm">
+        <div
+          className={
+            /* TODO(stylex): a descendant, group, peer or compound selector: space-y-4 */ 'border-foreground/20 bg-background-get-started space-y-4 rounded-lg border p-6 shadow-lg backdrop-blur-sm'
+          }
+        >
           {loadError && (
-            <p role="alert" className="text-destructive text-xs">
+            <p role="alert" sx={stylexStyles2.rule7}>
               {loadError.message}
             </p>
           )}
           {inventory.value && devices.length === 0 && (
-            <p className="text-foreground-alt text-xs">
+            <p sx={stylexStyles2.rule8}>
               Fetching needs a desktop or command-line Device linked to your
               developer Space. Link one, then add the repository.
             </p>
@@ -126,12 +233,16 @@ export function PluginRepositoriesPage() {
             onAdd={(repository) => void jobs.fetchRepository(repository)}
           />
           {message && (
-            <p role="status" className="text-foreground-alt text-xs">
+            <p role="status" sx={stylexStyles2.rule8}>
               {message}
             </p>
           )}
           {repositories.length > 0 && (
-            <ul className="divide-foreground/10 divide-y">
+            <ul
+              className={
+                /* TODO(stylex): a descendant, group, peer or compound selector: divide-y */ 'divide-foreground/10 divide-y'
+              }
+            >
               {repositories.map((repo) => (
                 <PluginRepositoryRow
                   key={repo.name}
@@ -392,6 +503,7 @@ function jobMessage(
 
 /** AddRepositoryForm takes the owner/repo of a repository to add. */
 function AddRepositoryForm({
+  sx,
   disabled,
   busy,
   onAdd,
@@ -399,23 +511,24 @@ function AddRepositoryForm({
   disabled: boolean
   busy: boolean
   onAdd: (repository: string) => void
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   const id = useId()
   const [repository, setRepository] = useState('')
   const trimmed = repository.trim()
 
   return (
     <form
-      className="space-y-1"
+      sx={sx}
+
       onSubmit={(event) => {
         event.preventDefault()
         if (!disabled && trimmed !== '') onAdd(trimmed)
       }}
     >
-      <label htmlFor={id} className="text-xs">
+      <label htmlFor={id} sx={[nativeChildSpacing.s1, stylexStyles2.rule9]}>
         Add from GitHub
       </label>
-      <div className="flex gap-2">
+      <div sx={[nativeChildSpacing.s1, stylexStyles2.rule10]}>
         <Input
           id={id}
           value={repository}
@@ -433,6 +546,7 @@ function AddRepositoryForm({
 
 /** DeviceSelect picks the Device that runs fetches and builds. */
 function DeviceSelect({
+  sx,
   devices,
   value,
   disabled,
@@ -442,17 +556,17 @@ function DeviceSelect({
   value: string
   disabled: boolean
   onChange: (value: string) => void
-}) {
+} & { sx?: stylex.StyleXStyles; className?: never }) {
   const id = useId()
 
   return (
-    <div className="space-y-1">
-      <label htmlFor={id} className="text-xs">
+    <div sx={sx}>
+      <label htmlFor={id} sx={[nativeChildSpacing.s1, stylexStyles2.rule9]}>
         Device
       </label>
       <select
         id={id}
-        className="border-foreground/10 bg-background w-full rounded-md border p-2 text-xs"
+        sx={[nativeChildSpacing.s1, stylexStyles2.rule11]}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         disabled={disabled}
@@ -491,11 +605,11 @@ function PluginRepositoryRow({
   const update = fetchedCommit !== '' && fetchedCommit !== pinnedCommit
 
   return (
-    <li className="flex items-center gap-3 py-3">
+    <li sx={stylexStyles2.rule12}>
       <LuGitBranch sx={stylexStyles.rule2} />
-      <div className="min-w-0 flex-1">
-        <p className="text-foreground truncate text-sm font-medium">{name}</p>
-        <p className="text-foreground-alt text-xs">
+      <div sx={stylexStyles2.rule13}>
+        <p sx={stylexStyles2.rule14}>{name}</p>
+        <p sx={stylexStyles2.rule8}>
           Pinned at {shortCommit(pinnedCommit)}
           {update
             ? ` · Update available: ${shortCommit(fetchedCommit)}`
@@ -511,3 +625,18 @@ function PluginRepositoryRow({
     </li>
   )
 }
+
+// nativeChildSpacing preserves the original margins at each rendered child.
+const nativeChildSpacing = stylex.create({
+  s1: {
+    '--tw-space-y-reverse': { default: null, ':not(:last-child)': 0 },
+    marginBlockStart: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * var(--tw-space-y-reverse))`,
+    },
+    marginBlockEnd: {
+      default: null,
+      ':not(:last-child)': `calc(var(--spacing) * 1 * calc(1 - var(--tw-space-y-reverse)))`,
+    },
+  },
+})
