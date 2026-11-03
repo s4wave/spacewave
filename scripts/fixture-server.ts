@@ -15,7 +15,8 @@ export async function serveFixture(entry: string) {
   const source = resolve(entry)
   const server = await createServer({
     configFile: viteConfig,
-    server: { host: '127.0.0.1', port: 0, open: false },
+    // Inspect one fixed fixture with the source watcher disabled.
+    server: { host: '127.0.0.1', port: 0, open: false, watch: null },
     logLevel: 'error',
     plugins: [
       {

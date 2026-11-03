@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	web_bundler "github.com/s4wave/spacewave/bldr/web/bundler"
 	bldr_vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
 	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 	"github.com/sirupsen/logrus"
@@ -296,17 +297,46 @@ func checkSharedButtonBrowser(ctx context.Context, root string, client bldr_vite
 		return err
 	}
 
+	// Give the disposable plugin the same explicit source alias its real Vite config owns.
+	config := `export default {resolve:{alias:{'@s4wave/web':` + strconv.Quote(filepath.Join(root, "web")) + `}}}`
+	configPath := filepath.Join(appRoot, "vite.config.mjs")
+	if err := os.WriteFile(configPath, []byte(config), 0o644); err != nil {
+		return err
+	}
+
+	// A plugin export rendered inside another WebView must bring its own native CSS.
+	pluginOut := filepath.Join(directory, "plugin")
+	plugin, err := client.Build(ctx, &bldr_vite.BuildRequest{
+		RootDir: root, ProjectRoot: root, DistDir: root, OutDir: pluginOut,
+		ConfigPaths: []string{configPath}, Mode: "production", FlatEntryNames: true, JsMinification: true,
+		Entrypoints:  []*bldr_vite.ViteBuildRequestEntrypoint{{InputPath: filepath.Join(appRoot, "App.tsx"), Name: "App"}},
+		ExternalPkgs: []string{"react", "react-dom", "@stylexjs/stylex", "cmdk"},
+		WebPkgs:      []*web_bundler.WebPkgRefConfig{{Id: "@s4wave/web", Exclude: true}},
+	})
+	if err != nil {
+		return err
+	}
+	if !plugin.GetSuccess() {
+		return errors.New(plugin.GetError())
+	}
+	if err := os.WriteFile(filepath.Join(pluginOut, "index.html"), []byte(html), 0o644); err != nil {
+		return err
+	}
+	mux.Handle("/plugin/", http.StripPrefix("/plugin/", http.FileServer(http.Dir(pluginOut))))
+
 	// Keep the HTTP origin alive until both browser engines finish.
 	mux.Handle("/", http.FileServer(http.Dir(filepath.Join(appOut, "native-button-consumer"))))
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
-	// Hold the real shared stylesheet before accepting a rendered cross-package icon.
-	command := exec.CommandContext(ctx, "node", filepath.Join(root, "scripts", "stylex-web-pkg.browser.ts"), server.URL, "buttons")
-	command.Dir = root
-	output, err := command.CombinedOutput()
-	if err != nil {
-		return errors.Wrapf(err, "native shared button browser: %s", output)
+	// Hold actual CSS for both shared-package and ordinary plugin module consumers.
+	for _, route := range []string{"/", "/plugin/"} {
+		command := exec.CommandContext(ctx, "node", filepath.Join(root, "scripts", "stylex-web-pkg.browser.ts"), server.URL+route, "buttons")
+		command.Dir = root
+		output, err := command.CombinedOutput()
+		if err != nil {
+			return errors.Wrapf(err, "native shared button browser %s: %s", route, output)
+		}
 	}
 	return nil
 }

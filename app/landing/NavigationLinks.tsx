@@ -36,10 +36,6 @@ const stylexStyles = stylex.create({
     paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
     alignItems: 'center',
     display: 'flex',
-    minHeight: {
-      default: null,
-      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
-    },
   },
 })
 

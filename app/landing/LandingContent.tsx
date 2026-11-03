@@ -1278,7 +1278,7 @@ const stylexStyles7 = ownerStylex.create({
       default: null,
       '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 2)`,
     },
-    alignItems: { default: null, '@media (pointer: coarse)': 'center' },
+    alignItems: 'center',
     color: {
       default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
       '@media (hover: hover)': {
@@ -1286,7 +1286,7 @@ const stylexStyles7 = ownerStylex.create({
         ':hover': themeColors['--color-foreground'],
       },
     },
-    display: { default: null, '@media (pointer: coarse)': 'flex' },
+    display: 'flex',
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     textDecorationLine: {
@@ -1296,7 +1296,7 @@ const stylexStyles7 = ownerStylex.create({
     textUnderlineOffset: '4px',
     userSelect: 'none',
     minHeight: {
-      default: null,
+      default: 24,
       '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
     },
   },
@@ -1772,12 +1772,12 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 // SectionTitle renders a section heading.
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h2 sx={stylexStyles7.rule4}>{children}</h2>
+  return <h2 sx={[stylexStyles7.rule4, publicText.balanced]}>{children}</h2>
 }
 
 // SectionSubtitle renders subtitle text under a heading.
 function SectionSubtitle({ children }: { children: React.ReactNode }) {
-  return <p sx={stylexStyles7.rule5}>{children}</p>
+  return <p sx={[stylexStyles7.rule5, publicText.balanced]}>{children}</p>
 }
 
 // CtaButton renders a call-to-action button.
@@ -1817,7 +1817,7 @@ interface SectionHeadingProps {
 }
 
 const SectionHeading: React.FC<SectionHeadingProps> = ({ children }) => (
-  <h2 sx={stylexStyles7.rule10}>{children}</h2>
+  <h2 sx={[stylexStyles7.rule10, publicText.balanced]}>{children}</h2>
 )
 
 // Hero Components
@@ -1834,7 +1834,7 @@ function HeroText({
   sx?: ComponentStyles
   className?: never
 }) {
-  return <p sx={[stylexStyles8.rule5, sx]}>{children}</p>
+  return <p sx={[[stylexStyles8.rule5, sx], publicText.balanced]}>{children}</p>
 }
 
 interface HeroButtonProps {
@@ -1911,8 +1911,11 @@ const FaqItem: React.FC<FaqItemProps> = ({
       <div sx={stylexStyles7.rule13}>
         <h3
           sx={[
-            stylexStyles7.rule14,
-            isOpen ? stylexStyles7.rule15 : stylexStyles7.rule16,
+            [
+              stylexStyles7.rule14,
+              isOpen ? stylexStyles7.rule15 : stylexStyles7.rule16,
+            ],
+            publicText.balanced,
           ]}
         >
           {question}
@@ -1933,7 +1936,7 @@ const FaqItem: React.FC<FaqItemProps> = ({
         ]}
       >
         <div sx={stylexStyles7.rule23}>
-          <p sx={stylexStyles7.rule24}>{answer}</p>
+          <p sx={[stylexStyles7.rule24, publicText.balanced]}>{answer}</p>
         </div>
       </div>
     </div>
@@ -2577,8 +2580,12 @@ function HowItWorksSection() {
           return (
             <div key={card.title} sx={[stylexStyles4.rule5, groupMarker2]}>
               <CardIcon sx={stylexStyles2.rule2} />
-              <h3 sx={stylexStyles7.rule49}>{card.title}</h3>
-              <p sx={stylexStyles7.rule50}>{card.body}</p>
+              <h3 sx={[stylexStyles7.rule49, publicText.balanced]}>
+                {card.title}
+              </h3>
+              <p sx={[stylexStyles7.rule50, publicText.balanced]}>
+                {card.body}
+              </p>
             </div>
           )
         })}
@@ -2677,8 +2684,8 @@ function UseCaseCard({
         </div>
         <span sx={stylexStyles7.rule53}>{highlight}</span>
       </div>
-      <h3 sx={stylexStyles7.rule54}>{title}</h3>
-      <p sx={stylexStyles7.rule55}>{description}</p>
+      <h3 sx={[stylexStyles7.rule54, publicText.balanced]}>{title}</h3>
+      <p sx={[stylexStyles7.rule55, publicText.balanced]}>{description}</p>
     </a>
   )
 }
@@ -2861,7 +2868,9 @@ function ForDevelopersSection() {
                     <CardIcon sx={stylexStyles2.rule1} />
                     {card.title}
                   </div>
-                  <p sx={stylexStyles7.rule50}>{card.body}</p>
+                  <p sx={[stylexStyles7.rule50, publicText.balanced]}>
+                    {card.body}
+                  </p>
                 </div>
               )
             })}
@@ -3002,7 +3011,7 @@ const ComparisonChart: React.FC = () => {
 
       {legend}
 
-      <p sx={stylexStyles7.rule98}>
+      <p sx={[stylexStyles7.rule98, publicText.balanced]}>
         Spacewave is free software and can run directly on your devices without
         relying on the cloud.
       </p>
@@ -3019,8 +3028,12 @@ const OpenSourceSection: React.FC = () => {
             <LuCode sx={stylexStyles.rule11} />
           </div>
           <div>
-            <h2 sx={stylexStyles7.rule103}>Open Source Software</h2>
-            <p sx={stylexStyles7.rule104}>Built in the open, for everyone</p>
+            <h2 sx={[stylexStyles7.rule103, publicText.balanced]}>
+              Open Source Software
+            </h2>
+            <p sx={[stylexStyles7.rule104, publicText.balanced]}>
+              Built in the open, for everyone
+            </p>
           </div>
         </div>
         <ExternalLink
@@ -3044,7 +3057,7 @@ function Footer() {
 
   return (
     <footer sx={stylexStyles7.rule106}>
-      <p sx={stylexStyles7.rule107}>
+      <p sx={[stylexStyles7.rule107, publicText.balanced]}>
         &copy; 2018-2026{' '}
         <ExternalLink
           href="https://github.com/aperturerobotics"
@@ -3137,3 +3150,6 @@ const nativeChildSpacing = stylex.create({
     },
   },
 })
+
+// publicText balances short page copy within its actual text boxes.
+const publicText = stylex.create({ balanced: { textWrap: 'balance' } })
