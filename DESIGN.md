@@ -449,7 +449,8 @@ rules still apply.
   toasts, floating windows, toolbars, and overlays.
 - Figures sit side by side in one figure strip, not one icon card per number.
 - Compact app chrome: 28px shell header, 36px detail-panel header, 22px shell
-  tabs, 7px-9px icon buttons, and 12px section labels.
+  tabs, compact icons inside 24px fine or 44px coarse targets, and 12px section
+  labels.
 - Manrope Variable for UI and display; Pragmasevka only for code, terminals,
   hashes, object refs, and numeric technical output.
 - Lucide-style line icons from `react-icons/lu` for UI meaning. Icons should be
@@ -545,7 +546,7 @@ they are not class strings to paste into JSX.
 - **Success** (`{colors.success}`): confirmation, completed step, positive
   status.
 - **Warning** (`{colors.warning}`): caution, expiring or degraded state.
-- **Destructive** (`{colors.destructive}`): current app utility for destructive,
+- **Destructive** (`{colors.destructive}`): current app color for destructive,
   invalid, and failed states. It aliases the error color in CSS; use
   low-opacity combinations such as `bg-destructive/5`,
   `border-destructive/20`, and `text-destructive` before reaching for solid
@@ -958,12 +959,12 @@ Spacewave uses container queries and viewport-height variants heavily.
 
 ### Do
 
-- Use the existing OKLCH theme tokens in `web/style/app.css`.
-- Use opacity modifiers before creating new color tokens.
+- Use the existing OKLCH theme tokens in `web/style/tokens.stylex.ts`.
+- Use `color-mix()` with the existing theme tokens before adding colors.
 - Use `InfoCard`, `DashboardButton`, `RadioOption`, loading primitives, and
   wizard shell patterns before creating a local one-off.
-- Keep app chrome compact, with panel headers at `h-9` and controls at `h-7`
-  or `h-9`.
+- Keep app chrome compact, with 36px panel headers and 28px or 36px fine
+  controls; coarse targets keep the shared 44px minimum.
 - Put identifiers, object refs, hashes, paths, and code in Pragmasevka mono.
 - Put destructive actions last, with low-opacity destructive tint and clear
   copy.
