@@ -323,12 +323,6 @@ func (p *flatPage) refOf(r flatRef) *block.BlockRef {
 	return &block.BlockRef{Hash: &hash.Hash{HashType: hash.HashType(r.hashType), Hash: slices.Clone(p.view(r.digest))}}
 }
 
-// refMatches reports whether ref names the same block as r, without allocating.
-func (p *flatPage) refMatches(r flatRef, ref *block.BlockRef) bool {
-	h := ref.GetHash()
-	return int32(h.GetHashType()) == r.hashType && bytes.Equal(h.GetHash(), p.view(r.digest))
-}
-
 // Len returns the number of entries.
 func (p *flatPage) Len() int { return len(p.entries) }
 

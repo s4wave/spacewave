@@ -143,10 +143,11 @@ func (t *tailIndex) window(pos uint64, n int) ([]byte, error) {
 		return nil, io.EOF
 	}
 	rel := pos - t.base
-	if rel >= uint64(len(t.tail)) || uint64(n) > uint64(len(t.tail))-rel {
+	size := uint64(n) //nolint:gosec // a negative n is rejected below
+	if n < 0 || rel >= uint64(len(t.tail)) || size > uint64(len(t.tail))-rel {
 		return nil, io.ErrUnexpectedEOF
 	}
-	return t.tail[rel : rel+uint64(n)], nil
+	return t.tail[rel : rel+size], nil
 }
 
 // rawEntry returns the protobuf bytes of entry i and their pack offset, with
