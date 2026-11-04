@@ -2,6 +2,8 @@ package s4db
 
 import (
 	"bytes"
+	"slices"
+	"sync"
 )
 
 // placeBatch is the number of adjacent pages written at once.
@@ -18,18 +20,31 @@ const reserveBatch = 4096
 // lookup below it reads, decoded from its own copy, which holds no buffer of
 // the pages it replaced. New leaves stay out of the cache: a checkpoint
 // rewrites more leaves than the cache holds, and copies of them would evict
-// the pages readers use.
+// the pages readers use. A subtree built beside the others writes through a
+// fork of the writer, which join takes back once the subtree is done.
 type pageWriter struct {
-	// reserve returns a run of at least one and at most n unused pages.
+	// reserve returns a run of at least one and at most n unused pages. It
+	// is safe to call from forks at once.
 	reserve func(n uint64) (run, error)
-	// write writes encoded pages from page.
-	write func(buf []byte, page uint64) error
+	// write writes encoded pages from page, after waiting for done, the
+	// batch this writer wrote before, to reach the drive. It is safe to call
+	// from forks at once.
+	write func(buf []byte, page uint64, done run) error
 	// cache receives the decoded pages.
 	cache *cache
-	// runs lists the reserved runs in order.
+	// runs lists the reserved runs, this writer's and its joined forks'.
 	runs []run
-	// next is the next unused page of the last run.
+	// cur is the run pages are added to.
+	cur run
+	// next is the next unused page of cur.
 	next uint64
+	// spare lists the unused tails of joined forks' runs.
+	spare []run
+	// done is the batch written last.
+	done run
+	// lock serializes reserve among a writer and its forks; nil before the
+	// first fork.
+	lock *sync.Mutex
 	// buf holds the encoded pages not yet written, from page at.
 	buf []byte
 	// at is the page of the first page in buf.
@@ -41,11 +56,11 @@ type pageWriter struct {
 // add writes d to the next page and returns the page.
 func (w *pageWriter) add(d *draft) (uint64, error) {
 	// Reserve more pages when the last run is used up.
-	if l := len(w.runs); l == 0 || w.next == w.runs[l-1].end() {
+	if w.next == w.cur.end() {
 		if err := w.flush(); err != nil {
 			return 0, err
 		}
-		r, err := w.reserve(reserveBatch)
+		r, err := w.reserveRun()
 		if err != nil {
 			return 0, err
 		}
@@ -54,7 +69,7 @@ func (w *pageWriter) add(d *draft) (uint64, error) {
 		// leaves do not replace it.
 		w.cache.drop(r)
 		w.runs = append(w.runs, r)
-		w.next, w.at = r.start, r.start
+		w.cur, w.next, w.at = r, r.start, r.start
 	}
 	page := w.next
 	w.next++
@@ -87,17 +102,45 @@ func (w *pageWriter) flush() error {
 	if len(w.buf) == 0 {
 		return nil
 	}
-	err := w.write(w.buf, w.at)
-	w.at += uint64(len(w.buf) / pageSize)
+	batch := run{start: w.at, n: uint64(len(w.buf) / pageSize)}
+	err := w.write(w.buf, w.at, w.done)
+	w.at, w.done = batch.end(), batch
 	w.buf = w.buf[:0]
 	return err
 }
 
-// unused returns the reserved pages no page was added to.
-func (w *pageWriter) unused() run {
-	l := len(w.runs)
-	if l == 0 {
-		return run{}
+// reserveRun reserves the next run, one fork at a time.
+func (w *pageWriter) reserveRun() (run, error) {
+	if w.lock != nil {
+		w.lock.Lock()
+		defer w.lock.Unlock()
 	}
-	return run{start: w.next, n: w.runs[l-1].end() - w.next}
+	return w.reserve(reserveBatch)
+}
+
+// fork returns a writer for a subtree built beside w, with its own
+// reservations and batches. The caller is w's goroutine.
+func (w *pageWriter) fork() *pageWriter {
+	if w.lock == nil {
+		w.lock = new(sync.Mutex)
+	}
+	return &pageWriter{reserve: w.reserve, write: w.write, cache: w.cache, lock: w.lock}
+}
+
+// join takes over the reservations of f, a flushed fork of w, and the
+// pages it added. The pages f reserved and left unused stay spare until
+// the tree is saved or dropped.
+func (w *pageWriter) join(f *pageWriter) {
+	w.runs = append(w.runs, f.runs...)
+	w.spare = append(w.spare, f.unused()...)
+	w.count += f.count
+}
+
+// unused returns the reserved pages no page was added to.
+func (w *pageWriter) unused() []run {
+	out := slices.Clip(w.spare)
+	if tail := (run{start: w.next, n: w.cur.end() - w.next}); tail.n != 0 {
+		out = append(out, tail)
+	}
+	return out
 }

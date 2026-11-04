@@ -12,7 +12,7 @@ func TestPageWriterCachesInnerPages(t *testing.T) {
 	w := &pageWriter{
 		cache:   c,
 		reserve: func(uint64) (run, error) { return run{start: 10, n: 4}, nil },
-		write:   func([]byte, uint64) error { return nil },
+		write:   func([]byte, uint64, run) error { return nil },
 	}
 
 	// Add a leaf and the inner page above it.

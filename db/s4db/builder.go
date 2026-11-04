@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"slices"
 	"sync"
+	"sync/atomic"
 )
 
 // change is one key's change applied at a checkpoint.
@@ -37,6 +38,31 @@ type builder struct {
 	out *pageWriter
 	// freed lists the replaced pages.
 	freed []uint64
+	// par holds a token for each subtree rewrite running in its own
+	// goroutine; nil builds serially.
+	par chan struct{}
+}
+
+// newBuilder returns a builder reading through p and writing through out
+// that rewrites up to workers subtrees at once.
+func newBuilder(p *pager, out *pageWriter, workers int) *builder {
+	b := &builder{p: p, out: out}
+	if workers > 1 {
+		b.par = make(chan struct{}, workers)
+	}
+	return b
+}
+
+// fork returns a builder for a subtree rewritten beside b.
+func (b *builder) fork() *builder {
+	return &builder{p: b.p, out: b.out.fork(), par: b.par}
+}
+
+// join takes over the pages written and replaced by f, a fork of b whose
+// writer is flushed.
+func (b *builder) join(f *builder) {
+	b.out.join(f.out)
+	b.freed = append(b.freed, f.freed...)
 }
 
 // build applies sorted changes to the tree at root and returns the new root,
@@ -48,7 +74,11 @@ func (b *builder) build(root uint64, changes []change) (*child, error) {
 		kids = packLeaves(mergeLeaf(nil, nil, changes))
 	} else {
 		var err error
-		if kids, err = b.apply(root, nil, changes); err != nil {
+		level, err := b.level(root)
+		if err != nil {
+			return nil, err
+		}
+		if kids, err = b.apply(root, nil, changes, level); err != nil {
 			return nil, err
 		}
 	}
@@ -76,9 +106,29 @@ func (b *builder) build(root uint64, changes []change) (*child, error) {
 	return &top, nil
 }
 
-// apply rewrites page with changes, returning its replacement pages. low is
-// the lowest key the page covers in its parent.
-func (b *builder) apply(page uint64, low []byte, changes []change) ([]child, error) {
+// level returns the height of page above the leaves, which are level 0. The
+// tree is balanced, so the leftmost path measures it.
+func (b *builder) level(page uint64) (int, error) {
+	level := 0
+	for {
+		n, err := b.p.node(page)
+		if err != nil || n.leaf {
+			return level, err
+		}
+		page = n.kid(0)
+		level++
+	}
+}
+
+// forkLevel is the level whose pages hand their changed children to forks.
+// Each fork rewrites one parent of leaves, a task small and even enough to
+// spread the leaf rewrites, which are almost all of a build's work, over
+// every worker.
+const forkLevel = 2
+
+// apply rewrites page, at the given level, with changes, returning its
+// replacement pages. low is the lowest key the page covers in its parent.
+func (b *builder) apply(page uint64, low []byte, changes []change, level int) ([]child, error) {
 	// Replace the page.
 	n, err := b.p.node(page)
 	if err != nil {
@@ -104,6 +154,16 @@ func (b *builder) apply(page uint64, low []byte, changes []change) ([]child, err
 		return nil, err
 	}
 
+	// Rewrite the changed parents of leaves beside each other when the build
+	// forks. Forks read their own leaves, so they need no read-ahead.
+	if b.par != nil && level == forkLevel && len(nodes) != 0 && !nodes[0].leaf {
+		kids, err := b.applyForks(n, low, ends, changes)
+		if err != nil {
+			return nil, err
+		}
+		return b.finish(kids, low)
+	}
+
 	// Read the changed children of changed inner children ahead of their
 	// rewrite, so one child's reads overlap the rewrite of the one before.
 	ra := b.readAhead(nodes, ends, changes)
@@ -117,15 +177,19 @@ func (b *builder) apply(page uint64, low []byte, changes []change) ([]child, err
 	var leaves []change
 	var leavesLow []byte
 	inRun := false
+
+	// Close the current run of rewritten leaves into packed children.
+	// packLeaves copies the entries into its drafts, so the run's slice is
+	// reused for the next run.
 	flush := func() {
 		if packed := packLeaves(leaves); len(packed) != 0 {
 			packed[0].low = leavesLow
 			kids = append(kids, packed...)
 		}
-		// packLeaves copies the entries into its drafts, so the run's
-		// slice is reused for the next run.
 		leaves, inRun = leaves[:0], false
 	}
+
+	// Walk the children in key order.
 	start := 0
 	for i, end := range ends {
 		// Keep a child without changes. The first child's low is the
@@ -153,7 +217,7 @@ func (b *builder) apply(page uint64, low []byte, changes []change) ([]child, err
 		} else {
 			flush()
 			ra.wait(inner)
-			sub, err := b.apply(page, k, changes[start:end])
+			sub, err := b.apply(page, k, changes[start:end], level-1)
 			if err != nil {
 				return nil, err
 			}
@@ -164,21 +228,112 @@ func (b *builder) apply(page uint64, low []byte, changes []change) ([]child, err
 		start = end
 	}
 	flush()
+	return b.finish(kids, low)
+}
 
-	// Merge underfull new children, write the new leaves among them, and
-	// pack them into new inner pages.
-	kids, err = b.rebalance(kids)
+// finish merges underfull new children of a rewritten inner page, writes
+// the new leaves among them, and packs them into new inner pages. low is
+// the lowest key the page covers in its parent.
+func (b *builder) finish(kids []child, low []byte) ([]child, error) {
+	// Merge underfull children into their neighbors.
+	kids, err := b.rebalance(kids)
 	if err != nil {
 		return nil, err
 	}
+
+	// Write the new leaves.
 	if err := b.emit(kids); err != nil {
 		return nil, err
 	}
+
+	// Pack the children into new inner pages under the page's low key.
 	out := packInner(kids)
 	if len(out) != 0 && low != nil {
 		out[0].low = low
 	}
 	return out, nil
+}
+
+// applyForks rewrites the changed children of inner page n, which are
+// parents of leaves, each in a fork of the build as a worker frees, and
+// returns n's new children in order. It waits for every fork before
+// returning, so no fork outlives the build's snapshot, and takes back each
+// fork's pages even on failure, so the tree's reservations list them.
+func (b *builder) applyForks(n *node, low []byte, ends []int, changes []change) ([]child, error) {
+	// Rewrite each changed child in a fork, stopping at the first failure.
+	type sub struct {
+		f    *builder
+		kids []child
+		err  error
+	}
+	subs := make([]sub, len(ends))
+	var wg sync.WaitGroup
+	var failed atomic.Bool
+	start := 0
+	for i, end := range ends {
+		if end == start {
+			continue
+		}
+		k, page, cs := n.key(i), n.kid(i), changes[start:end]
+		if i == 0 {
+			k = low
+		}
+		start = end
+
+		// Wait for a free worker, then fork unless a fork has failed.
+		b.par <- struct{}{}
+		if failed.Load() {
+			<-b.par
+			break
+		}
+		f := b.fork()
+		subs[i].f = f
+		wg.Go(func() {
+			// Rewrite the child, flush its last batch and release the
+			// worker.
+			defer func() { <-b.par }()
+			kids, err := f.apply(page, k, cs, forkLevel-1)
+			if err == nil {
+				err = f.out.flush()
+			}
+			subs[i].kids, subs[i].err = kids, err
+			if err != nil {
+				failed.Store(true)
+			}
+		})
+	}
+	wg.Wait()
+
+	// Take back the forks' pages, then report the first failure.
+	var err error
+	for _, s := range subs {
+		if s.f != nil {
+			b.join(s.f)
+		}
+		if err == nil {
+			err = s.err
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// Keep the unchanged children around the rewritten ones.
+	var kids []child
+	start = 0
+	for i, end := range ends {
+		if end != start {
+			kids = append(kids, subs[i].kids...)
+			start = end
+			continue
+		}
+		k := n.key(i)
+		if i == 0 {
+			k = low
+		}
+		kids = append(kids, child{low: k, page: n.kid(i)})
+	}
+	return kids, nil
 }
 
 // splitChanges returns where changes end for each child of inner page n,
