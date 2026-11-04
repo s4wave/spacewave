@@ -172,7 +172,7 @@ test('parity detects one changed property in both engines at every size', async 
       const png = PNG.sync.read(
         await readFile(join(coherentDir, path.replace(/\.json$/, '.png'))),
       )
-      assert.deepEqual([...png.data.subarray(0, 4)], [0, 0, 255, 255])
+      assert.deepEqual([...png.data.subarray(0, 4)], [0, 255, 0, 255])
     }
 
     // A one-level raster-only variation remains recorded separately; a two-level image defect still fails.
