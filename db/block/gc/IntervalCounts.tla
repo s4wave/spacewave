@@ -183,7 +183,6 @@ VARIABLES
   steps,     \* the commits since the last name, oldest first
   putSet,    \* pages a put of this interval carried
   freshSet,  \* pages some put of this interval stored afresh
-  foundSet,  \* pages some put of this interval found
   firstFresh,\* pages whose first put this interval stored afresh
   foundPuts, \* each page's puts this interval that found it, unmarked
   funded,    \* the engine counts on the lineage of named as a holder
@@ -201,11 +200,15 @@ VARIABLES
   underflow  \* a count change went below zero
 vars == <<headerAliases, aliases, save, receiptSeen, firstCurrent, wrapper, wrappers, wrapperReleases, base, written, writtenEpoch, unwritten, pendingWorlds, waiting, curEpoch, checkpointEpoch,
           storageMode, cur, named, stored, extra, rel, kept, steps, putSet, freshSet,
-          foundSet, firstFresh, foundPuts, funded, lineage, queue, walk, pin, hold,
+          firstFresh, foundPuts, funded, lineage, queue, walk, pin, hold,
           commits, lossy, underflow, counting, basisCurrent, staged, lineageCurrent,
           partStore, retired, doubt, sighted, tainted>>
 
 Zero == [p \in Pages |-> 0]
+\* Found membership is the positive support of the same receipt counts. Init,
+\* every receipt increment and all interval resets preserve this equality;
+\* deriving it avoids an independently stored copy of receipt history.
+foundSet == {p \in Pages : foundPuts[p] > 0}
 Ready == counting /\ ~doubt
 Shadow == storageMode = "shadow"
 PinRoots == IF pin = None THEN {} ELSE {pin}
@@ -285,7 +288,7 @@ Init ==
   /\ extra = [p \in Pages |-> IF p = "R0" THEN 1 ELSE 0]
   /\ rel = [p \in Pages |-> 0]
   /\ kept = {} /\ steps = <<>>
-  /\ putSet = {} /\ freshSet = {} /\ foundSet = {} /\ firstFresh = {}
+  /\ putSet = {} /\ freshSet = {} /\ firstFresh = {}
   /\ firstCurrent = {}
   /\ foundPuts = [p \in Pages |-> 0]
   /\ funded = TRUE /\ lineage = TRUE
@@ -363,7 +366,6 @@ SelectedInputs(E, N, K, refills, cached, H, submitted) ==
       fresh == R \ rawFound
   IN /\ putSet' = putSet \cup R
      /\ freshSet' = freshSet \cup fresh
-     /\ foundSet' = foundSet \cup rawFound
      /\ firstFresh' = firstFresh \cup (fresh \ putSet)
      /\ foundPuts' = [p \in Pages |-> foundPuts[p] + (IF p \in rawFound THEN 1 ELSE 0)]
      /\ staged' = (staged \cup E) \ (UNION {Kids(p) : p \in E} \cup H)
@@ -759,7 +761,7 @@ Name ==
            /\ lineageCurrent' = (basisCurrent /\ Ready /\ ~recovery)
   /\ named' = cur
   /\ steps' = <<>> /\ kept' = {}
-  /\ putSet' = {} /\ freshSet' = {} /\ foundSet' = {} /\ firstFresh' = {}
+  /\ putSet' = {} /\ freshSet' = {} /\ firstFresh' = {}
   /\ foundPuts' = Zero
   /\ basisCurrent' = TRUE
   /\ sighted' = IF counting /\ ~counting' THEN FALSE ELSE sighted
@@ -813,7 +815,7 @@ Forfeit ==
   /\ lossy' = TRUE
   /\ named' = cur
   /\ steps' = <<>> /\ kept' = {}
-  /\ putSet' = {} /\ freshSet' = {} /\ foundSet' = {} /\ firstFresh' = {}
+  /\ putSet' = {} /\ freshSet' = {} /\ firstFresh' = {}
   /\ foundPuts' = [p \in Pages |-> 0]
   /\ sighted' = IF counting /\ ~counting' THEN FALSE ELSE sighted
   /\ tainted' = IF counting /\ ~counting' THEN FALSE ELSE tainted
@@ -863,7 +865,7 @@ StartApply ==
                  changes |-> [p \in Pages |-> 0]]
   /\ queue' = Tail(queue)
   /\ UNCHANGED <<firstCurrent, wrapper, wrappers, wrapperReleases, base, written, writtenEpoch, unwritten, pendingWorlds, waiting, curEpoch, checkpointEpoch>>
-  /\ UNCHANGED <<firstCurrent, storageMode, cur, named, stored, extra, rel, kept, steps, putSet, freshSet, foundSet, firstFresh, foundPuts, funded, lineage, pin, hold, commits, lossy, underflow, counting, basisCurrent, staged, lineageCurrent, partStore, retired, doubt, sighted, tainted>>
+  /\ UNCHANGED <<firstCurrent, storageMode, cur, named, stored, extra, rel, kept, steps, putSet, freshSet, firstFresh, foundPuts, funded, lineage, pin, hold, commits, lossy, underflow, counting, basisCurrent, staged, lineageCurrent, partStore, retired, doubt, sighted, tainted>>
   /\ UNCHANGED <<save, receiptSeen>>
   /\ UNCHANGED aliases
   /\ UNCHANGED headerAliases
@@ -916,7 +918,7 @@ WalkStep ==
                    \cup (IF n \in walk.roots THEN {"root"} ELSE {}) :
                Decide(IF q = "root" \/ (q \in walk.frees /\ q \notin walk.dropped) THEN 1 ELSE 0)
   /\ UNCHANGED <<firstCurrent, wrapper, wrappers, wrapperReleases, base, written, writtenEpoch, unwritten, pendingWorlds, waiting, curEpoch, checkpointEpoch>>
-  /\ UNCHANGED <<firstCurrent, storageMode, cur, named, stored, extra, rel, kept, steps, putSet, freshSet, foundSet, firstFresh, foundPuts, funded, lineage, queue, pin, hold, commits, lossy, underflow, counting, basisCurrent, staged, lineageCurrent, partStore, retired, doubt, sighted, tainted>>
+  /\ UNCHANGED <<firstCurrent, storageMode, cur, named, stored, extra, rel, kept, steps, putSet, freshSet, firstFresh, foundPuts, funded, lineage, queue, pin, hold, commits, lossy, underflow, counting, basisCurrent, staged, lineageCurrent, partStore, retired, doubt, sighted, tainted>>
   /\ UNCHANGED <<save, receiptSeen>>
   /\ UNCHANGED aliases
   /\ UNCHANGED headerAliases
@@ -963,7 +965,7 @@ EndApply ==
   /\ waiting' = IF Shadow /\ (counting /\ ~counting') THEN StaleWaiting(waiting) ELSE waiting
   /\ UNCHANGED <<wrapper, wrappers, wrapperReleases, base, written, writtenEpoch, unwritten, pendingWorlds, curEpoch, checkpointEpoch>>
   /\ firstCurrent' = IF Shadow /\ (counting /\ ~counting') THEN {} ELSE firstCurrent
-  /\ UNCHANGED <<storageMode, cur, named, kept, steps, putSet, freshSet, foundSet, firstFresh, foundPuts, funded, pin, hold, commits, partStore>>
+  /\ UNCHANGED <<storageMode, cur, named, kept, steps, putSet, freshSet, firstFresh, foundPuts, funded, pin, hold, commits, partStore>>
   /\ UNCHANGED <<save, receiptSeen>>
   /\ UNCHANGED aliases
   /\ UNCHANGED headerAliases
@@ -1004,7 +1006,7 @@ Resolve(p) ==
   /\ waiting' = IF Shadow /\ (counting /\ ~counting') THEN StaleWaiting(waiting) ELSE waiting
   /\ UNCHANGED <<wrapper, wrappers, wrapperReleases, base, written, writtenEpoch, unwritten, pendingWorlds, curEpoch, checkpointEpoch>>
   /\ firstCurrent' = IF Shadow /\ (counting /\ ~counting') THEN {} ELSE firstCurrent
-  /\ UNCHANGED <<storageMode, cur, named, kept, steps, putSet, freshSet, foundSet, firstFresh, foundPuts, funded, walk, pin, hold, commits, partStore, retired, doubt>>
+  /\ UNCHANGED <<storageMode, cur, named, kept, steps, putSet, freshSet, firstFresh, foundPuts, funded, walk, pin, hold, commits, partStore, retired, doubt>>
   /\ UNCHANGED <<save, receiptSeen>>
   /\ UNCHANGED aliases
   /\ UNCHANGED headerAliases
@@ -1027,7 +1029,7 @@ AbortApply ==
   /\ waiting' = IF Shadow /\ (counting /\ ~counting') THEN StaleWaiting(waiting) ELSE waiting
   /\ UNCHANGED <<wrapper, wrappers, wrapperReleases, base, written, writtenEpoch, unwritten, pendingWorlds, curEpoch, checkpointEpoch>>
   /\ firstCurrent' = IF Shadow /\ (counting /\ ~counting') THEN {} ELSE firstCurrent
-  /\ UNCHANGED <<storageMode, cur, named, stored, kept, steps, putSet, freshSet, foundSet, firstFresh, foundPuts, funded, hold, pin, commits, underflow, staged, partStore>>
+  /\ UNCHANGED <<storageMode, cur, named, stored, kept, steps, putSet, freshSet, firstFresh, foundPuts, funded, hold, pin, commits, underflow, staged, partStore>>
   /\ UNCHANGED <<save, receiptSeen>>
   /\ UNCHANGED aliases
   /\ UNCHANGED headerAliases
@@ -1055,8 +1057,7 @@ ResolveRecord ==
         /\ firstCurrent' = IF recovery THEN {} ELSE firstCurrent
   /\ UNCHANGED <<save, receiptSeen, aliases, wrapper, wrappers, wrapperReleases,
        base, written, writtenEpoch, unwritten, pendingWorlds, curEpoch, checkpointEpoch,
-       storageMode, cur, named, stored, kept, steps, putSet, freshSet, foundSet,
-       firstFresh, foundPuts, funded, walk, pin, hold, commits, underflow, staged, partStore>>
+       storageMode, cur, named, stored, kept, steps, putSet, freshSet, firstFresh, foundPuts, funded, walk, pin, hold, commits, underflow, staged, partStore>>
   /\ UNCHANGED headerAliases
 
 Pin ==
@@ -1080,7 +1081,7 @@ Pin ==
   /\ waiting' = IF Shadow /\ (counting /\ ~counting') THEN StaleWaiting(waiting) ELSE waiting
   /\ UNCHANGED <<wrapper, wrappers, wrapperReleases, base, written, writtenEpoch, unwritten, pendingWorlds, curEpoch, checkpointEpoch>>
   /\ firstCurrent' = IF Shadow /\ (counting /\ ~counting') THEN {} ELSE firstCurrent
-  /\ UNCHANGED <<storageMode, cur, named, stored, kept, steps, putSet, freshSet, foundSet, firstFresh, foundPuts, funded, hold, underflow, staged, partStore, retired>>
+  /\ UNCHANGED <<storageMode, cur, named, stored, kept, steps, putSet, freshSet, firstFresh, foundPuts, funded, hold, underflow, staged, partStore, retired>>
   /\ UNCHANGED <<save, receiptSeen>>
   /\ UNCHANGED aliases
   /\ UNCHANGED headerAliases
@@ -1104,7 +1105,7 @@ Unpin ==
   /\ waiting' = IF Shadow /\ (counting /\ ~counting') THEN StaleWaiting(waiting) ELSE waiting
   /\ UNCHANGED <<wrapper, wrappers, wrapperReleases, base, written, writtenEpoch, unwritten, pendingWorlds, curEpoch, checkpointEpoch>>
   /\ firstCurrent' = IF Shadow /\ (counting /\ ~counting') THEN {} ELSE firstCurrent
-  /\ UNCHANGED <<storageMode, cur, named, stored, kept, steps, putSet, freshSet, foundSet, firstFresh, foundPuts, funded, hold, commits, underflow, staged, partStore, retired>>
+  /\ UNCHANGED <<storageMode, cur, named, stored, kept, steps, putSet, freshSet, firstFresh, foundPuts, funded, hold, commits, underflow, staged, partStore, retired>>
   /\ UNCHANGED <<save, receiptSeen>>
   /\ UNCHANGED aliases
   /\ UNCHANGED headerAliases
@@ -1134,7 +1135,7 @@ BeginRecount ==
   /\ waiting' = IF Shadow /\ TRUE THEN StaleWaiting(waiting) ELSE waiting
   /\ UNCHANGED <<wrapper, wrappers, wrapperReleases, base, written, writtenEpoch, unwritten, pendingWorlds, curEpoch, checkpointEpoch>>
   /\ firstCurrent' = IF Shadow /\ TRUE THEN {} ELSE firstCurrent
-  /\ UNCHANGED <<storageMode, cur, named, stored, kept, steps, putSet, freshSet, foundSet, firstFresh, foundPuts, funded, pin, hold, commits, underflow, staged, partStore, retired>>
+  /\ UNCHANGED <<storageMode, cur, named, stored, kept, steps, putSet, freshSet, firstFresh, foundPuts, funded, pin, hold, commits, underflow, staged, partStore, retired>>
   /\ UNCHANGED <<save, receiptSeen>>
   /\ UNCHANGED aliases
   /\ UNCHANGED headerAliases
@@ -1166,7 +1167,7 @@ FinishRecount ==
   /\ sighted' = IF counting /\ ~counting' THEN FALSE ELSE sighted
   /\ tainted' = IF counting /\ ~counting' THEN FALSE ELSE tainted
   /\ UNCHANGED <<firstCurrent, wrapper, wrappers, wrapperReleases, base, written, writtenEpoch, unwritten, pendingWorlds, waiting, curEpoch, checkpointEpoch>>
-  /\ UNCHANGED <<firstCurrent, storageMode, cur, named, stored, kept, steps, putSet, freshSet, foundSet, firstFresh, foundPuts, funded, lineage, walk, pin, hold, commits, lossy, underflow, basisCurrent, staged, lineageCurrent, partStore, retired>>
+  /\ UNCHANGED <<firstCurrent, storageMode, cur, named, stored, kept, steps, putSet, freshSet, firstFresh, foundPuts, funded, lineage, walk, pin, hold, commits, lossy, underflow, basisCurrent, staged, lineageCurrent, partStore, retired>>
   /\ UNCHANGED <<save, receiptSeen>>
   /\ UNCHANGED aliases
   /\ UNCHANGED headerAliases
@@ -1179,7 +1180,7 @@ RetryApply ==
   /\ queue' = <<walk.rec>> \o queue
   /\ walk' = Idle
   /\ UNCHANGED <<firstCurrent, wrapper, wrappers, wrapperReleases, base, written, writtenEpoch, unwritten, pendingWorlds, waiting, curEpoch, checkpointEpoch>>
-  /\ UNCHANGED <<firstCurrent, storageMode, cur, named, stored, extra, rel, kept, steps, putSet, freshSet, foundSet, firstFresh, foundPuts, funded, lineage, pin, hold, commits, lossy, underflow, counting, basisCurrent, staged, lineageCurrent, partStore, retired, doubt, sighted, tainted>>
+  /\ UNCHANGED <<firstCurrent, storageMode, cur, named, stored, extra, rel, kept, steps, putSet, freshSet, firstFresh, foundPuts, funded, lineage, pin, hold, commits, lossy, underflow, counting, basisCurrent, staged, lineageCurrent, partStore, retired, doubt, sighted, tainted>>
   /\ UNCHANGED <<save, receiptSeen>>
   /\ UNCHANGED aliases
   /\ UNCHANGED headerAliases
@@ -1189,7 +1190,7 @@ OtherWrite ==
   /\ walk.on /\ walk.valid
   /\ walk' = InvalidateRead
   /\ UNCHANGED <<firstCurrent, wrapper, wrappers, wrapperReleases, base, written, writtenEpoch, unwritten, pendingWorlds, waiting, curEpoch, checkpointEpoch>>
-  /\ UNCHANGED <<firstCurrent, storageMode, cur, named, stored, extra, rel, kept, steps, putSet, freshSet, foundSet, firstFresh, foundPuts, funded, lineage, queue, pin, hold, commits, lossy, underflow, counting, basisCurrent, staged, lineageCurrent, partStore, retired, doubt, sighted, tainted>>
+  /\ UNCHANGED <<firstCurrent, storageMode, cur, named, stored, extra, rel, kept, steps, putSet, freshSet, firstFresh, foundPuts, funded, lineage, queue, pin, hold, commits, lossy, underflow, counting, basisCurrent, staged, lineageCurrent, partStore, retired, doubt, sighted, tainted>>
   /\ UNCHANGED <<save, receiptSeen>>
   /\ UNCHANGED aliases
   /\ UNCHANGED headerAliases
@@ -1218,7 +1219,7 @@ ReleaseStage ==
   /\ waiting' = IF Shadow /\ (counting /\ ~counting') THEN StaleWaiting(waiting) ELSE waiting
   /\ UNCHANGED <<wrapper, wrappers, wrapperReleases, base, written, writtenEpoch, unwritten, pendingWorlds, curEpoch, checkpointEpoch>>
   /\ firstCurrent' = IF Shadow /\ (counting /\ ~counting') THEN {} ELSE firstCurrent
-  /\ UNCHANGED <<storageMode, cur, named, stored, kept, steps, putSet, freshSet, foundSet, firstFresh, foundPuts, funded, hold, pin, commits, underflow, partStore, retired>>
+  /\ UNCHANGED <<storageMode, cur, named, stored, kept, steps, putSet, freshSet, firstFresh, foundPuts, funded, hold, pin, commits, underflow, partStore, retired>>
   /\ UNCHANGED <<save, receiptSeen>>
   /\ UNCHANGED aliases
   /\ UNCHANGED headerAliases
@@ -1231,7 +1232,7 @@ ReadHole ==
   /\ doubt' = TRUE
   /\ walk' = InvalidateRead
   /\ UNCHANGED <<firstCurrent, wrapper, wrappers, wrapperReleases, base, written, writtenEpoch, unwritten, pendingWorlds, waiting, curEpoch, checkpointEpoch>>
-  /\ UNCHANGED <<firstCurrent, storageMode, cur, named, stored, extra, rel, kept, steps, putSet, freshSet, foundSet, firstFresh, foundPuts, funded, lineage, queue, pin, hold, commits, lossy, underflow, counting, basisCurrent, staged, lineageCurrent, partStore, retired, sighted, tainted>>
+  /\ UNCHANGED <<firstCurrent, storageMode, cur, named, stored, extra, rel, kept, steps, putSet, freshSet, firstFresh, foundPuts, funded, lineage, queue, pin, hold, commits, lossy, underflow, counting, basisCurrent, staged, lineageCurrent, partStore, retired, sighted, tainted>>
   /\ UNCHANGED <<save, receiptSeen>>
   /\ UNCHANGED aliases
   /\ UNCHANGED headerAliases
@@ -1266,7 +1267,7 @@ Erase ==
   /\ waiting' = IF Shadow /\ TRUE THEN StaleWaiting(waiting) ELSE waiting
   /\ UNCHANGED <<wrapper, base, written, writtenEpoch, unwritten, pendingWorlds, curEpoch, checkpointEpoch>>
   /\ firstCurrent' = IF Shadow /\ TRUE THEN {} ELSE firstCurrent
-  /\ UNCHANGED <<storageMode, cur, named, kept, steps, putSet, freshSet, foundSet, firstFresh, foundPuts, funded, hold, pin, commits, underflow>>
+  /\ UNCHANGED <<storageMode, cur, named, kept, steps, putSet, freshSet, firstFresh, foundPuts, funded, hold, pin, commits, underflow>>
   /\ UNCHANGED <<save, receiptSeen>>
   /\ UNCHANGED aliases
   /\ UNCHANGED headerAliases
@@ -1285,7 +1286,7 @@ RefreshKnown ==
   /\ waiting' = IF Shadow /\ (counting /\ ~counting') THEN StaleWaiting(waiting) ELSE waiting
   /\ UNCHANGED <<wrapper, wrappers, wrapperReleases, base, written, writtenEpoch, unwritten, pendingWorlds, curEpoch, checkpointEpoch>>
   /\ firstCurrent' = IF Shadow /\ (counting /\ ~counting') THEN {} ELSE firstCurrent
-  /\ UNCHANGED <<storageMode, cur, named, stored, kept, steps, putSet, freshSet, foundSet, firstFresh, foundPuts, funded, hold, pin, commits, underflow, staged, partStore, retired>>
+  /\ UNCHANGED <<storageMode, cur, named, stored, kept, steps, putSet, freshSet, firstFresh, foundPuts, funded, hold, pin, commits, underflow, staged, partStore, retired>>
   /\ UNCHANGED <<save, receiptSeen>>
   /\ UNCHANGED aliases
   /\ UNCHANGED headerAliases
@@ -1299,7 +1300,7 @@ Sight ==
   /\ sighted' = TRUE
   /\ wrapperReleases' = {}
   /\ UNCHANGED <<firstCurrent, wrapper, wrappers, base, written, writtenEpoch, unwritten, pendingWorlds, waiting, curEpoch, checkpointEpoch>>
-  /\ UNCHANGED <<firstCurrent, storageMode, cur, named, stored, extra, rel, kept, steps, putSet, freshSet, foundSet, firstFresh, foundPuts, funded, lineage, queue, walk, pin, hold, commits, lossy, underflow, counting, basisCurrent, staged, lineageCurrent, partStore, retired, doubt, tainted>>
+  /\ UNCHANGED <<firstCurrent, storageMode, cur, named, stored, extra, rel, kept, steps, putSet, freshSet, firstFresh, foundPuts, funded, lineage, queue, walk, pin, hold, commits, lossy, underflow, counting, basisCurrent, staged, lineageCurrent, partStore, retired, doubt, tainted>>
   /\ UNCHANGED <<save, receiptSeen>>
   /\ UNCHANGED aliases
   /\ UNCHANGED headerAliases
@@ -1352,7 +1353,7 @@ WrittenAdvance ==
         /\ unwritten' = <<>> /\ save' = Gather(h)
   /\ UNCHANGED <<firstCurrent, wrapper, wrappers, wrapperReleases, base, pendingWorlds, waiting,
        curEpoch, checkpointEpoch, storageMode, cur, named, stored, extra, rel,
-       kept, steps, putSet, freshSet, foundSet, firstFresh, foundPuts, funded,
+       kept, steps, putSet, freshSet, firstFresh, foundPuts, funded,
        lineage, queue, walk, pin, hold, commits, lossy, underflow, counting,
        basisCurrent, staged, lineageCurrent, partStore, retired, doubt, sighted, tainted>>
   /\ UNCHANGED <<receiptSeen>>
@@ -1377,7 +1378,7 @@ BaseAdopt ==
      /\ pendingWorlds' = SubSeq(pendingWorlds, i + 1, Len(pendingWorlds))
      /\ save' = Gather(RootOrder(base', written', pendingWorlds', waiting))
   /\ UNCHANGED <<firstCurrent, wrapper, wrappers, wrapperReleases, waiting, curEpoch, checkpointEpoch, storageMode, cur, named,
-       stored, extra, rel, kept, steps, putSet, freshSet, foundSet, firstFresh,
+       stored, extra, rel, kept, steps, putSet, freshSet, firstFresh,
        foundPuts, funded, lineage, queue, walk, pin, hold, commits, lossy,
        underflow, counting, basisCurrent, staged, lineageCurrent, partStore,
        retired, doubt, sighted, tainted>>
@@ -1508,7 +1509,7 @@ SealCheckpoint ==
   /\ save' = Idle /\ receiptSeen' = FALSE
   /\ named' = cur /\ hold' = cur /\ checkpointEpoch' = curEpoch
   /\ steps' = <<>>
-  /\ putSet' = {} /\ freshSet' = {} /\ foundSet' = {} /\ firstFresh' = {}
+  /\ putSet' = {} /\ freshSet' = {} /\ firstFresh' = {}
   /\ foundPuts' = Zero /\ basisCurrent' = TRUE
   /\ UNCHANGED <<base, written, writtenEpoch, unwritten, curEpoch,
        storageMode, cur, pin, commits, underflow, partStore, retired>>
@@ -1535,7 +1536,7 @@ PrepareRecord ==
                              lineage, lineageCurrent, FALSE, firstCurrent)
   /\ UNCHANGED <<wrapper, wrappers, wrapperReleases, base, written, writtenEpoch,
        unwritten, pendingWorlds, curEpoch, checkpointEpoch, storageMode, cur,
-       named, stored, kept, steps, putSet, freshSet, foundSet, firstFresh,
+       named, stored, kept, steps, putSet, freshSet, firstFresh,
        foundPuts, funded, pin, hold, commits, underflow, staged, retired>>
   /\ UNCHANGED <<save, receiptSeen>>
   /\ UNCHANGED aliases
@@ -1600,7 +1601,7 @@ FailPreparation ==
        base, written, writtenEpoch, unwritten, pendingWorlds,
        curEpoch, checkpointEpoch, storageMode, cur, named, steps,
        pin, hold, commits, underflow, partStore, retired, stored, kept,
-       staged, putSet, freshSet, foundSet, firstFresh, foundPuts>>
+       staged, putSet, freshSet, firstFresh, foundPuts>>
   /\ UNCHANGED aliases
   /\ UNCHANGED headerAliases
 
@@ -1618,7 +1619,7 @@ ResolveWrapper ==
                              lineage, lineageCurrent, FALSE, firstCurrent)
   /\ UNCHANGED <<wrapper, wrappers, base, written, writtenEpoch, unwritten,
        pendingWorlds, curEpoch, checkpointEpoch, storageMode, cur, named,
-       stored, kept, steps, putSet, freshSet, foundSet, firstFresh, foundPuts,
+       stored, kept, steps, putSet, freshSet, firstFresh, foundPuts,
        funded, pin, hold, commits, underflow, staged, partStore, retired>>
   /\ UNCHANGED <<save, receiptSeen>>
   /\ UNCHANGED aliases
@@ -1632,7 +1633,7 @@ AliasWrapper ==
   /\ Shadow
   /\ \E h \in wrappers \ aliases : aliases' = aliases \cup {h}
   /\ walk' = InvalidateRead
-  /\ UNCHANGED <<save, receiptSeen, firstCurrent, wrapper, wrappers, wrapperReleases, base, written, writtenEpoch, unwritten, pendingWorlds, waiting, curEpoch, checkpointEpoch, storageMode, cur, named, stored, extra, rel, kept, steps, putSet, freshSet, foundSet, firstFresh, foundPuts, funded, lineage, queue, pin, hold, commits, lossy, underflow, counting, basisCurrent, staged, lineageCurrent, partStore, retired, doubt, sighted, tainted>>
+  /\ UNCHANGED <<save, receiptSeen, firstCurrent, wrapper, wrappers, wrapperReleases, base, written, writtenEpoch, unwritten, pendingWorlds, waiting, curEpoch, checkpointEpoch, storageMode, cur, named, stored, extra, rel, kept, steps, putSet, freshSet, firstFresh, foundPuts, funded, lineage, queue, pin, hold, commits, lossy, underflow, counting, basisCurrent, staged, lineageCurrent, partStore, retired, doubt, sighted, tainted>>
   /\ UNCHANGED headerAliases
 
 \* Receipt completion can drop already-stored kept entries after gathering.
@@ -1641,7 +1642,7 @@ AliasWrapper ==
 DropStoredPages ==
   /\ Shadow
   /\ \E dropped \in SUBSET (kept \cap stored) \ {{}} : kept' = kept \ dropped
-  /\ UNCHANGED <<aliases, save, receiptSeen, firstCurrent, wrapper, wrappers, wrapperReleases, base, written, writtenEpoch, unwritten, pendingWorlds, waiting, curEpoch, checkpointEpoch, storageMode, cur, named, stored, extra, rel, steps, putSet, freshSet, foundSet, firstFresh, foundPuts, funded, lineage, queue, walk, pin, hold, commits, lossy, underflow, counting, basisCurrent, staged, lineageCurrent, partStore, retired, doubt, sighted, tainted>>
+  /\ UNCHANGED <<aliases, save, receiptSeen, firstCurrent, wrapper, wrappers, wrapperReleases, base, written, writtenEpoch, unwritten, pendingWorlds, waiting, curEpoch, checkpointEpoch, storageMode, cur, named, stored, extra, rel, steps, putSet, freshSet, firstFresh, foundPuts, funded, lineage, queue, walk, pin, hold, commits, lossy, underflow, counting, basisCurrent, staged, lineageCurrent, partStore, retired, doubt, sighted, tainted>>
   /\ UNCHANGED headerAliases
 
 \* Other buckets can retain an identical physical record header. Such a
@@ -1655,7 +1656,7 @@ AliasHeader ==
                  \cup {h.id : h \in retired}) \ headerAliases :
        headerAliases' = headerAliases \cup {id}
   /\ walk' = InvalidateRead
-  /\ UNCHANGED <<aliases, save, receiptSeen, firstCurrent, wrapper, wrappers, wrapperReleases, base, written, writtenEpoch, unwritten, pendingWorlds, waiting, curEpoch, checkpointEpoch, storageMode, cur, named, stored, extra, rel, kept, steps, putSet, freshSet, foundSet, firstFresh, foundPuts, funded, lineage, queue, pin, hold, commits, lossy, underflow, counting, basisCurrent, staged, lineageCurrent, partStore, retired, doubt, sighted, tainted>>
+  /\ UNCHANGED <<aliases, save, receiptSeen, firstCurrent, wrapper, wrappers, wrapperReleases, base, written, writtenEpoch, unwritten, pendingWorlds, waiting, curEpoch, checkpointEpoch, storageMode, cur, named, stored, extra, rel, kept, steps, putSet, freshSet, firstFresh, foundPuts, funded, lineage, queue, pin, hold, commits, lossy, underflow, counting, basisCurrent, staged, lineageCurrent, partStore, retired, doubt, sighted, tainted>>
 
 ProgressNext ==
   \/ Commit \/ Discard \/ Name \/ Forfeit \/ FinishRecount
