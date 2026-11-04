@@ -192,7 +192,7 @@ func (b *ReadCacheBudget) reclaimLocked() int64 {
 		// Ask for the overage, capped at the class's room above its floor.
 		freed := b.evict(class, min(over, room))
 		if freed <= 0 {
-			stuck[class] = true
+			stuck[class] = true //nolint:gosec // class is not negative after the check above.
 			continue
 		}
 		b.evicted[class].Add(freed)
