@@ -19,6 +19,11 @@ type rootHold struct {
 	skip bool
 	// entries are the blocks the named roots hold.
 	entries []*block.PutBatchEntry
+	// gathered are the kept pages among entries that worlds carried for the
+	// Worlds it names: the only entries a publication naming those Worlds may
+	// net. Root copies, carried payload pages and named blocks stay ordinary
+	// even when they share a kept page's entry.
+	gathered []*block.PutBatchEntry
 	// roots are the named roots to move.
 	roots []block.NamedRoot
 	// recount asks the store to recount its shared counts before it moves
@@ -78,9 +83,10 @@ func (h *rootHold) worlds(ctx context.Context, name string, pages *worldPages, r
 	}
 
 	// Carry the kept pages, then the root blocks not among them.
-	entries := pages.pagesOf(roots...)
-	kept := make(map[string]struct{}, len(entries))
-	for _, e := range entries {
+	gathered := pages.pagesOf(roots...)
+	entries := slices.Clone(gathered)
+	kept := make(map[string]struct{}, len(gathered))
+	for _, e := range gathered {
 		kept[e.Ref.MarshalString()] = struct{}{}
 	}
 	for _, root := range roots {
@@ -100,6 +106,7 @@ func (h *rootHold) worlds(ctx context.Context, name string, pages *worldPages, r
 		entries = append(entries, &block.PutBatchEntry{Ref: root, Data: stored.Data, Refs: stored.Refs, RefsKnown: true})
 	}
 	h.entries = append(h.entries, entries...)
+	h.gathered = append(h.gathered, gathered...)
 
 	// Name them from one block.
 	data, err := (&ReplaySpan{Worlds: roots}).MarshalVT()
@@ -220,6 +227,7 @@ func (h *rootHold) release(name string) {
 // add gathers the blocks and roots of o.
 func (h *rootHold) add(o *rootHold) {
 	h.entries = append(h.entries, o.entries...)
+	h.gathered = append(h.gathered, o.gathered...)
 	h.roots = append(h.roots, o.roots...)
 }
 

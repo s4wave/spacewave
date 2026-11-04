@@ -114,7 +114,7 @@ func TestPendingSaveCandidatePayload(t *testing.T) {
 
 	// Prepare the save as publish does, with the borrowed batch.
 	r := &replayer{c: space.c, so: space.so, base: space.genesis}
-	entries, _, _, err := r.pendingSave(ctx, replayTestPublisher{}, []*block.BlockRef{candidate, stored}, batch.Entries)
+	pending, err := r.pendingSave(ctx, replayTestPublisher{}, []*block.BlockRef{candidate, stored}, batch.Entries)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,7 +124,7 @@ func TestPendingSaveCandidatePayload(t *testing.T) {
 		}
 	}
 	var carried bool
-	for _, e := range entries {
+	for _, e := range pending.entries {
 		if e.Ref.EqualsRef(candidate) {
 			t.Fatal("pendingSave put the candidate the batch already carries")
 		}

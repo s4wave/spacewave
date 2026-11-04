@@ -99,6 +99,16 @@ func TestWorldPagesKeepsUntilStored(t *testing.T) {
 		t.Fatalf("store holds the kept root: found=%v err=%v", found, err)
 	}
 
+	// A save nets only the pages its World gathered: a kept page it carries
+	// for a payload, and a copy of a gathered page, stay ordinary.
+	gathered := pages.pagesOf(root.Ref)
+	rootCopy := *root
+	entries := append([]*block.PutBatchEntry{orphan, &rootCopy}, gathered...)
+	netted, ordinary := pages.split(gathered, entries)
+	if len(netted) != 3 || len(ordinary) != 2 || ordinary[0] != orphan || ordinary[1] != &rootCopy {
+		t.Fatalf("split netted %d and left %v ordinary, want the 3 gathered pages and the orphan and copy", len(netted), ordinary)
+	}
+
 	// The view reads them with their child lists.
 	stored, err := pages.GetStoredBlock(ctx, root.Ref)
 	if err != nil || !stored.GetRefsKnown() || len(stored.Refs) != 1 || !stored.Refs[0].EqualVT(mid.Ref) {

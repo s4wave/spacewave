@@ -1449,7 +1449,11 @@ SealCheckpoint ==
         LET E == checkpointInput.entries
             K == {p \in E : IsOriginal(chain, p) /\ p # chain[1].from}
         IN /\ WrapperAvailable(checkpointRoots, E)
-           /\ \E N \in IF early THEN {{}} ELSE SUBSET (checkpointInput.kept \cap kept) :
+           \* A late name gathers its hold afresh in the writer turn that splits
+           \* it, and only the writer changes kept entries, so it nets every
+           \* gathered page still kept. Payload carry and root copies are not
+           \* gathered and stay ordinary.
+           /\ \E N \in {IF early THEN {} ELSE checkpointInput.kept \cap kept} :
                  \* Receipt and layout choices leave this physical count map unchanged.
                  \E checkpointCounts \in {TLCEval(ClassCounts(E, N, K, checkpointRoots))} :
                  \E certified \in IF early THEN {TRUE} ELSE BOOLEAN :

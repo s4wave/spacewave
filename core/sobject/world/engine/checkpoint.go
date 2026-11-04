@@ -203,7 +203,7 @@ func (e *soEngine) nameWorld(ctx context.Context, world *InnerState, n int, heig
 	}
 
 	// Collect the pending save.
-	entries, roots, cursor, err := r.pendingSave(ctx, e.so.(sobject.StatePublisher), nil, nil)
+	save, err := r.pendingSave(ctx, e.so.(sobject.StatePublisher), nil, nil)
 	if err != nil {
 		return nil, false, err
 	}
@@ -215,26 +215,27 @@ func (e *soEngine) nameWorld(ctx context.Context, world *InnerState, n int, heig
 		return nil, false, err
 	}
 
-	// Publish it after the admitted publications, splitting the kept pages
-	// from the save first: a receipt may store and drop them meanwhile. Mark
-	// the original pages counted and the rest Netted on copies, leaving the
-	// kept pages unchanged.
-	pages, save := r.pages.split(entries)
+	// Publish it after the admitted publications. The base hold gathered its
+	// kept pages in this writer turn, so each is still kept; they are the
+	// only pages the save nets. Mark the original pages counted and the rest
+	// Netted on copies, leaving the kept pages unchanged.
+	pages, rest := r.pages.split(save.gathered, save.entries)
+	entries := save.entries
 	if net != nil {
 		net.steps.MarkOriginal(entries)
 	}
 	entries, netted := r.netted(entries, pages)
 	receipt, err := r.pages.SubmitAtomic(ctx, &block.AtomicPublication{
 		Entries: entries,
-		Heads:   []*block.AtomicHeadUpdate{countHead(cursor, WriteKindReplay)},
-		Roots:   roots,
+		Heads:   []*block.AtomicHeadUpdate{countHead(save.head, WriteKindReplay)},
+		Roots:   save.roots,
 		After:   e.lastReceipt(),
 		Recount: r.ledger.carryRecount(),
 	})
 	if err != nil {
 		return nil, false, err
 	}
-	countPublication(nil, pages, save)
+	countPublication(nil, pages, rest)
 
 	// Hand the naming put to the interval's record.
 	put := newWorldPut(receipt, entries, netted, r.ledger.recounts)

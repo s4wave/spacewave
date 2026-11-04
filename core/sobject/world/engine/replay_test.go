@@ -572,7 +572,8 @@ func TestReplaySpanHoldsOnlyNewPositions(t *testing.T) {
 	save := func() (*ReplaySpan, *block.BlockRef) {
 		// Collect the pending save, which must name one new span block.
 		t.Helper()
-		entries, roots, _, err := r.pendingSave(t.Context(), replayTestPublisher{}, nil, nil)
+		pending, err := r.pendingSave(t.Context(), replayTestPublisher{}, nil, nil)
+		entries, roots := pending.entries, pending.roots
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -687,11 +688,11 @@ func TestReplayCarriesBaseHoldUntilSaved(t *testing.T) {
 	// carries reports whether the pending save names the base root.
 	carries := func() bool {
 		t.Helper()
-		_, roots, _, err := r.pendingSave(t.Context(), replayTestPublisher{}, nil, nil)
+		pending, err := r.pendingSave(t.Context(), replayTestPublisher{}, nil, nil)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
-		return slices.ContainsFunc(roots, func(root block.NamedRoot) bool { return root.Name == replayBaseRootName })
+		return slices.ContainsFunc(pending.roots, func(root block.NamedRoot) bool { return root.Name == replayBaseRootName })
 	}
 
 	// The save after a rebase carries the base hold, and once it is durable
@@ -753,7 +754,7 @@ func TestReplayStallBaseBoundsUnwrittenOperations(t *testing.T) {
 		member.deliver(prev)
 
 		// Save the replay and check the bound.
-		if _, _, _, err := r.pendingSave(t.Context(), replayTestPublisher{}, nil, nil); err != nil {
+		if _, err := r.pendingSave(t.Context(), replayTestPublisher{}, nil, nil); err != nil {
 			t.Fatal(err.Error())
 		}
 		r.saved()

@@ -135,18 +135,18 @@ func (e *soEngine) publicationContext(ctx context.Context) (context.Context, con
 // It counts every candidate page even when the page view may keep some of them.
 func (t *soEngineWriteTx) publicationBytes(ctx context.Context, publisher sobject.StatePublisher) (int64, error) {
 	// Retain the exact save the publication will consume under this writer hold.
-	entries, roots, cursor, err := t.eng.replay.pendingSave(ctx, publisher, t.fork.payloads, t.prepared.Entries)
+	save, err := t.eng.replay.pendingSave(ctx, publisher, t.fork.payloads, t.prepared.Entries)
 	if err != nil {
 		return 0, err
 	}
-	t.preparedSave, t.preparedRoots, t.preparedCursor = entries, roots, cursor
+	t.preparedSave = save
 
 	// Charge the candidate and save payloads once per publication attempt.
 	var size int64
 	for _, entry := range t.prepared.Entries {
 		size += int64(len(entry.Data))
 	}
-	for _, entry := range entries {
+	for _, entry := range save.entries {
 		size += int64(len(entry.Data))
 	}
 	return size, nil

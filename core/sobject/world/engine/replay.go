@@ -681,6 +681,19 @@ func (r *replayer) holdSpan(ctx context.Context, hold *rootHold) error {
 	return nil
 }
 
+// replaySave is the unsaved replay as parts of a publication.
+type replaySave struct {
+	// entries are the blocks the save puts.
+	entries []*block.PutBatchEntry
+	// gathered are the kept pages among entries the base hold carried for
+	// the Worlds it names, as in rootHold.
+	gathered []*block.PutBatchEntry
+	// roots are the named roots the save moves.
+	roots []block.NamedRoot
+	// head writes the cursor, or is nil when the cursor is unchanged.
+	head *block.AtomicHeadUpdate
+}
+
 // pendingSave returns the unsaved replay as parts of a publication: the span
 // block, the span root and the cursor head. The span also holds payloads, the
 // payloads of the published operation, which replay has not placed yet.
@@ -689,57 +702,56 @@ func (r *replayer) holdSpan(ctx context.Context, hold *rootHold) error {
 // candidate, so the span's holds count on them without reading them. It
 // returns no parts when the replay is saved and payloads is empty. Call saved
 // once the publication commits.
-func (r *replayer) pendingSave(ctx context.Context, publisher sobject.StatePublisher, payloads []*block.BlockRef, candidate []*block.PutBatchEntry) ([]*block.PutBatchEntry, []block.NamedRoot, *block.AtomicHeadUpdate, error) {
+func (r *replayer) pendingSave(ctx context.Context, publisher sobject.StatePublisher, payloads []*block.BlockRef, candidate []*block.PutBatchEntry) (replaySave, error) {
 	// Name the head when the save falls too far behind it, then skip a saved
 	// replay with nothing more to hold.
 	if err := r.stallBase(ctx); err != nil {
-		return nil, nil, nil, err
+		return replaySave{}, err
 	}
 	if err := r.advanceDeadlists(); err != nil {
-		return nil, nil, nil, err
+		return replaySave{}, err
 	}
 	if !r.changed && len(payloads) == 0 {
-		return nil, nil, nil, nil
+		return replaySave{}, nil
 	}
 	entry, span, err := r.encodeSpan(payloads)
 	if err != nil {
-		return nil, nil, nil, err
+		return replaySave{}, err
 	}
 	r.pend(span)
 
 	// Name a new span block, or release the name when no World or payload
 	// follows the checkpoint. The name already holds an unchanged span.
-	var entries []*block.PutBatchEntry
-	var roots []block.NamedRoot
+	var save replaySave
 	switch {
 	case entry != nil:
 		// Payload publication must materialize every reused kept descendant in
 		// this same receipt. These are ordinary payload edges, not netted pages.
-		entries = append(r.pages.payloadPages(candidate, entry.Refs), entry)
-		entries, err = carryNamed(ctx, r.store(), entries, candidate, entry.Refs)
+		save.entries = append(r.pages.payloadPages(candidate, entry.Refs), entry)
+		save.entries, err = carryNamed(ctx, r.store(), save.entries, candidate, entry.Refs)
 		if err != nil {
-			return nil, nil, nil, err
+			return replaySave{}, err
 		}
-		roots = []block.NamedRoot{{Name: ReplaySpanRootName, Ref: span}}
+		save.roots = []block.NamedRoot{{Name: ReplaySpanRootName, Ref: span}}
 	case span == nil:
-		roots = []block.NamedRoot{{Name: ReplaySpanRootName}}
+		save.roots = []block.NamedRoot{{Name: ReplaySpanRootName}}
 	}
 	if r.baseUnheld {
-		entries = append(entries, r.baseHold.entries...)
-		roots = append(roots, r.baseHold.roots...)
+		save.entries = append(save.entries, r.baseHold.entries...)
+		save.gathered = r.baseHold.gathered
+		save.roots = append(save.roots, r.baseHold.roots...)
 	}
-	roots = append(roots, r.ledger.carry()...)
+	save.roots = append(save.roots, r.ledger.carry()...)
 
 	// Write the cursor only when it changed.
-	var head *block.AtomicHeadUpdate
 	if r.changed {
 		cursor, err := r.encodeCursor()
 		if err != nil {
-			return nil, nil, nil, err
+			return replaySave{}, err
 		}
-		head = publisher.LocalStateHead(replayCursorStoreID, replayCursorKey, cursor)
+		save.head = publisher.LocalStateHead(replayCursorStoreID, replayCursorKey, cursor)
 	}
-	return entries, roots, head, nil
+	return save, nil
 }
 
 // pend records span, holding every position, as the span the pending save

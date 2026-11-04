@@ -898,13 +898,14 @@ func (e *soEngine) applyHold(ctx context.Context, hold *rootHold) (bool, error) 
 	}
 
 	// Submit the held blocks and roots with the replay cursor, splitting the
-	// kept pages a stall base names from the rest first: a receipt may store
-	// and drop them meanwhile.
+	// kept pages a stall base gathered from the rest first. A cached base hold
+	// may predate this writer turn, so a receipt may have stored and dropped
+	// some of them since.
 	cursor, err := e.replay.encodeCursor()
 	if err != nil {
 		return false, err
 	}
-	pages, save := e.replay.pages.split(hold.entries)
+	pages, save := e.replay.pages.split(hold.gathered, hold.entries)
 	entries, pages := e.replay.netted(hold.entries, pages)
 
 	// Claim replay capacity without waiting under this writer.

@@ -42,9 +42,7 @@ type soEngineWriteTx struct {
 	// prepared retains the candidate borrow across an unlocked capacity wait.
 	prepared *block.PendingBatch
 	// preparedSave is the replay save sized with prepared under the writer lock.
-	preparedSave   []*block.PutBatchEntry
-	preparedRoots  []block.NamedRoot
-	preparedCursor *block.AtomicHeadUpdate
+	preparedSave replaySave
 	// reservation owns admission capacity before the provider state writer.
 	reservation block.PublicationReservation
 	// baseReceipt is the predecessor of the candidate before its unlocked wait.
@@ -440,9 +438,9 @@ func (t *soEngineWriteTx) publish(ctx context.Context, publisher sobject.StatePu
 			return nil, err
 		}
 	}
-	saveEntries, roots, cursor := t.preparedSave, t.preparedRoots, t.preparedCursor
+	save := t.preparedSave
 	if !prepared {
-		saveEntries, roots, cursor, err = t.eng.replay.pendingSave(ctx, publisher, t.fork.payloads, batch.Entries)
+		save, err = t.eng.replay.pendingSave(ctx, publisher, t.fork.payloads, batch.Entries)
 		if err != nil {
 			batch.Complete(err)
 			return nil, err
@@ -455,7 +453,7 @@ func (t *soEngineWriteTx) publish(ctx context.Context, publisher sobject.StatePu
 	pub := &block.AtomicPublication{
 		RootName: acceptedWorldRootName,
 		Root:     root,
-		Roots:    roots,
+		Roots:    save.roots,
 		After:    t.eng.lastReceipt(),
 		Ordered:  world.OrderedCommit(ctx),
 		Recount:  t.eng.replay.ledger.carryRecount(),
@@ -464,11 +462,11 @@ func (t *soEngineWriteTx) publish(ctx context.Context, publisher sobject.StatePu
 		pages = kept.keep(pages)
 		pub.RootName, pub.Root = "", nil
 	}
-	pub.Entries, pages = t.eng.replay.netted(slices.Concat(payload, pages, saveEntries), pages)
-	named, save := t.eng.replay.pages.split(saveEntries)
+	pub.Entries, pages = t.eng.replay.netted(slices.Concat(payload, pages, save.entries), pages)
+	named, rest := t.eng.replay.pages.split(save.gathered, save.entries)
 	pub.Heads = []*block.AtomicHeadUpdate{countHead(head, WriteKindState)}
-	if cursor != nil {
-		pub.Heads = append(pub.Heads, countHead(cursor, WriteKindReplay))
+	if save.head != nil {
+		pub.Heads = append(pub.Heads, countHead(save.head, WriteKindReplay))
 	}
 
 	// Submit them, writing the blocks alone when the store declines.
@@ -490,7 +488,7 @@ func (t *soEngineWriteTx) publish(ctx context.Context, publisher sobject.StatePu
 		return nil, err
 	}
 	t.clock.end(stagePublicationAdmission)
-	countPublication(payload, slices.Concat(pages, named), save)
+	countPublication(payload, slices.Concat(pages, named), rest)
 	t.eng.replay.addWorldPut(receipt, pub.Entries, pages)
 
 	// The publication holds the candidate under the accepted World root and

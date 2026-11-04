@@ -206,17 +206,29 @@ func (w *worldPages) payloadPages(candidate []*block.PutBatchEntry, roots []*blo
 	return carried
 }
 
-// split separates the kept pages among entries, which a publication naming
-// their World carries, from the rest.
-func (w *worldPages) split(entries []*block.PutBatchEntry) (pages, rest []*block.PutBatchEntry) {
+// split returns the gathered pages the view still keeps under the same entry,
+// which a publication naming their Worlds carries and may net, and the other
+// entries. gathered are the kept pages a hold carried for the Worlds it names;
+// any other entry is ordinary even when it shares a kept page's entry, such as
+// a carried payload page. A gathered page a receipt stored and dropped after
+// the gather is ordinary too. Callers hold the engine writer, which serializes
+// every change to the kept entries, so the pages cannot change while it runs.
+func (w *worldPages) split(gathered, entries []*block.PutBatchEntry) (pages, rest []*block.PutBatchEntry) {
 	// A nil view keeps nothing.
 	if w == nil {
 		return nil, entries
 	}
-	for _, e := range entries {
-		if w.set.get(e.Ref) == e {
+
+	// Select the gathered pages still kept, then leave the rest ordinary.
+	selected := make(map[*block.PutBatchEntry]struct{}, len(gathered))
+	for _, e := range gathered {
+		if _, ok := selected[e]; !ok && w.set.get(e.Ref) == e {
+			selected[e] = struct{}{}
 			pages = append(pages, e)
-		} else {
+		}
+	}
+	for _, e := range entries {
+		if _, ok := selected[e]; !ok {
 			rest = append(rest, e)
 		}
 	}
