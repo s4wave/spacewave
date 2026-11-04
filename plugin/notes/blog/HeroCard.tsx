@@ -1,3 +1,4 @@
+import { controlTargetStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import { useCallback, useMemo } from 'react'
 
 import { LuArrowRight } from '@s4wave/web/images/icons.js'
@@ -280,7 +281,7 @@ export function HeroCard({
             <button
               type="button"
               onClick={handleHeroCardSelect}
-              sx={stylexStyles3.rule5}
+              sx={[stylexStyles3.rule5, controlTargetStyles.minimum]}
             >
               {post.title}
             </button>

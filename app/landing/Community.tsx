@@ -585,7 +585,7 @@ const stylexStyles5 = ownerStylex.create({
     borderWidth: '1px',
     paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
     paddingInline: `calc(${themeLayout['--spacing']} * 2)`,
-    color: `color-mix(in oklab, ${themeColors['--color-cyan-400']} 60%, transparent)`,
+    color: `color-mix(in oklab, ${themeColors['--color-cyan-400']} 75%, transparent)`,
     fontSize: themeFonts['--text-xs'],
     fontWeight: themeFonts['--font-weight-medium'],
     lineHeight: 1.5,

@@ -125,7 +125,7 @@ const stylexStyles4 = stylex.create({
 const stylexStyles3 = stylex.create({
   rule1: {
     color: {
-      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
       '@media (hover: hover)': {
         default: null,
         ':hover': themeColors['--color-foreground'],
