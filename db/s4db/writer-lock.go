@@ -41,6 +41,7 @@ func (l *writerLock) lock(ctx context.Context, first bool) error {
 	*queue = append(*queue, granted)
 	l.mtx.Unlock()
 
+	// Wait for ownership or cancellation before inspecting the queue again.
 	select {
 	case <-granted:
 		return nil
@@ -62,6 +63,7 @@ func (l *writerLock) lock(ctx context.Context, first bool) error {
 
 // tryLock takes the lock when it is free.
 func (l *writerLock) tryLock() bool {
+	// Claim ownership only when neither a holder nor a granted waiter owns it.
 	l.mtx.Lock()
 	defer l.mtx.Unlock()
 	if l.held {
@@ -78,7 +80,11 @@ func (l *writerLock) unlock() {
 	for _, queue := range []*[]chan struct{}{&l.first, &l.rest} {
 		if len(*queue) != 0 {
 			close((*queue)[0])
-			*queue = slices.Delete(*queue, 0, 1)
+			(*queue)[0] = nil
+			*queue = (*queue)[1:]
+			if len(*queue) == 0 {
+				*queue = nil
+			}
 			return
 		}
 	}
