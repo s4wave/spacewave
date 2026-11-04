@@ -2,6 +2,7 @@ package block_store_ftps
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"net/textproto"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
@@ -231,6 +233,59 @@ func TestClientPool(t *testing.T) {
 	if took := time.Since(start); took > 2600*time.Millisecond {
 		t.Fatalf("4 spending reads took %s; want the spare to hide the dials", took)
 	}
+
+	// Refills flooding the pool hold at most all but two slots, so an
+	// interactive read, and a refill an interactive reader raised, each take
+	// a slot at once and finish within about one round trip of 0.4s, where
+	// the queue of refills ahead of them would take seconds.
+	srv.mtx.Lock()
+	srv.dialDelay = 0
+	srv.mtx.Unlock()
+	five := NewClient(Config{Addr: addr, Logins: logins, TLSConfig: tlsConf, ConnsPerLogin: 4, MaxSessions: 6})
+	t.Cleanup(five.Close)
+	if five.Conns() != 5 {
+		t.Fatalf("conns = %d; want 5", five.Conns())
+	}
+	floodCtx, stopFlood := context.WithCancel(block.WithReadClass(ctx, block.ReadRefill))
+	var flood errgroup.Group
+	for range 20 {
+		flood.Go(func() error {
+			for floodCtx.Err() == nil {
+				_, _ = five.GetObjectRange(floodCtx, "b", "big", 10, 20)
+			}
+			return nil
+		})
+	}
+	for {
+		five.pool.mu.Lock()
+		held, queued := five.pool.cappedHeld, len(five.pool.other)
+		five.pool.mu.Unlock()
+		if held > 3 {
+			t.Fatalf("refills hold %d slots; want at most 3", held)
+		}
+		if held == 3 && queued > 10 {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	start = time.Now()
+	if got, err := five.GetObjectRange(ctx, "b", "big", 10, 20); err != nil || len(got) != 20 {
+		t.Fatalf("interactive range = %d bytes, %v", len(got), err)
+	}
+	if took := time.Since(start); took > 800*time.Millisecond {
+		t.Fatalf("interactive read under a refill flood took %s; want about one round trip", took)
+	}
+	raised := make(chan struct{})
+	start = time.Now()
+	time.AfterFunc(20*time.Millisecond, func() { close(raised) })
+	if got, err := five.GetObjectRange(block.WithRaise(floodCtx, raised), "b", "big", 10, 20); err != nil || len(got) != 20 {
+		t.Fatalf("raised range = %d bytes, %v", len(got), err)
+	}
+	if took := time.Since(start); took > 800*time.Millisecond {
+		t.Fatalf("raised refill under a refill flood took %s; want about one round trip", took)
+	}
+	stopFlood()
+	_ = flood.Wait()
 }
 
 // srvLogins returns the logins the server has seen for user.

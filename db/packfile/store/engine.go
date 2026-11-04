@@ -416,9 +416,12 @@ func (k fetchKey) end() int64 { return k.off + int64(k.size) }
 type fetchLoad struct {
 	// done publishes sp and err to every waiter when the fetch finishes.
 	done chan struct{}
-	// promote is closed when a foreground read joins a background fetch, so
-	// the fetch stops waiting behind foreground work. Nil for a foreground
-	// fetch. The reader state lock guards closing it.
+	// class is the read class of the reader that started the fetch.
+	class block.ReadClass
+	// promote is closed when a reader of a more urgent class joins the fetch,
+	// so the fetch stops waiting behind foreground work and the transport
+	// serves it as interactive. Nil for an interactive fetch. The reader state
+	// lock guards closing it.
 	promote chan struct{}
 	// sp retains the immutable response independently of cache residency.
 	sp *span
