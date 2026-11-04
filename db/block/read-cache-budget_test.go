@@ -1,6 +1,7 @@
 package block
 
 import (
+	"slices"
 	"strconv"
 	"sync"
 	"testing"
@@ -41,12 +42,7 @@ func (f *fakeReadCache) setHeld(id int, held bool) {
 func (f *fakeReadCache) has(id int) bool {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
-	for _, e := range f.entries {
-		if e == id {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(f.entries, id)
 }
 
 func (f *fakeReadCache) ReadCacheUsed() int64 {

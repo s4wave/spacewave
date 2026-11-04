@@ -180,7 +180,7 @@ func (b *ReadCacheBudget) reclaimLocked() int64 {
 
 		// Pick the class with the most bytes above its floor.
 		class, room := ReadCacheClass(-1), int64(0)
-		for c := ReadCacheClass(0); c < readCacheClasses; c++ {
+		for c := range readCacheClasses {
 			if r := b.Used(c) - b.Floor(c); !stuck[c] && r > room {
 				class, room = c, r
 			}
