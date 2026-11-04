@@ -1,9 +1,13 @@
 package block_store_writeback
 
 import (
+	"container/list"
 	"context"
 	"sync"
+	"sync/atomic"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 )
 
 // defaultMaxReads bounds the local reads an upload keeps in flight when the
@@ -29,6 +33,10 @@ const defaultReadSlow = 5 * time.Millisecond
 // fastest recent read halves it, and a full bound of fast reads raises it by
 // one. The store's own reads share the disk, so the upload yields to them
 // while they queue and takes the disk while it is idle.
+//
+// A freed slot goes to the longest waiting read alone, so a release costs one
+// wakeup however many reads queue. Invariant: while any read waits, the gate
+// holds limit reads or more, since every change that frees a slot hands it on.
 type readGate struct {
 	// mtx guards the fields below.
 	mtx sync.Mutex
@@ -52,13 +60,23 @@ type readGate struct {
 	windowFloor time.Duration
 	// windowStart is when the current window began.
 	windowStart time.Time
-	// wake closes when a read releases the gate.
-	wake chan struct{}
+	// waiters queues the reads waiting for a slot, oldest first, as
+	// *readWaiter.
+	waiters list.List
+}
+
+// readWaiter is one read waiting for a slot.
+type readWaiter struct {
+	// ready closes when the gate grants the waiter a slot.
+	ready chan struct{}
+	// granted is set under the gate's mtx with the slot the waiter now holds,
+	// when ready closes.
+	granted bool
 }
 
 // newReadGate constructs a gate starting at a bound of one.
 func newReadGate() *readGate {
-	return &readGate{max: defaultMaxReads, slowMin: defaultReadSlow, limit: 1, wake: make(chan struct{})}
+	return &readGate{max: defaultMaxReads, slowMin: defaultReadSlow, limit: 1}
 }
 
 // setPolicy sets the highest bound and the least slow read time, the
@@ -95,24 +113,34 @@ func (g *readGate) read(ctx context.Context, fn func() error) error {
 
 // acquire waits until fewer reads than the bound hold the gate.
 func (g *readGate) acquire(ctx context.Context) error {
-	for {
-		// Take a slot when one is free.
-		g.mtx.Lock()
-		if g.inflight < g.limit {
-			g.inflight++
-			g.mtx.Unlock()
-			return nil
-		}
-		wake := g.wake
+	// Take a slot when one is free, else queue behind the waiting reads.
+	g.mtx.Lock()
+	if g.inflight < g.limit {
+		g.inflight++
 		g.mtx.Unlock()
-
-		// Wait for a release.
-		select {
-		case <-ctx.Done():
-			return context.Cause(ctx)
-		case <-wake:
-		}
+		return nil
 	}
+	w := &readWaiter{ready: make(chan struct{})}
+	elem := g.waiters.PushBack(w)
+	g.mtx.Unlock()
+
+	// Wait for a release to grant the slot.
+	select {
+	case <-w.ready:
+		return nil
+	case <-ctx.Done():
+	}
+
+	// Leave the queue, or hand on a slot granted as the wait ended.
+	g.mtx.Lock()
+	defer g.mtx.Unlock()
+	if w.granted {
+		g.inflight--
+		g.grantLocked()
+	} else {
+		g.waiters.Remove(elem)
+	}
+	return context.Cause(ctx)
 }
 
 // release frees a slot and moves the bound by the read's time.
@@ -137,7 +165,7 @@ func (g *readGate) release(started time.Time, took time.Duration) {
 			g.fast = 0
 		}
 	}
-	g.wakeLocked()
+	g.grantLocked()
 }
 
 // observe folds a read time into the windowed floor. The caller holds mtx.
@@ -160,10 +188,49 @@ func (g *readGate) observe(now time.Time, took time.Duration) {
 	}
 }
 
-// wakeLocked wakes the waiters to retry. The caller holds mtx.
-func (g *readGate) wakeLocked() {
-	close(g.wake)
-	g.wake = make(chan struct{})
+// grantLocked hands each free slot to the longest waiting read. The caller
+// holds mtx.
+func (g *readGate) grantLocked() {
+	for g.inflight < g.limit {
+		front := g.waiters.Front()
+		if front == nil {
+			return
+		}
+		w := g.waiters.Remove(front).(*readWaiter)
+		g.inflight++
+		w.granted = true
+		close(w.ready)
+	}
+}
+
+// each runs fn for every index below n through the gate and returns the first
+// error, which cancels the context the other calls see. It runs at most the
+// gate's highest bound of workers, each taking the next index when its read
+// ends, so the goroutines in flight do not grow with n however large the batch.
+func (g *readGate) each(ctx context.Context, n int, fn func(ctx context.Context, i int) error) error {
+	// Size the workers to the highest bound, since more could only queue.
+	g.mtx.Lock()
+	workers := min(g.max, n)
+	g.mtx.Unlock()
+
+	// Run the workers, each pulling indexes until the batch ends or fails.
+	var next atomic.Int64
+	eg, egCtx := errgroup.WithContext(ctx)
+	for range workers {
+		eg.Go(func() error {
+			for egCtx.Err() == nil {
+				i := int(next.Add(1) - 1)
+				if i >= n {
+					return nil
+				}
+				if err := g.read(egCtx, func() error { return fn(egCtx, i) }); err != nil {
+					return err
+				}
+			}
+			return context.Cause(egCtx)
+		})
+	}
+	return eg.Wait()
 }
 
 // getLimit returns the current bound.
