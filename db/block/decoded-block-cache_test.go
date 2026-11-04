@@ -37,12 +37,18 @@ func TestDecodedBlockCacheInvalidationMakesEntriesStale(t *testing.T) {
 
 	// Store the entry and verify reference invalidation removes its hit.
 	storeDecodedBlockCacheTestEntry(t, decodedBlocks, key, blk, data)
+	if snap := decodedBlocks.Snapshot(); snap.Entries != 1 || snap.RetainedCost <= 0 {
+		t.Fatalf("snapshot after store entries=%d retained=%d, want 1 and a cost", snap.Entries, snap.RetainedCost)
+	}
 	if _, ok, err := decodedBlocks.Lookup(ctx, nil, key, false); err != nil || !ok {
 		t.Fatalf("stored lookup ok=%v err=%v, want hit", ok, err)
 	}
 	decodedBlocks.InvalidateRef(ctx, ref)
 	if _, ok, err := decodedBlocks.Lookup(ctx, nil, key, false); err != nil || ok {
 		t.Fatalf("lookup after InvalidateRef ok=%v err=%v, want miss", ok, err)
+	}
+	if snap := decodedBlocks.Snapshot(); snap.Entries != 0 {
+		t.Fatalf("snapshot after InvalidateRef entries=%d, want 0", snap.Entries)
 	}
 
 	// Restore the entry and verify whole-cache invalidation removes its hit.

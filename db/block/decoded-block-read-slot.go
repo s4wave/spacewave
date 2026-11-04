@@ -32,6 +32,8 @@ type decodedBlockReadData struct {
 	epochs decodedBlockCacheEpochs
 	// durableGen is the durable snapshot's removal generation.
 	durableGen uint64
+	// cost is the pool budget charged for this metadata at attachment.
+	cost int64
 	// links indexes typed child references by their immutable field IDs.
 	links map[uint32]*decodedBlockReadLink
 	// edges owns the contiguous child link allocation.

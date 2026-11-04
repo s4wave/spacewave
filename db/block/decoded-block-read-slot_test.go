@@ -15,6 +15,11 @@ func TestDecodedBlockReadSlotRetirement(t *testing.T) {
 				t.Fatal("failed to admit traversal metadata")
 			}
 
+			// Count the entry and its metadata while attached.
+			if st := pool.stats(); st.entries != 1 || st.readCost != 128 || st.readSlots != 1 {
+				t.Fatalf("attached counters %+v", st)
+			}
+
 			// Retire the entry while an ancestor still holds its slot.
 			switch mode {
 			case "remove":
@@ -32,8 +37,18 @@ func TestDecodedBlockReadSlotRetirement(t *testing.T) {
 			if pool.attachReadData("held", slot, data, 128) {
 				t.Fatal("stale fill resurrected retired slot")
 			}
-			if retained := pool.stats().retained; retained > 1024 {
-				t.Fatalf("retained %d exceeds budget", retained)
+			st := pool.stats()
+			if st.retained > 1024 {
+				t.Fatalf("retained %d exceeds budget", st.retained)
+			}
+
+			// Uncount the retired metadata and keep the entry count exact.
+			wantEntries := int64(1)
+			if mode == "remove" || mode == "clear" {
+				wantEntries = 0
+			}
+			if st.readCost != 0 || st.readSlots != 0 || st.entries != wantEntries {
+				t.Fatalf("retired counters %+v want %d entries", st, wantEntries)
 			}
 		})
 	}
