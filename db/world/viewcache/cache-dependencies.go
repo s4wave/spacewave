@@ -5,6 +5,7 @@ import (
 	"slices"
 	"sync"
 
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 )
 
@@ -35,8 +36,11 @@ type partsKey struct{}
 // computation of another value of c records entry as a part, keeping its reads
 // by reference: copying them would cost every value built from a large part,
 // such as each player's listing built from the route standings, the whole
-// part's keys. Any other evaluation adds entry's merged read set.
+// part's keys. Any other evaluation adds entry's merged read set. Either way
+// the hold of ctx keeps entry's, so the blocks behind a value stay held while
+// a value or view built from it lives.
 func (c *Cache) addViewReads(ctx context.Context, entry *revisionEntry) {
+	block.RefHoldFromContext(ctx).Keep(entry.blocks)
 	if parts, ok := ctx.Value(partsKey{}).(*entryParts); ok && parts.cache == c {
 		parts.mtx.Lock()
 		parts.entries = append(parts.entries, entry)

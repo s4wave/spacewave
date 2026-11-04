@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 )
 
@@ -21,6 +22,10 @@ type revisionEntry struct {
 	// keep their own reads, in parts, so a value built from large parts
 	// shares their sets instead of copying them.
 	reads *world.ReadSet
+	// blocks holds the blocks computing value read itself, so eviction
+	// keeps them on the disk while the value is kept or a live view built
+	// from it keeps the hold.
+	blocks *block.RefHold
 	// wake is the earliest time the value asked to rerun at, if any.
 	wake time.Time
 	err  error

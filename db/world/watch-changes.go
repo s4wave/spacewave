@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 )
 
 // ChangeFilter reports whether a ChangeSet concerns a watcher. A nil filter
@@ -150,6 +151,11 @@ func WatchViewWith(
 	defer slot.Close()
 	waitCtx := WithWatchSlot(ctx, slot)
 
+	// Hold the blocks the last evaluation read while its result is served,
+	// which may be for hours without a rerun.
+	var held *block.RefHold
+	defer func() { held.Release() }()
+
 	// Record each evaluation's starting seqno before reading its dependencies.
 	for {
 		// Do not start another evaluation after cancellation.
@@ -164,7 +170,14 @@ func WatchViewWith(
 			return err
 		}
 		reads := &viewReads{reads: NewReadSet()}
-		if err := view(context.WithValue(ctx, viewReadsKey{}, reads), reads.reads.Track(ws)); err != nil {
+		hold := block.NewRefHold()
+		evalCtx := block.WithRefHold(context.WithValue(ctx, viewReadsKey{}, reads), hold)
+		err = view(evalCtx, reads.reads.Track(ws))
+
+		// The new evaluation's blocks replace the last one's.
+		held.Release()
+		held = hold
+		if err != nil {
 			return err
 		}
 

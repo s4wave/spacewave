@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 )
 
@@ -83,12 +84,12 @@ func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compu
 			}
 			path = "stale"
 		}
-		entry = &revisionEntry{name: name, done: make(chan struct{}), at: seqno, reads: world.NewReadSet()}
+		entry = &revisionEntry{name: name, done: make(chan struct{}), at: seqno, reads: world.NewReadSet(), blocks: block.NewRefHold()}
 		c.keepLocked(entry)
 		c.mtx.Unlock()
 
 		// Compute in a child evaluation, then share its reads with this caller.
-		child, finish := world.WithViewReads(ctx, entry.reads)
+		child, finish := world.WithViewReads(block.WithRefHold(ctx, entry.blocks), entry.reads)
 		child, parts := c.withParts(context.WithValue(child, computingKey{}, true))
 		entry.value, entry.err = c.observe(name, path, func() (any, error) {
 			return compute(child, entry.reads.Track(tx))
@@ -132,8 +133,8 @@ func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compu
 // changes since seqno left its reads alone.
 func (c *Cache) computeBehind(ctx context.Context, tx world.WorldState, seqno uint64, name string, compute func(context.Context, world.WorldState) (any, error)) (any, error) {
 	// Compute in a child evaluation, then share its reads with this caller.
-	reads := world.NewReadSet()
-	child, finish := world.WithViewReads(ctx, reads)
+	reads, blocks := world.NewReadSet(), block.NewRefHold()
+	child, finish := world.WithViewReads(block.WithRefHold(ctx, blocks), reads)
 	child, parts := c.withParts(child)
 	value, err := c.observe(name, "stale", func() (any, error) {
 		return compute(child, reads.Track(tx))
@@ -145,7 +146,7 @@ func (c *Cache) computeBehind(ctx context.Context, tx world.WorldState, seqno ui
 
 	// Publish the completed dependency set to this caller.
 	plain, facets := parts.collected()
-	entry := &revisionEntry{name: name, done: make(chan struct{}), at: seqno, value: value, reads: reads, wake: wake, parts: plain, facets: facets, finished: true}
+	entry := &revisionEntry{name: name, done: make(chan struct{}), at: seqno, value: value, reads: reads, blocks: blocks, wake: wake, parts: plain, facets: facets, finished: true}
 	close(entry.done)
 	c.addViewReads(ctx, entry)
 
