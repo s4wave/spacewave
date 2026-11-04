@@ -141,14 +141,19 @@ test('parity detects one changed property in both engines at every size', async 
             ready: 'button',
             setup: async (page) => {
               const screenshot = page.screenshot.bind(page)
-              let changed = false
+              let changes = 0
               page.screenshot = async (options) => {
                 const png = await screenshot(options)
-                if (!changed) {
-                  changed = true
+                if (changes === 0) {
+                  changes++
                   await page.evaluate(() => {
                     document.querySelector('h1')!.textContent = 'Loaded'
                     document.body.style.backgroundColor = 'rgb(0, 0, 255)'
+                  })
+                } else if (changes === 1) {
+                  changes++
+                  await page.evaluate(() => {
+                    document.body.style.backgroundColor = 'rgb(0, 255, 0)'
                   })
                 }
                 return png
