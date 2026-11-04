@@ -107,6 +107,7 @@ func BenchmarkCheckpointBehindWriters(b *testing.B) {
 		if len(lat) != 0 {
 			b.ReportMetric(float64(lat[len(lat)/2].Milliseconds()), "p50ms")
 			b.ReportMetric(float64(lat[len(lat)*99/100].Milliseconds()), "p99ms")
+			b.ReportMetric(float64(lat[len(lat)-1].Milliseconds()), "maxms")
 		}
 	}
 }
