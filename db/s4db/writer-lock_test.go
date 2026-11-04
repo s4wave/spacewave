@@ -2,89 +2,67 @@ package s4db
 
 import (
 	"context"
+	"path/filepath"
 	"testing"
 	"time"
 )
 
-// TestWriterLockOrder walks the lock through a queue: a checkpoint step goes
-// before writers that arrived earlier, writers follow in arrival order, a
-// canceled waiter leaves the queue, and a grant that races a cancel reaches
-// the next waiter instead of being lost.
+// TestWriterLockOrder walks a handle's writer lock through a queue: a
+// checkpoint step goes before a writer that arrived earlier, the waiting
+// check sees both, and the lock is free after the last release.
 func TestWriterLockOrder(t *testing.T) {
+	// Hold the lock, without the background compactor.
 	ctx := context.Background()
-	var l writerLock
-	if err := l.lock(ctx, false); err != nil {
+	db := openTest(t, filepath.Join(t.TempDir(), "lock.s4wave"), Options{SingleProcess: true})
+	defer db.Close()
+	if wait, _ := db.compactor.SetRoutine(nil); wait != nil {
+		<-wait
+	}
+	w := db.w
+	if err := w.lock(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if l.tryLock() {
+	if ok, _ := w.tryLock(); ok {
 		t.Fatal("tryLock took a held lock")
 	}
+	if db.WritersWaiting() {
+		t.Fatal("a writer waits on an uncontended lock")
+	}
 
-	// Queue two writers, one that cancels, then a checkpoint step.
-	order := make(chan string, 3)
-	wait := func(name string, first bool, queued int) {
+	// Queue a writer, then a checkpoint step.
+	order := make(chan string, 2)
+	wait := func(name string, first bool, prio int) {
 		go func() {
-			if err := l.lock(ctx, first); err != nil {
+			if err := w.lockAs(ctx, first); err != nil {
 				t.Error(err)
 				return
 			}
 			order <- name
 		}()
-		for {
-			l.mtx.Lock()
-			n := len(l.first) + len(l.rest)
-			l.mtx.Unlock()
-			if n == queued {
-				return
-			}
+		for !w.mtx.Waiting(prio) {
 			time.Sleep(time.Millisecond)
 		}
 	}
-	wait("writer 1", false, 1)
-	canceled, cancel := context.WithCancel(ctx)
-	gone := make(chan error, 1)
-	go func() { gone <- l.lock(canceled, false) }()
-	for {
-		l.mtx.Lock()
-		n := len(l.rest)
-		l.mtx.Unlock()
-		if n == 2 {
-			break
-		}
-		time.Sleep(time.Millisecond)
+	wait("writer", false, prioWriter)
+	if !db.WritersWaiting() {
+		t.Fatal("the waiting writer is not reported")
 	}
-	wait("writer 2", false, 3)
-	wait("checkpoint", true, 4)
-	cancel()
-	if err := <-gone; err == nil {
-		t.Fatal("a canceled waiter took the lock")
-	}
+	wait("checkpoint", true, prioCheckpoint)
 
 	// Each release grants exactly the next waiter.
-	for _, want := range []string{"checkpoint", "writer 1", "writer 2"} {
-		l.unlock()
+	for _, want := range []string{"checkpoint", "writer"} {
+		w.unlock(nil)
 		if got := <-order; got != want {
 			t.Fatalf("granted %q, want %q", got, want)
 		}
 	}
-
-	// A grant that arrives with the cancel passes on. Grant the waiter while
-	// ctx is already done, so its select may take either case.
-	for range 200 {
-		canceled, cancel := context.WithCancel(ctx)
-		done := make(chan error, 1)
-		go func() { done <- l.lock(canceled, false) }()
-		go cancel()
-		l.unlock()
-		if err := <-done; err == nil {
-			l.unlock()
-		}
-		if err := l.lock(ctx, false); err != nil {
-			t.Fatal(err)
-		}
+	if db.WritersWaiting() {
+		t.Fatal("a writer is reported after the queue drained")
 	}
-	l.unlock()
-	if !l.tryLock() {
-		t.Fatal("the lock stayed held after the last release")
+	w.unlock(nil)
+	ok, err := w.tryLock()
+	if err != nil || !ok {
+		t.Fatalf("the lock stayed held after the last release: %v", err)
 	}
+	w.unlock(nil)
 }

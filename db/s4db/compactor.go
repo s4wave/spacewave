@@ -470,7 +470,7 @@ func sameValue(a, b value) bool {
 // the lock.
 func (w *writer) lockIdle(ctx context.Context) bool {
 	// Leave the lock to waiting writers.
-	if w.waiting.Load() != 0 {
+	if w.waiting() {
 		return false
 	}
 	ok, err := w.tryLock()
@@ -484,7 +484,7 @@ func (w *writer) lockIdle(ctx context.Context) bool {
 		w.unlock(err)
 		return false
 	}
-	if w.waiting.Load() != 0 || w.sp == nil {
+	if w.waiting() || w.sp == nil {
 		w.unlock(nil)
 		return false
 	}

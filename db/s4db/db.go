@@ -711,7 +711,7 @@ const closeDrainTimeout = 10 * time.Second
 // WritersWaiting reports whether a writer of this handle waits for the writer
 // lock, so a holder doing deferrable work can commit early and let it in.
 func (db *DB) WritersWaiting() bool {
-	return db.w.waiting.Load() != 0
+	return db.w.waiting()
 }
 
 // SupportsAtomicCommit reports true: Commit applies a write transaction in
