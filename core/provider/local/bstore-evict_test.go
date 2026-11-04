@@ -146,6 +146,7 @@ func TestEvictionKeepsCacheHits(t *testing.T) {
 	// 59 minutes after the hit is still kept by the pass an hour after that,
 	// as it was without hits.
 	cached, unread, stored := newRef("cached"), newRef("unread"), newRef("stored")
+	hitAt := now
 	hits.add(cached.GetHash())
 	if !r.turned.IsZero() {
 		t.Fatal("a cache hit started the read set's generation")
@@ -157,12 +158,14 @@ func TestEvictionKeepsCacheHits(t *testing.T) {
 		t.Fatal("pass did not keep the stored block alone")
 	}
 
-	// The hit is kept for readKeepAge on its own clock, and then dropped.
-	if !hits.has(cached.GetHash()) {
-		t.Fatal("hit set dropped the hit before a second turn")
+	// The hit is kept for at least readKeepAge on its own clock, and dropped
+	// two generations later; a block never hit is not kept.
+	now = hitAt.Add(readKeepAge)
+	if !hits.has(cached.GetHash()) || hits.has(unread.GetHash()) {
+		t.Fatal("hit set dropped the hit within readKeepAge or kept an unread block")
 	}
-	now = now.Add(readKeepAge)
+	now = hitAt.Add(2 * readKeepAge)
 	if hits.has(cached.GetHash()) {
-		t.Fatal("hit set kept the hit past two turns")
+		t.Fatal("hit set kept the hit past two generations")
 	}
 }
