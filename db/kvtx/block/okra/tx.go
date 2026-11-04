@@ -276,17 +276,17 @@ func (t *Tx) GetCursorAtKey(ctx context.Context, key []byte) (*block.Cursor, err
 			return nil, err
 		}
 		// Stored values need no materialized page or mutable ancestor edges.
-		entry := page.GetEntries()[index]
-		if entry.GetValueBlob() == nil {
-			return cursor.FollowRef(entryValueRefID(index), entry.GetValueRef()).Cursor(), nil
+		if !page.hasInlineBlob(index) {
+			return page.followValue(cursor, index).Cursor(), nil
 		}
 
 		// Inline Blob values still require their owning page as a sub-block.
 		leaf := cursor.Cursor()
-		if _, err := block.UnmarshalBlock[Page](ctx, leaf); err != nil {
+		mutable, err := block.UnmarshalBlock[Page](ctx, leaf)
+		if err != nil {
 			return nil, err
 		}
-		return page.FollowValue(leaf, index), nil
+		return mutable.FollowValue(leaf, index), nil
 	}
 
 	// Locate the requested key and its value cursor.
