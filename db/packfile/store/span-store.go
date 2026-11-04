@@ -71,10 +71,12 @@ func (e *PackReader) fetchRange(ctx context.Context, off, readEnd int64) (*span,
 		}
 
 		// Join a transport fetch that already covers the requested offset. A
-		// foreground read promotes a background fetch it joins.
+		// read promotes a fetch of a less urgent class it joins. A refill
+		// joining a background fetch raises it to interactive too, which only
+		// orders that one fetch sooner.
 		load = e.findLoadingLocked(off)
 		if load != nil {
-			if load.promote != nil && !block.IsBackground(ctx) {
+			if load.promote != nil && block.ReadClassOf(ctx) < load.class {
 				close(load.promote)
 				load.promote = nil
 			}
@@ -91,8 +93,8 @@ func (e *PackReader) fetchRange(ctx context.Context, off, readEnd int64) (*span,
 		if e.loading == nil {
 			e.loading = make(map[fetchKey]*fetchLoad)
 		}
-		load = &fetchLoad{done: make(chan struct{})}
-		if block.IsBackground(ctx) {
+		load = &fetchLoad{done: make(chan struct{}), class: block.ReadClassOf(ctx)}
+		if load.class != block.ReadInteractive {
 			load.promote = make(chan struct{})
 			promote = load.promote
 		}
@@ -150,9 +152,10 @@ func (e *PackReader) fetchRange(ctx context.Context, off, readEnd int64) (*span,
 	}
 }
 
-// startFetch runs one transport request under the PackReader lifetime. A
-// non-nil promote marks a background fetch, which the gate admits after
-// foreground fetches unless promote closes first.
+// startFetch runs one transport request under the PackReader lifetime, in the
+// read class of load. The gate admits a background fetch after foreground
+// fetches unless promote closes first; the transport serves a refill or
+// background fetch after interactive reads until promote closes.
 func (e *PackReader) startFetch(key fetchKey, load *fetchLoad, gate *demandGate, promote <-chan struct{}) {
 	startOwnerWork(func() {
 		// Hold the reader open until this job finishes.
@@ -160,9 +163,13 @@ func (e *PackReader) startFetch(key fetchKey, load *fetchLoad, gate *demandGate,
 
 		// Fetch the range under the reader's lifetime once the gate admits it.
 		var data []byte
-		leave, err := gate.enter(e.ctx, promote != nil, promote)
+		ctx := e.ctx
+		if load.class != block.ReadInteractive {
+			ctx = block.WithRaise(block.WithReadClass(ctx, load.class), promote)
+		}
+		leave, err := gate.enter(ctx, load.class == block.ReadBackground, promote)
 		if err == nil {
-			data, err = e.transport.Fetch(e.ctx, key.off, key.size)
+			data, err = e.transport.Fetch(ctx, key.off, key.size)
 			leave()
 		}
 		var sp *span
