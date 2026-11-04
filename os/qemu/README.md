@@ -40,7 +40,7 @@ PATH="$tools/bin:$PATH" ACCEL=tcg sh os/boot-qemu.sh \
   /absolute/vmlinuz /absolute/initramfs.cpio.gz /absolute/new-serial.log
 ```
 
-Forge lacks user KVM access. Real guest boot remains a separate check. The bundle
+Forge lacks user KVM access. Check actual guest boot separately from extraction. The bundle
 supports headless serial, raw disks and TCG; it deliberately omits optional GUI,
 USB, network boot firmware and privileged bridge/helper programs. Extraction does
 not run maintainer scripts, register packages, activate services or resolve apt
@@ -69,18 +69,8 @@ cmp "$fixture/root/known.txt" "$fixture/restored/known.txt"
 
 ## Packaging `/dev/console` without root
 
-The kernel's [`usr/gen_init_cpio.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/usr/gen_init_cpio.c?h=v6.17)
-writes `newc` records from a text list, including device entries. A future
-initramfs packager can use the matching kernel tree's host `gen_init_cpio` tool
-with these entries:
-
-```text
-dir /dev 0755 0 0
-nod /dev/console 0600 0 0 c 5 1
-```
-
-The tool encodes major/minor and ownership in the archive; it does not create a
-host device node. This avoids `mknod` and root on the host. GNU cpio's `--owner`
-alone cannot invent a missing device node. Building or integrating
-`gen_init_cpio` is separate work; this bundle does not change the existing
-root-only initramfs helper.
+The [rootless archive builder](initramfs.md) uses Linux's `gen_init_cpio`
+tool to encode `/dev/console`, ownership and permissions without host device
+nodes. It streams the compressed archive and refuses existing outputs. The
+bundle's GNU cpio is useful for inspection; `cpio --owner` alone cannot invent
+a missing device node.

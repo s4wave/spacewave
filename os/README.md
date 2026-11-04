@@ -88,7 +88,7 @@ There is no automatic repair, shell restart or fallback to a new filesystem.
 failure, containment, mount/server joins and store lifetime. `DataVolume.tla`
 covers interrupted buffered flush and storage publication; `Console/Console.tla`
 and its view carry the reader journey. Component tests and model checks do not
-establish mounted durability or actual terminal behavior. Real QEMU/PTy checks,
+establish mounted durability or actual terminal behavior. Real QEMU/PTY checks,
 80x24 and 160x48 captures, restart/crash acceptance and timings remain separate.
 
 ## Immutable probe
@@ -140,21 +140,33 @@ blocks-before-head boundary separately.
 
 ## Seed once, boot twice
 
-Use only new disposable paths on an isolated development VM, after any other
-QEMU/storage experiment ends. Leave its ordinary boot disk, bootloader and SSH
-unchanged. These host commands use distro tools; none enter the initramfs.
-Choose new unique `BOOT` and `STORAGE` directories and place the built `init`,
-these two scripts and the matching `vmlinuz` in `BOOT` first.
+Prepare a new disposable fixture on the Linux build host. Install the private
+[host tools](qemu/README.md) and [rootless archive tool](qemu/initramfs.md)
+first. Keep the built static init, matching kernel and modules outside the
+served filesystems. These commands need no root access or host mounts:
 
 ```sh
-# STORAGE must be a newly created private directory, never an existing image.
-fallocate -l 1G "$STORAGE/btrfs.img"
-mkfs.btrfs -q "$STORAGE/btrfs.img"
-mkdir "$STORAGE/mount"
-mount -t btrfs -o loop,noatime "$STORAGE/btrfs.img" "$STORAGE/mount"
-GOMAXPROCS=1 "$BOOT/init" seed "$STORAGE/mount/image" /path/to/static-busybox > "$BOOT/seed.log" 2>&1
-umount "$STORAGE/mount"
+tools=/absolute/private-tool-bundle
+init=/absolute/built-init
+fixture=$(mktemp -d /absolute/artifacts/interactive.XXXXXX)
+mkdir -m 700 "$fixture/root" "$fixture/root/native-bench"
+GOMAXPROCS=1 "$init" seed "$fixture/root/image" "$tools/root/usr/bin/busybox" \
+  > "$fixture/seed.log" 2>&1
+GOMAXPROCS=1 "$init" seed-data "$fixture/root/data"
+truncate -s 1G "$fixture/btrfs.img"
+"$tools/bin/mkfs.btrfs" --rootdir "$fixture/root" "$fixture/btrfs.img"
+# Supply dependency-ordered, uncompressed modules for this exact kernel.
+GEN_INIT_CPIO=/absolute/tool/gen_init_cpio sh os/make-initramfs.sh \
+  "$init" "$fixture/initramfs.cpio.gz" /absolute/modules/*.ko
+ACCEL=tcg sh os/qemu/run-console.sh /absolute/vmlinuz \
+  "$fixture/initramfs.cpio.gz" "$fixture/btrfs.img"
 ```
+
+`mkfs.btrfs --rootdir` imports the independently closed stores into a new disk
+image. The ordinary runtime only opens them. Exit the guest, then rerun the
+same launcher command for a clean restart. Never open one disk in two guests
+at once. Use `NATIVE_BENCH=1` only when testing the prepared private comparison
+directory. The frozen system rejects writes; keep application files in `/data`.
 
 `seed DIR STATIC-BUSYBOX` creates an absent directory and refuses an existing one,
 including a partial seed. The library entry is
@@ -214,14 +226,17 @@ modules for virtio block and Btrfs. This is bounded experiment wiring, not gener
 hardware discovery or provisioning.
 
 ```sh
-# MODULES below is an explicit dependency-ordered list of matching .ko paths.
-sh "$BOOT/make-initramfs.sh" "$BOOT/init" "$BOOT/initramfs.cpio.gz" $MODULES
-sh "$BOOT/boot-qemu.sh" "$BOOT/vmlinuz" "$BOOT/initramfs.cpio.gz"   "$BOOT/boot1.log" "$STORAGE/btrfs.img" "$BOOT/seed.log"
-sh "$BOOT/boot-qemu.sh" "$BOOT/vmlinuz" "$BOOT/initramfs.cpio.gz"   "$BOOT/boot2.log" "$STORAGE/btrfs.img" "$BOOT/seed.log"
+# Optional bounded read-only probes, with the same prepared fixture above.
+PATH="$tools/bin:$PATH" ACCEL=tcg sh os/boot-qemu.sh /absolute/vmlinuz \
+  "$fixture/initramfs.cpio.gz" "$fixture/boot1.log" \
+  "$fixture/btrfs.img" "$fixture/seed.log"
+PATH="$tools/bin:$PATH" ACCEL=tcg sh os/boot-qemu.sh /absolute/vmlinuz \
+  "$fixture/initramfs.cpio.gz" "$fixture/boot2.log" \
+  "$fixture/btrfs.img" "$fixture/seed.log"
 ```
 
-Run packaging as root for `/dev/console`; use root for host mount/seed commands.
-Unmount and detach any host loop device before QEMU opens the same image. QEMU
+The archive builder encodes `/dev/console` without creating a host device.
+Keep the disk detached from host mounts and other guests before QEMU opens it. QEMU
 attaches only this regular file through virtio block with `cache=none`; networking,
 graphics and host-directory sharing stay absent. PID1 mounts `/dev/vda` as Btrfs at
 bootstrap `/store` and opens `/store/image`. It never mounts the outer Debian disk.
