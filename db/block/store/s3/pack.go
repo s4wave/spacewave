@@ -100,6 +100,8 @@ type PackStore struct {
 	keepPacks bool
 	// packs reads blocks from the known packfiles.
 	packs *packfile_store.PackfileStore
+	// leaveReadCache removes the pack store from the shared read-cache budget.
+	leaveReadCache func()
 	// compactor runs compact after writes.
 	compactor *routine.RoutineContainer
 	// refresher lists the entries every refreshInterval once a read started it.
@@ -256,6 +258,7 @@ func NewPackStore(le *logrus.Entry, client ObjectStore, bucket, prefix string, o
 		tails = s.index
 	}
 	s.packs = packfile_store.NewPackfileStore(s.openPack, tails)
+	s.leaveReadCache = s.packs.JoinReadCacheBudget(block.SharedReadCacheBudget())
 	s.compactor.SetRoutine(s.runCompaction)
 	s.compactor.SetContext(context.Background(), false)
 	s.refresher.SetRoutine(s.runRefresh)
@@ -278,6 +281,7 @@ func (s *PackStore) Close() {
 	if s.indexer != nil {
 		s.indexer.ClearContext()
 	}
+	s.leaveReadCache()
 	s.packs.Close()
 }
 
