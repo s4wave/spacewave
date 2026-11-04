@@ -2,6 +2,7 @@ package provider_local
 
 import (
 	"context"
+	"os"
 	"slices"
 	"sync"
 	"sync/atomic"
@@ -255,6 +256,70 @@ func (r *readSet) take(ctx context.Context) (func(*hash.Hash) bool, error) {
 	}, nil
 }
 
+// CacheReadsEnv names the environment variable that stops eviction counting
+// reads served from decoded-block caches when set to "off", which restores
+// the eviction before it: only reads that reach the local store keep a block.
+const CacheReadsEnv = "SPACEWAVE_EVICT_CACHE_READS"
+
+// cacheReadsOff is read once at startup from CacheReadsEnv.
+var cacheReadsOff = os.Getenv(CacheReadsEnv) == "off"
+
+// cacheReadSets holds the read sets of the running eviction loops, which the
+// decoded-block hit observer feeds. A block served from a decoded-block cache
+// is a read the local store never sees: without it, a block the backend keeps
+// decoded in memory looks unread, eviction drops its local copy, and the first
+// read after a restart goes to the remote.
+//
+// Invariant: counting these reads only adds keys to the read sets, so
+// eviction may only keep more blocks than before, never drop one it would
+// have kept. A hash reaches every running set; a set whose store lacks the
+// block never queues it, so the extra key costs only its slot.
+var cacheReadSets readSetRegistry
+
+// readSetRegistry fans decoded-block cache hits out to the read sets added.
+type readSetRegistry struct {
+	// mtx guards sets.
+	mtx sync.RWMutex
+	// sets are the read sets added, nil before the first.
+	sets map[*readSet]struct{}
+}
+
+// add registers r and installs the decoded-block hit observer on the first
+// call. The returned func removes r.
+func (g *readSetRegistry) add(r *readSet) func() {
+	// Register the set, installing the observer with the first.
+	g.mtx.Lock()
+	if g.sets == nil {
+		g.sets = make(map[*readSet]struct{})
+		block.SetDecodedBlockHitObserver(g.hit)
+	}
+	g.sets[r] = struct{}{}
+	g.mtx.Unlock()
+
+	// Remove the set when its eviction loop ends.
+	return func() {
+		g.mtx.Lock()
+		delete(g.sets, r)
+		g.mtx.Unlock()
+	}
+}
+
+// hit records a decoded-block cache hit of ref in every registered set.
+func (g *readSetRegistry) hit(ref *block.BlockRef) {
+	// Skip a ref without a hash, which no read set can hold.
+	h := ref.GetHash()
+	if h == nil {
+		return
+	}
+
+	// Record the hit in each running set.
+	g.mtx.RLock()
+	defer g.mtx.RUnlock()
+	for r := range g.sets {
+		r.add(h)
+	}
+}
+
 // readRecorder records the blocks the local store serves to reads.
 type readRecorder struct {
 	block.StoreOps
@@ -303,6 +368,12 @@ const evictShortWait = 10 * time.Minute
 func (p *placementState) runEviction(ctx context.Context) error {
 	save := time.NewTicker(readSaveInterval)
 	defer save.Stop()
+
+	// Count reads served from decoded-block caches, which never reach the
+	// local store, unless CacheReadsEnv turns that off.
+	if !cacheReadsOff {
+		defer cacheReadSets.add(&p.reads)()
+	}
 	for {
 		// Run a pass while the store is past its budget.
 		status, changed := p.wb.GetStatus()

@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/s4wave/spacewave/db/block"
 	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
@@ -116,5 +117,52 @@ func TestReadSetKeepsReadsAcrossRestart(t *testing.T) {
 	r = restart()
 	if keep := take(r); keep(read) || !keep(later) {
 		t.Fatal("store kept the dropped generation")
+	}
+}
+
+// TestReadSetCountsDecodedCacheHits checks that a block served from the
+// decoded-block cache is kept like a local read: within readKeepAge, and no
+// longer, while a block nobody read is dropped as before and a removed set
+// records nothing.
+func TestReadSetCountsDecodedCacheHits(t *testing.T) {
+	ctx := t.Context()
+	now := time.Now()
+	r := &readSet{clock: func() time.Time { return now }}
+	r.enabled.Store(true)
+	newRef := func(name string) *block.BlockRef {
+		return block.NewBlockRef(hash.NewHash(hash.HashType_HashType_SHA256, []byte(name)))
+	}
+	take := func() func(*hash.Hash) bool {
+		keep, err := r.take(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return keep
+	}
+
+	// A hit keeps its block; a block nobody read is not kept.
+	release := cacheReadSets.add(r)
+	cached, unread := newRef("cached"), newRef("unread")
+	cacheReadSets.hit(cached)
+	if keep := take(); !keep(cached.GetHash()) || keep(unread.GetHash()) {
+		t.Fatal("pass did not keep exactly the block served from the cache")
+	}
+
+	// The hit ages out like a local read: one turn keeps it, the second drops it.
+	now = now.Add(readKeepAge)
+	if !take()(cached.GetHash()) {
+		t.Fatal("first turn dropped the cached block")
+	}
+	now = now.Add(readKeepAge)
+	if take()(cached.GetHash()) {
+		t.Fatal("second turn kept the cached block")
+	}
+
+	// A removed set records nothing.
+	release()
+	other := newRef("other")
+	cacheReadSets.hit(other)
+	if take()(other.GetHash()) {
+		t.Fatal("a removed read set recorded a hit")
 	}
 }
