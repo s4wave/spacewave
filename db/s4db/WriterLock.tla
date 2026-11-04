@@ -5,6 +5,7 @@ EXTENDS Naturals, Sequences, FiniteSets
 \* until the selected caller releases or passes on its canceled grant.
 \* File-lock and I/O completion are assumed: this model proves scheduling
 \* progress, not a wall-clock bound on checkpoint work or another process.
+\* WriterStall.tla bounds how long a waiter waits for the holder's reads.
 CONSTANT PassCanceledGrant
 Actors == {"checkpoint", "w1", "w2"}
 VARIABLES owner, first, rest, pc, canceled
