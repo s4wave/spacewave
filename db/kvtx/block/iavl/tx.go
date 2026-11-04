@@ -16,6 +16,8 @@ type Tx struct {
 	write bool
 	bcs   *block.Cursor
 	root  *Node
+	// readBranches binds the two stored children of an immutable inline root.
+	readBranches [2]*block.ReadCursor
 
 	t          *AVLTree
 	tx         *block.Transaction
@@ -50,13 +52,20 @@ func NewTx(
 	if err != nil {
 		return nil, err
 	}
-	return &Tx{
+	out := &Tx{
 		tx:            btx,
 		write:         write,
 		bcs:           bcs,
 		root:          rn,
 		rootChangedCb: rootChangedCb,
-	}, nil
+	}
+
+	// Bind stored children only for immutable readonly transactions.
+	if !write && !rn.IsLeaf() {
+		out.readBranches[0] = block.NewReadCursor(ctx, bcs, rn.GetLeftChildRef())
+		out.readBranches[1] = block.NewReadCursor(ctx, bcs, rn.GetRightChildRef())
+	}
+	return out, nil
 }
 
 // GetCursor returns the cursor pointing to the root of the tree.
@@ -114,6 +123,10 @@ func (t *Tx) Exists(ctx context.Context, key []byte) (bool, error) {
 	if t.root.GetSize() == 0 {
 		return false, nil
 	}
+	if t.readBranches[0] != nil && t.readBranches[1] != nil {
+		node, _, err := t.findReadLeaf(ctx, key)
+		return node != nil, err
+	}
 	return t.hasFromNode(ctx, t.bcs, t.root, key)
 }
 
@@ -127,6 +140,20 @@ func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 	// Finish the lookup when the IAVL tree is empty.
 	if t.root.GetSize() == 0 {
 		return nil, false, nil
+	}
+
+	// Reuse stored readonly descendants while preserving the value codec.
+	if t.readBranches[0] != nil && t.readBranches[1] != nil {
+		node, cursor, err := t.findReadLeaf(ctx, key)
+		if err != nil || node == nil {
+			return nil, false, err
+		}
+		leaf, err := readLeafCursor(ctx, cursor)
+		if err != nil {
+			return nil, true, err
+		}
+		value, err := t.nodeToValue(ctx, leaf, node)
+		return value, true, err
 	}
 
 	// Find the leaf that holds the requested key.
@@ -190,6 +217,20 @@ func (t *Tx) GetCursorAtKey(ctx context.Context, key []byte) (*block.Cursor, err
 	// Finish the cursor lookup when the tree is empty.
 	if t.root.GetSize() == 0 {
 		return nil, nil
+	}
+
+	// Materialize the selected readonly leaf without retaining its ancestors.
+	if t.readBranches[0] != nil && t.readBranches[1] != nil {
+		node, cursor, err := t.findReadLeaf(ctx, key)
+		if err != nil || node == nil {
+			return nil, err
+		}
+		leaf, err := readLeafCursor(ctx, cursor)
+		if err != nil {
+			return nil, err
+		}
+		value, _ := node.FollowValue(leaf)
+		return value, nil
 	}
 
 	// Locate the leaf whose value cursor is requested.

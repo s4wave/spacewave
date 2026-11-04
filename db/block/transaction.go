@@ -67,7 +67,7 @@ type Transaction struct {
 	// inside WriteAtRoot. nil uses the defaults.
 	bufferedStoreSettings *BufferedStoreSettings
 	// decodedBlocks is borrowed from the owning object lifecycle.
-	decodedBlocks *DecodedBlockCache
+	decodedBlocks atomic.Pointer[DecodedBlockCache]
 	// readOnly rejects writes.
 	readOnly atomic.Bool
 	// stagedStore buffers content-addressed sub-tree blocks until a write drains
@@ -198,10 +198,8 @@ func (t *Transaction) SetDecodedBlockCache(cache *DecodedBlockCache) {
 		return
 	}
 
-	// Replace the borrowed cache under the cursor-graph lock.
-	t.mtx.Lock()
-	t.decodedBlocks = cache
-	t.mtx.Unlock()
+	// Publish the borrowed scope independently of mutable cursor traversal.
+	t.decodedBlocks.Store(cache)
 }
 
 // SetReadOnly marks the transaction read-only. Write and WriteAtRoot then fail
@@ -900,12 +898,12 @@ func (t *Transaction) cloneDetached(nroot *handle, sharesBlocks bool) *Transacti
 		return nil
 	}
 	nt := &Transaction{
-		store:         t.store,
-		xfrm:          t.xfrm,
-		root:          nroot,
-		putOpts:       t.putOpts,
-		decodedBlocks: t.decodedBlocks,
+		store:   t.store,
+		xfrm:    t.xfrm,
+		root:    nroot,
+		putOpts: t.putOpts,
 	}
+	nt.decodedBlocks.Store(t.decodedBlocks.Load())
 	nt.readOnly.Store(sharesBlocks && t.readOnly.Load())
 	return nt
 }

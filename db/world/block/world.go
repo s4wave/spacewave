@@ -648,7 +648,7 @@ func (t *WorldState) Commit(ctx context.Context) error {
 func (t *WorldState) buildObjectTree(ctx context.Context, bcs *block.Cursor) (kvtx.BlockTx, error) {
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/world-state/build-object-tree")
 	defer task.End()
-	return kvtx_block.BuildKvTransaction(ctx, bcs.FollowSubBlock(1), true)
+	return kvtx_block.BuildKvTransaction(ctx, bcs.FollowSubBlock(1), t.write)
 }
 
 // flushGraphWrites applies the held graph writes to the graph tree.
@@ -671,7 +671,7 @@ func (t *WorldState) buildGraphTree(ctx context.Context, bcs *block.Cursor, sett
 
 	// Build the graph key-value transaction.
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/world-state/build-graph-tree/build-kv-transaction")
-	ktx, err := kvtx_block.BuildKvTransaction(taskCtx, bcs.FollowSubBlock(2), true)
+	ktx, err := kvtx_block.BuildKvTransaction(taskCtx, bcs.FollowSubBlock(2), t.write)
 	subtask.End()
 	if err != nil {
 		return nil, nil, nil, err
@@ -696,7 +696,7 @@ func (t *WorldState) buildGraphTree(ctx context.Context, bcs *block.Cursor, sett
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/build-graph-tree/new-graph-handle")
 	var graphOps *kvtx_deferred.Ops
 	var graphStore kvtx.TxOps = ktx
-	if batch, ok := ktx.(kvtx.WriteBatchTxOps); ok {
+	if batch, ok := ktx.(kvtx.WriteBatchTxOps); ok && t.write {
 		graphOps = kvtx_deferred.NewOps(ktx, batch, 0, 0)
 		graphStore = graphOps
 	}

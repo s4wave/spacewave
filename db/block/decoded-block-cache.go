@@ -133,7 +133,9 @@ type decodedBlockCacheEpochs struct {
 // decodedBlockCacheEntry is a cached block, the epochs it was stored under,
 // and the removal generation of the durable read that admitted it.
 type decodedBlockCacheEntry struct {
-	block      Block
+	block Block
+	// read is an optional evictable slot for immutable reader traversal.
+	read       *decodedBlockReadSlot
 	epochs     decodedBlockCacheEpochs
 	durableGen uint64
 }
@@ -353,7 +355,14 @@ func (c *DecodedBlockCache) Store(
 
 	// An invalidation or removal after the checks above leaves this entry
 	// stale, and Lookup then treats it as a miss.
+	var read *decodedBlockReadSlot
+	if _, ok := cloned.(DecodedBlockShareable); ok {
+		read = &decodedBlockReadSlot{}
+	} else if _, ok := cloned.(DecodedBlockReadShareable); ok {
+		read = &decodedBlockReadSlot{}
+	}
 	accepted := c.pool.put(cacheKey, decodedBlockCacheEntry{
+		read:       read,
 		block:      cloned,
 		epochs:     epochs,
 		durableGen: durableGen,

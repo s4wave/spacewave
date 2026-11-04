@@ -793,10 +793,8 @@ func (c *Cursor) decodedBlockCacheContext(ctx context.Context) context.Context {
 		return ctx
 	}
 
-	// Attach the transaction cache captured under its lock.
-	c.t.mtx.Lock()
-	cache := c.t.decodedBlocks
-	c.t.mtx.Unlock()
+	// Attach the atomically published borrowed transaction cache.
+	cache := c.t.decodedBlocks.Load()
 	return WithDecodedBlockCache(ctx, cache)
 }
 

@@ -34,6 +34,11 @@ func (t *WorldState) accessCayleyGraph(ctx context.Context, write bool, cb func(
 		return tx.ErrDiscarded
 	}
 
+	// Refuse graph writers before lending a handle from an immutable snapshot.
+	if write && !t.write {
+		return tx.ErrNotWrite
+	}
+
 	// Direct graph mutations currently bypass the World changelog.
 	return cb(ctx, t.graphHd)
 }

@@ -267,9 +267,9 @@ func (o *ObjectState) GetRoot(ctx context.Context) (*Object, error) {
 
 // getCursor resolves replaced packed pages without mutating a read handle.
 func (o *ObjectState) getCursor(ctx context.Context) (*block.Cursor, error) {
-	// Packed mutations replace pages. Resolve the current entry so retained
-	// object handles observe subsequent mutations in this World transaction.
-	if _, packed := o.w.objTree.(*kvtx_block_okra.Tx); packed {
+	// Packed writes replace pages. Resolve the current entry so retained handles
+	// see this writer's changes; readonly handles keep their immutable cursor.
+	if _, packed := o.w.objTree.(*kvtx_block_okra.Tx); packed && o.w.write {
 		cursor, err := o.w.objTree.GetCursorAtKey(ctx, []byte(objectKeyPrefix+o.key))
 		if err != nil {
 			return nil, err
