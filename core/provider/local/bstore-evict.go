@@ -244,15 +244,16 @@ func (r *readSet) take(ctx context.Context) (func(*hash.Hash) bool, error) {
 		}
 	}
 
-	// Keep the blocks either generation recorded.
+	// Keep the blocks either generation recorded, and the ones decoded caches
+	// served or live values hold.
 	return func(h *hash.Hash) bool {
 		// Look the key up in both generations.
 		key := newReadKey(h)
 		r.mtx.Lock()
-		defer r.mtx.Unlock()
 		_, cur := r.hashes[key]
 		_, prev := r.prev[key]
-		return cur || prev
+		r.mtx.Unlock()
+		return cur || prev || keptByCache(h)
 	}, nil
 }
 
@@ -264,60 +265,98 @@ const CacheReadsEnv = "SPACEWAVE_EVICT_CACHE_READS"
 // cacheReadsOff is read once at startup from CacheReadsEnv.
 var cacheReadsOff = os.Getenv(CacheReadsEnv) == "off"
 
-// cacheReadSets holds the read sets of the running eviction loops, which the
-// decoded-block hit observer feeds. A block served from a decoded-block cache
-// is a read the local store never sees: without it, a block the backend keeps
-// decoded in memory looks unread, eviction drops its local copy, and the first
-// read after a restart goes to the remote.
+// cacheHits records the blocks served from decoded-block caches, a read the
+// local store never sees: without it, a block the backend keeps decoded in
+// memory looks unread, eviction drops its local copy, and the first read after
+// a restart goes to the remote. Live views and cached values also hold the
+// blocks they were built from through block.RefHold, which outlasts
+// readKeepAge for a value served from memory for hours.
 //
-// Invariant: counting these reads only adds keys to the read sets, so
-// eviction may only keep more blocks than before, never drop one it would
-// have kept. A hash reaches every running set; a set whose store lacks the
-// block never queues it, so the extra key costs only its slot.
-var cacheReadSets readSetRegistry
+// Invariant: eviction may only keep more blocks than before, never drop one
+// it would have kept. Both sources are separate from every placement's
+// readSet, so they never start or turn its generations or take its slots;
+// the keep test only adds them to what the readSet keeps.
+var cacheHits hitSet
 
-// readSetRegistry fans decoded-block cache hits out to the read sets added.
-type readSetRegistry struct {
-	// mtx guards sets.
-	mtx sync.RWMutex
-	// sets are the read sets added, nil before the first.
-	sets map[*readSet]struct{}
+// startCacheHits installs the decoded-block hit observer and enables holds,
+// once, unless CacheReadsEnv turns them off.
+var startCacheHits = sync.OnceFunc(func() {
+	if cacheReadsOff {
+		return
+	}
+	block.SetDecodedBlockHitObserver(func(ref *block.BlockRef) {
+		cacheHits.add(ref.GetHash())
+	})
+	block.EnableRefHolds()
+})
+
+// keptByCache reports whether a decoded-cache hit within readKeepAge or a live
+// hold keeps the block with hash h.
+func keptByCache(h *hash.Hash) bool {
+	return cacheHits.has(h) || block.Held(h)
 }
 
-// add registers r and installs the decoded-block hit observer on the first
-// call. The returned func removes r.
-func (g *readSetRegistry) add(r *readSet) func() {
-	// Register the set, installing the observer with the first.
-	g.mtx.Lock()
-	if g.sets == nil {
-		g.sets = make(map[*readSet]struct{})
-		block.SetDecodedBlockHitObserver(g.hit)
-	}
-	g.sets[r] = struct{}{}
-	g.mtx.Unlock()
+// hitSet records blocks in two generations on its own clock, so a block
+// recorded is kept for at least readKeepAge. A generation turns once it is
+// readKeepAge old, when the set is next used; the generation before it then
+// ends. A block recorded past readSetMax in one generation goes unrecorded.
+type hitSet struct {
+	// clock returns the current time, time.Now when nil.
+	clock func() time.Time
+	// mtx guards the fields below.
+	mtx sync.Mutex
+	// cur and prev are the current generation and the one before.
+	cur, prev map[readKey]struct{}
+	// turned is when cur started, zero before the first use.
+	turned time.Time
+}
 
-	// Remove the set when its eviction loop ends.
-	return func() {
-		g.mtx.Lock()
-		delete(g.sets, r)
-		g.mtx.Unlock()
+// turnLocked turns the generations once the current one is readKeepAge old.
+// A key in prev was recorded before cur started, and prev ends at the next
+// turn, at least readKeepAge later. The caller holds mtx.
+func (s *hitSet) turnLocked() {
+	now := time.Now()
+	if s.clock != nil {
+		now = s.clock()
+	}
+	switch {
+	case s.turned.IsZero():
+		s.turned = now
+	case now.Sub(s.turned) >= readKeepAge:
+		s.prev, s.cur, s.turned = s.cur, nil, now
 	}
 }
 
-// hit records a decoded-block cache hit of ref in every registered set.
-func (g *readSetRegistry) hit(ref *block.BlockRef) {
-	// Skip a ref without a hash, which no read set can hold.
-	h := ref.GetHash()
+// add records the block with hash h.
+func (s *hitSet) add(h *hash.Hash) {
+	// Skip a ref without a hash.
 	if h == nil {
 		return
 	}
 
-	// Record the hit in each running set.
-	g.mtx.RLock()
-	defer g.mtx.RUnlock()
-	for r := range g.sets {
-		r.add(h)
+	// Record the key in the current generation while it has room.
+	key := newReadKey(h)
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	s.turnLocked()
+	if s.cur == nil {
+		s.cur = make(map[readKey]struct{})
 	}
+	if len(s.cur) < readSetMax {
+		s.cur[key] = struct{}{}
+	}
+}
+
+// has reports whether either generation recorded the block with hash h.
+func (s *hitSet) has(h *hash.Hash) bool {
+	// Turn the generations if due, then look the key up in both.
+	key := newReadKey(h)
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	s.turnLocked()
+	_, cur := s.cur[key]
+	_, prev := s.prev[key]
+	return cur || prev
 }
 
 // readRecorder records the blocks the local store serves to reads.
@@ -369,11 +408,9 @@ func (p *placementState) runEviction(ctx context.Context) error {
 	save := time.NewTicker(readSaveInterval)
 	defer save.Stop()
 
-	// Count reads served from decoded-block caches, which never reach the
-	// local store, unless CacheReadsEnv turns that off.
-	if !cacheReadsOff {
-		defer cacheReadSets.add(&p.reads)()
-	}
+	// Count reads served from decoded-block caches and held by live values,
+	// which never reach the local store, unless CacheReadsEnv turns that off.
+	startCacheHits()
 	for {
 		// Run a pass while the store is past its budget.
 		status, changed := p.wb.GetStatus()

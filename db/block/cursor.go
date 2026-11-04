@@ -620,6 +620,7 @@ func (c *Cursor) fetch(ctx context.Context, verify bool) ([]byte, int, bool, err
 		return nil, 0, false, err
 	}
 	recordAccessLog(ctx, c.pos.ref, len(data))
+	holdRead(ctx, c.pos.ref)
 
 	// Verify the stored bytes before decoding may overwrite them.
 	var stored int
@@ -674,8 +675,12 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 		return nil, err
 	}
 
-	// Reuse the loaded block when decoding is unnecessary.
+	// Reuse the loaded block when decoding is unnecessary. A block a
+	// transaction already decoded is still a read the context's hold keeps.
 	if b != nil || ctor == nil || isSubBlock {
+		if b != nil && !isSubBlock {
+			holdRead(ctx, c.pos.ref)
+		}
 		return b, nil
 	}
 

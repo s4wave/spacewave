@@ -515,13 +515,14 @@ func SetDecodedBlockHitObserver(fn func(*BlockRef)) {
 }
 
 // lookupDecodedBlock looks the key of ref up in the context's caches and
-// reports a hit to the decoded-block hit observer.
+// reports a hit to the decoded-block hit observer and the context's hold.
 func lookupDecodedBlock(ctx context.Context, ref *BlockRef, key decodedBlockCacheKey, share bool) (Block, bool, error) {
 	blk, ok, err := decodedBlockCacheFromContext(ctx).Lookup(ctx, decodedBlockFrontCacheFromContext(ctx), key, share)
 	if ok {
 		if fn := decodedBlockHitObserver.Load(); fn != nil {
 			(*fn)(ref)
 		}
+		holdRead(ctx, ref)
 	}
 	return blk, ok, err
 }

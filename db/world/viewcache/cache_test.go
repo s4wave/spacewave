@@ -10,6 +10,7 @@ import (
 	"testing/synctest"
 	"time"
 
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/testbed"
 )
@@ -704,4 +705,44 @@ func (e *countingEngine) WatchChanges(ctx context.Context, afterSeqno uint64, to
 		}
 	}
 	return world.WatchTouchingChanges(ctx, e.Engine, afterSeqno, touches, cb)
+}
+
+func TestValuesAndViewsHoldTheirBlocks(t *testing.T) {
+	// Start a World with one object and a cache over it, with holds on.
+	block.EnableRefHolds()
+	_, engine := readsStore(t)
+	seed(t, engine, "a")
+	ctx := t.Context()
+	cache := &Cache{engine: engine}
+	hasA := func(ctx context.Context, tx world.WorldState) (any, error) {
+		return tx.HasObject(ctx, "a")
+	}
+
+	// A view evaluation holds the blocks it reads, and the cached value it
+	// reuses holds its own, until the evaluation is replaced or the view
+	// ends.
+	stop := errors.New("stop")
+	var viewHold *block.RefHold
+	err := world.WatchView(ctx, engine, func(ctx context.Context, ws world.WorldState) error {
+		viewHold = block.RefHoldFromContext(ctx)
+		if _, err := cache.Get(ctx, ws, "has-a", hasA); err != nil {
+			return err
+		}
+		if _, err := ws.HasObject(ctx, "a"); err != nil {
+			return err
+		}
+		if viewHold.Len() == 0 {
+			t.Error("view evaluation held none of the blocks it read")
+		}
+		if cache.entries["has-a"].blocks.Len() == 0 {
+			t.Error("cached value held none of the blocks it read")
+		}
+		return stop
+	})
+	if !errors.Is(err, stop) {
+		t.Fatal(err)
+	}
+	if viewHold.Len() != 0 {
+		t.Fatal("ended view still holds its blocks")
+	}
 }

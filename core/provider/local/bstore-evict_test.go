@@ -120,15 +120,17 @@ func TestReadSetKeepsReadsAcrossRestart(t *testing.T) {
 	}
 }
 
-// TestReadSetCountsDecodedCacheHits checks that a block served from the
-// decoded-block cache is kept like a local read: within readKeepAge, and no
-// longer, while a block nobody read is dropped as before and a removed set
-// records nothing.
-func TestReadSetCountsDecodedCacheHits(t *testing.T) {
+// TestEvictionKeepsCacheHits checks that a block served from a decoded-block
+// cache is kept for readKeepAge on the hit set's own clock, without changing
+// what the read set keeps: a hit never starts or turns its generations.
+func TestEvictionKeepsCacheHits(t *testing.T) {
+	// Start a read set and a hit set on one clock.
 	ctx := t.Context()
 	now := time.Now()
-	r := &readSet{clock: func() time.Time { return now }}
+	clock := func() time.Time { return now }
+	r := &readSet{clock: clock}
 	r.enabled.Store(true)
+	hits := &hitSet{clock: clock}
 	newRef := func(name string) *block.BlockRef {
 		return block.NewBlockRef(hash.NewHash(hash.HashType_HashType_SHA256, []byte(name)))
 	}
@@ -137,32 +139,30 @@ func TestReadSetCountsDecodedCacheHits(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		return keep
+		return func(h *hash.Hash) bool { return keep(h) || hits.has(h) }
 	}
 
-	// A hit keeps its block; a block nobody read is not kept.
-	release := cacheReadSets.add(r)
-	cached, unread := newRef("cached"), newRef("unread")
-	cacheReadSets.hit(cached)
-	if keep := take(); !keep(cached.GetHash()) || keep(unread.GetHash()) {
-		t.Fatal("pass did not keep exactly the block served from the cache")
+	// A hit leaves the read set's clock alone: a block read from the store
+	// 59 minutes after the hit is still kept by the pass an hour after that,
+	// as it was without hits.
+	cached, unread, stored := newRef("cached"), newRef("unread"), newRef("stored")
+	hits.add(cached.GetHash())
+	if !r.turned.IsZero() {
+		t.Fatal("a cache hit started the read set's generation")
+	}
+	now = now.Add(59 * time.Minute)
+	r.add(stored.GetHash())
+	now = now.Add(61 * time.Minute)
+	if keep := take(); !keep(stored.GetHash()) || keep(unread.GetHash()) {
+		t.Fatal("pass did not keep the stored block alone")
 	}
 
-	// The hit ages out like a local read: one turn keeps it, the second drops it.
+	// The hit is kept for readKeepAge on its own clock, and then dropped.
+	if !hits.has(cached.GetHash()) {
+		t.Fatal("hit set dropped the hit before a second turn")
+	}
 	now = now.Add(readKeepAge)
-	if !take()(cached.GetHash()) {
-		t.Fatal("first turn dropped the cached block")
-	}
-	now = now.Add(readKeepAge)
-	if take()(cached.GetHash()) {
-		t.Fatal("second turn kept the cached block")
-	}
-
-	// A removed set records nothing.
-	release()
-	other := newRef("other")
-	cacheReadSets.hit(other)
-	if take()(other.GetHash()) {
-		t.Fatal("a removed read set recorded a hit")
+	if hits.has(cached.GetHash()) {
+		t.Fatal("hit set kept the hit past two turns")
 	}
 }

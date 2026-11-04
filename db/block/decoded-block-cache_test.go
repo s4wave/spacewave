@@ -4,8 +4,10 @@ import (
 	"context"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestDecodedBlockCacheInvalidatedStoreTokenSkipsStore(t *testing.T) {
@@ -243,7 +245,8 @@ func TestDisableSharedDecodedBlockCache(t *testing.T) {
 
 // TestDecodedBlockHitObserver checks that a read served by a decoded-block
 // cache reports its ref to the observer, and that a miss reports nothing.
-func TestDecodedBlockHitObserver(t *testing.T) {
+func TestDecodedBlockHitObserverAndHolds(t *testing.T) {
+	// Start a decoded cache, an observer and two holds on one read context.
 	ctx := context.Background()
 	cache, err := NewDecodedBlockCacheWithOptions(DecodedBlockCacheOptions{MaxCost: 1 << 20})
 	if err != nil {
@@ -253,14 +256,45 @@ func TestDecodedBlockHitObserver(t *testing.T) {
 	var seen []*BlockRef
 	SetDecodedBlockHitObserver(func(ref *BlockRef) { seen = append(seen, ref) })
 	t.Cleanup(func() { SetDecodedBlockHitObserver(nil) })
-
+	EnableRefHolds()
 	ref, key, blk, data := newDecodedBlockCacheTestEntry(t, "observed")
 	ctx = WithDecodedBlockCache(ctx, cache)
-	if _, ok, err := lookupDecodedBlock(ctx, ref, key, true); err != nil || ok || len(seen) != 0 {
-		t.Fatalf("miss: ok=%v err=%v observed %d", ok, err, len(seen))
+	view, part := NewRefHold(), NewRefHold()
+	view.Keep(part)
+
+	// A miss reaches neither the observer nor the hold.
+	if _, ok, err := lookupDecodedBlock(WithRefHold(ctx, view), ref, key, true); err != nil || ok || len(seen) != 0 || Held(ref.GetHash()) {
+		t.Fatalf("miss: ok=%v err=%v observed %d held %v", ok, err, len(seen), Held(ref.GetHash()))
 	}
+
+	// A hit reaches the observer and holds the block in each hold it reads in.
 	storeDecodedBlockCacheTestEntry(t, cache, key, blk, data)
-	if _, ok, err := lookupDecodedBlock(ctx, ref, key, true); err != nil || !ok || len(seen) != 1 || !seen[0].EqualsRef(ref) {
-		t.Fatalf("hit: ok=%v err=%v observed %v", ok, err, seen)
+	for _, h := range []*RefHold{view, view, part} {
+		if _, ok, err := lookupDecodedBlock(WithRefHold(ctx, h), ref, key, true); err != nil || !ok {
+			t.Fatalf("hit: ok=%v err=%v", ok, err)
+		}
+	}
+	if len(seen) != 3 || !seen[0].EqualsRef(ref) || view.Len() != 1 || part.Len() != 1 || !Held(ref.GetHash()) {
+		t.Fatalf("hits: observed %d, view %d part %d held %v", len(seen), view.Len(), part.Len(), Held(ref.GetHash()))
+	}
+
+	// Releasing one hold leaves the block held by the other, and a released
+	// hold records no later read.
+	view.Release()
+	if !Held(ref.GetHash()) {
+		t.Fatal("block dropped while the part still holds it")
+	}
+	if _, _, err := lookupDecodedBlock(WithRefHold(ctx, view), ref, key, true); err != nil || view.Len() != 0 {
+		t.Fatalf("released hold recorded a read: len %d err %v", view.Len(), err)
+	}
+
+	// A hold nothing references releases its blocks once collected.
+	part = nil
+	for i := 0; i < 50 && Held(ref.GetHash()); i++ {
+		runtime.GC()
+		time.Sleep(time.Millisecond)
+	}
+	if Held(ref.GetHash()) {
+		t.Fatal("block still held after its last hold was collected")
 	}
 }
