@@ -393,6 +393,18 @@ func TestCommitPrefetch(t *testing.T) {
 		}
 	}
 
+	// Fold the whole log into the tree, since the background checkpoints
+	// can leave the last commits in the log, which the reopen below would
+	// keep in its overlay instead.
+	for st := db.cur.Load(); st.seq != st.ckpt; st = db.cur.Load() {
+		if err := db.w.lock(ctx); err != nil {
+			t.Fatal(err)
+		}
+		db.w.startCheckpoint()
+		db.w.unlock(nil)
+		db.w.builds.Wait()
+	}
+
 	// Reopen it so its index is on disk, with no checkpoint to read pages
 	// after the commit, and let the warm-up finish before the test empties
 	// the cache.
