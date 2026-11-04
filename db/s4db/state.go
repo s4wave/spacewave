@@ -119,12 +119,9 @@ func (c *carried) addRecord(r *record) {
 
 // apply applies records in order to st, whose overlay the caller owns.
 func (st *state) apply(rs ...*record) {
-	// Advance the counters and collect the changes into one allocation.
-	n := 0
-	for _, r := range rs {
-		n += len(r.ops)
-	}
-	es := make([]oentry, 0, n)
+	// Advance the counters and insert changes in commit order. Each entry owns
+	// its allocation: one cold key must not retain replaced entries from the
+	// same replay batch. Published snapshots keep their old entries unchanged.
 	for _, r := range rs {
 		st.seq, st.crc = r.seq, r.crc
 		st.logBytes += int64(r.size)
@@ -134,18 +131,12 @@ func (st *state) apply(rs ...*record) {
 		st.count += r.delta
 		st.logged = max(st.logged, r.durable)
 		for _, o := range r.ops {
-			es = append(es, oentry{key: o.key, del: o.del, val: o.val, seq: r.seq})
+			e := &oentry{key: o.key, del: o.del, val: o.val, seq: r.seq}
+			st.filter.add(e.key)
+			if old, ok := st.overlay.Set(newOverlayItem(e)); ok {
+				st.overlayBytes -= old.e.size()
+			}
+			st.overlayBytes += e.size()
 		}
-	}
-
-	// Insert them in commit order, so a key's later change replaces its
-	// earlier ones.
-	for i := range es {
-		e := &es[i]
-		st.filter.add(e.key)
-		if old, ok := st.overlay.Set(newOverlayItem(e)); ok {
-			st.overlayBytes -= old.e.size()
-		}
-		st.overlayBytes += e.size()
 	}
 }

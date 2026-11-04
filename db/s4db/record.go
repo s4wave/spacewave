@@ -151,27 +151,19 @@ func (r *record) encode(prev uint32) []byte {
 	return r.seal(b, prev)
 }
 
-// own copies the keys and inline values of a decoded record out of the
-// log reader's window into one allocation, so the overlay entries a kept
-// record becomes do not pin every window replay read.
+// own copies each decoded operation's key and inline value out of the log
+// reader's window. Each operation owns its bytes, so a surviving cold key
+// cannot retain the bytes of replaced operations in the same record.
 func (r *record) own() {
-	// Size the copy.
-	n := 0
-	for _, o := range r.ops {
-		n += len(o.key) + len(o.val.inline)
-	}
-
-	// Copy each key and inline value, keeping a nil value nil.
-	b := make([]byte, 0, n)
+	// Keep each key and value together without sharing another entry's lifetime.
 	for i := range r.ops {
 		o := &r.ops[i]
-		at := len(b)
-		b = append(b, o.key...)
-		o.key = b[at:len(b):len(b)]
+		b := make([]byte, len(o.key)+len(o.val.inline))
+		copy(b, o.key)
+		copy(b[len(o.key):], o.val.inline)
+		o.key = b[:len(o.key):len(o.key)]
 		if o.val.inline != nil {
-			at = len(b)
-			b = append(b, o.val.inline...)
-			o.val.inline = b[at:len(b):len(b)]
+			o.val.inline = b[len(o.key):len(b):len(b)]
 		}
 	}
 }
