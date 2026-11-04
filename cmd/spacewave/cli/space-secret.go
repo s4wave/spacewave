@@ -13,10 +13,11 @@ import (
 
 // newSpaceSecretCommand builds the space secret command group.
 func newSpaceSecretCommand(statePath *string, sessionIdx *uint) *cli.Command {
+	// Share the selected Space across Secret operations.
 	var spaceID string
 	return &cli.Command{
 		Name:  "secret",
-		Usage: "manage access to a space's Secrets",
+		Usage: "read Secrets and manage their access",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "space-id",
@@ -27,6 +28,7 @@ func newSpaceSecretCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			},
 		},
 		Subcommands: []*cli.Command{
+			newSpaceSecretReadCommand(statePath, sessionIdx, &spaceID),
 			newSpaceSecretGrantCommand(statePath, sessionIdx, &spaceID),
 		},
 	}
