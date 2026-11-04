@@ -2,6 +2,7 @@ package provider_local
 
 import (
 	"context"
+	"encoding/binary"
 	"os"
 	"slices"
 	"sync"
@@ -296,67 +297,91 @@ func keptByCache(h *hash.Hash) bool {
 	return cacheHits.has(h) || block.Held(h)
 }
 
-// hitSet records blocks in two generations on its own clock, so a block
-// recorded is kept for at least readKeepAge. A generation turns once it is
-// readKeepAge old, when the set is next used; the generation before it then
-// ends. A block recorded past readSetMax in one generation goes unrecorded.
+// hitSlotWays is the number of slots in one hitSet bucket.
+const hitSlotWays = 4
+
+// hitSlots is the number of hitSet slots: eight bytes each, 16 MiB in all.
+const hitSlots = 1 << 21
+
+// hitSet records blocks on its own clock, so a block recorded is kept for at
+// least readKeepAge. It is a flat table of atomic slots in buckets of
+// hitSlotWays, chosen by the key's leading bytes: each slot holds a key
+// fingerprint and the readKeepAge generation of its latest hit, so recording
+// and testing take no lock. A slot counts while its generation is the current
+// one or the one before. A hit into a full bucket replaces its oldest slot,
+// and two hits racing for one slot may lose one; either only shortens how
+// long a cache hit keeps its block, never what a readSet keeps.
 type hitSet struct {
 	// clock returns the current time, time.Now when nil.
 	clock func() time.Time
-	// mtx guards the fields below.
-	mtx sync.Mutex
-	// cur and prev are the current generation and the one before.
-	cur, prev map[readKey]struct{}
-	// turned is when cur started, zero before the first use.
-	turned time.Time
+	// once allocates slots at the first use.
+	once sync.Once
+	// slots holds fingerprint<<32 | generation, zero when unused.
+	slots []atomic.Uint64
 }
 
-// turnLocked turns the generations once the current one is readKeepAge old.
-// A key in prev was recorded before cur started, and prev ends at the next
-// turn, at least readKeepAge later. The caller holds mtx.
-func (s *hitSet) turnLocked() {
+// gen returns the current generation, numbered from one.
+func (s *hitSet) gen() uint32 {
 	now := time.Now()
 	if s.clock != nil {
 		now = s.clock()
 	}
-	switch {
-	case s.turned.IsZero():
-		s.turned = now
-	case now.Sub(s.turned) >= readKeepAge:
-		s.prev, s.cur, s.turned = s.cur, nil, now
-	}
+	return uint32(now.UnixNano()/int64(readKeepAge)) + 1 // #nosec G115 -- hours since 1970 fit
+}
+
+// unpackHit splits a slot into its fingerprint and generation.
+func unpackHit(v uint64) (fp, gen uint32) {
+	return uint32(v >> 32), uint32(v) // #nosec G115 -- splits the two halves
+}
+
+// bucket returns the slots of the bucket of key and its fingerprint.
+func (s *hitSet) bucket(key readKey) ([]atomic.Uint64, uint32) {
+	s.once.Do(func() { s.slots = make([]atomic.Uint64, hitSlots) })
+	b := binary.LittleEndian.Uint64(key[:8]) % (hitSlots / hitSlotWays) * hitSlotWays
+	return s.slots[b : b+hitSlotWays], binary.LittleEndian.Uint32(key[8:12])
 }
 
 // add records the block with hash h.
 func (s *hitSet) add(h *hash.Hash) {
 	// Skip a ref without a hash.
-	if h == nil {
+	if len(h.GetHash()) == 0 {
 		return
 	}
 
-	// Record the key in the current generation while it has room.
-	key := newReadKey(h)
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-	s.turnLocked()
-	if s.cur == nil {
-		s.cur = make(map[readKey]struct{})
+	// Refresh the key's slot, or else take the bucket's oldest.
+	gen := s.gen()
+	slots, fp := s.bucket(newReadKey(h))
+	next := uint64(fp)<<32 | uint64(gen)
+	oldest, oldestGen := 0, uint32(1<<32-1)
+	for i := range slots {
+		v := slots[i].Load()
+		vfp, vgen := unpackHit(v)
+		if vfp == fp && v != 0 {
+			if vgen < gen {
+				slots[i].CompareAndSwap(v, next)
+			}
+			return
+		}
+		if vgen < oldestGen {
+			oldest, oldestGen = i, vgen
+		}
 	}
-	if len(s.cur) < readSetMax {
-		s.cur[key] = struct{}{}
-	}
+	slots[oldest].Store(next)
 }
 
-// has reports whether either generation recorded the block with hash h.
+// has reports whether the block with hash h was recorded in the current
+// generation or the one before.
 func (s *hitSet) has(h *hash.Hash) bool {
-	// Turn the generations if due, then look the key up in both.
-	key := newReadKey(h)
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-	s.turnLocked()
-	_, cur := s.cur[key]
-	_, prev := s.prev[key]
-	return cur || prev
+	// Look for the key's slot with a recent generation.
+	gen := s.gen()
+	slots, fp := s.bucket(newReadKey(h))
+	for i := range slots {
+		v := slots[i].Load()
+		if vfp, vgen := unpackHit(v); v != 0 && vfp == fp && vgen+1 >= gen {
+			return true
+		}
+	}
+	return false
 }
 
 // readRecorder records the blocks the local store serves to reads.

@@ -297,4 +297,9 @@ func TestDecodedBlockHitObserverAndHolds(t *testing.T) {
 	if Held(ref.GetHash()) {
 		t.Fatal("block still held after its last hold was collected")
 	}
+
+	// The two holds shared one slot, which the last release freed.
+	if st := ReadRefHoldStats(); st.Blocks != 0 || st.Slots != 1 {
+		t.Fatalf("held table: %+v", st)
+	}
 }
