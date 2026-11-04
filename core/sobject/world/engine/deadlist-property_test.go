@@ -3,6 +3,7 @@
 package sobject_world_engine_test
 
 import (
+	"context"
 	"errors"
 	"math/rand/v2"
 	"os"
@@ -17,6 +18,7 @@ import (
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
 	"github.com/s4wave/spacewave/db/block"
+	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/volume"
 	kvtx_volume "github.com/s4wave/spacewave/db/volume/common/kvtx"
@@ -51,7 +53,7 @@ func TestDeadlistsRandomWrites(t *testing.T) {
 		Lookup: world.LookupOpSlice{world_mock.LookupMockOp, world.NewSchema(space_world_ops.Types).LookupOp}.LookupOp,
 	})
 	flows := scrapeWriteFlows(t)
-	r := &deadlistRun{t: t, w: w, so: so, rng: rand.New(rand.NewPCG(seed, 0)), checked: make(map[uint64]bool)}
+	r := &deadlistRun{t: t, w: w, so: so, rng: rand.New(rand.NewPCG(seed, 0)), seed: seed, checked: make(map[uint64]bool)}
 
 	// Run the random steps, checking each record once it is named.
 	for i := range 240 {
@@ -59,7 +61,7 @@ func TestDeadlistsRandomWrites(t *testing.T) {
 		r.check()
 		if i%20 == 19 {
 			sweep(t, w)
-			r.checkLive()
+			r.checkLive(i)
 		}
 	}
 
@@ -74,7 +76,7 @@ func TestDeadlistsRandomWrites(t *testing.T) {
 
 	// A fresh engine must still read the entire current World after collection.
 	r.restart()
-	r.checkLive()
+	r.checkLive(240 + 2*sobject.MinCheckpointOperations)
 
 	// The applied records and resolved releases agree with the marks.
 	vf := w.vol.(volume.FlowReporter).GetFlows()
@@ -103,6 +105,9 @@ type deadlistRun struct {
 	w   *localWorld
 	so  *gatedSharedObject
 	rng *rand.Rand
+
+	// seed fixes this run's operation choices, but not its fresh encryption key.
+	seed uint64
 
 	// live holds the keys of the objects the World holds.
 	live []string
@@ -425,7 +430,7 @@ func (r *deadlistRun) check() {
 // collection, including each nonempty payload root. Recount recovery may
 // supersede every pending release, so safety
 // is readable user data and zero false frees, independent of a path counter.
-func (r *deadlistRun) checkLive() {
+func (r *deadlistRun) checkLive(step int) {
 	// Pin the same World snapshot the application reads.
 	r.t.Helper()
 	ctx := r.t.Context()
@@ -439,6 +444,7 @@ func (r *deadlistRun) checkLive() {
 	for _, key := range r.live {
 		obj, err := world.MustGetObject(ctx, tx, key)
 		if err != nil {
+			r.diagnoseReadFailure(ctx, tx, key, step, err)
 			r.t.Fatalf("live object %s after collection: %v", key, err)
 		}
 		ref, _, err := obj.GetRootRef(ctx)
@@ -454,7 +460,93 @@ func (r *deadlistRun) checkLive() {
 		}
 		world.ReleaseObjectState(obj)
 		if err != nil {
+			r.diagnoseReadFailure(ctx, tx, key, step, err)
 			r.t.Fatalf("live object %s payload after collection: %v", key, err)
 		}
 	}
+}
+
+// diagnoseReadFailure records bounded observations only after the live read
+// failed. They are later observations, not proof that collection removed bytes.
+// Normal reads gain no pin, storage scope, scan or wait from this diagnostic.
+func (r *deadlistRun) diagnoseReadFailure(ctx context.Context, read world.Tx, key string, step int, failure error) {
+	// Bound every probe by the caller's lifetime and one short diagnostic budget.
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	r.t.Logf("read failure seed=%d step=%d key=%s next=%d live=%d operations=%v", r.seed, step, key, r.next, len(r.live), r.ran)
+	seq, err := read.GetSeqno(ctx)
+	r.t.Logf("failed read World seqno=%d err=%v", seq, err)
+
+	// Recover the ref from the existing not-found error without changing it.
+	var missing *block.BlockRef
+	if at := strings.LastIndex(failure.Error(), "block not found: "); at >= 0 {
+		fields := strings.Fields(failure.Error()[at+len("block not found: "):])
+		if len(fields) != 0 {
+			missing, err = block.UnmarshalBlockRefB58(fields[0])
+			r.t.Logf("failed read missing=%s parse-err=%v", fields[0], err)
+			if err != nil {
+				missing = nil
+			}
+		}
+	}
+
+	// Inspect the same public read's root and lookup view, without logging its
+	// ObjectRef: that also carries the ephemeral World encryption configuration.
+	var root *block.BlockRef
+	err = read.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
+		root = cursor.GetRef().GetRootRef().CloneVT()
+		r.t.Logf("failed read root=%s", root.MarshalString())
+		if !missing.GetEmpty() {
+			_, probe := cursor.BuildTransactionAtRef(nil, missing)
+			data, found, err := probe.Fetch(ctx)
+			r.t.Logf("later read-view missing found=%v decoded-bytes=%d err=%v", found, len(data), err)
+		}
+		return nil
+	})
+	r.t.Logf("failed read root-access err=%v", err)
+
+	// Read actual physical keys separately from the admitted publication and
+	// kept-page views. The two observations can straddle another commit.
+	vol, ok := r.w.vol.(kvtx_volume.KvtxVolume)
+	if !ok {
+		return
+	}
+	physical, err := vol.GetKvtxStore().NewTransaction(ctx, false)
+	if err != nil {
+		r.t.Logf("later physical snapshot err=%v", err)
+		return
+	}
+	for _, ref := range []*block.BlockRef{missing, root} {
+		if ref.GetEmpty() {
+			continue
+		}
+		encoded, err := ref.MarshalKey()
+		if err != nil {
+			r.t.Logf("physical ref=%s key-err=%v", ref.MarshalString(), err)
+			continue
+		}
+		found, err := physical.Exists(ctx, vol.GetKvKey().GetBlockKey(encoded))
+		r.t.Logf("later physical ref=%s exists=%v err=%v", ref.MarshalString(), found, err)
+	}
+	physical.Discard()
+
+	// Query only these two nodes through existing indexed graph APIs. Incoming
+	// refs lists nonblock owners, not parents held in stored child lists; print
+	// at most eight owners or children. These later graph reads are not atomic
+	// with the failed read or the physical snapshot above.
+	rg := kvtx_volume.OpenRefGraph(vol.GetKvtxStore())
+	state, err := rg.GetSharing(ctx)
+	r.t.Logf("later sharing phase=%v doubt=%v err=%v", state.Phase, state.Doubt, err)
+	for _, ref := range []*block.BlockRef{missing, root} {
+		if ref.GetEmpty() {
+			continue
+		}
+		node := block_gc.BlockIRI(ref)
+		owners, err := rg.GetIncomingRefs(ctx, node)
+		r.t.Logf("later ref=%s nonblock-owners=%d sample=%q err=%v", ref.MarshalString(), len(owners), owners[:min(8, len(owners))], err)
+		children, tracked, err := rg.GetBlockEdges(ctx, node)
+		r.t.Logf("later ref=%s tracked=%v children=%d sample=%q err=%v", ref.MarshalString(), tracked, len(children), children[:min(8, len(children))], err)
+	}
+	flows := r.w.vol.(volume.FlowReporter).GetFlows()
+	r.t.Logf("later GC diagnostics checked=%d deadlist-live=%d deadlist-underflow=%d releases=%d freed=%d release-live=%d release-underflow=%d", flows.DeadlistsChecked, flows.DeadlistLivePages, flows.DeadlistCountUnderflows, flows.ReleasesResolved, flows.ReleaseFreedBlocks, flows.ReleaseLiveBlocks, flows.ReleaseUnderflows)
 }
