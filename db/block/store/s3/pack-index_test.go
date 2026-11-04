@@ -3,6 +3,7 @@ package block_store_s3
 import (
 	"context"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -505,5 +506,71 @@ func TestPackStoreLoadSkipsListing(t *testing.T) {
 		}
 	case <-time.After(5 * time.Second):
 		t.Fatal("load waited for the listing lock after the entries loaded")
+	}
+}
+
+// stopAfterWrites is a store whose write transactions fail once it opened
+// writes of them, as a process stopped there leaves it.
+type stopAfterWrites struct {
+	kvtx.Store
+	writes, opened int
+}
+
+func (s *stopAfterWrites) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	if write {
+		if s.opened == s.writes {
+			return nil, errors.New("stopped")
+		}
+		s.opened++
+	}
+	return s.Store.NewTransaction(ctx, write)
+}
+
+// TestAddWrittenInterrupted stops indexing a pack of three slices after its
+// first, and reloads the index: the pack keeps its number, loads unindexed
+// so lookups test its filter and the indexer finishes it, and the next pack
+// takes a new number rather than the one the written h rows name.
+func TestAddWrittenInterrupted(t *testing.T) {
+	// Index pack a, then stop pack b after its first slice.
+	ctx := t.Context()
+	keysOf := func(id string, n int) [][]byte {
+		var keys [][]byte
+		for i := range n {
+			keys = append(keys, []byte(fmt.Sprintf("block-key-pad-%s-%010d", id, i)))
+		}
+		return keys
+	}
+	store := &stopAfterWrites{Store: hashmap.NewHashmapKvtx(hashmap.NewBTreeMap[[]byte]()), writes: 2}
+	x := newPackIndex(store)
+	if err := x.addWritten(ctx, &packfile.PackfileEntry{Id: "a"}, keysOf("a", 10)); err != nil {
+		t.Fatal(err)
+	}
+	bKeys := keysOf("b", 2*indexBatchKeys+1)
+	if err := x.addWritten(ctx, &packfile.PackfileEntry{Id: "b"}, bKeys); err == nil {
+		t.Fatal("indexing b did not stop")
+	}
+
+	// Reload: b keeps its number unindexed, and its first slice names it.
+	store.writes = -1
+	got := newPackIndex(store)
+	if _, err := got.load(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if row := got.rows["b"]; row.indexed || row.num != x.rows["b"].num || got.pending["b"] == nil {
+		t.Fatalf("b reloaded as %+v, pending %v", row, got.pending["b"] != nil)
+	}
+	if id, ok, err := got.Locate(ctx, bKeys[0]); err != nil || !ok || id != "b" {
+		t.Fatalf("b's first key located in %q, %v: %v", id, ok, err)
+	}
+	if _, ok, err := got.Locate(ctx, bKeys[len(bKeys)-1]); err != nil || ok {
+		t.Fatalf("b's last key located before its slice: %v", err)
+	}
+
+	// The next pack takes a number no h row names.
+	if err := got.addWritten(ctx, &packfile.PackfileEntry{Id: "c"}, keysOf("c", 10)); err != nil {
+		t.Fatal(err)
+	}
+	if c, b := got.rows["c"].num, got.rows["b"].num; c == b || !got.rows["c"].indexed {
+		t.Fatalf("c took number %d beside b's %d, indexed %v", c, b, got.rows["c"].indexed)
 	}
 }
