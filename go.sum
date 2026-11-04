@@ -84,6 +84,8 @@ github.com/aperturerobotics/starpc v0.52.4-0.20261024233818-0a9074172c29 h1:6b3U
 github.com/aperturerobotics/starpc v0.52.4-0.20261024233818-0a9074172c29/go.mod h1:/GCnO8xZhs7y3zP9b5Ug+Ndey/VZ6NTN98pZThFE/Tc=
 github.com/aperturerobotics/util v1.34.10-0.20261101200942-bf18ec0ecb29 h1:aK6S4ooIEML/ucPycEt3IpPGrBs9EPYO262xwSarvo0=
 github.com/aperturerobotics/util v1.34.10-0.20261101200942-bf18ec0ecb29/go.mod h1:NCySShOBZEGJl31Q2z3xSeDOWxRZ9wTcDTGAHvNi9bo=
+github.com/aperturerobotics/util v1.34.10-0.20261104203127-c3dda30463fe h1:Rp93UXyu0dFvAIN0bovbc4xiXMP2wY6wwCfLw481zMw=
+github.com/aperturerobotics/util v1.34.10-0.20261104203127-c3dda30463fe/go.mod h1:NCySShOBZEGJl31Q2z3xSeDOWxRZ9wTcDTGAHvNi9bo=
 github.com/aperturerobotics/vitess v0.0.0-20261024012120-fd4d1ea7517a h1:VwR64ZT2gxhPgipC/glwWPyvCVHh6ark0UOIdYhFYCQ=
 github.com/aperturerobotics/vitess v0.0.0-20261024012120-fd4d1ea7517a/go.mod h1:BA7YZUS4BoNY+k1nl7A3TLJkLY4KfW4I0c+DbXblfis=
 github.com/aperturerobotics/wazero v0.0.0-20261015230425-cef9eb51e433 h1:47nHIG21jQvOmVHYbdZHdGcd7SQ89+gor1LG9JkTOLM=
