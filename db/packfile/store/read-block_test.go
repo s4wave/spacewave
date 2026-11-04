@@ -42,8 +42,8 @@ func TestPackReaderBlockReadAcrossEviction(t *testing.T) {
 					key := packfile.BlockKey(item.h)
 					var off, end int64
 					reader.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-						entry, _ := reader.findEntryByKeyLocked(key)
-						off, end = entryExtent(entry)
+						ext, _ := reader.findBlockLocked(key)
+						off, end = ext.off, ext.end
 					})
 					if _, err := reader.ReaderAt(t.Context()).ReadAt(make([]byte, 1), (off+end)/2); err != nil {
 						t.Fatal(err)

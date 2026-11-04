@@ -1,16 +1,13 @@
 package store
 
 import (
-	"bytes"
 	"container/list"
 	"context"
 	"io"
 	"math"
-	"sort"
 	"sync/atomic"
 	"time"
 
-	"github.com/aperturerobotics/go-kvfile"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/s4wave/spacewave/db/block"
 )
@@ -35,9 +32,9 @@ const (
 	// defaultResidentBudget is the default resident-byte budget of a store,
 	// or of a reader opened outside a store.
 	defaultResidentBudget = 256 * 1024 * 1024
-	// defaultIndexEntryBudget is the default parsed index entry budget of a
-	// store, about 128 MiB at the size of a block index entry.
-	defaultIndexEntryBudget = 1 << 20
+	// defaultIndexBudget is the default resident-byte budget of the pack
+	// indexes of a store.
+	defaultIndexBudget = 128 * 1024 * 1024
 	// defaultWritebackWindow is the default semantic co-block window.
 	defaultWritebackWindow = 128 * 1024
 )
@@ -48,8 +45,8 @@ const (
 //
 //   - Span Store: resident raw packfile bytes, LRU eviction, uncovered-gap
 //     planning for transport fetches.
-//   - Block Index: the kvfile index entries of the pack, and the set of
-//     blocks handed to the writeback target.
+//   - Block Index: the kvfile index of the pack, searched in place over its raw
+//     tail, and the set of blocks handed to the writeback target.
 //
 // Reads verify the requested block inline. Each fetched span hands every
 // block it completes to one batched writeback job, so a block is published
@@ -127,8 +124,8 @@ type PackReader struct {
 	// sweep. indexElem is the reader's place in that ring, guarded by the
 	// budget's mtx.
 	published             map[string]struct{}
-	entriesByOff          []*kvfile.IndexEntry
-	entriesByKey          []*kvfile.IndexEntry
+	index                 blockIndex
+	indexCost             int64
 	indexLoaded           bool
 	indexRef              atomic.Bool
 	indexElem             *list.Element
@@ -216,7 +213,10 @@ func (e *PackReader) Close() {
 			e.indexCache = nil
 			e.writebackCtx = nil
 			e.writebackTarget = nil
-			e.setIndexEntriesLocked(nil)
+			// Clear indexLoaded with the index so withIndex retries and sees
+			// the close instead of calling fn on a nil index.
+			e.setIndexLocked(nil)
+			e.indexLoaded = false
 			e.published = nil
 
 			// Release resident spans and return their bytes to the shared budget.
@@ -290,10 +290,10 @@ func (e *PackReader) setBudget(budget *residentBudget) {
 		}
 		e.budget.detach(e)
 		e.budget.used.Add(-e.residentBytes)
-		e.budget.indexUsed.Add(-int64(len(e.entriesByKey)))
+		e.budget.indexUsed.Add(-e.indexCost)
 		e.budget = budget
 		e.budget.used.Add(e.residentBytes)
-		e.budget.indexUsed.Add(int64(len(e.entriesByKey)))
+		e.budget.indexUsed.Add(e.indexCost)
 		e.budget.attach(e)
 	})
 
@@ -470,17 +470,6 @@ func (e *PackReader) smoothWindow(current, target int) int {
 	// Smooth upward transport growth within the configured window bounds.
 	smoothed := int(math.Ceil((1-e.smoothing)*float64(current) + e.smoothing*float64(target)))
 	return e.clampWindow(smoothed)
-}
-
-// binarySearchEntriesByKey returns the index entry matching key in sorted-by-key entries.
-func binarySearchEntriesByKey(entries []*kvfile.IndexEntry, key []byte) (*kvfile.IndexEntry, bool) {
-	i := sort.Search(len(entries), func(i int) bool {
-		return bytes.Compare(entries[i].GetKey(), key) >= 0
-	})
-	if i < len(entries) && bytes.Equal(entries[i].GetKey(), key) {
-		return entries[i], true
-	}
-	return nil, false
 }
 
 // _ is a type assertion

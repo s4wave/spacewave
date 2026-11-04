@@ -2,7 +2,6 @@ package store
 
 import (
 	"context"
-	"sort"
 
 	"github.com/s4wave/spacewave/db/block"
 )
@@ -33,20 +32,20 @@ func (e *PackReader) prepareWritebackLocked(start, end int64) func() {
 	}
 
 	// Select unpublished blocks whose complete bytes are resident.
-	pos := sort.Search(len(e.entriesByOff), func(i int) bool {
-		_, entryEnd := entryExtent(e.entriesByOff[i])
-		return entryEnd > start
-	})
+	if e.index == nil {
+		return nil
+	}
 	var blocks []writebackBlock
-	for _, entry := range e.entriesByOff[pos:] {
+	for pos := e.index.seekEnd(start); pos < e.index.len(); pos++ {
 		// Restrict writeback candidates to the fetched byte interval.
-		eOff, eEnd := entryExtent(entry)
+		entryKey, ext := e.index.atOffset(pos)
+		eOff, eEnd := ext.off, ext.end
 		if eOff >= end {
 			break
 		}
 
 		// Skip blocks already handed to the writeback target.
-		key := string(entry.GetKey())
+		key := string(entryKey)
 		if _, ok := e.published[key]; ok {
 			continue
 		}
@@ -58,7 +57,7 @@ func (e *PackReader) prepareWritebackLocked(start, end int64) func() {
 		}
 
 		// Validate the block key and reserve its writeback publication.
-		ref, err := parseBlockRef(entry)
+		ref, err := parseBlockRef(entryKey)
 		if err != nil {
 			continue
 		}

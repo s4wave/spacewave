@@ -54,7 +54,7 @@ type PackfileStoreStats struct {
 	LastOpenedPacks           int
 	LastNegativePacks         int
 	LastTargetHit             bool
-	// IndexDrops counts parsed indexes dropped above the index entry limit.
+	// IndexDrops counts indexes dropped above the index byte limit.
 	IndexDrops            uint64
 	IndexCacheHits        uint64
 	IndexCacheMisses      uint64

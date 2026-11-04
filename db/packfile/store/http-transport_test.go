@@ -695,17 +695,18 @@ func TestPackReaderRetriesIndexLoadAfterFailure(t *testing.T) {
 	}
 }
 
-// TestBinarySearchEntriesByKeyUsesByteOrder preserves KVFile key ordering.
-func TestBinarySearchEntriesByKeyUsesByteOrder(t *testing.T) {
+// TestParsedIndexFindUsesByteOrder preserves KVFile key ordering.
+func TestParsedIndexFindUsesByteOrder(t *testing.T) {
 	entries := []*kvfile.IndexEntry{
 		{Key: []byte("11")},
 		{Key: []byte("2")},
 	}
-	if got, found := binarySearchEntriesByKey(entries, []byte("2")); !found || string(got.GetKey()) != "2" {
-		t.Fatalf("expected to find key 2, found=%v got=%v", found, got)
+	idx := newParsedIndex(entries)
+	if _, found := idx.find([]byte("2")); !found {
+		t.Fatal("expected to find key 2")
 	}
-	if got, found := binarySearchEntriesByKey(entries, []byte("11")); !found || string(got.GetKey()) != "11" {
-		t.Fatalf("expected to find key 11, found=%v got=%v", found, got)
+	if _, found := idx.find([]byte("11")); !found {
+		t.Fatal("expected to find key 11")
 	}
 }
 

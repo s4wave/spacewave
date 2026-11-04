@@ -3,7 +3,6 @@ package store
 import (
 	"context"
 
-	"github.com/aperturerobotics/go-kvfile"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 )
@@ -28,13 +27,13 @@ func (e *PackReader) getBlock(ctx context.Context, key []byte, ref *block.BlockR
 	)
 	err := e.withIndex(ctx, func() {
 		// Resolve the target block extent and its semantic neighbor window.
-		var entry *kvfile.IndexEntry
-		entry, found = e.findEntryByKeyLocked(key)
+		var ext blockExtent
+		ext, found = e.findBlockLocked(key)
 		if !found {
 			return
 		}
-		off, end = entryExtent(entry)
-		windowStart, windowEnd = e.semanticWindowLocked(entry)
+		off, end = ext.off, ext.end
+		windowStart, windowEnd = e.semanticWindowLocked(ext)
 	})
 	if err != nil {
 		return nil, err
@@ -90,7 +89,7 @@ func decodeVerifiedBlock(ref *block.BlockRef, value []byte) (*block.StoredBlock,
 func (e *PackReader) getBlockExists(ctx context.Context, key []byte) (bool, error) {
 	var found bool
 	err := e.withIndex(ctx, func() {
-		_, found = e.findEntryByKeyLocked(key)
+		_, found = e.findBlockLocked(key)
 	})
 	return found, err
 }

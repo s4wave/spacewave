@@ -195,7 +195,7 @@ func (w *writebackStore) putCountAtLeast(want int) (bool, <-chan struct{}) {
 	return ready, waitCh
 }
 
-func mustReadIndexTail(t *testing.T, data []byte) []byte {
+func mustReadIndexTail(t testing.TB, data []byte) []byte {
 	t.Helper()
 	_, tail, err := kvfile.ReadIndexTail(bytes.NewReader(data), uint64(len(data)))
 	if err != nil {
@@ -875,8 +875,17 @@ func TestPackfileStoreReadsPackWithoutBloom(t *testing.T) {
 }
 
 // TestPackfileStoreLookupStats counts candidate, opened and negative packs and
-// index loads, then drops and reloads indexes under an index entry cap.
+// index loads, then drops and reloads indexes under an index byte cap, with the
+// in-place and the parsed index layouts.
 func TestPackfileStoreLookupStats(t *testing.T) {
+	for _, parsed := range []bool{false, true} {
+		t.Run(map[bool]string{false: "in-place", true: "parsed"}[parsed], func(t *testing.T) {
+			testPackfileStoreLookupStats(t, parsed)
+		})
+	}
+}
+
+func testPackfileStoreLookupStats(t *testing.T, parsed bool) {
 	// Build target and negative packs sharing the target bloom filter.
 	ctx := t.Context()
 	targetBytes, targetBloom := buildTestPackOrdered(t, []struct{ Name, Data string }{{"a", "alpha"}})
@@ -890,6 +899,7 @@ func TestPackfileStoreLookupStats(t *testing.T) {
 		return NewPackReader(packID, size, &bytesTransport{data: data}), nil
 	}
 	store := NewPackfileStore(opener, newMemIndexCache())
+	store.SetParsedIndex(parsed)
 
 	// Publish the negative candidate ahead of the target pack.
 	store.UpdateManifest([]*packfile.PackfileEntry{
@@ -953,8 +963,8 @@ func TestPackfileStoreLookupStats(t *testing.T) {
 		)
 	}
 
-	// Cap the parsed entries at one index: the colder index drops at once.
-	store.SetIndexEntryLimit(1)
+	// Cap the index bytes below one index: the colder index drops at once.
+	store.SetIndexByteLimit(1)
 	if stats := store.SnapshotStats(); stats.IndexDrops != 1 {
 		t.Fatalf("IndexDrops = %d, want 1", stats.IndexDrops)
 	}
@@ -2342,7 +2352,7 @@ func TestPackfileStoreCloseDrainsWritebackBeforeReleasingReferences(t *testing.T
 		}
 
 		// Install the resident block catalog and prepare its writeback job.
-		eng.setIndexEntriesLocked(entries)
+		eng.setIndexLocked(newParsedIndex(entries))
 		job = eng.prepareWritebackLocked(0, eng.size)
 	})
 	if job == nil {
