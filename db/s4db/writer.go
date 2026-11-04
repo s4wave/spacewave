@@ -292,17 +292,16 @@ func (w *writer) replaySpace(st *state) error {
 // and publishes the new state. moves reports that changes are compaction's
 // moves, which the flows do not count. The caller holds the writer lock.
 func (w *writer) commit(ctx context.Context, base *state, changes []tentry, ordered, moves bool) error {
-	// Load the index paths of the changes the overlay does not answer
-	// together, so a cold commit reads one round per tree level instead of
-	// one path per change while it holds the writer lock.
+	// Look the changes up together, so a cold commit reads one round per
+	// tree level instead of one path per change while it holds the writer
+	// lock.
 	db, sp := w.db, w.sp
-	var cold [][]byte
-	for _, c := range changes {
-		if !base.filter.has(c.key) {
-			cold = append(cold, c.key)
-		}
+	keys := make([][]byte, len(changes))
+	for i, c := range changes {
+		keys[i] = c.key
 	}
-	if err := db.p.prefetch(ctx, base.root, cold); err != nil {
+	olds, founds, err := db.lookupBatch(ctx, base, keys)
+	if err != nil {
 		return err
 	}
 
@@ -314,11 +313,8 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, orde
 	if !moves {
 		flows = make([]Flow, len(db.flows))
 	}
-	for _, c := range changes {
-		old, found, err := db.lookup(base, c.key)
-		if err != nil {
-			return err
-		}
+	for i, c := range changes {
+		old, found := olds[i], founds[i]
 		if c.del && !found {
 			continue
 		}

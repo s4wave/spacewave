@@ -25,6 +25,11 @@
 \*              in the commit; under the lock resolve again only the keys
 \*              another commit changed since, from the overlay, the cache or
 \*              the file.
+\*   "batch":   under the lock, resolve every key the overlay does not
+\*              hold in one batched descent of the tree that answers each
+\*              key from the pages it read, so neither the filter nor an
+\*              eviction can cost a second read. The descent reads one round
+\*              per tree level; a level is one tick here.
 \*
 \* The system starts as production did after a restart: the cache cold,
 \* the big commit holding the lock and the checkpoint and the small commit
@@ -87,14 +92,14 @@ Enter(a) ==
  /\ UNCHANGED <<warm, overlay, maybe, dirty>>
 
 \* Under the lock: one prefetch round over the keys the overlay seems not
-\* to answer.
+\* to answer. The batched descent resolves the keys in that round.
 Prefetch(w) ==
  /\ owner = w /\ pc[w] = "prefetch"
  /\ LET skip == IF Mode = "filter" THEN overlay \cup maybe ELSE overlay
         cold == (KeysOf(w) \ skip) \ warm
     IN /\ warm' \in Fill(cold)
        /\ Charge(IF cold = {} THEN 0 ELSE 1)
- /\ pc' = [pc EXCEPT ![w] = "lookup"]
+ /\ pc' = [pc EXCEPT ![w] = IF Mode = "batch" THEN "write" ELSE "lookup"]
  /\ UNCHANGED <<owner, first, rest, overlay, maybe, dirty>>
 
 \* Under the lock: a cold page for each key neither overlay nor cache holds.

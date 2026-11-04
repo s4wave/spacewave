@@ -87,34 +87,63 @@ func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 	return data, true, nil
 }
 
-// GetBatch reads keys in index order and returns owned values in caller order.
-// It prefetches the keys first, so a cold batch waits for one round of reads
-// per tree level instead of one read per key.
+// GetBatch returns owned values of keys in caller order. Buffered changes
+// answer their keys, and the snapshot resolves the rest together, so a cold
+// batch waits for one round of reads per tree level instead of one read per
+// key.
 func (t *Tx) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool, error) {
-	// Load the index pages covering the keys.
-	if err := t.Prefetch(ctx, keys); err != nil {
-		return nil, nil, err
+	// Check the transaction and keys.
+	if t.done {
+		return nil, nil, kvtx.ErrDiscarded
+	}
+	for _, key := range keys {
+		if len(key) == 0 {
+			return nil, nil, kvtx.ErrEmptyKey
+		}
 	}
 
-	// Order the reads by key, retaining the caller's result positions.
-	order := make([]int, len(keys))
-	for i := range keys {
-		order[i] = i
-	}
-	slices.SortFunc(order, func(i, j int) int { return bytes.Compare(keys[i], keys[j]) })
-
-	// Read adjacent index keys together without changing the caller's slices.
+	// Answer the keys a buffered change decides, and list the rest in index
+	// order.
 	values := make([][]byte, len(keys))
 	found := make([]bool, len(keys))
-	for _, i := range order {
+	var order []int
+	for i, key := range keys {
+		if t.changes != nil {
+			if c, ok := t.changes.Get(tentry{key: key}); ok {
+				values[i], found[i] = bytes.Clone(c.data), !c.del
+				continue
+			}
+		}
+		order = append(order, i)
+	}
+	slices.SortFunc(order, func(i, j int) int { return bytes.Compare(keys[i], keys[j]) })
+	sorted := make([][]byte, len(order))
+	for j, i := range order {
+		sorted[j] = keys[i]
+	}
+
+	// Resolve them in the snapshot and read their values. An extent is read
+	// into a new buffer, and an inline value is copied out of the shared
+	// index page.
+	vals, ok, err := t.db.lookupBatch(ctx, t.st, sorted)
+	if err != nil {
+		return nil, nil, err
+	}
+	for j, i := range order {
+		if !ok[j] {
+			continue
+		}
 		if err := ctx.Err(); err != nil {
 			return nil, nil, err
 		}
-		var err error
-		values[i], found[i], err = t.Get(ctx, keys[i])
+		data, err := t.db.p.readValue(vals[j])
 		if err != nil {
 			return nil, nil, err
 		}
+		if !vals[j].isRef {
+			data = bytes.Clone(data)
+		}
+		values[i], found[i] = data, true
 	}
 	return values, found, nil
 }

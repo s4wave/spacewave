@@ -606,6 +606,38 @@ func (db *DB) lookup(st *state, key []byte) (value, bool, error) {
 	return db.p.get(st.root, key)
 }
 
+// lookupBatch returns the values of the sorted keys in st and whether each is
+// present, aligned with keys. The overlay answers the keys it holds; the rest,
+// including the filter's false positives, are resolved in one descent of the
+// tree, so a cold batch costs one round of reads per level.
+func (db *DB) lookupBatch(ctx context.Context, st *state, keys [][]byte) ([]value, []bool, error) {
+	// Answer from the overlay, listing the keys left for the tree.
+	vals := make([]value, len(keys))
+	found := make([]bool, len(keys))
+	var tree [][]byte
+	var at []int
+	for i, key := range keys {
+		if st.filter.has(key) {
+			if it, ok := st.overlay.Get(overlayProbe(key)); ok {
+				vals[i], found[i] = it.e.val, !it.e.del
+				continue
+			}
+		}
+		tree = append(tree, key)
+		at = append(at, i)
+	}
+
+	// Resolve the rest in the tree.
+	tv, tf, err := db.p.getBatch(ctx, st.root, tree)
+	if err != nil {
+		return nil, nil, err
+	}
+	for j, i := range at {
+		vals[i], found[i] = tv[j], tf[j]
+	}
+	return vals, found, nil
+}
+
 // NewTransaction opens a transaction. A write transaction holds the writer
 // lock across all processes until Commit or Discard.
 func (db *DB) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {

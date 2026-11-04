@@ -133,21 +133,24 @@ func (p *pager) get(root uint64, key []byte) (value, bool, error) {
 	return n.val(i), true, nil
 }
 
-// prefetchRun is a page and the sorted keys whose paths pass through it.
-type prefetchRun struct {
-	page uint64
-	keys [][]byte
+// descentRun is a page and the keys, keys[lo:hi], whose paths pass through
+// it.
+type descentRun struct {
+	page   uint64
+	lo, hi int
 }
 
-// prefetch reads the pages on the paths from root to each of the sorted keys
-// into the cache. It descends one level at a time and keeps the reads of a
-// level in flight together, so a later lookup of any key finds every page
-// cached and a cold batch costs one round of reads per level.
-func (p *pager) prefetch(ctx context.Context, root uint64, keys [][]byte) error {
+// descend reads the pages on the paths from root to each of the keys, one
+// level at a time, keeping the reads of a level in flight together, and calls
+// leaf with each leaf it reaches and the range of keys that leaf covers. A
+// cold batch costs one round of reads per level. Keys in index order share
+// runs and read fastest; keys in any other order are still each routed to
+// their leaf.
+func (p *pager) descend(ctx context.Context, root uint64, keys [][]byte, leaf func(n *node, lo, hi int)) error {
 	if root == 0 || len(keys) == 0 {
 		return nil
 	}
-	level := []prefetchRun{{page: root, keys: keys}}
+	level := []descentRun{{page: root, hi: len(keys)}}
 	for len(level) != 0 {
 		// Read the level.
 		if err := ctx.Err(); err != nil {
@@ -162,27 +165,58 @@ func (p *pager) prefetch(ctx context.Context, root uint64, keys [][]byte) error 
 			return err
 		}
 
-		// Route each run of keys to the children covering them. Sorted keys
-		// reach the children in order, so adjacent keys share a run.
-		var next []prefetchRun
+		// Hand each leaf its keys, and route each run of keys under an inner
+		// page to the children covering them. Adjacent keys under one child
+		// share a run.
+		var next []descentRun
 		for i, n := range nodes {
+			lo, hi := level[i].lo, level[i].hi
 			if n.leaf {
+				leaf(n, lo, hi)
 				continue
 			}
-			keys := level[i].keys
-			for len(keys) != 0 {
-				kid := n.childIndex(keys[0])
-				j := 1
-				for j < len(keys) && n.childIndex(keys[j]) == kid {
+			for lo < hi {
+				kid := n.childIndex(keys[lo])
+				j := lo + 1
+				for j < hi && n.childIndex(keys[j]) == kid {
 					j++
 				}
-				next = append(next, prefetchRun{page: n.kid(kid), keys: keys[:j]})
-				keys = keys[j:]
+				next = append(next, descentRun{page: n.kid(kid), lo: lo, hi: j})
+				lo = j
 			}
 		}
 		level = next
 	}
 	return nil
+}
+
+// prefetch reads the pages on the paths from root to each of the sorted keys
+// into the cache, so later lookups of the keys usually find them cached. A
+// page can leave the cache before such a lookup; getBatch resolves keys
+// without that window.
+func (p *pager) prefetch(ctx context.Context, root uint64, keys [][]byte) error {
+	return p.descend(ctx, root, keys, func(*node, int, int) {})
+}
+
+// getBatch looks the sorted keys up in the tree at root and returns their
+// values and whether each is present, aligned with keys. It resolves each key
+// in the leaf the descent read, so the batch costs one round of reads per
+// level however many other readers turn the cache over meanwhile.
+func (p *pager) getBatch(ctx context.Context, root uint64, keys [][]byte) ([]value, []bool, error) {
+	// Search each leaf the descent reads for its run of keys.
+	vals := make([]value, len(keys))
+	found := make([]bool, len(keys))
+	err := p.descend(ctx, root, keys, func(n *node, lo, hi int) {
+		for i := lo; i < hi; i++ {
+			if j, ok := n.search(keys[i]); ok {
+				vals[i], found[i] = n.val(j), true
+			}
+		}
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	return vals, found, nil
 }
 
 // readValue returns a stored value, checking packed bytes against their
