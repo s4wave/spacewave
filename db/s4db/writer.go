@@ -9,7 +9,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/aperturerobotics/util/csync"
 	"github.com/pkg/errors"
 )
 
@@ -23,9 +22,7 @@ type writer struct {
 	// db is the database.
 	db *DB
 	// mtx excludes this handle's other writers.
-	mtx csync.Mutex
-	// unlockMtx releases mtx while the writer lock is held.
-	unlockMtx func()
+	mtx writerLock
 	// sp is the space state, current through spSeq and spGen. Replacing it
 	// also takes spMtx.
 	sp *space
@@ -91,21 +88,31 @@ type writer struct {
 // other processes appended. Waiting for another process cannot be
 // canceled; ctx bounds the wait for this handle's writers.
 func (w *writer) lock(ctx context.Context) error {
+	return w.lockAs(ctx, false)
+}
+
+// lockFirst takes the writer lock as lock does, ahead of queued writers. A
+// background checkpoint step uses it, so the build waits out one transaction
+// rather than the queue, and holds the lock only briefly.
+func (w *writer) lockFirst(ctx context.Context) error {
+	return w.lockAs(ctx, true)
+}
+
+// lockAs takes the writer lock, ahead of queued writers when first is set.
+func (w *writer) lockAs(ctx context.Context, first bool) error {
 	// Exclude this handle's writers, then other processes, counted as
 	// waiting until both are held.
 	w.waiting.Add(1)
-	release, err := w.mtx.Lock(ctx)
-	if err != nil {
+	if err := w.mtx.lock(ctx, first); err != nil {
 		w.waiting.Add(-1)
 		return err
 	}
-	_, err = w.db.lockFile(true)
+	_, err := w.db.lockFile(true)
 	w.waiting.Add(-1)
 	if err != nil {
-		release()
+		w.mtx.unlock()
 		return err
 	}
-	w.unlockMtx = release
 	w.held.Store(true)
 
 	// Apply what other processes wrote.
@@ -121,16 +128,14 @@ func (w *writer) lock(ctx context.Context) error {
 func (w *writer) tryLock() (bool, error) {
 	// Exclude this handle's writers, then other processes, without
 	// waiting.
-	release, ok := w.mtx.TryLock()
-	if !ok {
+	if !w.mtx.tryLock() {
 		return false, nil
 	}
 	ok, err := w.db.lockFile(false)
 	if err != nil || !ok {
-		release()
+		w.mtx.unlock()
 		return false, err
 	}
-	w.unlockMtx = release
 	w.held.Store(true)
 	return true, nil
 }
@@ -150,9 +155,7 @@ func (w *writer) unlock(err error) {
 	w.held.Store(false)
 	_ = w.db.unlockFile()
 	w.db.watch.notify()
-	release := w.unlockMtx
-	w.unlockMtx = nil
-	release()
+	w.mtx.unlock()
 }
 
 // setSpace replaces the space once no background checkpoint is writing a
@@ -779,7 +782,7 @@ func (w *writer) runCheckpoint(st *state, stripe int) {
 	t := w.newTree(st)
 	out := t.b.out
 	out.reserve = func(n uint64) (run, error) {
-		if err := w.lock(ctx); err != nil {
+		if err := w.lockFirst(ctx); err != nil {
 			return run{}, err
 		}
 		r, err := w.reserve(t, n)
@@ -800,7 +803,7 @@ func (w *writer) runCheckpoint(st *state, stripe int) {
 	out.write = func(buf []byte, page uint64) error {
 		// Exclude other processes' writers from a shared file.
 		if !w.db.opts.SingleProcess {
-			if err := w.lock(ctx); err != nil {
+			if err := w.lockFirst(ctx); err != nil {
 				return err
 			}
 			defer w.unlock(nil)
@@ -830,7 +833,7 @@ func (w *writer) runCheckpoint(st *state, stripe int) {
 	}
 
 	// Take the writer lock to save the tree.
-	if lerr := w.lock(ctx); lerr != nil {
+	if lerr := w.lockFirst(ctx); lerr != nil {
 		w.db.release(st, stripe)
 		w.unlockBuild()
 		return
@@ -854,7 +857,7 @@ func (w *writer) runCheckpoint(st *state, stripe int) {
 			w.beforeSave(t)
 		}
 		err = t.encodeSpace()
-		if lerr := w.lock(ctx); lerr != nil {
+		if lerr := w.lockFirst(ctx); lerr != nil {
 			w.db.release(st, stripe)
 			w.unlockBuild()
 			return
@@ -1020,7 +1023,7 @@ func (w *writer) carryOver(ctx context.Context, t *tree) error {
 	// Fold in the records published meanwhile, taking the writer lock only
 	// to copy their list. A record is never changed once listed. Folding
 	// again would chase a writer that commits as fast as the fold runs.
-	if err := w.lock(ctx); err != nil {
+	if err := w.lockFirst(ctx); err != nil {
 		return err
 	}
 	changed := w.changed
