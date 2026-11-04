@@ -4,6 +4,8 @@ import (
 	"container/list"
 	"sync"
 	"sync/atomic"
+
+	"github.com/s4wave/spacewave/db/block"
 )
 
 // residentBudget bounds the resident span bytes and index bytes of every
@@ -32,6 +34,10 @@ type residentBudget struct {
 	// parsedIndex makes readers load parsed indexes instead of searching the
 	// raw index tail in place. It applies to indexes loaded after it changes.
 	parsedIndex atomic.Bool
+	// shared, when set, is the process-wide read-cache budget this budget
+	// draws on. It decides what to evict, so limit and indexLimit no longer
+	// apply and reclaim defers to it.
+	shared atomic.Pointer[block.ReadCacheBudget]
 
 	// mtx guards spanReaders, indexes and each reader's spanElem and
 	// indexElem. A reader takes mtx under its own lock; the budget never takes
@@ -194,6 +200,10 @@ func (b *residentBudget) nextIndexVictimLocked() *PackReader {
 // The caller must not hold any reader lock: reclaim takes one victim's lock at
 // a time.
 func (b *residentBudget) reclaim() {
+	if shared := b.shared.Load(); shared != nil {
+		shared.Reclaim()
+		return
+	}
 	for b.overage() > 0 {
 		b.mtx.Lock()
 		victim := b.nextSpanVictimLocked()
@@ -212,6 +222,9 @@ func (b *residentBudget) reclaim() {
 //
 // The caller must not hold any reader lock.
 func (b *residentBudget) reclaimIndexes() {
+	if b.shared.Load() != nil {
+		return
+	}
 	for {
 		limit := b.indexLimit.Load()
 		if limit <= 0 || b.indexUsed.Load() <= limit {
@@ -225,4 +238,42 @@ func (b *residentBudget) reclaimIndexes() {
 		}
 		victim.dropIndex()
 	}
+}
+
+// ReadCacheUsed returns the resident span and index bytes.
+func (b *residentBudget) ReadCacheUsed() int64 {
+	return b.used.Load() + b.indexUsed.Load()
+}
+
+// ReadCacheEvict frees about want bytes for the shared budget: cold spans
+// first, since a dropped span refetches one range, then cold indexes, which
+// reload from the index cache. A fetch hands its span to its waiters directly,
+// so evicting any span is safe. It returns the bytes freed.
+func (b *residentBudget) ReadCacheEvict(want int64) int64 {
+	start := b.ReadCacheUsed()
+	for start-b.ReadCacheUsed() < want {
+		b.mtx.Lock()
+		victim := b.nextSpanVictimLocked()
+		b.mtx.Unlock()
+		if victim == nil {
+			break
+		}
+		victim.evictOldestSpan()
+	}
+
+	// Drop indexes, bounded by two sweeps of the ring, since a reader using
+	// its index declines to drop it.
+	b.mtx.Lock()
+	attempts := 2*b.indexes.Len() + 1
+	b.mtx.Unlock()
+	for ; attempts > 0 && start-b.ReadCacheUsed() < want; attempts-- {
+		b.mtx.Lock()
+		victim := b.nextIndexVictimLocked()
+		b.mtx.Unlock()
+		if victim == nil {
+			break
+		}
+		victim.dropIndex()
+	}
+	return max(start-b.ReadCacheUsed(), 0)
 }

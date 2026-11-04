@@ -213,6 +213,20 @@ func (s *PackfileStore) SetRangeCacheMaxBytes(maxBytes int64) {
 	s.budget.reclaim()
 }
 
+// JoinReadCacheBudget makes the store's resident span and index bytes draw on
+// the shared read-cache budget instead of its own limits, and returns the
+// function that restores them. The shared budget evicts across the decoded
+// block cache and every joined store, so one limit bounds their sum.
+func (s *PackfileStore) JoinReadCacheBudget(shared *block.ReadCacheBudget) (leave func()) {
+	leaveClass := shared.Join(block.ReadCacheEncoded, s.budget)
+	s.budget.shared.Store(shared)
+	shared.Reclaim()
+	return func() {
+		s.budget.shared.Store(nil)
+		leaveClass()
+	}
+}
+
 // SetIndexByteLimit sets the index bytes every engine may hold together.
 // Above it the least recently used indexes drop and reload on their next use.
 // Zero or negative keeps every index loaded.

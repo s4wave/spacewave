@@ -2309,6 +2309,53 @@ func TestPackfileStoreEvictsOldestBlock(t *testing.T) {
 	}
 }
 
+// TestPackfileStoreSharedReadCacheBudget verifies a store that joined the
+// shared read-cache budget is bounded by it rather than by its own limit, keeps
+// serving reads while the budget evicts, and returns to its own limits on leave.
+func TestPackfileStoreSharedReadCacheBudget(t *testing.T) {
+	// Publish two packs and join a budget far below one resident span.
+	ctx := t.Context()
+	packA, bloomA := buildTestPackOrdered(t, []struct{ Name, Data string }{{"a", "alpha"}})
+	packB, bloomB := buildTestPackOrdered(t, []struct{ Name, Data string }{{"b", "beta!!"}})
+	opener := func(packID string, size int64) (*PackReader, error) {
+		data := packA
+		if packID == "pack-b" {
+			data = packB
+		}
+		return NewPackReader(packID, size, &bytesTransport{data: data}), nil
+	}
+	store := NewPackfileStore(opener, newMemIndexCache())
+	store.UpdateManifest([]*packfile.PackfileEntry{
+		{Id: "pack-a", BloomFilter: bloomA, BlockCount: 1, SizeBytes: uint64(len(packA))},
+		{Id: "pack-b", BloomFilter: bloomB, BlockCount: 1, SizeBytes: uint64(len(packB))},
+	})
+	store.SetWriteback(ctx, nil, 0)
+	shared := block.NewReadCacheBudget(8)
+	leave := store.JoinReadCacheBudget(shared)
+
+	// Read both blocks: each read is served and the store holds only what the
+	// shared budget keeps, which reclaim brings to its floor at most.
+	for name, data := range map[string]string{"alpha": "alpha", "beta!!": "beta!!"} {
+		h, _ := hash.Sum(hash.HashType_HashType_SHA256, []byte(name))
+		got, found, err := store.GetBlock(ctx, &block.BlockRef{Hash: h})
+		if err != nil || !found || string(got) != data {
+			t.Fatalf("GetBlock(%s): found=%v err=%v", name, found, err)
+		}
+	}
+	if used, floor := shared.Used(block.ReadCacheEncoded), shared.Floor(block.ReadCacheEncoded); used > floor+int64(len(packA)+len(packB)) {
+		t.Fatalf("encoded bytes %d, floor %d", used, floor)
+	}
+	if shared.Evicted(block.ReadCacheEncoded) == 0 {
+		t.Fatal("shared budget never evicted from the store")
+	}
+
+	// After leaving, the store's own limits apply again and nothing is counted.
+	leave()
+	if shared.Used(block.ReadCacheEncoded) != 0 {
+		t.Fatal("left store still counted")
+	}
+}
+
 func TestPackfileStoreCloseDrainsWritebackBeforeReleasingReferences(t *testing.T) {
 	// Gate the first block writeback in an initialized pack reader.
 	firstPut := make(chan struct{})

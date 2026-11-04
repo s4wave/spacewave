@@ -46,6 +46,11 @@ type decodedBlockPool struct {
 	nextScope atomic.Uint64
 	// off bypasses the shards from then on, as a disabled pool does.
 	off atomic.Bool
+	// budget, when set, is the shared read-cache budget the pool draws on. The
+	// pool runs its Reclaim after every store.
+	budget *ReadCacheBudget
+	// nextEvict rotates the shard ReadCacheEvict starts from.
+	nextEvict atomic.Uint64
 }
 
 // decodedBlockShard is one lock's share of a pool.
@@ -225,6 +230,9 @@ func (p *decodedBlockPool) put(key string, value decodedBlockCacheEntry, cost in
 		s.evictions.Add(uint64(evicted))
 		s.costEvicted.Add(evictedCost)
 	}
+	if p.budget != nil {
+		p.budget.Reclaim()
+	}
 	return true
 }
 
@@ -322,7 +330,7 @@ func (q *decodedBlockQueue) push(e *decodedBlockPoolEntry) {
 
 // oldestExcept returns the oldest entry other than keep, or nil.
 func (q *decodedBlockQueue) oldestExcept(keep *decodedBlockPoolEntry) *decodedBlockPoolEntry {
-	if e := q.head; e != keep {
+	if e := q.head; e == nil || e != keep {
 		return e
 	}
 	return keep.next
@@ -361,6 +369,15 @@ func (s *decodedBlockShard) retireReadData(e *decodedBlockPoolEntry) {
 // It compares slot identity under the shard lock so an eviction or replacement
 // cannot resurrect a retired entry. Block callbacks and storage run elsewhere.
 func (p *decodedBlockPool) attachReadData(key string, slot *decodedBlockReadSlot, data *decodedBlockReadData, cost int64) bool {
+	attached := p.attachReadDataLocked(key, slot, data, cost)
+	if attached && p.budget != nil {
+		p.budget.Reclaim()
+	}
+	return attached
+}
+
+// attachReadDataLocked is attachReadData under the shard lock.
+func (p *decodedBlockPool) attachReadDataLocked(key string, slot *decodedBlockReadSlot, data *decodedBlockReadData, cost int64) bool {
 	// Attach once, only while the entry and its whole metadata fit this shard.
 	s := p.shard(key)
 	budget := p.shardBudget()
@@ -398,4 +415,46 @@ func (p *decodedBlockPool) attachReadData(key string, slot *decodedBlockReadSlot
 		s.costEvicted.Add(victim.cost)
 	}
 	return true
+}
+
+// ReadCacheUsed returns the cost of the entries held.
+func (p *decodedBlockPool) ReadCacheUsed() int64 {
+	var n int64
+	for i := range p.shards {
+		n += p.shards[i].retained.Load()
+	}
+	return n
+}
+
+// ReadCacheEvict evicts about want bytes, starting at a rotating shard so no
+// shard is drained first. It takes one shard lock at a time and never the
+// lock of an entry being stored, which put and attachReadData hold.
+func (p *decodedBlockPool) ReadCacheEvict(want int64) int64 {
+	var freed int64
+	n := uint64(len(p.shards))
+	if n == 0 {
+		return 0
+	}
+	start := p.nextEvict.Add(1)
+	for i := uint64(0); i < n && freed < want; i++ {
+		s := &p.shards[(start+i)%n]
+		var evicted, cost int64
+		s.mtx.Lock()
+		for freed+cost < want {
+			victim := s.evictOne(p.shardBudget(), nil)
+			if victim == nil {
+				break
+			}
+			evicted++
+			cost += victim.cost
+		}
+		s.mtx.Unlock()
+		if evicted != 0 {
+			s.retained.Add(-cost)
+			s.evictions.Add(uint64(evicted))
+			s.costEvicted.Add(cost)
+		}
+		freed += cost
+	}
+	return freed
 }

@@ -79,6 +79,10 @@ var sharedDecodedBlockPool = sync.OnceValue(func() *decodedBlockPool {
 	if err != nil {
 		panic(err)
 	}
+	if pool.shards != nil {
+		pool.budget = SharedReadCacheBudget()
+		pool.budget.Join(ReadCacheDecoded, pool)
+	}
 	return pool
 })
 
@@ -152,12 +156,18 @@ type decodedBlockCacheStoreToken struct {
 // behind NewDecodedBlockCache. The default suits a desktop; a server with
 // memory to spare can hold a larger working set. Lowering the budget evicts
 // entries from each shard at its next store. A non-positive budget is ignored.
+//
+// The value is also the limit of SharedReadCacheBudget, so it bounds the
+// decoded pool together with the resident pack bytes of every store that
+// joined the budget, and the pool may hold all of it while those stay at their
+// floor. The pool and the budget are sized from this one setting.
 func SetSharedDecodedBlockCacheMaxCost(maxCost int64) {
 	pool := sharedDecodedBlockPool()
 	if maxCost <= 0 || pool.shards == nil {
 		return
 	}
 	pool.maxCost.Store(maxCost)
+	SharedReadCacheBudget().SetLimit(maxCost)
 }
 
 // DisableSharedDecodedBlockCache stops the process-wide pool behind
