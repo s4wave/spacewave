@@ -52,9 +52,11 @@ ApplyOperation == /\ phase = "apply" /\ ~retired
 RetireEngine == /\ ~retired /\ retired' = TRUE
                 /\ UNCHANGED <<phase, nextOp, transport, generation, readGeneration,
                                applied, rejected>>
+\* Done ends a run: every operation is placed, or the engine retired.
+Done == (nextOp = 4 \/ retired) /\ UNCHANGED vars
 Next == BeginRead \/ StopTransport \/ RestartTransport \/ ReadSucceeded
         \/ ReadCanceled \/ RetryReplay \/ ApplyOperation \/ RetireEngine
-        \/ UNCHANGED vars
+        \/ Done
 Spec == Init /\ [][Next]_vars
 FairSpec == Spec /\ WF_vars(BeginRead) /\ WF_vars(RestartTransport)
             /\ WF_vars(ReadSucceeded) /\ WF_vars(ReadCanceled)

@@ -51,9 +51,11 @@ Cancel(r) == /\ waiter[r] # "done"
 Expire(r) == /\ waiter[r] \in {"waiting", "awake"}
              /\ waiter' = [waiter EXCEPT ![r] = "done"]
              /\ UNCHANGED <<backend, revision, sampled>>
+\* Done ends a run: every reader has its outcome.
+Done == (\A r \in Readers : waiter[r] = "done") /\ UNCHANGED vars
 Next == \/ \E next \in States : Publish(next)
         \/ \E r \in Readers : Observe(r) \/ Poll(r) \/ Cancel(r) \/ Expire(r)
-        \/ UNCHANGED vars
+        \/ Done
 Spec == Init /\ [][Next]_vars
         /\ \A r \in Readers : WF_vars(Observe(r)) /\ WF_vars(Poll(r)) /\ WF_vars(Expire(r))
 TypeOK == /\ backend \in States

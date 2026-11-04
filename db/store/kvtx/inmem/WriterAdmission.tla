@@ -75,7 +75,6 @@ ReadDone(r) ==
 Next == \/ \E w \in Writers : Register(w) \/ Enqueue(w) \/ TakeTurn(w)
                               \/ BeginWrite(w) \/ Finish(w) \/ Cancel(w)
         \/ \E r \in Readers : Read(r) \/ ReadDone(r)
-        \/ UNCHANGED vars
 Fair == /\ \A w \in Writers : /\ WF_vars(Enqueue(w)) /\ WF_vars(TakeTurn(w))
                               /\ WF_vars(BeginWrite(w)) /\ WF_vars(Finish(w))
         /\ \A r \in Readers : WF_vars(ReadDone(r))

@@ -57,7 +57,6 @@ Close(p) == /\ phase[p] \in {"waiting", "admitted", "serving"}
 Next == (\E r \in Registrations : Register(r) \/ Compile(r) \/ Withdraw(r))
         \/ (\E p \in Peers, r \in Registrations : Open(p, r))
         \/ (\E p \in Peers : Admit(p) \/ Refuse(p) \/ Invoke(p) \/ Close(p))
-        \/ UNCHANGED vars
 
 TypeOK == /\ registered \subseteq Registrations
           /\ compiled \subseteq Registrations

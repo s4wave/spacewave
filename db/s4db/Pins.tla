@@ -139,7 +139,6 @@ Next ==
   \/ Commit \/ ReadSlots \/ Release \/ Zero \/ Load \/ PinLoaded \/ Publish
   \/ PinCompute \/ PinWrite
   \/ \E r \in Readers : Take(r) \/ Count(r) \/ Check(r) \/ Done(r)
-  \/ UNCHANGED vars
 Spec == Init /\ [][Next]_vars
 
 \* A snapshot of state s reads the values commits after s freed, so none of

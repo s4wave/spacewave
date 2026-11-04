@@ -18,8 +18,10 @@ Expire == /\ idle /\ readers = {} /\ idle' = FALSE /\ stopped' = TRUE
           /\ UNCHANGED <<readers, ended, opened>>
 End == /\ opened /\ ~ended /\ ended' = TRUE /\ idle' = FALSE
        /\ UNCHANGED <<readers, stopped, opened>>
+\* Done ends a run: the source has ended and every reader has left.
+Done == ended /\ readers = {} /\ UNCHANGED vars
 Next == (\E c \in Clients : Join(c) \/ Leave(c)) \/ Expire \/ End
-        \/ UNCHANGED vars
+        \/ Done
 Spec == Init /\ [][Next]_vars
 LiveReadersKeepSource == stopped => readers = {}
 IdleHasNoReaders == idle => readers = {}

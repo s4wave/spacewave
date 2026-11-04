@@ -57,9 +57,11 @@ Cancel == /\ ~alive /\ phase # "finished" /\ phase' = "finished" /\ pin' = 0
 Close == /\ ~alive /\ ~closed /\ (~TrackRead \/ ~Active)
          /\ closed' = TRUE
          /\ UNCHANGED <<admitted, done, retained, available, phase, root, seqno, pin, alive, target>>
+\* Done ends a run: the engine retired, its copy finished and its snapshot closed.
+Done == ~alive /\ phase = "finished" /\ closed /\ UNCHANGED vars
 Next == Admit \/ Promote \/ Hold \/ Read \/ Validate \/ Retry \/ Wake \/ Copy
         \/ Publish \/ Release \/ Sweep \/ Retire \/ Cancel \/ Close
-        \/ UNCHANGED vars
+        \/ Done
 Spec == Init /\ [][Next]_vars
 CoherentHead == Active => root # 0 /\ seqno = Seq(root)
 CopyReadable == phase \in {"copy", "copied", "published"} => root \in available

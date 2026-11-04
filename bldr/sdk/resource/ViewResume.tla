@@ -24,7 +24,6 @@ ChangeScope == /\ scope = 0 /\ scope' = 1 /\ held' = 0
                /\ delivered' = FALSE /\ failed' = FALSE
                /\ UNCHANGED <<baseScope, invalid>>
 Next == (\E v \in 1..2 : Full(v) \/ Unchanged(v)) \/ Delta \/ ChangeScope
-        \/ UNCHANGED vars
 Spec == Init /\ [][Next]_vars
 UsableBase == delivered => held # 0 /\ baseScope = scope
 RefusalYieldsNothing == failed => ~delivered

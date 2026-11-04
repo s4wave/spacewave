@@ -51,7 +51,6 @@ Complete(id) ==
 Next == \/ \E key \in Keys : Activate(key)
         \/ \E id \in Ids : (\E actor \in {id} \X {1, 2} : RecordActivationActor(id, actor)) \/ Reattach(id) \/ Complete(id)
         \/ Restart
-        \/ UNCHANGED vars
 Spec == Init /\ [][Next]_vars
 OneActivationPerKey == \A key \in Keys : Cardinality({id \in active : id[1] = key}) <= 1
 OneActorPerActivation == \A id \in Ids : Cardinality(history[id]) <= 1

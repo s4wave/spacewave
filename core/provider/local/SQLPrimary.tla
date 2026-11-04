@@ -358,7 +358,6 @@ Next ==
   \/ Drain \/ Sync \/ SyncFail \/ Upload \/ Evict \/ Sweep
   \/ Name \/ NameLand \/ Adopt \/ PageSweep
   \/ DbCrash \/ DbRestart \/ Restart
-  \/ UNCHANGED vars
 Spec == Init /\ [][Next]_vars
 
 \* Every block the durable head reaches stays stored, so a restarted backend

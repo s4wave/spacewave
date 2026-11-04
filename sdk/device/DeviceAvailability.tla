@@ -27,13 +27,15 @@ Observe ==
   /\ sampledRev' = sourceRev /\ waiting' = TRUE
   /\ UNCHANGED <<device, observable, transport, link, sourceRev>>
 
+\* Done ends a run: the model's changes are spent and the last one is observed.
+Done == sourceRev = MaxChanges /\ waiting /\ UNCHANGED vars
 Next == \/ Change(TRUE, observable, transport, link)
         \/ Change(device, ~observable, transport, link)
         \/ Change(device, observable, TRUE, TRUE)
         \/ Change(device, observable, transport, FALSE)
         \/ Change(device, observable, FALSE, FALSE)
         \/ Observe
-        \/ UNCHANGED vars
+        \/ Done
 Spec == Init /\ [][Next]_vars /\ WF_vars(Observe)
 NoMissedWake == waiting => sampledRev = sourceRev
 TruthfulSample == sampledRev = sourceRev /\ waiting =>

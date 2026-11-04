@@ -33,9 +33,11 @@ SweepBudget == /\ sweepPC = "budget" /\ budgetLock = "none"
 SweepRelease == /\ sweepPC = "release" /\ readerLock' = "none"
                 /\ budgetLock' = "none" /\ sweepPC' = "done"
                 /\ UNCHANGED readPC
+\* Done ends a run: the reader and the sweep both released their locks.
+Done == readPC = "done" /\ sweepPC = "done" /\ UNCHANGED vars
 Next == ReaderTake \/ ReaderBudget \/ ReaderRelease \/ SweepChoose
         \/ SweepUnlock \/ SweepReader \/ SweepBudget \/ SweepRelease
-        \/ UNCHANGED vars
+        \/ Done
 Spec == Init /\ [][Next]_vars
 NoInversion == sweepPC = "reader" => budgetLock # "sweep"
 =============================================================================
