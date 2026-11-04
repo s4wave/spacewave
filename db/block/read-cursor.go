@@ -134,6 +134,7 @@ func UnmarshalReadBlock[T any, PT Ptr[T]](ctx context.Context, reader ReadCursor
 	// Reuse a node only when its concrete decoded type matches this request.
 	if data := reader.current(ctx); data != nil {
 		if out, ok := data.block.(PT); ok {
+			observeDecodedBlockHit(ctx, reader.ref)
 			RecordDecodedBlockCacheHit(ctx, false)
 			return out, nil
 		}

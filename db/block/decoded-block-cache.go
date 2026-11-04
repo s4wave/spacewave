@@ -519,12 +519,19 @@ func SetDecodedBlockHitObserver(fn func(*BlockRef)) {
 func lookupDecodedBlock(ctx context.Context, ref *BlockRef, key decodedBlockCacheKey, share bool) (Block, bool, error) {
 	blk, ok, err := decodedBlockCacheFromContext(ctx).Lookup(ctx, decodedBlockFrontCacheFromContext(ctx), key, share)
 	if ok {
-		if fn := decodedBlockHitObserver.Load(); fn != nil {
-			(*fn)(ref)
-		}
-		holdRead(ctx, ref)
+		observeDecodedBlockHit(ctx, ref)
 	}
 	return blk, ok, err
+}
+
+// observeDecodedBlockHit preserves store read-retention contracts when bytes
+// come from decoded memory. Callers hold no cache or transaction lock: the
+// observer records local eviction recency and the context retains live refs.
+func observeDecodedBlockHit(ctx context.Context, ref *BlockRef) {
+	if fn := decodedBlockHitObserver.Load(); fn != nil {
+		(*fn)(ref)
+	}
+	holdRead(ctx, ref)
 }
 
 // decodedBlockCacheStoreTokenFromContext returns a store token bound to
