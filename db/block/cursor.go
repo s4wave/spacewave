@@ -706,7 +706,7 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 		}
 
 		// Load the decoded block after refreshing its store state.
-		cached, ok, err := lookupDecodedBlock(ctx, cacheKey, share)
+		cached, ok, err := lookupDecodedBlock(ctx, c.pos.ref, cacheKey, share)
 		if err != nil {
 			return nil, err
 		}

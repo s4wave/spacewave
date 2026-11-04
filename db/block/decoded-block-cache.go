@@ -497,9 +497,33 @@ func decodedBlockCacheRefKey(ref *BlockRef) (string, bool) {
 	return string(refKey), true
 }
 
-// lookupDecodedBlock looks the key up in the context's caches.
-func lookupDecodedBlock(ctx context.Context, key decodedBlockCacheKey, share bool) (Block, bool, error) {
-	return decodedBlockCacheFromContext(ctx).Lookup(ctx, decodedBlockFrontCacheFromContext(ctx), key, share)
+// decodedBlockHitObserver is called with the ref of each block a read takes
+// from a decoded-block cache, as SetDecodedBlockHitObserver describes.
+var decodedBlockHitObserver atomic.Pointer[func(*BlockRef)]
+
+// SetDecodedBlockHitObserver sets fn to be called with the ref of each block
+// a read takes from a decoded-block cache instead of its store. A store that
+// ages blocks by their reads, such as eviction, counts these reads too, since
+// its own read path never sees them. fn runs on the read path, so it must be
+// cheap and must not block. A nil fn removes the observer.
+func SetDecodedBlockHitObserver(fn func(*BlockRef)) {
+	if fn == nil {
+		decodedBlockHitObserver.Store(nil)
+		return
+	}
+	decodedBlockHitObserver.Store(&fn)
+}
+
+// lookupDecodedBlock looks the key of ref up in the context's caches and
+// reports a hit to the decoded-block hit observer.
+func lookupDecodedBlock(ctx context.Context, ref *BlockRef, key decodedBlockCacheKey, share bool) (Block, bool, error) {
+	blk, ok, err := decodedBlockCacheFromContext(ctx).Lookup(ctx, decodedBlockFrontCacheFromContext(ctx), key, share)
+	if ok {
+		if fn := decodedBlockHitObserver.Load(); fn != nil {
+			(*fn)(ref)
+		}
+	}
+	return blk, ok, err
 }
 
 // decodedBlockCacheStoreTokenFromContext returns a store token bound to

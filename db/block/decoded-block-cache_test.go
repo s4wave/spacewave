@@ -240,3 +240,27 @@ func TestDisableSharedDecodedBlockCache(t *testing.T) {
 		t.Fatalf("lookup of a store after off ok=%v err=%v, want miss", ok, err)
 	}
 }
+
+// TestDecodedBlockHitObserver checks that a read served by a decoded-block
+// cache reports its ref to the observer, and that a miss reports nothing.
+func TestDecodedBlockHitObserver(t *testing.T) {
+	ctx := context.Background()
+	cache, err := NewDecodedBlockCacheWithOptions(DecodedBlockCacheOptions{MaxCost: 1 << 20})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(cache.Close)
+	var seen []*BlockRef
+	SetDecodedBlockHitObserver(func(ref *BlockRef) { seen = append(seen, ref) })
+	t.Cleanup(func() { SetDecodedBlockHitObserver(nil) })
+
+	ref, key, blk, data := newDecodedBlockCacheTestEntry(t, "observed")
+	ctx = WithDecodedBlockCache(ctx, cache)
+	if _, ok, err := lookupDecodedBlock(ctx, ref, key, true); err != nil || ok || len(seen) != 0 {
+		t.Fatalf("miss: ok=%v err=%v observed %d", ok, err, len(seen))
+	}
+	storeDecodedBlockCacheTestEntry(t, cache, key, blk, data)
+	if _, ok, err := lookupDecodedBlock(ctx, ref, key, true); err != nil || !ok || len(seen) != 1 || !seen[0].EqualsRef(ref) {
+		t.Fatalf("hit: ok=%v err=%v observed %v", ok, err, seen)
+	}
+}
