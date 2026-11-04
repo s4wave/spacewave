@@ -618,7 +618,7 @@ const stylexStyles5 = ownerStylex.create({
   },
   rule54: {
     color: {
-      default: `color-mix(in oklab, ${themeColors['--color-brand']} 60%, transparent)`,
+      default: `color-mix(in oklab, ${themeColors['--color-brand']} 75%, transparent)`,
       '@media (hover: hover)': {
         default: null,
         ':hover': themeColors['--color-brand'],
