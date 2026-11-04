@@ -63,8 +63,8 @@ finite transitions and cancels repeating effects to sample their underlying
 static styles. SVG timelines stop at zero too. The screenshot waits for the
 static paint and hides the caret. Its cleanup may restart CSS animations, so
 the collector reestablishes that static sample before reading computed styles.
-The accessible tree is sampled before and after the image. A resource arrival
-that changes it causes another sample in the same context; the three-minute
+The DOM (including its attributes) and accessible tree are sampled before and
+after the image. A resource arrival that changes either causes another sample in the same context; the three-minute
 state deadline bounds that work. Diagnostics run only on the accepted sample.
 PNGs are retained; comparison hashes use decoded pixels rather than PNG
 compression or metadata. This records static styles and geometry. Animation

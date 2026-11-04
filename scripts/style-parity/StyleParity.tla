@@ -3,7 +3,8 @@ EXTENDS Integers, FiniteSets
 
 \* Unstyled highlights can retain a pre-transition color; authored highlight
 \* properties are observed separately from the authoritative ordinary style.
-\* One asynchronous resource arrival advances the rendered tree revision.
+\* One asynchronous resource arrival changes DOM content or attributes.
+\* Its revision represents either change; repeated arrivals compose the same retry.
 CONSTANTS ObserveImplicitHighlight, ResampleAfterPaint, RequireStableTree
 VARIABLES phase, revision, highlightRevision, observed, pixels,
           treeRevision, beforeTree, imageTree, observedTree

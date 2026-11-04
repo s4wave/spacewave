@@ -16,7 +16,7 @@ export interface ParityState {
   forcedColors?: 'active' | 'none'
   ready: string | ((page: Page) => Promise<void>)
   setup?: (page: Page) => Promise<void>
-  // observe collects diagnostics after the image and accessible tree agree, before publication.
+  // observe collects diagnostics after the image, DOM and accessible tree agree, before publication.
   observe?: (page: Page, snapshot: Readonly<Snapshot>) => Promise<void>
 }
 
@@ -141,6 +141,9 @@ export async function capture(
                 await settle(page)
                 if (errors.length)
                   throw new Error(`${state.id}: ${errors.join('\n')}`)
+                const beforeDom = await page.evaluate(
+                  () => document.documentElement.outerHTML,
+                )
                 const beforeAria = await page.locator('body').ariaSnapshot()
                 stage = 'screenshot'
                 const png = await page.screenshot({
@@ -155,7 +158,10 @@ export async function capture(
                 stage = 'collect'
                 const elements = await readElements(page)
                 const aria = await page.locator('body').ariaSnapshot()
-                if (aria !== beforeAria) {
+                const afterDom = await page.evaluate(
+                  () => document.documentElement.outerHTML,
+                )
+                if (aria !== beforeAria || afterDom !== beforeDom) {
                   console.log(
                     `content changed during ${relative}; sampling the loaded state again`,
                   )
