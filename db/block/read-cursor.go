@@ -1,6 +1,11 @@
 package block
 
-import "context"
+import (
+	"bytes"
+	"context"
+
+	"github.com/s4wave/spacewave/net/hash"
+)
 
 // ReadCursor follows immutable stored references without building a mutable
 // parent graph. It borrows its source transaction's store, transform and cache;
@@ -43,22 +48,48 @@ func NewReadCursor(ctx context.Context, source *Cursor, ref *BlockRef) *ReadCurs
 // parent shares its memoized slot; raw or unknown edges need no retained link.
 func (r ReadCursor) FollowRef(id uint32, ref *BlockRef) ReadCursor {
 	// Borrow only a link whose stored reference matches this exact parent edge.
-	var link *decodedBlockReadLink
-	if r.link != nil {
-		if slot := r.link.slot.Load(); slot != nil {
-			if data := slot.data.Load(); data != nil {
-				if edge := data.links[id]; edge != nil && edge.ref.EqualsRef(ref) {
-					link = edge
-					ref = edge.ref
-				}
-			}
+	link := r.edge(id)
+	if link != nil && link.ref.EqualsRef(ref) {
+		return ReadCursor{source: r.source, cache: r.cache, ref: link.ref, link: link}
+	}
+
+	// Unmemoized references also own their identity independently of the caller.
+	return ReadCursor{source: r.source, cache: r.cache, ref: ref.Clone()}
+}
+
+// FollowDigest returns a reader at the block with the given hash type and
+// digest, as FollowRef does for a reference. It lets a parent that stores its
+// references flat follow a memoized edge without building a BlockRef: only an
+// unmemoized edge copies the digest, so the caller may reuse its bytes.
+func (r ReadCursor) FollowDigest(id uint32, hashType hash.HashType, digest []byte) ReadCursor {
+	// Borrow only a link whose stored reference matches this exact parent edge.
+	link := r.edge(id)
+	if link != nil {
+		if h := link.ref.GetHash(); h.GetHashType() == hashType && bytes.Equal(h.GetHash(), digest) {
+			return ReadCursor{source: r.source, cache: r.cache, ref: link.ref, link: link}
 		}
 	}
-	// Unmemoized references also own their identity independently of the caller.
-	if link == nil {
-		ref = ref.Clone()
+
+	// Unmemoized references own a copy of the digest.
+	ref := &BlockRef{Hash: &hash.Hash{HashType: hashType, Hash: bytes.Clone(digest)}}
+	return ReadCursor{source: r.source, cache: r.cache, ref: ref}
+}
+
+// edge returns the parent's memoized link for the typed edge id, or nil when
+// the parent is not loaded or has no such edge.
+func (r ReadCursor) edge(id uint32) *decodedBlockReadLink {
+	if r.link == nil {
+		return nil
 	}
-	return ReadCursor{source: r.source, cache: r.cache, ref: ref, link: link}
+	slot := r.link.slot.Load()
+	if slot == nil {
+		return nil
+	}
+	data := slot.data.Load()
+	if data == nil {
+		return nil
+	}
+	return data.links[id]
 }
 
 // Fetch reads the referenced bytes through the source's current storage view.
