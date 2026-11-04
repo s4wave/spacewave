@@ -55,8 +55,8 @@ Register ==
                    badRead, badCollect, badLocal, crashed>>
 Return ==
     /\ phase = 3 /\ phase' = 0 /\ completed' = completed \cup {actor}
-    /\ badRead' = badRead \/ (CacheReadsOn /\ actor \in active /\
-                                      (~observed \/ actor \notin held))
+    /\ badRead' = (badRead \/ (CacheReadsOn /\ actor \in active /\
+                                      (~observed \/ actor \notin held)))
     /\ UNCHANGED <<head, pin, stored, local, remote, cache, active, held,
                    actor, kind, observed, registered, recent, pending,
                    badCollect, badLocal, crashed>>

@@ -8,7 +8,9 @@ import (
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
+	blockgc "github.com/s4wave/spacewave/db/block/gc"
 	kvblock "github.com/s4wave/spacewave/db/kvtx/block"
+	volumekvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/tx"
@@ -19,7 +21,7 @@ import (
 )
 
 // setupReadCursorWorld builds a real file-backed engine with a multi-level index.
-func setupReadCursorWorld(tb testing.TB, impl kvblock.KVImplType) *Engine {
+func setupReadCursorWorld(tb testing.TB, impl kvblock.KVImplType) (*Engine, func()) {
 	// Keep storage, cursor and decoded retention alive until the engine closes.
 	tb.Helper()
 	ctx := context.Background()
@@ -81,7 +83,24 @@ func setupReadCursorWorld(tb testing.TB, impl kvblock.KVImplType) *Engine {
 	if _, err := engine.Sync(ctx); err != nil {
 		tb.Fatal(err)
 	}
-	return engine
+
+	// Collect real storage and retire memory so a stale node cannot mask loss.
+	collect := func() {
+		// Apply released root pins before walking the persistent reference graph.
+		volume := bed.Volume.(*volumekvtx.Volume)
+		if err := volume.ReapRootPins(ctx); err != nil {
+			tb.Fatal(err)
+		}
+
+		// Run the real volume collector while both snapshot roots remain pinned.
+		if _, err := blockgc.NewCollector(volume.GetRefGraph(), volume, nil).Collect(ctx); err != nil {
+			tb.Fatal(err)
+		}
+
+		// Retire decoded pages so a pointer hit cannot hide a missing stored page.
+		cache.InvalidateAll(ctx)
+	}
+	return engine, collect
 }
 
 // TestWorldReadCursorRoots checks World object reads while publication replaces
@@ -91,7 +110,7 @@ func TestWorldReadCursorRoots(t *testing.T) {
 		t.Run(impl.String(), func(t *testing.T) {
 			// Hold and warm the original snapshot through the production object interface.
 			ctx := t.Context()
-			engine := setupReadCursorWorld(t, impl)
+			engine, collect := setupReadCursorWorld(t, impl)
 			old, err := engine.NewTransaction(ctx, false)
 			if err != nil {
 				t.Fatal(err)
@@ -145,6 +164,18 @@ func TestWorldReadCursorRoots(t *testing.T) {
 			}
 			defer fresh.Discard()
 
+			// Collection must preserve both roots even after decoded memory retires.
+			collect()
+			for _, snapshot := range []world.Tx{old, fresh} {
+				for i := range 64 {
+					object, found, err := snapshot.GetObject(ctx, "reader/"+strconv.Itoa(i*61))
+					world.ReleaseObjectState(object)
+					if err != nil || !found {
+						t.Fatalf("collection lost object: found=%v err=%v", found, err)
+					}
+				}
+			}
+
 			// Require each revision to expose only the objects it actually contains.
 			object, found, err := fresh.GetObject(ctx, "reader/new")
 			world.ReleaseObjectState(object)
@@ -166,7 +197,7 @@ func BenchmarkWorldReadCursor(b *testing.B) {
 	for _, impl := range []kvblock.KVImplType{kvblock.KVImplType_KV_IMPL_TYPE_IAVL, kvblock.KVImplType_KV_IMPL_TYPE_OKRA} {
 		b.Run(impl.String(), func(b *testing.B) {
 			// Warm the fixed query set before measuring complete read transactions.
-			engine := setupReadCursorWorld(b, impl)
+			engine, _ := setupReadCursorWorld(b, impl)
 			ctx := context.Background()
 			keys := make([]string, 64)
 			for i := range keys {
