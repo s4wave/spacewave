@@ -1,7 +1,6 @@
 package sobject_world_engine
 
 import (
-	"maps"
 	"slices"
 	"sync"
 
@@ -36,9 +35,20 @@ type worldTransition struct {
 // refs it names, and the number of recounts the ledger had asked for when it
 // was submitted.
 type worldPut struct {
-	receipt  *block.PublicationReceipt
-	pages    map[int]*block.PutBatchEntry
+	// receipt reports the actual publication's outcome by entry position.
+	receipt *block.PublicationReceipt
+	// pages retain immutable page metadata in ascending publication position.
+	pages []worldPutPage
+	// recounts is the ledger's recount counter when the put was submitted.
 	recounts uint64
+}
+
+// worldPutPage retains one page's metadata and position in its publication.
+type worldPutPage struct {
+	// index addresses the entry's outcome in the publication receipt.
+	index int
+	// entry retains only the immutable reference and child references.
+	entry *block.PutBatchEntry
 }
 
 // newWorldPut returns the puts of pages among entries, the entries of the
@@ -50,10 +60,10 @@ func newWorldPut(receipt *block.PublicationReceipt, entries, pages []*block.PutB
 	for _, e := range pages {
 		isPage[e] = struct{}{}
 	}
-	kept := make(map[int]*block.PutBatchEntry, len(pages))
+	kept := make([]worldPutPage, 0, len(pages))
 	for i, e := range entries {
 		if _, ok := isPage[e]; ok && !e.Tombstone && !e.Counted {
-			kept[i] = &block.PutBatchEntry{Ref: e.Ref, Refs: e.Refs}
+			kept = append(kept, worldPutPage{index: i, entry: &block.PutBatchEntry{Ref: e.Ref, Refs: e.Refs}})
 		}
 	}
 	return worldPut{receipt: receipt, pages: kept, recounts: recounts}
@@ -221,9 +231,10 @@ func (n *pendingNet) counted(from *block.BlockRef, recounts uint64, recounting b
 			continue
 		}
 		first := -1
-		for i, e := range put.pages {
-			if e.Ref.EqualsRef(from) && (first < 0 || i < first) {
-				first = i
+		for _, page := range put.pages {
+			if page.entry.Ref.EqualsRef(from) {
+				first = page.index
+				break
 			}
 		}
 		if first < 0 {
@@ -259,8 +270,8 @@ func (n *pendingNet) net(to *block.BlockRef) *block.Replacements {
 			continue
 		}
 		existed := put.receipt.Existed()
-		for _, i := range slices.Sorted(maps.Keys(put.pages)) {
-			e := put.pages[i]
+		for _, page := range put.pages {
+			i, e := page.index, page.entry
 			key := e.Ref.MarshalString()
 			if _, ok := carried[key]; !ok {
 				carried[key] = struct{}{}
@@ -292,20 +303,19 @@ func (n *pendingNet) net(to *block.BlockRef) *block.Replacements {
 // found returns each page the put found stored, by its first entry, as the
 // Volume counts it.
 func (p *worldPut) found(existed []bool) []*block.PutBatchEntry {
-	// Index each page's first entry, which the Volume's put decides by.
-	first := make(map[string]int, len(p.pages))
-	for i, e := range p.pages {
-		key := e.Ref.MarshalString()
-		if j, ok := first[key]; !ok || i < j {
-			first[key] = i
-		}
-	}
-
-	// List the first entries the put found stored, in entry order.
+	// Ascending receipt positions make the first occurrence authoritative.
+	seen := make(map[string]struct{}, len(p.pages))
 	var out []*block.PutBatchEntry
-	for _, i := range slices.Sorted(maps.Values(first)) {
-		if i < len(existed) && existed[i] {
-			out = append(out, p.pages[i])
+	for _, page := range p.pages {
+		key := page.entry.Ref.MarshalString()
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+
+		// Only the first occurrence can return this publication's hold.
+		if page.index < len(existed) && existed[page.index] {
+			out = append(out, page.entry)
 		}
 	}
 	return out

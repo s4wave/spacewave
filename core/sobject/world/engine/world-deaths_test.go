@@ -76,6 +76,25 @@ func TestWorldDeathsComposesAcceptedChain(t *testing.T) {
 		t.Fatalf("composed %v, want a and b", got)
 	}
 
+	// Duplicate entries use their first receipt position, even after ordinary,
+	// Counted and tombstone entries are omitted from World-page accounting.
+	firstA, laterA := &block.PutBatchEntry{Ref: a}, &block.PutBatchEntry{Ref: a}
+	firstB, laterB := &block.PutBatchEntry{Ref: b}, &block.PutBatchEntry{Ref: b}
+	counted, tombstone := &block.PutBatchEntry{Ref: c, Counted: true}, &block.PutBatchEntry{Ref: x, Tombstone: true}
+	batch := []*block.PutBatchEntry{{Ref: x}, firstA, laterA, counted, tombstone, firstB, laterB}
+	duplicateReceipt := block.NewPublicationReceipt()
+	duplicateReceipt.ResolveExisted(nil, []bool{true, false, true, true, false, true, true}, true)
+	put := newWorldPut(duplicateReceipt, batch, batch[1:], 0)
+	if got := put.found(duplicateReceipt.Existed()); len(got) != 1 || !got[0].Ref.EqualsRef(b) {
+		t.Fatalf("duplicate puts found %v, want only b's first entry", got)
+	}
+
+	// A later duplicate that found a cannot erase its first fresh root birth.
+	sameBatch := &pendingNet{lineage: &pendingNet{puts: []worldPut{put}}, puts: []worldPut{put}}
+	if !sameBatch.counted(a, 0, false) {
+		t.Fatal("later duplicate erased the first fresh lineage receipt")
+	}
+
 	// A transition from a World never named leaves a gap: the interval nets
 	// from its puts alone.
 	y, step := commit(x, "y")
