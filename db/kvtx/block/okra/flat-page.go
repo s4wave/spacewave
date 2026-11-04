@@ -287,7 +287,7 @@ func forEachField(msg []byte, base uint32, fn func(num uint64, wire int, v uint6
 			i += 8
 		case 2:
 			l, n := binary.Uvarint(msg[i:])
-			if n <= 0 || l > uint64(len(msg)-i-n) {
+			if n <= 0 || l > uint64(len(msg)-i-n) { //nolint:gosec // n > 0 and i+n <= len(msg), so the difference is not negative.
 				return errors.Wrap(ErrMalformedPage, "length")
 			}
 			i += n
