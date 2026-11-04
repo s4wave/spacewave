@@ -49,7 +49,7 @@
     "clean": "rimraf ./dist ./.bldr/{devtool.db*,logs,src,plugin,build,cli,cache} ./.bldr-dist ./.tools ./bin ./bldr/bin",
     "clean:full": "bun run clean && rimraf ./.bldr ./.tmp",
     "go:run": "cross-env GOOS= GOARCH= go run -v -mod=readonly",
-    "go:aptre": "cross-env GOFLAGS=-mod=mod -tags=purego go run -mod=mod github.com/aperturerobotics/common/cmd/aptre",
+    "go:aptre": "cross-env \"GOFLAGS=-mod=mod -tags=purego\" go run -mod=mod github.com/aperturerobotics/common/cmd/aptre",
     "start": "bun run start:web",
     "start:desktop": "bun run bldr -- start desktop",
     "start:desktop:release": "bun run build:release:desktop && cd ./.bldr/build/desktop/$(go env GOOS)/$(go env GOARCH)/spacewave-dist/dist && ./spacewave",
