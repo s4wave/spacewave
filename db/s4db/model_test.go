@@ -367,7 +367,9 @@ func TestGetBatchPrefetch(t *testing.T) {
 }
 
 // TestCommitPrefetch checks that a commit on a cold cache reads the index
-// paths of its changes together instead of one path at a time.
+// paths of its changes together instead of one path at a time, and reads each
+// page once even when the cache cannot hold the paths and the overlay filter
+// claims every key, so the lookups under the writer lock read nothing more.
 func TestCommitPrefetch(t *testing.T) {
 	// Build a deep tree across checkpoints.
 	ctx := context.Background()
@@ -391,29 +393,48 @@ func TestCommitPrefetch(t *testing.T) {
 		}
 	}
 
-	// Reopen it so its index is on disk, and let the warm-up finish before
-	// the test empties the cache.
+	// Reopen it so its index is on disk, with no checkpoint to read pages
+	// after the commit, and let the warm-up finish before the test empties
+	// the cache.
 	if err := db.Close(); err != nil {
 		t.Fatal(err)
 	}
-	db = openTest(t, path, opts)
+	db = openTest(t, path, Options{CheckpointMin: 1 << 30, CheckpointMax: 1 << 30, RelocateBudget: -1})
 	defer db.Close()
 	if wait, _ := db.warmer.SetRoutine(nil); wait != nil {
 		<-wait
 	}
 
-	// Delete and replace scattered keys through a cold cache whose reads
-	// each take long enough to overlap with the reads beside them.
+	// Count the distinct pages on the paths of scattered keys, as a
+	// prefetch through a cold cache reads each once.
+	var keys [][]byte
+	for i := 0; i < 8000; i += 97 {
+		keys = append(keys, fmt.Appendf(nil, "%s/%07d", prefix, i))
+	}
+	st := db.cur.Load()
+	paths := &pager{r: db.s, cache: newCache(64 << 20)}
+	if err := paths.prefetch(ctx, st.root, keys); err != nil {
+		t.Fatal(err)
+	}
+	if paths.reads.Load() <= int64(len(keys)) {
+		t.Fatalf("paths hold %d pages for %d keys, want a deeper tree", paths.reads.Load(), len(keys))
+	}
+
+	// Delete and replace the keys through a cache of one page per shard,
+	// whose reads each take long enough to overlap with the reads beside
+	// them, with every key in the overlay filter.
 	r := &overlapReader{r: db.s}
 	db.p.r = r
-	db.p.cache.clear()
+	db.p.cache = newCache(pageSize)
+	for _, k := range keys {
+		st.filter.add(k)
+	}
 	tx, err := db.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for i := 0; i < 8000; i += 97 {
-		k := fmt.Appendf(nil, "%s/%07d", prefix, i)
-		if i%2 == 0 {
+	for j, k := range keys {
+		if j%2 == 0 {
 			err = tx.Delete(ctx, k)
 		} else {
 			err = tx.Set(ctx, k, []byte("new"))
@@ -422,11 +443,15 @@ func TestCommitPrefetch(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	reads := db.p.reads.Load()
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
 	if r.most.Load() < 2 {
 		t.Fatalf("commit kept at most %d reads in flight", r.most.Load())
+	}
+	if got, want := db.p.reads.Load()-reads, paths.reads.Load(); got > want {
+		t.Fatalf("commit read %d pages, want at most the %d on its paths", got, want)
 	}
 
 	// Check the commit's result.
@@ -435,14 +460,13 @@ func TestCommitPrefetch(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer rtx.Discard()
-	for i := 0; i < 8000; i += 97 {
-		k := fmt.Appendf(nil, "%s/%07d", prefix, i)
+	for j, k := range keys {
 		v, found, err := rtx.Get(ctx, k)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if found != (i%2 != 0) || (found && string(v) != "new") {
-			t.Fatalf("key %d: found %v value %q", i, found, v)
+		if found != (j%2 != 0) || (found && string(v) != "new") {
+			t.Fatalf("key %s: found %v value %q", k[len(prefix):], found, v)
 		}
 	}
 }
