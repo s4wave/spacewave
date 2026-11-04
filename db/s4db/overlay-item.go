@@ -81,6 +81,15 @@ func (o *overlay) Set(it overlayItem) (overlayItem, bool) {
 	return from.Delete(it)
 }
 
+// Delete removes the entry it holds, which Get returned.
+func (o *overlay) Delete(it overlayItem) {
+	from := o.live
+	if it.e.del {
+		from = o.dead
+	}
+	from.Delete(it)
+}
+
 // Get returns the entry of the probe's key.
 func (o *overlay) Get(probe overlayItem) (overlayItem, bool) {
 	if it, ok := o.live.Get(probe); ok {

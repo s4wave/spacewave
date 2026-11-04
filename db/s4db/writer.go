@@ -743,10 +743,15 @@ func (w *writer) startCheckpoint() {
 		return
 	}
 
-	// Build, then save and release under the writer lock.
+	// Build, then save and release under the writer lock. After a saved
+	// slice, start the next one when the overlay still calls for it; a
+	// whole checkpoint, a dropped tree or a failure waits for a commit.
 	w.builds.Go(func() {
-		w.runCheckpoint(st, stripe)
+		sliced := w.runCheckpoint(st, stripe)
 		w.endBuild()
+		if sliced {
+			w.nextSlice()
+		}
 	})
 }
 
@@ -789,8 +794,9 @@ func (w *writer) waitBuild(ctx context.Context) error {
 
 // runCheckpoint builds the tree of st, which the snapshot in stripe keeps,
 // and writes its pages, holding the writer lock only to reserve pages, to
-// write them to a shared file, and to save the tree. The next commit reports a failure.
-func (w *writer) runCheckpoint(st *state, stripe int) {
+// write them to a shared file, and to save the tree. The next commit reports a
+// failure. It reports whether it saved a slice of the overlay.
+func (w *writer) runCheckpoint(st *state, stripe int) (sliced bool) {
 	// Count the checkpoint's time once it ends.
 	start := time.Now()
 	defer func() {
@@ -840,12 +846,16 @@ func (w *writer) runCheckpoint(st *state, stripe int) {
 		return write(buf, page)
 	}
 
-	// Build the tree, then flush its pages without the writer lock, so the
-	// barrier under the lock flushes little.
+	// Choose the cut and build the tree through it, then flush its pages
+	// without the writer lock, so the barrier under the lock flushes little.
 	if w.beforeBuild != nil {
 		w.beforeBuild()
 	}
-	err := t.build()
+	var err error
+	t.cut, err = w.chooseCut(st)
+	if err == nil {
+		err = t.build()
+	}
 	if err == nil {
 		_, err = w.db.s.flushBarrier()
 	}
@@ -857,7 +867,7 @@ func (w *writer) runCheckpoint(st *state, stripe int) {
 	if lerr := w.lockFirst(ctx); lerr != nil {
 		w.db.release(st, stripe)
 		w.unlockBuild()
-		return
+		return false
 	}
 
 	// Save the tree, then end the snapshot so the pages it replaced can be
@@ -881,10 +891,11 @@ func (w *writer) runCheckpoint(st *state, stripe int) {
 		if lerr := w.lockFirst(ctx); lerr != nil {
 			w.db.release(st, stripe)
 			w.unlockBuild()
-			return
+			return false
 		}
 		if err == nil {
 			err = w.saveTree(ctx, t)
+			sliced = err == nil && t.slice()
 		}
 	}
 	w.db.release(st, stripe)
@@ -894,6 +905,7 @@ func (w *writer) runCheckpoint(st *state, stripe int) {
 	w.ckptErr = err
 	w.unlockBuild()
 	w.unlock(err)
+	return sliced
 }
 
 // unlockBuild releases the build lock this handle's background checkpoint
@@ -906,8 +918,14 @@ func (w *writer) unlockBuild() {
 
 // tree is a checkpoint tree built from a published state.
 type tree struct {
-	// st is the state whose overlay the tree includes.
+	// st is the state whose overlay the tree includes through cut.
 	st *state
+	// cut is the last commit the tree includes and where the log continues
+	// after it; st's last commit unless the tree is a slice.
+	cut logCut
+	// saved lists the changes the tree applied when it is a slice, nil
+	// otherwise.
+	saved []change
 	// b writes the new pages and lists the pages they replace.
 	b *builder
 	// top is the new root, nil when the tree is empty.
@@ -915,7 +933,7 @@ type tree struct {
 	// sp is the space holding the reserved pages, nil before the first
 	// reservation.
 	sp *space
-	// carried holds the overlay entries after st through record
+	// carried holds the overlay entries after cut through record
 	// carriedSeq; nil before carryOver.
 	carried *carried
 	// carriedSeq is the last record carried holds.
@@ -973,27 +991,44 @@ func (w *writer) newTree(st *state) *tree {
 		doneOff, doneN = off, n
 		return err
 	}}
-	return &tree{st: st, b: &builder{p: w.db.p, out: out}}
+	return &tree{st: st, cut: st.wholeCut(), b: &builder{p: w.db.p, out: out}}
 }
 
-// build applies the overlay of t's state to its tree and writes the new
-// pages. It reads only the state and the pages its tree holds, so it needs
-// no writer lock while a snapshot keeps the state.
+// build applies the overlay entries of t's state through its cut to its
+// tree and writes the new pages. A key whose entry follows the cut keeps its
+// old tree entry, which the entry shadows until a later checkpoint. It reads
+// only the state and the pages its tree holds, so it needs no writer lock
+// while a snapshot keeps the state.
 func (t *tree) build() error {
-	// Collect the overlay in key order and apply it.
-	st := t.st
-	changes := make([]change, 0, st.overlay.Len())
+	// Collect the entries through the cut in key order.
+	st, x := t.st, t.cut.seq
+	n := st.overlay.Len()
+	if t.slice() {
+		n = 0
+	}
+	changes := make([]change, 0, n)
 	st.overlay.Scan(func(it overlayItem) bool {
-		e := it.e
-		changes = append(changes, change{key: e.key, del: e.del, val: e.val})
+		if e := it.e; e.seq <= x {
+			changes = append(changes, change{key: e.key, del: e.del, val: e.val})
+		}
 		return true
 	})
+	if t.slice() {
+		t.saved = changes
+	}
+
+	// Apply them.
 	top, err := t.b.build(st.root, changes)
 	if err != nil {
 		return err
 	}
 	t.top = top
 	return t.b.place(top)
+}
+
+// slice reports whether t leaves later overlay entries of its state out.
+func (t *tree) slice() bool {
+	return t.cut.seq < t.st.seq
 }
 
 // evict drops t's pages from the cache when t is dropped: no reader has
@@ -1034,12 +1069,10 @@ func (w *writer) reserve(t *tree, n uint64) (run, error) {
 // which drops the tree, so this handle's records are the only ones to
 // follow.
 func (w *writer) carryOver(ctx context.Context, t *tree) error {
-	// Scan the published state without the writer lock: published states
-	// do not change. The filter is sized for the current tree, which the
-	// new one replaces at about the same size.
+	// Carry the published state's overlay without the writer lock:
+	// published states do not change.
 	pre := w.db.cur.Load()
-	t.carried, t.carriedSeq = newCarried(t.st.seq, w.db.opts.checkpointLimit(pre.sb)), pre.seq
-	pre.overlay.Scan(t.carried.add)
+	t.carried, t.carriedSeq = w.carry(t, pre), pre.seq
 
 	// Fold in the records published meanwhile, taking the writer lock only
 	// to copy their list. A record is never changed once listed. Folding
@@ -1072,7 +1105,7 @@ func (t *tree) fold(changed []*record) {
 // without the lock. Taking the pages first lets the copy name them in use.
 func (w *writer) prepareTree(t *tree) error {
 	// Drop a tree that can no longer be saved.
-	db, sp, st := w.db, w.sp, t.st
+	db, sp, st, x := w.db, w.sp, t.st, t.cut
 	cur := db.cur.Load()
 	if t.sp != nil && t.sp != sp {
 		t.evict()
@@ -1086,7 +1119,7 @@ func (w *writer) prepareTree(t *tree) error {
 		}
 		return nil
 	}
-	if !slices.ContainsFunc(sp.chunks, func(c run) bool { return c.end()*pageSize == st.end }) {
+	if !slices.ContainsFunc(sp.chunks, func(c run) bool { return c.end()*pageSize == x.end }) {
 		return errors.Wrap(ErrCorrupt, "log chunk not in the space")
 	}
 
@@ -1127,31 +1160,34 @@ func (t *tree) encodeSpace() error {
 // retire applies to s what saving t frees: its reservations end, the
 // reserved pages it left unused return free, and the pages it replaced,
 // the old space record, and the log chunks before the one holding the
-// tree's next record wait for release until no snapshot reads the previous
-// tree.
+// record after the cut wait for release until no snapshot reads the
+// previous tree. They are tagged with the cut, the checkpoint the
+// superblock names, which follows every earlier checkpoint's, so the queue
+// stays in tag order.
 func (s *space) retire(t *tree, old extentRef) error {
 	// End the reservation and return the unused pages.
-	out, st := t.b.out, t.st
+	out, x := t.b.out, t.cut
 	s.reserved = dropRuns(s.reserved, out.runs)
 	s.addFree(out.unused())
 
 	// Queue the replaced pages, the old space record, and the old log
-	// chunks.
-	s.freePages(t.b.freed, st.seq)
-	s.pend(&s.pages, pending{run: run{start: old.off / pageSize, n: pagesFor(int(old.n))}, tag: st.seq})
-	keep := slices.IndexFunc(s.chunks, func(c run) bool { return c.end()*pageSize == st.end })
+	// chunks. The chunk holding the record after the cut stays, with every
+	// chunk after it: replay reads them.
+	s.freePages(t.b.freed, x.seq)
+	s.pend(&s.pages, pending{run: run{start: old.off / pageSize, n: pagesFor(int(old.n))}, tag: x.seq})
+	keep := slices.IndexFunc(s.chunks, func(c run) bool { return c.end()*pageSize == x.end })
 	if keep < 0 {
 		return errors.Wrap(ErrCorrupt, "log chunk not in the space")
 	}
 	for _, c := range s.chunks[:keep] {
-		s.pend(&s.pages, pending{run: c, tag: st.seq})
+		s.pend(&s.pages, pending{run: c, tag: x.seq})
 	}
 	s.chunks = s.chunks[keep:]
 	return nil
 }
 
 // saveTree saves t and a superblock naming it, and publishes the state
-// moved onto it. Commits after t's state stay in the overlay. The space is
+// moved onto it. Commits after t's cut stay in the overlay. The space is
 // saved as encodeSpace encoded it, as of the last commit before prepareTree,
 // when the encoding fits the pages prepareTree took; else as of the last
 // commit. A tree whose space was reloaded or whose checkpoint another
@@ -1221,19 +1257,20 @@ func (w *writer) saveTree(ctx context.Context, t *tree) error {
 		db.flush.setDurable(cur, prev)
 	}
 
-	// Switch superblocks. The new one becomes durable with a later flush,
-	// which releases the pages it replaced.
+	// Switch superblocks, naming the log after the cut. The new one becomes
+	// durable with a later flush, which releases the pages it replaced.
+	x := t.cut
 	sb := superblock{
 		gen:       cur.gen + 1,
-		seq:       st.seq,
+		seq:       x.seq,
 		root:      root,
-		count:     uint64(st.count),                                        // #nosec G115 -- key counts are not negative.
+		count:     uint64(x.count),                                         // #nosec G115 -- key counts are not negative.
 		treePages: cur.sb.treePages + uint64(fresh) - uint64(len(b.freed)), // #nosec G115 -- counts are not negative.
 		space:     ref,
 		spaceSeq:  spaceSeq,
-		logPos:    st.pos,
-		logEnd:    st.end,
-		logCrc:    st.crc,
+		logPos:    x.pos,
+		logEnd:    x.end,
+		logCrc:    x.crc,
 	}
 	db.ownGen.Store(sb.gen)
 	if _, err := db.s.WriteAt(sb.encode(), sb.page()*pageSize); err != nil {
@@ -1243,12 +1280,11 @@ func (w *writer) saveTree(ctx context.Context, t *tree) error {
 	// Publish the tree under the commits after it: those carried over
 	// before the writer lock, then those published since.
 	if t.carried == nil {
-		t.carried, t.carriedSeq = newCarried(st.seq, db.opts.checkpointLimit(sb)), cur.seq
-		cur.overlay.Scan(t.carried.add)
+		t.carried, t.carriedSeq = w.carry(t, cur), cur.seq
 	}
 	t.fold(w.changed)
 	w.changed = nil
-	if err := db.publish(ctx, cur.onto(sb, t.carried, cur.logBytes-st.logBytes)); err != nil {
+	if err := db.publish(ctx, cur.onto(sb, t.carried, max(0, cur.logBytes-x.logBytes))); err != nil {
 		return err
 	}
 	w.spGen = sb.gen
@@ -1348,8 +1384,7 @@ func (w *writer) afterCommit(ctx context.Context) error {
 		w.ckptErr = nil
 		return err
 	}
-	st := db.cur.Load()
-	if limit := db.opts.checkpointLimit(st.sb); st.overlayBytes > limit || st.logBytes > 2*limit {
+	if db.opts.checkpointDue(db.cur.Load()) {
 		w.startCheckpoint()
 	}
 	return nil

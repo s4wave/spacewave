@@ -17,6 +17,19 @@ type Options struct {
 	// the limit also starts one, so rewrites of the same keys stay bounded.
 	// Zero selects 64 MiB.
 	CheckpointMax int64
+	// CheckpointSliceBytes is the overlay memory past which a background
+	// checkpoint writes only the oldest commits into the index, such as
+	// those of the overlay an open replays from a long log. A slice holds
+	// this many bytes or half the overlay, whichever is more. Each slice is
+	// a checkpoint of its own: it frees the pages it replaced, shortens the
+	// log the next open replays, and starts the next slice while the overlay
+	// still calls for one. Slices of commits spread over the whole index
+	// rewrite leaves the next slice rewrites again, so taking at least half
+	// the overlay bounds that rewriting to about twice a whole checkpoint's
+	// and drains the overlay faster than writers grow it. Zero selects
+	// CheckpointMax; a negative value builds the whole overlay at once.
+	// Compact and Release always checkpoint the whole overlay.
+	CheckpointSliceBytes int64
 	// CommitWaitMax is the overlay memory past which a background commit
 	// waits for the running checkpoint; a log after the checkpoint of twice
 	// it also holds them. Zero selects twice CheckpointMax. A larger bound
@@ -53,7 +66,7 @@ type Options struct {
 
 // withDefaults returns o with zero fields set to their defaults.
 func (o Options) withDefaults() Options {
-	// Size values, the cache, and the overlay.
+	// Size values and the cache.
 	if o.InlineMax == 0 {
 		o.InlineMax = 512
 	}
@@ -61,11 +74,16 @@ func (o Options) withDefaults() Options {
 	if o.CacheBytes == 0 {
 		o.CacheBytes = 128 << 20
 	}
+
+	// Size the overlay, its checkpoints and the relocation budget.
 	if o.CheckpointMin == 0 {
 		o.CheckpointMin = 16 << 20
 	}
 	if o.CheckpointMax == 0 {
 		o.CheckpointMax = 64 << 20
+	}
+	if o.CheckpointSliceBytes == 0 {
+		o.CheckpointSliceBytes = o.CheckpointMax
 	}
 	if o.CommitWaitMax == 0 {
 		o.CommitWaitMax = 2 * o.CheckpointMax
@@ -80,4 +98,12 @@ func (o Options) withDefaults() Options {
 // the checkpoint sb: half the tree, within the configured bounds.
 func (o Options) checkpointLimit(sb superblock) int64 {
 	return min(max(pageOff(sb.treePages)/2, o.CheckpointMin), o.CheckpointMax)
+}
+
+// checkpointDue reports whether st's overlay, or its log after the
+// checkpoint, has grown enough to start a checkpoint. Rewrites of the same
+// keys grow the log but not the overlay.
+func (o Options) checkpointDue(st *state) bool {
+	limit := o.checkpointLimit(st.sb)
+	return st.overlayBytes > limit || st.logBytes > 2*limit
 }

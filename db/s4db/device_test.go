@@ -41,22 +41,45 @@ func TestDeviceKvtx(t *testing.T) {
 // commits, checkpoints, and compaction, loses power, and checks that
 // recovery keeps every durable commit, keeps a prefix of the ordered
 // commits after it, and leaves a consistent space that later commits use.
+// Odd seeds first replay a large overlay and drain it in small slices, so
+// the crash lands among slices.
 func TestDevicePowerLoss(t *testing.T) {
-	opts := Options{CheckpointMin: 32 << 10, CheckpointMax: 128 << 10}
+	whole := Options{CheckpointMin: 32 << 10, CheckpointMax: 128 << 10}
+	sliced := Options{CheckpointMin: 8 << 10, CheckpointMax: 8 << 10, CheckpointSliceBytes: 4 << 10}
 	seeds := uint64(64)
 	if testing.Short() {
 		seeds = 4
 	}
+	var slices atomic.Int64
 	for seed := range seeds {
+		// On odd seeds, commit an overlay with checkpoints held off, so the
+		// next open replays it and drains it in slices.
+		r := rand.New(rand.NewPCG(seed, 9))
+		mem := device.NewMemory()
+		m := make(model)
+		opts, arm := whole, 20+r.IntN(60)
+		if seed%2 == 1 {
+			opts, arm = sliced, r.IntN(20)
+			db := openDevice(t, mem, Options{CheckpointMin: 64 << 20, CheckpointMax: 64 << 20})
+			for range 100 {
+				randomCommit(t, r, db, m, 2000)
+			}
+			if err := db.Close(); err != nil {
+				t.Fatal(err)
+			}
+		}
+
 		// Commit a history, then crash at a random call during later
 		// commits and a compaction. Recovery may land on any state from the
 		// last durable commit to the one in flight.
-		r := rand.New(rand.NewPCG(seed, 9))
-		mem := device.NewMemory()
 		db := openDevice(t, mem, opts)
-		m := make(model)
+		db.w.beforeSave = func(tr *tree) {
+			if tr.slice() {
+				slices.Add(1)
+			}
+		}
 		allowed := []model{maps.Clone(m)}
-		arm, compact := 20+r.IntN(60), -1
+		compact := -1
 		for i := 0; ; i++ {
 			if i == arm {
 				mem.CrashAfter(r.IntN(48))
@@ -105,6 +128,10 @@ func TestDevicePowerLoss(t *testing.T) {
 		if err := db.Close(); err != nil {
 			t.Fatal(err)
 		}
+	}
+	t.Logf("%d slices saved before a crash", slices.Load())
+	if slices.Load() == 0 {
+		t.Fatal("no slice saved before a crash")
 	}
 }
 

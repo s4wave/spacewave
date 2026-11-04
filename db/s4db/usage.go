@@ -16,7 +16,11 @@ type Usage struct {
 	// ValuePageBytes is the length of the pages holding live values. The
 	// difference from ValueBytes is the dead space inside them.
 	ValuePageBytes int64
-	// IndexKeys is the number of keys in the checkpoint's index.
+	// IndexKeys is the number of keys as of the checkpoint's last commit. A
+	// checkpoint that saved only part of the overlay leaves the keys changed
+	// after that commit at their older entries in its index, so the index
+	// may hold a few more or fewer keys than this until the next whole
+	// checkpoint.
 	IndexKeys int64
 	// IndexBytes is the length of the checkpoint's index pages.
 	IndexBytes int64

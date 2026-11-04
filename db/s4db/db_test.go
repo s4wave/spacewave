@@ -42,11 +42,12 @@ func TestKvtx(t *testing.T) {
 }
 
 // TestModel checks random commits against a map across checkpoints,
-// compaction, and reopening.
+// compaction, and reopening. Slices far smaller than the checkpoint limit
+// split each background checkpoint into several.
 func TestModel(t *testing.T) {
 	// Commit, check, compact, and reopen in rounds.
 	path := filepath.Join(t.TempDir(), "model.s4wave")
-	opts := Options{CheckpointMin: 64 << 10, CheckpointMax: 256 << 10}
+	opts := Options{CheckpointMin: 64 << 10, CheckpointMax: 256 << 10, CheckpointSliceBytes: 16 << 10}
 	r := rand.New(rand.NewPCG(1, 2))
 	m := make(model)
 	db := openTest(t, path, opts)
@@ -569,29 +570,41 @@ func TestSingleProcessInBubble(t *testing.T) {
 // it, and checks that a process recovering the copy rebuilds the same
 // contents and a consistent space.
 func checkCrash(t *testing.T, live *DB, path string, m model) {
-	// Copy the file under the writer lock. The background compactor and
-	// checkpoint write it otherwise, and a copy read while they do can pair
-	// a durable record with value bytes read before they were written.
 	t.Helper()
-	ctx := context.Background()
-	if err := live.w.lock(ctx); err != nil {
-		t.Fatal(err)
-	}
-	b, err := os.ReadFile(path)
-	live.w.unlock(nil)
+	b, err := crashImage(live, path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	crashed := path + ".crashed"
-	if err := os.WriteFile(crashed, b, 0o600); err != nil {
+	checkRecovered(t, b, path+".crashed", m)
+}
+
+// crashImage reads the file of an open database under the writer lock. The
+// background compactor and checkpoint write it otherwise, and a copy read
+// while they do can pair a durable record with value bytes read before they
+// were written.
+func crashImage(live *DB, path string) ([]byte, error) {
+	if err := live.w.lock(context.Background()); err != nil {
+		return nil, err
+	}
+	defer live.w.unlock(nil)
+	return os.ReadFile(path)
+}
+
+// checkRecovered writes the crash image b to path, recovers it and checks it
+// holds m and a consistent space, then commits more so the rebuilt space is
+// used.
+func checkRecovered(t *testing.T, b []byte, path string, m model) {
+	// Write the image and recover it.
+	t.Helper()
+	if err := os.WriteFile(path, b, 0o600); err != nil {
 		t.Fatal(err)
 	}
-
-	// Recover it and check, then commit more so the rebuilt space is used.
-	db := openTest(t, crashed, Options{})
+	db := openTest(t, path, Options{})
 	defer db.Close()
 	m.check(t, db)
 	checkSpace(t, db)
+
+	// Commit more on the rebuilt space.
 	c := maps.Clone(m)
 	r := rand.New(rand.NewPCG(7, 8))
 	for range 50 {

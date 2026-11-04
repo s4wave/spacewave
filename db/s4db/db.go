@@ -765,8 +765,8 @@ func (db *DB) Compact(ctx context.Context) error {
 // lockIdle takes the writer lock while no background checkpoint runs. A
 // build's snapshot pins the space a compaction or release frees, and the build
 // needs the writer lock to finish, so working during it releases nothing and
-// leaves the log high in the file. Only commits start builds, and they need
-// the writer lock.
+// leaves the log high in the file. Builds start only under the writer lock,
+// from a commit or from the slice after a build ends.
 func (db *DB) lockIdle(ctx context.Context) error {
 	for {
 		if err := db.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
