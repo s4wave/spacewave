@@ -129,6 +129,52 @@ test('parity detects one changed property in both engines at every size', async 
       ])
     }
 
+    // A real late DOM update between the screenshot and tree sample must be recaptured.
+    const coherentDir = join(root, 'coherent')
+    await mkdir(coherentDir)
+    await capture(
+      {
+        states: [
+          {
+            id: 'fixture',
+            path: '/',
+            ready: 'button',
+            setup: async (page) => {
+              const screenshot = page.screenshot.bind(page)
+              let changed = false
+              page.screenshot = async (options) => {
+                const png = await screenshot(options)
+                if (!changed) {
+                  changed = true
+                  await page.evaluate(() => {
+                    document.querySelector('h1')!.textContent = 'Loaded'
+                    document.body.style.backgroundColor = 'rgb(0, 0, 255)'
+                  })
+                }
+                return png
+              }
+            },
+            observe: async (page, snapshot) => {
+              assert(snapshot.aria.includes('Loaded'))
+              assert.equal(await page.locator('h1').textContent(), 'Loaded')
+            },
+          },
+        ],
+      },
+      base,
+      coherentDir,
+    )
+    for (const path of paths) {
+      const snapshot: Snapshot = JSON.parse(
+        await readFile(join(coherentDir, path), 'utf8'),
+      )
+      assert(snapshot.aria.includes('Loaded'))
+      const png = PNG.sync.read(
+        await readFile(join(coherentDir, path.replace(/\.json$/, '.png'))),
+      )
+      assert.deepEqual([...png.data.subarray(0, 4)], [0, 0, 255, 255])
+    }
+
     // A one-level raster-only variation remains recorded separately; a two-level image defect still fails.
     const originalFile = join(root, 'before', paths[0]!)
     const rasterFile = join(root, 'raster.json')

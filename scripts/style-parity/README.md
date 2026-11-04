@@ -51,6 +51,9 @@ A manifest exports `states`. Each state has an `id`, `path`, and `ready`, plus
 an optional `setup(page)` function that opens the required state. `ready` is
 either a selector for the final state or an async function that waits for the
 application's own readiness. A heading appearing during loading is insufficient.
+An optional async `observe(page, snapshot)` collects additional diagnostics after
+the accepted image and accessibility tree agree. It runs before publishing that
+state, so a failed diagnostic retains its failure instead of a success row.
 Each state starts in a fresh context, so setup must establish its own disposable
 fixture. The starter manifest covers three public pages; add session viewers
 and overlays before treating it as full application coverage.
@@ -60,6 +63,9 @@ finite transitions and cancels repeating effects to sample their underlying
 static styles. SVG timelines stop at zero too. The screenshot waits for the
 static paint and hides the caret. Its cleanup may restart CSS animations, so
 the collector reestablishes that static sample before reading computed styles.
+The accessible tree is sampled before and after the image. A resource arrival
+that changes it causes another sample in the same context; the three-minute
+state deadline bounds that work. Diagnostics run only on the accepted sample.
 PNGs are retained; comparison hashes use decoded pixels rather than PNG
 compression or metadata. This records static styles and geometry. Animation
 timing and interaction quality need separate checks.

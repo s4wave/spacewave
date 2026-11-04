@@ -346,6 +346,14 @@ const routesManifest: ParityManifest = {
         await page
           .getByRole('button', { name: 'Close account menu', exact: true })
           .waitFor()
+        // Each local section resolves its own session/account resource after the panel opens.
+        await page
+          .getByRole('button', { name: 'Crypto & Keys', exact: true })
+          .waitFor()
+        await page.getByRole('button', { name: /^Sessions\s*1$/ }).waitFor()
+        await page
+          .getByRole('button', { name: 'Organizations', exact: true })
+          .waitFor({ state: 'hidden' })
       },
     },
     {

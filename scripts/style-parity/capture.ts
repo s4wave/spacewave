@@ -16,6 +16,8 @@ export interface ParityState {
   forcedColors?: 'active' | 'none'
   ready: string | ((page: Page) => Promise<void>)
   setup?: (page: Page) => Promise<void>
+  // observe collects diagnostics after the image and accessible tree agree, before publication.
+  observe?: (page: Page, snapshot: Readonly<Snapshot>) => Promise<void>
 }
 
 /** ParityManifest declares the states compared between revisions. */
@@ -133,44 +135,58 @@ export async function capture(
               } else {
                 await state.ready(page)
               }
-              stage = 'settle'
-              await settle(page)
-              if (errors.length)
-                throw new Error(`${state.id}: ${errors.join('\n')}`)
-              stage = 'screenshot'
-              const png = await page.screenshot({
-                path: join(out, `${relative}.png`),
-                fullPage: true,
-                caret: 'hide',
-                animations: 'disabled',
-              })
-              // Screenshot cleanup can restart CSS timelines; observe the same static sample as its pixels.
-              stage = 'resample'
-              await settle(page)
-              stage = 'collect'
-              const elements = await readElements(page)
+              // Publish only a frame whose accessible content stayed stable around its pixels.
+              for (;;) {
+                stage = 'settle'
+                await settle(page)
+                if (errors.length)
+                  throw new Error(`${state.id}: ${errors.join('\n')}`)
+                const beforeAria = await page.locator('body').ariaSnapshot()
+                stage = 'screenshot'
+                const png = await page.screenshot({
+                  path: join(out, `${relative}.png`),
+                  fullPage: true,
+                  caret: 'hide',
+                  animations: 'disabled',
+                })
+                // Screenshot cleanup can restart CSS timelines; observe the same static sample as its pixels.
+                stage = 'resample'
+                await settle(page)
+                stage = 'collect'
+                const elements = await readElements(page)
+                const aria = await page.locator('body').ariaSnapshot()
+                if (aria !== beforeAria) {
+                  console.log(
+                    `content changed during ${relative}; sampling the loaded state again`,
+                  )
+                  continue
+                }
 
-              // Compare rendered pixels, independently of PNG metadata and compression.
-              const pixels = PNG.sync.read(png)
-              const snapshot: Snapshot = {
-                format: 2,
-                id: state.id,
-                engine,
-                viewport,
-                url: state.path,
-                elements,
-                aria: await page.locator('body').ariaSnapshot(),
-                screenshot: createHash('sha256')
-                  .update(`${pixels.width}x${pixels.height}:`)
-                  .update(pixels.data)
-                  .digest('hex'),
+                // Compare rendered pixels, independently of PNG metadata and compression.
+                const pixels = PNG.sync.read(png)
+                const snapshot: Snapshot = {
+                  format: 2,
+                  id: state.id,
+                  engine,
+                  viewport,
+                  url: state.path,
+                  elements,
+                  aria,
+                  screenshot: createHash('sha256')
+                    .update(`${pixels.width}x${pixels.height}:`)
+                    .update(pixels.data)
+                    .digest('hex'),
+                }
+                stage = 'observe'
+                await state.observe?.(page, snapshot)
+                await writeFile(
+                  join(out, `${relative}.json`),
+                  JSON.stringify(snapshot),
+                )
+                paths.push(`${relative}.json`)
+                console.log(`captured ${relative}: ${elements.length} elements`)
+                break
               }
-              await writeFile(
-                join(out, `${relative}.json`),
-                JSON.stringify(snapshot),
-              )
-              paths.push(`${relative}.json`)
-              console.log(`captured ${relative}: ${elements.length} elements`)
               break
             } catch (error) {
               signal?.throwIfAborted()
