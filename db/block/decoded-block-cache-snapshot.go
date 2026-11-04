@@ -8,6 +8,13 @@ type DecodedBlockCacheSnapshot struct {
 	RemainingCost int64
 	// RetainedCost is the current retained cost estimate.
 	RetainedCost int64
+	// Entries is the number of decoded blocks held.
+	Entries int64
+	// ReadCost is the part of RetainedCost charged for immutable reader
+	// metadata: child links attached to entries by ReadCursor.
+	ReadCost int64
+	// ReadSlots is the number of entries with reader metadata attached.
+	ReadSlots int64
 	// Hits is the number of shared-cache hits.
 	Hits uint64
 	// Misses is the number of shared-cache misses.

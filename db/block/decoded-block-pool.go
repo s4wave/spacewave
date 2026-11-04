@@ -67,6 +67,13 @@ type decodedBlockShard struct {
 	costAdded, costEvicted        atomic.Int64
 	// retained is the cost of the entries held, readable without mtx.
 	retained atomic.Int64
+	// count is the number of entries held, readable without mtx. It changes
+	// under mtx with entries.
+	count atomic.Int64
+	// readCost and readSlots are the bytes and the number of slots whose
+	// traversal metadata is attached, readable without mtx. They change under
+	// mtx with the attachment. readCost is part of retained.
+	readCost, readSlots atomic.Int64
 	// _ keeps the next shard's lock off this shard's cache lines.
 	_ [decodedBlockShardPad]byte
 }
@@ -75,6 +82,7 @@ type decodedBlockShard struct {
 type decodedBlockPoolStats struct {
 	hits, misses, stores, rejections, evictions uint64
 	costAdded, costEvicted, retained            int64
+	entries, readCost, readSlots                int64
 }
 
 // decodedBlockPoolEntry is one cached block in a shard queue.
@@ -138,6 +146,9 @@ func (p *decodedBlockPool) stats() decodedBlockPoolStats {
 		st.costAdded += s.costAdded.Load()
 		st.costEvicted += s.costEvicted.Load()
 		st.retained += s.retained.Load()
+		st.entries += s.count.Load()
+		st.readCost += s.readCost.Load()
+		st.readSlots += s.readSlots.Load()
 	}
 	return st
 }
@@ -181,7 +192,7 @@ func (p *decodedBlockPool) put(key string, value decodedBlockCacheEntry, cost in
 	s.mtx.Lock()
 	e := s.entries[key]
 	if e != nil {
-		e.retireReadData()
+		s.retireReadData(e)
 		e.value = value
 		e.queue.cost += cost - e.cost
 		s.retained.Add(cost - e.cost)
@@ -189,6 +200,7 @@ func (p *decodedBlockPool) put(key string, value decodedBlockCacheEntry, cost in
 	} else {
 		e = &decodedBlockPoolEntry{key: key, value: value, cost: cost}
 		s.entries[key] = e
+		s.count.Add(1)
 		s.probation.push(e)
 		s.retained.Add(cost)
 	}
@@ -257,7 +269,8 @@ func (s *decodedBlockShard) evictOne(budget int64, keep *decodedBlockPoolEntry) 
 			continue
 		}
 		delete(s.entries, e.key)
-		e.retireReadData()
+		s.count.Add(-1)
+		s.retireReadData(e)
 		return e
 	}
 	return nil
@@ -271,7 +284,8 @@ func (p *decodedBlockPool) del(key string) {
 	e := s.entries[key]
 	if e != nil {
 		delete(s.entries, key)
-		e.retireReadData()
+		s.count.Add(-1)
+		s.retireReadData(e)
 		e.queue.remove(e)
 		s.retained.Add(-e.cost)
 	}
@@ -285,9 +299,10 @@ func (p *decodedBlockPool) clear() {
 		s.mtx.Lock()
 		s.retained.Add(-(s.probation.cost + s.main.cost))
 		for _, entry := range s.entries {
-			entry.retireReadData()
+			s.retireReadData(entry)
 		}
 		s.entries = make(map[string]*decodedBlockPoolEntry)
+		s.count.Store(0)
 		s.probation, s.main = decodedBlockQueue{}, decodedBlockQueue{}
 		s.mtx.Unlock()
 	}
@@ -329,11 +344,16 @@ func (q *decodedBlockQueue) remove(e *decodedBlockPoolEntry) {
 	q.cost -= e.cost
 }
 
-// retireReadData releases decoded payloads and child links before an entry leaves.
-// The caller holds the shard lock; existing readers may finish with local data.
-func (e *decodedBlockPoolEntry) retireReadData() {
-	if e.value.read != nil {
-		e.value.read.data.Store(nil)
+// retireReadData releases decoded payloads and child links before an entry leaves,
+// and uncounts the metadata it had charged. The caller holds the shard lock;
+// existing readers may finish with local data.
+func (s *decodedBlockShard) retireReadData(e *decodedBlockPoolEntry) {
+	if e.value.read == nil {
+		return
+	}
+	if data := e.value.read.data.Swap(nil); data != nil {
+		s.readCost.Add(-data.cost)
+		s.readSlots.Add(-1)
 	}
 }
 
@@ -362,6 +382,9 @@ func (p *decodedBlockPool) attachReadData(key string, slot *decodedBlockReadSlot
 	entry.queue.cost += cost
 	s.retained.Add(cost)
 	s.costAdded.Add(cost)
+	s.readCost.Add(cost)
+	s.readSlots.Add(1)
+	data.cost = cost
 	slot.data.Store(data)
 
 	// Retire other entries until the complete charged shard fits its budget.
