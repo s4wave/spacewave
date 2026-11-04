@@ -1,0 +1,9 @@
+SPECIFICATION Spec
+CONSTANTS
+  DurableBeforeAck = TRUE
+  BootOwnsClose = FALSE
+  AtomicRetention = TRUE
+INVARIANTS
+  AcknowledgedSurvives
+  StorageOutlivesUsers
+  RefusalPreserves
