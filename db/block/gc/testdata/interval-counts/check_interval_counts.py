@@ -29,14 +29,17 @@ def mutate_source(source: str, case: str) -> str:
 
 
 def main() -> int:
-    """Copy the exact model, apply the selected omission, and verify TLC's result."""
+    """Copy the exact model, apply the selected omission, and verify the result."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--case", choices=("ordinary", "historical", "stray"), required=True
     )
     parser.add_argument("--mutant", action="store_true")
-    parser.add_argument("--jar", type=Path, required=True)
-    parser.add_argument("--java", default="java")
+    parser.add_argument(
+        "--checker",
+        type=Path,
+        help="tla-ts executable; defaults to the repository's node_modules",
+    )
     parser.add_argument(
         "--output", type=Path, required=True, help="new evidence directory"
     )
@@ -47,6 +50,7 @@ def main() -> int:
     # overwrite an earlier run or mutate the repository's proof input.
     fixtures = Path(__file__).resolve().parent
     repo = fixtures.parent.parent
+    checker = args.checker or repo.parents[2] / "node_modules" / ".bin" / "tla-ts"
     suffixes = {
         "ordinary": "missing-outside",
         "historical": "old-gate",
@@ -80,19 +84,12 @@ def main() -> int:
     # These directed checks are small; full safety uses the separate unchanged
     # three-commit configuration. A timeout is incomplete, never a passed check.
     command = [
-        args.java,
-        "-XX:ActiveProcessorCount=1",
-        "-Xmx512m",
-        "-XX:+UseSerialGC",
-        "-jar",
-        str(args.jar.resolve()),
-        "-workers",
-        "1",
-        "-metadir",
-        "states",
+        str(checker.resolve()),
+        "IntervalCountsChecks.tla",
         "-config",
         config,
-        "IntervalCountsChecks.tla",
+        "-workers",
+        "1",
     ]
     log_path = output / "result.log"
     try:
@@ -125,7 +122,7 @@ def main() -> int:
     else:
         passed = result.returncode == 0
     print(
-        f"{'PASS' if passed else 'FAIL'}: {args.case}{suffix}; TLC exit={result.returncode}; {log_path}"
+        f"{'PASS' if passed else 'FAIL'}: {args.case}{suffix}; exit={result.returncode}; {log_path}"
     )
     return 0 if passed else 1
 

@@ -10,7 +10,7 @@
 \* Run from this directory through the bounded checker, which copies the
 \* exact main model and these fixtures into a fresh evidence directory:
 \*   uv run --no-project --python 3.11 check_interval_counts.py
-\*       --case ordinary --jar <jar> --output <new-directory>
+\*       --case ordinary --output <new-directory>
 \* Repeat for historical and stray; add --mutant for the omission recipes.
 \* Expected rejections are CountsCover, RecordsRetire and NoLeak. Setup errors
 \* never count as sensitivity. This testdata directory is deliberately outside

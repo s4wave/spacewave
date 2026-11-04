@@ -1,12 +1,13 @@
 These checks use the exact parent `IntervalCounts.tla`. The runner copies it
 and the selected fixture into a new evidence directory, checks one bounded
-run, and preserves the inputs and full trace. Use TLC 2.19 and Java 17.
+run through the repository's `tla-ts`, and preserves the inputs and full
+trace. Run `bun install` first so `node_modules/.bin/tla-ts` exists.
 
 From the repository root:
 
 ```sh
 uv run --no-project --python 3.11 db/block/gc/testdata/interval-counts/check_interval_counts.py \
-  --case ordinary --jar /path/to/tla2tools.jar --output /path/to/new-evidence
+  --case ordinary --output /path/to/new-evidence
 ```
 
 Repeat with `--case historical` and `--case stray`. Add `--mutant` to each
@@ -24,9 +25,8 @@ Copy it and the parent `IntervalCounts.tla` into an evidence directory, then
 run there:
 
 ```sh
-java -XX:ActiveProcessorCount=1 -Xmx2g -XX:+UseParallelGC \
-  -jar /path/to/tla2tools.jar -workers 1 -checkpoint 0 \
-  -metadir states -config IntervalCounts-discard-full3.cfg IntervalCounts.tla
+/path/to/repo/node_modules/.bin/tla-ts IntervalCounts.tla \
+  -config IntervalCounts-discard-full3.cfg -workers 1
 ```
 
 This directory is excluded from broad positive-model discovery. Its expected
@@ -50,9 +50,7 @@ requires historical holes to become readable. Fair ordinary erasure removes
 finite unowned hole sources; a retained hole keeps trust disabled and still
 permits invalid-record retirement. Due records leave in finite sequence order.
 This is an argument about the model's abstraction and fairness assumptions,
-not a completed TLC proof of the unconstrained progress selector.
+not a completed model check of the unconstrained progress selector.
 
-Periodic checkpoints are disabled for this manual run because TLC 2.19 can
-stall in periodic suspension. The full safety configuration and invariants
-are unchanged. This run uses no checkpoint recovery; a lost verifier starts
-again from the initial state.
+The full safety configuration and invariants are unchanged. This run keeps no
+checkpoint; a lost verifier starts again from the initial state.
