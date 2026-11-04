@@ -594,6 +594,9 @@ func TestUploadFillsBatches(t *testing.T) {
 	s := env.newStore(t, true)
 
 	// Queue 25 blocks of 100 bytes, which fill two batches of ten and leave five.
+	// The linger clock starts at each block's write time, so start the test's
+	// clock before the first write.
+	start := time.Now()
 	for i := range 25 {
 		data := []byte(strings.Repeat(strconv.Itoa(i%10), 99) + string(rune('a'+i)))
 		if _, _, err := s.PutBlock(ctx, data, leafOpts); err != nil {
@@ -608,7 +611,6 @@ func TestUploadFillsBatches(t *testing.T) {
 	}
 
 	// The first full batch uploads, then the second fails and repeats alone.
-	start := time.Now()
 	if err := s.Upload(ctx, remote); err == nil {
 		t.Fatal("expected the second batch to fail")
 	}
