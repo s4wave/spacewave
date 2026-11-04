@@ -50,7 +50,7 @@ import { groupMarker as groupMarker3 } from '../../../web/style/relations.stylex
 
 const stylexStyles3 = stylex.create({
   rule1: {
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
   },
