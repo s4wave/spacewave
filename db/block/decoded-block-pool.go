@@ -224,7 +224,7 @@ func (s *decodedBlockShard) evictOne(budget int64, keep *decodedBlockPoolEntry) 
 	// Bound the existing clock passes even when lock-free readers keep touching
 	// nodes while this shard's writer retires entries.
 	limit := (len(s.entries) + 1) * (decodedBlockMaxFreq + 1)
-	for attempt := 0; attempt < limit; attempt++ {
+	for attempt := range limit {
 		// Take from probation while it is over its share, or when main has
 		// nothing else, and never the entry being stored.
 		fromProbation := s.probation.cost > budget/decodedBlockProbationDivisor
