@@ -254,6 +254,18 @@ func produceEngineGraph(ctx context.Context, tb *db_testbed.Testbed, name string
 		return nil, nil, err
 	}
 
+	// Exercise the typed resource stream and release its handles before inspection.
+	if err := uploadEngineResource(ctx, tb, engine, objectKey); err != nil {
+		return nil, nil, err
+	}
+	payload, _, err = object.GetRootRef(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	if _, err := inspectEngineGraph(ctx, tb, so, "resource upload payload", payload.GetRootRef()); err != nil {
+		return nil, nil, err
+	}
+
 	// Promote the actual derived World and wait on its checkpoint state watch.
 	var derived *block.BlockRef
 	if err := engine.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
