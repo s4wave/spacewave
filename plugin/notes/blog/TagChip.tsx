@@ -1,3 +1,4 @@
+import { controlTargetStyles } from '@s4wave/web/style/ControlStylesProvider.js'
 import { useCallback } from 'react'
 import * as stylex from '@stylexjs/stylex'
 
@@ -67,7 +68,11 @@ export function TagChip({ tag, onSelectTag }: TagChipProps) {
   )
 
   return (
-    <button type="button" onClick={handleTagSelect} sx={styles.chip}>
+    <button
+      type="button"
+      onClick={handleTagSelect}
+      sx={[styles.chip, controlTargetStyles.minimum]}
+    >
       {tag}
     </button>
   )

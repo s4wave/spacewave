@@ -155,7 +155,7 @@ const stylexStyles4 = stylex.create({
     '--tw-font-weight': themeFonts['--font-weight-medium'],
     '--tw-tracking': 'var(--tracking-wide)',
     paddingInline: `calc(${themeLayout['--spacing']} * 5)`,
-    color: `color-mix(in oklab, ${themeColors['--color-foreground']} 50%, transparent)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground']} 60%, transparent)`,
     fontSize: themeFonts['--text-xs'],
     fontWeight: themeFonts['--font-weight-medium'],
     letterSpacing: 'var(--tracking-wide)',

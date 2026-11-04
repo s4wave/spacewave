@@ -33,7 +33,7 @@ const stylexStyles2 = stylex.create({
     maxWidth: 'var(--container-4xl)',
   },
   rule3: {
-    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+    color: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
   },
@@ -48,7 +48,7 @@ const stylexStyles2 = stylex.create({
   rule5: {
     alignItems: 'center',
     color: {
-      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 50%, transparent)`,
+      default: `color-mix(in oklab, ${themeColors['--color-foreground-alt']} 60%, transparent)`,
       '@media (hover: hover)': {
         default: null,
         ':hover': themeColors['--color-foreground-alt'],
