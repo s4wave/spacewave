@@ -168,8 +168,19 @@ func TestCollector_OrphanBlocks(t *testing.T) {
 	}
 	env.flush(t)
 
-	// Collect blocks after rooting only the retained block.
+	// A held collector sweeps nothing and keeps the orphan queued.
+	t.Setenv(HoldEnv, "off")
 	stats, err := env.gc.Collect(env.ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if stats.NodesSwept != 0 || !env.blockExists(t, orphan) {
+		t.Fatalf("held collection swept %d nodes", stats.NodesSwept)
+	}
+
+	// Collect blocks after the hold clears.
+	t.Setenv(HoldEnv, "")
+	stats, err = env.gc.Collect(env.ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

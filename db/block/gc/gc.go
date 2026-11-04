@@ -12,6 +12,7 @@ package block_gc
 
 import (
 	"context"
+	"os"
 	"slices"
 	"time"
 
@@ -168,6 +169,17 @@ func (c *Collector) scheduleMark(stats *Stats, err error) {
 // checks of its budget.
 const collectChunk = 4096
 
+// HoldEnv names the environment variable that holds collection: while it is
+// "off", every Collector returns without sweeping a node or deleting a block.
+// Writes keep tracking references, and unreferenced nodes stay queued, so
+// collection resumes where it stopped once the hold is cleared.
+const HoldEnv = "SPACEWAVE_BLOCK_GC"
+
+// Held reports whether HoldEnv holds collection.
+func Held() bool {
+	return os.Getenv(HoldEnv) == "off"
+}
+
 // Collect sweeps all unreferenced nodes and removes their physical blocks.
 func (c *Collector) Collect(ctx context.Context) (*Stats, error) {
 	return c.collect(ctx, true, 0)
@@ -198,6 +210,11 @@ func (c *Collector) collect(ctx context.Context, removeBlocks bool, budget time.
 	stats := &Stats{}
 	defer func() { stats.Duration = time.Since(start) }()
 	spent := func() bool { return budget != 0 && time.Since(start) >= budget }
+
+	// Leave the graph and the store untouched while collection is held.
+	if Held() {
+		return stats, nil
+	}
 
 	// Sweep the queue, then the blocks.
 	if err := c.collectQueue(ctx, removeBlocks, spent, stats); err != nil || stats.More {

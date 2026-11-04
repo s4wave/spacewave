@@ -55,6 +55,12 @@ const slowSweepTx = 500 * time.Millisecond
 // runGCSweep runs the periodic GC sweep goroutine. It waits for the volume to
 // become ready, then collects its reference graph on each interval.
 func (c *Controller) runGCSweep(ctx context.Context) error {
+	// Skip the sweep routine while collection is held at start.
+	if block_gc.Held() {
+		c.le.Info("gc sweep held by " + block_gc.HoldEnv + "=off; reference tracking stays on")
+		return nil
+	}
+
 	// Choose the configured collection interval or disable volume collection.
 	interval, err := c.config.ParseGCIntervalDur()
 	if err != nil {
