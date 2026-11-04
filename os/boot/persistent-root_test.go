@@ -95,15 +95,27 @@ func TestPersistentRootReopen(t *testing.T) {
 		if n, err := file.ReadAt(ctx, 0, data); err != nil || n != int64(len(data)) {
 			t.Fatalf("read after caller cancellation = %d, %v", n, err)
 		}
-		file.Release()
 
 		// Both corruption adversaries use observed descendants, not on-disk layout.
 		if descendant.EqualsRef(head.GetRootRef()) || toolDescendant.EqualsRef(head.GetRootRef()) {
 			t.Fatal("content reads did not reach descendant blocks")
 		}
-		if err := r.Close(); err != nil {
+
+		// Omitted FUSE Forget must not keep resolved child storage past Close.
+		cursor, ops, err := file.GetOps(ctx)
+		if err != nil {
+			file.Release()
 			t.Fatal(err)
 		}
+		if err := r.Close(); err != nil {
+			file.Release()
+			t.Fatal(err)
+		}
+		if !cursor.CheckReleased() || !ops.CheckReleased() {
+			file.Release()
+			t.Fatal("Root.Close retained a cached child's cursor or storage")
+		}
+		file.Release()
 		if hashImageFile(t, path) != before {
 			t.Fatal("read-only reopen or cancellation changed the store")
 		}

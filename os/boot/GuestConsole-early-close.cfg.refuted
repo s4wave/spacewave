@@ -1,0 +1,4 @@
+SPECIFICATION Spec
+CONSTANTS IsPID1 = TRUE GuestGuard = TRUE SingleWaiter = TRUE JoinBeforeClose = FALSE
+INVARIANT StorageOutlivesUsers
+CHECK_DEADLOCK FALSE

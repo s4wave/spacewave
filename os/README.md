@@ -1,5 +1,98 @@
 # Retained UnixFS boot experiment
 
+## Serial console runtime
+
+The guest-only console runs `/bin/sh -i` from the verified frozen image with a
+separate writable UnixFS `/data`. PID1 stays in the independent initramfs. The
+shell starts in `/data` and gets the real `/dev/ttyS0` controlling terminal,
+inherited input/output, Ctrl-C and normal shell job control. `/proc` is procfs,
+`/dev` is devtmpfs with a nested private devpts mount, and `/tmp` is mode-1777
+tmpfs. Scratch files disappear on shutdown; application files belong in `/data`.
+This is trusted root access in an isolated guest, not a security sandbox.
+
+Create a data filesystem explicitly for a **fresh disposable fixture** with
+`spacewave-init seed-data ABSENT-DIRECTORY`. This delegates to `boot.CreateData`
+and closes the result before printing `SPACEWAVE_OS_DATA_SEEDED`. It refuses
+existing directories, including partial creations. The existing image seed
+command is unchanged. Use the same built init to seed `/workload` and boot: the
+complete image check compares that file with the independent init executable.
+Runtime calls only `OpenRoot` and `OpenData`; unknown or incomplete stores are
+refused without reset or reseeding.
+
+After preparing fresh matching kernel/initramfs/disk inputs separately, launch
+from a real terminal or PTY:
+
+```sh
+ACCEL=tcg sh os/qemu/run-console.sh /path/to/vmlinuz /path/to/initramfs.cpio.gz /path/to/fresh-btrfs.img
+```
+
+The launcher consumes those existing files. It does not create fixtures, mount
+anything on the host, download tools or start a background service. The disk must
+be detached from host mounts and other VMs and contain `/image/image.s4wave`
+and `/data/data.s4wave`. `QEMU` selects an existing QEMU executable (default
+`qemu-system-x86_64`); `ACCEL` is `kvm` (default) or `tcg`. It uses one vCPU,
+768 MiB, virtio raw disk with `cache=none`, serial/monitor stdio multiplexing,
+and disabled networking/graphics. Ctrl-C is serial input (`signal=off`), not a
+host QEMU interrupt. **Ctrl-a x exits QEMU**, even on failed startup; Ctrl-a c
+switches between serial and the QEMU monitor. Abrupt QEMU exit is not graceful
+shutdown. No crash-durability result is implied by this launcher.
+
+The exact guest interface is `/init` with these kernel-command-line environment
+assignments (or `/init console` with the same store assignments):
+
+```text
+GOMAXPROCS=1
+SPACEWAVE_OS_MODE=console
+SPACEWAVE_OS_STORE=/store/image
+SPACEWAVE_OS_DATA=/store/data
+SPACEWAVE_OS_TTY=/dev/ttyS0
+SPACEWAVE_OS_NATIVE_BENCH=0
+```
+
+The launcher also passes `console=ttyS0,115200 rdinit=/init panic=-1`. Bootstrap
+mounts `/dev/vda` as Btrfs at `/store`, outside both served roots. The library API
+is `boot.RunConsole(ctx, systemDir, dataDir, terminalPath, nativeBench)` and
+refuses every non-PID1 invocation before touching storage or mounts. Hosted
+`probe`, `probe-fail` and `probe-wait` keep their private mount namespace and
+bounded `exec.Cmd` lifecycle; they never enter guest-wide waiting or signalling.
+
+For a later native comparison only, `NATIVE_BENCH=1` tells the launcher to pass
+`SPACEWAVE_OS_NATIVE_BENCH=1`. The disk must already contain a private mode-0700
+`/native-bench` directory, separate from both database directories and holding
+only comparison files. Runtime binds only `/store/native-bench` at
+`/tmp/native-bench`; it rejects a missing directory or symlink. It never exposes
+the backing database directories through a bind mount and runs no benchmark.
+
+Finish foreground and background jobs, run `sync`, then `exit` (or Ctrl-D) for
+graceful shutdown. PID1 kills remaining guest processes, including detached
+sessions, and reaps adopted orphans to `ECHILD`. A single Wait4 authority starts
+after every mounting helper has joined; it never races `exec.Cmd.Wait`. The
+shell starts through an independent bootstrap exec before chroot/exec into
+FUSE, preserving the one-processor self-deadlock guard. PID1 then unmounts nested
+kernel/data/system mounts, joins both FUSE servers, explicitly releases both
+World cursors and their cached children, then closes each World and physical
+store, unmounts `/store`, and powers off. A failed ordinary
+unmount remains an error even if detached cleanup succeeds. If reaping cannot
+prove all users stopped, stores stay open and bootstrap stays in recovery.
+
+Server exits and controller stops cancel the session and disconnect FUSE before
+containment. Physical storage still outlives its users. Data's buffered WriteAt
+also watches controller availability, including idle/release flushes whose
+callers use background contexts; Close reports the failure rather than waiting
+forever for an unavailable writer. Close errors remain visible. A failed console
+prints the cause and recovery instructions and leaves PID1 stopped: use Ctrl-a x,
+check the reported fixture/input error, and rerun the same launcher command.
+There is no automatic repair, shell restart or fallback to a new filesystem.
+
+`GuestConsole.tla` covers guest-only signals, one waiter, child/server/controller
+failure, containment, mount/server joins and store lifetime. `DataVolume.tla`
+covers interrupted buffered flush and storage publication; `Console/Console.tla`
+and its view carry the reader journey. Component tests and model checks do not
+establish mounted durability or actual terminal behavior. Real QEMU/PTy checks,
+80x24 and 160x48 captures, restart/crash acceptance and timings remain separate.
+
+## Immutable probe
+
 Linux boots one static executable as PID1 from an independent initramfs. The
 executable opens a retained s4db image read-only on a Btrfs virtual disk and serves
 its selected immutable World transaction through `db/unixfs/fuse`.
@@ -89,8 +182,8 @@ Seeding accepts an input stream; it does not execute BusyBox or certify its ELF,
 static linking, target architecture or applet support. Packaging and the later
 QEMU console run must establish those properties. `/data`, `/dev`, `/proc` and
 `/tmp` are empty mode-0755 mountpoints. The later scratch mount sets its own
-permissions; UnixFS currently preserves only ordinary permission bits. This step
-supplies mountpoints, not mounted storage or an interactive supervisor.
+permissions; UnixFS currently preserves only ordinary permission bits. The image
+seed supplies mountpoints; console runtime overlays them as described above.
 The diskless probe keeps its original two-file image. Older retained two-file
 fixtures now fail completeness checks; they are never upgraded or reseeded.
 
@@ -177,6 +270,6 @@ file on the outer ext4 filesystem, virtualization and provider caches. Guest cac
 loss does not evict every host/provider cache. Validation warms database data;
 lazy workload mmap proves page-fault service, not a cold-media benchmark. The small
 image fits RAM. There is no Btrfs speed, general crash-safety or large-data claim.
-Authenticated image selection/enrollment, writable roots, ordinary application
-compatibility, provider-native boot installation and production supervision remain
-outside this experiment.
+Authenticated image selection/enrollment, a writable system root, general
+application compatibility, provider-native boot installation and production
+supervision remain outside this experiment.

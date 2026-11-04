@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -74,8 +75,22 @@ func TestDataVolumeReopen(t *testing.T) {
 	if err := writeImageFile(ctx, d.Handle(), "clean", bytes.NewBufferString("clean restart")); err != nil {
 		t.Fatal(err)
 	}
+
+	// Keep a resolved child across healthy close, as FUSE can omit Forget.
+	cached, err := d.Handle().Lookup(ctx, "clean")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cached.Release()
+	cachedCursor, cachedOps, err := cached.GetOps(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if err := d.Close(); err != nil {
 		t.Fatal(err)
+	}
+	if !cachedCursor.CheckReleased() || !cachedOps.CheckReleased() {
+		t.Fatal("healthy Data.Close retained a cached child's cursor or storage")
 	}
 
 	// Exclusive creation cannot reset the existing filesystem.
@@ -109,6 +124,15 @@ func TestDataVolumeReopen(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	fileCursor, fileOps, err := file.GetOps(ctx)
+	if err != nil {
+		file.Release()
+		t.Fatal(err)
+	}
+	if err := file.WriteAt(ctx, 0, []byte("unacknowledged dirty buffer"), time.Now()); err != nil {
+		file.Release()
+		t.Fatal(err)
+	}
 
 	// Remove the actual controllers, including Execute cancellation and Close,
 	// while a filesystem user is still retained. A fresh raw database transaction
@@ -132,10 +156,19 @@ func TestDataVolumeReopen(t *testing.T) {
 	if err != nil || !found {
 		t.Fatalf("physical read after controller cancellation: %v, %v", found, err)
 	}
-	file.Release()
-	if err := d.Close(); err != nil {
-		t.Fatal(err)
+
+	// Closing with an idle dirty file still retained models a joined FUSE server
+	// that omitted Forget. Close must interrupt buffered Sync and join cursors.
+	if err := d.Close(); !errors.Is(err, context.Canceled) {
+		file.Release()
+		t.Fatalf("dirty close after controller stop: %v", err)
 	}
+	if !d.cursor.CheckReleased() || !fileCursor.CheckReleased() || !fileOps.CheckReleased() {
+		file.Release()
+		t.Fatal("Data.Close left filesystem watchers or cached child storage live")
+	}
+	file.Release()
+	d = nil
 	if unexpected, err := raw.NewTransaction(ctx, false); err == nil {
 		unexpected.Discard()
 		t.Fatal("Data.Close did not physically close storage")

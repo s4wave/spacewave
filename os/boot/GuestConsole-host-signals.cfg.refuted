@@ -1,0 +1,4 @@
+SPECIFICATION Spec
+CONSTANTS IsPID1 = FALSE GuestGuard = FALSE SingleWaiter = TRUE JoinBeforeClose = TRUE
+INVARIANT GuestOnlySignals
+CHECK_DEADLOCK FALSE

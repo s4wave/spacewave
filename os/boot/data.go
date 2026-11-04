@@ -54,6 +54,12 @@ type Data struct {
 	engineController *world_block_engine.Controller
 	// handle retains the writer-backed UnixFS cursor until ordered shutdown.
 	handle *unixfs.FSHandle
+	// cursor joins World watchers even when FUSE omitted final Forget requests.
+	cursor *unixfs_world.FSCursor
+	// writeCtx cancels buffered writes when either required controller stops.
+	writeCtx context.Context
+	// stopWrites releases background flushes without closing borrowed storage.
+	stopWrites context.CancelCauseFunc
 	// releaseBucket retains the bucket used to verify publication capabilities.
 	releaseBucket func()
 	// stopped reports either storage controller's terminal result.
@@ -69,7 +75,7 @@ type Data struct {
 // partial store for inspection. It never replaces an existing directory.
 func CreateData(ctx context.Context, le *logrus.Entry, dir string) (*Data, error) {
 	// Claim an absent fixture before any storage operation can create data.
-	if err := os.Mkdir(dir, 0o700); err != nil {
+	if err := os.Mkdir(dir, 0o700); err != nil { //nolint:gosec // The operator selects this fixture path; it is not a server request.
 		return nil, err
 	}
 
@@ -93,7 +99,8 @@ func OpenData(ctx context.Context, le *logrus.Entry, dir string) (*Data, error) 
 // openData composes native storage, a tracked bucket and a persisted World engine.
 func openData(ctx context.Context, le *logrus.Entry, dir string, create bool) (_ *Data, retErr error) {
 	// Keep physical Close solely in Data, including partially initialized opens.
-	d := &Data{stopped: make(chan error, 2)}
+	writeCtx, stopWrites := context.WithCancelCause(context.WithoutCancel(ctx))
+	d := &Data{stopped: make(chan error, 2), writeCtx: writeCtx, stopWrites: stopWrites}
 	defer func() {
 		if retErr != nil {
 			retErr = errors.Join(retErr, d.Close())
@@ -133,6 +140,7 @@ func openData(ctx context.Context, le *logrus.Entry, dir string, create bool) (_
 		func(context.Context, *logrus.Entry) (volume.Volume, error) { return vol, nil })
 	if _, err := d.bus.AddController(lifeCtx, vc, func(err error) {
 		err = errors.Join(errors.New("data Volume controller stopped"), err)
+		d.stopWrites(err)
 		failStartup(err)
 		d.stopped <- err
 	}); err != nil {
@@ -181,6 +189,7 @@ func openData(ctx context.Context, le *logrus.Entry, dir string, create bool) (_
 	d.engineController = ec
 	if _, err := d.bus.AddController(lifeCtx, ec, func(err error) {
 		err = errors.Join(errors.New("data World controller stopped"), err)
+		d.stopWrites(err)
 		failStartup(err)
 		d.stopped <- err
 	}); err != nil {
@@ -200,18 +209,27 @@ func openData(ctx context.Context, le *logrus.Entry, dir string, create bool) (_
 			return nil, err
 		}
 	}
-	cursor, _ := unixfs_world.NewFSCursorWithWriterContext(lifeCtx, le, ws, dataRootKey,
-		unixfs_world.FSType_FSType_FS_NODE, vol.GetPeerID())
+
+	// Bound background buffer commits to writer availability, not caller lifetime.
+	// FSHandle.Release and idleFlush use Background, so cancelling Close's Sync
+	// alone would leave those commits waiting on an unavailable controller.
+	writer := &dataWriter{
+		FSWriter: unixfs_world.NewFSWriter(ws, dataRootKey, unixfs_world.FSType_FSType_FS_NODE, vol.GetPeerID()),
+		ctx:      writeCtx,
+	}
+	cursor := unixfs_world.NewFSCursorWithContext(lifeCtx, le, ws, dataRootKey,
+		unixfs_world.FSType_FSType_FS_NODE, writer, true)
+	d.cursor = cursor
+	writer.SetConfirmFunc(cursor.WaitObjectRev)
 	d.handle, err = unixfs.NewFSHandle(cursor)
 	if err != nil {
-		cursor.Release()
 		return nil, err
 	}
 	return d, nil
 }
 
-// Handle borrows the writable root until Close. Release every child handle and
-// stop filesystem users and servers before closing Data.
+// Handle borrows the writable root until Close. Stop filesystem users and join
+// their servers before closing Data; Close invalidates remaining cached cursors.
 func (d *Data) Handle() *unixfs.FSHandle {
 	return d.handle
 }
@@ -231,9 +249,21 @@ func (d *Data) Wait(ctx context.Context) error {
 // closes storage. The caller has already stopped all filesystem users.
 func (d *Data) Close() error {
 	d.closeOnce.Do(func() {
-		// Release every filesystem cursor before controller cleanup.
+		// Flush while controllers are usable, reporting a failed writer even if a
+		// background release already encountered and discarded its buffer error.
 		if d.handle != nil {
-			d.closeErr = d.handle.Sync(context.Background())
+			d.closeErr = errors.Join(d.handle.Sync(d.writeCtx), context.Cause(d.writeCtx))
+		}
+		d.stopWrites(context.Canceled)
+
+		// FUSE may omit Forget on unmount. Release the cursor explicitly so cached
+		// child handles cannot retain World watchers or storage after server join.
+		// The World cursor releases its block FS (including child cursors) and
+		// joins its watchers; releasing only the root handle leaves child refs live.
+		if d.cursor != nil {
+			d.cursor.Release()
+		}
+		if d.handle != nil {
 			d.handle.Release()
 		}
 		if d.releaseBucket != nil {

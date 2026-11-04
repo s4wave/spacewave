@@ -13,9 +13,12 @@ EXTENDS Naturals, FiniteSets, TLC
 \* Bounds: two immutable file records, two opens; one writer and one FS user.
 \* "partial" includes interruption before FsInit publishes a UnixFS root; later
 \* OpenData refuses it. modified records writes within the current open attempt.
+\* A failed controller cancels Data's buffered WriteAt context. Idle flush and
+\* FSHandle.Release also use that writer, even with their background contexts;
+\* they must fail rather than wait for an unavailable writer/revision watcher.
 \* Substrate queue/CAS interleavings are covered in db/world/block and
 \* db/volume/common/kvtx models. Mounted Linux/QEMU containment is not modeled.
-CONSTANTS DurableBeforeAck, BootOwnsClose, AtomicRetention
+CONSTANTS DurableBeforeAck, BootOwnsClose, AtomicRetention, CancelStoppedWriter
 VARIABLES phase, kind, storeOpen, volumeRun, engineRun, users, syncPhase,
           record, prepared, durable, retained, acknowledged, boots, modified
 vars == <<phase, kind, storeOpen, volumeRun, engineRun, users, syncPhase,
@@ -74,6 +77,7 @@ SyncReturn == /\ syncPhase \in {"admitted", "durable"}
               /\ UNCHANGED <<phase, kind, storeOpen, volumeRun, engineRun, users,
                              prepared, durable, retained, boots, modified>>
 SyncFailure == /\ syncPhase \in {"buffered", "preparing", "admitted", "durable"}
+               /\ ((volumeRun /\ engineRun) \/ CancelStoppedWriter)
                /\ syncPhase' = "none" /\ record' = record + 1
                /\ UNCHANGED <<phase, kind, storeOpen, volumeRun, engineRun, users,
                               prepared, durable, retained, acknowledged, boots, modified>>

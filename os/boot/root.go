@@ -49,6 +49,8 @@ type Root struct {
 	snapshot world.Tx
 	// handle exposes only the pinned UnixFS revision without a writer.
 	handle *unixfs.FSHandle
+	// cursor owns cached readers even if FUSE omits Forget during unmount.
+	cursor *unixfs_world.FSCursor
 	// tools requires the retained tool image rather than the diskless probe.
 	tools bool
 }
@@ -127,8 +129,10 @@ func (r *Root) pin(ctx context.Context, le *logrus.Entry) error {
 // openHandle borrows the immutable transaction without tying its lifetime to
 // request cancellation. Each operation still receives its own request context.
 func (r *Root) openHandle(ctx context.Context, le *logrus.Entry) error {
+	// Retain the filesystem cursor independently of FUSE's optional Forget calls.
 	var err error
-	r.handle, err = unixfs.NewFSHandle(unixfs_world.NewFSCursorWithContext(context.WithoutCancel(ctx), le, r.snapshot, rootKey, unixfs_world.FSType_FSType_FS_NODE, nil, false))
+	r.cursor = unixfs_world.NewFSCursorWithContext(context.WithoutCancel(ctx), le, r.snapshot, rootKey, unixfs_world.FSType_FSType_FS_NODE, nil, false)
+	r.handle, err = unixfs.NewFSHandle(r.cursor)
 	if err != nil {
 		return err
 	}
@@ -143,7 +147,12 @@ func (r *Root) Handle() *unixfs.FSHandle {
 
 // Close releases the image after its workload and FUSE server have stopped.
 func (r *Root) Close() error {
-	// Drop readers before closing the World and its physical store.
+	// Invalidate the World cursor's entire block FS before dropping the root
+	// handle: cached FUSE child references may survive unmount without Forget.
+	// Cursor Release also joins watchers before the snapshot or storage closes.
+	if r.cursor != nil {
+		r.cursor.Release()
+	}
 	if r.handle != nil {
 		r.handle.Release()
 	}

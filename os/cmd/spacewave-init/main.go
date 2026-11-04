@@ -29,6 +29,10 @@ func main() {
 		finish(boot.EnterRoot(os.Args[2], os.Args[3]))
 		return
 	}
+	if len(os.Args) == 3 && os.Args[1] == "enter-console" {
+		finish(boot.EnterConsole(os.Args[2]))
+		return
+	}
 	if len(os.Args) == 2 && (os.Args[1] == "workload" || os.Args[1] == "workload-fail" || os.Args[1] == "workload-wait") {
 		finish(boot.RunWorkload(os.Args[1]))
 		return
@@ -41,9 +45,22 @@ func main() {
 		finish(seedImage(os.Args[2], os.Args[3]))
 		return
 	}
+	if len(os.Args) >= 2 && os.Args[1] == "seed-data" {
+		if len(os.Args) != 3 {
+			finish(errors.New("usage: spacewave-init seed-data ABSENT-DIRECTORY"))
+			return
+		}
+		finish(seedData(os.Args[2]))
+		return
+	}
 
 	// A real PID1 prepares only the independent bootstrap's kernel interfaces.
 	pid1 := os.Getpid() == 1
+	console := os.Getenv("SPACEWAVE_OS_MODE") == "console" || (len(os.Args) > 1 && os.Args[1] == "console")
+	if console && !pid1 {
+		finish(errors.New("console requires actual guest PID1; use probe for hosted checks"))
+		return
+	}
 	store := os.Getenv("SPACEWAVE_OS_STORE")
 	if pid1 {
 		finish(prepareBootstrap(store != ""))
@@ -60,8 +77,7 @@ func main() {
 		}
 	}
 
-	// Join cancellation and run the bounded supervisor, retaining serial output
-	// on failure. The initial experiment powers off instead of restarting work.
+	// Join cancellation while retaining serial diagnostics after a console failure.
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer cancel()
 
@@ -75,7 +91,19 @@ func main() {
 			workload = "workload-wait"
 		}
 	}
-	err := boot.Run(ctx, workload, store)
+
+	// Interactive mode is guest-only; hosted probes retain their bounded lifecycle.
+	var err error
+	if console {
+		terminal := os.Getenv("SPACEWAVE_OS_TTY")
+		if terminal == "" {
+			terminal = "/dev/ttyS0"
+		}
+		err = boot.RunConsole(ctx, store, os.Getenv("SPACEWAVE_OS_DATA"), terminal,
+			os.Getenv("SPACEWAVE_OS_NATIVE_BENCH") == "1")
+	} else {
+		err = boot.Run(ctx, workload, store)
+	}
 	if pid1 && store != "" {
 		// Run has joined the workload/server and closed storage before this.
 		unmountErr := unix.Unmount("/store", 0)
@@ -86,6 +114,9 @@ func main() {
 	}
 	if err != nil {
 		println("SPACEWAVE_OS_FAILED: " + err.Error())
+		if console {
+			finish(err)
+		}
 	} else {
 		println("SPACEWAVE_OS_PASS")
 	}
@@ -100,6 +131,11 @@ func main() {
 
 // prepareBootstrap mounts independent kernel interfaces and optional backing data.
 func prepareBootstrap(persistent bool) error {
+	// Keep all guest mounts private, including kernel mounts nested under UnixFS.
+	if err := unix.Mount("", "/", "", unix.MS_REC|unix.MS_PRIVATE, ""); err != nil {
+		return err
+	}
+
 	// Create kernel mountpoints on the independent initramfs.
 	for _, dir := range []string{"/proc", "/dev", "/tmp"} {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -117,6 +153,20 @@ func prepareBootstrap(persistent bool) error {
 	return boot.PrepareBackingStore(persistent)
 }
 
+// seedData initializes only an absent disposable data fixture through CreateData.
+func seedData(dir string) error {
+	// Complete the normal Data close fence before reporting fixture creation.
+	d, err := boot.CreateData(context.Background(), logrus.NewEntry(logrus.New()), dir)
+	if err != nil {
+		return err
+	}
+	if err := d.Close(); err != nil {
+		return err
+	}
+	println("SPACEWAVE_OS_DATA_SEEDED")
+	return nil
+}
+
 // seedImage imports the bootstrap probe and static tools, then verifies a reopen.
 func seedImage(dir, busyboxPath string) (retErr error) {
 	// Keep the seed input outside the image it will later execute.
@@ -131,7 +181,7 @@ func seedImage(dir, busyboxPath string) (retErr error) {
 	defer func() { retErr = errors.Join(retErr, file.Close()) }()
 
 	// Stream the caller's independent tool file without executing or collecting it.
-	busybox, err := os.Open(busyboxPath)
+	busybox, err := os.Open(busyboxPath) //nolint:gosec // The operator selects the tool input, outside any served filesystem.
 	if err != nil {
 		return err
 	}
@@ -159,7 +209,11 @@ func finish(err error) {
 		println("SPACEWAVE_OS_ERROR: " + err.Error())
 		if os.Getpid() == 1 {
 			// Preserve the stopped bootstrap and serial evidence for recovery.
-			select {}
+			println("Recovery: stores remain in place; this bootstrap will not reset or reseed them.")
+			println("Exit QEMU with Ctrl-a x. Check the error and fixture inputs, then rerun the same run-console.sh command to retry.")
+			for {
+				unix.Pause()
+			}
 		}
 		os.Exit(1)
 	}

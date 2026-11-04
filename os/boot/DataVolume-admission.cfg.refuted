@@ -3,6 +3,7 @@ CONSTANTS
   DurableBeforeAck = FALSE
   BootOwnsClose = TRUE
   AtomicRetention = TRUE
+  CancelStoppedWriter = TRUE
 INVARIANTS
   AcknowledgedSurvives
   StorageOutlivesUsers

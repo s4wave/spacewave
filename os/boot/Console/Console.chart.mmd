@@ -1,0 +1,19 @@
+---
+title: "Run and keep your files"
+---
+stateDiagram-v2
+  s0: Stopped
+  s1: Starting
+  s2: Recovery
+  s3: Stopping
+  s4: Console
+  [*] --> s0
+  s0 --> s1: Start
+  s1 --> s0: Host stops VM
+  s1 --> s2: Cannot open files
+  s2 --> s1: Retry
+  s1 --> s3: Exit
+  s1 --> s4: Ready
+  s3 --> s0: Host stops VM or Power off
+  s4 --> s0: Host stops VM
+  s4 --> s3: Exit

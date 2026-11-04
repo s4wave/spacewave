@@ -24,6 +24,9 @@ model:
 	bun node_modules/.bin/aptre-tla os/boot/Boot.cfg
 	bun node_modules/.bin/aptre-tla os/boot/PersistentBoot.cfg
 	bun node_modules/.bin/aptre-tla os/boot/DataVolume.cfg
+	bun node_modules/.bin/aptre-tla os/boot/GuestConsole.cfg
+	bun node_modules/.bin/aptre-tla os/boot/GuestConsole-hosted.cfg
+	bun node_modules/.bin/aptre-tla os/boot/Console/Console.cfg
 	mkdir -p $(OUT)/.tmp/direct-model
 	cp os/boot/Boot.tla $(OUT)/.tmp/direct-model/Boot.tla
 	cp os/boot/Boot-direct.cfg.refuted $(OUT)/.tmp/direct-model/Boot.cfg
@@ -47,7 +50,7 @@ model:
 	rm $(OUT)/.tmp/persistent-model/PersistentBoot.tla $(OUT)/.tmp/persistent-model/PersistentBoot.cfg
 	mkdir -p $(OUT)/.tmp/data-model
 	cp os/boot/DataVolume.tla $(OUT)/.tmp/data-model/DataVolume.tla
-	@for mutant in admission early-close unretained; do \
+	@for mutant in admission early-close unretained stopped-writer; do \
 		cp os/boot/DataVolume-$$mutant.cfg.refuted $(OUT)/.tmp/data-model/DataVolume.cfg; \
 		if bun node_modules/.bin/aptre-tla $(OUT)/.tmp/data-model/DataVolume.cfg >$(OUT)/.tmp/data-model/$$mutant.log 2>&1; then \
 			cat $(OUT)/.tmp/data-model/$$mutant.log; exit 1; \
@@ -56,4 +59,17 @@ model:
 	grep -F 'AcknowledgedSurvives' $(OUT)/.tmp/data-model/admission.log
 	grep -F 'StorageOutlivesUsers' $(OUT)/.tmp/data-model/early-close.log
 	grep -F 'AcknowledgedSurvives' $(OUT)/.tmp/data-model/unretained.log
+	grep -F 'ContainmentCompletes' $(OUT)/.tmp/data-model/stopped-writer.log
 	rm $(OUT)/.tmp/data-model/DataVolume.tla $(OUT)/.tmp/data-model/DataVolume.cfg
+	mkdir -p $(OUT)/.tmp/guest-model
+	cp os/boot/GuestConsole.tla $(OUT)/.tmp/guest-model/GuestConsole.tla
+	@for mutant in host-signals two-waiters early-close; do \
+		cp os/boot/GuestConsole-$$mutant.cfg.refuted $(OUT)/.tmp/guest-model/GuestConsole.cfg; \
+		if bun node_modules/.bin/aptre-tla $(OUT)/.tmp/guest-model/GuestConsole.cfg >$(OUT)/.tmp/guest-model/$$mutant.log 2>&1; then \
+			cat $(OUT)/.tmp/guest-model/$$mutant.log; exit 1; \
+		fi; \
+	done
+	grep -F 'GuestOnlySignals' $(OUT)/.tmp/guest-model/host-signals.log
+	grep -F 'OneWaiter' $(OUT)/.tmp/guest-model/two-waiters.log
+	grep -F 'StorageOutlivesUsers' $(OUT)/.tmp/guest-model/early-close.log
+	rm $(OUT)/.tmp/guest-model/GuestConsole.tla $(OUT)/.tmp/guest-model/GuestConsole.cfg
