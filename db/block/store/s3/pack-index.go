@@ -35,7 +35,9 @@ import (
 // Invariants:
 //   - A pack with an indexed p/ row has every block key in h rows, written in
 //     a transaction that committed no later than the row.
-//   - An e/ row and the p/ row of its pack are written in one transaction.
+//   - An e/ row is written in one transaction with a p/ row of its pack, so
+//     neither is written without the other. Marking the pack indexed later
+//     rewrites its p/ row alone.
 //   - The h row key is the last indexKeyBytes bytes of the block key, the end
 //     of its hash digest: 128 bits, so two blocks share a row only by a
 //     collision no one will find. It halves the bytes the index costs.
@@ -413,21 +415,59 @@ func putPackRows(ctx context.Context, tx kvtx.Tx, entry *packfile.PackfileEntry,
 }
 
 // addWritten indexes a pack this store wrote, with its entry and every block
-// key in one transaction.
+// key, in transactions of at most indexBatchKeys keys. Each transaction holds
+// the store's writer, so a large pack lets the writers that queued behind one
+// slice go before the next, rather than holding them for every key.
+//
+// The first transaction writes the e/ row and an unindexed p/ row with the
+// first slice, so the pack's number is durable before any h row names it: a
+// number taken only in memory would be given out again after a restart, and
+// h rows left by an interrupted index would place their blocks in a pack that
+// lacks them. The last slice marks the row indexed. A pack interrupted
+// between them loads as unindexed and the background indexer finishes it.
+// The pack is not in the manifest until this returns, so no lookup trusts its
+// row early. A pack of at most indexBatchKeys keys takes one transaction.
 func (x *packIndex) addWritten(ctx context.Context, entry *packfile.PackfileEntry, keys [][]byte) error {
+	// Number the pack, indexed in memory: the manifest does not hold it yet.
 	x.mtx.Lock()
 	row := x.nextRow(entry.GetId(), true)
 	x.mtx.Unlock()
 
+	// Write the slices, the rows with the first and the marker with the last.
+	value := binary.BigEndian.AppendUint32(nil, row.num)
+	for start := 0; start == 0 || start < len(keys); start += indexBatchKeys {
+		end := min(start+indexBatchKeys, len(keys))
+		stored := row
+		stored.indexed = end == len(keys)
+		if err := x.writeSlice(ctx, entry, stored, start == 0, keys[start:end], value); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// writeSlice writes the h rows of keys naming value, and the pack's row, with
+// its entry when first is set, in one transaction.
+func (x *packIndex) writeSlice(ctx context.Context, entry *packfile.PackfileEntry, row packRow, first bool, keys [][]byte, value []byte) error {
+	// Open the transaction, which queues behind waiting writers.
 	tx, err := x.store.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 	defer tx.Discard()
-	if err := putPackRows(ctx, tx, entry, row); err != nil {
+
+	// Write the pack's rows: all of them first, the indexed marker last.
+	switch {
+	case first:
+		err = putPackRows(ctx, tx, entry, row)
+	case row.indexed:
+		err = tx.Set(ctx, []byte(indexPackPrefix+entry.GetId()), row.marshal())
+	}
+	if err != nil {
 		return err
 	}
-	value := binary.BigEndian.AppendUint32(nil, row.num)
+
+	// Write the slice's h rows and commit.
 	for _, key := range keys {
 		if err := tx.Set(ctx, hashRowKey(key), value); err != nil {
 			return err

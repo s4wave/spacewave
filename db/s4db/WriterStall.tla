@@ -31,6 +31,12 @@
 \*              eviction can cost a second read. The descent reads one round
 \*              per tree level; a level is one tick here.
 \*
+\* Slice bounds the keys the big commit holds the lock for, as a background
+\* writer that splits a large commit into transactions does. With Slice
+\* above zero the big commit commits at most Slice of its keys per hold,
+\* then queues again behind every waiter before the next slice; zero
+\* commits every key in one hold.
+\*
 \* The system starts as production did after a restart: the cache cold,
 \* the big commit holding the lock and the checkpoint and the small commit
 \* queued behind it. Wait counters saturate past their bound so the state
@@ -39,7 +45,7 @@
 \* alike when the collector runs.
 EXTENDS Naturals, Sequences, FiniteSets
 CONSTANTS BigKeys, SmallKey, CacheCap, Pressure, FalsePositive, Mode,
-          CkptBound, WriterBound
+          Slice, CkptBound, WriterBound
 Writers == {"big", "small"}
 Actors == Writers \cup {"checkpoint"}
 Keys == BigKeys \cup {SmallKey}
@@ -48,18 +54,29 @@ Bound(a) == IF a = "checkpoint" THEN CkptBound ELSE WriterBound
 \* Under-lock phases a holder passes through, in order.
 Phases == {"prefetch", "lookup", "resolve", "write", "save"}
 
-VARIABLES owner, first, rest, pc, warm, overlay, maybe, dirty, waited
-vars == <<owner, first, rest, pc, warm, overlay, maybe, dirty, waited>>
+VARIABLES owner, first, rest, pc, warm, overlay, maybe, dirty, waited, left
+vars == <<owner, first, rest, pc, warm, overlay, maybe, dirty, waited, left>>
+
+\* The keys a hold of w resolves and writes: the next slice of the big
+\* commit's uncommitted keys, or all of a commit's keys.
+HoldKeys(w) ==
+ IF w = "big" /\ Slice > 0
+ THEN CHOOSE ks \in SUBSET left :
+        Cardinality(ks) = IF Cardinality(left) < Slice THEN Cardinality(left) ELSE Slice
+ ELSE KeysOf(w)
 
 \* The first phase under the lock, and what a writer does before it.
 FirstPhase(a) ==
  IF a = "checkpoint" THEN "save" ELSE IF Mode = "outside" THEN "resolve" ELSE "prefetch"
 
-\* Charge cost ticks to every waiter, saturating one past its bound.
-Charge(cost) ==
- waited' = [a \in Actors |-> IF pc[a] = "waiting"
-                             THEN IF waited[a] + cost > Bound(a) THEN Bound(a) + 1 ELSE waited[a] + cost
-                             ELSE waited[a]]
+\* The wait of a after cost more ticks, saturating one past its bound.
+Charged(a, cost) ==
+ IF pc[a] = "waiting"
+ THEN IF waited[a] + cost > Bound(a) THEN Bound(a) + 1 ELSE waited[a] + cost
+ ELSE waited[a]
+
+\* Charge cost ticks to every waiter.
+Charge(cost) == waited' = [a \in Actors |-> Charged(a, cost)]
 
 \* The cache after pages enter it, keeping at most CacheCap, any of them.
 Fill(pages) ==
@@ -72,12 +89,13 @@ Init ==
  /\ warm = {} /\ overlay = {} /\ dirty = [w \in Writers |-> {}]
  /\ maybe \in IF FalsePositive THEN SUBSET Keys ELSE {{}}
  /\ waited = [a \in Actors |-> 0]
+ /\ left = BigKeys
 
 \* A writer reads its keys outside the lock; nobody waits for that.
 Prepare(w) ==
  /\ pc[w] = "idle" /\ Mode = "outside"
  /\ pc' = [pc EXCEPT ![w] = "ready"] /\ dirty' = [dirty EXCEPT ![w] = {}]
- /\ UNCHANGED <<owner, first, rest, warm, overlay, maybe, waited>>
+ /\ UNCHANGED <<owner, first, rest, warm, overlay, maybe, waited, left>>
 
 Enter(a) ==
  /\ IF a \in Writers /\ Mode = "outside" THEN pc[a] = "ready" ELSE pc[a] = "idle"
@@ -89,18 +107,18 @@ Enter(a) ==
          /\ IF a = "checkpoint"
             THEN first' = Append(first, a) /\ rest' = rest
             ELSE rest' = Append(rest, a) /\ first' = first
- /\ UNCHANGED <<warm, overlay, maybe, dirty>>
+ /\ UNCHANGED <<warm, overlay, maybe, dirty, left>>
 
 \* Under the lock: one prefetch round over the keys the overlay seems not
 \* to answer. The batched descent resolves the keys in that round.
 Prefetch(w) ==
  /\ owner = w /\ pc[w] = "prefetch"
  /\ LET skip == IF Mode = "filter" THEN overlay \cup maybe ELSE overlay
-        cold == (KeysOf(w) \ skip) \ warm
+        cold == (HoldKeys(w) \ skip) \ warm
     IN /\ warm' \in Fill(cold)
        /\ Charge(IF cold = {} THEN 0 ELSE 1)
  /\ pc' = [pc EXCEPT ![w] = IF Mode = "batch" THEN "write" ELSE "lookup"]
- /\ UNCHANGED <<owner, first, rest, overlay, maybe, dirty>>
+ /\ UNCHANGED <<owner, first, rest, overlay, maybe, dirty, left>>
 
 \* Under the lock: a cold page for each key neither overlay nor cache holds.
 ReadCold(w, ks) ==
@@ -110,15 +128,15 @@ ReadCold(w, ks) ==
 
 Lookup(w) ==
  /\ owner = w /\ pc[w] = "lookup"
- /\ ReadCold(w, KeysOf(w))
+ /\ ReadCold(w, HoldKeys(w))
  /\ pc' = [pc EXCEPT ![w] = "write"]
- /\ UNCHANGED <<owner, first, rest, overlay, maybe, dirty>>
+ /\ UNCHANGED <<owner, first, rest, overlay, maybe, dirty, left>>
 
 Resolve(w) ==
  /\ owner = w /\ pc[w] = "resolve"
- /\ ReadCold(w, KeysOf(w) \cap dirty[w])
+ /\ ReadCold(w, HoldKeys(w) \cap dirty[w])
  /\ pc' = [pc EXCEPT ![w] = "write"]
- /\ UNCHANGED <<owner, first, rest, overlay, maybe, dirty>>
+ /\ UNCHANGED <<owner, first, rest, overlay, maybe, dirty, left>>
 
 \* Hand the lock to the first queued checkpoint, else the first writer.
 Handoff(a) ==
@@ -132,16 +150,32 @@ Handoff(a) ==
          THEN first' = Tail(first) /\ rest' = rest
          ELSE rest' = Tail(rest) /\ first' = first
 
+\* Commit a slice, and take the lock again behind every queued waiter, or at
+\* once when none waits.
+Yield(w) ==
+ LET q == IF Len(first) > 0 THEN first ELSE rest IN
+ IF Len(q) = 0
+ THEN /\ owner' = w /\ pc' = [pc EXCEPT ![w] = FirstPhase(w)]
+      /\ UNCHANGED <<first, rest>>
+ ELSE /\ owner' = Head(q)
+      /\ pc' = [pc EXCEPT ![w] = "waiting", ![Head(q)] = FirstPhase(Head(q))]
+      /\ IF Len(first) > 0
+         THEN first' = Tail(first) /\ rest' = Append(rest, w)
+         ELSE rest' = Append(Tail(rest), w) /\ first' = first
+
 \* Write the values and the record, mark the keys changed for every writer
-\* that read before this commit, and release.
+\* that read before this commit, and release. A big commit with keys left
+\* yields and resumes with the next slice; a finished one starts over.
 Write(w) ==
- /\ owner = w /\ pc[w] = "write"
- /\ overlay' = overlay \cup KeysOf(w)
- /\ dirty' = [x \in Writers |-> IF x # w /\ pc[x] \in {"ready", "waiting"}
-                               THEN dirty[x] \cup KeysOf(w) ELSE dirty[x]]
- /\ Charge(1)
- /\ Handoff(w)
- /\ UNCHANGED <<warm, maybe>>
+ LET more == w = "big" /\ left \ HoldKeys(w) # {}
+ IN /\ owner = w /\ pc[w] = "write"
+    /\ overlay' = overlay \cup HoldKeys(w)
+    /\ dirty' = [x \in Writers |-> IF x # w /\ pc[x] \in {"ready", "waiting"}
+                                  THEN dirty[x] \cup HoldKeys(w) ELSE dirty[x]]
+    /\ waited' = [a \in Actors |-> IF more /\ a = w THEN 0 ELSE Charged(a, 1)]
+    /\ left' = IF more THEN left \ HoldKeys(w) ELSE BigKeys
+    /\ IF more THEN Yield(w) ELSE Handoff(w)
+    /\ UNCHANGED <<warm, maybe>>
 
 \* The checkpoint's step under the lock: reserve, save and retire the
 \* overlay. Its new tree pages replace the cached ones, cold. The next
@@ -152,13 +186,13 @@ Save ==
  /\ maybe' \in IF FalsePositive THEN SUBSET Keys ELSE {{}}
  /\ Charge(1)
  /\ Handoff("checkpoint")
- /\ UNCHANGED dirty
+ /\ UNCHANGED <<dirty, left>>
 
 \* Readers outside the lock push a page out of the cache.
 Evict(k) ==
  /\ Pressure /\ k \in warm
  /\ warm' = warm \ {k}
- /\ UNCHANGED <<owner, first, rest, pc, overlay, maybe, dirty, waited>>
+ /\ UNCHANGED <<owner, first, rest, pc, overlay, maybe, dirty, waited, left>>
 
 Next ==
  \/ Save \/ \E k \in Keys: Evict(k)
