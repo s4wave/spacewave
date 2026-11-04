@@ -298,32 +298,28 @@ func (s *Store) copyStep(ctx context.Context, remote block.StoreOps, refs []*blo
 	// load admits.
 	read := make([]*block.PutBatchEntry, len(missing))
 	var mtx sync.Mutex
-	eg, egCtx := errgroup.WithContext(ctx)
-	for i, ref := range missing {
-		eg.Go(func() error {
-			return s.reads.read(egCtx, func() error {
-				// Read the block with its refs.
-				stored, err := s.local.GetStoredBlock(egCtx, ref)
-				if err != nil {
-					return errors.Wrap(err, "read block to copy")
-				}
+	err = s.reads.readEach(ctx, len(missing), func(ctx context.Context, i int) error {
+		// Read the block with its refs.
+		ref := missing[i]
+		stored, err := s.local.GetStoredBlock(ctx, ref)
+		if err != nil {
+			return errors.Wrap(err, "read block to copy")
+		}
 
-				// Count it, or keep it to write.
-				mtx.Lock()
-				defer mtx.Unlock()
-				switch {
-				case stored == nil:
-					counts.Gone++
-				case !stored.RefsKnown:
-					counts.RefsUnknown++
-				default:
-					read[i] = &block.PutBatchEntry{Ref: ref, Data: stored.Data, Refs: stored.Refs, RefsKnown: true}
-				}
-				return nil
-			})
-		})
-	}
-	if err := eg.Wait(); err != nil {
+		// Count it, or keep it to write.
+		mtx.Lock()
+		defer mtx.Unlock()
+		switch {
+		case stored == nil:
+			counts.Gone++
+		case !stored.RefsKnown:
+			counts.RefsUnknown++
+		default:
+			read[i] = &block.PutBatchEntry{Ref: ref, Data: stored.Data, Refs: stored.Refs, RefsKnown: true}
+		}
+		return nil
+	})
+	if err != nil {
 		return counts, err
 	}
 	entries := slices.DeleteFunc(read, func(entry *block.PutBatchEntry) bool { return entry == nil })

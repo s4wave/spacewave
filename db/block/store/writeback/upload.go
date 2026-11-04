@@ -411,17 +411,12 @@ func (s *Store) uploadChunk(ctx context.Context, remote block.StoreOps, batch []
 	// Read the blocks with their refs from the local store, as many at once
 	// as the disk's load admits.
 	read := make([]*block.PutBatchEntry, len(batch))
-	eg, egCtx := errgroup.WithContext(ctx)
-	for i := range batch {
-		eg.Go(func() error {
-			return s.reads.read(egCtx, func() error {
-				entry, err := s.readPending(egCtx, &batch[i])
-				read[i] = entry
-				return err
-			})
-		})
-	}
-	if err := eg.Wait(); err != nil {
+	err := s.reads.readEach(ctx, len(batch), func(ctx context.Context, i int) error {
+		entry, err := s.readPending(ctx, &batch[i])
+		read[i] = entry
+		return err
+	})
+	if err != nil {
 		return err
 	}
 
