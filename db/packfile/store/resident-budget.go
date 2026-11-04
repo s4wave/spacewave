@@ -6,16 +6,16 @@ import (
 	"sync/atomic"
 )
 
-// residentBudget bounds the resident span bytes and parsed index entries of
-// every PackReader sharing it.
+// residentBudget bounds the resident span bytes and index bytes of every
+// PackReader sharing it.
 //
 // PackfileStore owns one budget for all of its readers, so resident memory has
 // one limit however many packs are open. Readers charge span bytes as spans
-// are inserted and removed, and index entries as an index is published and
+// are inserted and removed, and index bytes as an index is published and
 // dropped. reclaim evicts the least recently used span of a cold reader,
 // chosen by the CLOCK ring of readers holding spans, until the bytes fit, and
 // reclaimIndexes drops a cold index, chosen by the CLOCK ring of loaded
-// indexes, until the entries fit. A hot pack keeps its bytes and index while
+// indexes, until the bytes fit. A hot pack keeps its bytes and index while
 // cold packs give theirs up; a dropped index reloads from the index cache on
 // its next use. Each eviction costs a short sweep of a ring rather than a
 // visit to every reader.
@@ -24,11 +24,14 @@ type residentBudget struct {
 	limit atomic.Int64
 	// used is the resident span bytes charged by every reader.
 	used atomic.Int64
-	// indexLimit is the parsed index entry limit. Zero or negative disables
-	// dropping indexes.
+	// indexLimit is the index byte limit. Zero or negative disables dropping
+	// indexes.
 	indexLimit atomic.Int64
-	// indexUsed is the parsed index entries charged by every reader.
+	// indexUsed is the index bytes charged by every reader.
 	indexUsed atomic.Int64
+	// parsedIndex makes readers load parsed indexes instead of searching the
+	// raw index tail in place. It applies to indexes loaded after it changes.
+	parsedIndex atomic.Bool
 
 	// mtx guards spanReaders, indexes and each reader's spanElem and
 	// indexElem. A reader takes mtx under its own lock; the budget never takes
@@ -38,7 +41,7 @@ type residentBudget struct {
 	// the next candidate in front. A span use sets the reader's spanRef; the
 	// sweep gives a referenced reader a second chance at the back of the ring.
 	spanReaders list.List
-	// indexes is the CLOCK ring of readers holding parsed index entries, the
+	// indexes is the CLOCK ring of readers holding indexes, the
 	// next candidate in front. A use sets the reader's indexRef; the sweep
 	// gives a referenced reader a second chance at the back of the ring.
 	indexes list.List
@@ -48,7 +51,8 @@ type residentBudget struct {
 func newResidentBudget(limit int64) *residentBudget {
 	b := &residentBudget{}
 	b.limit.Store(limit)
-	b.indexLimit.Store(defaultIndexEntryBudget)
+	b.indexLimit.Store(defaultIndexBudget)
+	b.parsedIndex.Store(parsedIndexDefault)
 	return b
 }
 
@@ -68,7 +72,7 @@ func (b *residentBudget) attach(e *PackReader) {
 	if len(e.spans) != 0 {
 		b.ringSpansLocked(e)
 	}
-	if len(e.entriesByKey) != 0 {
+	if e.indexCost != 0 {
 		b.ringIndexLocked(e)
 	}
 	b.mtx.Unlock()
@@ -133,11 +137,11 @@ func (b *residentBudget) nextSpanVictimLocked() *PackReader {
 }
 
 // indexChanged keeps a reader's place in the index ring in step with its
-// parsed entries: a reader holding entries joins the back of the ring as just
-// used, and one holding none leaves it. The caller holds the reader lock.
-func (b *residentBudget) indexChanged(e *PackReader, entries int) {
+// index: a reader holding an index of cost bytes joins the back of the ring as
+// just used, and one holding none leaves it. The caller holds the reader lock.
+func (b *residentBudget) indexChanged(e *PackReader, cost int64) {
 	b.mtx.Lock()
-	if entries != 0 {
+	if cost != 0 {
 		b.ringIndexLocked(e)
 	} else {
 		b.unringIndexLocked(e)
@@ -201,7 +205,7 @@ func (b *residentBudget) reclaim() {
 	}
 }
 
-// reclaimIndexes drops cold parsed indexes until the entries fit. It never
+// reclaimIndexes drops cold indexes until the bytes fit. It never
 // drops the last index in the ring, so a reader that just loaded its index can
 // use it even when that one index exceeds the limit. Each drop costs a short
 // sweep of the ring rather than a visit to every reader.

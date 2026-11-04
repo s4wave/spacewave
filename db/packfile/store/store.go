@@ -34,8 +34,10 @@ type Opener func(packID string, size int64) (*PackReader, error)
 // IndexCache stores raw kvfile index-tail bytes per packfile.
 //
 // Implementations are expected to be durable (kvtx-backed) in production
-// and ephemeral in tests. The engine parses and validates cached tail bytes
-// into runtime-only index views before serving block data.
+// and ephemeral in tests. The engine validates cached tail bytes into
+// runtime-only index views before serving block data, and keeps the slice Get
+// returns, so Get returns a copy the caller may keep and the cache never
+// modifies.
 type IndexCache interface {
 	// Get returns cached raw index-tail bytes for a packfile.
 	Get(ctx context.Context, packID string) ([]byte, bool, error)
@@ -211,12 +213,22 @@ func (s *PackfileStore) SetRangeCacheMaxBytes(maxBytes int64) {
 	s.budget.reclaim()
 }
 
-// SetIndexEntryLimit sets the parsed index entries every engine may hold
-// together. Above it the least recently used indexes drop and reload on their
-// next use. Zero or negative keeps every index loaded.
-func (s *PackfileStore) SetIndexEntryLimit(entries int64) {
-	s.budget.indexLimit.Store(entries)
+// SetIndexByteLimit sets the index bytes every engine may hold together.
+// Above it the least recently used indexes drop and reload on their next use.
+// Zero or negative keeps every index loaded.
+func (s *PackfileStore) SetIndexByteLimit(bytes int64) {
+	s.budget.indexLimit.Store(bytes)
 	s.budget.reclaimIndexes()
+}
+
+// SetParsedIndex selects the layout of pack indexes loaded from now on: parsed
+// kvfile entries when true, the raw index tail searched in place when false.
+// Both return the same blocks; the parsed layout is the one used before the
+// in-place layout, kept as a switch until the latter has run in production.
+// The environment variable SPACEWAVE_PACKFILE_PARSED_INDEX, when nonempty,
+// selects the parsed layout for stores that never call this.
+func (s *PackfileStore) SetParsedIndex(parsed bool) {
+	s.budget.parsedIndex.Store(parsed)
 }
 
 // SetStatsChangedCallback sets a callback invoked after observable stats change.

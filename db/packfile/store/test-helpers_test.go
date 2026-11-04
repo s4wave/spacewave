@@ -80,7 +80,7 @@ func buildTestPackOrdered(t *testing.T, ordered []struct{ Name, Data string }) (
 }
 
 // testPackItem returns a leaf pack item holding data.
-func testPackItem(t *testing.T, data string) packItem {
+func testPackItem(t testing.TB, data string) packItem {
 	t.Helper()
 	h, err := hash.Sum(hash.HashType_HashType_SHA256, []byte(data))
 	if err != nil {
