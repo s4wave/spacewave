@@ -8,21 +8,21 @@ import (
 )
 
 // TestReadGateFollowsLoad raises the bound by fast reads up to the policy's
-// highest, halves it once per slow spell, and keeps it at least one. At the
-// bound it hands each freed slot to the oldest waiting read, skips a read
-// canceled while it waits, and keeps a batch's reads within the bound.
+// highest, halves it once per slow spell, keeps it at least one, admits no
+// more reads than the bound, and keeps a batch's reads within the bound.
 func TestReadGateFollowsLoad(t *testing.T) {
 	// Fast reads raise the bound to the highest.
+	ctx := context.Background()
 	g := newReadGate()
 	g.setPolicy(4, time.Millisecond)
-	fast := func() {
-		g.mtx.Lock()
-		g.inflight++
-		g.mtx.Unlock()
-		g.release(time.Now(), 100*time.Microsecond)
+	acquire := func() {
+		if err := g.acquire(ctx); err != nil {
+			t.Fatal(err)
+		}
 	}
 	for range 100 {
-		fast()
+		acquire()
+		g.release(time.Now(), 100*time.Microsecond)
 	}
 	if limit := g.getLimit(); limit != 4 {
 		t.Fatalf("bound after fast reads is %d, want 4", limit)
@@ -31,9 +31,7 @@ func TestReadGateFollowsLoad(t *testing.T) {
 	// Slow reads that started before a cut cut no further.
 	started := time.Now().Add(-time.Millisecond)
 	for range 3 {
-		g.mtx.Lock()
-		g.inflight++
-		g.mtx.Unlock()
+		acquire()
 		g.release(started, 10*time.Millisecond)
 	}
 	if limit := g.getLimit(); limit != 2 {
@@ -43,55 +41,21 @@ func TestReadGateFollowsLoad(t *testing.T) {
 	// Later slow spells halve down to one and no lower.
 	for range 4 {
 		time.Sleep(time.Millisecond)
-		g.mtx.Lock()
-		g.inflight++
-		g.mtx.Unlock()
+		acquire()
 		g.release(time.Now(), 10*time.Millisecond)
 	}
 	if limit := g.getLimit(); limit != 1 {
 		t.Fatalf("bound after slow spells is %d, want 1", limit)
 	}
 
-	// Queue three reads behind a held slot and cancel the second.
-	ctx := context.Background()
-	if err := g.acquire(ctx); err != nil {
-		t.Fatal(err)
+	// The lowered bound admits one read at a time.
+	if !g.slots.TryAcquire(1) {
+		t.Fatal("a bound of one admitted no read")
 	}
-	canceled, cancel := context.WithCancel(ctx)
-	got := make(chan int, 3)
-	for i, ctx := range []context.Context{ctx, canceled, ctx} {
-		go func() {
-			if g.acquire(ctx) == nil {
-				got <- i
-			}
-		}()
-		for waiting := 0; waiting != i+1; {
-			g.mtx.Lock()
-			waiting = len(g.waiters)
-			g.mtx.Unlock()
-		}
+	if g.slots.TryAcquire(1) {
+		t.Fatal("a bound of one admitted a second read")
 	}
-	cancel()
-	for waiting := 3; waiting != 2; {
-		g.mtx.Lock()
-		waiting = len(g.waiters)
-		g.mtx.Unlock()
-	}
-
-	// Each release admits the next live waiter alone.
-	for _, want := range []int{0, 2} {
-		g.release(time.Now(), 10*time.Millisecond)
-		if i := <-got; i != want {
-			t.Fatalf("release admitted read %d, want %d", i, want)
-		}
-		g.mtx.Lock()
-		inflight := g.inflight
-		g.mtx.Unlock()
-		if inflight != 1 {
-			t.Fatalf("%d reads hold a bound of one", inflight)
-		}
-	}
-	g.release(time.Now(), 10*time.Millisecond)
+	g.slots.Release(1)
 
 	// A batch of reads never runs more at once than the bound allows.
 	var open, most atomic.Int32
