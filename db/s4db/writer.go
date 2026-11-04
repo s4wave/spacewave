@@ -9,7 +9,17 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/aperturerobotics/util/csync"
 	"github.com/pkg/errors"
+)
+
+// Priorities of the writer lock.
+const (
+	// prioWriter is the priority of write transactions and other foreground
+	// holders.
+	prioWriter = iota
+	// prioCheckpoint is the priority of background checkpoint steps.
+	prioCheckpoint
 )
 
 // compactBatch bounds the value bytes Compact holds in memory and commits
@@ -21,8 +31,14 @@ const compactBatch = 64 << 20
 type writer struct {
 	// db is the database.
 	db *DB
-	// mtx excludes this handle's other writers.
-	mtx writerLock
+	// mtx excludes this handle's other writers. Background checkpoint
+	// steps lock it at prioCheckpoint, ahead of writers at prioWriter: they
+	// hold it briefly, and a checkpoint that waits behind each queued
+	// transaction falls behind the commits, while the overlay and the file
+	// grow until it ends.
+	mtx csync.PrioMutex
+	// release releases mtx. It belongs to the holder.
+	release func()
 	// sp is the space state, current through spSeq and spGen. Replacing it
 	// also takes spMtx.
 	sp *space
@@ -45,9 +61,6 @@ type writer struct {
 	// held is set while this handle holds the writer lock. It is safe
 	// without the writer lock.
 	held atomic.Bool
-	// waiting counts this handle's writers waiting for the writer lock. It
-	// is safe without the writer lock.
-	waiting atomic.Int32
 	// building is set while a background checkpoint runs. It and builds
 	// are safe without the writer lock.
 	building atomic.Bool
@@ -100,19 +113,20 @@ func (w *writer) lockFirst(ctx context.Context) error {
 
 // lockAs takes the writer lock, ahead of queued writers when first is set.
 func (w *writer) lockAs(ctx context.Context, first bool) error {
-	// Exclude this handle's writers, then other processes, counted as
-	// waiting until both are held.
-	w.waiting.Add(1)
-	if err := w.mtx.lock(ctx, first); err != nil {
-		w.waiting.Add(-1)
-		return err
+	// Exclude this handle's writers, then other processes.
+	prio := prioWriter
+	if first {
+		prio = prioCheckpoint
 	}
-	_, err := w.db.lockFile(true)
-	w.waiting.Add(-1)
+	release, err := w.mtx.Lock(ctx, prio)
 	if err != nil {
-		w.mtx.unlock()
 		return err
 	}
+	if _, err := w.db.lockFile(true); err != nil {
+		release()
+		return err
+	}
+	w.release = release
 	w.held.Store(true)
 
 	// Apply what other processes wrote.
@@ -128,16 +142,25 @@ func (w *writer) lockAs(ctx context.Context, first bool) error {
 func (w *writer) tryLock() (bool, error) {
 	// Exclude this handle's writers, then other processes, without
 	// waiting.
-	if !w.mtx.tryLock() {
+	release, ok := w.mtx.TryLock()
+	if !ok {
 		return false, nil
 	}
 	ok, err := w.db.lockFile(false)
 	if err != nil || !ok {
-		w.mtx.unlock()
+		release()
 		return false, err
 	}
+	w.release = release
 	w.held.Store(true)
 	return true, nil
+}
+
+// waiting reports whether a writer or checkpoint step of this handle waits
+// for the writer lock. It is safe without the writer lock and costs one
+// atomic load, so a holder doing deferrable work can check it often.
+func (w *writer) waiting() bool {
+	return w.mtx.Waiting(prioWriter)
 }
 
 // unlock releases the writer lock and tells other processes the file
@@ -155,7 +178,9 @@ func (w *writer) unlock(err error) {
 	w.held.Store(false)
 	_ = w.db.unlockFile()
 	w.db.watch.notify()
-	w.mtx.unlock()
+	release := w.release
+	w.release = nil
+	release()
 }
 
 // setSpace replaces the space once no background checkpoint is writing a
