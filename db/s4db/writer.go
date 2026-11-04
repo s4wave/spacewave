@@ -28,8 +28,9 @@ type writer struct {
 	sp *space
 	// spMtx excludes replacing sp while a background checkpoint writes a
 	// page it reserved from sp, which a single-process handle does without
-	// the writer lock.
-	spMtx sync.Mutex
+	// the writer lock. A checkpoint's writes hold it shared, so the
+	// subtrees of one build write at once.
+	spMtx sync.RWMutex
 	// spSeq is the commit sp reflects.
 	spSeq uint64
 	// spGen is the checkpoint generation sp reflects.
@@ -796,7 +797,7 @@ func (w *writer) runCheckpoint(st *state, stripe int) {
 	// handle holds the file's writer lock for its lifetime and writes
 	// without waiting for this handle's writers.
 	write := out.write
-	out.write = func(buf []byte, page uint64) error {
+	out.write = func(buf []byte, page uint64, done run) error {
 		// Exclude other processes' writers from a shared file.
 		if !w.db.opts.SingleProcess {
 			if err := w.lockFirst(ctx); err != nil {
@@ -806,13 +807,13 @@ func (w *writer) runCheckpoint(st *state, stripe int) {
 		}
 
 		// Write while the space holds the reservations.
-		w.spMtx.Lock()
-		defer w.spMtx.Unlock()
+		w.spMtx.RLock()
+		defer w.spMtx.RUnlock()
 		if t.sp != w.sp || w.closing.Load() {
 			return errDropped
 		}
 		w.stats.checkpointBytes.Add(uint64(len(buf)))
-		return write(buf, page)
+		return write(buf, page, done)
 	}
 
 	// Build the tree, then flush its pages without the writer lock, so the
@@ -934,21 +935,18 @@ var errDropped = errors.New("checkpoint space reloaded")
 // drive at once while the batch before it finishes, so at most two batches
 // queue ahead of a commit's flush.
 func (w *writer) newTree(st *state) *tree {
-	var doneOff, doneN int64
-	out := &pageWriter{cache: w.db.p.cache, write: func(buf []byte, page uint64) error {
+	out := &pageWriter{cache: w.db.p.cache, write: func(buf []byte, page uint64, done run) error {
 		// Write the batch behind any running flush.
 		w.db.flush.yield()
-		off, n := pageOff(page), int64(len(buf))
+		off := pageOff(page)
 		if _, err := w.db.s.WriteAt(buf, off); err != nil {
 			return err
 		}
 
-		// Start it to the drive and wait for the last one.
-		err := w.db.s.writeBack(off, n, doneOff, doneN)
-		doneOff, doneN = off, n
-		return err
+		// Start it to the drive and wait for the writer's last one.
+		return w.db.s.writeBack(off, int64(len(buf)), pageOff(done.start), pageOff(done.n))
 	}}
-	return &tree{st: st, b: &builder{p: w.db.p, out: out}}
+	return &tree{st: st, b: newBuilder(w.db.p, out, w.db.opts.BuildWorkers)}
 }
 
 // build applies the overlay of t's state to its tree and writes the new
@@ -1108,7 +1106,9 @@ func (s *space) retire(t *tree, old extentRef) error {
 	// End the reservation and return the unused pages.
 	out, st := t.b.out, t.st
 	s.reserved = dropRuns(s.reserved, out.runs)
-	s.addFree(out.unused())
+	for _, r := range out.unused() {
+		s.addFree(r)
+	}
 
 	// Queue the replaced pages, the old space record, and the old log
 	// chunks.

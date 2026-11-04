@@ -27,6 +27,12 @@ type Options struct {
 	// RelocateBudget, when negative, disables compaction in the background.
 	// Zero selects 4 MiB; other values enable it.
 	RelocateBudget int64
+	// BuildWorkers bounds the subtrees a checkpoint rewrites at once, each
+	// reading and writing its own pages. Zero or one rewrites them one at a
+	// time, reading ahead of the rewrite. More workers finish a build that
+	// rewrites much of the index sooner, at the cost of drive and CPU time
+	// the handle's readers share.
+	BuildWorkers int
 	// SingleProcess skips watching the file for other processes' commits
 	// and holds the file's writer lock from open to close, so a background
 	// checkpoint writes its pages without waiting for this handle's

@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -28,9 +29,11 @@ func checkpointKeys() [][]byte {
 	return keys
 }
 
-// checkpointOptions keeps the update overlay below the automatic checkpoint threshold.
+// checkpointOptions keeps the update overlay below the automatic checkpoint
+// threshold, building with S4DB_CHECKPOINT_WORKERS workers when set.
 func checkpointOptions() Options {
-	return Options{CheckpointMin: 64 << 20, CheckpointMax: 64 << 20}
+	workers, _ := strconv.Atoi(os.Getenv("S4DB_CHECKPOINT_WORKERS"))
+	return Options{CheckpointMin: 64 << 20, CheckpointMax: 64 << 20, BuildWorkers: workers}
 }
 
 // TestCheckpointWorkingSetFixture creates an explicitly requested disposable fixture.
