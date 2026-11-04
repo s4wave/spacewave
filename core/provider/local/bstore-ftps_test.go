@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -136,6 +137,22 @@ func TestFTPSPlacementAndFallback(t *testing.T) {
 	}
 	if !f.packHolds(ref) {
 		t.Fatal("a fresh pack store lacks the uploaded block")
+	}
+
+	// The store's pack index places the uploaded block and not one it never
+	// saw, and reports no backend before one opens.
+	bstore := &BlockStore{placement: f.p}
+	f.p.remote = &atomic.Pointer[openBackend]{}
+	if _, err := bstore.LocateBlocks(f.ctx, []*block.BlockRef{ref}); !errors.Is(err, ErrNoPackBackend) {
+		t.Fatalf("locate before the backend opens = %v, want ErrNoPackBackend", err)
+	}
+	f.p.remote.Store(&openBackend{backend: backend, store: f.packs})
+	unseen, err := block.BuildBlockRef([]byte("never uploaded"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if found, err := bstore.LocateBlocks(f.ctx, []*block.BlockRef{ref, unseen}); err != nil || !found[0] || found[1] {
+		t.Fatalf("locate = %v, %v; want the uploaded block alone", found, err)
 	}
 
 	// An SFTP location whose server refuses connections lists the same packs
