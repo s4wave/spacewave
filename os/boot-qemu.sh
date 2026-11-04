@@ -39,7 +39,8 @@ if [ -n "$seed" ]; then
 	for marker in BACKING_MOUNTED REOPEN CONTENT BACKING_UNMOUNT_OK; do
 		grep -F "SPACEWAVE_OS_$marker" "$log"
 	done
-	expected=$(grep -E 'SPACEWAVE_OS_(REOPEN|CONTENT)' "$seed" | tr -d '\r')
+	# Compare the seed's independent reopen, not construction-time tool validation.
+	expected=$(sed -n '/SPACEWAVE_OS_REOPEN/,$p' "$seed" | grep -E 'SPACEWAVE_OS_(REOPEN|CONTENT)' | tr -d '\r')
 	actual=$(grep -E 'SPACEWAVE_OS_(REOPEN|CONTENT)' "$log" | tr -d '\r')
 	test "$expected" = "$actual"
 fi

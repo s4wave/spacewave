@@ -33,7 +33,7 @@ model:
 	rm $(OUT)/.tmp/direct-model/Boot.tla $(OUT)/.tmp/direct-model/Boot.cfg
 	mkdir -p $(OUT)/.tmp/persistent-model
 	cp os/boot/PersistentBoot.tla $(OUT)/.tmp/persistent-model/PersistentBoot.tla
-	@for mutant in head-first unretained early-close writable; do \
+	@for mutant in head-first unretained early-close writable unchecked-tools; do \
 		cp os/boot/PersistentBoot-$$mutant.cfg.refuted $(OUT)/.tmp/persistent-model/PersistentBoot.cfg; \
 		if bun node_modules/.bin/aptre-tla $(OUT)/.tmp/persistent-model/PersistentBoot.cfg >$(OUT)/.tmp/persistent-model/$$mutant.log 2>&1; then \
 			cat $(OUT)/.tmp/persistent-model/$$mutant.log; exit 1; \
@@ -43,6 +43,7 @@ model:
 	grep -F 'SelectedRootRetained' $(OUT)/.tmp/persistent-model/unretained.log
 	grep -F 'ClosedMeansUnused' $(OUT)/.tmp/persistent-model/early-close.log
 	grep -F 'ServingPreservesStore' $(OUT)/.tmp/persistent-model/writable.log
+	grep -F 'ReadyMeansComplete' $(OUT)/.tmp/persistent-model/unchecked-tools.log
 	rm $(OUT)/.tmp/persistent-model/PersistentBoot.tla $(OUT)/.tmp/persistent-model/PersistentBoot.cfg
 	mkdir -p $(OUT)/.tmp/data-model
 	cp os/boot/DataVolume.tla $(OUT)/.tmp/data-model/DataVolume.tla

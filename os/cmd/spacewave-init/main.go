@@ -33,8 +33,12 @@ func main() {
 		finish(boot.RunWorkload(os.Args[1]))
 		return
 	}
-	if len(os.Args) == 3 && os.Args[1] == "seed" {
-		finish(seedImage(os.Args[2]))
+	if len(os.Args) >= 2 && os.Args[1] == "seed" {
+		if len(os.Args) != 4 {
+			finish(errors.New("usage: spacewave-init seed ABSENT-DIRECTORY STATIC-BUSYBOX"))
+			return
+		}
+		finish(seedImage(os.Args[2], os.Args[3]))
 		return
 	}
 
@@ -113,8 +117,8 @@ func prepareBootstrap(persistent bool) error {
 	return boot.PrepareBackingStore(persistent)
 }
 
-// seedImage imports this bootstrap ELF once and verifies its committed reopen.
-func seedImage(dir string) (retErr error) {
+// seedImage imports the bootstrap probe and static tools, then verifies a reopen.
+func seedImage(dir, busyboxPath string) (retErr error) {
 	// Keep the seed input outside the image it will later execute.
 	path, err := os.Executable()
 	if err != nil {
@@ -125,8 +129,15 @@ func seedImage(dir string) (retErr error) {
 		return err
 	}
 	defer func() { retErr = errors.Join(retErr, file.Close()) }()
+
+	// Stream the caller's independent tool file without executing or collecting it.
+	busybox, err := os.Open(busyboxPath)
+	if err != nil {
+		return err
+	}
+	defer func() { retErr = errors.Join(retErr, busybox.Close()) }()
 	le := logrus.NewEntry(logrus.New())
-	if err := boot.SeedRoot(context.Background(), le, dir, file); err != nil {
+	if err := boot.SeedRoot(context.Background(), le, dir, file, busybox); err != nil {
 		return err
 	}
 

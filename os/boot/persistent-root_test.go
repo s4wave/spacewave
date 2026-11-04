@@ -11,9 +11,12 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"testing/iotest"
+	"time"
 
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
+	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
 	"github.com/sirupsen/logrus"
@@ -27,10 +30,14 @@ func TestPersistentRootReopen(t *testing.T) {
 	le := logrus.NewEntry(logrus.New())
 	dir := filepath.Join(t.TempDir(), "image")
 	path := filepath.Join(dir, "image.s4wave")
-	if err := SeedRoot(ctx, le, dir, bytes.NewBufferString("retained executable")); err != nil {
+	tools := make([]byte, (3<<20)+12345)
+	for i := range tools {
+		tools[i] = byte(i*53 + i/4096*7 + i/65536)
+	}
+	if err := SeedRoot(ctx, le, dir, bytes.NewBufferString("retained executable"), iotest.DataErrReader(bytes.NewReader(tools))); err != nil {
 		t.Fatal(err)
 	}
-	if err := SeedRoot(ctx, le, dir, bytes.NewBufferString("replacement")); !os.IsExist(err) {
+	if err := SeedRoot(ctx, le, dir, bytes.NewBufferString("replacement"), bytes.NewReader(tools)); !os.IsExist(err) {
 		t.Fatalf("reseed returned %v", err)
 	}
 
@@ -39,6 +46,7 @@ func TestPersistentRootReopen(t *testing.T) {
 	var id string
 	var head *bucket.ObjectRef
 	var descendant *block.BlockRef
+	var toolDescendant *block.BlockRef
 
 	// Both reopens preserve exact bytes. Cancellation leaves the ordinary read
 	// interfaces alive until explicit Close, even after file cursors were opened.
@@ -61,22 +69,38 @@ func TestPersistentRootReopen(t *testing.T) {
 			t.Fatal(err)
 		}
 		cancel()
+
+		// Capture the payload's final first-use block before tools or metadata reads.
+		if err := verifyImageFile(ctx, r.Handle(), "payload", newPayload()); err != nil {
+			t.Fatal(err)
+		}
+		reads := access.Snapshot().GetAccesses()
+		descendant = reads[len(reads)-1].GetRef().Clone()
+
+		// Normal readiness ends by reading every tool block, including its tail.
 		if err := r.VerifyImage(ctx, bytes.NewBufferString("retained executable")); err != nil {
 			t.Fatal(err)
 		}
+		reads = access.Snapshot().GetAccesses()
+		toolDescendant = reads[len(reads)-1].GetRef().Clone()
+
+		// Inspect exact imported bytes, modes, mountpoints and resolved applet targets.
+		checkImageTools(t, r, tools)
+		if err := file.SetPermissions(ctx, 0o644, time.Now()); !errors.Is(err, unixfs_errors.ErrReadOnly) {
+			t.Fatalf("immutable mutation returned %v", err)
+		}
+
+		// A cancelled opening context still leaves the retained payload reader alive.
 		data := make([]byte, 4096)
 		if n, err := file.ReadAt(ctx, 0, data); err != nil || n != int64(len(data)) {
 			t.Fatalf("read after caller cancellation = %d, %v", n, err)
 		}
 		file.Release()
 
-		// Retain only the final actual payload block read for the corruption
-		// adversary, never reconstruct the on-disk UnixFS chunk layout.
-		reads := access.Snapshot().GetAccesses()
-		if len(reads) == 0 || reads[len(reads)-1].GetRef().EqualsRef(head.GetRootRef()) {
-			t.Fatal("payload read did not reach a descendant block")
+		// Both corruption adversaries use observed descendants, not on-disk layout.
+		if descendant.EqualsRef(head.GetRootRef()) || toolDescendant.EqualsRef(head.GetRootRef()) {
+			t.Fatal("content reads did not reach descendant blocks")
 		}
-		descendant = reads[len(reads)-1].GetRef().Clone()
 		if err := r.Close(); err != nil {
 			t.Fatal(err)
 		}
@@ -85,6 +109,32 @@ func TestPersistentRootReopen(t *testing.T) {
 		}
 	}
 	t.Log("CANCELLATION_LIFETIME_OK readers survived cancellation until explicit close; store preserved")
+
+	// Corrupt an independent disposable copy so the original payload adversary remains.
+	checkMissingTool(t, path, toolDescendant, tools[:4096])
+	t.Run("failed-tool-input", func(t *testing.T) {
+		// An importer error must leave an unselected store that cannot be reseeded.
+		partial := filepath.Join(t.TempDir(), "partial")
+		err := SeedRoot(ctx, le, partial, bytes.NewBufferString("probe"), iotest.TimeoutReader(bytes.NewReader(tools)))
+		if !errors.Is(err, iotest.ErrTimeout) {
+			t.Fatalf("failed tool input returned %v", err)
+		}
+		path := filepath.Join(partial, "image.s4wave")
+		before := hashImageFile(t, path)
+		opened, err := OpenRoot(ctx, le, partial)
+		if opened != nil {
+			if err := opened.Close(); err != nil {
+				t.Error(err)
+			}
+			t.Fatal("opened a partial tool import")
+		}
+		if err == nil || hashImageFile(t, path) != before {
+			t.Fatalf("partial-tool refusal changed storage: %v", err)
+		}
+		if err := SeedRoot(ctx, le, partial, bytes.NewBufferString("probe"), bytes.NewReader(tools)); !os.IsExist(err) {
+			t.Fatalf("partial-tool reseed returned %v", err)
+		}
+	})
 
 	// Use the actual writable Volume publication API only for adversarial setup.
 	vol, err := volume_s4db.NewVolume(ctx, le, &volume_s4db.Config{Path: path, SingleProcess: true, NoGenerateKey: true, NoWriteKey: true})

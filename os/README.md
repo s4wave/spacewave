@@ -22,22 +22,26 @@ time. From the repository root on the Linux build host:
 make -f os/Makefile OUT=/path/to/artifacts GOSTYLE=/path/to/gostyle build check test model
 ```
 
-`test` runs only `TestRootPinsRevision` and `TestPersistentRootReopen`. The latter
-seeds real storage, verifies two closes/reopens with identical Volume ID, root and
+`test` runs `TestRootPinsRevision`, `TestPersistentRootReopen` and
+`TestDataVolumeReopen`. The retained-image case seeds real storage, verifies two
+closes/reopens with identical Volume ID, root and
 bytes, cancels the opening context while real readers remain live, and checks
 storage stays usable until explicit close. It attempts an atomic publication with
 an absent root and checks the earlier head survives. It then poisons the disposable
 head and separately removes an actually read payload descendant while leaving the
 root and retention intact. Both refusals preserve the database bytes, as do successful
 reopens and cancellation. These are falsification checks, not a power-loss proof.
+It also imports a tool input larger than the write buffer, checks exact content,
+file modes, applet targets and empty mountpoints, rejects an interrupted import,
+and removes a tool descendant to require a complete tool read before readiness.
 Run that same compiled case with a fresh `TMPDIR` on the test Btrfs image when
 checking the complete physical stack.
 
 `model` keeps the one-processor direct-exec regression and adds the persistent
 seed/fence/publication/reopen lifecycle, including cancellation, server failure,
 child containment, server join and snapshot release before storage close.
-Head-before-block, missing-retention, independent-closer and writable-serving mutants
-must fail. Backend flush behavior remains the existing
+Head-before-block, missing-retention, independent-closer, writable-serving and
+unchecked-tool mutants must fail. Backend flush behavior remains the existing
 `db/s4db/Durability.tla` contract; `db/volume/block/RootPublication.tla` covers the
 blocks-before-head boundary separately.
 
@@ -55,13 +59,15 @@ fallocate -l 1G "$STORAGE/btrfs.img"
 mkfs.btrfs -q "$STORAGE/btrfs.img"
 mkdir "$STORAGE/mount"
 mount -t btrfs -o loop,noatime "$STORAGE/btrfs.img" "$STORAGE/mount"
-GOMAXPROCS=1 "$BOOT/init" seed "$STORAGE/mount/image" > "$BOOT/seed.log" 2>&1
+GOMAXPROCS=1 "$BOOT/init" seed "$STORAGE/mount/image" /path/to/static-busybox > "$BOOT/seed.log" 2>&1
 umount "$STORAGE/mount"
 ```
 
-`seed DIR` creates an absent directory and refuses an existing one, including a
-partial seed. It streams this executable and the payload through ordinary durable
-World commits, fences the engine, then publishes exactly one generated
+`seed DIR STATIC-BUSYBOX` creates an absent directory and refuses an existing one,
+including a partial seed. The library entry is
+`boot.SeedRoot(ctx, logger, dir, executableReader, busyboxReader)`; both readers
+belong to the caller. It streams this executable, the payload and BusyBox through
+ordinary durable World commits, fences the engine, then publishes one generated
 `world_block_engine.HeadState` through the tracked bucket's
 `block.AtomicPublisher.PublishAtomic`. The `world-head` ObjectStore key uses the
 controller's existing encoding and retained-root name. The atomic publication
@@ -69,10 +75,32 @@ also retains `selected-image`, so later unrelated head changes cannot reclaim it
 The publication waits for durability and releases its receipt pin. There is no
 parallel manifest, JSON schema or boot-time fixture regeneration.
 
+Every newly retained image requires `/workload`, `/payload` and `/bin/busybox`
+as regular files with mode 0755. `/bin` has mode 0755 and holds relative symlinks
+to `busybox` for this fixed applet interface:
+
+```
+sh cat ls echo pwd mkdir rmdir rm cp mv touch sync dd wc head tail sha256sum
+sleep ps kill true false uname id stat mount umount
+```
+
+The caller supplies a static Linux BusyBox build implementing those applets.
+Seeding accepts an input stream; it does not execute BusyBox or certify its ELF,
+static linking, target architecture or applet support. Packaging and the later
+QEMU console run must establish those properties. `/data`, `/dev`, `/proc` and
+`/tmp` are empty mode-0755 mountpoints. The later scratch mount sets its own
+permissions; UnixFS currently preserves only ordinary permission bits. This step
+supplies mountpoints, not mounted storage or an interactive supervisor.
+The diskless probe keeps its original two-file image. Older retained two-file
+fixtures now fail completeness checks; they are never upgraded or reseeded.
+
 Boot owns one read-only s4db handle from inspection through serving and close.
 Missing files, unknown key layouts, missing heads/roots and missing retention are
-refused without migration or reset. Before serving, it streams and compares every
-required file against bootstrap inputs. The ordinary bare `store_kvtx` and World
+refused without migration or reset. Before serving, it compares the complete probe
+and payload against independent bootstrap inputs, checks every required node and
+link, and streams all BusyBox content against its immutable file length. The
+selected content-addressed World fixes tool bytes without another manifest or a
+runtime dependency on a bootstrap BusyBox. The ordinary bare `store_kvtx` and World
 cursor compose an immutable transaction without a writable Volume, controller or
 tracked reader-pin writes. This isolated experiment has no writer or collector;
 the existing durable selected root protects its descendants. Caller cancellation

@@ -49,6 +49,8 @@ type Root struct {
 	snapshot world.Tx
 	// handle exposes only the pinned UnixFS revision without a writer.
 	handle *unixfs.FSHandle
+	// tools requires the retained tool image rather than the diskless probe.
+	tools bool
 }
 
 // NewRoot builds a disposable real Volume and World, streams executable into
@@ -74,8 +76,8 @@ func NewRoot(ctx context.Context, le *logrus.Entry, executable io.Reader) (_ *Ro
 		return nil, err
 	}
 
-	// Construct and pin the same image used by the persistent seed mode.
-	if err := r.buildImage(ctx, le, executable); err != nil {
+	// Construct and pin the diskless probe without the retained image's tools.
+	if err := r.buildImage(ctx, le, executable, nil); err != nil {
 		return nil, err
 	}
 	if err := r.pin(ctx, le); err != nil {
@@ -84,8 +86,8 @@ func NewRoot(ctx context.Context, le *logrus.Entry, executable io.Reader) (_ *Ro
 	return r, nil
 }
 
-// buildImage streams both image files through ordinary World operations.
-func (r *Root) buildImage(ctx context.Context, le *logrus.Entry, executable io.Reader) error {
+// buildImage streams the probe and optional tools through ordinary World operations.
+func (r *Root) buildImage(ctx context.Context, le *logrus.Entry, executable, busybox io.Reader) error {
 	// Construct the image with the same World operations ordinary UnixFS uses.
 	ws := world.NewEngineWorldState(r.engine, true)
 	if _, _, err := unixfs_world.FsInit(ctx, ws, r.volume.GetPeerID(), rootKey, unixfs_world.FSType_FSType_FS_NODE, nil, false, time.Now()); err != nil {
@@ -104,6 +106,10 @@ func (r *Root) buildImage(ctx context.Context, le *logrus.Entry, executable io.R
 		return err
 	}
 
+	// Retained images add tools; the diskless probe keeps its original two files.
+	if busybox != nil {
+		return buildTools(ctx, writable, busybox)
+	}
 	return nil
 }
 
@@ -172,10 +178,19 @@ func (r *Root) VerifyImage(ctx context.Context, executable io.Reader) error {
 	}
 
 	// The later lazy mmap separately checks the same payload through Linux FUSE.
-	return verifyImageFile(ctx, r.handle, "payload", newPayload())
+	if err := verifyImageFile(ctx, r.handle, "payload", newPayload()); err != nil {
+		return err
+	}
+
+	// Every retained image must supply the complete fixed shell/tool layout.
+	if r.tools {
+		return verifyTools(ctx, r.handle)
+	}
+	return nil
 }
 
-// verifyImageFile compares complete content with bounded streaming memory.
+// verifyImageFile reads complete regular executable content with bounded memory.
+// A nil expected stream checks readability and length against immutable metadata.
 func verifyImageFile(ctx context.Context, root *unixfs.FSHandle, name string, expected io.Reader) (retErr error) {
 	// Borrow an ordinary io/fs reader on the frozen World.
 	file, err := unixfs_iofs.NewFS(ctx, root).Open(name)
@@ -183,20 +198,37 @@ func verifyImageFile(ctx context.Context, root *unixfs.FSHandle, name string, ex
 		return err
 	}
 	defer func() { retErr = errors.Join(retErr, file.Close()) }()
+	info, err := file.Stat()
+	if err != nil {
+		return err
+	}
+	if info.Mode() != 0o755 || info.Size() == 0 {
+		return errors.New("invalid image executable: " + name)
+	}
 
-	// Hash actual and expected streams without collecting their contents.
-	actualHash, expectedHash := sha256.New(), sha256.New()
+	// Hash the entire stored stream without collecting its contents.
+	actualHash := sha256.New()
 	actualBytes, err := io.Copy(actualHash, file)
 	if err != nil {
 		return err
 	}
-	expectedBytes, err := io.Copy(expectedHash, expected)
-	if err != nil {
-		return err
+	if actualBytes != info.Size() {
+		return errors.New("incomplete image file: " + name)
 	}
-	if actualBytes != expectedBytes || !bytes.Equal(actualHash.Sum(nil), expectedHash.Sum(nil)) {
-		return errors.New("incomplete or changed image file: " + name)
+
+	// Independent probe inputs additionally prove the complete expected content.
+	if expected != nil {
+		expectedHash := sha256.New()
+		expectedBytes, err := io.Copy(expectedHash, expected)
+		if err != nil {
+			return err
+		}
+		if actualBytes != expectedBytes || !bytes.Equal(actualHash.Sum(nil), expectedHash.Sum(nil)) {
+			return errors.New("incomplete or changed image file: " + name)
+		}
 	}
+
+	// Record the complete immutable bytes, including tools on every runtime reopen.
 	println("SPACEWAVE_OS_CONTENT file=" + name + " bytes=" + strconv.FormatInt(actualBytes, 10) +
 		" sha256=" + hex.EncodeToString(actualHash.Sum(nil)))
 	return nil

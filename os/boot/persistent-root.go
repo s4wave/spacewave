@@ -44,13 +44,21 @@ const (
 )
 
 // SeedRoot creates an absent disposable directory and publishes its complete
-// image once. Failure leaves the partial store for inspection, never a reset.
+// image once from an independent probe executable and static BusyBox input.
+// Failure leaves the partial store for inspection, never a reset. The caller
+// supplies a BusyBox build implementing the fixed applets in tools.go; seeding
+// verifies stored bytes and layout, not Linux execution or applet compatibility.
 //
 // Invariants: Sync fences referenced blocks before the head CAS; head and durable
 // retention commit together. Opening never seeds or migrates an unknown store.
 // The backing store and serving runtime stay bootstrap-side. Workloads exit and
 // the FUSE server joins before readers and physical storage close.
-func SeedRoot(ctx context.Context, le *logrus.Entry, dir string, executable io.Reader) (retErr error) {
+func SeedRoot(ctx context.Context, le *logrus.Entry, dir string, executable, busybox io.Reader) (retErr error) {
+	// Retained images always include explicit tools, never a partial probe image.
+	if executable == nil || busybox == nil {
+		return errors.New("seed requires independent executable and static BusyBox inputs")
+	}
+
 	// Exclusive directory creation prevents replacing anyone's existing store.
 	if err := os.Mkdir(dir, 0o700); err != nil {
 		return err
@@ -62,7 +70,7 @@ func SeedRoot(ctx context.Context, le *logrus.Entry, dir string, executable io.R
 	defer func() { retErr = errors.Join(retErr, r.Close()) }()
 
 	// Ordinary World commits durably prepare blocks, but do not select an image.
-	if err := r.buildImage(ctx, le, executable); err != nil {
+	if err := r.buildImage(ctx, le, executable, busybox); err != nil {
 		return errors.Join(errors.New("seed content"), err)
 	}
 	if _, err := r.engine.Sync(ctx); err != nil {
@@ -91,7 +99,7 @@ func OpenRoot(ctx context.Context, le *logrus.Entry, dir string) (_ *Root, retEr
 	if err != nil {
 		return nil, err
 	}
-	r := &Root{releaseStorage: db.Close}
+	r := &Root{releaseStorage: db.Close, tools: true}
 	defer func() {
 		if retErr != nil {
 			retErr = errors.Join(retErr, r.Close())

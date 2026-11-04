@@ -5,9 +5,10 @@ EXTENDS Naturals, TLC
 \* no controller, writer, GC or active reader-pin writer exists during serving.
 \* Cancellation contains the child; server failure first disconnects FUSE, then
 \* contains the child. Root alone closes storage after join and snapshot release.
+\* Completeness covers the probe, full tool content, applet links and mountpoints.
 \* Bounds: one image/identity, two boots. Linux syscalls, provider caches and the
 \* seed publisher's backend ordering remain separate implementation assumptions.
-CONSTANTS BlocksBeforeHead, AtomicRetention, ReadOnlyServe, IndependentCloser
+CONSTANTS BlocksBeforeHead, AtomicRetention, ReadOnlyServe, IndependentCloser, CheckTools
 VARIABLES phase, exists, pending, durable, saved, retained, storeOpen,
           pinned, mounted, child, server, boots, damaged, missingDesc,
           cancelled, refused, modified
@@ -18,7 +19,7 @@ Init == /\ phase = "absent" /\ exists = FALSE /\ pending = FALSE
         /\ durable = FALSE /\ saved = FALSE /\ retained = FALSE
         /\ storeOpen = FALSE /\ pinned = FALSE /\ mounted = FALSE
         /\ child = FALSE /\ server = FALSE /\ boots = 0
-        /\ damaged = FALSE /\ missingDesc = FALSE /\ cancelled = FALSE
+        /\ damaged = FALSE /\ missingDesc = "none" /\ cancelled = FALSE
         /\ refused = FALSE /\ modified = FALSE
 Create == /\ phase = "absent" /\ phase' = "seeding"
           /\ exists' = TRUE /\ storeOpen' = TRUE
@@ -57,7 +58,7 @@ PoisonRoot == /\ phase = "off" /\ saved /\ ~damaged /\ boots = 0
                              pinned, mounted, child, server, boots, missingDesc,
                              cancelled, refused, modified>>
 PoisonDesc == /\ phase = "off" /\ saved /\ ~damaged /\ boots = 0
-              /\ damaged' = TRUE /\ missingDesc' = TRUE
+              /\ damaged' = TRUE /\ missingDesc' \in {"probe", "tools", "layout"}
               /\ UNCHANGED <<phase, exists, pending, durable, saved, retained,
                              storeOpen, pinned, mounted, child, server, boots,
                              cancelled, refused, modified>>
@@ -71,11 +72,14 @@ Refuse == /\ phase = "off" /\ ~(saved /\ durable /\ retained)
           /\ UNCHANGED <<exists, pending, durable, saved, retained, storeOpen,
                          pinned, mounted, child, server, boots, damaged,
                          missingDesc, cancelled, modified>>
-Validate == /\ phase = "inspecting" /\ ~missingDesc /\ phase' = "ready"
+Validate == /\ phase = "inspecting"
+            /\ (missingDesc = "none" \/ (~CheckTools /\ missingDesc \in {"tools", "layout"}))
+            /\ phase' = "ready"
             /\ UNCHANGED <<exists, pending, durable, saved, retained, storeOpen,
                            pinned, mounted, child, server, boots, damaged,
                            missingDesc, cancelled, refused, modified>>
-RefuseContents == /\ phase = "inspecting" /\ missingDesc
+RefuseContents == /\ phase = "inspecting" /\ missingDesc # "none"
+                  /\ (CheckTools \/ missingDesc = "probe")
                   /\ phase' = "stopping" /\ refused' = TRUE
                   /\ UNCHANGED <<exists, pending, durable, saved, retained,
                                  storeOpen, pinned, mounted, child, server,
@@ -140,7 +144,7 @@ Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
 SavedRootHasBlocks == ~damaged => (saved => durable)
 SelectedRootRetained == saved => retained
 ReadyMeansComplete == (phase \in {"ready", "serving", "running"} \/ mounted \/ child) =>
-                       (saved /\ durable /\ ~missingDesc /\ retained /\ storeOpen)
+                       (saved /\ durable /\ missingDesc = "none" /\ retained /\ storeOpen)
 WorkBeforeUnmount == child => mounted /\ pinned /\ storeOpen
 ClosedMeansUnused == ~storeOpen => ~pinned /\ ~mounted /\ ~child /\ ~server
 RefusedPreservesStore == phase = "refused" => exists /\ ~storeOpen /\ ~modified

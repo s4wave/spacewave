@@ -1,5 +1,6 @@
 CONSTANTS BlocksBeforeHead = TRUE AtomicRetention = TRUE
 CONSTANTS ReadOnlyServe = TRUE IndependentCloser = TRUE
 SPECIFICATION Spec
+CONSTANT CheckTools = TRUE
 INVARIANT ClosedMeansUnused
 CHECK_DEADLOCK FALSE
