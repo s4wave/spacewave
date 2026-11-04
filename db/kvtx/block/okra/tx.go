@@ -16,6 +16,8 @@ type Tx struct {
 	write bool
 	bcs   *block.Cursor
 	root  *Root
+	// readRoot borrows immutable page traversal for readonly stored roots.
+	readRoot *block.ReadCursor
 	// inlineValues permits the layout selected by the owning store's format tag.
 	inlineValues bool
 
@@ -52,13 +54,17 @@ func NewTx(
 	}
 
 	// Bind the validated root to the block transaction and publication callback.
-	return &Tx{
+	out := &Tx{
 		write:         write,
 		bcs:           bcs,
 		root:          root,
 		tx:            btx,
 		rootChangedCb: rootChangedCb,
-	}, nil
+	}
+	if !write {
+		out.readRoot = block.NewReadCursor(ctx, bcs, root.GetRootPageRef())
+	}
+	return out, nil
 }
 
 func validateRootAtCursor(root *Root, bcs *block.Cursor) error {
@@ -149,6 +155,12 @@ func (t *Tx) Exists(ctx context.Context, key []byte) (bool, error) {
 		return false, nil
 	}
 
+	// Reuse immutable page nodes without changing writer cursor ownership.
+	if t.readRoot != nil {
+		page, _, _, err := t.findReadEntry(ctx, key)
+		return page != nil, err
+	}
+
 	// Find the leaf page containing the requested key.
 	page, _, _, err := t.findEntry(ctx, key)
 
@@ -170,6 +182,16 @@ func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 	// Avoid traversing an empty Okra tree.
 	if t.root.GetSize() == 0 {
 		return nil, false, nil
+	}
+
+	// Traverse immutable nodes while preserving every value representation.
+	if t.readRoot != nil {
+		page, cursor, index, err := t.findReadEntry(ctx, key)
+		if err != nil || page == nil {
+			return nil, false, err
+		}
+		value, err := readEntryValue(ctx, page, cursor, index)
+		return value, true, err
 	}
 
 	// Locate the requested key and its value cursor.
@@ -245,6 +267,26 @@ func (t *Tx) GetCursorAtKey(ctx context.Context, key []byte) (*block.Cursor, err
 	// Avoid traversing an empty Okra tree.
 	if t.root.GetSize() == 0 {
 		return nil, nil
+	}
+
+	// Materialize only the selected leaf when the caller needs a value cursor.
+	if t.readRoot != nil {
+		page, cursor, index, err := t.findReadEntry(ctx, key)
+		if err != nil || page == nil {
+			return nil, err
+		}
+		// Stored values need no materialized page or mutable ancestor edges.
+		entry := page.GetEntries()[index]
+		if entry.GetValueBlob() == nil {
+			return cursor.FollowRef(entryValueRefID(index), entry.GetValueRef()).Cursor(), nil
+		}
+
+		// Inline Blob values still require their owning page as a sub-block.
+		leaf := cursor.Cursor()
+		if _, err := block.UnmarshalBlock[Page](ctx, leaf); err != nil {
+			return nil, err
+		}
+		return page.FollowValue(leaf, index), nil
 	}
 
 	// Locate the requested key and its value cursor.

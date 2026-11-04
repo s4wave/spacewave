@@ -181,6 +181,7 @@ func (p *decodedBlockPool) put(key string, value decodedBlockCacheEntry, cost in
 	s.mtx.Lock()
 	e := s.entries[key]
 	if e != nil {
+		e.retireReadData()
 		e.value = value
 		e.queue.cost += cost - e.cost
 		s.retained.Add(cost - e.cost)
@@ -220,7 +221,10 @@ func (p *decodedBlockPool) put(key string, value decodedBlockCacheEntry, cost in
 // the loop ends within decodedBlockMaxFreq passes over the shard. The caller
 // must hold mtx for writing.
 func (s *decodedBlockShard) evictOne(budget int64, keep *decodedBlockPoolEntry) *decodedBlockPoolEntry {
-	for {
+	// Bound the existing clock passes even when lock-free readers keep touching
+	// nodes while this shard's writer retires entries.
+	limit := (len(s.entries) + 1) * (decodedBlockMaxFreq + 1)
+	for attempt := 0; attempt < limit; attempt++ {
 		// Take from probation while it is over its share, or when main has
 		// nothing else, and never the entry being stored.
 		fromProbation := s.probation.cost > budget/decodedBlockProbationDivisor
@@ -239,7 +243,11 @@ func (s *decodedBlockShard) evictOne(budget int64, keep *decodedBlockPoolEntry) 
 
 		// A probation entry found by a lookup moves to main; a main entry
 		// found by a lookup gets another pass with one lookup fewer.
-		if f := min(e.freq.Load(), decodedBlockMaxFreq); f > 0 {
+		f := min(e.freq.Load(), decodedBlockMaxFreq)
+		if e.value.read != nil && e.value.read.recent.Swap(false) {
+			f = max(f, 1)
+		}
+		if f > 0 && attempt+1 < limit {
 			if fromProbation {
 				e.freq.Store(0)
 			} else {
@@ -249,8 +257,10 @@ func (s *decodedBlockShard) evictOne(budget int64, keep *decodedBlockPoolEntry) 
 			continue
 		}
 		delete(s.entries, e.key)
+		e.retireReadData()
 		return e
 	}
+	return nil
 }
 
 // del removes the entry for key.
@@ -261,6 +271,7 @@ func (p *decodedBlockPool) del(key string) {
 	e := s.entries[key]
 	if e != nil {
 		delete(s.entries, key)
+		e.retireReadData()
 		e.queue.remove(e)
 		s.retained.Add(-e.cost)
 	}
@@ -273,6 +284,9 @@ func (p *decodedBlockPool) clear() {
 		s := &p.shards[i]
 		s.mtx.Lock()
 		s.retained.Add(-(s.probation.cost + s.main.cost))
+		for _, entry := range s.entries {
+			entry.retireReadData()
+		}
 		s.entries = make(map[string]*decodedBlockPoolEntry)
 		s.probation, s.main = decodedBlockQueue{}, decodedBlockQueue{}
 		s.mtx.Unlock()
@@ -313,4 +327,52 @@ func (q *decodedBlockQueue) remove(e *decodedBlockPoolEntry) {
 	}
 	e.queue, e.prev, e.next = nil, nil, nil
 	q.cost -= e.cost
+}
+
+// retireReadData releases decoded payloads and child links before an entry leaves.
+// The caller holds the shard lock; existing readers may finish with local data.
+func (e *decodedBlockPoolEntry) retireReadData() {
+	if e.value.read != nil {
+		e.value.read.data.Store(nil)
+	}
+}
+
+// attachReadData charges immutable traversal metadata to its existing entry.
+// It compares slot identity under the shard lock so an eviction or replacement
+// cannot resurrect a retired entry. Block callbacks and storage run elsewhere.
+func (p *decodedBlockPool) attachReadData(key string, slot *decodedBlockReadSlot, data *decodedBlockReadData, cost int64) bool {
+	// Attach once, only while the entry and its whole metadata fit this shard.
+	s := p.shard(key)
+	budget := p.shardBudget()
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	entry := s.entries[key]
+	if entry == nil || entry.value.read != slot {
+		return false
+	}
+	if slot.data.Load() != nil {
+		return true
+	}
+	if entry.cost+cost > budget {
+		return false
+	}
+
+	// Charge the complete metadata before exposing any memoized child slots.
+	entry.cost += cost
+	entry.queue.cost += cost
+	s.retained.Add(cost)
+	s.costAdded.Add(cost)
+	slot.data.Store(data)
+
+	// Retire other entries until the complete charged shard fits its budget.
+	for s.probation.cost+s.main.cost > budget {
+		victim := s.evictOne(budget, entry)
+		if victim == nil {
+			break
+		}
+		s.retained.Add(-victim.cost)
+		s.evictions.Add(1)
+		s.costEvicted.Add(victim.cost)
+	}
+	return true
 }
