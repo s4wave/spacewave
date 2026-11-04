@@ -9,6 +9,7 @@ import (
 
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
@@ -362,6 +363,26 @@ func (t *soEngineWriteTx) writeBlocks(ctx context.Context) error {
 	// Trace the block write.
 	ctx, task := trace.NewTask(ctx, "alpha/so-engine/write-tx/sync-blocks")
 	defer task.End()
+
+	// A declined atomic publication still advertises only physically complete
+	// payloads. Return the borrow before extending its owned buffer, so the
+	// extension cannot wait behind its own in-flight capacity.
+	if t.eng.replay.pages != nil && len(t.fork.payloads) != 0 {
+		batch, err := t.btx.TakePending(ctx)
+		if err != nil {
+			return err
+		}
+		carried := t.eng.replay.pages.payloadPages(batch.Entries, t.fork.payloads)
+		batch.Complete(block.ErrAtomicPublicationUnsupported)
+		if len(carried) != 0 {
+			if err := t.btx.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
+				_, err := cursor.GetBlockStore().PutBlockBatch(ctx, carried)
+				return err
+			}); err != nil {
+				return err
+			}
+		}
+	}
 
 	// Flush the blocks when the queue orders the state after them.
 	if sobject.QueueOrdersBlockWrites(t.eng.so) {

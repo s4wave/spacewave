@@ -228,17 +228,15 @@ func produceEngineGraph(ctx context.Context, tb *db_testbed.Testbed, name string
 		return nil, nil, err
 	}
 
-	// Use the same staged batch writer as the My Drive UploadTree handler.
-	writer := unixfs_world.NewBatchFSWriter(ws, objectKey, fsType, "")
-	defer writer.Release()
-	data := []byte("browser engine upload payload")
-	if err := writer.AddFile(ctx, nil, "upload.txt", unixfs.NewFSCursorNodeType_File(), int64(len(data)), bytes.NewReader(data), 0o644, time.Now()); err != nil {
+	// Exercise the resource uploads while this filesystem is still empty.
+	if err := uploadEngineResource(ctx, tb, so, engine, objectKey); err != nil {
 		return nil, nil, err
 	}
-	if err := writer.Commit(ctx); err != nil {
+
+	// Inspect the closed upload's advertisement before reading object metadata.
+	if _, err := inspectEngineGraph(ctx, tb, so, "resource before object read", nil); err != nil {
 		return nil, nil, err
 	}
-	writer.Release()
 
 	// Require the rendered filesystem root to be an actual replay payload.
 	object, err := world.MustGetObject(ctx, ws, objectKey)
@@ -250,19 +248,33 @@ func produceEngineGraph(ctx context.Context, tb *db_testbed.Testbed, name string
 	if err != nil {
 		return nil, nil, err
 	}
-	if _, err := inspectEngineGraph(ctx, tb, so, "filesystem payload", payload.GetRootRef()); err != nil {
+	if _, err := inspectEngineGraph(ctx, tb, so, "resource upload payload", payload.GetRootRef()); err != nil {
 		return nil, nil, err
 	}
 
-	// Exercise the typed resource stream and release its handles before inspection.
-	if err := uploadEngineResource(ctx, tb, engine, objectKey); err != nil {
+	// Retain the direct staged writer after the first-file resource path.
+	writer := unixfs_world.NewBatchFSWriter(ws, objectKey, fsType, "")
+	defer writer.Release()
+	data := []byte("browser engine upload payload")
+	if err := writer.AddFile(ctx, nil, "upload.txt", unixfs.NewFSCursorNodeType_File(), int64(len(data)), bytes.NewReader(data), 0o644, time.Now()); err != nil {
 		return nil, nil, err
 	}
+	if err := writer.Commit(ctx); err != nil {
+		return nil, nil, err
+	}
+	writer.Release()
+
+	// Inspect the direct write before another object metadata snapshot.
+	if _, err := inspectEngineGraph(ctx, tb, so, "direct before object read", nil); err != nil {
+		return nil, nil, err
+	}
+
+	// Keep the direct writer's payload membership check after its raw walk.
 	payload, _, err = object.GetRootRef(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
-	if _, err := inspectEngineGraph(ctx, tb, so, "resource upload payload", payload.GetRootRef()); err != nil {
+	if _, err := inspectEngineGraph(ctx, tb, so, "filesystem payload", payload.GetRootRef()); err != nil {
 		return nil, nil, err
 	}
 

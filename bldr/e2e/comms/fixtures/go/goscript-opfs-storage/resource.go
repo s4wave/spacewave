@@ -12,6 +12,7 @@ import (
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_world "github.com/s4wave/spacewave/core/resource/world"
+	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/core/space/world/objecttypes"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 	db_testbed "github.com/s4wave/spacewave/db/testbed"
@@ -24,7 +25,7 @@ import (
 
 // uploadEngineResource follows the public typed factory and streaming upload
 // path, then closes the resource connection before its caller inspects storage.
-func uploadEngineResource(ctx context.Context, tb *db_testbed.Testbed, engine world.Engine, objectKey string) error {
+func uploadEngineResource(ctx context.Context, tb *db_testbed.Testbed, so sobject.SharedObject, engine world.Engine, objectKey string) error {
 	// Resolve the production builtin factory on the fixture bus.
 	releaseTypes, err := tb.Bus.AddController(ctx, objecttype_controller.NewController(objecttypes.LookupObjectType), nil)
 	if err != nil {
@@ -107,6 +108,43 @@ func uploadEngineResource(ctx context.Context, tb *db_testbed.Testbed, engine wo
 		return err
 	}
 	fs := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(fsClient)
+
+	// Open the legacy upload with the exact Drive Quickstart starter guide.
+	guide := []byte(`# Getting Started
+
+Welcome to your new drive! This starter guide is written by the Drive
+Quickstart after the generic UnixFS filesystem is initialized.
+
+## Next steps
+
+Try uploading a few files and opening them here. Video files are the best ones
+to try first.
+`)
+	legacy, err := fs.UploadFile(rpcCtx)
+	if err != nil {
+		return err
+	}
+
+	// Send metadata and content together, as the starter guide client does.
+	if err := legacy.Send(&s4wave_unixfs.HandleUploadFileRequest{
+		Name: "getting-started.md", TotalSize: int64(len(guide)), Mode: 0o644, Data: guide,
+	}); err != nil {
+		return err
+	}
+
+	// Wait for legacy publication before any batch upload can replace its root.
+	legacyResponse, err := legacy.CloseAndRecv()
+	if err != nil {
+		return err
+	}
+	if legacyResponse.GetBytesWritten() != int64(len(guide)) {
+		return errors.New("legacy starter guide upload byte count differs")
+	}
+
+	// Inspect physical source bytes before reading the object or uploading again.
+	if _, err := inspectEngineGraph(ctx, tb, so, "legacy upload before tree", nil); err != nil {
+		return err
+	}
 
 	// Stream the exact pairing file through the handler's reader and commit.
 	data := []byte("This file survives after the original pairing client leaves.\n")

@@ -137,15 +137,52 @@ func (w *worldPages) pagesOf(roots ...*block.BlockRef) []*block.PutBatchEntry {
 	if w == nil {
 		return nil
 	}
-	w.set.mu.RLock()
-	defer w.set.mu.RUnlock()
+	return w.set.entriesOf(roots)
+}
+
+// entriesOf snapshots kept bytes under roots while their reader or stage owns
+// the build. Returned entries are immutable and remain valid after map removal.
+func (s *pageSet) entriesOf(roots []*block.BlockRef) []*block.PutBatchEntry {
+	// Retain immutable entries while the bounded reachability index is stable.
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	var entries []*block.PutBatchEntry
-	for key := range w.set.reach(roots) {
-		if e := w.set.pages[key].entry; e != nil {
-			entries = append(entries, e)
+	for key := range s.reach(roots) {
+		if entry := s.pages[key].entry; entry != nil {
+			entries = append(entries, entry)
 		}
 	}
 	return entries
+}
+
+// payloadPages returns the kept pages a published payload needs outside the
+// engine view. New candidate blocks can bridge a payload root to an older kept
+// subtree, so both the roots and the candidate payload's children seed the walk.
+// The walk touches only the bounded candidate and tracked-page maps, never disk.
+func (w *worldPages) payloadPages(candidate []*block.PutBatchEntry, roots []*block.BlockRef) []*block.PutBatchEntry {
+	// Engines that store every World have no deferred bytes to carry.
+	if w == nil || len(roots) == 0 {
+		return nil
+	}
+
+	// Include the outgoing frontier of every new candidate payload block.
+	payload, _ := splitPayloads(candidate, roots)
+	frontier := slices.Clone(roots)
+	present := make(map[string]struct{}, len(payload))
+	for _, entry := range payload {
+		frontier = append(frontier, entry.Refs...)
+		present[entry.Ref.MarshalString()] = struct{}{}
+	}
+
+	// Carry only kept bytes not already in the candidate payload. Stored
+	// tracked parents are traversed through their retained child lists.
+	var carried []*block.PutBatchEntry
+	for _, entry := range w.pagesOf(frontier...) {
+		if _, ok := present[entry.Ref.MarshalString()]; !ok {
+			carried = append(carried, entry)
+		}
+	}
+	return carried
 }
 
 // split separates the kept pages among entries, which a publication naming
@@ -392,7 +429,7 @@ func (w *worldPages) OpenStage(ctx context.Context) (block.StoreOps, func(), err
 	if err != nil {
 		return nil, nil, err
 	}
-	return block.NewStoreRW(&pageView{StoreOps: w.inner, set: w.set}, &pageView{StoreOps: stage, set: w.set}), release, nil
+	return block.NewStoreRW(&pageView{StoreOps: w.inner, set: w.set}, &stagePageView{pageView: pageView{StoreOps: stage, set: w.set}}), release, nil
 }
 
 // ReleaseRoots drops the staging ownership of roots in the store.

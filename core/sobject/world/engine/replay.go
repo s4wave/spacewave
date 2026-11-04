@@ -657,6 +657,9 @@ func (r *replayer) holdSpan(ctx context.Context, hold *rootHold) error {
 	// so the next save starts a new chain.
 	switch {
 	case entry != nil:
+		// An operation payload may reuse metadata held only in the page view.
+		// Its complete physical graph must precede a durable replay save.
+		hold.entries = append(hold.entries, r.pages.payloadPages(nil, entry.Refs)...)
 		if err := hold.refBlock(ctx, ReplaySpanRootName, entry.Data, entry.Refs, false); err != nil {
 			return err
 		}
@@ -711,7 +714,10 @@ func (r *replayer) pendingSave(ctx context.Context, publisher sobject.StatePubli
 	var roots []block.NamedRoot
 	switch {
 	case entry != nil:
-		entries, err = carryNamed(ctx, r.store(), []*block.PutBatchEntry{entry}, candidate, entry.Refs)
+		// Payload publication must materialize every reused kept descendant in
+		// this same receipt. These are ordinary payload edges, not netted pages.
+		entries = append(r.pages.payloadPages(candidate, entry.Refs), entry)
+		entries, err = carryNamed(ctx, r.store(), entries, candidate, entry.Refs)
 		if err != nil {
 			return nil, nil, nil, err
 		}
