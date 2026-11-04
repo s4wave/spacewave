@@ -184,7 +184,9 @@ type queueDelta struct {
 }
 
 // queueMarks queues the marked blocks in tx and returns the blocks it queued
-// for the first time.
+// for the first time. It reads the blocks' markers in one batch, so a cold
+// index costs one round of reads rather than one read per block while tx
+// holds the store's writer.
 //
 // A block that is queued already keeps its first write time, so it uploads
 // with its first write. Its queue value changes, so an upload that read the
@@ -192,18 +194,32 @@ type queueDelta struct {
 // could have read the block absent, as a swept block that this write stored
 // again.
 func queueMarks(ctx context.Context, tx kvtx.Tx, marks []Mark) (queueDelta, error) {
+	// Read every block's marker, which names its queue entry.
+	keys := make([][]byte, len(marks))
+	for i, mark := range marks {
+		keys[i] = markedKey(mark.Hash)
+	}
+	entries, found, err := kvtx.GetBatch(ctx, tx, keys)
+	if err != nil {
+		return queueDelta{}, err
+	}
+
+	// Queue each block, finding a block listed twice under the entry its
+	// first listing queued.
 	var delta queueDelta
 	now := time.Now()
-	for _, mark := range marks {
-		// Find the block's marker, which names its queue entry.
-		key := markedKey(mark.Hash)
-		queued, found, err := tx.Get(ctx, key)
-		if err != nil {
-			return queueDelta{}, err
+	queuedHere := make(map[string][]byte)
+	for i, mark := range marks {
+		key := keys[i]
+		queued := entries[i]
+		if q, ok := queuedHere[string(key)]; ok {
+			queued = q
+		} else if !found[i] {
+			queued = nil
 		}
 
 		// Change the queue value of a block that is queued already.
-		if found && len(queued) != 0 {
+		if len(queued) != 0 {
 			if err := tx.Set(ctx, queued, queueValue(mark.Size, now)); err != nil {
 				return queueDelta{}, err
 			}
@@ -219,6 +235,7 @@ func queueMarks(ctx context.Context, tx kvtx.Tx, marks []Mark) (queueDelta, erro
 		if err := tx.Set(ctx, entryKey, queueValue(mark.Size, time.Time{})); err != nil {
 			return queueDelta{}, err
 		}
+		queuedHere[string(key)] = entryKey
 		if delta.added == 0 || at.Before(delta.oldest) {
 			delta.oldest = at
 		}
