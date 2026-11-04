@@ -292,9 +292,10 @@ var startCacheHits = sync.OnceFunc(func() {
 })
 
 // keptByCache reports whether a decoded-cache hit within readKeepAge or a live
-// hold keeps the block with hash h.
+// hold keeps the block with hash h. With CacheReadsEnv off it keeps nothing
+// and touches neither table.
 func keptByCache(h *hash.Hash) bool {
-	return cacheHits.has(h) || block.Held(h)
+	return !cacheReadsOff && (cacheHits.has(h) || block.Held(h))
 }
 
 // hitSlotWays is the number of slots in one hitSet bucket.
