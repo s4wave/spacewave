@@ -11,6 +11,7 @@ import (
 
 	bdb "github.com/aperturerobotics/bbolt"
 	bdberrors "github.com/aperturerobotics/bbolt/errors"
+	"github.com/aperturerobotics/util/csync"
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
@@ -29,7 +30,23 @@ type Store struct {
 	bucket []byte
 	// flusher makes ordered commits durable with a bolt flush.
 	flusher *kvtx.OrderedFlusher
+	// writers orders the write transactions ahead of bolt's own writer lock,
+	// so a transaction opened with kvtx.WithBackgroundWriteContext waits
+	// behind every foreground writer that is waiting. Bolt's lock grants
+	// waiters in no priority order, so without it a burst of background
+	// writes, such as cache fills or upload marker clears, queues ahead of a
+	// player's write.
+	writers csync.PrioMutex
 }
+
+// Priorities of Store.writers.
+const (
+	// writerBackground is the priority of write transactions opened with
+	// kvtx.WithBackgroundWriteContext.
+	writerBackground = iota - 1
+	// writerForeground is the priority of every other write transaction.
+	writerForeground
+)
 
 // NewStore constructs a new key-value store from a bolt db.
 func NewStore(db *bdb.DB, bucket []byte) *Store {
@@ -73,14 +90,35 @@ func (s *Store) RefreshForCoordinationLock() error {
 // NewTransaction returns a new transaction against the store.
 // Indicate write if the transaction will not be read-only.
 // Always call Discard() after you are done with the transaction.
+//
+// A write transaction first takes the Store's writer turn, behind every
+// waiting foreground writer when ctx carries kvtx.WithBackgroundWriteContext,
+// and holds it until the transaction commits or is discarded.
 func (s *Store) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	// Take the writer turn at the transaction's priority.
+	var release func()
+	if write {
+		prio := writerForeground
+		if kvtx.IsBackgroundWriteContext(ctx) {
+			prio = writerBackground
+		}
+		var err error
+		if release, err = s.writers.Lock(ctx, prio); err != nil {
+			return nil, err
+		}
+	}
+
 	// Open the Bolt transaction and attach its durability tracking Store.
 	txn, err := s.db.Begin(write)
 	if err != nil {
+		if release != nil {
+			release()
+		}
 		return nil, err
 	}
 	tx := NewTx(txn, s.bucket)
 	tx.store = s
+	tx.release = release
 	return tx, nil
 }
 

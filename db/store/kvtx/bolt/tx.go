@@ -21,6 +21,9 @@ type Tx struct {
 	// store tracks ordered commit durability, nil outside a Store.
 	store       *Store
 	discardOnce atomic.Bool
+	// release ends the Store's writer turn once bolt has closed the
+	// transaction, nil for a read or a transaction outside a Store.
+	release func()
 }
 
 // NewTx constructs a new bolt transaction.
@@ -214,7 +217,15 @@ func (t *Tx) commit(commitFn func() error) (err error) {
 	if !t.discardOnce.CompareAndSwap(false, true) {
 		return errors.New("commit called after discard")
 	}
+	defer t.releaseWriter()
 	return commitFn()
+}
+
+// releaseWriter ends the Store's writer turn, if the transaction holds one.
+func (t *Tx) releaseWriter() {
+	if t.release != nil {
+		t.release()
+	}
 }
 
 // Exists checks if a key exists.
@@ -240,6 +251,7 @@ func (t *Tx) Exists(ctx context.Context, key []byte) (exists bool, err error) {
 // Can be called unlimited times.
 func (t *Tx) Discard() {
 	if t.discardOnce.CompareAndSwap(false, true) {
+		defer t.releaseWriter()
 		defer func() {
 			_ = recover()
 		}()
