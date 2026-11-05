@@ -49,6 +49,38 @@ func TestBolt(t *testing.T) {
 	}
 	defer db.db.Close()
 
+	// Read the new database before any write has created its bucket.
+	rtx, err := db.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if size, err := rtx.Size(ctx); err != nil || size != 0 {
+		t.Fatalf("Size on new store = %d, %v, want 0, nil", size, err)
+	}
+	if _, found, err := rtx.Get(ctx, []byte("missing")); err != nil || found {
+		t.Fatalf("Get on new store = %v, %v, want absent", found, err)
+	}
+	if exists, err := rtx.Exists(ctx, []byte("missing")); err != nil || exists {
+		t.Fatalf("Exists on new store = %v, %v, want absent", exists, err)
+	}
+	err = rtx.ScanPrefix(ctx, nil, func(key, value []byte) error {
+		return errors.New("ScanPrefix on new store visited " + string(key))
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	for _, reverse := range []bool{false, true} {
+		it := rtx.Iterate(ctx, nil, true, reverse)
+		if it.Next() || it.Seek(nil) != nil || it.Valid() || it.Err() != nil {
+			t.Fatalf("Iterate(reverse=%v) on new store is not empty: %v", reverse, it.Err())
+		}
+		it.Close()
+	}
+	if err := rtx.Delete(ctx, []byte("missing")); !errors.Is(err, kvtx.ErrNotWrite) {
+		t.Fatalf("Delete in read transaction = %v, want ErrNotWrite", err)
+	}
+	rtx.Discard()
+
 	// Run the shared storage contracts through the logged transaction adapter.
 	ktx := store_kvtx.NewKVTx(
 		kvkey,

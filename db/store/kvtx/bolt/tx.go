@@ -11,7 +11,6 @@ import (
 	"sync/atomic"
 
 	bdb "github.com/aperturerobotics/bbolt"
-	bdberrors "github.com/aperturerobotics/bbolt/errors"
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
@@ -29,16 +28,15 @@ func NewTx(txn *bdb.Tx, bucket []byte) *Tx {
 	return &Tx{txn: txn, bucket: bucket}
 }
 
-// getBucket returns the bucket
+// getBucket returns the store's bucket, creating it in a write transaction.
+//
+// A read transaction returns a nil bucket when no write has created it yet,
+// as in a new database; readers treat a nil bucket as an empty store.
 func (t *Tx) getBucket() (*bdb.Bucket, error) {
 	if t.txn.Writable() {
 		return t.txn.CreateBucketIfNotExists(t.bucket)
 	}
-	bk := t.txn.Bucket(t.bucket)
-	if bk == nil {
-		return nil, bdberrors.ErrBucketNotFound
-	}
-	return bk, nil
+	return t.txn.Bucket(t.bucket), nil
 }
 
 // Get returns values for a key.
@@ -51,10 +49,7 @@ func (t *Tx) Get(ctx context.Context, key []byte) (out []byte, found bool, err e
 
 	// Open the Bolt bucket or report that the key is absent.
 	bkt, err := t.getBucket()
-	if err == bdberrors.ErrBucketNotFound {
-		return nil, false, nil
-	}
-	if err != nil {
+	if err != nil || bkt == nil {
 		return nil, false, err
 	}
 
@@ -73,7 +68,7 @@ func (t *Tx) Size(ctx context.Context) (size uint64, err error) {
 	// Read the Bolt bucket statistics while translating snapshot failures.
 	defer recoverBoltTxPanic(&err)
 	bkt, err := t.getBucket()
-	if err != nil {
+	if err != nil || bkt == nil {
 		return 0, err
 	}
 	stats := bkt.Stats()
@@ -107,7 +102,7 @@ func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value [
 	// Open the Bolt bucket for prefix scanning and translate snapshot failures.
 	defer recoverBoltTxPanic(&err)
 	bkt, err := t.getBucket()
-	if err != nil {
+	if err != nil || bkt == nil {
 		return err
 	}
 
@@ -142,11 +137,16 @@ func (t *Tx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []by
 // Iterates in sorted order, reverse reverses the key iteration.
 // The prefix is NOT clipped from the output keys.
 func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvtx.Iterator {
+	// Open the Bolt bucket, iterating nothing when it does not exist yet.
 	bkt, err := t.getBucket()
 	if err != nil {
 		return kvtx.NewErrIterator(err)
 	}
+	if bkt == nil {
+		return newSliceIterator(nil, reverse)
+	}
 
+	// Walk the bucket through a prefix-bounded Bolt cursor.
 	return NewIterator(bkt.Cursor(), prefix, sort, reverse)
 }
 
@@ -154,10 +154,13 @@ func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvt
 // This will not be committed until Commit is called.
 // Not found should not return an error.
 func (t *Tx) Delete(ctx context.Context, key []byte) (err error) {
-	// Require a nonempty deletion key and translate Bolt snapshot failures.
+	// Require a writable Bolt transaction and nonempty key before mutation.
 	defer recoverBoltTxPanic(&err)
 	if len(key) == 0 {
 		return kvtx.ErrEmptyKey
+	}
+	if !t.txn.Writable() {
+		return kvtx.ErrNotWrite
 	}
 
 	// Acquire the Bolt bucket containing the key to delete.
@@ -217,10 +220,7 @@ func (t *Tx) Exists(ctx context.Context, key []byte) (exists bool, err error) {
 		return false, kvtx.ErrEmptyKey
 	}
 	bkt, err := t.getBucket()
-	if err != nil {
-		if err == bdberrors.ErrBucketNotFound {
-			return false, nil
-		}
+	if err != nil || bkt == nil {
 		return false, err
 	}
 
