@@ -118,12 +118,6 @@ type packIndex struct {
 	// version counts the changes to rows, so Indexed answers stay valid
 	// while it holds. Changed with mtx held.
 	version atomic.Uint64
-
-	// tableLoaded is closed once load has registered the pack table, before
-	// it reads the entries, or once load failed or found the cache empty.
-	// From then on Locate answers for every indexed pack while the entries
-	// are still loading.
-	tableLoaded chan struct{}
 }
 
 func newPackIndex(store kvtx.Store) *packIndex {
@@ -132,30 +126,29 @@ func newPackIndex(store kvtx.Store) *packIndex {
 		rows:    make(map[string]packRow),
 		pending: make(map[string]*packfile.PackfileEntry),
 		work:    make(chan struct{}, 1),
-
-		tableLoaded: make(chan struct{}),
 	}
 }
 
-// loadReaders is the number of read transactions that read the cached entries
-// at once. Each entry is a value of its own in the KV store, one random read,
-// so a cold start that reads them one at a time waits on the disk once per
-// pack while every lookup waits behind it.
+// loadReaders is the number of read transactions that read cached entries at
+// once. Each entry is a value of its own in the KV store, one random read,
+// so reading many one at a time waits on the disk once per pack.
 const loadReaders = 16
 
-// load reads the pack table and the cached entries. It registers the table
-// before it reads the entries, so a lookup can place a key in its pack and
-// read that pack's entry alone while the rest load. Call it once.
-func (x *packIndex) load(ctx context.Context) ([]*packfile.PackfileEntry, error) {
-	// Release table waiters on success or failure.
-	tableLoaded := sync.OnceFunc(func() { close(x.tableLoaded) })
-	defer tableLoaded()
+// readChunk is the number of entries one read transaction reads in readAll,
+// so no snapshot stays open across the whole table.
+const readChunk = 1024
 
+// load registers the pack table and reads the entries of its unindexed packs,
+// which a lookup cannot place, and returns the number of packs the table
+// holds with those entries. The indexed packs' entries stay in the KV store
+// until a lookup places a key in one. A failed load registers nothing that a
+// retry would not register again, so the caller may call it until it succeeds.
+func (x *packIndex) load(ctx context.Context) (int, []*packfile.PackfileEntry, error) {
 	// Read the pack table, which names every pack that may have a cached
 	// entry, and register it.
 	rows, ids, nextNum, err := x.loadTable(ctx)
 	if err != nil {
-		return nil, err
+		return 0, nil, err
 	}
 	x.mtx.Lock()
 	for _, id := range ids {
@@ -165,30 +158,45 @@ func (x *packIndex) load(ctx context.Context) ([]*packfile.PackfileEntry, error)
 		x.ids = append(x.ids, "")
 	}
 	x.mtx.Unlock()
-	tableLoaded()
 
-	// Read the entries in parallel, each reader in its own read transaction.
-	// A pack removed since the table read has no entry and is skipped.
+	// Read the unindexed packs' entries and queue them for the indexer. A
+	// pack removed since the table read has no entry; forget its row.
+	var unindexed []string
+	for _, id := range ids {
+		if !rows[id].indexed {
+			unindexed = append(unindexed, id)
+		}
+	}
+	read, err := x.readEntries(ctx, unindexed)
+	if err != nil {
+		return 0, nil, err
+	}
+	x.forgetMissing(unindexed, read)
+	for _, entry := range read {
+		x.register(entry.GetId(), rows[entry.GetId()], entry)
+	}
+	return len(ids), read, nil
+}
+
+// readEntries reads the cached entries of ids in parallel, each reader in its
+// own read transaction, skipping a pack with no entry. The entries keep the
+// order of ids.
+func (x *packIndex) readEntries(ctx context.Context, ids []string) ([]*packfile.PackfileEntry, error) {
 	read := make([]*packfile.PackfileEntry, len(ids))
 	var next atomic.Int64
 	eg, egCtx := errgroup.WithContext(ctx)
 	for range min(loadReaders, len(ids)) {
 		eg.Go(func() error {
-			// Read this worker's assigned descriptors through one snapshot.
+			// Read this worker's share through one snapshot.
 			tx, err := x.store.NewTransaction(egCtx, false)
 			if err != nil {
 				return err
 			}
 			defer tx.Discard()
 			for i := int(next.Add(1) - 1); i < len(ids); i = int(next.Add(1) - 1) {
-				id := ids[i]
-				value, found, err := tx.Get(egCtx, []byte(indexEntryPrefix+id))
+				entry, err := getEntry(egCtx, tx, ids[i])
 				if err != nil {
-					return errors.Wrap(err, "read cached entry")
-				}
-				entry := &packfile.PackfileEntry{}
-				if !found || entry.UnmarshalVT(value) != nil || entry.GetId() != id {
-					continue
+					return err
 				}
 				read[i] = entry
 			}
@@ -198,19 +206,75 @@ func (x *packIndex) load(ctx context.Context) ([]*packfile.PackfileEntry, error)
 	if err := eg.Wait(); err != nil {
 		return nil, err
 	}
+	return slices.DeleteFunc(read, func(entry *packfile.PackfileEntry) bool { return entry == nil }), nil
+}
 
-	// Register the entries in key order, and forget the table rows of the
-	// packs with no entry, which the table named before they were removed.
-	entries := make([]*packfile.PackfileEntry, 0, len(read))
-	for i, entry := range read {
-		if entry == nil {
-			x.forgetRow(ids[i], rows[ids[i]])
+// getEntry reads the cached entry of pack id, or nil when it has none or it
+// does not decode to that pack.
+func getEntry(ctx context.Context, tx kvtx.Tx, id string) (*packfile.PackfileEntry, error) {
+	value, found, err := tx.Get(ctx, []byte(indexEntryPrefix+id))
+	if err != nil || !found {
+		return nil, errors.Wrap(err, "read cached entry")
+	}
+	entry := &packfile.PackfileEntry{}
+	if entry.UnmarshalVT(value) != nil || entry.GetId() != id {
+		return nil, nil
+	}
+	return entry, nil
+}
+
+// forgetMissing forgets the rows of the packs in ids that read has no entry
+// for, which the table named before they were removed.
+func (x *packIndex) forgetMissing(ids []string, read []*packfile.PackfileEntry) {
+	if len(read) == len(ids) {
+		return
+	}
+	found := make(map[string]bool, len(read))
+	for _, entry := range read {
+		found[entry.GetId()] = true
+	}
+	for _, id := range ids {
+		if found[id] {
 			continue
 		}
-		entries = append(entries, entry)
-		x.register(entry.GetId(), rows[entry.GetId()], entry)
+		x.mtx.RLock()
+		row, ok := x.rows[id]
+		x.mtx.RUnlock()
+		if ok {
+			x.forgetRow(id, row)
+		}
 	}
-	return entries, nil
+}
+
+// readAll reads the entry of every pack the table holds that skip does not
+// skip, a chunk at a time, and passes each chunk to publish. It forgets the
+// rows of the packs with no entry.
+func (x *packIndex) readAll(ctx context.Context, skip func(id string) bool, publish func([]*packfile.PackfileEntry)) error {
+	var ids []string
+	x.eachPack(func(id string) {
+		if !skip(id) {
+			ids = append(ids, id)
+		}
+	})
+	for chunk := range slices.Chunk(ids, readChunk*loadReaders) {
+		read, err := x.readEntries(ctx, chunk)
+		if err != nil {
+			return err
+		}
+		x.forgetMissing(chunk, read)
+		publish(read)
+	}
+	return nil
+}
+
+// eachPack calls fn with the id of every pack the table holds. fn must not
+// call back into the index.
+func (x *packIndex) eachPack(fn func(id string)) {
+	x.mtx.RLock()
+	defer x.mtx.RUnlock()
+	for id := range x.rows {
+		fn(id)
+	}
 }
 
 // loadTable reads the pack table, the ids of its packs in key order and the
@@ -295,38 +359,6 @@ func (x *packIndex) forgetRow(id string, row packRow) {
 	if int(row.num) < len(x.ids) && x.ids[row.num] == id {
 		x.ids[row.num] = ""
 	}
-}
-
-// waitTable waits until load has registered the pack table, and reports
-// whether the table holds any pack. The caller makes sure a load runs.
-func (x *packIndex) waitTable(ctx context.Context) (bool, error) {
-	select {
-	case <-x.tableLoaded:
-	case <-ctx.Done():
-		return false, context.Cause(ctx)
-	}
-	x.mtx.RLock()
-	defer x.mtx.RUnlock()
-	return len(x.ids) != 0, nil
-}
-
-// readEntry reads the cached entry of pack id, or nil when it has none.
-func (x *packIndex) readEntry(ctx context.Context, id string) (*packfile.PackfileEntry, error) {
-	// Read one cached descriptor under a scoped transaction.
-	tx, err := x.store.NewTransaction(ctx, false)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Discard()
-	value, found, err := tx.Get(ctx, []byte(indexEntryPrefix+id))
-	if err != nil || !found {
-		return nil, err
-	}
-	entry := &packfile.PackfileEntry{}
-	if entry.UnmarshalVT(value) != nil || entry.GetId() != id {
-		return nil, nil
-	}
-	return entry, nil
 }
 
 // nextRow numbers a new pack. Call with mtx held.
@@ -608,9 +640,10 @@ func (x *packIndex) Locate(ctx context.Context, key []byte) (string, bool, error
 	return x.ids[num], true, nil
 }
 
-// locateAll reports, for each key, whether an h row places it in a pack the
-// table still holds, in one read transaction.
-func (x *packIndex) locateAll(ctx context.Context, keys [][]byte) ([]bool, error) {
+// locate reads the rows of keys in one snapshot, sets placed for each key
+// that has one, and returns the id of the pack each row names: "" for a key
+// with no row, a nil key, or a row naming a removed pack.
+func (x *packIndex) locate(ctx context.Context, keys [][]byte, placed []bool) ([]string, error) {
 	// Read every row in one snapshot.
 	tx, err := x.store.NewTransaction(ctx, false)
 	if err != nil {
@@ -618,9 +651,12 @@ func (x *packIndex) locateAll(ctx context.Context, keys [][]byte) ([]bool, error
 	}
 	defer tx.Discard()
 
-	// Place each key whose row names a pack the table holds.
-	out := make([]bool, len(keys))
+	// Name the pack of each key the index places.
+	ids := make([]string, len(keys))
 	for i, key := range keys {
+		if key == nil {
+			continue
+		}
 		value, ok, err := tx.Get(ctx, hashRowKey(key))
 		if err != nil {
 			return nil, err
@@ -628,10 +664,27 @@ func (x *packIndex) locateAll(ctx context.Context, keys [][]byte) ([]bool, error
 		if !ok || len(value) != 4 {
 			continue
 		}
+		placed[i] = true
 		num := binary.BigEndian.Uint32(value)
 		x.mtx.RLock()
-		out[i] = int(num) < len(x.ids) && x.ids[num] != ""
+		if int(num) < len(x.ids) {
+			ids[i] = x.ids[num]
+		}
 		x.mtx.RUnlock()
+	}
+	return ids, nil
+}
+
+// locateAll reports for each key whether its row names a pack the table
+// holds.
+func (x *packIndex) locateAll(ctx context.Context, keys [][]byte) ([]bool, error) {
+	ids, err := x.locate(ctx, keys, make([]bool, len(keys)))
+	if err != nil {
+		return nil, err
+	}
+	out := make([]bool, len(keys))
+	for i, id := range ids {
+		out[i] = id != ""
 	}
 	return out, nil
 }

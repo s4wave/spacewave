@@ -51,7 +51,7 @@ func MergePackIndex(ctx context.Context, dst kvtx.Store, src ReadFunc, progress 
 	// Read the destination's table and the source's.
 	var p MergeProgress
 	into := newPackIndex(dst)
-	if _, err := into.load(ctx); err != nil {
+	if _, _, err := into.load(ctx); err != nil {
 		return p, errors.Wrap(err, "load the destination index")
 	}
 	var from map[string]packRow

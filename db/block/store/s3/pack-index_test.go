@@ -343,51 +343,26 @@ func waitFor(t *testing.T, what string, ok func() bool) {
 	}
 }
 
-// gatedKV holds every Get of a cached entry other than allow's until release
-// closes, as a cold disk holds the entry load after a start.
-type gatedKV struct {
+// flakyKV fails its first fail transactions, as a load cancelled with the
+// request that started it does.
+type flakyKV struct {
 	kvtx.Store
-	allow   string
-	release chan struct{}
+	fail atomic.Int64
 }
 
-func (g *gatedKV) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
-	tx, err := g.Store.NewTransaction(ctx, write)
-	if err != nil {
-		return nil, err
+func (f *flakyKV) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	if f.fail.Add(-1) >= 0 {
+		return nil, context.Canceled
 	}
-	return &gatedTx{Tx: tx, kv: g}, nil
+	return f.Store.NewTransaction(ctx, write)
 }
 
-// gatedTx waits at a held Get outside its transaction, since the hashmap
-// store's read transactions would block every writer while they wait.
-type gatedTx struct {
-	kvtx.Tx
-	kv *gatedKV
-}
-
-func (g *gatedTx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
-	if k := string(key); strings.HasPrefix(k, indexEntryPrefix) && k != indexEntryPrefix+g.kv.allow {
-		g.Discard()
-		select {
-		case <-g.kv.release:
-		case <-ctx.Done():
-			return nil, false, ctx.Err()
-		}
-		tx, err := g.kv.Store.NewTransaction(ctx, false)
-		if err != nil {
-			return nil, false, err
-		}
-		g.Tx = tx
-	}
-	return g.Tx.Get(ctx, key)
-}
-
-// TestPackStoreEarlyLookup restarts a store whose cached entry load stalls:
-// a read of a block in an indexed pack answers from that pack's entry alone,
-// while a read in a pack whose entry has not loaded, and a miss, wait for the
-// load rather than report the block absent.
-func TestPackStoreEarlyLookup(t *testing.T) {
+// TestPackStoreLazyLookup restarts a store over an index whose first load
+// fails: the next read loads the pack table again, and each read publishes
+// only the pack the index places its block in, reading its entry from the
+// index and no entry from the bucket. A miss the index places nowhere is
+// final without publishing every entry.
+func TestPackStoreLazyLookup(t *testing.T) {
 	ctx := t.Context()
 	_, client := newFakeBucket(t, nil)
 	writer := newTestPackStore(t, client)
@@ -414,68 +389,66 @@ func TestPackStoreEarlyLookup(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Index the three packs, then restart over a gated copy of the index.
+	// Index the three packs, then restart over an index whose first
+	// transaction fails.
 	kv := hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())
-	open := func(index kvtx.Store) *PackStore {
-		return NewPackStore(logrus.NewEntry(logrus.New()), client, "bucket", "p/", &PackStoreOptions{
+	open := func(index kvtx.Store) (*PackStore, *countingObjects) {
+		objs := &countingObjects{ObjectStore: client}
+		return NewPackStore(logrus.NewEntry(logrus.New()), objs, "bucket", "p/", &PackStoreOptions{
 			KeepPacks:       true,
 			Index:           index,
 			RefreshInterval: time.Hour,
-		})
+		}), objs
 	}
-	store := open(kv)
+	store, _ := open(kv)
 	if _, found, err := store.GetBlock(ctx, refs[0][0]); err != nil || !found {
 		t.Fatalf("cold read = %v, %v", found, err)
 	}
 	waitFor(t, "cold start indexes the packs", func() bool { return len(store.index.pendingIDs()) == 0 })
-	gated := &gatedKV{Store: kv, allow: packOf(t, store, refs[1][0]), release: make(chan struct{})}
 	store.Close()
-	store = open(gated)
+	flaky := &flakyKV{Store: kv}
+	flaky.fail.Store(1)
+	store, objs := open(flaky)
 	t.Cleanup(store.Close)
-	go func() { _ = store.Preload(ctx) }()
+	if err := store.Preload(ctx); err == nil || store.loaded.Load() {
+		t.Fatalf("failed load = %v, loaded %v", err, store.loaded.Load())
+	}
+	published := func() int {
+		var n int
+		store.bcast.HoldLock(func(func(), func() <-chan struct{}) { n = len(store.entries) })
+		return n
+	}
 
-	// The block in the allowed pack reads while the other entries stall.
+	// The next read loads the table and publishes one pack.
 	if data, found, err := store.GetBlock(ctx, refs[1][3]); err != nil || !found || string(data) != "pack 1 block 3" {
-		t.Fatalf("early read = %q, %v, %v", data, found, err)
+		t.Fatalf("read after the failed load = %q, %v, %v", data, found, err)
 	}
-	if store.loaded.Load() {
-		t.Fatal("entries loaded past the gate")
+	if n := published(); n != 1 || store.full.Load() {
+		t.Fatalf("published %d entries, full %v, want 1 lazily", n, store.full.Load())
 	}
 
-	// A block in a stalled pack and a missing block wait for the load.
-	type answer struct {
-		found bool
-		err   error
+	// A miss is final without publishing the rest.
+	if found, err := store.GetBlockExists(ctx, missing); err != nil || found {
+		t.Fatalf("miss = %v, %v", found, err)
 	}
-	stalled, absent := make(chan answer, 1), make(chan answer, 1)
-	go func() {
-		_, found, err := store.GetBlock(ctx, refs[2][0])
-		stalled <- answer{found, err}
-	}()
-	go func() {
-		found, err := store.GetBlockExists(ctx, missing)
-		absent <- answer{found, err}
-	}()
-	select {
-	case a := <-stalled:
-		t.Fatalf("stalled pack answered before the load: %+v", a)
-	case a := <-absent:
-		t.Fatalf("miss answered before the load: %+v", a)
-	case <-time.After(100 * time.Millisecond):
+	if n := published(); n != 1 || store.full.Load() {
+		t.Fatalf("miss published %d entries, full %v", n, store.full.Load())
 	}
-	close(gated.release)
-	if a := <-stalled; a.err != nil || !a.found {
-		t.Fatalf("stalled read after the load = %+v", a)
-	}
-	if a := <-absent; a.err != nil || a.found {
-		t.Fatalf("miss after the load = %+v", a)
-	}
+
+	// Every block reads, each pack published on its first read, and no entry
+	// was read from the bucket.
 	for _, pack := range refs {
 		for _, ref := range pack {
 			if _, found, err := store.GetBlock(ctx, ref); err != nil || !found {
-				t.Fatalf("read after the load = %v, %v", found, err)
+				t.Fatalf("read = %v, %v", found, err)
 			}
 		}
+	}
+	if n := published(); n != 3 || store.full.Load() {
+		t.Fatalf("published %d entries, full %v, want 3 lazily", n, store.full.Load())
+	}
+	if got := objs.entryReads.Load(); got != 0 {
+		t.Fatalf("read %d entries from the bucket, want 0", got)
 	}
 }
 
@@ -553,7 +526,7 @@ func TestAddWrittenInterrupted(t *testing.T) {
 	// Reload: b keeps its number unindexed, and its first slice names it.
 	store.writes = -1
 	got := newPackIndex(store)
-	if _, err := got.load(ctx); err != nil {
+	if _, _, err := got.load(ctx); err != nil {
 		t.Fatal(err)
 	}
 	if row := got.rows["b"]; row.indexed || row.num != x.rows["b"].num || got.pending["b"] == nil {
