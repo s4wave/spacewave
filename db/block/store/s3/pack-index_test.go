@@ -305,9 +305,7 @@ func TestPackStoreIndex(t *testing.T) {
 	if _, err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ownRef, Data: own}}); err != nil {
 		t.Fatal(err)
 	}
-	if got := rowCount(t, kv, indexTailPrefix); got != tails+1 {
-		t.Fatalf("index holds %d tails after a write, want %d", got, tails+1)
-	}
+	waitFor(t, "the written pack keeps its tail", func() bool { return rowCount(t, kv, indexTailPrefix) == tails+1 })
 }
 
 // setRow points the h row of ref at pack number num.

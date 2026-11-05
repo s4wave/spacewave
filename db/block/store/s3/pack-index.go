@@ -118,6 +118,8 @@ type packIndex struct {
 	// version counts the changes to rows, so Indexed answers stay valid
 	// while it holds. Changed with mtx held.
 	version atomic.Uint64
+	// tails holds the index tails awaiting their write.
+	tails tailQueue
 }
 
 func newPackIndex(store kvtx.Store) *packIndex {
@@ -566,6 +568,7 @@ func (x *packIndex) remove(ctx context.Context, ids []string) error {
 		delete(x.rows, id)
 		delete(x.pending, id)
 	}
+	x.forgetQueuedTailsLocked(ids)
 	next := uint32(len(x.ids)) //nolint:gosec // 2^32 packs cannot exist.
 	x.version.Add(1)
 	x.mtx.Unlock()
@@ -604,6 +607,11 @@ func (x *packIndex) remove(ctx context.Context, ids []string) error {
 // Get returns the stored index tail of a pack, as the packfile store's index
 // cache.
 func (x *packIndex) Get(ctx context.Context, packID string) ([]byte, bool, error) {
+	// Serve a tail still awaiting its write.
+	if data, ok := x.queuedTail(packID); ok {
+		return data, true, nil
+	}
+
 	// Read the row, copying it out of the transaction.
 	tx, err := x.store.NewTransaction(ctx, false)
 	if err != nil {
@@ -618,17 +626,12 @@ func (x *packIndex) Get(ctx context.Context, packID string) ([]byte, bool, error
 }
 
 // Set stores the index tail of a pack, as the packfile store's index cache.
+// It queues the row for a background write in batches and returns at once:
+// each write transaction of the index flushes it, and the store shares the
+// disk with the reads and commits players wait on.
 func (x *packIndex) Set(ctx context.Context, packID string, data []byte) error {
-	// Write the row in its own transaction.
-	tx, err := x.store.NewTransaction(ctx, true)
-	if err != nil {
-		return err
-	}
-	defer tx.Discard()
-	if err := tx.Set(ctx, []byte(indexTailPrefix+packID), bytes.Clone(data)); err != nil {
-		return err
-	}
-	return tx.Commit(ctx)
+	x.queueTail(packID, bytes.Clone(data))
+	return nil
 }
 
 // cacheTail stores the index tail of a pack that its writer or the indexer
