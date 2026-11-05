@@ -12,6 +12,12 @@ func (v *Volume) SupportsAtomicPublication() bool {
 	return v.publications != nil
 }
 
+// SupportsRootRetention reports whether the Volume holds roots, pins and
+// stages: it does when its store commits liveness with the blocks.
+func (v *Volume) SupportsRootRetention() bool {
+	return v.SupportsAtomicPublication()
+}
+
 // SubmitAtomic admits an atomic publication and returns its completion receipt.
 // Admission is not durability: await the receipt for the durable result.
 func (v *Volume) SubmitAtomic(ctx context.Context, p *block.AtomicPublication) (*block.PublicationReceipt, error) {

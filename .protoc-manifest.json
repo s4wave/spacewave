@@ -2514,7 +2514,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/volume/rpc": {
-      "hash": "dae1913e594e7249325a21d691af5c11dc077e849e0b6d03b54eaadc7dcd2802",
+      "hash": "293e1c25de3e7c0e70398e7ba6f54b285a54fad7e454078393c5546bd96edb88",
       "generatedFiles": [
         "db/volume/rpc/volume.pb.go",
         "db/volume/rpc/volume.pb.ts",

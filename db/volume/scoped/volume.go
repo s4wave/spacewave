@@ -4,6 +4,7 @@ package volume_scoped
 
 import (
 	"context"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/volume"
@@ -31,6 +32,11 @@ type Volume struct {
 
 	// inner is the underlying volume.
 	inner volume.Volume
+	// stageMtx guards stages.
+	stageMtx sync.Mutex
+	// stages are the view names of the stages this view opened and has not
+	// released, so a stage call names only the view's own stages.
+	stages map[string]struct{}
 }
 
 // NewVolume constructs a view of inner limited to the IDs under prefix. The
@@ -42,6 +48,7 @@ func NewVolume(inner volume.Volume, prefix string) *Volume {
 		objectStore: &objectStore{inner: inner, prefix: prefix},
 		coordinator: &coordinator{inner: inner, prefix: prefix},
 		inner:       inner,
+		stages:      make(map[string]struct{}),
 	}
 }
 

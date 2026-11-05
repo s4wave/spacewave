@@ -48,6 +48,10 @@ type Volume interface {
 	// Coordinator coordinates direct multi-writer ObjectStore access.
 	coord.Coordinator
 
+	// Roots holds the named roots, reader pins and stages of the volume's
+	// buckets.
+	Roots
+
 	// Close closes the volume, returning any errors.
 	Close() error
 
