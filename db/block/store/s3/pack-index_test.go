@@ -299,7 +299,13 @@ func TestPackStoreIndex(t *testing.T) {
 		t.Fatalf("removed pack's row after restart = %q, %v, %v", id, found, err)
 	}
 
-	// A pack the indexed store writes gives its blocks' rows their extents.
+	// A pack the indexed store writes gives its blocks' rows their extents,
+	// counted once the tails queued before it have drained.
+	waitFor(t, "the tail drain is idle", func() bool {
+		store.index.mtx.RLock()
+		defer store.index.mtx.RUnlock()
+		return len(store.index.tails.pending) == 0
+	})
 	extents := extentRows(t, kv)
 	own := []byte("written by the indexed store")
 	ownRef, err := block.BuildBlockRef(own, nil)

@@ -3,6 +3,7 @@ package block_store_s3
 import (
 	"context"
 	"math"
+	"time"
 
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -15,7 +16,19 @@ import (
 const tailQueueBytes = 64 << 20
 
 // tailBatchRows bounds the tails one drain step upgrades in a transaction.
-const tailBatchRows = 256
+// Each tail rewrites the rows of its pack's blocks, scattered over the index,
+// so a small step keeps each transaction's writes and flush short.
+const tailBatchRows = 16
+
+// tailStepPause is the least pause after a drain step. The pause is twice
+// the step's own time when that is longer, up to tailStepPauseMax, so the
+// drain slows as the disk it shares with player writes slows, and players
+// never queue behind it.
+const tailStepPause = 100 * time.Millisecond
+
+// tailStepPauseMax bounds the pause after a slow step, so a step that waited
+// long for the index's writer does not stall the drain as long again.
+const tailStepPauseMax = time.Second
 
 // tailQueue holds index tails awaiting their write, one per pack. The fields
 // are guarded by packIndex.mtx.
@@ -75,7 +88,8 @@ func (x *packIndex) forgetQueuedTailsLocked(ids []string) {
 }
 
 // drainTails writes the extents the queued tails hold into their blocks' h
-// rows, in transactions of up to tailBatchRows tails, until none are left. A
+// rows, in transactions of up to tailBatchRows tails paced by tailStepPause,
+// until none are left. A
 // row is upgraded only while it names the tail's pack and holds no extent, so
 // a row a later pack took keeps naming that pack. The tails themselves are
 // not stored: a row with its extent reads its block without the tail. Each
@@ -109,6 +123,7 @@ func (x *packIndex) drainTails() {
 		x.mtx.Unlock()
 
 		// Upgrade the step's rows in one transaction.
+		started := time.Now()
 		_ = kvtx.RunTransaction(ctx, true, func(ctx context.Context) (kvtx.Tx, error) {
 			return x.store.NewTransaction(ctx, true)
 		}, func(ctx context.Context, tx kvtx.Tx) error {
@@ -124,10 +139,11 @@ func (x *packIndex) drainTails() {
 			return nil
 		})
 
-		// Unqueue the step, written or dropped.
+		// Unqueue the step, written or dropped, then pause before the next.
 		x.mtx.Lock()
 		x.forgetQueuedTailsLocked(mapKeys(step))
 		x.mtx.Unlock()
+		time.Sleep(min(max(tailStepPause, 2*time.Since(started)), tailStepPauseMax))
 	}
 }
 
