@@ -2,6 +2,7 @@ package space_world_test
 
 import (
 	"context"
+	"os"
 	"strconv"
 	"sync"
 	"testing"
@@ -10,10 +11,12 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/pkg/errors"
+	account_settings "github.com/s4wave/spacewave/core/account/settings"
 	provider "github.com/s4wave/spacewave/core/provider"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
 	space_world "github.com/s4wave/spacewave/core/space/world"
+	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	"github.com/s4wave/spacewave/db/world"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
 	"github.com/s4wave/spacewave/testbed"
@@ -32,6 +35,35 @@ type adapterFixture struct {
 
 // newAdapterFixture creates a Space on a local provider.
 func newAdapterFixture(t *testing.T) *adapterFixture {
+	return newAdapterFixtureOn(t, nil)
+}
+
+// sqlTestLocation returns the database BLOCK_STORE_SQL_TEST_HOST names, such
+// as a MariaDB container, with its credentials, and skips the test without
+// one.
+func sqlTestLocation(t *testing.T) (*account_settings.SqlLocation, *block_store_s3.Credentials) {
+	t.Helper()
+	host := os.Getenv("BLOCK_STORE_SQL_TEST_HOST")
+	if host == "" {
+		t.Skip("BLOCK_STORE_SQL_TEST_HOST names no MySQL-compatible server")
+	}
+	port, _ := strconv.ParseUint(os.Getenv("BLOCK_STORE_SQL_TEST_PORT"), 10, 32)
+	location := &account_settings.SqlLocation{
+		Host:        host,
+		Port:        uint32(port),
+		Database:    os.Getenv("BLOCK_STORE_SQL_TEST_DATABASE"),
+		TablePrefix: "adapter_" + strconv.FormatInt(time.Now().UnixNano(), 36) + "_",
+	}
+	creds := &block_store_s3.Credentials{
+		AccessKeyId:     os.Getenv("BLOCK_STORE_SQL_TEST_USER"),
+		SecretAccessKey: os.Getenv("BLOCK_STORE_SQL_TEST_PASSWORD"),
+	}
+	return location, creds
+}
+
+// newAdapterFixtureOn creates a Space on a local provider, with its blocks
+// on the SQL location as the account's primary store when sql is set.
+func newAdapterFixtureOn(t *testing.T, sql *account_settings.SqlLocation, creds ...*block_store_s3.Credentials) *adapterFixture {
 	// Build the testbed with the engine and local provider factories.
 	t.Helper()
 	ctx := t.Context()
@@ -60,9 +92,30 @@ func newAdapterFixture(t *testing.T) *adapterFixture {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Make the SQL location the account's primary store.
+	if sql != nil {
+		acc := provAcc.(*provider_local.ProviderAccount)
+		acc.SetSQLPrimary(true)
+		backendID, check, err := acc.AddSQLStorageBackend(ctx, "sql", sql, creds[0], true)
+		if err != nil || backendID == "" {
+			t.Fatalf("add the SQL backend: %v %v", check, err)
+		}
+	}
 	ref, err := soProv.CreateSharedObject(ctx, "test-space", &sobject.SharedObjectMeta{BodyType: "test"}, "", "")
 	if err != nil {
 		t.Fatal(err)
+	}
+	if sql != nil {
+		acc := provAcc.(*provider_local.ProviderAccount)
+		settings, err := acc.ResolveNewSpaceStorageBackend(ctx, "", false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		placement := &account_settings.BlockStorePlacement{BlockStoreId: ref.GetBlockStoreId(), StorageBackendId: settings}
+		if err := acc.PlaceBlockStore(ctx, placement); err != nil {
+			t.Fatal(err)
+		}
 	}
 	return &adapterFixture{tb: tb, ref: ref, engineID: "test-space-world"}
 }
@@ -124,9 +177,19 @@ func waitBackfilled(ctx context.Context, eng *space_world.Engine) error {
 // checkpoints its stable history, which moves the replay base root and
 // releases the checkpoint root; and a remounted engine reads every object.
 func TestAdapterRunThrough(t *testing.T) {
+	t.Run("local", func(t *testing.T) {
+		runAdapterThrough(t, newAdapterFixture(t))
+	})
+	t.Run("sql-primary", func(t *testing.T) {
+		location, creds := sqlTestLocation(t)
+		runAdapterThrough(t, newAdapterFixtureOn(t, location, creds))
+	})
+}
+
+// runAdapterThrough walks the adapter run-through on f.
+func runAdapterThrough(t *testing.T, f *adapterFixture) {
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()
-	f := newAdapterFixture(t)
 	eng, engRef := f.start(t)
 
 	// The World engine suite passes through the bus.

@@ -117,8 +117,10 @@ func Open(conf *Config) (*sql.DB, error) {
 	return db, nil
 }
 
-// EnsureTable creates the blocks table when it does not exist.
+// EnsureTable creates the blocks table and its roots table when they do not
+// exist.
 func EnsureTable(ctx context.Context, db *sql.DB, table string) error {
+	// Create the blocks table.
 	_, err := db.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS "+quoteName(table)+` (
   store_id VARBINARY(255) NOT NULL,
   hash VARBINARY(128) NOT NULL,
@@ -126,7 +128,24 @@ func EnsureTable(ctx context.Context, db *sql.DB, table string) error {
   refs LONGBLOB NULL,
   PRIMARY KEY (store_id, hash)
 )`)
-	return errors.Wrap(err, "create blocks table")
+	if err != nil {
+		return errors.Wrap(err, "create blocks table")
+	}
+
+	// Create the roots table.
+	_, err = db.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS "+quoteName(rootsTable(table))+` (
+  store_id VARBINARY(255) NOT NULL,
+  name VARBINARY(255) NOT NULL,
+  ref VARBINARY(255) NOT NULL,
+  expires BIGINT NOT NULL,
+  PRIMARY KEY (store_id, name)
+)`)
+	return errors.Wrap(err, "create roots table")
+}
+
+// rootsTable returns the name of the roots table beside the blocks table.
+func rootsTable(table string) string {
+	return table + "_roots"
 }
 
 // Store is one block store's rows in the blocks table.
@@ -134,6 +153,7 @@ type Store struct {
 	le      *logrus.Entry
 	db      *sql.DB
 	table   string
+	roots   string
 	storeID []byte
 	// packetOnce reads the server's packet limit, which bounds a statement.
 	packetOnce  sync.Once
@@ -143,7 +163,7 @@ type Store struct {
 // NewStore builds the store of storeID's rows in table. The store owns db and
 // closes it on Close.
 func NewStore(le *logrus.Entry, db *sql.DB, table, storeID string) *Store {
-	return &Store{le: le, db: db, table: quoteName(table), storeID: []byte(storeID)}
+	return &Store{le: le, db: db, table: quoteName(table), roots: quoteName(rootsTable(table)), storeID: []byte(storeID)}
 }
 
 // Close closes the connection pool.
@@ -186,8 +206,22 @@ func (s *Store) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) 
 // limit allows. A block already stored keeps its row. Tombstones are
 // rejected. No block is reported as existing.
 func (s *Store) PutBlockBatch(ctx context.Context, batch []*block.PutBatchEntry) ([]bool, error) {
-	// Split the batch into statements under the packet limit, one block at
-	// least each.
+	if err := s.insert(ctx, s.db, batch); err != nil {
+		return nil, err
+	}
+	return make([]bool, len(batch)), nil
+}
+
+// execer runs a statement on the pool or in a transaction.
+type execer interface {
+	// ExecContext runs a statement that returns no rows.
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+}
+
+// insert inserts the batch through db, splitting it into statements under the
+// packet limit, one block at least each.
+func (s *Store) insert(ctx context.Context, db execer, batch []*block.PutBatchEntry) error {
+	// Split the batch into statements under the packet limit.
 	limit := s.statementBytes(ctx)
 	var rows []any
 	var size int
@@ -199,37 +233,34 @@ func (s *Store) PutBlockBatch(ctx context.Context, batch []*block.PutBatchEntry)
 		n := len(rows) / 4
 		query := "INSERT IGNORE INTO " + s.table + " (store_id, hash, data, refs) VALUES " + // #nosec G202 -- NewStore quotes the table and values are placeholders.
 			strings.TrimSuffix(strings.Repeat("(?,?,?,?),", n), ",")
-		_, err := s.db.ExecContext(ctx, query, rows...)
+		_, err := db.ExecContext(ctx, query, rows...)
 		rows, size = rows[:0], 0
 		return errors.Wrap(err, "insert blocks")
 	}
 	for _, entry := range batch {
 		if entry.Tombstone {
-			return nil, ErrAppendOnly
+			return ErrAppendOnly
 		}
 		key, err := hashKey(entry.Ref)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		var refs []byte
 		if entry.RefsKnown {
 			if refs, err = encodeRefs(entry.Refs); err != nil {
-				return nil, err
+				return err
 			}
 		}
 		rowBytes := len(entry.Data) + len(refs) + rowOverhead
 		if len(rows) != 0 && size+rowBytes > limit {
 			if err := flush(); err != nil {
-				return nil, err
+				return err
 			}
 		}
 		rows = append(rows, s.storeID, key, entry.Data, refs)
 		size += rowBytes
 	}
-	if err := flush(); err != nil {
-		return nil, err
-	}
-	return make([]bool, len(batch)), nil
+	return flush()
 }
 
 // statementBytes returns the bytes one insert statement may carry: half the

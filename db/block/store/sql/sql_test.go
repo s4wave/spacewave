@@ -246,3 +246,71 @@ func TestReadAdmitsDecodedBlock(t *testing.T) {
 		t.Fatalf("pool stores=%d hits=%d, want 1 and 1", snap.Stores, snap.Hits)
 	}
 }
+
+// TestStoreRoots moves roots in the transaction that inserts their blocks: a
+// root holds its block, a move from the wrong Previous is refused and writes
+// none of its blocks, a listing returns the names under a prefix, an expired
+// root reads as free, and a release frees the name.
+func TestStoreRoots(t *testing.T) {
+	// Open a store in a fresh table.
+	ctx := context.Background()
+	conf := testConfig(t)
+	store := openTestStore(t, conf, "store-roots")
+	entry := func(data string) *block.PutBatchEntry {
+		ref, err := block.BuildBlockRef([]byte(data), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return &block.PutBatchEntry{Ref: ref, Data: []byte(data), RefsKnown: true}
+	}
+
+	// A root moves onto a block inserted with it.
+	first := entry("first")
+	if err := store.SetRoots(ctx, []*block.PutBatchEntry{first}, []block.NamedRoot{{Name: "space/head", Ref: first.Ref}}); err != nil {
+		t.Fatal(err)
+	}
+	if ref, err := store.GetRoot(ctx, "space/head"); err != nil || !ref.EqualsRef(first.Ref) {
+		t.Fatalf("root after the move = %v, %v", ref, err)
+	}
+
+	// A move from the wrong Previous is refused, and its block stays out.
+	second := entry("second")
+	err := store.SetRoots(ctx, []*block.PutBatchEntry{second}, []block.NamedRoot{{Name: "space/head", Ref: second.Ref}})
+	if !errors.Is(err, block.ErrRootMoved) {
+		t.Fatalf("move from a free Previous = %v, want ErrRootMoved", err)
+	}
+	if found, err := store.GetBlockExists(ctx, second.Ref); err != nil || found {
+		t.Fatalf("a refused move wrote its block: %v, %v", found, err)
+	}
+
+	// The right Previous moves it, and an expired root reads as free.
+	err = store.SetRoots(ctx, []*block.PutBatchEntry{second}, []block.NamedRoot{
+		{Name: "space/head", Ref: second.Ref, Previous: first.Ref},
+		{Name: "space/lease", Ref: first.Ref, Expires: time.Now().Add(-time.Second)},
+		{Name: "other", Ref: first.Ref},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ref, err := store.GetRoot(ctx, "space/lease"); err != nil || ref != nil {
+		t.Fatalf("expired root = %v, %v; want free", ref, err)
+	}
+
+	// The listing returns the held names under the prefix.
+	var names []string
+	err = store.ListRoots(ctx, "space/", func(root block.NamedRoot) error {
+		names = append(names, root.Name)
+		return nil
+	})
+	if err != nil || !slices.Equal(names, []string{"space/head"}) {
+		t.Fatalf("roots under space/ = %v, %v", names, err)
+	}
+
+	// A release frees the name.
+	if err := store.SetRoots(ctx, nil, []block.NamedRoot{{Name: "space/head", Previous: second.Ref}}); err != nil {
+		t.Fatal(err)
+	}
+	if ref, err := store.GetRoot(ctx, "space/head"); err != nil || ref != nil {
+		t.Fatalf("released root = %v, %v", ref, err)
+	}
+}
