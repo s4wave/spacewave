@@ -1,9 +1,12 @@
 package kvtx
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/binary"
 	"errors"
+	"maps"
+	"slices"
 	"sync"
 	"testing"
 	"time"
@@ -389,6 +392,45 @@ func TestLivenessAdversarial(t *testing.T) {
 		requireAudit(t, v, 0)
 	})
 
+	t.Run("re-put of a queued block", func(t *testing.T) {
+		// R -> X loses main, and just inside its grace period a writer puts X
+		// again, as a writer that puts one tree across several batches does
+		// for a block it already stored. Netting the release frees R and
+		// queues X, which the re-put keeps until it ages, so a parent the
+		// writer puts later still finds X.
+		v, clk := newLivenessVolume(t, true)
+		ctx := t.Context()
+		tr := testTree{}
+		tr.add(t, "X")
+		r := tr.add(t, "R", "X")
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("X", "R"), []block.NamedRoot{{Name: "main", Ref: r}}); err != nil {
+			t.Fatal(err)
+		}
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "main", Previous: r}}); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace - time.Second)
+		if _, err := v.PutBlockBatch(ctx, tr.entries("X")); err != nil {
+			t.Fatal(err)
+		}
+
+		// Net the release only.
+		clk.Add(2 * time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, false, "R")
+		requireStored(t, v, tr, true, "X")
+
+		// The writer's parent names X under main, and X stays.
+		p := tr.add(t, "P", "X")
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("P"), []block.NamedRoot{{Name: "main", Ref: p}}); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, true, "P", "X")
+		requireAudit(t, v, 0)
+	})
+
 	t.Run("shared child in one batch", func(t *testing.T) {
 		// R -> {A, B}, A -> X, B -> X are born in one batch, and side holds
 		// A too. X has two parents born beside it, so it is counted twice.
@@ -497,21 +539,277 @@ func TestLivenessAdversarial(t *testing.T) {
 		if err := v.SetBucketRoots(ctx, "b", tr.entries("R2"), []block.NamedRoot{{Name: "main", Ref: r2, Previous: r1}}); err != nil {
 			t.Fatal(err)
 		}
+
+		// Pk under root pk names K, which no put has stored yet.
+		k := tr.add(t, "K")
+		pk := tr.add(t, "Pk", "K")
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("Pk"), []block.NamedRoot{{Name: "pk", Ref: pk}}); err != nil {
+			t.Fatal(err)
+		}
 		clk.Add(block_gc.DefaultGrace + time.Second)
 		if res := collectAll(t, v); res.Freed != 0 || res.Netted != 0 {
 			t.Fatalf("unadopted pass freed %d netted %d, want nothing", res.Freed, res.Netted)
 		}
-		requireStored(t, v, tr, true, "R1", "E", "R2")
+		requireStored(t, v, tr, true, "R1", "E", "R2", "Pk")
 
-		// Adoption counts the holders, and the next pass frees the old tree.
-		if res, err := v.Adopt(ctx); err != nil || res.Queued != 1 {
-			t.Fatalf("adopt queued %d err %v, want R1 queued", res.Queued, err)
+		// An adoption interrupted while it settles the counts, with main
+		// moving onto a new R3 naming E while it counts, leaves the Volume
+		// unadopted with no count or queue.
+		r3 := tr.add(t, "R3", "E")
+		probe := &adoptProbe{Store: collectorStore{v: v}}
+		probeCtx, cancel := context.WithCancel(ctx)
+		probe.at = map[int]func(){
+			adoptCountRoots: func() {
+				if err := v.SetBucketRoots(ctx, "b", tr.entries("R3"), []block.NamedRoot{{Name: "main", Ref: r3, Previous: r2}}); err != nil {
+					t.Error(err)
+				}
+			},
+			adoptSettle: cancel,
 		}
+		if _, err := block_gc.Adopt(probeCtx, probe); !errors.Is(err, context.Canceled) || len(probe.at) != 0 {
+			t.Fatalf("interrupted adopt = %v with %d writes left, want canceled after both", err, len(probe.at))
+		}
+		if adoption := livenessAdoption(t, v); adoption != block_gc.Adoption_ADOPTION_UNADOPTED {
+			t.Fatalf("interrupted adopt left %v, want unadopted", adoption)
+		}
+		if n := countPrefix(t, store, append(slices.Clone(livenessPrefix), 'H')) + countPrefix(t, store, append(slices.Clone(livenessPrefix), 'Q')); n != 0 {
+			t.Fatalf("interrupted adopt left %d count and queue records", n)
+		}
+
+		// A rerun counts every holder once while main moves onto a new R4
+		// naming E before it counts the roots; a root aux moves onto R1 and
+		// a put stores K under a root k before it counts the child lists; and
+		// a put stores Y under a root late before it settles. The next pass
+		// frees R2 and R3, and keeps Y, born after the rerun began, and K,
+		// which Pk named before it began.
+		r4 := tr.add(t, "R4", "E")
+		y := tr.add(t, "Y")
+		probe = &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){
+			adoptCountRoots: func() {
+				if err := v.SetBucketRoots(ctx, "b", tr.entries("R4"), []block.NamedRoot{{Name: "main", Ref: r4, Previous: r3}}); err != nil {
+					t.Error(err)
+				}
+			},
+			adoptCountChildren: func() {
+				if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "aux", Ref: r1}}); err != nil {
+					t.Error(err)
+				}
+				if err := v.SetBucketRoots(ctx, "b", tr.entries("K"), []block.NamedRoot{{Name: "k", Ref: k}}); err != nil {
+					t.Error(err)
+				}
+			},
+			adoptSettle: func() {
+				if err := v.SetBucketRoots(ctx, "b", tr.entries("Y"), []block.NamedRoot{{Name: "late", Ref: y}}); err != nil {
+					t.Error(err)
+				}
+			},
+		}}
+		if _, err := block_gc.Adopt(ctx, probe); err != nil || len(probe.at) != 0 {
+			t.Fatalf("rerun adopt = %v with %d writes left", err, len(probe.at))
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
 		collectAll(t, v)
-		requireStored(t, v, tr, false, "R1", "E")
-		requireStored(t, v, tr, true, "R2")
+		requireStored(t, v, tr, false, "R2", "R3")
+		requireStored(t, v, tr, true, "R1", "E", "R4", "Y", "Pk", "K")
+		requireAudit(t, v, 0)
+
+		// K keeps Pk's holder once root k lets it go.
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "k", Previous: k}}); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, true, "Pk", "K")
+		requireAudit(t, v, 0)
+
+		// A fresh adoption of the same Volume reaches the same counts and
+		// queue.
+		netted := livenessRecords(t, store, 'H', 'Q')
+		markUnadopted(t, v)
+		if _, err := v.Adopt(ctx); err != nil {
+			t.Fatal(err)
+		}
+		if again := livenessRecords(t, store, 'H', 'Q'); !maps.Equal(again, netted) {
+			t.Fatalf("readoption counts %v, want %v", again, netted)
+		}
+
+		// Releasing every root frees everything.
+		releases := []block.NamedRoot{{Name: "main", Previous: r4}, {Name: "aux", Previous: r1}, {Name: "late", Previous: y}, {Name: "pk", Previous: pk}}
+		if err := v.SetBucketRoots(ctx, "b", nil, releases); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, false, "R1", "E", "R4", "Y", "Pk", "K")
 		requireAudit(t, v, 0)
 	})
+
+	t.Run("incomplete format 6 list", func(t *testing.T) {
+		// A format 6 store holds R -> X under a named root, but R's child
+		// list lacks X, as a crash between two slices of the old graph's
+		// edge batch left it. Adopting would count no holder of X and free
+		// it under the root, so the upgraded Volume refuses adoption and
+		// frees nothing.
+		ctx := t.Context()
+		keys := store_kvkey.NewDefaultKVKey()
+		store := store_kvtx_inmem.NewStore()
+		tr := testTree{}
+		tr.add(t, "X")
+		r := tr.add(t, "R", "X")
+		writeLegacyStore(t, store, keys, tr, "R", true, "X", "R")
+		tx, err := store.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := tx.Set(ctx, append([]byte{livenessPrefix[0], 'c'}, block_gc.BlockKey(r)...), block_gc.EncodeChildren(nil)); err != nil {
+			t.Fatal(err)
+		}
+		if err := tx.Commit(ctx); err != nil {
+			t.Fatal(err)
+		}
+		v, clk := openLivenessVolume(t, store, true)
+		if _, err := v.Adopt(ctx); !errors.Is(err, block_gc.ErrAdoptUnverified) {
+			t.Fatalf("adopt of an incomplete list = %v, want ErrAdoptUnverified", err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, true, "R", "X")
+	})
+
+	t.Run("overlapping adoptions", func(t *testing.T) {
+		// main -> R -> X on an unadopted Volume. Adoption A counts the
+		// holders, and before it settles them a second adoption B runs to
+		// the end. A must not settle B's counts again: it refuses, B's
+		// adoption stands, and nothing main reaches is freed.
+		store := store_kvtx_inmem.NewStore()
+		setUnadopted(t, store)
+		v, clk := openLivenessVolume(t, store, true)
+		ctx := t.Context()
+		tr := testTree{}
+		tr.add(t, "X")
+		r := tr.add(t, "R", "X")
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("X", "R"), []block.NamedRoot{{Name: "main", Ref: r}}); err != nil {
+			t.Fatal(err)
+		}
+		probe := &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){
+			adoptSettle: func() {
+				if _, err := block_gc.Adopt(ctx, collectorStore{v: v}); err != nil {
+					t.Error(err)
+				}
+			},
+		}}
+		if _, err := block_gc.Adopt(ctx, probe); !errors.Is(err, block_gc.ErrAdoptSuperseded) || len(probe.at) != 0 {
+			t.Fatalf("superseded adopt = %v with %d adoptions left, want superseded", err, len(probe.at))
+		}
+		if adoption := livenessAdoption(t, v); adoption != block_gc.Adoption_ADOPTION_ADOPTED {
+			t.Fatalf("overlapping adoptions left %v, want adopted", adoption)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, true, "R", "X")
+		requireAudit(t, v, 0)
+	})
+}
+
+// The transactions of block_gc.Adopt, in order, on a Volume whose records
+// each fit in one slice.
+const (
+	// adoptCountRoots counts the roots.
+	adoptCountRoots = 7
+	// adoptCountChildren counts the child lists' holders.
+	adoptCountChildren = 8
+	// adoptSettle settles the stored blocks' counts.
+	adoptSettle = 9
+)
+
+// adoptProbe runs an adoption's transactions, calling the func at a
+// transaction's position, counted from one, before it runs.
+type adoptProbe struct {
+	block_gc.Store
+	// at maps a transaction's position to the func called before it.
+	at map[int]func()
+	// n counts the transactions.
+	n int
+}
+
+// Update calls the func at the transaction's position, then runs it.
+func (p *adoptProbe) Update(ctx context.Context, fn func(rec *block_gc.Records, blocks block.StoreOps) error) error {
+	p.n++
+	if f := p.at[p.n]; f != nil {
+		delete(p.at, p.n)
+		f()
+	}
+	return p.Store.Update(ctx, fn)
+}
+
+// livenessAdoption returns the Volume's adoption state.
+func livenessAdoption(t *testing.T, v *Volume) block_gc.Adoption {
+	t.Helper()
+	var adoption block_gc.Adoption
+	err := v.readRecords(t.Context(), func(rec *block_gc.Records) error {
+		state, err := rec.GetState(t.Context())
+		adoption = state.GetAdoption()
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return adoption
+}
+
+// markListsVerified clears the Volume's unverified child lists mark, as a
+// repair that rebuilt the lists from the blocks does.
+func markListsVerified(t *testing.T, v *Volume) {
+	t.Helper()
+	err := collectorStore{v: v}.Update(t.Context(), func(rec *block_gc.Records, _ block.StoreOps) error {
+		state, err := rec.GetState(t.Context())
+		if err != nil {
+			return err
+		}
+		state.UnverifiedLists = false
+		return rec.SetState(t.Context(), state)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// markUnadopted returns an adopted Volume to unadopted, as one that predates
+// adoption, keeping its records.
+func markUnadopted(t *testing.T, v *Volume) {
+	t.Helper()
+	err := collectorStore{v: v}.Update(t.Context(), func(rec *block_gc.Records, _ block.StoreOps) error {
+		state, err := rec.GetState(t.Context())
+		if err != nil {
+			return err
+		}
+		state.Adoption = block_gc.Adoption_ADOPTION_UNADOPTED
+		return rec.SetState(t.Context(), state)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// livenessRecords returns the liveness records of the kinds in store, by key.
+func livenessRecords(t *testing.T, store *store_kvtx_inmem.Store, kinds ...byte) map[string]string {
+	t.Helper()
+	tx, err := store.NewTransaction(t.Context(), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	out := make(map[string]string)
+	for _, kind := range kinds {
+		err := tx.ScanPrefix(t.Context(), append(slices.Clone(livenessPrefix), kind), func(key, value []byte) error {
+			out[string(key)] = string(value)
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	return out
 }
 
 // advanceRenewing moves the clock forward by d in steps shorter than the
@@ -572,8 +870,8 @@ func TestFormatUpgradeCarriesLiveness(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		if state.GetAdoption() != block_gc.Adoption_ADOPTION_UNADOPTED || state.GetLegacyGraph() {
-			t.Fatalf("state %v, want unadopted with the old graph swept", state)
+		if state.GetAdoption() != block_gc.Adoption_ADOPTION_UNADOPTED || state.GetLegacyGraph() || !state.GetUnverifiedLists() {
+			t.Fatalf("state %v, want unadopted, unverified, with the old graph swept", state)
 		}
 		return nil
 	})
@@ -586,7 +884,12 @@ func TestFormatUpgradeCarriesLiveness(t *testing.T) {
 		}
 	}
 
-	// Adoption counts the holders: nothing is garbage.
+	// Adoption refuses the unverified lists, and once a repair verifies them
+	// counts the holders: nothing is garbage.
+	if _, err := v.Adopt(ctx); !errors.Is(err, block_gc.ErrAdoptUnverified) {
+		t.Fatalf("adopt of unverified lists = %v, want ErrAdoptUnverified", err)
+	}
+	markListsVerified(t, v)
 	res, err := v.Adopt(ctx)
 	if err != nil || res.Blocks != 2 || res.Roots != 1 || res.Queued != 0 {
 		t.Fatalf("adopt = %+v err %v, want 2 blocks, 1 root, none queued", res, err)
@@ -598,6 +901,7 @@ func TestFormatUpgradeCarriesLiveness(t *testing.T) {
 	store2 := store_kvtx_inmem.NewStore()
 	writeLegacyStore(t, store2, keys, tr, "R1", false)
 	v2, _ := openLivenessVolume(t, store2, true)
+	markListsVerified(t, v2)
 	if _, err := v2.Adopt(ctx); !errors.Is(err, block_gc.ErrAdoptUnknown) {
 		t.Fatalf("adopt of a listless root = %v, want ErrAdoptUnknown", err)
 	}

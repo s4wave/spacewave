@@ -26,7 +26,11 @@ import (
 //     it still releases lapsed leases and nets the journal, so the journal
 //     stays bounded and the counts stay current for the day Frees turns on.
 //  3. It nets only journal records at least Grace old, so a reader that saw a
-//     head and has not pinned it yet still finds its blocks.
+//     head and has not pinned it yet still finds its blocks. Grace is measured
+//     on the wall clock that stamps each record: a clock that steps forward
+//     ages the records stamped before the step early by the step, and a record
+//     stamped after the collector's clock, by a clock that has since stepped
+//     back, is restamped with the collector's clock when it reads it.
 //  4. It frees no queued block that an up pair in the journal past its cursor
 //     names: a later transaction added a holder to it, which the interval it
 //     netted did not include, such as a root moved away and back within the
@@ -40,11 +44,13 @@ import (
 //  6. A count change that would go below zero is refused, and the block it
 //     names is kept with one holder: a holder vanished that the journal never
 //     added, so the counts cannot be trusted for it.
-//  7. A writer that builds on a root it read holds that root for the life of
-//     its write under a leased pin, or the World engine's pending root does
-//     for it. The collector cannot see a writer that names a block it never
-//     held, so a write that names a block the collector already freed is the
-//     writer's error, not a free of a live block.
+//  7. A put of a block already stored journals it as an up and a down
+//     pair, so a writer that puts one tree across several batches within the
+//     grace period keeps every block it put. A writer that builds on a root
+//     it read holds that root for the life of its write under a leased pin,
+//     or the World engine's pending root does for it. Land does not check
+//     that a child a put names is stored, so a writer that names a block the
+//     collector freed, past both guards, names a hole.
 type Collector struct {
 	// store runs the collector's transactions.
 	store Store
@@ -143,7 +149,13 @@ func (c *Collector) phase(p Phase) func() {
 
 // yield lets a waiting writer take the store's writer before the next slice.
 func (c *Collector) yield(ctx context.Context) error {
-	if !c.store.WritersWaiting() {
+	return yieldWriters(ctx, c.store)
+}
+
+// yieldWriters lets a writer waiting for the store's writer take it before
+// the next transaction of a background pass, and reports ctx's end.
+func yieldWriters(ctx context.Context, store Store) error {
+	if !store.WritersWaiting() {
 		return ctx.Err()
 	}
 	select {
@@ -232,17 +244,29 @@ func (c *Collector) net(ctx context.Context, res *CollectResult, deadline time.T
 func (c *Collector) netSlice(ctx context.Context, res *CollectResult) (bool, error) {
 	var full bool
 	err := c.store.Update(ctx, func(rec *Records, _ block.StoreOps) error {
-		// Sum the deltas of the aged records from the cursor.
+		// Net only an adopted Volume.
 		state, err := rec.GetState(ctx)
 		if err != nil || state.GetAdoption() != Adoption_ADOPTION_ADOPTED {
 			return err
 		}
-		horizon := c.opts.Now().Add(-c.opts.Grace).UnixMilli()
+
+		// Sum the deltas of the aged records from the cursor.
+		now := c.opts.Now().UnixMilli()
+		horizon := now - c.opts.Grace.Milliseconds()
 		deltas := make(map[string]int)
 		var netted []uint64
+		future := make(map[uint64]*JournalRecord)
 		err = rec.ScanJournal(ctx, state.GetCursor(), func(seq uint64, r *JournalRecord) (bool, error) {
-			// Stop at a record younger than the grace period or a full slice.
-			if r.GetAtUnixMilli() > horizon || len(netted) == sliceRecords {
+			// Note the records stamped in the future to restamp, netting
+			// nothing past the first.
+			if r.GetAtUnixMilli() > now && len(future) < sliceRecords {
+				future[seq] = r
+				return true, nil
+			}
+
+			// Stop past a future record, at a record younger than the grace
+			// period, or at a full slice.
+			if len(future) != 0 || r.GetAtUnixMilli() > horizon || len(netted) == sliceRecords {
 				return false, nil
 			}
 
@@ -256,7 +280,10 @@ func (c *Collector) netSlice(ctx context.Context, res *CollectResult) (bool, err
 			netted = append(netted, seq)
 			return true, nil
 		})
-		if err != nil || len(netted) == 0 {
+		if err != nil {
+			return err
+		}
+		if err := clampFuture(ctx, rec, future, now); err != nil || len(netted) == 0 {
 			return err
 		}
 
@@ -282,6 +309,19 @@ func (c *Collector) netSlice(ctx context.Context, res *CollectResult) (bool, err
 		return rec.SetState(ctx, state)
 	})
 	return full, err
+}
+
+// clampFuture restamps the journal records, stamped after now by a clock
+// that has since stepped back, with now, so each ages from the time the
+// collector first saw it rather than waiting for the clock to pass its stamp.
+func clampFuture(ctx context.Context, rec *Records, future map[uint64]*JournalRecord, now int64) error {
+	for seq, r := range future {
+		r.AtUnixMilli = now
+		if err := rec.PutJournal(ctx, seq, r); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // applyDelta adds d to the netted holders of the block at key. A block on the

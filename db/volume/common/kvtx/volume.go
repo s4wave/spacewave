@@ -4,8 +4,10 @@ import (
 	"context"
 	"crypto/rand"
 	"errors"
+	"fmt"
 	"sync"
 	"sync/atomic"
+	"testing"
 	"time"
 
 	"github.com/aperturerobotics/util/broadcast"
@@ -59,6 +61,8 @@ type Volume struct {
 	// collector frees what no held named root reaches, nil without atomic
 	// commits.
 	collector *block_gc.Collector
+	// adoptMu runs one adoption of this Volume at a time.
+	adoptMu sync.Mutex
 	// publications owns bounded grouped writes in this volume's raw
 	// transaction domain and serves admitted blocks until their group
 	// resolves.
@@ -220,9 +224,10 @@ func NewVolume(
 	return v, nil
 }
 
-// parseGrace parses the collector's grace period, zero for the default. A
-// production grace must exceed the lease of a leased root, rootLease, as the
-// Config field says; a test sets a shorter one to collect at once.
+// parseGrace parses the collector's grace period, zero for the default. It
+// refuses a grace no longer than the lease of a leased root, rootLease, as the
+// Config field says, outside a test binary, where a test sets a shorter one
+// to collect at once.
 func parseGrace(dur string) (time.Duration, error) {
 	// An empty setting uses the default.
 	if dur == "" {
@@ -237,26 +242,43 @@ func parseGrace(dur string) (time.Duration, error) {
 	if grace <= 0 {
 		return 0, errors.New("collector_grace_dur must be positive")
 	}
+
+	// Require a grace past the root lease outside tests.
+	if grace <= rootLease && !testing.Testing() {
+		return 0, fmt.Errorf("collector_grace_dur %v must exceed the root lease of %v", grace, rootLease)
+	}
 	return grace, nil
 }
 
-// startLiveness starts the renewal of this process's leased roots and, when
-// the format 7 upgrade left an old graph's records, their background sweep.
+// startLiveness starts the renewal of this process's leased roots, returns a
+// Volume an adoption left adopting to unadopted and, when the format 7
+// upgrade left an old graph's records, starts their background sweep.
 func (v *Volume) startLiveness(ctx context.Context) error {
 	// Renew the leased roots this process will hold.
 	renewCtx, cancel := context.WithCancel(context.WithoutCancel(ctx))
 	v.renewCancel, v.renewDone = cancel, make(chan struct{})
 	go v.runRootRenewal(renewCtx)
 
-	// Sweep an old graph's records when they remain.
+	// Read the liveness state, and return a Volume an adoption that died with
+	// its process left adopting to unadopted.
 	var state *block_gc.LivenessState
 	err := v.readRecords(ctx, func(rec *block_gc.Records) error {
 		var err error
 		state, err = rec.GetState(ctx)
 		return err
 	})
-	if err != nil || !state.GetLegacyGraph() {
+	if err != nil {
 		return err
+	}
+	if state.GetAdoption() == block_gc.Adoption_ADOPTION_ADOPTING {
+		if err := block_gc.ResetAdoption(ctx, collectorStore{v: v}); err != nil {
+			return err
+		}
+	}
+
+	// Sweep an old graph's records when they remain.
+	if !state.GetLegacyGraph() {
+		return nil
 	}
 	sweepCtx, cancelSweep := context.WithCancel(context.WithoutCancel(ctx))
 	v.legacyCancel, v.legacyDone = cancelSweep, make(chan struct{})
@@ -565,7 +587,9 @@ func (v *Volume) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.Blo
 // RmBlock evicts a block's bytes and its proof, and reports the removal to the
 // decoded-block cache. On a Volume that keeps liveness it keeps the block's
 // child list and count, so evicting a live block leaves a hole the collector
-// steps over and only the collector frees.
+// steps over and only the collector frees. Evict only bytes the store can
+// fetch again, such as a writeback cache's blocks its remote holds: the
+// proofs of the roots above the block stand.
 func (v *Volume) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	// Evict through a tombstone, or remove from a store without liveness.
 	var err error

@@ -59,12 +59,17 @@ func (s collectorStore) BlockStored(ctx context.Context, ref *block.BlockRef) (b
 
 // Adopt counts the holders of every block of a Volume that predates its
 // journal and marks it adopted, as block_gc.Adopt describes, reporting the
-// mark phase while it runs. Adopt a Volume only once every writer that uses
+// mark phase while it runs. It runs one adoption of this Volume at a time; an
+// adoption from another process on the same store supersedes it, as
+// block_gc.Adopt describes. Adopt a Volume only once every writer that uses
 // it holds what it needs under named roots.
 func (v *Volume) Adopt(ctx context.Context) (block_gc.AdoptResult, error) {
+	// Require liveness, then adopt one run at a time.
 	if !v.SupportsAtomicPublication() {
 		return block_gc.AdoptResult{}, block.ErrAtomicPublicationUnsupported
 	}
+	v.adoptMu.Lock()
+	defer v.adoptMu.Unlock()
 	defer v.enterGCPhase(volume.VolumeGCPhase_VOLUME_GC_PHASE_MARK)()
 	return block_gc.Adopt(block.WithBackground(ctx), collectorStore{v: v})
 }
