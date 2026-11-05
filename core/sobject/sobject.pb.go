@@ -707,7 +707,7 @@ type SharedObjectHealth struct {
 	// is reported to its writer instead.
 	RejectedEdits []*SORejectedEdit `protobuf:"bytes,9,rep,name=rejected_edits,json=rejectedEdits,proto3" json:"rejectedEdits,omitempty"`
 	// CheckpointMismatch is set while the latest checkpoint this device could
-	// judge holds a World different from the one this device replayed through
+	// judge holds a state different from the one this device replayed through
 	// the operations it covers.
 	CheckpointMismatch *SOCheckpointMismatch `protobuf:"bytes,10,opt,name=checkpoint_mismatch,json=checkpointMismatch,proto3" json:"checkpointMismatch,omitempty"`
 	// UnorderedCount is the number of operations this device holds that the
@@ -895,7 +895,7 @@ func (x *SORejectedEdit) GetLostToPeerIds() []string {
 	return nil
 }
 
-// SOCheckpointMismatch is a checkpoint whose World differs from the World this
+// SOCheckpointMismatch is a checkpoint whose state differs from the state this
 // device reached by replaying the operations the checkpoint covers. The device
 // continues from the checkpoint, since its signers are authoritative.
 type SOCheckpointMismatch struct {
@@ -1509,8 +1509,8 @@ func (x *SOParticipantConfig) GetVotingWeight() uint32 {
 	return 0
 }
 
-// SOCheckpoint is a signed checkpoint: the World at a point of the operation
-// order, from which members replay the operations after it.
+// SOCheckpoint is a signed checkpoint: the body's state at a point of the
+// operation order, from which members replay the operations after it.
 type SOCheckpoint struct {
 	unknownFields []byte
 	// Inner is the encoded SOCheckpointInner.
@@ -1699,10 +1699,10 @@ type SOCheckpointInner struct {
 	PrevCheckpointHash []byte `protobuf:"bytes,3,opt,name=prev_checkpoint_hash,json=prevCheckpointHash,proto3" json:"prevCheckpointHash,omitempty"`
 	// ConfigHash is the config chain hash the checkpoint was signed under.
 	ConfigHash []byte `protobuf:"bytes,4,opt,name=config_hash,json=configHash,proto3" json:"configHash,omitempty"`
-	// StateData is the World state after the prefix, encrypted with the key of
+	// StateData is the body's state after the prefix, encrypted with the key of
 	// key_epoch.
 	StateData []byte `protobuf:"bytes,6,opt,name=state_data,json=stateData,proto3" json:"stateData,omitempty"`
-	// ReplayVersion is the replay rule version the World was computed with.
+	// ReplayVersion is the replay rule version the state was computed with.
 	ReplayVersion uint32 `protobuf:"varint,7,opt,name=replay_version,json=replayVersion,proto3" json:"replayVersion,omitempty"`
 	// KeyEpoch is the key epoch whose key encrypted state_data.
 	KeyEpoch uint64 `protobuf:"varint,8,opt,name=key_epoch,json=keyEpoch,proto3" json:"keyEpoch,omitempty"`
@@ -2435,7 +2435,7 @@ type SOState struct {
 	unknownFields []byte
 	// Config is the shared object config.
 	Config *SharedObjectConfig `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
-	// Checkpoint is the latest checkpoint: the World members replay from.
+	// Checkpoint is the latest checkpoint: the state members replay from.
 	Checkpoint *SOCheckpoint `protobuf:"bytes,2,opt,name=checkpoint,proto3" json:"checkpoint,omitempty"`
 	// KeyEpochs are the key epochs, sorted by epoch, each with a grant to every
 	// reader that holds its key.
