@@ -6,8 +6,7 @@
 \* calls lost when a hold's recount did not submit. Admission unwinds through
 \* replay.unsave. These paths are represented below; encoding error leaves a
 \* record waiting, and the next adoption may orphan it. Adoption of a disconnected chain orphans records. Capacity eviction is
-\* excluded: the bound never fills the production limit of 64. SharedCounts
-\* covers span payloads and interval netting.
+\* excluded: the bound never fills the production limit of 64.
 \* A save snapshots names, puts, cursor and recount atomically under the
 \* writer lock; carry and saved have no interleaving caller between them.
 \* Confirm reports durability through a generation, never submission alone.

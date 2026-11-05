@@ -85,37 +85,10 @@ jobs:
             ;;
           esac
 
-  # Isolate the three canonical counting searches while checking every other
-  # discovered configuration together. A failure must not cancel its siblings.
-  specs-select:
-    name: TLA+ groups
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    outputs:
-      groups: ${{ steps.groups.outputs.groups }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - uses: oven-sh/setup-bun@v2
-
-      - name: Install Bun dependencies
-        run: bun install --frozen-lockfile --ignore-scripts
-
-      - name: Discover specs groups
-        id: groups
-        run: |
-          groups=$(bun run check:tla --groups-json)
-          echo "groups=$groups" >> "$GITHUB_OUTPUT"
-
-  specs-check:
-    name: TLA+ specs (${{ matrix.group }})
-    needs: specs-select
+  specs:
+    name: TLA+ specs
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    strategy:
-      fail-fast: false
-      matrix:
-        group: ${{ fromJSON(needs.specs-select.outputs.groups) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -125,21 +98,7 @@ jobs:
         run: bun install --frozen-lockfile --ignore-scripts
 
       - name: Check specs
-        run: bun run check:tla --group ${{ matrix.group }}
-
-  # Keep the existing required status and fail on any incomplete matrix job.
-  specs:
-    name: TLA+ specs
-    needs: [specs-select, specs-check]
-    if: ${{ always() }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 1
-    steps:
-      - name: Require every specs group
-        env:
-          SELECTION: ${{ needs.specs-select.result }}
-          RESULT: ${{ needs.specs-check.result }}
-        run: test "$SELECTION" = success && test "$RESULT" = success
+        run: bun run check:tla
 
   member-ci:
     name: CI (${{ matrix.name }})

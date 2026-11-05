@@ -4,7 +4,7 @@ EXTENDS Naturals, FiniteSets
 \* Callers: ordinary Cursor and retained ReadCursor reads, view/cache holds,
 \* snapshot Discard, provider local-copy eviction, volume logical collection,
 \* and process restart. Tree/hash/epoch correctness stays in ReadCursor and
-\* ReadCursorRoots; shared-page count arithmetic stays in gc/SharedCounts.
+\* ReadCursorRoots; holder counting and the cascade stay in gc/Journal.
 \* Observer and hold registration are separate actions, as the callback and
 \* hold-table locks in observeDecodedBlockHit can interleave. A read returns
 \* only after both. A concurrently released hold intentionally retains nothing.
