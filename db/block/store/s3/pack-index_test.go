@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -449,6 +451,43 @@ func TestPackStoreLazyLookup(t *testing.T) {
 	}
 	if got := objs.entryReads.Load(); got != 0 {
 		t.Fatalf("read %d entries from the bucket, want 0", got)
+	}
+	store.Close()
+
+	// Give pack 0 the number of pack 2, as an index written before its
+	// table loaded did. A restart publishes both, so every block reads
+	// without loading the rest.
+	ids := slices.Sorted(maps.Keys(store.index.rows))
+	moved := store.index.rows[ids[0]]
+	moved.num = store.index.rows[ids[2]].num
+	tx, err := kv.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Set(ctx, []byte(indexPackPrefix+ids[0]), moved.marshal()); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	tx.Discard()
+	store, _ = open(kv)
+	t.Cleanup(store.Close)
+	if err := store.Preload(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if n := published(); n != 2 {
+		t.Fatalf("published %d entries of a shared number, want 2", n)
+	}
+	for _, pack := range refs {
+		for _, ref := range pack {
+			if _, found, err := store.GetBlock(ctx, ref); err != nil || !found {
+				t.Fatalf("read with a shared number = %v, %v", found, err)
+			}
+		}
+	}
+	if store.full.Load() {
+		t.Fatal("a shared number loaded every entry")
 	}
 }
 
