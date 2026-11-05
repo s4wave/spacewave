@@ -627,3 +627,40 @@ func (s *SOOperationSet) Equivocations() []SOEquivocation {
 	})
 	return out
 }
+
+// CoveredPrefix returns how many of the first operations of order, an order
+// of this set's operations, checkpoint covers. It returns -1 when checkpoint
+// covers an operation after one it does not cover, or names an author head
+// this set neither holds among the covered operations nor covers itself: a
+// member missing a covered operation, or holding another that sorts among
+// them, cannot tell what the covered operations reached.
+func (s *SOOperationSet) CoveredPrefix(order [][]byte, checkpoint *SOCheckpointInner) int {
+	// Count the leading operations checkpoint covers.
+	covers := NewSOOperationSet(s.sharedObjectID, checkpoint)
+	covered := func(h []byte) bool {
+		inner := s.Get(h)
+		return inner != nil && covers.Covers(inner.GetPeerId(), inner.GetNonce())
+	}
+	n := 0
+	for n < len(order) && covered(order[n]) {
+		n++
+	}
+
+	// No later operation may be covered.
+	if slices.ContainsFunc(order[n:], covered) {
+		return -1
+	}
+
+	// Each author head checkpoint names is among them or below this set's
+	// checkpoint.
+	prefix := make(map[string]struct{}, n)
+	for _, h := range order[:n] {
+		prefix[string(h)] = struct{}{}
+	}
+	for _, author := range checkpoint.GetAuthors() {
+		if _, ok := prefix[string(author.GetOpHash())]; !ok && !s.Covers(author.GetPeerId(), author.GetNonce()) {
+			return -1
+		}
+	}
+	return n
+}
