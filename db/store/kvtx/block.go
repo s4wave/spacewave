@@ -87,18 +87,7 @@ func (k *KVTx) Sync(ctx context.Context) (bool, error) {
 	return k.blk.Sync(ctx)
 }
 
-// BeginDeferFlush forwards the GC defer-flush scope to the underlying block store.
-func (k *KVTx) BeginDeferFlush() {
-	block.BeginDeferFlush(k.blk)
-}
-
-// EndDeferFlush forwards closing the GC defer-flush scope to the underlying block store.
-func (k *KVTx) EndDeferFlush(ctx context.Context) error {
-	return block.EndDeferFlush(ctx, k.blk)
-}
-
 // _ is a type assertion
 var (
-	_ block.StoreOps     = (*KVTx)(nil)
-	_ block.DeferFlusher = (*KVTx)(nil)
+	_ block.StoreOps = (*KVTx)(nil)
 )

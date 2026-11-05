@@ -3,11 +3,11 @@ package volume_controller
 import (
 	"context"
 	"errors"
+	"slices"
 
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/bucket"
 	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/db/volume"
@@ -34,8 +34,6 @@ type bucketHandle struct {
 	v volume.Volume
 	// bucketConf retains the resolved bucket configuration.
 	bucketConf *bucket.Config
-	// gcOps tracks references for block mutations when GC is enabled.
-	gcOps *block_gc.GCStoreOps
 	// readOps confines block operations to an existing read snapshot when set.
 	readOps block.StoreOps
 	// stage is the volume stage that owns this handle's writes, if any.
@@ -89,30 +87,13 @@ func (b *bucketHandleTracker) execute(ctx context.Context) (exErr error) {
 		return err
 	}
 
-	// Retain the resolved configuration independently of later updates.
-	handle := &bucketHandle{
+	// Publish the handle, which retains the resolved configuration
+	// independently of later updates.
+	b.handleCtr.SetValue(&bucketHandle{
 		t:          b,
 		v:          vol,
 		bucketConf: bc,
-	}
-
-	// Wrap block operations with GC tracking if the volume has a RefGraph and
-	// the controller keeps volume GC enabled.
-	if rg := vol.GetRefGraph(); rg != nil && !b.c.config.GCDisabled() {
-		bucketIRI := block_gc.BucketIRI(b.bucketID)
-		handle.gcOps = block_gc.NewGCStoreOpsWithParentAndTraceTask(
-			vol,
-			rg,
-			bucketIRI,
-			block_gc.BucketFlushTask(),
-		)
-		// Root the bucket node so the marker can reach bucket-owned blocks.
-		_ = rg.AddRef(ctx, block_gc.NodeGCRoot, bucketIRI)
-	}
-
-	// Publish the complete handle after its optional GC wrapper is ready.
-	b.handleCtr.SetValue(handle)
-
+	})
 	return nil
 }
 
@@ -228,15 +209,12 @@ func (b *bucketHandle) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 		return ref, existed, err
 	}
 
-	// Preparation spills need the same atomic ownership guarantee as the final
-	// head publication. This synchronous path does not put large bodies in the
-	// bounded publication queue and preserves PutBlock's existence result.
+	// Store the block with its child list in one physical transaction when
+	// the volume supports it. This synchronous path does not put large bodies
+	// in the bounded publication queue and preserves PutBlock's existence
+	// result.
 	if prepare, ok := b.v.(block.AtomicBlockPreparer); ok && b.SupportsAtomicPublication() {
-		owner := ""
-		if b.gcOps != nil {
-			owner = b.GetID()
-		}
-		ref, existed, err := prepare.PrepareOwnedBlock(ctx, owner, data, putOpts)
+		ref, existed, err := prepare.PrepareOwnedBlock(ctx, b.GetID(), data, putOpts)
 		if !errors.Is(err, block.ErrAtomicPublicationUnsupported) {
 			if err == nil && syncRequested {
 				_, err = b.Sync(ctx)
@@ -245,32 +223,8 @@ func (b *bucketHandle) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 		}
 	}
 
-	// Route the write through GC tracking when enabled.
-	// Bucket writes do not have a later commit hook, so bucket-level GC
-	// refs must be flushed before returning.
-	var (
-		br      *block.BlockRef
-		existed bool
-		err     error
-	)
-	if b.gcOps != nil {
-		taskCtx, subtask := trace.NewTask(ctx, "hydra/volume/bucket-handle/put-block/gc-put-block")
-		br, existed, err = b.gcOps.PutBlock(taskCtx, data, putOpts)
-		subtask.End()
-		if err != nil {
-			return nil, false, err
-		}
-		taskCtx, subtask = trace.NewTask(ctx, "hydra/volume/bucket-handle/put-block/gc-flush-pending")
-		if err := b.gcOps.FlushPending(taskCtx); err != nil {
-			subtask.End()
-			return nil, false, err
-		}
-		subtask.End()
-	} else {
-		taskCtx, subtask := trace.NewTask(ctx, "hydra/volume/bucket-handle/put-block/volume-put-block")
-		br, existed, err = b.v.PutBlock(taskCtx, data, putOpts)
-		subtask.End()
-	}
+	// Write through the volume otherwise.
+	br, existed, err := b.v.PutBlock(ctx, data, putOpts)
 	if err != nil {
 		return nil, false, err
 	}
@@ -284,9 +238,7 @@ func (b *bucketHandle) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 }
 
 // PutBlockBatch writes a batch of blocks through the bucket in a single
-// lower-layer operation. Routes through GCStoreOps.PutBlockBatch when GC
-// tracking is enabled, otherwise falls back to per-entry volume PutBlock.
-// FlushPending is called once for the entire batch.
+// lower-layer operation.
 func (b *bucketHandle) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Trace the complete bucket batch write.
 	ctx, task := trace.NewTask(ctx, "hydra/volume/bucket-handle/put-block-batch")
@@ -306,39 +258,76 @@ func (b *bucketHandle) PutBlockBatch(ctx context.Context, entries []*block.PutBa
 		return b.readOps.PutBlockBatch(ctx, entries)
 	}
 
-	// A stage owns the batch of a staged handle.
-	if b.stage != "" {
-		return b.v.(bucketRootVolume).PrepareStagedBlockBatch(ctx, b.stage, entries)
+	// On a volume that keeps liveness a tombstone releases what the bucket's
+	// write held, and never evicts bytes another holder may reach: a stage
+	// releases its root on the block, and any other put held nothing.
+	if b.stage != "" || b.SupportsRootRetention() {
+		return b.putReleasing(ctx, entries)
 	}
+	return b.v.PutBlockBatch(ctx, entries)
+}
 
-	// Publish the batch atomically when the volume supports it.
-	if prepare, ok := b.v.(block.AtomicBlockPreparer); ok && b.SupportsAtomicPublication() {
-		owner := ""
-		if b.gcOps != nil {
-			owner = b.GetID()
+// putReleasing stores the batch's blocks on a volume that keeps liveness, and
+// releases the stage roots its tombstones name. It reports a tombstone as not
+// stored before.
+func (b *bucketHandle) putReleasing(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	// Split the tombstones from the puts.
+	puts := entries
+	var released []*block.BlockRef
+	if slices.ContainsFunc(entries, isTombstone) {
+		puts = make([]*block.PutBatchEntry, 0, len(entries))
+		for _, entry := range entries {
+			if isTombstone(entry) {
+				released = append(released, entry.Ref)
+			} else {
+				puts = append(puts, entry)
+			}
 		}
-		existed, err := prepare.PrepareOwnedBlockBatch(ctx, owner, entries)
-		if !errors.Is(err, block.ErrAtomicPublicationUnsupported) {
-			return existed, err
+	}
+
+	// Store the puts under the stage or as the bucket's writes.
+	vol, _ := b.v.(bucketRootVolume)
+	var stored []bool
+	var err error
+	switch {
+	case len(puts) == 0:
+	case b.stage != "":
+		stored, err = vol.PrepareStagedBlockBatch(ctx, b.stage, puts)
+	default:
+		if prepare, ok := b.v.(block.AtomicBlockPreparer); ok {
+			stored, err = prepare.PrepareOwnedBlockBatch(ctx, b.GetID(), puts)
+		} else {
+			stored, err = b.v.PutBlockBatch(ctx, puts)
 		}
 	}
-
-	// Write the batch through the volume directly when GC is not tracking.
-	if b.gcOps == nil {
-		return b.v.PutBlockBatch(ctx, entries)
-	}
-
-	// Write the batch through GC tracking, then flush its edges.
-	existed, err := b.gcOps.PutBlockBatch(ctx, entries)
 	if err != nil {
 		return nil, err
 	}
-	flushCtx, flushTask := trace.NewTask(ctx, "hydra/volume/bucket-handle/put-block-batch/gc-flush-pending")
-	defer flushTask.End()
-	if err := b.gcOps.FlushPending(flushCtx); err != nil {
-		return nil, err
+
+	// Release the stage's roots on the tombstoned blocks.
+	if b.stage != "" && len(released) != 0 {
+		if err := vol.ReleaseStageRoots(ctx, b.stage, released); err != nil {
+			return nil, err
+		}
+	}
+	if len(puts) == len(entries) {
+		return stored, nil
+	}
+
+	// Report each entry's result in the caller's order.
+	existed := make([]bool, len(entries))
+	for i, j := 0, 0; i < len(entries); i++ {
+		if !isTombstone(entries[i]) {
+			existed[i] = stored[j]
+			j++
+		}
 	}
 	return existed, nil
+}
+
+// isTombstone reports whether entry deletes its block.
+func isTombstone(entry *block.PutBatchEntry) bool {
+	return entry != nil && entry.Tombstone
 }
 
 // GetHashType returns the preferred hash type for the store.
@@ -363,11 +352,7 @@ func (b *bucketHandle) GetSupportedFeatures() block.StoreFeature {
 	if b.readOps != nil {
 		return b.readOps.GetSupportedFeatures()
 	}
-	features := b.v.GetSupportedFeatures()
-	if b.gcOps != nil {
-		features = b.gcOps.GetSupportedFeatures()
-	}
-	return features
+	return b.v.GetSupportedFeatures()
 }
 
 // BeginReadOperation opens a read scope for the bucket's volume reads.
@@ -377,9 +362,6 @@ func (b *bucketHandle) BeginReadOperation(ctx context.Context) (block.StoreOps, 
 		return b, func() {}, nil
 	}
 	store := block.StoreOps(b.v)
-	if b.gcOps != nil {
-		store = b.gcOps
-	}
 	if b.readOps != nil {
 		store = b.readOps
 	}
@@ -393,9 +375,6 @@ func (b *bucketHandle) BeginReadOperation(ctx context.Context) (block.StoreOps, 
 	scoped.readOps = scopedOps
 	if v, ok := scopedOps.(volume.Volume); ok {
 		scoped.v = v
-	}
-	if gcOps, ok := scopedOps.(*block_gc.GCStoreOps); ok {
-		scoped.gcOps = gcOps
 	}
 	return scoped, release, nil
 }
@@ -413,20 +392,15 @@ func (b *bucketHandle) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byt
 	return b.v.GetBlock(ctx, ref)
 }
 
-// GetStoredBlock gets a block and its outgoing refs. The refs come from the
-// volume's GC ref graph, so a bucket without GC reads the block without refs.
+// GetStoredBlock gets a block and its child list, which the volume keeps.
 func (b *bucketHandle) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	if b.bucketConf == nil {
 		return nil, bucket.ErrBucketNotFound
 	}
-	switch {
-	case b.readOps != nil:
+	if b.readOps != nil {
 		return b.readOps.GetStoredBlock(ctx, ref)
-	case b.gcOps != nil:
-		return b.gcOps.GetStoredBlock(ctx, ref)
-	default:
-		return block.GetBlockWithoutRefs(ctx, b, ref)
 	}
+	return b.v.GetStoredBlock(ctx, ref)
 }
 
 // GetBlockExists checks if a block exists with a cid reference.
@@ -450,9 +424,6 @@ func (b *bucketHandle) GetBlockExistsBatch(ctx context.Context, refs []*block.Bl
 	if b.readOps != nil {
 		return b.readOps.GetBlockExistsBatch(ctx, refs)
 	}
-	if b.gcOps != nil {
-		return b.gcOps.GetBlockExistsBatch(ctx, refs)
-	}
 	return b.v.GetBlockExistsBatch(ctx, refs)
 }
 
@@ -465,15 +436,12 @@ func (b *bucketHandle) StatBlock(ctx context.Context, ref *block.BlockRef) (*blo
 	if b.readOps != nil {
 		return b.readOps.StatBlock(ctx, ref)
 	}
-
-	if b.gcOps != nil {
-		return b.gcOps.StatBlock(ctx, ref)
-	}
 	return b.v.StatBlock(ctx, ref)
 }
 
-// RmBlock releases the bucket's ownership through the batch mutation path.
-// With GC enabled, physical deletion waits until the collector finds no owners.
+// RmBlock releases the bucket's hold on the block through the batch mutation
+// path. On a volume that keeps liveness that releases a stage's root and
+// otherwise nothing, since a put holds nothing; only the collector frees.
 // Removing an absent block succeeds.
 func (b *bucketHandle) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	if b.bucketConf == nil {
@@ -487,34 +455,12 @@ func (b *bucketHandle) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	return err
 }
 
-// Sync makes bucket-level GC writes durable, then fences the volume.
+// Sync fences the volume.
 func (b *bucketHandle) Sync(ctx context.Context) (bool, error) {
 	if b.readOps != nil {
 		return b.readOps.Sync(ctx)
 	}
-	if b.gcOps != nil {
-		if err := b.gcOps.FlushPending(ctx); err != nil {
-			return false, err
-		}
-	}
 	return b.v.Sync(ctx)
-}
-
-// BeginDeferFlush enters a deferred-flush scope for bucket-level GC.
-// While deferred, PutBlock skips per-block FlushPending calls.
-func (b *bucketHandle) BeginDeferFlush() {
-	if b.gcOps != nil {
-		b.gcOps.BeginDeferFlush()
-	}
-}
-
-// EndDeferFlush exits a deferred-flush scope and flushes all
-// accumulated bucket-level GC operations in one batch.
-func (b *bucketHandle) EndDeferFlush(ctx context.Context) error {
-	if b.gcOps != nil {
-		return b.gcOps.EndDeferFlush(ctx)
-	}
-	return nil
 }
 
 // SupportsAtomicPublication describes this handle's normal write domain, not a
@@ -541,7 +487,7 @@ func (b *bucketHandle) SubmitAtomic(ctx context.Context, p *block.AtomicPublicat
 	// Copy the envelope only. Entries remain borrowed until the returned receipt.
 	pub := *p
 	pub.BucketID = b.t.bucketID
-	pub.TrackGC = b.gcOps != nil
+	pub.TrackGC = true
 	return b.v.(block.AtomicPublisher).SubmitAtomic(ctx, &pub)
 }
 
@@ -559,10 +505,9 @@ func (b *bucketHandle) PublishAtomic(ctx context.Context, p *block.AtomicPublica
 // AtomicPublicationVolumeID returns the underlying volume's publication namespace.
 func (b *bucketHandle) AtomicPublicationVolumeID() string { return b.v.GetID() }
 
-// _ asserts the bucket, deferred-flush, and publication contracts.
+// _ asserts the bucket and publication contracts.
 var (
 	_ bucket.Bucket         = (*bucketHandle)(nil)
 	_ bucket.BucketHandle   = (*bucketHandle)(nil)
-	_ block.DeferFlusher    = (*bucketHandle)(nil)
 	_ block.AtomicPublisher = (*bucketHandle)(nil)
 )

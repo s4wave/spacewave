@@ -38,14 +38,12 @@ type publicationRequest struct {
 	receipt *block.PublicationReceipt
 	// bytes is the computed admission cost of the publication.
 	bytes int
-	// rootOwner keeps this revision alive until its consumer takes a reader pin.
+	// rootOwner names the reader pin that keeps this revision alive until its
+	// consumer takes its own, written in the publication's transaction.
 	rootOwner string
 	// existed records which entries the volume held when the group wrote
 	// them, for the flows.
 	existed []bool
-	// counting records whether the volume's shared counts were complete when
-	// the group wrote the entries.
-	counting bool
 }
 
 // publicationWriter serializes atomic publications into bounded physical groups.
@@ -78,14 +76,28 @@ func newPublicationWriter(v *Volume) *publicationWriter {
 	return w
 }
 
-// prefetchRefs warms the reference graph records the flush of an admitted
-// tracked publication reads, in a read transaction that holds no writer. It
-// overlaps the groups ahead of the publication, so its flush under the writer
-// reads cached pages. The writer does not wait for it; a failed prefetch only
-// leaves the flush to read the pages itself.
+// prefetchRefs warms the child list records the Land of an admitted
+// publication reads, in a read transaction that holds no writer. It overlaps
+// the groups ahead of the publication, so its Land under the writer reads
+// cached pages. The writer does not wait for it; a failed prefetch only leaves
+// the Land to read the pages itself.
 func (w *publicationWriter) prefetchRefs(ctx context.Context, p *block.AtomicPublication) {
-	owner := block_gc.BucketIRI(p.BucketID)
-	_ = OpenRefGraph(&directReadStore{volume: w.volume}).PrefetchPutBatch(ctx, owner, p.Entries)
+	_ = w.volume.readRecords(ctx, func(rec *block_gc.Records) error {
+		for _, entry := range p.Entries {
+			if entry == nil || entry.Tombstone {
+				continue
+			}
+			if _, err := rec.HasChildren(ctx, entry.Ref); err != nil {
+				return err
+			}
+			for _, child := range entry.Refs {
+				if _, err := rec.HasChildren(ctx, child); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
 }
 
 // publicationSize computes the bounded admission cost of a publication.
@@ -401,7 +413,7 @@ func (w *publicationWriter) run() {
 				w.stats.Pending--
 				w.stats.PendingBytes -= r.bytes
 				w.stats.PendingEntries -= len(r.publication.Entries)
-				r.receipt.ResolveExisted(results[i], r.existed, r.counting)
+				r.receipt.ResolveExisted(results[i], r.existed, false)
 			}
 			w.queue = slices.Delete(w.queue, 0, len(group))
 			w.next -= len(group)
@@ -433,12 +445,12 @@ func (w *publicationWriter) applyGroup(first *publicationRequest) (group []*publ
 	// Open one physical transaction shared by the blocks and the reference
 	// graph of every request in the group.
 	group = []*publicationRequest{first}
-	p, err := w.volume.openPhysical(first.ctx)
+	ptx, err := w.volume.openPhysical(first.ctx)
 	if err != nil {
 		return group, []error{err}, false
 	}
-	defer p.discard()
-	tx, blocks, rg := p.tx, p.blocks, p.rg
+	defer ptx.discard()
+	tx, blocks := ptx.tx, ptx.blocks
 
 	// Preflight each request against prior accepted changes in this physical group.
 	accepted := 0
@@ -461,7 +473,7 @@ func (w *publicationWriter) applyGroup(first *publicationRequest) (group []*publ
 		} else {
 			// All failures from here onward are physical-group failures: there are no
 			// per-request savepoints. Do not carry a partially written request onward.
-			err = w.apply(ctx, req, tx, blocks, rg, replacements)
+			err = w.apply(ctx, req, ptx, replacements)
 			if err != nil {
 				results[i] = err
 				break
@@ -479,14 +491,10 @@ func (w *publicationWriter) applyGroup(first *publicationRequest) (group []*publ
 		}
 	}
 
-	// Carry the Volume's deferred edits with the accepted requests, then
-	// settle the owner edges' counts.
+	// Carry the Volume's deferred edits with the accepted requests.
 	var edits deferredEdits
 	if err == nil && accepted != 0 {
-		edits, err = w.volume.applyDeferred(first.ctx, blocks, rg)
-	}
-	if err == nil && accepted != 0 {
-		err = rg.SettleOwnerCounts(first.ctx)
+		edits, err = w.volume.applyDeferred(first.ctx, ptx)
 	}
 
 	// Publish all accepted requests together, or discard the entire physical group.
@@ -500,7 +508,7 @@ func (w *publicationWriter) applyGroup(first *publicationRequest) (group []*publ
 	}
 	w.volume.settleDeferred(edits, committed)
 	if committed {
-		p.blocks.marks.committed()
+		ptx.blocks.marks.committed()
 	}
 
 	// Preserve preflight rejections while assigning physical failure to
@@ -580,87 +588,67 @@ func (w *publicationWriter) preflight(
 	return nil
 }
 
-// apply writes one preflighted request into the group transaction: a recount
-// it asks for, its entries with bucket ownership, its named roots and its head
-// replacements.
+// apply writes one preflighted request into the group transaction: its
+// entries with their child lists, its named roots, the reader pin of its
+// published root and its head replacements. A publication's head comparison
+// guards its writer, so its roots move from whatever they hold.
 func (w *publicationWriter) apply(
 	ctx context.Context,
 	req *publicationRequest,
-	tx kvtx.Tx,
-	blocks block.StoreOps,
-	rg *block_gc.RefGraph,
+	p *physicalTx,
 	replacements [][]byte,
 ) error {
-	// Write untracked entries directly.
-	p := req.publication
-	var err error
-	if !p.TrackGC {
-		if req.existed, err = blocks.PutBlockBatch(ctx, p.Entries); err != nil {
-			return err
-		}
-		return w.setHeads(ctx, tx, p, replacements)
+	// Gather the named roots, each moving from the block it holds.
+	pub := req.publication
+	var roots []block.NamedRoot
+	if pub.RootName != "" {
+		roots = append(roots, block.NamedRoot{Name: pub.RootName, Ref: pub.Root})
 	}
-
-	// Count every holder again when the writer lost some.
-	if p.Recount && w.volume.holdCounts {
-		if _, err := rg.RecountSharing(ctx); err != nil {
-			return err
-		}
-	}
-
-	// Write the entries owned by the bucket.
-	owner := block_gc.BucketIRI(p.BucketID)
-	if err := rg.AddRef(ctx, block_gc.NodeGCRoot, owner); err != nil {
-		return err
-	}
-	gc := block_gc.NewGCStoreOpsWithParentAndTraceTask(blocks, rg, owner, block_gc.BucketFlushTask())
-	if req.existed, err = gc.PutBlockBatch(ctx, p.Entries); err != nil {
-		return err
-	}
-	if err := w.volume.addExistedHolds(ctx, blocks, rg, p.Entries, req.existed); err != nil {
-		return err
-	}
-	if err := gc.FlushPending(ctx); err != nil {
-		return err
-	}
-	if w.volume.holdCounts {
-		s, err := rg.GetSharing(ctx)
+	roots = append(roots, pub.Roots...)
+	for i := range roots {
+		held, err := heldRoot(ctx, p, pub.BucketID, roots[i].Name)
 		if err != nil {
 			return err
 		}
-		req.counting = s.Phase.Counting()
+		roots[i].Previous = held
 	}
 
-	// Move the published root under its name. A temporary reader owner
-	// bridges publication and consumer handoff, and can be reaped after a
-	// crash.
-	if p.RootName != "" {
-		if err := w.volume.setBucketRoot(ctx, blocks, rg, p.BucketID, block.NamedRoot{Name: p.RootName, Ref: p.Root}); err != nil {
+	// Store the entries and move the roots.
+	var err error
+	if req.existed, err = w.volume.land(ctx, p, pub.BucketID, pub.Entries, roots); err != nil {
+		return err
+	}
+
+	// Pin the published root until its consumer takes its own pin, and
+	// record that its graph is stored.
+	if req.rootOwner != "" {
+		pin := []block.NamedRoot{{Name: req.rootOwner, Ref: pub.Root, Expires: w.volume.leaseExpiry()}}
+		held, err := heldRoot(ctx, p, "", req.rootOwner)
+		if err != nil {
 			return err
 		}
-		if req.rootOwner != "" {
-			err := rg.ApplyRefBatch(ctx, []block_gc.RefEdge{
-				{Subject: block_gc.NodeGCRoot, Object: req.rootOwner},
-				{Subject: req.rootOwner, Object: block_gc.BlockIRI(p.Root)},
-			}, nil)
-			if err != nil {
-				return err
-			}
-		}
-		if !p.Root.GetEmpty() {
-			if err := rg.AddRef(ctx, block_gc.BlockIRI(p.Root), completeWorldNode); err != nil {
-				return err
-			}
-		}
-	}
-
-	// Set the further named roots.
-	for _, root := range p.Roots {
-		if err := w.volume.setBucketRoot(ctx, blocks, rg, p.BucketID, root); err != nil {
+		pin[0].Previous = held
+		if _, err := w.volume.land(ctx, p, "", nil, pin); err != nil {
 			return err
 		}
 	}
-	return w.setHeads(ctx, tx, p, replacements)
+	if pub.RootName != "" && !pub.Root.GetEmpty() {
+		if err := p.rec.SetProof(ctx, pub.Root); err != nil {
+			return err
+		}
+	}
+	return w.setHeads(ctx, p.tx, pub, replacements)
+}
+
+// heldRoot returns the block the root named name of bucketID holds in p, or
+// nil.
+func heldRoot(ctx context.Context, p *physicalTx, bucketID, name string) (*block.BlockRef, error) {
+	entry, err := p.rec.GetRoot(ctx, bucketID, name)
+	if err != nil || entry == nil {
+		return nil, err
+	}
+	ref, _, err := block_gc.ParseBlockKey(entry.GetRef())
+	return ref, err
 }
 
 // setHeads writes each head's replacement.

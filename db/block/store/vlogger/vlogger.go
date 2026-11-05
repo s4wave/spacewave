@@ -199,15 +199,5 @@ func (s *VLoggerStore) Sync(ctx context.Context) (bool, error) {
 	return s.st.Sync(ctx)
 }
 
-// BeginDeferFlush forwards the GC defer-flush scope to the wrapped store.
-func (s *VLoggerStore) BeginDeferFlush() {
-	block.BeginDeferFlush(s.st)
-}
-
-// EndDeferFlush forwards closing the GC defer-flush scope to the wrapped store.
-func (s *VLoggerStore) EndDeferFlush(ctx context.Context) error {
-	return block.EndDeferFlush(ctx, s.st)
-}
-
 // _ is a type assertion
 var _ block_store.Store = (*VLoggerStore)(nil)

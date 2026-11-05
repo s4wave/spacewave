@@ -20,20 +20,20 @@ func TestRunnerCoalescesTriggerDuringSweep(t *testing.T) {
 	firstStarted := make(chan struct{})
 	firstRelease := make(chan struct{})
 	secondStarted := make(chan struct{})
-	runner.collect = func(ctx context.Context) (*block_gc.Stats, error) {
+	runner.collect = func(ctx context.Context) (block_gc.CollectResult, error) {
 		calls++
 		switch calls {
 		case 1:
 			close(firstStarted)
 			select {
 			case <-ctx.Done():
-				return nil, ctx.Err()
+				return block_gc.CollectResult{}, ctx.Err()
 			case <-firstRelease:
 			}
 		case 2:
 			close(secondStarted)
 		}
-		return &block_gc.Stats{}, nil
+		return block_gc.CollectResult{}, nil
 	}
 
 	// Start the Runner so the test can trigger collection while it is active.
@@ -76,9 +76,9 @@ func TestRunnerCoalescesTriggersBeforeSweep(t *testing.T) {
 
 	// Configure collection and coalesce triggers before the Runner starts.
 	calls := 0
-	runner.collect = func(context.Context) (*block_gc.Stats, error) {
+	runner.collect = func(context.Context) (block_gc.CollectResult, error) {
 		calls++
-		return &block_gc.Stats{}, nil
+		return block_gc.CollectResult{}, nil
 	}
 	runner.Trigger()
 	runner.Trigger()
@@ -116,20 +116,20 @@ func TestRunnerDrainWaitsForTriggerDuringDrain(t *testing.T) {
 	firstRelease := make(chan struct{})
 	secondStarted := make(chan struct{})
 	calls := 0
-	runner.collect = func(ctx context.Context) (*block_gc.Stats, error) {
+	runner.collect = func(ctx context.Context) (block_gc.CollectResult, error) {
 		calls++
 		switch calls {
 		case 1:
 			close(firstStarted)
 			select {
 			case <-ctx.Done():
-				return nil, ctx.Err()
+				return block_gc.CollectResult{}, ctx.Err()
 			case <-firstRelease:
 			}
 		case 2:
 			close(secondStarted)
 		}
-		return &block_gc.Stats{}, nil
+		return block_gc.CollectResult{}, nil
 	}
 
 	// Start the Runner before requesting a drain.
@@ -172,9 +172,9 @@ func TestRunnerDrainWaitsForTriggerDuringDrain(t *testing.T) {
 func TestRunnerDoesNotCompleteCanceledSweep(t *testing.T) {
 	// Construct a Runner whose collector waits for cancellation.
 	runner, _ := newTestRunner(t)
-	runner.collect = func(ctx context.Context) (*block_gc.Stats, error) {
+	runner.collect = func(ctx context.Context) (block_gc.CollectResult, error) {
 		<-ctx.Done()
-		return nil, ctx.Err()
+		return block_gc.CollectResult{}, ctx.Err()
 	}
 
 	// Start the Runner so cancellation interrupts its active sweep.
@@ -199,8 +199,8 @@ func TestRunnerDoesNotCompleteFailedSweep(t *testing.T) {
 	// Construct a Runner whose collector returns a stable error.
 	runner, _ := newTestRunner(t)
 	wantErr := errors.New("collect failed")
-	runner.collect = func(context.Context) (*block_gc.Stats, error) {
-		return nil, wantErr
+	runner.collect = func(context.Context) (block_gc.CollectResult, error) {
+		return block_gc.CollectResult{}, wantErr
 	}
 
 	// Run the failed sweep and require its generation to remain incomplete.
@@ -230,20 +230,12 @@ func TestRunnerWaitHonorsContext(t *testing.T) {
 func TestRunnerLogsSweepStats(t *testing.T) {
 	// Configure a Runner that reports each garbage-collection statistic.
 	runner, hook := newTestRunner(t)
-	runner.collect = func(context.Context) (*block_gc.Stats, error) {
-		return &block_gc.Stats{
-			NodesSwept:                     3,
-			UnreferencedNodeCount:          4,
-			RemoveNodeRefsCount:            5,
-			RemoveUnreferencedEdgeCount:    6,
-			OnSweptCount:                   7,
-			RemoveBlockCount:               8,
-			Duration:                       9 * time.Millisecond,
-			UnreferencedScanDuration:       10 * time.Millisecond,
-			RemoveNodeRefsDuration:         11 * time.Millisecond,
-			RemoveUnreferencedEdgeDuration: 12 * time.Millisecond,
-			OnSweptDuration:                13 * time.Millisecond,
-			RemoveBlockDuration:            14 * time.Millisecond,
+	runner.collect = func(context.Context) (block_gc.CollectResult, error) {
+		return block_gc.CollectResult{
+			Freed:    3,
+			Lapsed:   4,
+			Netted:   5,
+			Duration: 9 * time.Millisecond,
 		}, nil
 	}
 
@@ -272,28 +264,18 @@ func TestRunnerLogsSweepStats(t *testing.T) {
 		t.Fatalf("message = %q", entry.Message)
 	}
 
-	// Check the log message and the principal collection counts.
-	assertLogField(t, entry, "nodes-swept", 3)
+	// Check the collection counts.
+	assertLogField(t, entry, "freed", uint64(3))
+	assertLogField(t, entry, "lapsed", uint64(4))
+	assertLogField(t, entry, "netted", uint64(5))
 	assertLogField(t, entry, "duration", "9ms")
-	assertLogField(t, entry, "unreferenced-nodes", 4)
-	assertLogField(t, entry, "remove-node-refs", 5)
-	assertLogField(t, entry, "remove-unreferenced-edges", 6)
-	assertLogField(t, entry, "on-swept-callbacks", 7)
-
-	// Check the durations recorded for each collection phase.
-	assertLogField(t, entry, "remove-blocks", 8)
-	assertLogField(t, entry, "unreferenced-scan-duration", "10ms")
-	assertLogField(t, entry, "remove-node-refs-duration", "11ms")
-	assertLogField(t, entry, "remove-unreferenced-edge-duration", "12ms")
-	assertLogField(t, entry, "on-swept-duration", "13ms")
-	assertLogField(t, entry, "remove-block-duration", "14ms")
 }
 
 func TestRunnerSkipsEmptyStatsLog(t *testing.T) {
 	// Configure a Runner whose completed sweep has no statistics.
 	runner, hook := newTestRunner(t)
-	runner.collect = func(context.Context) (*block_gc.Stats, error) {
-		return &block_gc.Stats{}, nil
+	runner.collect = func(context.Context) (block_gc.CollectResult, error) {
+		return block_gc.CollectResult{}, nil
 	}
 
 	// Start the Runner, await its empty sweep, and verify it remains quiet.
@@ -323,8 +305,8 @@ func newTestRunner(t *testing.T) (*Runner, *test.Hook) {
 	runner := NewRunner(
 		logrus.NewEntry(logger).WithField("component", "gc-cleanup-runner"),
 		"GC swept nodes after provider account cleanup",
-		func(context.Context) (*block_gc.Stats, error) {
-			return &block_gc.Stats{}, nil
+		func(context.Context) (block_gc.CollectResult, error) {
+			return block_gc.CollectResult{}, nil
 		},
 	)
 	return runner, hook

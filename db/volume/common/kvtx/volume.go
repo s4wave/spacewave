@@ -10,6 +10,7 @@ import (
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/csync"
+	"github.com/aperturerobotics/util/ulid"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/coord"
@@ -42,8 +43,11 @@ type Volume struct {
 	kvtxStore kvtx.Store
 	// kvKey is the underlying kvkey.
 	kvKey *store_kvkey.KVKey
-	// refGraph is the volume's GC reference graph.
-	refGraph block_gc.RefGraphOps
+	// procID names this process's reader pins and stages, unique per open.
+	procID string
+	// clock returns the time journal records, leases and the grace period are
+	// read on, nil for time.Now.
+	clock func() time.Time
 	// statsFn returns storage stats, may be nil.
 	statsFn StatsFn
 	// statsBcast wakes watchers when storage stats may have changed.
@@ -52,6 +56,9 @@ type Volume struct {
 	closeFn func() error
 	// deleteFn removes the backing store after Close, may be nil.
 	deleteFn func() error
+	// collector frees what no held named root reaches, nil without atomic
+	// commits.
+	collector *block_gc.Collector
 	// publications owns bounded grouped writes in this volume's raw
 	// transaction domain and serves admitted blocks until their group
 	// resolves.
@@ -62,14 +69,6 @@ type Volume struct {
 	// atomicHashGet records whether hash verification reads are enabled for
 	// atomic publication block construction.
 	atomicHashGet bool
-	// gcMarkWalk marks a block pass by walking in one snapshot instead of
-	// scanning child lists in short transactions.
-	gcMarkWalk bool
-	// holdCounts records whether puts and named deadlist records keep shared
-	// counts: the store is at format 6, commits atomically and its Config does
-	// not disable them. The graph's sharing walk decides when they are
-	// complete.
-	holdCounts bool
 	// closeBcast guards the closing, closed, and closeErr state below.
 	closeBcast broadcast.Broadcast
 	// closing records that Close has started and direct writes must stop.
@@ -85,37 +84,33 @@ type Volume struct {
 	fills fillQueue
 	// closeErr stores the error from Close.
 	closeErr error
-	// rootPinMu guards reader pin counts, stages and their volume lease. Direct
-	// transactions take it to carry released pins, so it is never held while
-	// opening a volume transaction.
+	// rootPinMu guards reader pin counts and stages. Direct transactions take
+	// it to carry released pins, so it is never held while opening a volume
+	// transaction.
 	rootPinMu csync.Mutex
-	// rootPinOwner is the process owner node of reader pins and stages, set
-	// with its lease on first use.
-	rootPinOwner string
-	// rootPinLease holds the owner's lease for the life of the process.
-	rootPinLease coord.WriteLease
-	// rootPins counts the reader pins by root node.
+	// rootPins counts the reader pins by root name.
 	rootPins map[string]*rootPin
-	// stages are the open stages by node, and released stages whose edges no
-	// commit has removed yet.
+	// stages are the open stages by name, and released stages whose roots no
+	// commit has released yet.
 	stages map[string]*openStage
 	// rootPinsClosed records that Close released the reader pins.
 	rootPinsClosed bool
-	// proofMu guards the pending root proofs and the sweep count. It is never
+	// renewCancel stops the renewal of leased roots, nil without one.
+	renewCancel context.CancelFunc
+	// renewDone closes when the renewal has stopped.
+	renewDone chan struct{}
+	// legacyCancel stops the legacy graph sweep, nil without one.
+	legacyCancel context.CancelFunc
+	// legacyDone closes when the legacy graph sweep has stopped.
+	legacyDone chan struct{}
+	// proofMu guards the pending root proofs and the free count. It is never
 	// held across a volume transaction.
 	proofMu sync.Mutex
 	// rootProofs are the completion proofs no commit has carried yet, keyed by
-	// root node.
+	// block key.
 	rootProofs map[string]*block.BlockRef
-	// sweeps counts the sweep transactions that may have removed nodes.
-	sweeps uint64
-	// blockPassMu runs one block pass at a time, since a pass consumes the
-	// adopt log that the graph keeps while one is open.
-	blockPassMu csync.Mutex
-	// youngReady caches that the graph's young log is complete, as
-	// block_gc.RefGraph.YoungReady reports, so minor passes may run. A
-	// promotion clears it while it runs. Guarded by blockPassMu.
-	youngReady bool
+	// frees counts the collector transactions that may have freed blocks.
+	frees uint64
 	// healthBcast guards health and wakes its watchers when it changes.
 	healthBcast broadcast.Broadcast
 	// health is the collection phase and the measured sizes of the volume.
@@ -142,22 +137,6 @@ type Volume struct {
 	healthDueAt atomic.Uint64
 	// puts counts the new blocks of each write path, for the flows.
 	puts [numPutPaths]putCount
-	// deadlistsChecked, deadlistLivePages, deadlistLeakedPages and
-	// deadlistCountUnderflows count, for the flows, the due deadlist records
-	// the collector applied in shadow, the pages they would free that its
-	// mark reached, the pages they kept that it did not reach, and the count
-	// changes that would go below zero.
-	deadlistsChecked, deadlistLivePages          atomic.Uint64
-	deadlistLeakedPages, deadlistCountUnderflows atomic.Uint64
-	// releasesResolved, releaseFreedBlocks, releaseLiveBlocks and
-	// releaseUnderflows count, for the flows, the shared count releases the
-	// collector resolved, the blocks they freed, the freed blocks its next
-	// mark reached, and the releases beyond a block's count.
-	releasesResolved, releaseFreedBlocks atomic.Uint64
-	releaseLiveBlocks, releaseUnderflows atomic.Uint64
-	// revivedPuts counts the marked entries puts found absent and stored
-	// afresh, for the flows.
-	revivedPuts atomic.Uint64
 	// le logs the first caller of each write path putting a block without
 	// its references, may be nil.
 	le *logrus.Entry
@@ -208,13 +187,8 @@ func NewVolume(
 		v.deleteFn = deleteFn[0]
 	}
 
-	// Refuse a Config that asks to build the shared counts and to keep none.
-	if conf.GetDisableHoldCounts() && conf.GetUpgradeSharedCounts() {
-		return nil, volume.Permanent(errors.New("store config sets both disable_hold_counts and upgrade_shared_counts"))
-	}
-
 	// Load or claim the Volume identity and initialize its storage.
-	v, format, err := initVolume(ctx, v, storeID, conf.GetUpgradeSharedCounts(), noGenerateKey, noWriteKey)
+	v, err := initVolume(ctx, v, storeID, noGenerateKey, noWriteKey)
 	if err != nil {
 		return nil, err
 	}
@@ -222,90 +196,108 @@ func NewVolume(
 	// Coordinate direct writers using the initialized Volume identity.
 	v.Coordinator = coord_inmem.ForVolume(v.GetID())
 
-	// Route atomic publications through transaction-local reference graphs.
+	// Route atomic publications and liveness through physical transactions.
 	if atomicStore, ok := store.(kvtx.AtomicCommitStore); ok && atomicStore.SupportsAtomicCommit() {
 		v.atomicHashGet = !conf.GetDisableHashGet()
-		v.gcMarkWalk = conf.GetGcMarkWalk()
-		v.refGraph = &transactionRefGraph{volume: v}
 		v.publications = newPublicationWriter(v)
 		if orderedStore, ok := store.(kvtx.OrderedCommitStore); ok {
 			v.ordered = orderedStore
 		}
-	}
-
-	// Keep the graph's sharing walk in step with the Config.
-	if err := v.openSharing(ctx, format, conf.GetDisableHoldCounts()); err != nil {
-		return nil, err
+		grace, err := parseGrace(conf.GetCollectorGraceDur())
+		if err != nil {
+			return nil, volume.Permanent(err)
+		}
+		v.collector = block_gc.NewCollector(collectorStore{v: v}, block_gc.CollectorOptions{
+			Frees: conf.GetCollectorFrees(),
+			Grace: grace,
+			Now:   v.now,
+			Phase: v.collectorPhase,
+		})
+		if err := v.startLiveness(ctx); err != nil {
+			return nil, err
+		}
 	}
 	return v, nil
 }
 
-// openSharing decides whether the Volume keeps shared counts and brings the
-// graph's sharing walk in step. A store of format 6 that commits atomically
-// keeps them unless disabled: it begins a walk after a stop, and a block pass
-// runs the walk. One that keeps none stops the walk, so its counts, stale
-// from then on, are rebuilt if it keeps them again. A store of format 5 keeps
-// none and has no walk. A store without atomic publications leaves the shared
-// counts unchanged, including when a read-only store opens an existing walk.
-func (v *Volume) openSharing(ctx context.Context, format uint64, disabled bool) error {
-	// Skip stores that cannot maintain shared counts.
-	if format < store_kvkey.FormatVersion || v.publications == nil {
-		return nil
+// parseGrace parses the collector's grace period, zero for the default. A
+// production grace must exceed the lease of a leased root, rootLease, as the
+// Config field says; a test sets a shorter one to collect at once.
+func parseGrace(dur string) (time.Duration, error) {
+	// An empty setting uses the default.
+	if dur == "" {
+		return 0, nil
 	}
 
-	// Stop or begin the walk when the Config changed.
-	keep := !disabled
-	rg := OpenRefGraph(v.kvtxStore)
-	s, err := rg.GetSharing(ctx)
-	switch {
-	case err != nil:
-	case !keep && s.Phase != block_gc.SharingOff:
-		err = rg.StopSharing(ctx)
-	case keep && s.Phase == block_gc.SharingOff:
-		_, err = rg.BeginSharing(ctx)
+	// Parse a positive duration.
+	grace, err := time.ParseDuration(dur)
+	if err != nil {
+		return 0, errors.Join(errors.New("parse collector_grace_dur"), err)
 	}
-	v.holdCounts = keep
-	return err
+	if grace <= 0 {
+		return 0, errors.New("collector_grace_dur must be positive")
+	}
+	return grace, nil
 }
 
-// initVolume brings the store to the current format, loads or claims the
-// Volume identity, and opens the persistent reference graph. It returns the
-// store's format version, which is 5 when the store tracks blocks and
-// shareCounts is unset, as upgradeFormat describes.
+// startLiveness starts the renewal of this process's leased roots and, when
+// the format 7 upgrade left an old graph's records, their background sweep.
+func (v *Volume) startLiveness(ctx context.Context) error {
+	// Renew the leased roots this process will hold.
+	renewCtx, cancel := context.WithCancel(context.WithoutCancel(ctx))
+	v.renewCancel, v.renewDone = cancel, make(chan struct{})
+	go v.runRootRenewal(renewCtx)
+
+	// Sweep an old graph's records when they remain.
+	var state *block_gc.LivenessState
+	err := v.readRecords(ctx, func(rec *block_gc.Records) error {
+		var err error
+		state, err = rec.GetState(ctx)
+		return err
+	})
+	if err != nil || !state.GetLegacyGraph() {
+		return err
+	}
+	sweepCtx, cancelSweep := context.WithCancel(context.WithoutCancel(ctx))
+	v.legacyCancel, v.legacyDone = cancelSweep, make(chan struct{})
+	go v.runLegacySweep(sweepCtx)
+	return nil
+}
+
+// initVolume brings the store to the current format and loads or claims the
+// Volume identity.
 func initVolume(
 	ctx context.Context,
 	v *Volume,
 	storeID string,
-	shareCounts,
 	noGenerateKey,
 	noWriteKey bool,
-) (*Volume, uint64, error) {
-	// Bring the store to the current key layout before any read.
-	format, err := upgradeFormat(ctx, v.kvtxStore, v.kvKey, shareCounts)
-	if err != nil {
-		return nil, 0, err
+) (*Volume, error) {
+	// Bring the store to the current format before any read.
+	if _, err := upgradeFormat(ctx, v.kvtxStore, v.kvKey); err != nil {
+		return nil, err
 	}
 
 	// Load the stored identity.
 	peerPriv, err := v.LoadPeerPriv(ctx)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 
 	// Generate an identity when none is stored, and store it unless another
 	// mount of the same store committed one first.
 	if peerPriv == nil {
 		if noGenerateKey {
-			return nil, 0, errors.New("peer private key doesn't exist")
+			return nil, errors.New("peer private key doesn't exist")
 		}
 		peerPriv, _, err = crypto.GenerateEd25519Key(rand.Reader)
 		if err != nil {
-			return nil, 0, err
+			return nil, err
 		}
 		if !noWriteKey {
 			peerPriv, err = v.claimPeerPriv(ctx, peerPriv)
 			if err != nil {
-				return nil, 0, err
+				return nil, err
 			}
 		}
 	}
@@ -313,13 +305,15 @@ func initVolume(
 	// Build the peer and derive the volume id from its peer id.
 	v.Peer, err = peer.NewPeer(peerPriv)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 	v.volumeID = volume.NewVolumeID(storeID, v.Peer.GetPeerID())
 
-	// Open the persistent reference graph for Volume garbage collection.
-	v.refGraph = OpenRefGraph(v.kvtxStore)
-	return v, format, nil
+	// Name this process's pins and stages.
+	v.procID = ulid.NewULID()
+	v.rootPins = make(map[string]*rootPin)
+	v.stages = make(map[string]*openStage)
+	return v, nil
 }
 
 // claimPeerPriv stores priv as the volume identity unless one is already
@@ -415,7 +409,7 @@ func (v *Volume) GetStorageStatsSnapshotWithWait(
 
 // reader reads the embedded store with admitted publications laid over it.
 func (v *Volume) reader() publicationReader {
-	return publicationReader{writer: v.publications, store: v.Store}
+	return publicationReader{volume: v, writer: v.publications, store: v.Store}
 }
 
 // broadcastStorageStatsChanged wakes watchers of the Volume storage statistics.
@@ -425,16 +419,10 @@ func (v *Volume) broadcastStorageStatsChanged() {
 	})
 }
 
-// GetRefGraph returns the volume's GC reference graph.
-func (v *Volume) GetRefGraph() block_gc.RefGraphOps {
-	return v.refGraph
-}
-
-// PutBlockBatch forwards batched writes to the embedded store when supported.
-// A batch whose context carries a kvtx.BlockMarkRequest is stored with its
-// markers in one transaction, or fails with block.ErrAtomicPublicationUnsupported
-// when the store cannot commit atomically.
-// It returns volume.ErrReserve while the volume is in the reserve state, and
+// PutBlockBatch stores the entries in one transaction with their child lists,
+// as block_gc.Land describes. A batch whose context carries a
+// kvtx.BlockMarkRequest is stored with its markers in the same transaction. It
+// returns volume.ErrReserve while the volume is in the reserve state, and
 // block.ErrRefsUnknown for a block written without its child list.
 func (v *Volume) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Store a batch that asked for marking with its markers in one transaction.
@@ -443,8 +431,8 @@ func (v *Volume) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEnt
 	}
 
 	// Refuse new data below the disk reserve, and blocks without their child
-	// lists, then write the batch. A batch of tombstones only frees
-	// space, so it runs below the reserve too.
+	// lists. A batch of tombstones only frees space, so it runs below the
+	// reserve too.
 	if !onlyTombstones(entries) {
 		if err := v.checkReserve(ctx, batchBytes(entries)); err != nil {
 			return nil, err
@@ -455,7 +443,16 @@ func (v *Volume) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEnt
 		v.countRefused(putDirect, err)
 		return nil, err
 	}
-	existed, err := v.reader().PutBlockBatch(ctx, entries)
+
+	// Store the batch with its liveness, or as bytes alone on a store that
+	// keeps none.
+	var existed []bool
+	var err error
+	if v.SupportsAtomicPublication() {
+		existed, err = v.putEntries(ctx, v.withDirectPlain, entries)
+	} else {
+		existed, err = v.reader().PutBlockBatch(ctx, entries)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -466,13 +463,13 @@ func (v *Volume) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEnt
 	return existed, nil
 }
 
-// PutBlock forwards block writes to the embedded store. It returns
+// PutBlock stores the block as PutBlockBatch does. It returns
 // volume.ErrReserve while the volume is in the reserve state, and
 // block.ErrRefsUnknown for a block written without its child list.
 func (v *Volume) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	// Store a block that asked for marking with its marker in one transaction.
+	putOpts, syncRequested := block.PutOptsWithoutSync(opts)
 	if kvtx.GetBlockMarkRequest(ctx) != nil {
-		putOpts, syncRequested := block.PutOptsWithoutSync(opts)
 		ref, existed, err := v.PrepareOwnedBlock(ctx, "", data, putOpts)
 		if err == nil && syncRequested {
 			_, err = v.Sync(ctx)
@@ -480,22 +477,37 @@ func (v *Volume) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts)
 		return ref, existed, err
 	}
 
-	// Refuse new data below the disk reserve.
+	// Refuse new data below the disk reserve, and a block without its child
+	// list.
 	if err := v.checkReserve(ctx, len(data)); err != nil {
 		return nil, false, err
 	}
-
-	// Refuse a block without its child list, then write the block while
-	// retaining the requested Volume durability barrier.
-	putOpts, syncRequested := block.PutOptsWithoutSync(opts)
 	v.noteUnknownRefs(putDirect, data, putOpts)
 	if err := requireRefKnown(data, putOpts); err != nil {
 		v.countRefused(putDirect, err)
 		return nil, false, err
 	}
-	ref, exists, err := v.Store.PutBlock(ctx, data, putOpts)
-	if err != nil {
-		return nil, exists, err
+
+	// Store the block with its liveness, or as bytes alone on a store that
+	// keeps none.
+	var ref *block.BlockRef
+	var exists bool
+	if v.SupportsAtomicPublication() {
+		entry, err := putEntry(data, putOpts, v.GetHashType())
+		if err != nil {
+			return nil, false, err
+		}
+		existed, err := v.putEntries(ctx, v.withDirectPlain, []*block.PutBatchEntry{entry})
+		if err != nil {
+			return nil, false, err
+		}
+		ref, exists = entry.Ref, existed[0]
+	} else {
+		var err error
+		ref, exists, err = v.Store.PutBlock(ctx, data, putOpts)
+		if err != nil {
+			return nil, exists, err
+		}
 	}
 
 	// Count the block, and wake Volume statistics watchers when it adds
@@ -550,10 +562,19 @@ func (v *Volume) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.Blo
 	return v.reader().StatBlock(ctx, ref)
 }
 
-// RmBlock forwards block deletion to the embedded store and reports the
-// removal to the decoded-block cache.
+// RmBlock evicts a block's bytes and its proof, and reports the removal to the
+// decoded-block cache. On a Volume that keeps liveness it keeps the block's
+// child list and count, so evicting a live block leaves a hole the collector
+// steps over and only the collector frees.
 func (v *Volume) RmBlock(ctx context.Context, ref *block.BlockRef) error {
-	if err := v.reader().RmBlock(ctx, ref); err != nil {
+	// Evict through a tombstone, or remove from a store without liveness.
+	var err error
+	if v.SupportsAtomicPublication() {
+		_, err = v.putEntries(ctx, v.withDirectPlain, []*block.PutBatchEntry{{Ref: ref, Tombstone: true}})
+	} else {
+		err = v.reader().RmBlock(ctx, ref)
+	}
+	if err != nil {
 		return err
 	}
 	v.broadcastStorageStatsChanged()
@@ -601,20 +622,6 @@ func (v *Volume) WaitDurable(ctx context.Context) error {
 	return v.ordered.WaitDurable(ctx)
 }
 
-// BeginDeferFlush forwards the GC defer-flush scope to the embedded store.
-func (v *Volume) BeginDeferFlush() {
-	block.BeginDeferFlush(v.Store)
-}
-
-// EndDeferFlush forwards closing the GC defer-flush scope to the embedded store.
-func (v *Volume) EndDeferFlush(ctx context.Context) error {
-	if err := block.EndDeferFlush(ctx, v.Store); err != nil {
-		return err
-	}
-	v.broadcastStorageStatsChanged()
-	return nil
-}
-
 // Maintenance lets a BlockDomain reclaim the space of removed blocks. Any
 // other store reclaims it as it deletes their records.
 func (v *Volume) Maintenance(ctx context.Context) error {
@@ -659,7 +666,16 @@ func (v *Volume) Close() error {
 		return v.closeErr
 	}
 
-	// Release root pins and join direct Volume transactions before closing storage.
+	// Stop the background liveness work, release root pins and join direct
+	// Volume transactions before closing storage.
+	if v.legacyCancel != nil {
+		v.legacyCancel()
+		<-v.legacyDone
+	}
+	if v.renewCancel != nil {
+		v.renewCancel()
+		<-v.renewDone
+	}
 	closeErr := v.closeRootPins()
 	v.directMu.Lock()
 	v.directClosed = true
@@ -673,9 +689,6 @@ func (v *Volume) Close() error {
 	}
 	if v.publications != nil {
 		v.publications.close()
-	}
-	if v.refGraph != nil {
-		closeErr = errors.Join(closeErr, v.refGraph.Close())
 	}
 	if v.closeFn != nil {
 		closeErr = errors.Join(closeErr, v.closeFn())

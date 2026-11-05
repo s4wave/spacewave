@@ -14,6 +14,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/core"
+	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	"github.com/s4wave/spacewave/db/volume"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
@@ -48,6 +49,7 @@ func TestReserveDisk(t *testing.T) {
 		Path:         filepath.Join(dir, "volume.s4wave"),
 		ReserveBytes: 128 << 20,
 		VolumeConfig: &volume_controller.Config{GcIntervalDur: "1h"},
+		StoreConfig:  &store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: "1ns"},
 	}
 	ctrl, _, ref, err := loader.WaitExecControllerRunningTyped[volume.Controller](
 		ctx, b, resolver.NewLoadControllerWithConfig(conf), nil,
@@ -71,7 +73,7 @@ func TestReserveDisk(t *testing.T) {
 	var head *block.BlockRef
 	var n int
 	for ; ; n++ {
-		next, err := writeHead(t, vol, n)
+		next, err := writeHead(t, vol, n, head)
 		if errors.Is(err, volume.ErrReserve) {
 			break
 		}
@@ -110,15 +112,17 @@ func TestReserveDisk(t *testing.T) {
 
 	// Writes resume.
 	for i := range 16 {
-		if _, err := writeHead(t, vol, n+1+i); err != nil {
+		next, err := writeHead(t, vol, n+1+i, head)
+		if err != nil {
 			t.Fatalf("write %d after collection: %v", i, err)
 		}
+		head = next
 	}
 }
 
 // writeHead writes a 1 MiB block numbered n as the fill bucket's head and
-// drops the write's staging edge, so the head it replaced is garbage.
-func writeHead(t *testing.T, vol *volume_s4db.Volume, n int) (*block.BlockRef, error) {
+// moves the head root from prev, so the head it replaced is garbage.
+func writeHead(t *testing.T, vol *volume_s4db.Volume, n int, prev *block.BlockRef) (*block.BlockRef, error) {
 	// Build a block distinct by its number.
 	t.Helper()
 	ctx := t.Context()
@@ -129,10 +133,10 @@ func writeHead(t *testing.T, vol *volume_s4db.Volume, n int) (*block.BlockRef, e
 		t.Fatal(err)
 	}
 
-	// Write it as the head and release its staging edge.
-	entries := []*block.PutBatchEntry{{Ref: ref, Data: data}}
-	if err := vol.SetBucketRoots(ctx, "fill", entries, []block.NamedRoot{{Name: "head", Ref: ref}}); err != nil {
+	// Write it as the head.
+	entries := []*block.PutBatchEntry{{Ref: ref, Data: data, RefsKnown: true}}
+	if err := vol.SetBucketRoots(ctx, "fill", entries, []block.NamedRoot{{Name: "head", Ref: ref, Previous: prev}}); err != nil {
 		return nil, err
 	}
-	return ref, vol.ReleaseBucketRoots(ctx, "fill", []*block.BlockRef{ref})
+	return ref, nil
 }

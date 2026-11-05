@@ -14,7 +14,6 @@ import (
 	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/db/block"
 	dex_solicit "github.com/s4wave/spacewave/db/dex/solicit"
-	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/s4db"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
@@ -174,8 +173,7 @@ func writeArchive(ctx context.Context, t *testing.T, file string) (child, parent
 		return ref
 	}
 	child, parent, leaf = put("child"), put("parent"), put("leaf")
-	graph := volume_kvtx.OpenRefGraph(kvtx.NewTxStore(tx))
-	if err := graph.AddBlockRef(ctx, parent, child); err != nil {
+	if err := volume_kvtx.OpenRecords(tx).PutChildren(ctx, parent, []*block.BlockRef{child}); err != nil {
 		t.Fatal(err)
 	}
 	if err := tx.Commit(ctx); err != nil {

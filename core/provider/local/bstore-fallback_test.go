@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
@@ -60,11 +59,6 @@ func (o ownedStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 // PutBlockBatch writes a batch owned by the bucket.
 func (o ownedStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	return o.PrepareOwnedBlockBatch(ctx, "bucket", entries)
-}
-
-// GetStoredBlock reads a block with the refs the Volume tracks.
-func (o ownedStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
-	return block_gc.NewGCStoreOps(o.Volume, o.GetRefGraph()).GetStoredBlock(ctx, ref)
 }
 
 // newOwnedVolume opens a Volume over an in-memory key-value store and returns
@@ -137,7 +131,7 @@ func (p promptPacks) GetBatchLimits() block.BatchLimits {
 	return limits
 }
 
-// trackedSet is a block tracker standing in for the volume's reference graph.
+// trackedSet stands in for the child lists the volume keeps.
 type trackedSet struct {
 	mtx    sync.Mutex
 	blocks map[string]bool
@@ -150,8 +144,8 @@ func (t *trackedSet) track(ref *block.BlockRef) {
 	t.blocks[ref.MarshalString()] = true
 }
 
-// TrackedBlocks reports which refs were tracked.
-func (t *trackedSet) TrackedBlocks(_ context.Context, refs []*block.BlockRef) ([]bool, error) {
+// HasChildLists reports which refs were tracked.
+func (t *trackedSet) HasChildLists(_ context.Context, refs []*block.BlockRef) ([]bool, error) {
 	// Report each ref under the lock.
 	t.mtx.Lock()
 	defer t.mtx.Unlock()

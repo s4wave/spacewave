@@ -99,16 +99,6 @@ func (v *VolumeBlockStore) Sync(ctx context.Context) (bool, error) {
 	return storeFenced && volumeFenced, nil
 }
 
-// BeginDeferFlush forwards the GC defer-flush scope to the wrapped block store.
-func (v *VolumeBlockStore) BeginDeferFlush() {
-	block.BeginDeferFlush(v.store)
-}
-
-// EndDeferFlush forwards closing the GC defer-flush scope to the wrapped block store.
-func (v *VolumeBlockStore) EndDeferFlush(ctx context.Context) error {
-	return block.EndDeferFlush(ctx, v.store)
-}
-
 // _ is a type assertion
 var (
 	_ Volume            = (*VolumeBlockStore)(nil)

@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 )
 
 // TestGraphPreservesSubtrees proves intrinsic child order survives unordered
@@ -35,16 +34,13 @@ func TestGraphPreservesSubtrees(t *testing.T) {
 }
 
 // TestBlockRefsGroupsPartialGraph proves uploads retain available subtrees
-// even when the named object root is outside the candidate set.
+// even when their parent is outside the candidate set.
 func TestBlockRefsGroupsPartialGraph(t *testing.T) {
 	// Create a partial graph with an object root outside the candidate set.
 	parent := testRef(t, "unavailable-parent")
 	root := testRef(t, "partial-root")
 	child := testRef(t, "partial-child")
-	graph := newTestRefGraph()
-	graph.add(block_gc.ObjectIRI("object"), block_gc.BlockIRI(parent))
-	graph.add(block_gc.BlockIRI(parent), block_gc.BlockIRI(root))
-	graph.add(block_gc.BlockIRI(root), block_gc.BlockIRI(child))
+	graph := testLists{refKey(parent): {root}, refKey(root): {child}}
 
 	// Order the available blocks through the partial reference graph.
 	refs, err := BlockRefs(t.Context(), graph, []*block.BlockRef{child, root})

@@ -1,0 +1,58 @@
+syntax = "proto3";
+package block.gc;
+
+// RootEntry is one named root in a Volume's root table: the block the name
+// holds.
+message RootEntry {
+  // Ref is the block the name holds, as its hash type byte and digest.
+  bytes ref = 1;
+  // ExpiresUnixMilli is when the collector releases the root itself, in Unix
+  // milliseconds. Zero holds the root until a writer releases it. A holder
+  // renews a leased root by setting it again with a later expiry.
+  int64 expires_unix_milli = 2;
+}
+
+// JournalRecord is one write transaction's change to the holders of blocks.
+// The collector nets it after the fact; nothing else reads it.
+message JournalRecord {
+  // AtUnixMilli is when the transaction committed, in Unix milliseconds. It
+  // never decreases from one record to the next.
+  int64 at_unix_milli = 1;
+  // Up names a block once for each holder the transaction added to it beyond
+  // the one a block stored by the transaction implies.
+  repeated bytes up = 2;
+  // Down names a block once for each named root that moved off it.
+  repeated bytes down = 3;
+}
+
+// Adoption is whether a Volume's counts describe its blocks.
+enum Adoption {
+  // ADOPTION_UNADOPTED is a Volume written before its child lists were
+  // complete. It keeps no journal and frees nothing.
+  ADOPTION_UNADOPTED = 0;
+  // ADOPTION_ADOPTING is a Volume whose counts an adoption is building. It
+  // keeps a journal and frees nothing.
+  ADOPTION_ADOPTING = 1;
+  // ADOPTION_ADOPTED is a Volume whose counts and journal describe every
+  // holder. Its collector frees when its switch is on.
+  ADOPTION_ADOPTED = 2;
+}
+
+// LivenessState is the one record of a Volume's journal position and
+// adoption.
+message LivenessState {
+  // Adoption is whether the counts describe the Volume's blocks.
+  Adoption adoption = 1;
+  // NextSeq is the sequence number the next journal record takes.
+  uint64 next_seq = 2;
+  // Cursor is the sequence number of the oldest record the collector has not
+  // netted.
+  uint64 cursor = 3;
+  // LastAtUnixMilli is the time of the last journal record, so record times
+  // never decrease when the clock steps back.
+  int64 last_at_unix_milli = 4;
+  // LegacyGraph reports that records of the reference graph of a store
+  // format before 7 remain, which a background sweep deletes in slices.
+  // Nothing reads them.
+  bool legacy_graph = 5;
+}

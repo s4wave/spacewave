@@ -62,13 +62,13 @@ type ValueFamily struct {
 }
 
 // ValueFamilies returns the key families of a volume laid out by keys: its
-// blocks, its object stores and its reference graph. A storage that counts
+// blocks, its object stores and its liveness records. A storage that counts
 // its values by these reports the other keys as "other".
 func ValueFamilies(keys *store_kvkey.KVKey) []ValueFamily {
 	return []ValueFamily{
 		{Name: "block", Prefix: keys.GetBlockFullPrefix()},
 		{Name: "object", Prefix: keys.GetObjectStoreFullPrefix()},
-		{Name: "graph", Prefix: refGraphPrefix},
+		{Name: "liveness", Prefix: livenessPrefix},
 	}
 }
 
@@ -108,18 +108,6 @@ func (v *Volume) GetFlows() *volume.VolumeFlows {
 		v.storageFlows(flows)
 	}
 
-	// Report the deadlist applies.
-	flows.DeadlistsChecked = v.deadlistsChecked.Load()
-	flows.DeadlistLivePages = v.deadlistLivePages.Load()
-	flows.DeadlistLeakedPages = v.deadlistLeakedPages.Load()
-	flows.DeadlistCountUnderflows = v.deadlistCountUnderflows.Load()
-
-	// Report the releases and revived puts.
-	flows.ReleasesResolved = v.releasesResolved.Load()
-	flows.ReleaseFreedBlocks = v.releaseFreedBlocks.Load()
-	flows.ReleaseLiveBlocks = v.releaseLiveBlocks.Load()
-	flows.ReleaseUnderflows = v.releaseUnderflows.Load()
-	flows.RevivedPuts = v.revivedPuts.Load()
 	return flows
 }
 

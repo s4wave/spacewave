@@ -89,9 +89,6 @@ func Switch(ctx context.Context, cfg SwitchConfig) (SwitchResult, error) {
 
 	// Copy.
 	omit := [][]byte{cfg.WritebackPrefix}
-	if cfg.OmitGraph {
-		omit = append(omit, volume_kvtx.RefGraphPrefixes()...)
-	}
 	if cfg.SkipBlocks {
 		omit = append(omit, cfg.Keys.GetBlockFullPrefix())
 	}

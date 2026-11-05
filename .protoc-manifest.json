@@ -1681,16 +1681,14 @@
         "db/block/file/file.proto"
       ]
     },
-    "github.com/s4wave/spacewave/db/block/gc/rpc": {
-      "hash": "fd3ce620f813b07aac06b8f680ea44a63a137c32cb26ebc29a9d0f7d899979f0",
+    "github.com/s4wave/spacewave/db/block/gc": {
+      "hash": "985672c5738cf1d1216506701afe669f34663b0c3f2e423b5085c3240c0f0f4d",
       "generatedFiles": [
-        "db/block/gc/rpc/refgraph.pb.go",
-        "db/block/gc/rpc/refgraph.pb.ts",
-        "db/block/gc/rpc/refgraph_srpc.pb.go",
-        "db/block/gc/rpc/refgraph_srpc.pb.ts"
+        "db/block/gc/liveness.pb.go",
+        "db/block/gc/liveness.pb.ts"
       ],
       "protoFiles": [
-        "db/block/gc/rpc/refgraph.proto"
+        "db/block/gc/liveness.proto"
       ]
     },
     "github.com/s4wave/spacewave/db/block/mock": {
@@ -2283,7 +2281,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/store/kvtx": {
-      "hash": "d24fb546e9f7208f6e6c82a69ebedb7ce681e4bb32a8cc7114bb2d52ea9f38b7",
+      "hash": "0c13990dc8e8f4840ee0f46ce4d00e12666e60c8281f9a75dff105fe757dd2f2",
       "generatedFiles": [
         "db/store/kvtx/kvtx.pb.go",
         "db/store/kvtx/kvtx.pb.ts"
@@ -2433,7 +2431,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/volume": {
-      "hash": "027800f5b04b2432a5c6d1799aa08c3b15e2579fcf675601247da87acf756169",
+      "hash": "48f3a6ebd05d25152d480900177f8445c1cdcaea08e8ddfbe760f003ebba61dd",
       "generatedFiles": [
         "db/volume/health.pb.go",
         "db/volume/health.pb.ts",
@@ -2476,7 +2474,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/volume/controller": {
-      "hash": "55f38e9037a49c723099863962dafd7334878d4d321d201246e7cdda4814991c",
+      "hash": "9d5210effc74524d7c9ad499ac32d5544117bce9a5537b19a0dabee2ea384e67",
       "generatedFiles": [
         "db/volume/controller/controller.pb.go",
         "db/volume/controller/controller.pb.ts"

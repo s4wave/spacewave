@@ -5,14 +5,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/coord"
 	db_kvtx "github.com/s4wave/spacewave/db/kvtx"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
@@ -237,13 +235,14 @@ func assertPublishedBlock(t *testing.T, v *Volume, p *block.AtomicPublication, w
 		t.Fatal("block bytes changed")
 	}
 
-	// Verify the publication bucket owns exactly the expected block.
-	owners, err := v.GetRefGraph().GetIncomingRefs(t.Context(), block_gc.BlockIRI(ref))
+	// Verify the Volume keeps the block's child list exactly when it was
+	// published.
+	listed, err := v.HasChildLists(t.Context(), []*block.BlockRef{ref})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if slices.Contains(owners, block_gc.BucketIRI(p.BucketID)) != want {
-		t.Fatalf("owners=%v want=%v", owners, want)
+	if listed[0] != want {
+		t.Fatalf("listed=%v want=%v", listed[0], want)
 	}
 }
 

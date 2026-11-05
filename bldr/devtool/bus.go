@@ -25,7 +25,6 @@ import (
 	bldr_project_watcher "github.com/s4wave/spacewave/bldr/project/watcher"
 	default_storage "github.com/s4wave/spacewave/bldr/storage/default"
 	storage_volume "github.com/s4wave/spacewave/bldr/storage/volume"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -248,17 +247,6 @@ func BuildDevtoolBus(
 	if err != nil {
 		rel()
 		return nil, err
-	}
-
-	// Register GC hierarchy: gcroot -> bucket
-	if rg := vol.GetRefGraph(); rg != nil {
-		if err := block_gc.RegisterEntityChain(ctx, rg,
-			block_gc.NodeGCRoot,
-			block_gc.BucketIRI(engineBucketID),
-		); err != nil {
-			rel()
-			return nil, err
-		}
 	}
 
 	// Build the block transform config and the engine's initial object ref.

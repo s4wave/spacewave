@@ -16,11 +16,9 @@ import (
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/core/space"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_prefixer "github.com/s4wave/spacewave/db/kvtx/prefixer"
 	"github.com/s4wave/spacewave/db/volume"
-	kvtx_volume "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
 	s4wave_org "github.com/s4wave/spacewave/sdk/org"
@@ -504,22 +502,6 @@ func (a *ProviderAccount) CreateSharedObject(ctx context.Context, id string, met
 		if host.stateCtr.GetValue().GetCheckpoint() == nil {
 			if err := host.pullState(ctx, SeedReasonMutation); err != nil {
 				return nil, errors.Wrap(err, "publish initialized shared object")
-			}
-		}
-	}
-
-	// Register GC hierarchy: gcroot -> sw-provider -> bucket
-	if kvVol, ok := a.vol.(kvtx_volume.KvtxVolume); ok {
-		if rg := kvVol.GetRefGraph(); rg != nil {
-			bstoreID := SobjectBlockStoreID(id)
-			bucketID := BlockStoreBucketID(a.accountID, bstoreID)
-			providerID := a.p.info.GetProviderId()
-			if err := block_gc.RegisterEntityChain(ctx, rg,
-				block_gc.NodeGCRoot,
-				ProviderIRI(providerID),
-				block_gc.BucketIRI(bucketID),
-			); err != nil {
-				a.le.WithError(err).Warn("failed to register GC chain")
 			}
 		}
 	}

@@ -8,10 +8,8 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
-	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/s4db"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
@@ -124,26 +122,12 @@ func (a *archive) LookupStoredBlock(ctx context.Context, ref *block.BlockRef, _ 
 		return nil, nil
 	}
 
-	// Read its outgoing block refs from the reference graph.
-	graph := volume_kvtx.OpenRefGraph(kvtx.NewTxStore(tx))
-	targets, tracked, err := graph.GetBlockEdges(ctx, block_gc.BlockIRI(ref))
+	// Read its child list in the same snapshot.
+	refs, known, err := volume_kvtx.OpenRecords(tx).GetChildren(ctx, ref)
 	if err != nil {
 		le.WithError(err).Warn("read block refs; serving the bytes without them")
 		return &block.StoredBlock{Data: data}, nil
 	}
-
-	// Keep the edges that name blocks, once each.
-	slices.Sort(targets)
-	targets = slices.Compact(targets)
-	var refs []*block.BlockRef
-	for _, target := range targets {
-		if child, ok := block_gc.ParseBlockIRI(target); ok {
-			refs = append(refs, child)
-		}
-	}
-
-	// Report the refs known when the graph tracked the block or it has children.
-	known := tracked || len(refs) != 0
 	le.WithField("bytes", len(data)).WithField("refs", len(refs)).WithField("refs-known", known).Info("served block")
 	return &block.StoredBlock{Data: data, Refs: refs, RefsKnown: known}, nil
 }

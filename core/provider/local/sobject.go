@@ -13,11 +13,9 @@ import (
 	"github.com/s4wave/spacewave/core/bstore"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/object"
 	"github.com/s4wave/spacewave/db/volume"
-	kvtx_volume "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
@@ -446,20 +444,6 @@ func (a *ProviderAccount) createSharedObjectLocked(ctx context.Context, id strin
 	// Create backing storage before publishing the SharedObject.
 	if _, err := a.createBlockStoreLocked(ctx, blockStoreID); err != nil {
 		return nil, err
-	}
-
-	// Retain the bucket under its provider in the garbage-collection graph.
-	if kvVol, ok := a.vol.(kvtx_volume.KvtxVolume); ok {
-		if rg := kvVol.GetRefGraph(); rg != nil {
-			bucketID := BlockStoreBucketID(providerID, providerAccountID, blockStoreID)
-			if err := block_gc.RegisterEntityChain(ctx, rg,
-				block_gc.NodeGCRoot,
-				ProviderIRI(providerID),
-				block_gc.BucketIRI(bucketID),
-			); err != nil {
-				return nil, err
-			}
-		}
 	}
 
 	// Append to the list of shared objects.

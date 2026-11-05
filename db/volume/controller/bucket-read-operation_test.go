@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/s4db"
@@ -48,16 +47,10 @@ func (t *snapshotTx) Discard() {
 	t.once.Do(func() { t.store.open.Add(-1) })
 }
 
-// TestBucketReadOperationUsesOneSnapshot requires the GC wrapper and volume to share a reader.
+// TestBucketReadOperationUsesOneSnapshot requires the bucket handle and volume
+// to share a reader.
 func TestBucketReadOperationUsesOneSnapshot(t *testing.T) {
-	t.Run("plain", func(t *testing.T) { testBucketReadOperationUsesOneSnapshot(t, false) })
-	t.Run("gc", func(t *testing.T) { testBucketReadOperationUsesOneSnapshot(t, true) })
-}
-
-// testBucketReadOperationUsesOneSnapshot checks either native bucket wrapper chain.
-func testBucketReadOperationUsesOneSnapshot(t *testing.T, withGC bool) {
-	// Assemble the native s4db-backed volume with the ordinary GC wrapper.
-	t.Helper()
+	// Assemble the native s4db-backed volume.
 	db, err := s4db.Open(filepath.Join(t.TempDir(), "bucket.s4wave"), s4db.Options{})
 	if err != nil {
 		t.Fatal(err)
@@ -72,11 +65,8 @@ func testBucketReadOperationUsesOneSnapshot(t *testing.T, withGC bool) {
 	}
 	t.Cleanup(func() { _ = vol.Close() })
 
-	// Build the bucket handle with optional GC wrapping.
+	// Build the bucket handle.
 	handle := &bucketHandle{v: vol, bucketConf: &bucket.Config{Id: "test"}}
-	if withGC {
-		handle.gcOps = block_gc.NewGCStoreOps(vol, stubRefGraph{})
-	}
 
 	// Store one block to read back through the scope.
 	ref, _, err := vol.PutBlock(t.Context(), []byte("snapshot contents"), &block.PutOpts{RefsKnown: true})

@@ -18,8 +18,6 @@ type kvtxBlockTestStore struct {
 	rmCalls          int
 	batchCalls       int
 	existsBatchCalls int
-	beginCalls       int
-	endCalls         int
 }
 
 func newKVTxBlockTestStore() *kvtxBlockTestStore {
@@ -51,16 +49,6 @@ func (s *kvtxBlockTestStore) PutBlockBatch(ctx context.Context, entries []*block
 func (s *kvtxBlockTestStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	s.existsBatchCalls++
 	return s.StoreOps.GetBlockExistsBatch(ctx, refs)
-}
-
-func (s *kvtxBlockTestStore) BeginDeferFlush() {
-	s.beginCalls++
-	block.BeginDeferFlush(s.StoreOps)
-}
-
-func (s *kvtxBlockTestStore) EndDeferFlush(ctx context.Context) error {
-	s.endCalls++
-	return block.EndDeferFlush(ctx, s.StoreOps)
 }
 
 func TestKVTxForwardsBlockStoreExtensions(t *testing.T) {
@@ -103,16 +91,6 @@ func TestKVTxForwardsBlockStoreExtensions(t *testing.T) {
 		t.Fatalf("expected batch exists forwarding, got %d calls", inner.existsBatchCalls)
 	}
 
-	// Begin and end a deferred flush through the KVTx wrapper.
-	k.BeginDeferFlush()
-	if err := k.EndDeferFlush(ctx); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Require both deferred-flush operations to reach the inner store.
-	if inner.beginCalls != 1 || inner.endCalls != 1 {
-		t.Fatalf("expected defer-flush forwarding, got begin=%d end=%d", inner.beginCalls, inner.endCalls)
-	}
 }
 
 func TestConfigResolveHashType(t *testing.T) {

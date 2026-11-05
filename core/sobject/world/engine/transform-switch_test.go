@@ -8,7 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
+	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
@@ -106,34 +106,34 @@ func (w *spaceWorld) worldBlocks(ctx context.Context, t *testing.T, enc *transfo
 		t.Fatal(err)
 	}
 
-	// Walk the ref graph from the bucket, decrypting each block and
-	// skipping other objects' blocks.
+	// Walk the child lists from the engine's head, decrypting each block and
+	// skipping blocks of another transform.
+	lists := w.vol.(interface {
+		GetChildren(context.Context, *block.BlockRef) ([]*block.BlockRef, bool, error)
+	})
 	out := make(map[string][]byte)
-	seen := map[string]bool{w.bucket: true}
-	queue := []string{w.bucket}
+	head := engineHead(ctx, t, w.eng)
+	seen := map[string]bool{head.MarshalString(): true}
+	queue := []*block.BlockRef{head}
 	for len(queue) != 0 {
-		node := queue[0]
+		ref := queue[0]
 		queue = queue[1:]
-		children, err := w.rg.GetOutgoingRefs(ctx, node)
+		children, _, err := lists.GetChildren(ctx, ref)
 		if err != nil {
 			t.Fatal(err)
 		}
 		for _, child := range children {
-			if !seen[child] {
-				seen[child] = true
+			if !seen[child.MarshalString()] {
+				seen[child.MarshalString()] = true
 				queue = append(queue, child)
 			}
-		}
-		ref, ok := block_gc.ParseBlockIRI(node)
-		if !ok {
-			continue
 		}
 		data, found, err := w.vol.GetBlock(ctx, ref)
 		if err != nil || !found {
 			continue
 		}
 		if dec, err := xfrm.DecodeBlock(data); err == nil {
-			out[node] = dec
+			out[ref.MarshalString()] = dec
 		}
 	}
 	return out

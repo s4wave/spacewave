@@ -106,15 +106,5 @@ func (b *mockBucket) Sync(ctx context.Context) (bool, error) {
 	return b.store.Sync(ctx)
 }
 
-// BeginDeferFlush forwards the GC defer-flush scope to the inner store.
-func (b *mockBucket) BeginDeferFlush() {
-	block.BeginDeferFlush(b.store)
-}
-
-// EndDeferFlush forwards closing the GC defer-flush scope to the inner store.
-func (b *mockBucket) EndDeferFlush(ctx context.Context) error {
-	return block.EndDeferFlush(ctx, b.store)
-}
-
 // _ is a type assertion
 var _ bucket.Bucket = (*mockBucket)(nil)

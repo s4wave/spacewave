@@ -23,18 +23,18 @@ const (
 	VolumeGCPhase_VOLUME_GC_PHASE_UNKNOWN VolumeGCPhase = 0
 	// VOLUME_GC_PHASE_IDLE runs no collection.
 	VolumeGCPhase_VOLUME_GC_PHASE_IDLE VolumeGCPhase = 1
-	// VOLUME_GC_PHASE_NODES sweeps the nodes that lost their last reference.
-	VolumeGCPhase_VOLUME_GC_PHASE_NODES VolumeGCPhase = 2
-	// VOLUME_GC_PHASE_MARK marks the blocks the roots reach.
+	// VOLUME_GC_PHASE_MARK walks from the named roots through child lists, for
+	// an audit or an adoption.
 	VolumeGCPhase_VOLUME_GC_PHASE_MARK VolumeGCPhase = 3
-	// VOLUME_GC_PHASE_SWEEP removes the blocks the mark did not reach.
+	// VOLUME_GC_PHASE_SWEEP frees the queued blocks that lost their last
+	// holder.
 	VolumeGCPhase_VOLUME_GC_PHASE_SWEEP VolumeGCPhase = 4
-	// VOLUME_GC_PHASE_PROMOTE records a complete mark, so minor passes can mark
-	// only the blocks written after it.
-	VolumeGCPhase_VOLUME_GC_PHASE_PROMOTE VolumeGCPhase = 5
-	// VOLUME_GC_PHASE_MAINTENANCE lets the storage reclaim the space of swept
+	// VOLUME_GC_PHASE_MAINTENANCE lets the storage reclaim the space of freed
 	// blocks.
 	VolumeGCPhase_VOLUME_GC_PHASE_MAINTENANCE VolumeGCPhase = 6
+	// VOLUME_GC_PHASE_NET nets the journal into the count records and the free
+	// queue.
+	VolumeGCPhase_VOLUME_GC_PHASE_NET VolumeGCPhase = 7
 )
 
 // Enum value maps for VolumeGCPhase.
@@ -42,20 +42,18 @@ var (
 	VolumeGCPhase_name = map[int32]string{
 		0: "VOLUME_GC_PHASE_UNKNOWN",
 		1: "VOLUME_GC_PHASE_IDLE",
-		2: "VOLUME_GC_PHASE_NODES",
 		3: "VOLUME_GC_PHASE_MARK",
 		4: "VOLUME_GC_PHASE_SWEEP",
-		5: "VOLUME_GC_PHASE_PROMOTE",
 		6: "VOLUME_GC_PHASE_MAINTENANCE",
+		7: "VOLUME_GC_PHASE_NET",
 	}
 	VolumeGCPhase_value = map[string]int32{
 		"VOLUME_GC_PHASE_UNKNOWN":     0,
 		"VOLUME_GC_PHASE_IDLE":        1,
-		"VOLUME_GC_PHASE_NODES":       2,
 		"VOLUME_GC_PHASE_MARK":        3,
 		"VOLUME_GC_PHASE_SWEEP":       4,
-		"VOLUME_GC_PHASE_PROMOTE":     5,
 		"VOLUME_GC_PHASE_MAINTENANCE": 6,
+		"VOLUME_GC_PHASE_NET":         7,
 	}
 )
 

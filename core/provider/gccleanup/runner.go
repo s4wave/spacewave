@@ -10,8 +10,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// CollectFunc runs one physical cleanup sweep.
-type CollectFunc func(context.Context) (*block_gc.Stats, error)
+// CollectFunc runs one collection pass.
+type CollectFunc func(context.Context) (block_gc.CollectResult, error)
 
 // Runner serializes and coalesces provider account cleanup triggers.
 type Runner struct {
@@ -161,21 +161,13 @@ func (r *Runner) completeGeneration(generation uint64) {
 	})
 }
 
-func (r *Runner) logStats(stats *block_gc.Stats) {
-	if stats == nil || stats.NodesSwept == 0 {
+func (r *Runner) logStats(res block_gc.CollectResult) {
+	if res.Freed == 0 && res.Lapsed == 0 {
 		return
 	}
-	r.le.WithField("nodes-swept", stats.NodesSwept).
-		WithField("duration", stats.Duration.String()).
-		WithField("unreferenced-nodes", stats.UnreferencedNodeCount).
-		WithField("remove-node-refs", stats.RemoveNodeRefsCount).
-		WithField("remove-unreferenced-edges", stats.RemoveUnreferencedEdgeCount).
-		WithField("on-swept-callbacks", stats.OnSweptCount).
-		WithField("remove-blocks", stats.RemoveBlockCount).
-		WithField("unreferenced-scan-duration", stats.UnreferencedScanDuration.String()).
-		WithField("remove-node-refs-duration", stats.RemoveNodeRefsDuration.String()).
-		WithField("remove-unreferenced-edge-duration", stats.RemoveUnreferencedEdgeDuration.String()).
-		WithField("on-swept-duration", stats.OnSweptDuration.String()).
-		WithField("remove-block-duration", stats.RemoveBlockDuration.String()).
+	r.le.WithField("freed", res.Freed).
+		WithField("lapsed", res.Lapsed).
+		WithField("netted", res.Netted).
+		WithField("duration", res.Duration.String()).
 		Info(r.logMessage)
 }

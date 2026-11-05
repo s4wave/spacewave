@@ -120,19 +120,8 @@ func (s *store) Sync(ctx context.Context) (bool, error) {
 	return s.ops.Sync(ctx)
 }
 
-// BeginDeferFlush forwards the GC defer-flush scope to the inner StoreOps.
-func (s *store) BeginDeferFlush() {
-	block.BeginDeferFlush(s.ops)
-}
-
-// EndDeferFlush forwards closing the GC defer-flush scope to the inner StoreOps.
-func (s *store) EndDeferFlush(ctx context.Context) error {
-	return block.EndDeferFlush(ctx, s.ops)
-}
-
 // _ is a type assertion
 var (
 	_ Store                            = (*store)(nil)
 	_ block.DecodedBlockCacheFreshener = (*store)(nil)
-	_ block.DeferFlusher               = (*store)(nil)
 )

@@ -10,7 +10,6 @@ import (
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
-	rpc_gc "github.com/s4wave/spacewave/db/block/gc/rpc"
 	rpc_block "github.com/s4wave/spacewave/db/block/rpc"
 	rpc_bucket "github.com/s4wave/spacewave/db/bucket/store/rpc"
 	rpc_object "github.com/s4wave/spacewave/db/object/rpc"
@@ -209,7 +208,6 @@ func (t *proxyVolumeTracker) execProxyVolumeController(
 		rpc_block.NewSRPCBlockStoreClient(volClient),
 		rpc_bucket.NewSRPCBucketStoreClient(volClient),
 		rpc_object.NewSRPCObjectStoreClient(volClient),
-		rpc_gc.NewSRPCRefGraphClient(volClient),
 	)
 
 	// Honor tracker cancellation before publishing the proxy volume controller.

@@ -102,16 +102,6 @@ func (b *bucketRW) Sync(ctx context.Context) (bool, error) {
 	return b.store.Sync(ctx)
 }
 
-// BeginDeferFlush forwards the GC defer-flush scope to the inner store.
-func (b *bucketRW) BeginDeferFlush() {
-	block.BeginDeferFlush(b.store)
-}
-
-// EndDeferFlush forwards closing the GC defer-flush scope to the inner store.
-func (b *bucketRW) EndDeferFlush(ctx context.Context) error {
-	return block.EndDeferFlush(ctx, b.store)
-}
-
 // SupportsAtomicPublication forwards the atomic publication capability of the
 // inner store.
 func (b *bucketRW) SupportsAtomicPublication() bool {

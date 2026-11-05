@@ -1,29 +1,10 @@
 package kvtx
 
 import (
-	"bytes"
 	"context"
 
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
-	store_kvtx "github.com/s4wave/spacewave/db/kvtx"
-	store_kvtx_prefixer "github.com/s4wave/spacewave/db/kvtx/prefixer"
 )
-
-// refGraphPrefix holds the Volume's reference graph records.
-var refGraphPrefix = []byte{2}
-
-// RefGraphPrefixes returns the key prefixes of the Volume's reference graph
-// records, current and legacy, for a copy that starts the graph empty.
-func RefGraphPrefixes() [][]byte {
-	return [][]byte{bytes.Clone(refGraphPrefix), bytes.Clone(legacyRefGraphPrefix)}
-}
-
-// OpenRefGraph opens the reference graph of the Volume whose key-value store
-// is store. Opening reads nothing, so each transaction opens its own.
-func OpenRefGraph(store store_kvtx.Store) *block_gc.RefGraph {
-	return block_gc.NewRefGraph(store_kvtx_prefixer.NewPrefixer(store, refGraphPrefix))
-}
 
 // SupportsAtomicPublication reports whether the Volume's store commits
 // transactions atomically, which atomic publication needs.
@@ -31,10 +12,10 @@ func (v *Volume) SupportsAtomicPublication() bool {
 	return v.publications != nil
 }
 
-// KeepsHoldCounts reports whether the Volume keeps shared counts: it commits
-// atomically and its Config does not disable them.
+// KeepsHoldCounts reports false: the Volume keeps no shared counts for
+// deadlist records, so a writer names none.
 func (v *Volume) KeepsHoldCounts() bool {
-	return v.publications != nil && v.holdCounts
+	return false
 }
 
 // SubmitAtomic admits an atomic publication and returns its completion receipt.
@@ -57,7 +38,7 @@ func (v *Volume) SubmitAtomic(ctx context.Context, p *block.AtomicPublication) (
 	// Reserve a reader pin for a published named root.
 	var owner string
 	var release func()
-	if p != nil && p.TrackGC && p.RootName != "" && !p.Root.GetEmpty() {
+	if p != nil && p.RootName != "" && !p.Root.GetEmpty() {
 		var err error
 		owner, release, err = v.pinRoot(ctx, p.Root, true)
 		if err != nil {

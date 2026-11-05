@@ -26,23 +26,16 @@ type Config struct {
 	// If the store may return invalid data or mismatch the requested block ref,
 	// do not enable this option. It is important to hash the data for each read.
 	DisableHashGet bool `protobuf:"varint,3,opt,name=disable_hash_get,json=disableHashGet,proto3" json:"disableHashGet,omitempty"`
-	// GcMarkWalk marks blocks in a GC block pass by walking from the roots in
-	// one read snapshot, as before, instead of scanning the child lists in key
-	// order in short read transactions.
-	GcMarkWalk bool `protobuf:"varint,4,opt,name=gc_mark_walk,json=gcMarkWalk,proto3" json:"gcMarkWalk,omitempty"`
-	// DisableHoldCounts stops the Volume keeping the shared counts that let a
-	// World's deadlist records free pages a later World stored again. The
-	// World engine keeps no deadlist records on such a Volume, so its pages
-	// wait for the mark and sweep. Set it where nothing reads the counts, such
-	// as a Volume whose World engine stores every World, to save the graph
-	// reads and writes they cost each put.
-	DisableHoldCounts bool `protobuf:"varint,5,opt,name=disable_hold_counts,json=disableHoldCounts,proto3" json:"disableHoldCounts,omitempty"`
-	// UpgradeSharedCounts moves a Volume of store format 5 that already tracks
-	// blocks to format 6, which starts the walk that counts the holders of every
-	// stored block. Without it such a Volume stays at format 5 and keeps no
-	// shared counts; an empty Volume moves to format 6 either way. It conflicts
-	// with DisableHoldCounts, so setting both fails the Volume's open.
-	UpgradeSharedCounts bool `protobuf:"varint,6,opt,name=upgrade_shared_counts,json=upgradeSharedCounts,proto3" json:"upgradeSharedCounts,omitempty"`
+	// CollectorFrees turns on the Volume collector's frees. Off, the collector
+	// still releases lapsed leases and nets the journal, so its counts stay
+	// current, and frees nothing. It stays off until a rehearsal on a restored
+	// copy of the Volume has shown the collector frees no live block.
+	CollectorFrees bool `protobuf:"varint,7,opt,name=collector_frees,json=collectorFrees,proto3" json:"collectorFrees,omitempty"`
+	// CollectorGraceDur is how old a journal record must be before the
+	// collector nets it, as a Go duration such as "15m". It must exceed the
+	// time a reader takes to pin a head it saw and the lease of a leased root.
+	// Empty uses the collector's default of 15 minutes.
+	CollectorGraceDur string `protobuf:"bytes,8,opt,name=collector_grace_dur,json=collectorGraceDur,proto3" json:"collectorGraceDur,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -65,25 +58,18 @@ func (x *Config) GetDisableHashGet() bool {
 	return false
 }
 
-func (x *Config) GetGcMarkWalk() bool {
+func (x *Config) GetCollectorFrees() bool {
 	if x != nil {
-		return x.GcMarkWalk
+		return x.CollectorFrees
 	}
 	return false
 }
 
-func (x *Config) GetDisableHoldCounts() bool {
+func (x *Config) GetCollectorGraceDur() string {
 	if x != nil {
-		return x.DisableHoldCounts
+		return x.CollectorGraceDur
 	}
-	return false
-}
-
-func (x *Config) GetUpgradeSharedCounts() bool {
-	if x != nil {
-		return x.UpgradeSharedCounts
-	}
-	return false
+	return ""
 }
 
 func (m *Config) CloneVT() *Config {
@@ -93,9 +79,8 @@ func (m *Config) CloneVT() *Config {
 	r := new(Config)
 	r.HashType = m.HashType
 	r.DisableHashGet = m.DisableHashGet
-	r.GcMarkWalk = m.GcMarkWalk
-	r.DisableHoldCounts = m.DisableHoldCounts
-	r.UpgradeSharedCounts = m.UpgradeSharedCounts
+	r.CollectorFrees = m.CollectorFrees
+	r.CollectorGraceDur = m.CollectorGraceDur
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -118,13 +103,10 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.DisableHashGet != that.DisableHashGet {
 		return false
 	}
-	if this.GcMarkWalk != that.GcMarkWalk {
+	if this.CollectorFrees != that.CollectorFrees {
 		return false
 	}
-	if this.DisableHoldCounts != that.DisableHoldCounts {
-		return false
-	}
-	if this.UpgradeSharedCounts != that.UpgradeSharedCounts {
+	if this.CollectorGraceDur != that.CollectorGraceDur {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -156,20 +138,15 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("disableHashGet")
 		s.WriteBool(x.DisableHashGet)
 	}
-	if x.GcMarkWalk || s.HasField("gcMarkWalk") {
+	if x.CollectorFrees || s.HasField("collectorFrees") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("gcMarkWalk")
-		s.WriteBool(x.GcMarkWalk)
+		s.WriteObjectField("collectorFrees")
+		s.WriteBool(x.CollectorFrees)
 	}
-	if x.DisableHoldCounts || s.HasField("disableHoldCounts") {
+	if x.CollectorGraceDur != "" || s.HasField("collectorGraceDur") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("disableHoldCounts")
-		s.WriteBool(x.DisableHoldCounts)
-	}
-	if x.UpgradeSharedCounts || s.HasField("upgradeSharedCounts") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("upgradeSharedCounts")
-		s.WriteBool(x.UpgradeSharedCounts)
+		s.WriteObjectField("collectorGraceDur")
+		s.WriteString(x.CollectorGraceDur)
 	}
 	s.WriteObjectEnd()
 }
@@ -194,15 +171,12 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "disable_hash_get", "disableHashGet":
 			s.AddField("disable_hash_get")
 			x.DisableHashGet = s.ReadBool()
-		case "gc_mark_walk", "gcMarkWalk":
-			s.AddField("gc_mark_walk")
-			x.GcMarkWalk = s.ReadBool()
-		case "disable_hold_counts", "disableHoldCounts":
-			s.AddField("disable_hold_counts")
-			x.DisableHoldCounts = s.ReadBool()
-		case "upgrade_shared_counts", "upgradeSharedCounts":
-			s.AddField("upgrade_shared_counts")
-			x.UpgradeSharedCounts = s.ReadBool()
+		case "collector_frees", "collectorFrees":
+			s.AddField("collector_frees")
+			x.CollectorFrees = s.ReadBool()
+		case "collector_grace_dur", "collectorGraceDur":
+			s.AddField("collector_grace_dur")
+			x.CollectorGraceDur = s.ReadString()
 		}
 	})
 }
@@ -241,20 +215,15 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
-	if m.UpgradeSharedCounts {
-		i = protobuf_go_lite.EncodeBool(dAtA, i, m.UpgradeSharedCounts)
+	if len(m.CollectorGraceDur) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.CollectorGraceDur)
 		i--
-		dAtA[i] = 0x30
+		dAtA[i] = 0x42
 	}
-	if m.DisableHoldCounts {
-		i = protobuf_go_lite.EncodeBool(dAtA, i, m.DisableHoldCounts)
+	if m.CollectorFrees {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.CollectorFrees)
 		i--
-		dAtA[i] = 0x28
-	}
-	if m.GcMarkWalk {
-		i = protobuf_go_lite.EncodeBool(dAtA, i, m.GcMarkWalk)
-		i--
-		dAtA[i] = 0x20
+		dAtA[i] = 0x38
 	}
 	if m.DisableHashGet {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.DisableHashGet)
@@ -277,9 +246,8 @@ func (m *Config) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.HashType)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.DisableHashGet)
-	n += protobuf_go_lite.SizeBoolNonZero(1, m.GcMarkWalk)
-	n += protobuf_go_lite.SizeBoolNonZero(1, m.DisableHoldCounts)
-	n += protobuf_go_lite.SizeBoolNonZero(1, m.UpgradeSharedCounts)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.CollectorFrees)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.CollectorGraceDur)
 	n += len(m.unknownFields)
 	return n
 }
@@ -295,17 +263,13 @@ func (x *Config) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "disable_hash_get")
 		protobuf_go_lite.TextWriteBool(&sb, x.DisableHashGet)
 	}
-	if x.GcMarkWalk != false {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "gc_mark_walk")
-		protobuf_go_lite.TextWriteBool(&sb, x.GcMarkWalk)
+	if x.CollectorFrees != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "collector_frees")
+		protobuf_go_lite.TextWriteBool(&sb, x.CollectorFrees)
 	}
-	if x.DisableHoldCounts != false {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "disable_hold_counts")
-		protobuf_go_lite.TextWriteBool(&sb, x.DisableHoldCounts)
-	}
-	if x.UpgradeSharedCounts != false {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "upgrade_shared_counts")
-		protobuf_go_lite.TextWriteBool(&sb, x.UpgradeSharedCounts)
+	if x.CollectorGraceDur != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "collector_grace_dur")
+		protobuf_go_lite.TextWriteString(&sb, x.CollectorGraceDur)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -355,36 +319,26 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.DisableHashGet = bool(v)
-		case 4:
+		case 7:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field GcMarkWalk", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field CollectorFrees", wireType)
 			}
 			var v bool
 			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.GcMarkWalk = bool(v)
-		case 5:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DisableHoldCounts", wireType)
+			m.CollectorFrees = bool(v)
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CollectorGraceDur", wireType)
 			}
-			var v bool
-			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.DisableHoldCounts = bool(v)
-		case 6:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field UpgradeSharedCounts", wireType)
-			}
-			var v bool
-			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.UpgradeSharedCounts = bool(v)
+			m.CollectorGraceDur = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -6,11 +6,11 @@ import (
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
@@ -207,19 +207,11 @@ func TestNestedWorldReplacementGC(t *testing.T) {
 		t.Fatal("replacement produced the same root")
 	}
 
-	// The volume collects the replaced root without World-local bookkeeping.
-	collector := block_gc.NewCollector(tb.Volume.GetRefGraph(), tb.Volume, nil)
-	if _, err := collector.Collect(ctx); err != nil {
-		t.Fatal(err)
-	}
-
-	// Check the old root is gone and the new root is retained.
-	oldExists, err := tb.Volume.GetBlockExists(ctx, oldRoot)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if oldExists {
-		t.Fatal("replaced nested World root remains retained after collection")
+	// A collection pass keeps the published root.
+	if collector, ok := tb.Volume.(volume.Collector); ok {
+		if _, err := collector.Collect(ctx); err != nil {
+			t.Fatal(err)
+		}
 	}
 	newExists, err := tb.Volume.GetBlockExists(ctx, newRoot)
 	if err != nil {

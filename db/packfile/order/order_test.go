@@ -6,36 +6,19 @@ import (
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/net/hash"
 )
 
-type testRefGraph struct {
-	out map[string][]string
-	in  map[string][]string
+// testLists is a fake of the child lists a Volume keeps.
+type testLists map[string][]*block.BlockRef
+
+// GetChildren returns the children listed for ref.
+func (l testLists) GetChildren(_ context.Context, ref *block.BlockRef) ([]*block.BlockRef, bool, error) {
+	children, ok := l[refKey(ref)]
+	return slices.Clone(children), ok, nil
 }
 
-func newTestRefGraph() *testRefGraph {
-	return &testRefGraph{
-		out: make(map[string][]string),
-		in:  make(map[string][]string),
-	}
-}
-
-func (g *testRefGraph) add(subject, object string) {
-	g.out[subject] = append(g.out[subject], object)
-	g.in[object] = append(g.in[object], subject)
-}
-
-func (g *testRefGraph) GetOutgoingRefs(_ context.Context, node string) ([]string, error) {
-	return slices.Clone(g.out[node]), nil
-}
-
-func (g *testRefGraph) GetIncomingRefs(_ context.Context, node string) ([]string, error) {
-	return slices.Clone(g.in[node]), nil
-}
-
-func TestBlockRefsWalksObjectRoots(t *testing.T) {
+func TestBlockRefsKeepsSubtreesTogether(t *testing.T) {
 	// Create candidate block references for ordering.
 	ctx := context.Background()
 	rootA := testRef(t, "root-a")
@@ -43,14 +26,11 @@ func TestBlockRefsWalksObjectRoots(t *testing.T) {
 	rootB := testRef(t, "root-b")
 	stray := testRef(t, "stray")
 
-	// Connect each object root to its available subtree.
-	graph := newTestRefGraph()
-	graph.add(block_gc.ObjectIRI("object-b"), block_gc.BlockIRI(rootB))
-	graph.add(block_gc.ObjectIRI("object-a"), block_gc.BlockIRI(rootA))
-	graph.add(block_gc.BlockIRI(rootA), block_gc.BlockIRI(childA))
+	// List the child of one root.
+	lists := testLists{refKey(rootA): {childA}}
 
-	// Order the candidates using the available reference graph.
-	ordered, err := BlockRefs(ctx, graph, []*block.BlockRef{
+	// Order the candidates using the lists.
+	ordered, err := BlockRefs(ctx, lists, []*block.BlockRef{
 		stray,
 		childA,
 		rootB,
@@ -60,8 +40,12 @@ func TestBlockRefsWalksObjectRoots(t *testing.T) {
 		t.Fatalf("BlockRefs: %v", err)
 	}
 
-	// Verify object roots precede their children and unconnected blocks follow.
-	assertRefOrder(t, ordered, []*block.BlockRef{rootA, childA, rootB, stray})
+	// Verify the child follows its parent at once.
+	keys := refKeys(ordered)
+	i := slices.Index(keys, refKey(rootA))
+	if i < 0 || i+1 >= len(keys) || keys[i+1] != refKey(childA) || len(keys) != 4 {
+		t.Fatalf("order = %v, want child-a right after root-a", keys)
+	}
 }
 
 func TestBlockRefsFallbackIsStable(t *testing.T) {

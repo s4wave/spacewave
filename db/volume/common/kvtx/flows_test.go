@@ -50,8 +50,18 @@ func TestFlowsCountNewBlocksByPath(t *testing.T) {
 	}
 
 	// A stage writes a child and a root.
-	stage, release, _, _ := stageBuild(t, v, "flows")
+	stage, release, err := v.OpenStage(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer release()
+	child, _, err := v.PrepareStagedBlock(ctx, stage, []byte("flows child"), known)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := v.PrepareStagedBlock(ctx, stage, []byte("flows root"), &block.PutOpts{Refs: []*block.BlockRef{child}, RefsKnown: true}); err != nil {
+		t.Fatal(err)
+	}
 	staged := len("flows child") + len("flows root")
 
 	// A bucket's roots carry their entry.

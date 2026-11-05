@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/kvtx"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
@@ -13,9 +14,8 @@ import (
 // walkChunk is the nodes one snapshot of the outside walk expands.
 const walkChunk = 512
 
-// OutsideWorld is the set of blocks the volume's reference graph reaches from
-// a root other than the World's block store: the account's settings and every
-// other store. The volume's block range holds them with the World's blocks, so
+// OutsideWorld is the set of blocks a named root outside the World's block
+// store reaches: the account's settings and every other store. The volume's block range holds them with the World's blocks, so
 // Pack leaves them alone and Switch keeps their values.
 //
 // The set errs toward keeping: a block that both the World and another root
@@ -55,50 +55,41 @@ func (o *OutsideWorld) Bytes() uint64 {
 
 // outsideWalk is the state of a FindOutsideWorld walk.
 type outsideWalk struct {
-	// world is the graph node of the World's block store, which the walk
-	// never enters.
-	world string
-	// seen holds the nodes already queued.
+	// seen holds the blocks already queued.
 	seen map[string]struct{}
-	// frontier holds the nodes not yet expanded.
-	frontier []string
+	// frontier holds the blocks not yet expanded.
+	frontier []*block.BlockRef
 	// out is the set under construction.
 	out *OutsideWorld
 }
 
-// queue adds the nodes in targets the walk has not met, and the blocks among
-// them to the set.
-func (w *outsideWalk) queue(targets []string) {
-	for _, node := range targets {
-		if _, ok := w.seen[node]; ok || block_gc.IsPermanentRoot(node) {
+// queue adds the blocks in refs the walk has not met to the frontier and the
+// set.
+func (w *outsideWalk) queue(refs []*block.BlockRef) {
+	for _, ref := range refs {
+		key, err := ref.MarshalVT()
+		if err != nil {
 			continue
 		}
-		w.seen[node] = struct{}{}
-		w.frontier = append(w.frontier, node)
-		ref, ok := block_gc.ParseBlockIRI(node)
-		if !ok {
+		if _, ok := w.seen[string(key)]; ok {
 			continue
 		}
-		if key, err := ref.MarshalVT(); err == nil {
-			w.out.keys[string(key)] = struct{}{}
-		}
+		w.seen[string(key)] = struct{}{}
+		w.frontier = append(w.frontier, ref)
+		w.out.keys[string(key)] = struct{}{}
 	}
 }
 
-// expandNodes reads the outgoing references of each node and the size of the
-// value of each block node, from tx.
-func expandNodes(ctx context.Context, tx kvtx.Tx, keys *store_kvkey.KVKey, nodes []string) (targets [][]string, size uint64, err error) {
-	graph := volume_kvtx.OpenRefGraph(kvtx.NewTxStore(tx))
-	for _, node := range nodes {
-		out, err := graph.GetOutgoingRefs(ctx, node)
+// expandBlocks reads the child list and the size of the value of each block,
+// from tx.
+func expandBlocks(ctx context.Context, tx kvtx.Tx, keys *store_kvkey.KVKey, refs []*block.BlockRef) (children [][]*block.BlockRef, size uint64, err error) {
+	rec := volume_kvtx.OpenRecords(tx)
+	for _, ref := range refs {
+		list, _, err := rec.GetChildren(ctx, ref)
 		if err != nil {
-			return nil, 0, errors.Wrapf(err, "read references of %q", block_gc.FormatIRI(node))
+			return nil, 0, errors.Wrapf(err, "read references of %s", ref.MarshalString())
 		}
-		targets = append(targets, out)
-		ref, ok := block_gc.ParseBlockIRI(node)
-		if !ok {
-			continue
-		}
+		children = append(children, list)
 		key, err := ref.MarshalVT()
 		if err != nil {
 			return nil, 0, err
@@ -109,51 +100,60 @@ func expandNodes(ctx context.Context, tx kvtx.Tx, keys *store_kvkey.KVKey, nodes
 		}
 		size += uint64(len(value))
 	}
-	return targets, size, nil
+	return children, size, nil
 }
 
-// FindOutsideWorld walks the reference graph of src from the garbage collector
-// root through every node except the block store bucket named worldStoreID, and
-// returns the blocks it reaches. The walk reads src in short snapshots, so it
-// runs beside a writer; a block another process commits after the walk passed
-// is missing from the set, which Switch avoids by walking with the source
-// closed by every other process.
+// FindOutsideWorld walks src from every named root outside the bucket
+// worldStoreID through child lists, and returns the blocks it reaches. The
+// walk reads src in short snapshots, so it runs beside a writer; a block
+// another process commits after the walk passed is missing from the set,
+// which Switch avoids by walking with the source closed by every other
+// process.
 func FindOutsideWorld(ctx context.Context, src kvtx.Store, keys *store_kvkey.KVKey, worldStoreID string) (*OutsideWorld, error) {
-	// Start from the roots' targets.
+	// Start from the roots outside the World's bucket.
 	w := &outsideWalk{
-		world: block_gc.BucketIRI(worldStoreID),
-		out:   &OutsideWorld{keys: make(map[string]struct{})},
+		seen: make(map[string]struct{}),
+		out:  &OutsideWorld{keys: make(map[string]struct{})},
 	}
-	w.seen = map[string]struct{}{w.world: {}}
-	var roots []string
+	var roots []*block.BlockRef
 	err := ReadStable(ctx, src, func(tx kvtx.Tx) error {
-		var err error
-		roots, err = volume_kvtx.OpenRefGraph(kvtx.NewTxStore(tx)).GetOutgoingRefs(ctx, block_gc.NodeGCRoot)
-		return err
+		roots = roots[:0]
+		return volume_kvtx.OpenRecords(tx).ScanRoots(ctx, func(bucketID, _ string, entry *block_gc.RootEntry) error {
+			// Skip the World's own roots, and take every other.
+			if bucketID == worldStoreID {
+				return nil
+			}
+			ref, _, err := block_gc.ParseBlockKey(entry.GetRef())
+			if err != nil {
+				return err
+			}
+			roots = append(roots, ref)
+			return nil
+		})
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "read the graph roots")
+		return nil, errors.Wrap(err, "read the named roots")
 	}
 	w.queue(roots)
 
-	// Expand a chunk of nodes per snapshot until none are left.
+	// Expand a chunk of blocks per snapshot until none are left.
 	for len(w.frontier) != 0 {
 		at := max(0, len(w.frontier)-walkChunk)
 		chunk := w.frontier[at:]
 		w.frontier = w.frontier[:at:at]
-		var targets [][]string
+		var children [][]*block.BlockRef
 		var size uint64
 		err := ReadStable(ctx, src, func(tx kvtx.Tx) error {
 			var err error
-			targets, size, err = expandNodes(ctx, tx, keys, chunk)
+			children, size, err = expandBlocks(ctx, tx, keys, chunk)
 			return err
 		})
 		if err != nil {
-			return nil, errors.Wrap(err, "walk the graph")
+			return nil, errors.Wrap(err, "walk the child lists")
 		}
 		w.out.bytes += size
-		for _, t := range targets {
-			w.queue(t)
+		for _, c := range children {
+			w.queue(c)
 		}
 	}
 	return w.out, nil

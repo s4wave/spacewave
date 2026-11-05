@@ -57,7 +57,7 @@ type syncController struct {
 	// upper holds the local blocks awaiting upload.
 	upper block.StoreOps
 	// refGraph orders dirty blocks by reference.
-	refGraph packfile_order.RefGraph
+	refGraph packfile_order.ChildLists
 	// conf is the sync configuration.
 	conf *SyncConfig
 	// telemetry receives sync telemetry when set.

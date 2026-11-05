@@ -2,6 +2,7 @@ package kvtx
 
 import (
 	"context"
+	"slices"
 	"sync"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -32,16 +33,18 @@ type BlockTx interface {
 }
 
 // physicalTx is one write transaction of the Volume's store with the block
-// store and reference graph that commit and discard with it.
+// store and liveness records that commit and discard with it.
 type physicalTx struct {
-	// tx is the store transaction.
+	// tx is the store transaction. Write through store or rec instead: wrote
+	// sees only their writes, so a direct transaction whose only writes went
+	// to tx ends without a commit and loses them.
 	tx kvtx.Tx
 	// store wraps tx and records whether a record changed.
 	store *kvtx.TxStore
 	// blocks serves the blocks in tx and records the blocks tx removes.
 	blocks *txBlocks
-	// rg is the reference graph in tx.
-	rg *block_gc.RefGraph
+	// rec are the liveness records in tx.
+	rec *block_gc.Records
 }
 
 // openPhysical opens a write transaction of the Volume's store. A BlockDomain
@@ -54,10 +57,12 @@ func (v *Volume) openPhysical(ctx context.Context) (*physicalTx, error) {
 		return nil, err
 	}
 	p := &physicalTx{tx: tx, store: kvtx.NewTxStore(tx)}
-	p.rg = OpenRefGraph(p.store)
-	if v.holdCounts {
-		p.rg.CountOwnerEdges()
+	recTx, err := p.store.NewTransaction(ctx, true)
+	if err != nil {
+		tx.Discard()
+		return nil, err
 	}
+	p.rec = block_gc.NewRecords(recTx, livenessPrefix)
 
 	// Serve blocks from the domain's transaction, or as records. Either view
 	// reads tx's uncommitted writes, so neither marks reads durable.
@@ -71,7 +76,6 @@ func (v *Volume) openPhysical(ctx context.Context) (*physicalTx, error) {
 		StoreOps: blocks,
 		marks:    &txMarks{store: p.store, kvKey: v.kvKey},
 	}
-	p.rg.SetHolderSource(txHolders{blocks: p.blocks})
 	return p, nil
 }
 
@@ -157,21 +161,18 @@ func (r *txBlocks) PutBlockBatch(ctx context.Context, entries []*block.PutBatchE
 	return existed, r.marks.mark(ctx, marks)
 }
 
-// BeginDeferFlush forwards the GC defer-flush scope to the inner store.
-func (r *txBlocks) BeginDeferFlush() {
-	block.BeginDeferFlush(r.StoreOps)
-}
-
-// EndDeferFlush forwards the GC defer-flush scope to the inner store.
-func (r *txBlocks) EndDeferFlush(ctx context.Context) error {
-	return block.EndDeferFlush(ctx, r.StoreOps)
-}
-
 // record appends ref to the removed blocks.
 func (r *txBlocks) record(ref *block.BlockRef) {
 	r.mtx.Lock()
 	r.removed = append(r.removed, ref)
 	r.mtx.Unlock()
+}
+
+// removedRefs returns a copy of the removed blocks.
+func (r *txBlocks) removedRefs() []*block.BlockRef {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+	return slices.Clone(r.removed)
 }
 
 // take returns and clears the removed blocks.

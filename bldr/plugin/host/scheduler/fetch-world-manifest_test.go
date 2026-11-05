@@ -4790,14 +4790,6 @@ func (s *countingBlockStore) Sync(ctx context.Context) (bool, error) {
 	return s.store.Sync(ctx)
 }
 
-func (s *countingBlockStore) BeginDeferFlush() {
-	block.BeginDeferFlush(s.store)
-}
-
-func (s *countingBlockStore) EndDeferFlush(ctx context.Context) error {
-	return block.EndDeferFlush(ctx, s.store)
-}
-
 var _ block.StoreOps = (*countingBlockStore)(nil)
 
 func storeTestManifestRefObject(

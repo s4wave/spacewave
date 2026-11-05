@@ -3,8 +3,6 @@
 package sobject_world_engine_test
 
 import (
-	"context"
-	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -20,13 +18,11 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/s4db"
 	"github.com/s4wave/spacewave/db/volume"
-	kvtx_volume "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/s4wave/spacewave/db/world"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
@@ -256,16 +252,14 @@ func TestCheckpointInstallPhysicalCommits(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer relDurable()
-	snap, err := durable.WaitValueWithValidator(t.Context(), func(snap sobject.SharedObjectStateSnapshot) (bool, error) {
+	_, err = durable.WaitValueWithValidator(t.Context(), func(snap sobject.SharedObjectStateSnapshot) (bool, error) {
 		return checkpointTrimmed(t.Context(), snap)
 	}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Wait for the record itself, then bound the physical writes including
-	// its pending and due saves. Encoding never delays the triggering write.
-	records := w.waitDeadlists(t, so.GetBlockStore())
+	// Bound the physical writes. Encoding never delays the triggering write.
 	if got := waitSeqIdle(t, w) - written; got > 7 {
 		t.Fatalf("trigger, checkpoint and install made %d physical commits, want at most 7", got)
 	}
@@ -286,122 +280,6 @@ func TestCheckpointInstallPhysicalCommits(t *testing.T) {
 	}
 	if _, ok := after["spacewave_world_checkpoint_skips_total{reason=pending}"]; !ok {
 		t.Fatal("no checkpoint skip series")
-	}
-
-	// A bootstrap interval can have no durable deaths: its earlier World
-	// pages stayed in memory. The counter must cover every encoded death.
-	var deaths int
-	for _, rec := range records {
-		deaths += len(rec.dead.Replaced) + len(rec.dead.Removed) + len(rec.dead.Dropped)
-	}
-	if got := after["spacewave_world_deaths_total"] - flows["spacewave_world_deaths_total"]; got < float64(deaths) {
-		t.Fatalf("counted %v deaths, named records report %d", got, deaths)
-	}
-	if got := after["spacewave_world_death_forfeits_total"] - flows["spacewave_world_death_forfeits_total"]; got != 0 {
-		t.Fatalf("forfeited %v intervals", got)
-	}
-
-	// The checkpoint named a record of those deaths, and its World reaches
-	// none of them.
-	checkpoint, err := snap.GetCheckpoint(t.Context())
-	if err != nil {
-		t.Fatal(err)
-	}
-	state := &sobject_world_engine.InnerState{}
-	if err := state.UnmarshalVT(checkpoint.GetStateData()); err != nil {
-		t.Fatal(err)
-	}
-
-	// Gather the pages the checkpoint World reaches.
-	live := make(map[string]struct{})
-	err = block.WalkGraph(t.Context(), so.GetBlockStore(), []*block.BlockRef{state.GetHeadRef().GetRootRef()}, 0, func(ref *block.BlockRef, _ *block.StoredBlock) error {
-		live[ref.MarshalString()] = struct{}{}
-		return nil
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Check every named record against them.
-	for _, rec := range records {
-		for _, ref := range slices.Concat(rec.dead.Replaced, rec.dead.Removed) {
-			if _, ok := live[ref.MarshalString()]; ok {
-				t.Fatalf("deadlist lists %s, which the checkpoint World reaches", ref.MarshalString())
-			}
-		}
-	}
-}
-
-// deadlistRecord is one deadlist record a volume names for a World.
-type deadlistRecord struct {
-	// name is the record's named root.
-	name string
-	// head is the record's first block, which names the World it runs to.
-	head *block.Deadlist
-	// dead is what the record lists, gathered from every part.
-	dead *block.Replacements
-}
-
-// deadlists reads every deadlist record the volume names for the World, due
-// or pending, from store. A sequence that names no record, such as a forfeited
-// interval or a released record, is skipped; the scan ends past the ledger's
-// bound of pending records with none named.
-func (w *localWorld) deadlists(t *testing.T, store block.StoreOps) []deadlistRecord {
-	// Find the bucket's named roots in the volume's graph.
-	t.Helper()
-	graph := w.acc.GetVolume().(kvtx_volume.KvtxVolume).GetRefGraph()
-	bucketID := provider_local.BlockStoreBucketID(w.acc.GetProviderID(), w.acc.GetAccountID(), w.soRef.GetBlockStoreId())
-
-	// Read each record by sequence.
-	var out []deadlistRecord
-	for seq, empty := uint64(1), 0; empty <= 64; seq++ {
-		var name string
-		var refs []string
-		for _, n := range []string{block.DeadlistRootName(seq), block.DeadlistDueRootName(seq)} {
-			named, err := graph.GetOutgoingRefs(t.Context(), kvtx_volume.RootOwnerIRI(bucketID, n))
-			if err != nil {
-				t.Fatal(err)
-			}
-			if len(named) != 0 && name == "" {
-				name = n
-			}
-			refs = append(refs, named...)
-		}
-		if len(refs) == 0 {
-			empty++
-			continue
-		}
-		empty = 0
-		ref, ok := block_gc.ParseBlockIRI(refs[0])
-		if !ok {
-			t.Fatalf("deadlist root names %s", refs[0])
-		}
-		head, dead, err := block.ReadDeadlist(t.Context(), store, ref)
-		if err != nil {
-			t.Fatal(err)
-		}
-		out = append(out, deadlistRecord{name: name, head: head, dead: dead})
-	}
-	return out
-}
-
-// waitDeadlists waits for the durable record naming an encoded interval.
-func (w *localWorld) waitDeadlists(t *testing.T, store block.StoreOps) []deadlistRecord {
-	// Bound the wait while encoding runs independently of the database writer.
-	t.Helper()
-	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
-	defer cancel()
-
-	// Capture the revision before reading the indexed names so a publication
-	// between the read and wait remains visible to WaitSeq.
-	for {
-		seq := w.seq()
-		if records := w.deadlists(t, store); len(records) != 0 {
-			return records
-		}
-		if err := w.db.WaitSeq(ctx, seq+1); err != nil {
-			t.Fatalf("wait for encoded deadlist record: %v", err)
-		}
 	}
 }
 

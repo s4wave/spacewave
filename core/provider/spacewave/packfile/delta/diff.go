@@ -36,7 +36,7 @@ func DiffBlockStoresWithRefGraph(
 	ctx context.Context,
 	src *kvfile.Reader,
 	mirror ExistsChecker,
-	graph packfile_order.RefGraph,
+	graph packfile_order.ChildLists,
 ) (writer.BlockIterator, error) {
 	// Reject a missing source pack before scanning its index.
 	if src == nil {

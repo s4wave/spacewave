@@ -68,14 +68,12 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 		{"Blocks walked", strconv.FormatUint(res.blocks, 10)},
 		{"Blocks absent", strconv.FormatUint(res.absent, 10)},
 		{"Blocks undecodable", strconv.FormatUint(res.undecodable, 10)},
-		{"Blocks lacking edges", strconv.FormatUint(res.lacking, 10)},
-		{"Child edges missing", strconv.FormatUint(res.edges, 10)},
-		{"Unrooted buckets", strconv.Itoa(res.rooted)},
-		{"Unowned roots", strconv.FormatUint(res.owned, 10)},
-		{"Edges added", strconv.FormatUint(res.written, 10)},
+		{"Blocks without a child list", strconv.FormatUint(res.lacking, 10)},
+		{"Children they name", strconv.FormatUint(res.edges, 10)},
+		{"Child lists written", strconv.FormatUint(res.written, 10)},
 		{"Plugin prefix groups", strconv.Itoa(len(res.pluginStores))},
-		{"Untracked blocks", strconv.FormatUint(res.untracked, 10)},
-		{"Untracked bytes", strconv.FormatUint(res.untrackedBytes, 10)},
+		{"Stored blocks without a child list", strconv.FormatUint(res.untracked, 10)},
+		{"Their bytes", strconv.FormatUint(res.untrackedBytes, 10)},
 	}
 
 	// List private-state prefix groups and a bounded sample of untracked blocks.
@@ -87,7 +85,7 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 		fields = append(fields, [2]string{"Plugin prefix group", prefix + " (" + strconv.FormatUint(res.pluginStores[prefix], 10) + unit + ")"})
 	}
 	for _, blk := range res.untrackedSample {
-		fields = append(fields, [2]string{"Untracked sample", blk.ref.MarshalString() + " (" + strconv.FormatUint(blk.size, 10) + " bytes)"})
+		fields = append(fields, [2]string{"Listless sample", blk.ref.MarshalString() + " (" + strconv.FormatUint(blk.size, 10) + " bytes)"})
 	}
 
 	// Retain the typed walk's reasons for stopping at an untyped ref.
@@ -98,7 +96,7 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 }
 
 // repairVolumeRefs walks the Spaces of the stopped volume at path, all of them
-// or spaceID alone, and adds the edges they lack unless dryRun is set.
+// or spaceID alone, and writes the child lists they lack unless dryRun is set.
 func repairVolumeRefs(ctx context.Context, le *logrus.Entry, path, spaceID string, dryRun bool) (refRepairResult, error) {
 	// Open the stopped volume.
 	vol, err := openStoppedVolume(ctx, le, path)
@@ -134,7 +132,7 @@ func repairVolumeRefs(ctx context.Context, le *logrus.Entry, path, spaceID strin
 		return refRepairResult{}, errors.Wrap(err, "measure untracked blocks")
 	}
 
-	// Write the missing edges unless this is a dry run.
+	// Write the missing child lists unless this is a dry run.
 	if !dryRun {
 		if err := rr.apply(ctx); err != nil {
 			return refRepairResult{}, err
@@ -143,19 +141,18 @@ func repairVolumeRefs(ctx context.Context, le *logrus.Entry, path, spaceID strin
 	return rr.res, nil
 }
 
-// newDebugRefRepairCommand returns the offline ref graph repair command.
+// newDebugRefRepairCommand returns the offline child list repair command.
 func newDebugRefRepairCommand() *cli.Command {
 	args := &debugRefRepairArgs{}
 	return &cli.Command{
 		Name:      "ref-repair",
-		Usage:     "add the ref graph edges a stopped volume's Spaces lack",
+		Usage:     "write the child lists a stopped, unadopted volume's Spaces lack",
 		ArgsUsage: "<volume-file>",
 		Description: "Walks the Worlds each Space's replay cursor retains, decoding each block by its type, " +
-			"and adds every edge from a block to its refs that the ref graph lacks, plus a bucket edge to each root " +
-			"nothing holds and a GC root edge to each Space bucket. It never removes an edge. Blocks written while GC tracking was off carry no edges, " +
-			"and a tracked write records a block's edges only when the block is new, so run this before tracked writers store those blocks again. " +
-			"Also counts plugin object-store keys by volume prefix and measures all stored blocks with neither incoming nor outgoing ref graph edges, including staging. " +
-			"These counts cover the whole volume even with --space, and describe the graph before repair. The scan does not decode untracked blocks. " +
+			"and writes the child list of each block the volume stores without one, so the volume can be adopted. " +
+			"It never changes a list it finds, and refuses a volume already adopted. Blocks stored before puts carried their child lists have none. " +
+			"Also counts plugin object-store keys by volume prefix and measures all stored blocks without a child list. " +
+			"These counts cover the whole volume even with --space, and describe it before repair. The scan does not decode those blocks. " +
 			"Run it only on a stopped volume, with --dry-run first.",
 		Flags:  args.BuildFlags(),
 		Action: args.Run,

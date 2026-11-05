@@ -21,6 +21,7 @@ import (
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_store "github.com/s4wave/spacewave/db/bucket/store"
+	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
 	kvtx_block_iavl "github.com/s4wave/spacewave/db/kvtx/block/iavl"
 	kvtx_block_okra "github.com/s4wave/spacewave/db/kvtx/block/okra"
@@ -38,13 +39,15 @@ const (
 	// refRepairBatch is the number of blocks taken from the top of the walk's
 	// stack and read together.
 	refRepairBatch = 64
-	// refRepairReaders bounds the concurrent block and ref graph reads. The
+	// refRepairReaders bounds the concurrent block and child list reads. The
 	// reads are random preads, so a few in flight hide the disk latency.
 	refRepairReaders = 16
 	// refRepairProgress is the number of blocks walked between progress logs.
 	refRepairProgress = 100_000
-	// refRepairSample limits the untracked blocks printed in the report.
+	// refRepairSample limits the listless blocks printed in the report.
 	refRepairSample = 10
+	// refRepairListBatch bounds the child lists one transaction writes.
+	refRepairListBatch = 4096
 )
 
 // refRepairNode is a block the ref repair walks, with what decodes it.
@@ -67,8 +70,6 @@ type refRepairNode struct {
 type refRepairRead struct {
 	// node is the block read.
 	node refRepairNode
-	// iri is the block's ref graph node.
-	iri string
 	// found is false when the volume lacks the block.
 	found bool
 	// leaf is true when the block's type holds no refs, so it was not read.
@@ -79,12 +80,11 @@ type refRepairRead struct {
 	decodeErr error
 	// refs are the refs a write records for the block.
 	refs []*block.BlockRef
-	// have are the edges the graph holds for the block, read when refs is not
-	// empty.
-	have []string
+	// listed reports that the volume keeps the block's child list.
+	listed bool
 }
 
-// refRepairStoredBlock describes an untracked block without decoding its type.
+// refRepairStoredBlock describes a listless block without decoding its type.
 type refRepairStoredBlock struct {
 	// ref addresses the stored block.
 	ref *block.BlockRef
@@ -103,15 +103,11 @@ type refRepairResult struct {
 	// undecodable is the number of blocks that failed to decode as their type.
 	// A block whose type holds no refs is only checked for presence.
 	undecodable uint64
-	// lacking is the number of blocks missing at least one outgoing edge.
+	// lacking is the number of walked blocks stored without a child list.
 	lacking uint64
-	// edges is the number of missing edges from a block to a child.
+	// edges is the number of children those lists name.
 	edges uint64
-	// owned is the number of roots nothing held, given to their bucket.
-	owned uint64
-	// rooted is the number of Space buckets the GC root did not hold.
-	rooted int
-	// written is the number of edges added to the graph.
+	// written is the number of child lists written.
 	written uint64
 	// untyped counts the refs whose type the walk cannot name, by reason.
 	// Their edges are recorded; the blocks below them are not walked.
@@ -119,35 +115,33 @@ type refRepairResult struct {
 	// pluginStores counts object-store keys by plugin-volume/<instance>/<plugin>/ prefix.
 	// The prefix groups stores whose boundaries are not encoded in their keys.
 	pluginStores map[string]uint64
-	// untracked counts stored blocks with neither incoming nor outgoing ref
-	// graph edges, including staging edges.
+	// untracked counts the stored blocks without a child list.
 	untracked uint64
-	// untrackedBytes is the total stored bytes of untracked blocks.
+	// untrackedBytes is the total stored bytes of those blocks.
 	untrackedBytes uint64
-	// untrackedSample holds up to refRepairSample untracked blocks in key order.
+	// untrackedSample holds up to refRepairSample of them in key order.
 	untrackedSample []refRepairStoredBlock
 }
 
 // refRepair walks the World graphs the Spaces of a stopped volume retain,
-// decoding each block by its type, and collects the ref graph edges the volume
-// lacks. A block's edges are the refs block.ExtractBlockRefs reads from the
-// decoded block, which are the refs a write records for it. The repair only
-// adds edges.
+// decoding each block by its type, and collects the child lists of the blocks
+// stored without one. A block's list is the refs block.ExtractBlockRefs reads
+// from the decoded block, which are the refs a write records for it. The
+// repair only adds lists, and only to an unadopted volume, whose adoption then
+// counts their holders.
 type refRepair struct {
 	// le is the logger.
 	le *logrus.Entry
+	// vol is the stopped volume.
+	vol *volume_s4db.Volume
 	// store reads the volume's blocks.
 	store block.StoreOps
-	// rg is the volume's ref graph.
-	rg block_gc.RefGraphOps
 	// buckets lists the volume's bucket configs.
 	buckets bucket_store.Store
-	// visited holds the IRIs of the blocks already walked.
+	// visited holds the keys of the blocks already walked.
 	visited map[string]struct{}
-	// adds are the missing edges found, in walk order.
-	adds []block_gc.RefEdge
-	// planned holds the objects of adds.
-	planned map[string]struct{}
+	// lists are the child lists found missing, in walk order.
+	lists []block.PutBatchEntry
 	// types caches object type IDs by object key across Worlds.
 	types map[string]string
 	// xfrms caches transformers by their marshaled config.
@@ -168,11 +162,10 @@ type refRepair struct {
 func newRefRepair(le *logrus.Entry, vol *volume_s4db.Volume) *refRepair {
 	return &refRepair{
 		le:      le,
+		vol:     vol,
 		store:   vol,
-		rg:      vol.GetRefGraph(),
 		buckets: vol,
 		visited: make(map[string]struct{}),
-		planned: make(map[string]struct{}),
 		types:   make(map[string]string),
 		xfrms:   make(map[string]block.Transformer),
 		res:     refRepairResult{untyped: make(map[string]uint64)},
@@ -207,97 +200,49 @@ func (r *refRepair) measurePluginStores(ctx context.Context, vol *volume_s4db.Vo
 }
 
 // measureUntracked scans every stored block, including blocks outside the typed
-// walk, and measures blocks with no incoming or outgoing graph edges.
+// walk, and measures those stored without a child list.
 func (r *refRepair) measureUntracked(ctx context.Context, vol *volume_s4db.Volume) error {
-	// Iterate block keys without loading their values into the scan transaction.
+	// Iterate block keys and their child lists in one snapshot.
 	tx, err := vol.GetKvtxStore().NewTransaction(ctx, false)
 	if err != nil {
 		return err
 	}
 	defer tx.Discard()
+	rec := volume_kvtx.OpenRecords(tx)
 	prefix := vol.GetKvKey().GetBlockFullPrefix()
 	it := tx.Iterate(ctx, prefix, true, false)
 	defer it.Close()
 
-	// Read graph membership and untracked block sizes in bounded batches.
+	// Count each block without a list.
 	var scanned uint64
-	for {
-		// Decode only the refs in the next batch's keys, never block types.
-		batch := make([]refRepairStoredBlock, 0, refRepairBatch)
-		for len(batch) < refRepairBatch && it.Next() {
-			ref := &block.BlockRef{}
-			if err := ref.UnmarshalVT(bytes.Clone(it.Key()[len(prefix):])); err != nil {
-				return errors.Wrap(err, "decode stored block key")
-			}
-			batch = append(batch, refRepairStoredBlock{ref: ref})
+	for it.Next() {
+		ref := &block.BlockRef{}
+		if err := ref.UnmarshalVT(bytes.Clone(it.Key()[len(prefix):])); err != nil {
+			return errors.Wrap(err, "decode stored block key")
 		}
-		if err := it.Err(); err != nil {
+		listed, err := rec.HasChildren(ctx, ref)
+		if err != nil {
 			return err
 		}
-		if len(batch) == 0 {
-			return nil
+		scanned++
+		if scanned%refRepairProgress == 0 {
+			r.le.Infof("scanned %d stored blocks, %d without a child list", scanned, r.res.untracked)
 		}
-
-		// Include staging owners when checking whether a block has a graph node.
-		untracked := make([]bool, len(batch))
-		eg, egCtx := errgroup.WithContext(ctx)
-		eg.SetLimit(refRepairReaders)
-		for i := range batch {
-			eg.Go(func() error {
-				// An edge in either direction establishes the node's presence.
-				// HasIncomingRefs stops at the first owner, which settles most
-				// blocks; it skips the unreferenced edge, so the full incoming
-				// list is read only for blocks with no owner and no children.
-				iri := block_gc.BlockIRI(batch[i].ref)
-				owned, err := r.rg.HasIncomingRefs(egCtx, iri)
-				if err != nil || owned {
-					return err
-				}
-				outgoing, err := r.rg.GetOutgoingRefs(egCtx, iri)
-				if err != nil || len(outgoing) != 0 {
-					return err
-				}
-				incoming, err := r.rg.GetIncomingRefs(egCtx, iri)
-				if err != nil || len(incoming) != 0 {
-					return err
-				}
-
-				// Measure raw stored bytes only for blocks outside the graph.
-				data, found, err := r.store.GetBlock(egCtx, batch[i].ref)
-				if err != nil {
-					return err
-				}
-				if !found {
-					return errors.Errorf("stored block %s disappeared during scan", batch[i].ref.MarshalString())
-				}
-				batch[i].size = uint64(len(data))
-				untracked[i] = true
-				return nil
-			})
+		if listed {
+			continue
 		}
-		if err := eg.Wait(); err != nil {
+		value, err := it.Value()
+		if err != nil {
 			return err
 		}
-
-		// Count the completed reads and retain a small sample in key order.
-		for i, blk := range batch {
-			if !untracked[i] {
-				continue
-			}
-			r.res.untracked++
-			r.res.untrackedBytes += blk.size
-			if len(r.res.untrackedSample) < refRepairSample {
-				r.res.untrackedSample = append(r.res.untrackedSample, blk)
-			}
-		}
-
-		// Log progress each time the scan crosses another progress interval.
-		prev := scanned
-		scanned += uint64(len(batch))
-		if scanned/refRepairProgress != prev/refRepairProgress {
-			r.le.Infof("scanned %d stored blocks, %d untracked", scanned, r.res.untracked)
+		blk := refRepairStoredBlock{ref: ref, size: uint64(len(value))}
+		r.res.untracked++
+		r.res.untrackedBytes += blk.size
+		if len(r.res.untrackedSample) < refRepairSample {
+			r.res.untrackedSample = append(r.res.untrackedSample, blk)
 		}
 	}
+	return it.Err()
 }
 
 // walkSpace walks the roots of one Space's replay: the replay span its bucket
@@ -318,14 +263,12 @@ func (r *refRepair) walkSpace(ctx context.Context, sc spaceReplayCursor) error {
 
 	// Collect the replay span the bucket holds as a named root.
 	var roots []refRepairNode
-	spans, err := r.rg.GetOutgoingRefs(ctx, volume_kvtx.RootOwnerIRI(bucketID, sobject_world_engine.ReplaySpanRootName))
+	span, err := r.vol.GetBucketRoot(ctx, bucketID, sobject_world_engine.ReplaySpanRootName)
 	if err != nil {
 		return err
 	}
-	for _, iri := range spans {
-		if ref, ok := block_gc.ParseBlockIRI(iri); ok {
-			roots = append(roots, refRepairNode{ref: ref})
-		}
+	if !span.GetEmpty() {
+		roots = append(roots, refRepairNode{ref: span})
 	}
 
 	// Collect the cursor's Worlds with their retained roots, and the World and
@@ -358,19 +301,10 @@ func (r *refRepair) walkSpace(ctx context.Context, sc spaceReplayCursor) error {
 		}
 	}
 
-	// Walk each root, then own each root nothing else holds.
+	// Walk each root.
 	r.le.Infof("walking %d roots of space %s in bucket %s", len(roots), sc.spaceID, bucketID)
 	for _, root := range roots {
 		if err := r.walk(ctx, root); err != nil {
-			return err
-		}
-	}
-	bucketIRI := block_gc.BucketIRI(bucketID)
-	if err := r.rootBucket(ctx, bucketIRI); err != nil {
-		return err
-	}
-	for _, root := range roots {
-		if err := r.own(ctx, bucketIRI, root.ref); err != nil {
 			return err
 		}
 	}
@@ -403,14 +337,14 @@ func (r *refRepair) walk(ctx context.Context, root refRepairNode) error {
 		for len(stack) != 0 && len(batch) != refRepairBatch {
 			n := stack[len(stack)-1]
 			stack = stack[:len(stack)-1]
-			iri := block_gc.BlockIRI(n.ref)
-			if iri == "" {
+			if n.ref.GetEmpty() {
 				continue
 			}
-			if _, ok := r.visited[iri]; ok {
+			key := n.ref.MarshalString()
+			if _, ok := r.visited[key]; ok {
 				continue
 			}
-			r.visited[iri] = struct{}{}
+			r.visited[key] = struct{}{}
 			batch = append(batch, n)
 		}
 
@@ -440,10 +374,12 @@ func (r *refRepair) walk(ctx context.Context, root refRepairNode) error {
 	return nil
 }
 
-// read reads, decodes and extracts the refs of one block, with the edges the
-// graph holds for it. It touches no repair state, so reads run concurrently.
+// read reads, decodes and extracts the refs of one block, and whether the
+// volume keeps its child list. It touches no repair state, so reads run
+// concurrently.
 func (r *refRepair) read(ctx context.Context, n refRepairNode) (refRepairRead, error) {
-	rd := refRepairRead{node: n, iri: block_gc.BlockIRI(n.ref)}
+	// Start the read of the node.
+	rd := refRepairRead{node: n}
 
 	// Check only the presence of a block whose type holds no refs.
 	if n.ctor != nil && !holdsRefs(n.ctor()) {
@@ -465,7 +401,7 @@ func (r *refRepair) read(ctx context.Context, n refRepairNode) (refRepairRead, e
 		return rd, nil
 	}
 
-	// Extract the refs a write records and read the edges the graph holds.
+	// Extract the refs a write records and read whether the list is kept.
 	rd.refs, err = block.ExtractBlockRefs(rd.blk)
 	if err != nil {
 		return rd, err
@@ -473,8 +409,9 @@ func (r *refRepair) read(ctx context.Context, n refRepairNode) (refRepairRead, e
 	if span, ok := rd.blk.(*sobject_world_engine.ReplaySpan); ok {
 		rd.refs = slices.Concat(span.GetWorlds(), span.GetPayloads())
 	}
-	if len(rd.refs) != 0 {
-		rd.have, err = r.rg.GetOutgoingRefs(ctx, rd.iri)
+	listed, err := r.vol.HasChildLists(ctx, []*block.BlockRef{n.ref})
+	if err == nil {
+		rd.listed = listed[0]
 	}
 	return rd, err
 }
@@ -488,8 +425,8 @@ func holdsRefs(blk any) bool {
 	return false
 }
 
-// visit counts one read, plans the edges the graph lacks for the block, and
-// returns its children.
+// visit counts one read, plans the child list the volume lacks for the block,
+// and returns its children.
 func (r *refRepair) visit(ctx context.Context, rd *refRepairRead) ([]refRepairNode, error) {
 	// Count a block the volume lacks, a leaf, and an undecodable block.
 	if !rd.found {
@@ -509,8 +446,9 @@ func (r *refRepair) visit(ctx context.Context, rd *refRepairRead) ([]refRepairNo
 		return nil, nil
 	}
 
-	// Plan the edges a write records for the block, then return its children.
-	r.recordEdges(rd.iri, rd.refs, rd.have)
+	// Plan the child list a write records for the block, then return its
+	// children.
+	r.recordList(rd)
 	return r.children(ctx, rd.blk, rd.node, rd.node.values)
 }
 
@@ -534,23 +472,14 @@ func decodeRefRepairNode(n refRepairNode, data []byte) (any, error) {
 	return blk, blk.UnmarshalVT(data)
 }
 
-// recordEdges plans each edge from the block at iri to refs that have, the
-// edges the graph holds for it, lacks.
-func (r *refRepair) recordEdges(iri string, refs []*block.BlockRef, have []string) {
-	var missing uint64
-	for _, ref := range refs {
-		child := block_gc.BlockIRI(ref)
-		if child == "" || slices.Contains(have, child) {
-			continue
-		}
-		have = append(have, child)
-		r.plan(iri, child)
-		missing++
+// recordList plans the child list of a block the volume stores without one.
+func (r *refRepair) recordList(rd *refRepairRead) {
+	if rd.listed {
+		return
 	}
-	if missing != 0 {
-		r.res.lacking++
-		r.res.edges += missing
-	}
+	r.lists = append(r.lists, block.PutBatchEntry{Ref: rd.node.ref, Refs: rd.refs, RefsKnown: true})
+	r.res.lacking++
+	r.res.edges += uint64(len(rd.refs))
 }
 
 // children returns the blocks blk references, each with the constructor and
@@ -790,58 +719,41 @@ func (r *refRepair) transformer(conf *block_transform.Config) (block.Transformer
 	return xfrm, nil
 }
 
-// rootBucket roots the bucket at bucketIRI under the GC root, as a bucket
-// handle with GC tracking does when it opens.
-func (r *refRepair) rootBucket(ctx context.Context, bucketIRI string) error {
-	// Plan the GC root edge unless the root holds the bucket.
-	held, err := r.rg.GetOutgoingRefs(ctx, block_gc.NodeGCRoot)
-	if err != nil || slices.Contains(held, bucketIRI) {
-		return err
-	}
-	r.plan(block_gc.NodeGCRoot, bucketIRI)
-	r.res.rooted++
-	return nil
-}
-
-// own gives a present root that nothing holds to the bucket at bucketIRI, as
-// a write records a block it owns.
-func (r *refRepair) own(ctx context.Context, bucketIRI string, ref *block.BlockRef) error {
-	// Skip an empty root and a root a planned edge holds.
-	iri := block_gc.BlockIRI(ref)
-	if iri == "" {
-		return nil
-	}
-	if _, ok := r.planned[iri]; ok {
-		return nil
-	}
-
-	// Skip a root the volume lacks or another node holds.
-	found, err := r.store.GetBlockExists(ctx, ref)
-	if err != nil || !found {
-		return err
-	}
-	held, err := r.rg.HasIncomingRefsExcluding(ctx, iri, block_gc.NodeUnreferenced)
-	if err != nil || held {
-		return err
-	}
-
-	// Plan the bucket's ownership edge.
-	r.plan(bucketIRI, iri)
-	r.res.owned++
-	return nil
-}
-
-// plan queues the edge from subject to object.
-func (r *refRepair) plan(subject, object string) {
-	r.adds = append(r.adds, block_gc.RefEdge{Subject: subject, Object: object})
-	r.planned[object] = struct{}{}
-}
-
-// apply adds the planned edges in bounded transactions.
+// apply writes the planned child lists in bounded transactions. It refuses an
+// adopting or adopted volume: a list written outside a put records no holder
+// in the journal, so only an adoption that follows may count them.
 func (r *refRepair) apply(ctx context.Context) error {
-	for chunk := range slices.Chunk(r.adds, volumeRepairEdgeBatch) {
-		if err := r.rg.ApplyRefBatch(ctx, chunk, nil); err != nil {
-			return errors.Wrap(err, "add ref edges")
+	// Write each chunk of lists in one transaction and count it.
+	for chunk := range slices.Chunk(r.lists, refRepairListBatch) {
+		err := kvtx.RunTransaction(ctx, true, func(ctx context.Context) (kvtx.Tx, error) {
+			return r.vol.GetKvtxStore().NewTransaction(ctx, true)
+		}, func(ctx context.Context, tx kvtx.Tx) error {
+			// Refuse a volume that journals holders.
+			rec := volume_kvtx.OpenRecords(tx)
+			state, err := rec.GetState(ctx)
+			if err != nil {
+				return err
+			}
+			if state.GetAdoption() != block_gc.Adoption_ADOPTION_UNADOPTED {
+				return errors.New("the volume is adopted; repair child lists only before adoption")
+			}
+
+			// Write the lists the volume lacks.
+			for _, entry := range chunk {
+				listed, err := rec.HasChildren(ctx, entry.Ref)
+				if err != nil {
+					return err
+				}
+				if !listed {
+					if err := rec.PutChildren(ctx, entry.Ref, entry.Refs); err != nil {
+						return err
+					}
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			return errors.Wrap(err, "write child lists")
 		}
 		r.res.written += uint64(len(chunk))
 	}

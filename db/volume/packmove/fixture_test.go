@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/db/s4db"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
@@ -37,8 +36,8 @@ func blockData(name string) []byte {
 	return bytes.Repeat([]byte(name+"|"), blockSize)[:blockSize]
 }
 
-// fixture is a volume file held open by this process, with a gc-tracked
-// block store for the World and one for another bucket.
+// fixture is a volume file held open by this process, with a bucket for the
+// World and another bucket.
 type fixture struct {
 	// t is the test.
 	t *testing.T
@@ -50,14 +49,18 @@ type fixture struct {
 	vol *volume_kvtx.Volume
 	// keys is the key layout.
 	keys *store_kvkey.KVKey
-	// world writes blocks owned by the World's bucket.
-	world *block_gc.GCStoreOps
-	// other writes blocks owned by another bucket.
-	other *block_gc.GCStoreOps
+	// world is the World's bucket.
+	world fixtureBucket
+	// other is another bucket.
+	other fixtureBucket
 }
 
+// fixtureBucket is the ID of a bucket a fixture writes blocks into, each held
+// by a named root of the bucket.
+type fixtureBucket string
+
 // openFixture opens the volume file at path for writing, creating it, with the
-// World and another bucket rooted in the reference graph.
+// World's bucket and another.
 func openFixture(t *testing.T, path string, opts s4db.Options) *fixture {
 	// Open the file with a volume over it.
 	t.Helper()
@@ -77,30 +80,23 @@ func openFixture(t *testing.T, path string, opts s4db.Options) *fixture {
 		_ = db.Close()
 		t.Fatal(err)
 	}
-	f := &fixture{t: t, ctx: ctx, db: db, vol: vol, keys: keys}
-
-	// Root both buckets and build their stores.
-	rg := vol.GetRefGraph()
-	for _, id := range []string{worldStoreID, otherStoreID} {
-		if err := rg.AddRef(ctx, block_gc.NodeGCRoot, block_gc.BucketIRI(id)); err != nil {
-			t.Fatal(err)
-		}
-	}
-	f.world = block_gc.NewGCStoreOpsWithParent(vol, rg, block_gc.BucketIRI(worldStoreID))
-	f.other = block_gc.NewGCStoreOpsWithParent(vol, rg, block_gc.BucketIRI(otherStoreID))
-	return f
+	return &fixture{t: t, ctx: ctx, db: db, vol: vol, keys: keys, world: worldStoreID, other: otherStoreID}
 }
 
-// put writes the block called name to store with the refs, flushes its graph
-// records and returns its ref.
-func (f *fixture) put(store *block_gc.GCStoreOps, name string, refs ...*block.BlockRef) *block.BlockRef {
-	// Write the block and flush its graph records.
+// put writes the block called name with the refs into bucket, held by a
+// root of the bucket named name, and returns its ref.
+func (f *fixture) put(bucket fixtureBucket, name string, refs ...*block.BlockRef) *block.BlockRef {
+	// Name the block.
 	f.t.Helper()
-	ref, _, err := store.PutBlock(f.ctx, blockData(name), &block.PutOpts{RefsKnown: true, Refs: refs})
+	data := blockData(name)
+	ref, err := block.BuildBlockRef(data, nil)
 	if err != nil {
 		f.t.Fatal(err)
 	}
-	if err := store.FlushPending(f.ctx); err != nil {
+
+	// Write it and its root in one transaction.
+	entries := []*block.PutBatchEntry{{Ref: ref, Data: data, Refs: refs, RefsKnown: true}}
+	if err := f.vol.SetBucketRoots(f.ctx, string(bucket), entries, []block.NamedRoot{{Name: name, Ref: ref}}); err != nil {
 		f.t.Fatal(err)
 	}
 	return ref

@@ -34,8 +34,8 @@ func TestValueFlowsByFamily(t *testing.T) {
 	for _, v := range values {
 		names = append(names, v.Family)
 	}
-	if len(values) != 4 || names[0] != "block" || names[1] != "object" || names[2] != "graph" || names[3] != "other" {
-		t.Fatalf("families = %v; want block, object, graph, other", names)
+	if len(values) != 4 || names[0] != "block" || names[1] != "object" || names[2] != "liveness" || names[3] != "other" {
+		t.Fatalf("families = %v; want block, object, liveness, other", names)
 	}
 	if values[0].Written != uint64(len(data)) || values[0].Freed != 0 || values[3].Written >= uint64(len(data)) {
 		t.Fatalf("flows = %+v; want the %d block bytes under block", values, len(data))

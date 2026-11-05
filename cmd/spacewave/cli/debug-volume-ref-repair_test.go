@@ -22,6 +22,8 @@ import (
 	hydra_testbed "github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
+	"github.com/s4wave/spacewave/db/volume"
+	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
@@ -30,7 +32,8 @@ import (
 )
 
 // untrackedCopyBucket copies each block written to the wrapped bucket into a
-// volume without recording its edges, as a volume with GC tracking off does.
+// volume's store without its child list, as a volume written before puts
+// carried child lists holds it.
 type untrackedCopyBucket struct {
 	// BucketOps writes the testbed's tracked blocks.
 	bucket.BucketOps
@@ -45,7 +48,7 @@ func (b *untrackedCopyBucket) PutBlock(ctx context.Context, data []byte, opts *b
 	if err != nil {
 		return nil, exists, err
 	}
-	_, _, err = b.vol.PutBlock(ctx, data, &block.PutOpts{ForceBlockRef: ref})
+	_, _, err = b.vol.Store.PutBlock(ctx, data, &block.PutOpts{ForceBlockRef: ref})
 	return ref, exists, err
 }
 
@@ -57,7 +60,7 @@ func (b *untrackedCopyBucket) PutBlockBatch(ctx context.Context, entries []*bloc
 		return nil, err
 	}
 
-	// Copy the stored entries without recording graph edges.
+	// Copy the stored entries without their child lists.
 	for _, e := range entries {
 		if e.Tombstone {
 			continue
@@ -69,13 +72,14 @@ func (b *untrackedCopyBucket) PutBlockBatch(ctx context.Context, entries []*bloc
 	return existed, nil
 }
 
-// TestDebugRefRepair checks that the repair counts the edges a volume without
-// GC tracking lacks for a UnixFS World, writes nothing on a dry run, adds them
-// all once applied, and finds none left afterward. Its volume-wide inventory
-// counts private-state prefix keys and raw blocks without incident graph edges.
+// TestDebugRefRepair checks that the repair counts the child lists an
+// unadopted volume lacks for a UnixFS World, writes nothing on a dry run,
+// writes them all once applied, and finds none left afterward. Its
+// volume-wide inventory counts private-state prefix keys and raw blocks
+// without child lists.
 func TestDebugRefRepair(t *testing.T) {
-	// Open a volume configuring the Space's bucket, which GC tracking never
-	// rooted.
+	// Open a volume configuring the Space's bucket, and mark it unadopted, as
+	// a volume written before puts carried child lists is.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 	path := filepath.Join(t.TempDir(), "volume.s4wave")
@@ -87,6 +91,9 @@ func TestDebugRefRepair(t *testing.T) {
 	if _, _, _, err := vol.ApplyBucketConfig(ctx, &bucket.Config{Id: restoreTestBucket, Rev: 1}); err != nil {
 		t.Fatal(err)
 	}
+	writeRecords(t, vol, func(rec *block_gc.Records) error {
+		return rec.SetState(ctx, &block_gc.LivenessState{Adoption: block_gc.Adoption_ADOPTION_UNADOPTED})
+	})
 
 	// Start a storage testbed whose blocks are copied into the volume
 	// untracked.
@@ -182,14 +189,13 @@ func TestDebugRefRepair(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Give the raw blocks only a child or a staging edge.
-	rg := vol.GetRefGraph()
-	if err := rg.AddBlockRef(ctx, tracked[0], listed); err != nil {
-		t.Fatal(err)
-	}
-	if err := rg.AddRef(ctx, block_gc.NodeUnreferenced, block_gc.BlockIRI(tracked[1])); err != nil {
-		t.Fatal(err)
-	}
+	// Give two raw blocks a child list.
+	writeRecords(t, vol, func(rec *block_gc.Records) error {
+		if err := rec.PutChildren(ctx, tracked[0], []*block.BlockRef{listed}); err != nil {
+			return err
+		}
+		return rec.PutChildren(ctx, tracked[1], nil)
+	})
 
 	// Store root pointers in two stores of one plugin and one of another.
 	pluginKeys := map[string][]string{
@@ -242,14 +248,15 @@ func TestDebugRefRepair(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Logf("dry run: %+v", dry)
-	if dry.spaces != 1 || dry.lacking == 0 || dry.edges == 0 || dry.owned != 1 || dry.rooted != 1 || dry.written != 0 {
+	if dry.spaces != 1 || dry.lacking == 0 || dry.edges == 0 || dry.written != 0 {
 		t.Fatalf("dry run: %+v", dry)
 	}
 	if dry.absent != 0 || dry.undecodable != 0 || dry.untyped["object type "+unixfs_world.FSNodeTypeID] != 0 {
 		t.Fatalf("dry run did not walk the whole filesystem: %+v", dry)
 	}
 
-	// The inventory measures every block outside the graph without decoding it.
+	// The inventory measures every block without a child list without
+	// decoding it.
 	if dry.untracked != wantUntracked || dry.untrackedBytes != wantBytes {
 		t.Fatalf("untracked inventory: %d blocks, %d bytes; want %d blocks, %d bytes", dry.untracked, dry.untrackedBytes, wantUntracked, wantBytes)
 	}
@@ -277,9 +284,9 @@ func TestDebugRefRepair(t *testing.T) {
 	expectedFields := [][2]string{
 		{"Plugin prefix groups", "2"},
 		{"Plugin prefix group", "plugin-volume/instance/plugin/ (3 keys)"},
-		{"Untracked blocks", strconv.FormatUint(wantUntracked, 10)},
-		{"Untracked bytes", strconv.FormatUint(wantBytes, 10)},
-		{"Untracked sample", orphan.MarshalString() + " (" + strconv.Itoa(len(orphanData)) + " bytes)"},
+		{"Stored blocks without a child list", strconv.FormatUint(wantUntracked, 10)},
+		{"Their bytes", strconv.FormatUint(wantBytes, 10)},
+		{"Listless sample", orphan.MarshalString() + " (" + strconv.Itoa(len(orphanData)) + " bytes)"},
 	}
 	for _, field := range expectedFields {
 		if !slices.Contains(fields, field) {
@@ -295,23 +302,22 @@ func TestDebugRefRepair(t *testing.T) {
 		t.Fatal("dry-run table lacks plugin prefix label or sample ref")
 	}
 
-	// The dry run left the graph as it was.
+	// The dry run left the child lists as they were.
 	again, err := repairVolumeRefs(ctx, le, path, "", true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if again.edges != dry.edges || again.owned != dry.owned || again.rooted != dry.rooted || again.untracked != dry.untracked || again.untrackedBytes != dry.untrackedBytes {
-		t.Fatalf("dry run wrote edges: %+v then %+v", dry, again)
+	if again.lacking != dry.lacking || again.edges != dry.edges || again.untracked != dry.untracked || again.untrackedBytes != dry.untrackedBytes {
+		t.Fatalf("dry run wrote child lists: %+v then %+v", dry, again)
 	}
 
-	// Applying adds every missing edge.
+	// Applying writes every missing child list.
 	applied, err := repairVolumeRefs(ctx, le, path, "", false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := dry.edges + dry.owned + uint64(dry.rooted)
-	if applied.written != want {
-		t.Fatalf("applied %d edges, expected %d", applied.written, want)
+	if applied.written != dry.lacking {
+		t.Fatalf("applied %d child lists, expected %d", applied.written, dry.lacking)
 	}
 
 	// Nothing is missing afterward.
@@ -319,7 +325,40 @@ func TestDebugRefRepair(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if after.lacking != 0 || after.edges != 0 || after.owned != 0 || after.rooted != 0 || after.blocks != dry.blocks {
+	if after.lacking != 0 || after.edges != 0 || after.blocks != dry.blocks {
 		t.Fatalf("after repair: %+v", after)
 	}
+}
+
+// writeRecords runs fn over the liveness records of vol in one committed
+// transaction.
+func writeRecords(t *testing.T, vol *volume_s4db.Volume, fn func(rec *block_gc.Records) error) {
+	t.Helper()
+	tx, err := vol.GetKvtxStore().NewTransaction(t.Context(), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	if err := fn(volume_kvtx.OpenRecords(tx)); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// putKey writes key and value straight to the volume's database.
+func putKey(ctx context.Context, vol volume.Volume, key, value []byte) error {
+	// Open a write transaction, discarded unless it commits.
+	tx, err := volume_s4db.GetDB(vol).NewTransaction(ctx, true)
+	if err != nil {
+		return err
+	}
+	defer tx.Discard()
+
+	// Set the key and commit.
+	if err := tx.Set(ctx, key, value); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }

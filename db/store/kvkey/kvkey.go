@@ -20,7 +20,10 @@ import (
 // that the log is complete survives restarts.
 // Version 6 keys are those of version 5. Its graph keeps the shared counts,
 // complete or being built by the sharing walk, whose state record says which.
-const FormatVersion = 6
+// Version 7 keeps liveness in child lists, named roots, count records and a
+// journal under the prefix the graph held; it keeps the graph's child lists in
+// place and carries its named roots across.
+const FormatVersion = 7
 
 // formatVersionKey names the key holding the store's format version.
 var formatVersionKey = []byte("format")

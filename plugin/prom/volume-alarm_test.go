@@ -20,7 +20,6 @@ import (
 	core_alarm_watch "github.com/s4wave/spacewave/core/alarm/watch"
 	"github.com/s4wave/spacewave/core/metrics"
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	db_kvtx "github.com/s4wave/spacewave/db/kvtx"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
@@ -42,12 +41,12 @@ import (
 // alarmTargetKey is the device target the volume Alarms query.
 const alarmTargetKey = "prom/target/device"
 
-// TestVolumeAlarmGCStuck holds a real block pass in its mark, scrapes the
+// TestVolumeAlarmGCStuck holds a real adoption in its mark, scrapes the
 // process metrics into a device target, and checks that the stuck collection
 // Alarm fires naming the volume through PromQL and the alarm watch, then
-// clears once the pass ends.
+// clears once the adoption ends.
 func TestVolumeAlarmGCStuck(t *testing.T) {
-	// Start the World and a volume on a store that can hold a block pass.
+	// Start the World and a volume on a store that can hold an adoption.
 	e := newAlarmEnv(t)
 	store := &gatedStore{Store: store_kvtx_inmem.NewStore()}
 	v, err := volume_kvtx.NewVolume(e.ctx, "test/volume", store_kvkey.NewDefaultKVKey(), store, &store_kvtx.Config{}, false, false, nil, nil)
@@ -70,11 +69,12 @@ func TestVolumeAlarmGCStuck(t *testing.T) {
 		return a.GetState() == s4wave_alarm.AlarmState_ALARM_STATE_CLEAR && a.GetSummary() == "no volume is stuck in a collection phase"
 	})
 
-	// A pass held in its mark past the threshold fires the Alarm.
+	// An adoption held in its mark past the threshold fires the Alarm.
 	started, release := store.arm(t)
 	passErr := make(chan error, 1)
 	go func() {
-		passErr <- v.SweepUnreachedBlocks(e.ctx, v.GetRefGraph(), &block_gc.Stats{})
+		_, err := v.Adopt(e.ctx)
+		passErr <- err
 	}()
 	<-started
 	a := e.scrapeUntil(def, "firing", func(a *s4wave_alarm.Alarm) bool {
@@ -84,7 +84,7 @@ func TestVolumeAlarmGCStuck(t *testing.T) {
 		t.Fatalf("firing alarm: %v", a)
 	}
 
-	// The pass ending clears it.
+	// The adoption ending clears it.
 	release()
 	if err := <-passErr; err != nil {
 		t.Fatal(err)

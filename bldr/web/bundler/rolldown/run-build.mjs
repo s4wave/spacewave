@@ -106,9 +106,9 @@ function resolveGoModuleCachePath(roots, importPath) {
     const modPath = findGoMod(root);
     if (!modPath)
       continue;
-    for (const [modulePath, pin2] of parseGoMod(modPath)) {
+    for (const [modulePath, pin] of parseGoMod(modPath)) {
       if (!pins.has(modulePath))
-        pins.set(modulePath, pin2);
+        pins.set(modulePath, pin);
     }
   }
   let best = "";
@@ -384,10 +384,10 @@ async function runBuild(request, dependencyRoot) {
     if (!goscript?.sharedExternalImports)
       return null;
     if (source.startsWith("@goscript/")) {
-      const rel2 = source.slice("@goscript/".length);
-      if (!rel2.endsWith(".js") || !sharedGoScriptRel(rel2))
+      const rel = source.slice("@goscript/".length);
+      if (!rel.endsWith(".js") || !sharedGoScriptRel(rel))
         return null;
-      return sharedImportURL(rel2);
+      return sharedImportURL(rel);
     }
     if (!importer || importer.startsWith("\x00") || !source.endsWith(".js") || !source.startsWith("./") && !source.startsWith("../")) {
       return null;
@@ -671,10 +671,10 @@ function readLocalModule(sourceRoot) {
     try {
       contents = readFileSync2(join2(root, "go.mod"), "utf8");
     } catch {
-      const parent2 = dirname2(root);
-      if (parent2 === root)
+      const parent = dirname2(root);
+      if (parent === root)
         return null;
-      root = parent2;
+      root = parent;
       continue;
     }
     const name = contents.match(/^\s*module\s+(\S+)/m)?.[1] || "";
@@ -916,7 +916,7 @@ if (import.meta.main) {
   });
 }
 export {
-  validateBuildRequest,
+  BuildRequestError,
   runBuild,
-  BuildRequestError
+  validateBuildRequest
 };

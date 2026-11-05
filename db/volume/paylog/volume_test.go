@@ -4,11 +4,9 @@ package paylog
 
 import (
 	"context"
-	"slices"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
@@ -27,12 +25,12 @@ func TestVolumeCollect(t *testing.T) {
 			s := reopen(t, e, d, nil)
 			v := openVolume(t, s)
 			keep, drop := publish(t, v, "keep"), publish(t, v, "drop")
-			orphan(t, v, drop)
+			orphan(t, v, "drop", drop)
 
 			// Collect the orphan.
-			stats, err := block_gc.NewCollector(v.GetRefGraph(), v, nil).Collect(ctx)
-			if err != nil || stats.BlocksSwept != 1 {
-				t.Fatalf("collect stats=%+v err=%v", stats, err)
+			res, err := v.Collect(ctx)
+			if err != nil || res.Freed != 1 {
+				t.Fatalf("collect result=%+v err=%v", res, err)
 			}
 			checkCollected(t, s, v, keep, drop)
 
@@ -49,10 +47,12 @@ func TestVolumeCollect(t *testing.T) {
 	}
 }
 
-// openVolume opens a Volume in the store's domain under m/.
+// openVolume opens a Volume in the store's domain under m/, whose collector
+// frees at once.
 func openVolume(t *testing.T, s *Store) *volume_kvtx.Volume {
 	t.Helper()
-	v, err := volume_kvtx.NewVolume(t.Context(), "test/paylog", store_kvkey.NewDefaultKVKey(), s.Domain([]byte("m/")), &store_kvtx.Config{}, false, false, nil, nil)
+	conf := &store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: "1ns"}
+	v, err := volume_kvtx.NewVolume(t.Context(), "test/paylog", store_kvkey.NewDefaultKVKey(), s.Domain([]byte("m/")), conf, false, false, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,8 +67,8 @@ func closeVolume(t *testing.T, v *volume_kvtx.Volume) {
 	}
 }
 
-// publish publishes one block owned by bucket "owner" with a head named id,
-// and returns its reference.
+// publish publishes one block held by a root of bucket "owner" named id, with
+// a head named id, and returns its reference.
 func publish(t *testing.T, v *volume_kvtx.Volume, id string) *block.BlockRef {
 	// Build the block and a head update that always applies.
 	t.Helper()
@@ -81,12 +81,13 @@ func publish(t *testing.T, v *volume_kvtx.Volume, id string) *block.BlockRef {
 		return []byte(id), nil
 	}}
 
-	// Publish the block and its ownership in one commit.
+	// Publish the block and its root in one commit.
 	p := &block.AtomicPublication{
 		Entries:  []*block.PutBatchEntry{{Ref: ref, Data: data, RefsKnown: true}},
 		BucketID: "owner",
 		TrackGC:  true,
 		Heads:    []*block.AtomicHeadUpdate{head},
+		Roots:    []block.NamedRoot{{Name: id, Ref: ref}},
 	}
 	if err := v.PublishAtomic(t.Context(), p); err != nil {
 		t.Fatal(err)
@@ -94,17 +95,16 @@ func publish(t *testing.T, v *volume_kvtx.Volume, id string) *block.BlockRef {
 	return ref
 }
 
-// orphan releases the bucket's ownership of ref.
-func orphan(t *testing.T, v *volume_kvtx.Volume, ref *block.BlockRef) {
+// orphan releases the root id of bucket "owner", which holds ref.
+func orphan(t *testing.T, v *volume_kvtx.Volume, id string, ref *block.BlockRef) {
 	t.Helper()
-	edge := block_gc.RefEdge{Subject: block_gc.BucketIRI("owner"), Object: block_gc.BlockIRI(ref)}
-	if err := v.GetRefGraph().ApplyRefBatch(t.Context(), nil, []block_gc.RefEdge{edge}); err != nil {
+	if err := v.SetBucketRoots(t.Context(), "owner", nil, []block.NamedRoot{{Name: id, Previous: ref}}); err != nil {
 		t.Fatal(err)
 	}
 }
 
-// checkCollected checks that keep is stored with its owner and drop is gone
-// from the store and the graph.
+// checkCollected checks that keep is stored with its root and child list and
+// drop is gone from the store and the liveness records.
 func checkCollected(t *testing.T, s *Store, v *volume_kvtx.Volume, keep, drop *block.BlockRef) {
 	t.Helper()
 	for _, c := range []struct {
@@ -117,13 +117,13 @@ func checkCollected(t *testing.T, s *Store, v *volume_kvtx.Volume, keep, drop *b
 			t.Fatalf("block %s stored=%v want %v err=%v", c.ref.MarshalString(), found, c.want, err)
 		}
 
-		// Check the owner in the graph.
-		owners, err := v.GetRefGraph().GetIncomingRefs(t.Context(), block_gc.BlockIRI(c.ref))
+		// Check its child list.
+		listed, err := v.HasChildLists(t.Context(), []*block.BlockRef{c.ref})
 		if err != nil {
 			t.Fatal(err)
 		}
-		if owned := slices.Contains(owners, block_gc.BucketIRI("owner")); owned != c.want || (!c.want && len(owners) != 0) {
-			t.Fatalf("block %s owners %v, want owned %v", c.ref.MarshalString(), owners, c.want)
+		if listed[0] != c.want {
+			t.Fatalf("block %s listed %v, want %v", c.ref.MarshalString(), listed[0], c.want)
 		}
 	}
 }

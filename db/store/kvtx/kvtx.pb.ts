@@ -27,35 +27,25 @@ export interface Config {
    */
   disableHashGet?: boolean
   /**
-   * GcMarkWalk marks blocks in a GC block pass by walking from the roots in
-   * one read snapshot, as before, instead of scanning the child lists in key
-   * order in short read transactions.
+   * CollectorFrees turns on the Volume collector's frees. Off, the collector
+   * still releases lapsed leases and nets the journal, so its counts stay
+   * current, and frees nothing. It stays off until a rehearsal on a restored
+   * copy of the Volume has shown the collector frees no live block.
    */
-  gcMarkWalk?: boolean
+  collectorFrees?: boolean
   /**
-   * DisableHoldCounts stops the Volume keeping the shared counts that let a
-   * World's deadlist records free pages a later World stored again. The
-   * World engine keeps no deadlist records on such a Volume, so its pages
-   * wait for the mark and sweep. Set it where nothing reads the counts, such
-   * as a Volume whose World engine stores every World, to save the graph
-   * reads and writes they cost each put.
+   * CollectorGraceDur is how old a journal record must be before the
+   * collector nets it, as a Go duration such as "15m". It must exceed the
+   * time a reader takes to pin a head it saw and the lease of a leased root.
+   * Empty uses the collector's default of 15 minutes.
    */
-  disableHoldCounts?: boolean
-  /**
-   * UpgradeSharedCounts moves a Volume of store format 5 that already tracks
-   * blocks to format 6, which starts the walk that counts the holders of every
-   * stored block. Without it such a Volume stays at format 5 and keeps no
-   * shared counts; an empty Volume moves to format 6 either way. It conflicts
-   * with DisableHoldCounts, so setting both fails the Volume's open.
-   */
-  upgradeSharedCounts?: boolean
+  collectorGraceDur?: string
 }
 
 export const Config: MessageType<Config> =
   /* @__PURE__ */ createMessageType<Config>('store.kvtx.Config', () => [
     [2, 'hash_type', 14, 0, HashType_Enum],
     [3, 'disable_hash_get', 8],
-    [4, 'gc_mark_walk', 8],
-    [5, 'disable_hold_counts', 8],
-    [6, 'upgrade_shared_counts', 8],
+    [7, 'collector_frees', 8],
+    [8, 'collector_grace_dur', 9],
   ])

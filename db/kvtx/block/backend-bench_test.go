@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	block_traverse "github.com/s4wave/spacewave/db/block/traverse"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -164,14 +163,6 @@ func (s *benchBlockStore) Sync(ctx context.Context) (bool, error) {
 	return fenced, err
 }
 
-func (s *benchBlockStore) BeginDeferFlush() {
-	block.BeginDeferFlush(s.inner)
-}
-
-func (s *benchBlockStore) EndDeferFlush(ctx context.Context) error {
-	return block.EndDeferFlush(ctx, s.inner)
-}
-
 func (s *benchBlockStore) resetCounts() {
 	// Reset the read and existence counters.
 	s.getBlocks.Store(0)
@@ -234,86 +225,6 @@ func recordBenchMax(target *atomic.Int64, next int64) {
 			return
 		}
 	}
-}
-
-type benchRefGraph struct {
-	addRefs      atomic.Int64
-	removeRefs   atomic.Int64
-	applyBatches atomic.Int64
-}
-
-func (g *benchRefGraph) AddRef(context.Context, string, string) error {
-	g.addRefs.Add(1)
-	return nil
-}
-
-func (g *benchRefGraph) RemoveRef(context.Context, string, string) error {
-	g.removeRefs.Add(1)
-	return nil
-}
-
-func (g *benchRefGraph) ApplyRefBatch(_ context.Context, adds, removes []block_gc.RefEdge) error {
-	g.applyBatches.Add(1)
-	g.addRefs.Add(int64(len(adds)))
-	g.removeRefs.Add(int64(len(removes)))
-	return nil
-}
-
-func (g *benchRefGraph) RemoveNodeRefs(context.Context, string, bool) ([]string, error) {
-	return nil, nil
-}
-
-func (g *benchRefGraph) HasIncomingRefs(context.Context, string) (bool, error) {
-	return false, nil
-}
-
-func (g *benchRefGraph) HasIncomingRefsExcluding(context.Context, string, ...string) (bool, error) {
-	return false, nil
-}
-
-func (g *benchRefGraph) GetOutgoingRefs(context.Context, string) ([]string, error) {
-	return nil, nil
-}
-
-func (g *benchRefGraph) GetIncomingRefs(context.Context, string) ([]string, error) {
-	return nil, nil
-}
-
-func (g *benchRefGraph) GetUnreferencedNodes(context.Context) ([]string, error) {
-	return nil, nil
-}
-
-func (g *benchRefGraph) AddBlockRef(ctx context.Context, source, target *block.BlockRef) error {
-	return g.AddRef(ctx, block_gc.BlockIRI(source), block_gc.BlockIRI(target))
-}
-
-func (g *benchRefGraph) AddObjectRoot(ctx context.Context, objectKey string, ref *block.BlockRef) error {
-	return g.AddRef(ctx, objectKey, block_gc.BlockIRI(ref))
-}
-
-func (g *benchRefGraph) RemoveObjectRoot(ctx context.Context, objectKey string, ref *block.BlockRef) error {
-	return g.RemoveRef(ctx, objectKey, block_gc.BlockIRI(ref))
-}
-
-func (g *benchRefGraph) Close() error {
-	return nil
-}
-
-func (g *benchRefGraph) resetCounts() {
-	g.addRefs.Store(0)
-	g.removeRefs.Store(0)
-	g.applyBatches.Store(0)
-}
-
-func (g *benchRefGraph) reportMetrics(b *testing.B, ops int64) {
-	// Report reference graph traffic per measured KV operation.
-	if ops == 0 {
-		return
-	}
-	denom := float64(ops)
-	b.ReportMetric(float64(g.addRefs.Load())/denom, "gc-add-refs/op")
-	b.ReportMetric(float64(g.removeRefs.Load())/denom, "gc-remove-refs/op")
-	b.ReportMetric(float64(g.applyBatches.Load())/denom, "gc-apply-batches/op")
 }
 
 type benchKVTree struct {
@@ -774,33 +685,6 @@ func BenchmarkKVTXBackendDeleteCommit(b *testing.B) {
 	}
 }
 
-func BenchmarkKVTXBackendUpdateCommitGC(b *testing.B) {
-	for _, size := range []int{1024} {
-		for _, impl := range benchKVImpls() {
-			b.Run(benchKVName(impl, "updates_16", size), func(b *testing.B) {
-				// Build the KV tree for this benchmark workload.
-				ctx := context.Background()
-				tree, refGraph := buildBenchKVTreeWithGC(b, impl, makeBenchKeys(size, benchKeySequential))
-				tree.store.resetCounts()
-				refGraph.resetCounts()
-
-				// Measure KV workload latency and allocations after clearing setup counts.
-				b.ReportAllocs()
-				b.ResetTimer()
-				for i := range b.N {
-					runBenchKVUpdates(b, ctx, tree, i, 16)
-				}
-
-				// Report KV store traffic and the final root shape outside the timed workload.
-				b.StopTimer()
-				tree.store.reportMetrics(b, int64(b.N))
-				refGraph.reportMetrics(b, int64(b.N))
-				reportBenchKVRoot(b, ctx, tree)
-			})
-		}
-	}
-}
-
 // BenchmarkKVTXBackendAdvancingCommit commits one change per iteration and
 // advances the root, so churn accumulates like a live store instead of
 // forking every commit from the same root.
@@ -869,17 +753,6 @@ func buildBenchKVTree(
 
 	store := newBenchBlockStore()
 	return buildBenchKVTreeWithOps(tb, impl, keys, store, store, indexedLog, cursorValues, nil)
-}
-
-func buildBenchKVTreeWithGC(tb testing.TB, impl KVImplType, keys [][]byte) (*benchKVTree, *benchRefGraph) {
-	// Build a KV tree through the GC store and clear reference counts.
-	tb.Helper()
-	store := newBenchBlockStore()
-	refGraph := &benchRefGraph{}
-	gcStore := block_gc.NewGCStoreOps(store, refGraph)
-	tree := buildBenchKVTreeWithOps(tb, impl, keys, store, gcStore, false, false, gcStore.FlushPending)
-	refGraph.resetCounts()
-	return tree, refGraph
 }
 
 func buildBenchKVTreeWithOps(

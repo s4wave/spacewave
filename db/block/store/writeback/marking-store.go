@@ -190,16 +190,6 @@ func (m *MarkingStore) Sync(ctx context.Context) (bool, error) {
 	return m.store.Sync(ctx)
 }
 
-// BeginDeferFlush forwards the GC ref-batch scope to the inner store.
-func (m *MarkingStore) BeginDeferFlush() {
-	block.BeginDeferFlush(m.store)
-}
-
-// EndDeferFlush forwards the GC ref-batch scope to the inner store.
-func (m *MarkingStore) EndDeferFlush(ctx context.Context) error {
-	return block.EndDeferFlush(ctx, m.store)
-}
-
 // invalidate drops decoded values for a removed block when the store caches them.
 func (m *MarkingStore) invalidate(ctx context.Context, ref *block.BlockRef) {
 	if invalidator, ok := m.store.(decodedBlockRefInvalidator); ok {

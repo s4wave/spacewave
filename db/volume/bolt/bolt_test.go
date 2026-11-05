@@ -16,7 +16,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/core"
@@ -43,7 +42,6 @@ const (
 	boltGraphWritersEnv = "SPACEWAVE_BOLT_GRAPH_WRITERS"
 	boltGraphReadyEnv   = "SPACEWAVE_BOLT_GRAPH_READY_PATH"
 	boltGraphDoneEnv    = "SPACEWAVE_BOLT_GRAPH_DONE_PATH"
-	boltGraphGCEnv      = "SPACEWAVE_BOLT_GRAPH_GC"
 )
 
 // TestBoltVolume tests the bolt-backed volume including storage stats.
@@ -216,18 +214,10 @@ func TestBoltVolumeMultiprocessScopedGraphVisibility(t *testing.T) {
 		runBoltGraphRole(t, role)
 		return
 	}
-	runBoltGraphVisibilityParent(t, false)
+	runBoltGraphVisibilityParent(t)
 }
 
-func TestBoltVolumeMultiprocessScopedGCGraphVisibility(t *testing.T) {
-	if role := os.Getenv(boltGraphRoleEnv); role != "" {
-		runBoltGraphRole(t, role)
-		return
-	}
-	runBoltGraphVisibilityParent(t, true)
-}
-
-func runBoltGraphVisibilityParent(t *testing.T, useGC bool) {
+func runBoltGraphVisibilityParent(t *testing.T) {
 	// Identify failures at the graph visibility caller.
 	t.Helper()
 
@@ -243,7 +233,7 @@ func runBoltGraphVisibilityParent(t *testing.T, useGC bool) {
 
 	// Seed the initial graph and close its volume.
 	vol := openBoltVisibilityVolume(t, boltPath)
-	initialRef := writeBoltGraph(t, context.Background(), vol, "initial", useGC)
+	initialRef := writeBoltGraph(t, context.Background(), vol, "initial")
 	if err := os.WriteFile(filepath.Join(refsDir, "initial.ref"), []byte(initialRef.MarshalString()), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -253,9 +243,6 @@ func runBoltGraphVisibilityParent(t *testing.T, useGC bool) {
 
 	// Start the graph reader and wait for its readiness marker.
 	reader := boltGraphCommand(t, "reader", boltPath, refsDir, readyPath, donePath, 0, 0, 0)
-	if useGC {
-		reader.Env = append(reader.Env, boltGraphGCEnv+"=1")
-	}
 	if err := reader.Start(); err != nil {
 		t.Fatal(err)
 	}
@@ -267,9 +254,6 @@ func runBoltGraphVisibilityParent(t *testing.T, useGC bool) {
 	cmds := make([]*exec.Cmd, 0, writers)
 	for id := range writers {
 		cmd := boltGraphCommand(t, "writer", boltPath, refsDir, readyPath, donePath, id, iterations, writers)
-		if useGC {
-			cmd.Env = append(cmd.Env, boltGraphGCEnv+"=1")
-		}
 		cmds = append(cmds, cmd)
 	}
 	for _, cmd := range cmds {
@@ -291,9 +275,6 @@ func runBoltGraphVisibilityParent(t *testing.T, useGC bool) {
 
 	// Verify the committed graphs from a fresh process.
 	verifier := boltGraphCommand(t, "verifier", boltPath, refsDir, readyPath, donePath, 0, iterations, writers)
-	if useGC {
-		verifier.Env = append(verifier.Env, boltGraphGCEnv+"=1")
-	}
 	if err := verifier.Run(); err != nil {
 		t.Fatalf("verifier failed: %v\n%s", err, cmdOutput(verifier))
 	}
@@ -445,7 +426,6 @@ func runBoltGraphRole(t *testing.T, role string) {
 	ctx := context.Background()
 	vol := openBoltVisibilityVolume(t, os.Getenv(boltGraphPathEnv))
 	defer vol.Close()
-	useGC := os.Getenv(boltGraphGCEnv) == "1"
 
 	// Read, write, or verify graphs for the selected subprocess role.
 	switch role {
@@ -458,7 +438,7 @@ func runBoltGraphRole(t *testing.T, role string) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		store := boltGraphStore(vol, useGC)
+		store := vol
 		scoped, release, err := store.BeginReadOperation(ctx)
 		if err != nil {
 			t.Fatal(err)
@@ -481,7 +461,7 @@ func runBoltGraphRole(t *testing.T, role string) {
 	case "writer":
 		for i := range iterations {
 			label := fmt.Sprintf("writer/%d/%03d", id, i)
-			ref := writeBoltGraph(t, ctx, vol, label, useGC)
+			ref := writeBoltGraph(t, ctx, vol, label)
 			if err := os.WriteFile(boltGraphRefPath(id, i), []byte(ref.MarshalString()), 0o600); err != nil {
 				t.Fatal(err)
 			}
@@ -498,7 +478,7 @@ func runBoltGraphRole(t *testing.T, role string) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if err := readBoltGraph(ctx, boltGraphStore(vol, useGC), ref, label); err != nil {
+				if err := readBoltGraph(ctx, vol, ref, label); err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -508,7 +488,7 @@ func runBoltGraphRole(t *testing.T, role string) {
 	}
 }
 
-func writeBoltGraph(t *testing.T, ctx context.Context, vol *volume_bolt.Bolt, label string, useGC bool) *block.BlockRef {
+func writeBoltGraph(t *testing.T, ctx context.Context, vol *volume_bolt.Bolt, label string) *block.BlockRef {
 	// Identify failures at the graph writer caller.
 	t.Helper()
 
@@ -537,7 +517,7 @@ func writeBoltGraph(t *testing.T, ctx context.Context, vol *volume_bolt.Bolt, la
 	}
 
 	// Build and commit the graph in a block transaction.
-	store := boltGraphStore(vol, useGC)
+	store := vol
 	tx, cursor := block.NewTransaction(store, nil, nil, nil)
 	root := &block_mock.Root{ExampleSubBlock: &block_mock.SubBlock{}}
 	cursor.SetBlock(root, true)
@@ -546,13 +526,6 @@ func writeBoltGraph(t *testing.T, ctx context.Context, vol *volume_bolt.Bolt, la
 	ref, _, err := tx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err)
-	}
-
-	// Flush pending graph references before publishing the write.
-	if gcOps, ok := store.(*block_gc.GCStoreOps); ok {
-		if err := gcOps.FlushPending(ctx); err != nil {
-			t.Fatal(err)
-		}
 	}
 
 	// Publish the graph generation and release its write lease.
@@ -564,13 +537,6 @@ func writeBoltGraph(t *testing.T, ctx context.Context, vol *volume_bolt.Bolt, la
 	}
 	released = true
 	return ref
-}
-
-func boltGraphStore(vol *volume_bolt.Bolt, useGC bool) block.StoreOps {
-	if !useGC {
-		return vol
-	}
-	return block_gc.NewGCStoreOps(vol, vol.GetRefGraph())
 }
 
 func readBoltGraph(ctx context.Context, store block.StoreOps, ref *block.BlockRef, want string) error {

@@ -12,7 +12,6 @@ import (
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/s4wave/spacewave/bldr/util/packedmsg"
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
@@ -29,29 +28,14 @@ type blockSpec struct {
 	data []byte
 }
 
-type testRefGraph struct {
-	out map[string][]string
-	in  map[string][]string
-}
+// testLists is a fake of the child lists a Volume keeps, keyed by the
+// block's string form.
+type testLists map[string][]*block.BlockRef
 
-func newTestRefGraph() *testRefGraph {
-	return &testRefGraph{
-		out: make(map[string][]string),
-		in:  make(map[string][]string),
-	}
-}
-
-func (g *testRefGraph) add(subject, object string) {
-	g.out[subject] = append(g.out[subject], object)
-	g.in[object] = append(g.in[object], subject)
-}
-
-func (g *testRefGraph) GetOutgoingRefs(_ context.Context, node string) ([]string, error) {
-	return slices.Clone(g.out[node]), nil
-}
-
-func (g *testRefGraph) GetIncomingRefs(_ context.Context, node string) ([]string, error) {
-	return slices.Clone(g.in[node]), nil
+// GetChildren returns the children listed for ref.
+func (l testLists) GetChildren(_ context.Context, ref *block.BlockRef) ([]*block.BlockRef, bool, error) {
+	children, ok := l[ref.MarshalString()]
+	return slices.Clone(children), ok, nil
 }
 
 // buildTestKvfile packs =n= deterministic blocks into a kvfile using PackBlocks.
@@ -301,11 +285,8 @@ func TestDiffBlockStoresWithRefGraphOrdersPhysicalPack(t *testing.T) {
 	rootB := blockRefFromKey(t, specs[2].key)
 	childA := blockRefFromKey(t, specs[3].key)
 
-	// Add ownership and child edges to the test graph.
-	graph := newTestRefGraph()
-	graph.add(block_gc.ObjectIRI("object-b"), block_gc.BlockIRI(rootB))
-	graph.add(block_gc.ObjectIRI("object-a"), block_gc.BlockIRI(rootA))
-	graph.add(block_gc.BlockIRI(rootA), block_gc.BlockIRI(childA))
+	// List child-a under root-a.
+	graph := testLists{rootA.MarshalString(): {childA}}
 
 	// Diff with the graph and collect the emitted chunk.
 	iter, err := DiffBlockStoresWithRefGraph(ctx, reader, nil, graph)
@@ -326,15 +307,16 @@ func TestDiffBlockStoresWithRefGraphOrdersPhysicalPack(t *testing.T) {
 		t.Fatalf("emitted %d chunks, want 1", len(chunks))
 	}
 
-	// Assert the physical pack order matches the graph order.
-	want := []string{
-		rootA.GetHash().MarshalString(),
-		childA.GetHash().MarshalString(),
-		rootB.GetHash().MarshalString(),
-		stray.GetHash().MarshalString(),
+	// Assert the child follows its root at once and every block is packed.
+	got := packPhysicalKeys(t, chunks[0])
+	i := slices.Index(got, rootA.GetHash().MarshalString())
+	if len(got) != 4 || i < 0 || i+1 >= len(got) || got[i+1] != childA.GetHash().MarshalString() {
+		t.Fatalf("physical pack order = %v, want child-a right after root-a", got)
 	}
-	if got := packPhysicalKeys(t, chunks[0]); !slices.Equal(got, want) {
-		t.Fatalf("physical pack order = %v, want %v", got, want)
+	for _, ref := range []*block.BlockRef{rootB, stray} {
+		if !slices.Contains(got, ref.GetHash().MarshalString()) {
+			t.Fatalf("physical pack order = %v, missing %s", got, ref.MarshalString())
+		}
 	}
 }
 

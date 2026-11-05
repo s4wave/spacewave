@@ -17,7 +17,6 @@ import (
 	"github.com/s4wave/spacewave/core/bstore"
 	"github.com/s4wave/spacewave/core/provider"
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_controller "github.com/s4wave/spacewave/db/block/store/controller"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
@@ -45,6 +44,14 @@ type BlockStore struct {
 	placement *placementState
 }
 
+// childListReader is implemented by a volume that keeps a child list for
+// each block it stores.
+type childListReader interface {
+	// HasChildLists reports, for each ref, whether the volume keeps its child
+	// list.
+	HasChildLists(ctx context.Context, refs []*block.BlockRef) ([]bool, error)
+}
+
 // placementState is a block store's storage backend, its upload queue, and
 // the stores a storage move copies blocks between.
 type placementState struct {
@@ -57,9 +64,9 @@ type placementState struct {
 	local block.StoreOps
 	// remote is the open storage backend store, or nil.
 	remote *atomic.Pointer[openBackend]
-	// tracker reports the blocks the volume's reference graph tracks, or nil
-	// when the volume has no graph that can.
-	tracker block_gc.BlockTracker
+	// tracker reports the blocks the volume keeps child lists for, or nil when
+	// the volume keeps none.
+	tracker childListReader
 	// done closes when this mount ends, including a failed mount or remount.
 	done <-chan struct{}
 	// reads records the blocks read since the last eviction pass.
@@ -78,15 +85,15 @@ type placementState struct {
 	fallbackFills fallbackFills
 }
 
-// live reports which blocks a bucket reclaim must keep: the blocks the
-// volume's reference graph tracks, and any the local store holds. Only a
-// block pass ends a tracked block's life, so a block whose local value was
-// dropped stays live, and a volume without a graph keeps what it stores.
+// live reports which blocks a bucket reclaim must keep: the blocks the volume
+// keeps child lists for, and any the local store holds. Only the collector
+// ends a listed block's life, so a block whose local value was dropped stays
+// live, and a volume without child lists keeps what it stores.
 func (p *placementState) live(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	// Keep the blocks the graph tracks.
 	live := make([]bool, len(refs))
 	if p.tracker != nil {
-		tracked, err := p.tracker.TrackedBlocks(ctx, refs)
+		tracked, err := p.tracker.HasChildLists(ctx, refs)
 		if err != nil {
 			return nil, err
 		}
@@ -121,7 +128,7 @@ func (p *placementState) live(ctx context.Context, refs []*block.BlockRef) ([]bo
 func (p *placementState) fill(ctx context.Context, primary block.StoreOps, ref *block.BlockRef, stored *block.StoredBlock) error {
 	// Refill a tracked block of a placed store.
 	if p.backend.Load() != nil && p.tracker != nil {
-		tracked, err := p.tracker.TrackedBlocks(ctx, []*block.BlockRef{ref})
+		tracked, err := p.tracker.HasChildLists(ctx, []*block.BlockRef{ref})
 		if err != nil {
 			return err
 		}
@@ -314,16 +321,6 @@ func (b *BlockStore) Sync(ctx context.Context) (bool, error) {
 	return b.store.Sync(ctx)
 }
 
-// BeginDeferFlush forwards the GC ref-batch scope to the inner store.
-func (b *BlockStore) BeginDeferFlush() {
-	block.BeginDeferFlush(b.store)
-}
-
-// EndDeferFlush forwards the GC ref-batch scope to the inner store.
-func (b *BlockStore) EndDeferFlush(ctx context.Context) error {
-	return block.EndDeferFlush(ctx, b.store)
-}
-
 // NewBlockStoreRef builds a new BlockStoreRef.
 func NewBlockStoreRef(providerID, providerAccountID, bstoreID string) *bstore.BlockStoreRef {
 	return &bstore.BlockStoreRef{
@@ -475,7 +472,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	// Track the store's placement, which places new writes, refills evicted
 	// blocks and reclaims backend storage.
 	placement := &placementState{wb: wb, local: localBucket, remote: &t.remote, evictGate: &t.evictGate, evictAdmit: &t.a.evictAdmit, done: ctx.Done()}
-	placement.tracker, _ = t.a.vol.GetRefGraph().(block_gc.BlockTracker)
+	placement.tracker, _ = t.a.vol.(childListReader)
 	t.setPlacementBackend(placement, backend)
 	if err := placement.reads.load(ctx, wb); err != nil {
 		le.WithError(err).Warn("unable to load the saved block reads, eviction keeps only new reads")

@@ -136,23 +136,39 @@ func (v *Volume) writeCacheFills(ctx context.Context, owner string, fills []*cac
 
 // prepareCacheFills writes fills of one owner in one transaction and records
 // each fill's ref and existence.
-func (v *Volume) prepareCacheFills(ctx context.Context, owner string, fills []*cacheFill) error {
-	// Write the fills, without the store's writer unless one marks its block.
+func (v *Volume) prepareCacheFills(ctx context.Context, _ string, fills []*cacheFill) error {
+	// Name each fill's block and refuse new data below the disk reserve.
 	size := 0
 	direct := v.withDirectFill
-	for _, fill := range fills {
+	entries := make([]*block.PutBatchEntry, len(fills))
+	for i, fill := range fills {
 		size += len(fill.data)
 		if fill.mark != nil {
 			direct = v.withDirectAtomic
 		}
+		entry, err := putEntry(fill.data, fill.opts, v.GetHashType())
+		if err != nil {
+			return err
+		}
+		entries[i] = entry
 	}
-	err := v.prepareOwned(ctx, direct, owner, size, claimBucket, func(store block.StoreOps) error {
-		for _, fill := range fills {
-			ref, existed, err := store.PutBlock(kvtx.WithBlockMarkRequest(ctx, fill.mark), fill.data, fill.opts)
+	if err := v.checkReserve(ctx, size); err != nil {
+		return err
+	}
+	if err := requireRefsKnown(entries); err != nil {
+		v.countRefused(putFill, err)
+		return err
+	}
+
+	// Store the fills, each through its caller's marker, without the store's
+	// writer unless one marks its block.
+	err := direct(ctx, func(p *physicalTx) error {
+		for i, fill := range fills {
+			existed, err := v.land(kvtx.WithBlockMarkRequest(ctx, fill.mark), p, "", entries[i:i+1], nil)
 			if err != nil {
 				return err
 			}
-			fill.ref, fill.existed = ref, existed
+			fill.ref, fill.existed = entries[i].Ref, existed[0]
 		}
 		return nil
 	})
