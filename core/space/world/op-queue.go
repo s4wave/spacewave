@@ -30,6 +30,15 @@ func (q *opQueue) push(adm *spaceAdmission) {
 	})
 }
 
+// drain takes every waiting admission out of the queue and returns them.
+func (q *opQueue) drain() []*spaceAdmission {
+	var waiting []*spaceAdmission
+	q.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		waiting, q.waiting = q.waiting, nil
+	})
+	return waiting
+}
+
 // remove takes adm out of the queue when QueueOperation has not taken it, and
 // reports whether it did.
 func (q *opQueue) remove(adm *spaceAdmission) bool {

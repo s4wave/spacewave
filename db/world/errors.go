@@ -39,6 +39,11 @@ var (
 	// ErrSuperseded is returned for a candidate another candidate replaced as
 	// the head after its base. The writer rebases and runs its change again.
 	ErrSuperseded = errors.New("world candidate superseded")
+	// ErrDurabilityUnknown is returned for a commit whose candidate may have
+	// become durable when the wait for its decision ended, such as at an
+	// unmount. It never means the commit failed: the next open reconciles
+	// the head, so the writer reads the World before it writes again.
+	ErrDurabilityUnknown = errors.New("world commit durability unknown")
 	// ErrUnexpectedChangeType is returned when a change with an unexpected
 	// ChangeType is encountered. Typically wrapped with name of type.
 	ErrUnexpectedChangeType = errors.New("change type was unexpected")

@@ -53,6 +53,11 @@ type Engine struct {
 	baseRoot *bucket_lookup.Cursor
 	// head pairs the root cursor with its shared read transaction.
 	head *engineHead
+	// closing is canceled when Close begins, which ends each commit's wait
+	// for its Authority's decision with world.ErrDurabilityUnknown.
+	closing context.Context
+	// stopClosing cancels closing.
+	stopClosing context.CancelCauseFunc
 	// headChanged closes when the published head root changes or the Engine
 	// closes. Revision waiters wait on it instead of bcast, which also wakes
 	// on every transaction retirement. Guarded by bcast.
@@ -215,6 +220,7 @@ func NewEngine(
 		readerPinDelay: defaultReaderPinDelay,
 	}
 	e.snapIdle = sync.NewCond(&e.snapMu)
+	e.closing, e.stopClosing = context.WithCancelCause(context.Background())
 	for _, opt := range opts {
 		if opt != nil {
 			opt(e)
@@ -1228,6 +1234,7 @@ func (e *Engine) Close() error {
 		return nil
 	}
 	e.closed = true
+	e.stopClosing(world.ErrDurabilityUnknown)
 	e.signalHeadLocked()
 
 	// Cancel the change watch comparison in flight and wake its watchers.

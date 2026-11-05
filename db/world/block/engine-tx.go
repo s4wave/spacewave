@@ -281,7 +281,8 @@ func (e *EngineTx) admit(ctx context.Context, turn world.Turn) (*bucket.ObjectRe
 
 // waitDurable waits for the Authority's decision and then for the head to be
 // durable, and returns the head to publish. Admission committed the writer to
-// the outcome, so the waits outlive the request context. A superseded
+// the outcome, so the waits outlive the request context, until the engine
+// closes, which ends them with world.ErrDurabilityUnknown. A superseded
 // candidate returns world.ErrSuperseded naming the head that won.
 //
 // A wait for durability that fails after the Authority accepted the candidate
@@ -292,8 +293,12 @@ func (e *EngineTx) admit(ctx context.Context, turn world.Turn) (*bucket.ObjectRe
 // published. Any other head means the candidate is gone: Superseded. A commit
 // the Authority made durable is never reported failed.
 func (e *EngineTx) waitDurable(ctx context.Context, adm world.Admission, next *bucket.ObjectRef) (*bucket.ObjectRef, error) {
-	// Wait for the decision.
-	ctx = context.WithoutCancel(ctx)
+	// Wait for the decision past the request's cancellation, until the
+	// engine closes, which leaves the durability unknown.
+	ctx, cancel := context.WithCancelCause(context.WithoutCancel(ctx))
+	defer cancel(nil)
+	stop := context.AfterFunc(e.engine.closing, func() { cancel(world.ErrDurabilityUnknown) })
+	defer stop()
 	decision, err := adm.WaitDecided(ctx)
 	switch {
 	case decision == world.Superseded:
@@ -327,6 +332,8 @@ func (e *EngineTx) waitDurable(ctx context.Context, adm world.Admission, next *b
 		published := next.Clone()
 		published.RootRef = head.Root.Clone()
 		return published, nil
+	case errors.Is(err, world.ErrDurabilityUnknown):
+		return nil, err
 	}
 	return nil, stderrors.Join(errors.Wrapf(world.ErrSuperseded, "candidate lost: head at seqno %d", head.Seqno), err)
 }
