@@ -127,7 +127,7 @@ func NewStore(
 	// backfill target.
 	var pending int
 	var pendingBytes, evictableBytes int64
-	var target []byte
+	var target, resume []byte
 	var oldest time.Time
 	err := kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
 		// Drop the former marker layout before reading the queue.
@@ -149,7 +149,8 @@ func NewStore(
 		if err != nil {
 			return err
 		}
-		return scanQueue(ctx, tx, nil, func(item queueItem) error {
+		resume = nil
+		err = scanQueue(ctx, tx, nil, func(item queueItem) error {
 			if pending == 0 {
 				at, err := item.at()
 				if err != nil {
@@ -157,10 +158,18 @@ func NewStore(
 				}
 				oldest = at
 			}
+			if pending == openCountLimit {
+				resume = bytes.Clone(item.key)
+				return errScanDone
+			}
 			pending++
 			pendingBytes += item.size()
 			return nil
 		})
+		if errors.Is(err, errScanDone) {
+			err = nil
+		}
+		return err
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "count pending uploads")
@@ -175,7 +184,47 @@ func NewStore(
 		Target:         string(target),
 		EvictableBytes: evictableBytes,
 	}
+	if resume != nil {
+		go s.countRest(ctx, resume)
+	}
 	return s, nil
+}
+
+// openCountLimit bounds the upload queue entries NewStore counts before it
+// returns. A store that restarts with a long backlog, such as millions of
+// blocks from an import, would otherwise count them all under its first
+// write transaction and hold up every mount waiting for it; countRest counts
+// the rest in the background.
+const openCountLimit = 10_000
+
+// countRest counts the upload queue from resume, the first entry NewStore did
+// not count, in a read snapshot, and adds the result to the status. The
+// status keeps applying the writes that commit meanwhile, so the total is
+// exact but for the writes in flight as the snapshot opens; the count feeds
+// only the status and the eviction budget, which a backlog this size keeps
+// over its bound either way.
+func (s *Store) countRest(ctx context.Context, resume []byte) {
+	// Count the entries from resume on.
+	var pending int
+	var pendingBytes int64
+	err := kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
+		pending, pendingBytes = 0, 0
+		return scanQueue(ctx, tx, resume, func(item queueItem) error {
+			pending++
+			pendingBytes += item.size()
+			return nil
+		})
+	})
+	if err != nil {
+		return
+	}
+
+	// Add them to the status.
+	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		s.status.Pending += pending
+		s.status.PendingBytes += pendingBytes
+		broadcast()
+	})
 }
 
 // SetPolicy sets when queued blocks upload and the resident budget, waking
@@ -454,10 +503,17 @@ func (s *Store) applyQueued(gen uint64, delta queueDelta) {
 // alone.
 func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 	// Read what the clear reads before taking any lock, so the reads under
-	// the writer lock find their pages cached. A writer that queues a marker
-	// takes the same locks, so the clear runs at writer priority, and the
-	// warm reads bound how long it holds them.
+	// the writer lock find their pages cached and bound how long it holds
+	// them.
 	s.prefetchClear(ctx, batch)
+
+	// Clear behind every foreground writer: the upload is background work,
+	// and a player's write must not queue behind its marker clears. The
+	// writers that block on mtx while a clear waits are a backfill, a
+	// change of enabled and the marking store of a store that cannot mark
+	// in its own transaction; a store that marks in the write's transaction
+	// takes no mtx.
+	ctx = kvtx.WithBackgroundWriteContext(ctx)
 
 	// Serialize uploaded marker removal with queue status updates.
 	release, err := s.mtx.Lock(ctx)
