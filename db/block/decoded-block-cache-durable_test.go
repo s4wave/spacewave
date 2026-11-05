@@ -170,3 +170,52 @@ func TestDecodedBlockCacheDropsRemovedBlocks(t *testing.T) {
 		t.Fatalf("transaction read a block the store removed: blk=%v err=%v", blk, err)
 	}
 }
+
+// TestDecodedBlockCacheAdmitsKeptPages checks that a block a PendingStore
+// keeps in memory enters the shared pool, so a second reader decodes nothing,
+// and that the pool never stands in for a store: once a sweep forgets the
+// block, the store reports it absent and a reader finds it missing.
+func TestDecodedBlockCacheAdmitsKeptPages(t *testing.T) {
+	// Keep one block in a PendingStore over an empty store.
+	ctx := context.Background()
+	pages := block.NewPendingStore(block_mock.NewMockStore(0), 1<<20)
+	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer decodedBlocks.Close()
+	data, err := (&block_mock.Example{Msg: "kept, not stored"}).MarshalVT()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ref, _, err := pages.PutBlock(ctx, data, &block.PutOpts{RefsKnown: true})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	read := func() error {
+		tx, cursor := block.NewTransaction(pages, nil, ref, nil)
+		tx.SetDecodedBlockCache(decodedBlocks)
+		_, err := cursor.Unmarshal(ctx, block_mock.NewExampleBlock)
+		return err
+	}
+
+	// Two readers decode it once: the second hits the pool.
+	if err := read(); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := read(); err != nil {
+		t.Fatal(err.Error())
+	}
+	if hits := decodedBlocks.Snapshot().Hits; hits != 1 {
+		t.Fatalf("pool hits after two reads of a kept page = %d, want 1", hits)
+	}
+
+	// Forgotten, it exists nowhere, and the pool does not serve it.
+	pages.Sweep(nil, pages.SweepMark())
+	if found, err := pages.GetBlockExists(ctx, ref); err != nil || found {
+		t.Fatalf("a forgotten page exists: found=%v err=%v", found, err)
+	}
+	if err := read(); !errors.Is(err, block.ErrNotFound) {
+		t.Fatalf("read of a forgotten page = %v, want not found", err)
+	}
+}

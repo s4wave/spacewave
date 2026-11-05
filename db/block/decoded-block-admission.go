@@ -7,17 +7,24 @@ import (
 )
 
 // Invariant: the decoded-block pool shared across transactions holds a block
-// only while some durable store holds that block.
+// only while some store holds that block: a durable store, or a store that
+// keeps the block's bytes in memory and reports when it forgets them. A block
+// is immutable by its hash, so a pooled block is always the right content.
+// The pool answers only reads of a block's content: whether a block exists,
+// as GetBlockExists, StatBlock and a put's dedupe ask, comes from the stores
+// alone, so a pooled block never stands in for a stored one.
 //
 // Admission is opt-in. A store whose bytes are committed, such as a volume's
-// store read outside any write transaction, marks the read durable with
+// store read outside any write transaction, or a store that keeps immutable
+// pages in memory, such as a PendingStore, marks the read with
 // MarkDurableRead. Every other source, a write buffer, a publication being
 // prepared, a write transaction, or a store nobody taught to mark, leaves the
 // read unmarked, and its decoded block stays in the read operation's front
 // cache. A store that forgets to mark costs hit rate, never correctness.
 //
-// Removal is the other half. A store that marks reads durable must call
-// InvalidateRemovedBlock after each removal it makes durable. The removal
+// Removal is the other half. A store that marks reads must call
+// InvalidateRemovedBlock after each removal it makes durable, and after it
+// forgets a kept block no other store holds. The removal
 // advances a process-wide generation and records it in the ref's stripe. A
 // durable read records the generation current before its snapshot opened, and
 // the pool treats an entry whose stripe has moved past that generation as a
@@ -181,11 +188,11 @@ func blockReadMarkFromContext(ctx context.Context) *blockReadMark {
 	return mark
 }
 
-// MarkDurableRead records on ctx that a durable store served ref from a
-// snapshot opened after DurableReadGeneration returned gen. Only a store whose
-// served bytes are committed may call it, and only for a block it found; a
-// store that calls it must also report its removals with
-// InvalidateRemovedBlock.
+// MarkDurableRead records on ctx that a store served ref from a snapshot
+// opened after DurableReadGeneration returned gen. Only a store whose served
+// bytes are committed, or kept in memory as immutable pages, may call it, and
+// only for a block it found; a store that calls it must also report its
+// removals with InvalidateRemovedBlock.
 func MarkDurableRead(ctx context.Context, ref *BlockRef, gen uint64) {
 	// Ignore reads nobody tracks and durable reads of other blocks.
 	mark := blockReadMarkFromContext(ctx)
