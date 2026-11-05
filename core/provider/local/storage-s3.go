@@ -5,6 +5,7 @@ import (
 
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/sirupsen/logrus"
 )
 
@@ -32,6 +33,7 @@ func buildS3BlockStore(
 	location *account_settings.S3Location,
 	blockStoreID string,
 	creds *block_store_s3.Credentials,
+	index kvtx.Store,
 ) (backendStore, error) {
 	client, err := buildS3Client(location, creds)
 	if err != nil {
@@ -40,6 +42,7 @@ func buildS3BlockStore(
 	return block_store_s3.NewPackStore(le, client, location.GetBucket(), location.BlockStorePrefix(blockStoreID), &block_store_s3.PackStoreOptions{
 		Pricing:   location.GetPricing(),
 		KeepPacks: location.GetKeepPacks(),
+		Index:     index,
 	}), nil
 }
 
