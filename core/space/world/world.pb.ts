@@ -5,6 +5,12 @@
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { KeybindingOverrideSet } from '../../../sdk/command/command.pb.js'
+import { SharedObjectRef } from '../../sobject/sobject.pb.js'
+import { ObjectRef } from '../../../db/bucket/bucket.pb.js'
+import { Config as Config$1 } from '../../../db/block/transform/transform.pb.js'
+import { GraphSettings } from '../../../db/world/block/world.pb.js'
+import { Tx } from '../../../db/world/block/tx/tx.pb.js'
+import { BlockRef } from '../../../db/block/block.pb.js'
 
 /**
  * WorldContents contains a list of world objects and types.
@@ -143,4 +149,406 @@ export const SpacePluginInstallation: MessageType<SpacePluginInstallation> =
   /* @__PURE__ */ createMessageType<SpacePluginInstallation>(
     'space.world.SpacePluginInstallation',
     () => [[1, 'manifest_keys', 9, 1]],
+  )
+
+/**
+ * Config configures the World engine of a Space: a SharedObject whose body is
+ * a World, served by the one World engine over the Space's agreed order.
+ *
+ * @generated from message space.world.Config
+ */
+export interface Config {
+  /**
+   * EngineId identifies the World on the bus. LookupWorldEngine directives
+   * naming it resolve to the engine. Empty serves no lookup.
+   */
+  engineId?: string
+  /**
+   * Ref is the Space's SharedObject.
+   */
+  ref?: SharedObjectRef
+  /**
+   * InitWorldOp overrides the operation an owner queues to initialize an
+   * empty World.
+   */
+  initWorldOp?: InitWorldOp
+  /**
+   * DisableLookup resolves World operations with the built-in types alone,
+   * without the bus.
+   */
+  disableLookup?: boolean
+  /**
+   * Verbose logs every operation's outcome.
+   */
+  verbose?: boolean
+}
+
+export const Config: MessageType<Config> =
+  /* @__PURE__ */ createMessageType<Config>('space.world.Config', () => [
+    [1, 'engine_id', 9],
+    [2, 'ref', 11, 0, SharedObjectRef.codec],
+    [3, 'init_world_op', 11, 0, InitWorldOp.codec],
+    [4, 'disable_lookup', 8],
+    [7, 'verbose', 8],
+  ])
+
+/**
+ * InnerState is the World state a Space checkpoint carries and replay
+ * computes. A checkpoint's state data has a small size limit.
+ *
+ * @generated from message space.world.InnerState
+ */
+export interface InnerState {
+  /**
+   * HeadRef is the World root, with its transform config. Its bucket ID is
+   * empty: each member reads it from its own copy of the Space.
+   */
+  headRef?: ObjectRef
+  /**
+   * RetainedRoots are past World roots the Space keeps restorable, sorted by
+   * name.
+   */
+  retainedRoots?: RetainedRoot[]
+}
+
+export const InnerState: MessageType<InnerState> =
+  /* @__PURE__ */ createMessageType<InnerState>(
+    'space.world.InnerState',
+    () => [
+      [1, 'head_ref', 11, 0, ObjectRef.codec],
+      [3, 'retained_roots', 11, 1, RetainedRoot.codec],
+    ],
+  )
+
+/**
+ * WorldOp is one operation of a Space's agreed order against its World.
+ *
+ * @generated from message space.world.WorldOp
+ */
+export interface WorldOp {
+  /**
+   * Body is the operation.
+   *
+   * @generated from oneof space.world.WorldOp.body
+   */
+  body?:
+    | { value?: undefined; case: undefined }
+    | { value: InitWorldOp; case: 'initWorld' }
+    | { value: ApplyTxOp; case: 'applyTxOp' }
+    | { value: SetRetainedRootOp; case: 'setRetainedRoot' }
+    | { value: SetTransformConfOp; case: 'setTransformConf' }
+    | { value: GraphSettingsStepOp; case: 'graphSettingsStep' }
+}
+
+export const WorldOp: MessageType<WorldOp> =
+  /* @__PURE__ */ createMessageType<WorldOp>('space.world.WorldOp', () => [
+    [1, 'init_world', 11, 0, InitWorldOp.codec, 'body'],
+    [2, 'apply_tx_op', 11, 0, ApplyTxOp.codec, 'body'],
+    [4, 'set_retained_root', 11, 0, SetRetainedRootOp.codec, 'body'],
+    [5, 'set_transform_conf', 11, 0, SetTransformConfOp.codec, 'body'],
+    [6, 'graph_settings_step', 11, 0, GraphSettingsStepOp.codec, 'body'],
+  ])
+
+/**
+ * InitWorldOp initializes an empty World.
+ *
+ * @generated from message space.world.InitWorldOp
+ */
+export interface InitWorldOp {
+  /**
+   * LastChangeDisable starts the World without a changelog.
+   */
+  lastChangeDisable?: boolean
+  /**
+   * TransformConf is the transform the World's blocks are written with. The
+   * author sets it so every member replays the same World; replay rejects an
+   * operation without it.
+   */
+  transformConf?: Config$1
+  /**
+   * GraphSettings are the settings the World's graph store starts with.
+   * Empty means the default settings.
+   */
+  graphSettings?: GraphSettings
+}
+
+export const InitWorldOp: MessageType<InitWorldOp> =
+  /* @__PURE__ */ createMessageType<InitWorldOp>(
+    'space.world.InitWorldOp',
+    () => [
+      [1, 'last_change_disable', 8],
+      [2, 'transform_conf', 11, 0, Config$1.codec],
+      [3, 'graph_settings', 11, 0, GraphSettings.codec],
+    ],
+  )
+
+/**
+ * ApplyTxOp applies a World transaction.
+ *
+ * @generated from message space.world.ApplyTxOp
+ */
+export interface ApplyTxOp {
+  /**
+   * Tx is the transaction or transaction batch to apply.
+   */
+  tx?: Tx
+}
+
+export const ApplyTxOp: MessageType<ApplyTxOp> =
+  /* @__PURE__ */ createMessageType<ApplyTxOp>('space.world.ApplyTxOp', () => [
+    [1, 'tx', 11, 0, Tx.codec],
+  ])
+
+/**
+ * SetRetainedRootOp retains a past World root under a name, replacing a root
+ * with the same name, or releases the name when root_ref is empty.
+ *
+ * @generated from message space.world.SetRetainedRootOp
+ */
+export interface SetRetainedRootOp {
+  /**
+   * Name identifies the root within the Space.
+   */
+  name?: string
+  /**
+   * RootRef is the World root block to retain, or empty to release.
+   */
+  rootRef?: BlockRef
+}
+
+export const SetRetainedRootOp: MessageType<SetRetainedRootOp> =
+  /* @__PURE__ */ createMessageType<SetRetainedRootOp>(
+    'space.world.SetRetainedRootOp',
+    () => [
+      [1, 'name', 9],
+      [2, 'root_ref', 11, 0, BlockRef.codec],
+    ],
+  )
+
+/**
+ * SetTransformConfOp changes the transform the World writes blocks with.
+ * Replay accepts only a transform that also reads every block the current
+ * one wrote.
+ *
+ * @generated from message space.world.SetTransformConfOp
+ */
+export interface SetTransformConfOp {
+  /**
+   * TransformConf is the new World transform.
+   */
+  transformConf?: Config$1
+}
+
+export const SetTransformConfOp: MessageType<SetTransformConfOp> =
+  /* @__PURE__ */ createMessageType<SetTransformConfOp>(
+    'space.world.SetTransformConfOp',
+    () => [[1, 'transform_conf', 11, 0, Config$1.codec]],
+  )
+
+/**
+ * GraphSettingsStepOp moves the World's graph store one bounded step toward
+ * new graph settings, such as building or dropping an index. A step on a World
+ * that already has the target settings changes nothing.
+ *
+ * @generated from message space.world.GraphSettingsStepOp
+ */
+export interface GraphSettingsStepOp {
+  /**
+   * Target are the graph settings to move to. Empty means the default
+   * settings.
+   */
+  target?: GraphSettings
+  /**
+   * Max bounds the links the step indexes or the postings it deletes.
+   */
+  max?: number
+}
+
+export const GraphSettingsStepOp: MessageType<GraphSettingsStepOp> =
+  /* @__PURE__ */ createMessageType<GraphSettingsStepOp>(
+    'space.world.GraphSettingsStepOp',
+    () => [
+      [1, 'target', 11, 0, GraphSettings.codec],
+      [2, 'max', 13],
+    ],
+  )
+
+/**
+ * RetainedRoot is a past World root kept restorable under a name.
+ *
+ * @generated from message space.world.RetainedRoot
+ */
+export interface RetainedRoot {
+  /**
+   * Name identifies the root within the Space.
+   */
+  name?: string
+  /**
+   * RootRef is the World root block. It uses the head's transform config.
+   */
+  rootRef?: BlockRef
+}
+
+export const RetainedRoot: MessageType<RetainedRoot> =
+  /* @__PURE__ */ createMessageType<RetainedRoot>(
+    'space.world.RetainedRoot',
+    () => [
+      [1, 'name', 9],
+      [2, 'root_ref', 11, 0, BlockRef.codec],
+    ],
+  )
+
+/**
+ * RetainedRootSet is the block the retained root holds: every retained World
+ * root of the installed head. Its outgoing refs are the retained roots.
+ *
+ * @generated from message space.world.RetainedRootSet
+ */
+export interface RetainedRootSet {
+  /**
+   * Roots are the retained roots, sorted by name.
+   */
+  roots?: RetainedRoot[]
+}
+
+export const RetainedRootSet: MessageType<RetainedRootSet> =
+  /* @__PURE__ */ createMessageType<RetainedRootSet>(
+    'space.world.RetainedRootSet',
+    () => [[1, 'roots', 11, 1, RetainedRoot.codec]],
+  )
+
+/**
+ * ReplayPayloads is the block the replay payloads root holds: the payload
+ * roots of the operations above the checkpoint that no World reaches, which
+ * a restart's replay reads again. Its outgoing refs are the payloads.
+ *
+ * @generated from message space.world.ReplayPayloads
+ */
+export interface ReplayPayloads {
+  /**
+   * Payloads are the payload roots in replay order.
+   */
+  payloads?: BlockRef[]
+}
+
+export const ReplayPayloads: MessageType<ReplayPayloads> =
+  /* @__PURE__ */ createMessageType<ReplayPayloads>(
+    'space.world.ReplayPayloads',
+    () => [[1, 'payloads', 11, 1, BlockRef.codec]],
+  )
+
+/**
+ * ReplayCursor is the replay a Space engine last saved on this device, so a
+ * remount resumes after it instead of replaying from the checkpoint. It names
+ * a head World only once the replay cursor root holds that World.
+ *
+ * @generated from message space.world.ReplayCursor
+ */
+export interface ReplayCursor {
+  /**
+   * Base is the World of the checkpoint the replay started from.
+   */
+  base?: InnerState
+  /**
+   * Outcomes are the replayed operations in order.
+   */
+  outcomes?: ReplayCursorOutcome[]
+  /**
+   * Head is the World after the last outcome.
+   */
+  head?: InnerState
+  /**
+   * Height is the height of the checkpoint whose World is Base.
+   */
+  height?: bigint
+}
+
+export const ReplayCursor: MessageType<ReplayCursor> =
+  /* @__PURE__ */ createMessageType<ReplayCursor>(
+    'space.world.ReplayCursor',
+    () => [
+      [1, 'base', 11, 0, InnerState.codec],
+      [2, 'outcomes', 11, 1, ReplayCursorOutcome.codec],
+      [3, 'head', 11, 0, InnerState.codec],
+      [7, 'height', 4],
+    ],
+  )
+
+/**
+ * ReplayCursorOutcome is the outcome of one replayed operation.
+ *
+ * @generated from message space.world.ReplayCursorOutcome
+ */
+export interface ReplayCursorOutcome {
+  /**
+   * Hash identifies the operation.
+   */
+  hash?: Uint8Array
+  /**
+   * Reason is empty when the operation applied, and otherwise says why not.
+   */
+  reason?: string
+  /**
+   * World is the root block of the World after the operation.
+   */
+  world?: BlockRef
+  /**
+   * Payloads are the roots of the operation's payload.
+   */
+  payloads?: BlockRef[]
+  /**
+   * RetainedRoots are the retained roots after the operation when they
+   * differ from those before it, and unset when the operation kept them.
+   */
+  retainedRoots?: RetainedRootSet
+  /**
+   * Seqno is the World seqno after the operation.
+   */
+  seqno?: bigint
+}
+
+export const ReplayCursorOutcome: MessageType<ReplayCursorOutcome> =
+  /* @__PURE__ */ createMessageType<ReplayCursorOutcome>(
+    'space.world.ReplayCursorOutcome',
+    () => [
+      [1, 'hash', 12],
+      [2, 'reason', 9],
+      [5, 'world', 11, 0, BlockRef.codec],
+      [6, 'payloads', 11, 1, BlockRef.codec],
+      [7, 'retained_roots', 11, 0, RetainedRootSet.codec],
+      [8, 'seqno', 4],
+    ],
+  )
+
+/**
+ * BackfillState is the outcome of the last finished backfill copy on this
+ * device.
+ *
+ * @generated from message space.world.BackfillState
+ */
+export interface BackfillState {
+  /**
+   * Root is the installed World root the copy covered, with the retained
+   * roots of that World.
+   */
+  root?: BlockRef
+  /**
+   * Holes counts the blocks of those roots that no reachable store held.
+   * Zero means the local store holds every block of them.
+   */
+  holes?: number
+  /**
+   * Seqno is the World seqno of Root. A later copy never covers a lower one.
+   */
+  seqno?: bigint
+}
+
+export const BackfillState: MessageType<BackfillState> =
+  /* @__PURE__ */ createMessageType<BackfillState>(
+    'space.world.BackfillState',
+    () => [
+      [1, 'root', 11, 0, BlockRef.codec],
+      [2, 'holes', 13],
+      [3, 'seqno', 4],
+    ],
   )

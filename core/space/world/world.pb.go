@@ -12,6 +12,12 @@ import (
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	sobject "github.com/s4wave/spacewave/core/sobject"
+	block1 "github.com/s4wave/spacewave/db/block"
+	transform "github.com/s4wave/spacewave/db/block/transform"
+	bucket "github.com/s4wave/spacewave/db/bucket"
+	block "github.com/s4wave/spacewave/db/world/block"
+	tx "github.com/s4wave/spacewave/db/world/block/tx"
 	command "github.com/s4wave/spacewave/sdk/command"
 )
 
@@ -186,6 +192,574 @@ func (x *SpacePluginInstallation) GetManifestKeys() []string {
 	return nil
 }
 
+// Config configures the World engine of a Space: a SharedObject whose body is
+// a World, served by the one World engine over the Space's agreed order.
+type Config struct {
+	unknownFields []byte
+	// EngineId identifies the World on the bus. LookupWorldEngine directives
+	// naming it resolve to the engine. Empty serves no lookup.
+	EngineId string `protobuf:"bytes,1,opt,name=engine_id,json=engineId,proto3" json:"engineId,omitempty"`
+	// Ref is the Space's SharedObject.
+	Ref *sobject.SharedObjectRef `protobuf:"bytes,2,opt,name=ref,proto3" json:"ref,omitempty"`
+	// InitWorldOp overrides the operation an owner queues to initialize an
+	// empty World.
+	InitWorldOp *InitWorldOp `protobuf:"bytes,3,opt,name=init_world_op,json=initWorldOp,proto3" json:"initWorldOp,omitempty"`
+	// DisableLookup resolves World operations with the built-in types alone,
+	// without the bus.
+	DisableLookup bool `protobuf:"varint,4,opt,name=disable_lookup,json=disableLookup,proto3" json:"disableLookup,omitempty"`
+	// Verbose logs every operation's outcome.
+	Verbose bool `protobuf:"varint,7,opt,name=verbose,proto3" json:"verbose,omitempty"`
+}
+
+func (x *Config) Reset() {
+	*x = Config{}
+}
+
+func (*Config) ProtoMessage() {}
+
+func (x *Config) GetEngineId() string {
+	if x != nil {
+		return x.EngineId
+	}
+	return ""
+}
+
+func (x *Config) GetRef() *sobject.SharedObjectRef {
+	if x != nil {
+		return x.Ref
+	}
+	return nil
+}
+
+func (x *Config) GetInitWorldOp() *InitWorldOp {
+	if x != nil {
+		return x.InitWorldOp
+	}
+	return nil
+}
+
+func (x *Config) GetDisableLookup() bool {
+	if x != nil {
+		return x.DisableLookup
+	}
+	return false
+}
+
+func (x *Config) GetVerbose() bool {
+	if x != nil {
+		return x.Verbose
+	}
+	return false
+}
+
+// InnerState is the World state a Space checkpoint carries and replay
+// computes. A checkpoint's state data has a small size limit.
+type InnerState struct {
+	unknownFields []byte
+	// HeadRef is the World root, with its transform config. Its bucket ID is
+	// empty: each member reads it from its own copy of the Space.
+	HeadRef *bucket.ObjectRef `protobuf:"bytes,1,opt,name=head_ref,json=headRef,proto3" json:"headRef,omitempty"`
+	// RetainedRoots are past World roots the Space keeps restorable, sorted by
+	// name.
+	RetainedRoots []*RetainedRoot `protobuf:"bytes,3,rep,name=retained_roots,json=retainedRoots,proto3" json:"retainedRoots,omitempty"`
+}
+
+func (x *InnerState) Reset() {
+	*x = InnerState{}
+}
+
+func (*InnerState) ProtoMessage() {}
+
+func (x *InnerState) GetHeadRef() *bucket.ObjectRef {
+	if x != nil {
+		return x.HeadRef
+	}
+	return nil
+}
+
+func (x *InnerState) GetRetainedRoots() []*RetainedRoot {
+	if x != nil {
+		return x.RetainedRoots
+	}
+	return nil
+}
+
+// WorldOp is one operation of a Space's agreed order against its World.
+type WorldOp struct {
+	unknownFields []byte
+	// Body is the operation.
+	//
+	// Types that are assignable to Body:
+	//	*WorldOp_InitWorld
+	//	*WorldOp_ApplyTxOp
+	//	*WorldOp_SetRetainedRoot
+	//	*WorldOp_SetTransformConf
+	//	*WorldOp_GraphSettingsStep
+	Body isWorldOp_Body `protobuf_oneof:"body"`
+}
+
+func (x *WorldOp) Reset() {
+	*x = WorldOp{}
+}
+
+func (*WorldOp) ProtoMessage() {}
+
+func (m *WorldOp) GetBody() isWorldOp_Body {
+	if m != nil {
+		return m.Body
+	}
+	return nil
+}
+
+func (x *WorldOp) GetInitWorld() *InitWorldOp {
+	if x, ok := x.GetBody().(*WorldOp_InitWorld); ok {
+		return x.InitWorld
+	}
+	return nil
+}
+
+func (x *WorldOp) GetApplyTxOp() *ApplyTxOp {
+	if x, ok := x.GetBody().(*WorldOp_ApplyTxOp); ok {
+		return x.ApplyTxOp
+	}
+	return nil
+}
+
+func (x *WorldOp) GetSetRetainedRoot() *SetRetainedRootOp {
+	if x, ok := x.GetBody().(*WorldOp_SetRetainedRoot); ok {
+		return x.SetRetainedRoot
+	}
+	return nil
+}
+
+func (x *WorldOp) GetSetTransformConf() *SetTransformConfOp {
+	if x, ok := x.GetBody().(*WorldOp_SetTransformConf); ok {
+		return x.SetTransformConf
+	}
+	return nil
+}
+
+func (x *WorldOp) GetGraphSettingsStep() *GraphSettingsStepOp {
+	if x, ok := x.GetBody().(*WorldOp_GraphSettingsStep); ok {
+		return x.GraphSettingsStep
+	}
+	return nil
+}
+
+type isWorldOp_Body interface {
+	isWorldOp_Body()
+}
+
+type WorldOp_InitWorld struct {
+	// InitWorld initializes an empty World.
+	InitWorld *InitWorldOp `protobuf:"bytes,1,opt,name=init_world,json=initWorld,proto3,oneof"`
+}
+
+type WorldOp_ApplyTxOp struct {
+	// ApplyTxOp applies a World transaction.
+	ApplyTxOp *ApplyTxOp `protobuf:"bytes,2,opt,name=apply_tx_op,json=applyTxOp,proto3,oneof"`
+}
+
+type WorldOp_SetRetainedRoot struct {
+	// SetRetainedRoot retains or releases a past World root.
+	SetRetainedRoot *SetRetainedRootOp `protobuf:"bytes,4,opt,name=set_retained_root,json=setRetainedRoot,proto3,oneof"`
+}
+
+type WorldOp_SetTransformConf struct {
+	// SetTransformConf changes the transform later World blocks are written
+	// with.
+	SetTransformConf *SetTransformConfOp `protobuf:"bytes,5,opt,name=set_transform_conf,json=setTransformConf,proto3,oneof"`
+}
+
+type WorldOp_GraphSettingsStep struct {
+	// GraphSettingsStep moves the World's graph store one bounded step toward
+	// new graph settings.
+	GraphSettingsStep *GraphSettingsStepOp `protobuf:"bytes,6,opt,name=graph_settings_step,json=graphSettingsStep,proto3,oneof"`
+}
+
+func (*WorldOp_InitWorld) isWorldOp_Body() {}
+
+func (*WorldOp_ApplyTxOp) isWorldOp_Body() {}
+
+func (*WorldOp_SetRetainedRoot) isWorldOp_Body() {}
+
+func (*WorldOp_SetTransformConf) isWorldOp_Body() {}
+
+func (*WorldOp_GraphSettingsStep) isWorldOp_Body() {}
+
+// InitWorldOp initializes an empty World.
+type InitWorldOp struct {
+	unknownFields []byte
+	// LastChangeDisable starts the World without a changelog.
+	LastChangeDisable bool `protobuf:"varint,1,opt,name=last_change_disable,json=lastChangeDisable,proto3" json:"lastChangeDisable,omitempty"`
+	// TransformConf is the transform the World's blocks are written with. The
+	// author sets it so every member replays the same World; replay rejects an
+	// operation without it.
+	TransformConf *transform.Config `protobuf:"bytes,2,opt,name=transform_conf,json=transformConf,proto3" json:"transformConf,omitempty"`
+	// GraphSettings are the settings the World's graph store starts with.
+	// Empty means the default settings.
+	GraphSettings *block.GraphSettings `protobuf:"bytes,3,opt,name=graph_settings,json=graphSettings,proto3" json:"graphSettings,omitempty"`
+}
+
+func (x *InitWorldOp) Reset() {
+	*x = InitWorldOp{}
+}
+
+func (*InitWorldOp) ProtoMessage() {}
+
+func (x *InitWorldOp) GetLastChangeDisable() bool {
+	if x != nil {
+		return x.LastChangeDisable
+	}
+	return false
+}
+
+func (x *InitWorldOp) GetTransformConf() *transform.Config {
+	if x != nil {
+		return x.TransformConf
+	}
+	return nil
+}
+
+func (x *InitWorldOp) GetGraphSettings() *block.GraphSettings {
+	if x != nil {
+		return x.GraphSettings
+	}
+	return nil
+}
+
+// ApplyTxOp applies a World transaction.
+type ApplyTxOp struct {
+	unknownFields []byte
+	// Tx is the transaction or transaction batch to apply.
+	Tx *tx.Tx `protobuf:"bytes,1,opt,name=tx,proto3" json:"tx,omitempty"`
+}
+
+func (x *ApplyTxOp) Reset() {
+	*x = ApplyTxOp{}
+}
+
+func (*ApplyTxOp) ProtoMessage() {}
+
+func (x *ApplyTxOp) GetTx() *tx.Tx {
+	if x != nil {
+		return x.Tx
+	}
+	return nil
+}
+
+// SetRetainedRootOp retains a past World root under a name, replacing a root
+// with the same name, or releases the name when root_ref is empty.
+type SetRetainedRootOp struct {
+	unknownFields []byte
+	// Name identifies the root within the Space.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// RootRef is the World root block to retain, or empty to release.
+	RootRef *block1.BlockRef `protobuf:"bytes,2,opt,name=root_ref,json=rootRef,proto3" json:"rootRef,omitempty"`
+}
+
+func (x *SetRetainedRootOp) Reset() {
+	*x = SetRetainedRootOp{}
+}
+
+func (*SetRetainedRootOp) ProtoMessage() {}
+
+func (x *SetRetainedRootOp) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *SetRetainedRootOp) GetRootRef() *block1.BlockRef {
+	if x != nil {
+		return x.RootRef
+	}
+	return nil
+}
+
+// SetTransformConfOp changes the transform the World writes blocks with.
+// Replay accepts only a transform that also reads every block the current
+// one wrote.
+type SetTransformConfOp struct {
+	unknownFields []byte
+	// TransformConf is the new World transform.
+	TransformConf *transform.Config `protobuf:"bytes,1,opt,name=transform_conf,json=transformConf,proto3" json:"transformConf,omitempty"`
+}
+
+func (x *SetTransformConfOp) Reset() {
+	*x = SetTransformConfOp{}
+}
+
+func (*SetTransformConfOp) ProtoMessage() {}
+
+func (x *SetTransformConfOp) GetTransformConf() *transform.Config {
+	if x != nil {
+		return x.TransformConf
+	}
+	return nil
+}
+
+// GraphSettingsStepOp moves the World's graph store one bounded step toward
+// new graph settings, such as building or dropping an index. A step on a World
+// that already has the target settings changes nothing.
+type GraphSettingsStepOp struct {
+	unknownFields []byte
+	// Target are the graph settings to move to. Empty means the default
+	// settings.
+	Target *block.GraphSettings `protobuf:"bytes,1,opt,name=target,proto3" json:"target,omitempty"`
+	// Max bounds the links the step indexes or the postings it deletes.
+	Max uint32 `protobuf:"varint,2,opt,name=max,proto3" json:"max,omitempty"`
+}
+
+func (x *GraphSettingsStepOp) Reset() {
+	*x = GraphSettingsStepOp{}
+}
+
+func (*GraphSettingsStepOp) ProtoMessage() {}
+
+func (x *GraphSettingsStepOp) GetTarget() *block.GraphSettings {
+	if x != nil {
+		return x.Target
+	}
+	return nil
+}
+
+func (x *GraphSettingsStepOp) GetMax() uint32 {
+	if x != nil {
+		return x.Max
+	}
+	return 0
+}
+
+// RetainedRoot is a past World root kept restorable under a name.
+type RetainedRoot struct {
+	unknownFields []byte
+	// Name identifies the root within the Space.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// RootRef is the World root block. It uses the head's transform config.
+	RootRef *block1.BlockRef `protobuf:"bytes,2,opt,name=root_ref,json=rootRef,proto3" json:"rootRef,omitempty"`
+}
+
+func (x *RetainedRoot) Reset() {
+	*x = RetainedRoot{}
+}
+
+func (*RetainedRoot) ProtoMessage() {}
+
+func (x *RetainedRoot) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *RetainedRoot) GetRootRef() *block1.BlockRef {
+	if x != nil {
+		return x.RootRef
+	}
+	return nil
+}
+
+// RetainedRootSet is the block the retained root holds: every retained World
+// root of the installed head. Its outgoing refs are the retained roots.
+type RetainedRootSet struct {
+	unknownFields []byte
+	// Roots are the retained roots, sorted by name.
+	Roots []*RetainedRoot `protobuf:"bytes,1,rep,name=roots,proto3" json:"roots,omitempty"`
+}
+
+func (x *RetainedRootSet) Reset() {
+	*x = RetainedRootSet{}
+}
+
+func (*RetainedRootSet) ProtoMessage() {}
+
+func (x *RetainedRootSet) GetRoots() []*RetainedRoot {
+	if x != nil {
+		return x.Roots
+	}
+	return nil
+}
+
+// ReplayPayloads is the block the replay payloads root holds: the payload
+// roots of the operations above the checkpoint that no World reaches, which
+// a restart's replay reads again. Its outgoing refs are the payloads.
+type ReplayPayloads struct {
+	unknownFields []byte
+	// Payloads are the payload roots in replay order.
+	Payloads []*block1.BlockRef `protobuf:"bytes,1,rep,name=payloads,proto3" json:"payloads,omitempty"`
+}
+
+func (x *ReplayPayloads) Reset() {
+	*x = ReplayPayloads{}
+}
+
+func (*ReplayPayloads) ProtoMessage() {}
+
+func (x *ReplayPayloads) GetPayloads() []*block1.BlockRef {
+	if x != nil {
+		return x.Payloads
+	}
+	return nil
+}
+
+// ReplayCursor is the replay a Space engine last saved on this device, so a
+// remount resumes after it instead of replaying from the checkpoint. It names
+// a head World only once the replay cursor root holds that World.
+type ReplayCursor struct {
+	unknownFields []byte
+	// Base is the World of the checkpoint the replay started from.
+	Base *InnerState `protobuf:"bytes,1,opt,name=base,proto3" json:"base,omitempty"`
+	// Outcomes are the replayed operations in order.
+	Outcomes []*ReplayCursorOutcome `protobuf:"bytes,2,rep,name=outcomes,proto3" json:"outcomes,omitempty"`
+	// Head is the World after the last outcome.
+	Head *InnerState `protobuf:"bytes,3,opt,name=head,proto3" json:"head,omitempty"`
+	// Height is the height of the checkpoint whose World is Base.
+	Height uint64 `protobuf:"varint,7,opt,name=height,proto3" json:"height,omitempty"`
+}
+
+func (x *ReplayCursor) Reset() {
+	*x = ReplayCursor{}
+}
+
+func (*ReplayCursor) ProtoMessage() {}
+
+func (x *ReplayCursor) GetBase() *InnerState {
+	if x != nil {
+		return x.Base
+	}
+	return nil
+}
+
+func (x *ReplayCursor) GetOutcomes() []*ReplayCursorOutcome {
+	if x != nil {
+		return x.Outcomes
+	}
+	return nil
+}
+
+func (x *ReplayCursor) GetHead() *InnerState {
+	if x != nil {
+		return x.Head
+	}
+	return nil
+}
+
+func (x *ReplayCursor) GetHeight() uint64 {
+	if x != nil {
+		return x.Height
+	}
+	return 0
+}
+
+// ReplayCursorOutcome is the outcome of one replayed operation.
+type ReplayCursorOutcome struct {
+	unknownFields []byte
+	// Hash identifies the operation.
+	Hash []byte `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
+	// Reason is empty when the operation applied, and otherwise says why not.
+	Reason string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	// World is the root block of the World after the operation.
+	World *block1.BlockRef `protobuf:"bytes,5,opt,name=world,proto3" json:"world,omitempty"`
+	// Payloads are the roots of the operation's payload.
+	Payloads []*block1.BlockRef `protobuf:"bytes,6,rep,name=payloads,proto3" json:"payloads,omitempty"`
+	// RetainedRoots are the retained roots after the operation when they
+	// differ from those before it, and unset when the operation kept them.
+	RetainedRoots *RetainedRootSet `protobuf:"bytes,7,opt,name=retained_roots,json=retainedRoots,proto3" json:"retainedRoots,omitempty"`
+	// Seqno is the World seqno after the operation.
+	Seqno uint64 `protobuf:"varint,8,opt,name=seqno,proto3" json:"seqno,omitempty"`
+}
+
+func (x *ReplayCursorOutcome) Reset() {
+	*x = ReplayCursorOutcome{}
+}
+
+func (*ReplayCursorOutcome) ProtoMessage() {}
+
+func (x *ReplayCursorOutcome) GetHash() []byte {
+	if x != nil {
+		return x.Hash
+	}
+	return nil
+}
+
+func (x *ReplayCursorOutcome) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+func (x *ReplayCursorOutcome) GetWorld() *block1.BlockRef {
+	if x != nil {
+		return x.World
+	}
+	return nil
+}
+
+func (x *ReplayCursorOutcome) GetPayloads() []*block1.BlockRef {
+	if x != nil {
+		return x.Payloads
+	}
+	return nil
+}
+
+func (x *ReplayCursorOutcome) GetRetainedRoots() *RetainedRootSet {
+	if x != nil {
+		return x.RetainedRoots
+	}
+	return nil
+}
+
+func (x *ReplayCursorOutcome) GetSeqno() uint64 {
+	if x != nil {
+		return x.Seqno
+	}
+	return 0
+}
+
+// BackfillState is the outcome of the last finished backfill copy on this
+// device.
+type BackfillState struct {
+	unknownFields []byte
+	// Root is the installed World root the copy covered, with the retained
+	// roots of that World.
+	Root *block1.BlockRef `protobuf:"bytes,1,opt,name=root,proto3" json:"root,omitempty"`
+	// Holes counts the blocks of those roots that no reachable store held.
+	// Zero means the local store holds every block of them.
+	Holes uint32 `protobuf:"varint,2,opt,name=holes,proto3" json:"holes,omitempty"`
+	// Seqno is the World seqno of Root. A later copy never covers a lower one.
+	Seqno uint64 `protobuf:"varint,3,opt,name=seqno,proto3" json:"seqno,omitempty"`
+}
+
+func (x *BackfillState) Reset() {
+	*x = BackfillState{}
+}
+
+func (*BackfillState) ProtoMessage() {}
+
+func (x *BackfillState) GetRoot() *block1.BlockRef {
+	if x != nil {
+		return x.Root
+	}
+	return nil
+}
+
+func (x *BackfillState) GetHoles() uint32 {
+	if x != nil {
+		return x.Holes
+	}
+	return 0
+}
+
+func (x *BackfillState) GetSeqno() uint64 {
+	if x != nil {
+		return x.Seqno
+	}
+	return 0
+}
+
 type SpaceSettings_PluginInstallationsEntry struct {
 	unknownFields []byte
 	Key           string                   `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
@@ -296,6 +870,317 @@ func (m *SpacePluginInstallation) CloneVT() *SpacePluginInstallation {
 }
 
 func (m *SpacePluginInstallation) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *Config) CloneVT() *Config {
+	if m == nil {
+		return (*Config)(nil)
+	}
+	r := new(Config)
+	r.EngineId = m.EngineId
+	r.DisableLookup = m.DisableLookup
+	r.Verbose = m.Verbose
+	r.Ref = protobuf_go_lite.CloneVTValue(m.Ref)
+	r.InitWorldOp = protobuf_go_lite.CloneVTValue(m.InitWorldOp)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *Config) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *InnerState) CloneVT() *InnerState {
+	if m == nil {
+		return (*InnerState)(nil)
+	}
+	r := new(InnerState)
+	r.HeadRef = protobuf_go_lite.CloneVTValue(m.HeadRef)
+	r.RetainedRoots = protobuf_go_lite.CloneVTSlice(m.RetainedRoots)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *InnerState) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WorldOp) CloneVT() *WorldOp {
+	if m == nil {
+		return (*WorldOp)(nil)
+	}
+	r := new(WorldOp)
+	if m.Body != nil {
+		r.Body = m.Body.(interface{ CloneOneofVT() isWorldOp_Body }).CloneOneofVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WorldOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WorldOp_InitWorld) CloneVT() *WorldOp_InitWorld {
+	if m == nil {
+		return (*WorldOp_InitWorld)(nil)
+	}
+	r := new(WorldOp_InitWorld)
+	r.InitWorld = protobuf_go_lite.CloneVTValue(m.InitWorld)
+	return r
+}
+
+func (m *WorldOp_InitWorld) CloneOneofVT() isWorldOp_Body {
+	return m.CloneVT()
+}
+
+func (m *WorldOp_ApplyTxOp) CloneVT() *WorldOp_ApplyTxOp {
+	if m == nil {
+		return (*WorldOp_ApplyTxOp)(nil)
+	}
+	r := new(WorldOp_ApplyTxOp)
+	r.ApplyTxOp = protobuf_go_lite.CloneVTValue(m.ApplyTxOp)
+	return r
+}
+
+func (m *WorldOp_ApplyTxOp) CloneOneofVT() isWorldOp_Body {
+	return m.CloneVT()
+}
+
+func (m *WorldOp_SetRetainedRoot) CloneVT() *WorldOp_SetRetainedRoot {
+	if m == nil {
+		return (*WorldOp_SetRetainedRoot)(nil)
+	}
+	r := new(WorldOp_SetRetainedRoot)
+	r.SetRetainedRoot = protobuf_go_lite.CloneVTValue(m.SetRetainedRoot)
+	return r
+}
+
+func (m *WorldOp_SetRetainedRoot) CloneOneofVT() isWorldOp_Body {
+	return m.CloneVT()
+}
+
+func (m *WorldOp_SetTransformConf) CloneVT() *WorldOp_SetTransformConf {
+	if m == nil {
+		return (*WorldOp_SetTransformConf)(nil)
+	}
+	r := new(WorldOp_SetTransformConf)
+	r.SetTransformConf = protobuf_go_lite.CloneVTValue(m.SetTransformConf)
+	return r
+}
+
+func (m *WorldOp_SetTransformConf) CloneOneofVT() isWorldOp_Body {
+	return m.CloneVT()
+}
+
+func (m *WorldOp_GraphSettingsStep) CloneVT() *WorldOp_GraphSettingsStep {
+	if m == nil {
+		return (*WorldOp_GraphSettingsStep)(nil)
+	}
+	r := new(WorldOp_GraphSettingsStep)
+	r.GraphSettingsStep = protobuf_go_lite.CloneVTValue(m.GraphSettingsStep)
+	return r
+}
+
+func (m *WorldOp_GraphSettingsStep) CloneOneofVT() isWorldOp_Body {
+	return m.CloneVT()
+}
+
+func (m *InitWorldOp) CloneVT() *InitWorldOp {
+	if m == nil {
+		return (*InitWorldOp)(nil)
+	}
+	r := new(InitWorldOp)
+	r.LastChangeDisable = m.LastChangeDisable
+	r.TransformConf = protobuf_go_lite.CloneVTValue(m.TransformConf)
+	r.GraphSettings = protobuf_go_lite.CloneVTValue(m.GraphSettings)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *InitWorldOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ApplyTxOp) CloneVT() *ApplyTxOp {
+	if m == nil {
+		return (*ApplyTxOp)(nil)
+	}
+	r := new(ApplyTxOp)
+	r.Tx = protobuf_go_lite.CloneVTValue(m.Tx)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ApplyTxOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SetRetainedRootOp) CloneVT() *SetRetainedRootOp {
+	if m == nil {
+		return (*SetRetainedRootOp)(nil)
+	}
+	r := new(SetRetainedRootOp)
+	r.Name = m.Name
+	r.RootRef = protobuf_go_lite.CloneVTValue(m.RootRef)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetRetainedRootOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SetTransformConfOp) CloneVT() *SetTransformConfOp {
+	if m == nil {
+		return (*SetTransformConfOp)(nil)
+	}
+	r := new(SetTransformConfOp)
+	r.TransformConf = protobuf_go_lite.CloneVTValue(m.TransformConf)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetTransformConfOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *GraphSettingsStepOp) CloneVT() *GraphSettingsStepOp {
+	if m == nil {
+		return (*GraphSettingsStepOp)(nil)
+	}
+	r := new(GraphSettingsStepOp)
+	r.Max = m.Max
+	r.Target = protobuf_go_lite.CloneVTValue(m.Target)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GraphSettingsStepOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RetainedRoot) CloneVT() *RetainedRoot {
+	if m == nil {
+		return (*RetainedRoot)(nil)
+	}
+	r := new(RetainedRoot)
+	r.Name = m.Name
+	r.RootRef = protobuf_go_lite.CloneVTValue(m.RootRef)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RetainedRoot) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RetainedRootSet) CloneVT() *RetainedRootSet {
+	if m == nil {
+		return (*RetainedRootSet)(nil)
+	}
+	r := new(RetainedRootSet)
+	r.Roots = protobuf_go_lite.CloneVTSlice(m.Roots)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RetainedRootSet) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReplayPayloads) CloneVT() *ReplayPayloads {
+	if m == nil {
+		return (*ReplayPayloads)(nil)
+	}
+	r := new(ReplayPayloads)
+	r.Payloads = protobuf_go_lite.CloneVTSlice(m.Payloads)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReplayPayloads) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReplayCursor) CloneVT() *ReplayCursor {
+	if m == nil {
+		return (*ReplayCursor)(nil)
+	}
+	r := new(ReplayCursor)
+	r.Height = m.Height
+	r.Base = protobuf_go_lite.CloneVTValue(m.Base)
+	r.Outcomes = protobuf_go_lite.CloneVTSlice(m.Outcomes)
+	r.Head = protobuf_go_lite.CloneVTValue(m.Head)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReplayCursor) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReplayCursorOutcome) CloneVT() *ReplayCursorOutcome {
+	if m == nil {
+		return (*ReplayCursorOutcome)(nil)
+	}
+	r := new(ReplayCursorOutcome)
+	r.Reason = m.Reason
+	r.Seqno = m.Seqno
+	r.Hash = protobuf_go_lite.CloneBytes(m.Hash)
+	r.World = protobuf_go_lite.CloneVTValue(m.World)
+	r.Payloads = protobuf_go_lite.CloneVTSlice(m.Payloads)
+	r.RetainedRoots = protobuf_go_lite.CloneVTValue(m.RetainedRoots)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReplayCursorOutcome) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *BackfillState) CloneVT() *BackfillState {
+	if m == nil {
+		return (*BackfillState)(nil)
+	}
+	r := new(BackfillState)
+	r.Holes = m.Holes
+	r.Seqno = m.Seqno
+	r.Root = protobuf_go_lite.CloneVTValue(m.Root)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *BackfillState) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -414,6 +1299,438 @@ func (this *SpacePluginInstallation) EqualVT(that *SpacePluginInstallation) bool
 
 func (this *SpacePluginInstallation) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SpacePluginInstallation)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *Config) EqualVT(that *Config) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.EngineId != that.EngineId {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Ref, that.Ref) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.InitWorldOp, that.InitWorldOp) {
+		return false
+	}
+	if this.DisableLookup != that.DisableLookup {
+		return false
+	}
+	if this.Verbose != that.Verbose {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *Config) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*Config)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *InnerState) EqualVT(that *InnerState) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.HeadRef, that.HeadRef) {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.RetainedRoots, that.RetainedRoots, func() *RetainedRoot { return &RetainedRoot{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *InnerState) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*InnerState)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WorldOp) EqualVT(that *WorldOp) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Body == nil && that.Body != nil {
+		return false
+	} else if this.Body != nil {
+		if that.Body == nil {
+			return false
+		}
+		if !this.Body.(interface{ EqualVT(isWorldOp_Body) bool }).EqualVT(that.Body) {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WorldOp) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WorldOp)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WorldOp_InitWorld) EqualVT(thatIface isWorldOp_Body) bool {
+	that, ok := thatIface.(*WorldOp_InitWorld)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.InitWorld, that.InitWorld, func() *InitWorldOp { return &InitWorldOp{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *WorldOp_ApplyTxOp) EqualVT(thatIface isWorldOp_Body) bool {
+	that, ok := thatIface.(*WorldOp_ApplyTxOp)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.ApplyTxOp, that.ApplyTxOp, func() *ApplyTxOp { return &ApplyTxOp{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *WorldOp_SetRetainedRoot) EqualVT(thatIface isWorldOp_Body) bool {
+	that, ok := thatIface.(*WorldOp_SetRetainedRoot)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.SetRetainedRoot, that.SetRetainedRoot, func() *SetRetainedRootOp { return &SetRetainedRootOp{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *WorldOp_SetTransformConf) EqualVT(thatIface isWorldOp_Body) bool {
+	that, ok := thatIface.(*WorldOp_SetTransformConf)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.SetTransformConf, that.SetTransformConf, func() *SetTransformConfOp { return &SetTransformConfOp{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *WorldOp_GraphSettingsStep) EqualVT(thatIface isWorldOp_Body) bool {
+	that, ok := thatIface.(*WorldOp_GraphSettingsStep)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.GraphSettingsStep, that.GraphSettingsStep, func() *GraphSettingsStepOp { return &GraphSettingsStepOp{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *InitWorldOp) EqualVT(that *InitWorldOp) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.LastChangeDisable != that.LastChangeDisable {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.TransformConf, that.TransformConf) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.GraphSettings, that.GraphSettings) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *InitWorldOp) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*InitWorldOp)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ApplyTxOp) EqualVT(that *ApplyTxOp) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Tx, that.Tx) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ApplyTxOp) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ApplyTxOp)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SetRetainedRootOp) EqualVT(that *SetRetainedRootOp) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Name != that.Name {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.RootRef, that.RootRef) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetRetainedRootOp) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetRetainedRootOp)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SetTransformConfOp) EqualVT(that *SetTransformConfOp) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.TransformConf, that.TransformConf) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetTransformConfOp) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetTransformConfOp)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *GraphSettingsStepOp) EqualVT(that *GraphSettingsStepOp) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Target, that.Target) {
+		return false
+	}
+	if this.Max != that.Max {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GraphSettingsStepOp) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GraphSettingsStepOp)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RetainedRoot) EqualVT(that *RetainedRoot) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Name != that.Name {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.RootRef, that.RootRef) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RetainedRoot) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RetainedRoot)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RetainedRootSet) EqualVT(that *RetainedRootSet) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Roots, that.Roots, func() *RetainedRoot { return &RetainedRoot{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RetainedRootSet) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RetainedRootSet)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReplayPayloads) EqualVT(that *ReplayPayloads) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Payloads, that.Payloads, func() *block1.BlockRef { return &block1.BlockRef{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReplayPayloads) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReplayPayloads)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReplayCursor) EqualVT(that *ReplayCursor) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Base, that.Base) {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Outcomes, that.Outcomes, func() *ReplayCursorOutcome { return &ReplayCursorOutcome{} }) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Head, that.Head) {
+		return false
+	}
+	if this.Height != that.Height {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReplayCursor) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReplayCursor)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReplayCursorOutcome) EqualVT(that *ReplayCursorOutcome) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Hash, that.Hash) {
+		return false
+	}
+	if this.Reason != that.Reason {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.World, that.World) {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Payloads, that.Payloads, func() *block1.BlockRef { return &block1.BlockRef{} }) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.RetainedRoots, that.RetainedRoots) {
+		return false
+	}
+	if this.Seqno != that.Seqno {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReplayCursorOutcome) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReplayCursorOutcome)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *BackfillState) EqualVT(that *BackfillState) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Root, that.Root) {
+		return false
+	}
+	if this.Holes != that.Holes {
+		return false
+	}
+	if this.Seqno != that.Seqno {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *BackfillState) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*BackfillState)
 	if !ok {
 		return false
 	}
@@ -811,6 +2128,980 @@ func (x *SpacePluginInstallation) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the Config message to JSON.
+func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.EngineId != "" || s.HasField("engineId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("engineId")
+		s.WriteString(x.EngineId)
+	}
+	if x.Ref != nil || s.HasField("ref") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("ref")
+		x.Ref.MarshalProtoJSON(s.WithField("ref"))
+	}
+	if x.InitWorldOp != nil || s.HasField("initWorldOp") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("initWorldOp")
+		x.InitWorldOp.MarshalProtoJSON(s.WithField("initWorldOp"))
+	}
+	if x.DisableLookup || s.HasField("disableLookup") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("disableLookup")
+		s.WriteBool(x.DisableLookup)
+	}
+	if x.Verbose || s.HasField("verbose") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("verbose")
+		s.WriteBool(x.Verbose)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the Config to JSON.
+func (x *Config) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the Config message from JSON.
+func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "engine_id", "engineId":
+			s.AddField("engine_id")
+			x.EngineId = s.ReadString()
+		case "ref":
+			if s.ReadNil() {
+				x.Ref = nil
+				return
+			}
+			x.Ref = &sobject.SharedObjectRef{}
+			x.Ref.UnmarshalProtoJSON(s.WithField("ref", true))
+		case "init_world_op", "initWorldOp":
+			if s.ReadNil() {
+				x.InitWorldOp = nil
+				return
+			}
+			x.InitWorldOp = &InitWorldOp{}
+			x.InitWorldOp.UnmarshalProtoJSON(s.WithField("init_world_op", true))
+		case "disable_lookup", "disableLookup":
+			s.AddField("disable_lookup")
+			x.DisableLookup = s.ReadBool()
+		case "verbose":
+			s.AddField("verbose")
+			x.Verbose = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the Config from JSON.
+func (x *Config) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the InnerState message to JSON.
+func (x *InnerState) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.HeadRef != nil || s.HasField("headRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("headRef")
+		x.HeadRef.MarshalProtoJSON(s.WithField("headRef"))
+	}
+	if len(x.RetainedRoots) > 0 || s.HasField("retainedRoots") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("retainedRoots")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.RetainedRoots {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("retainedRoots"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the InnerState to JSON.
+func (x *InnerState) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the InnerState message from JSON.
+func (x *InnerState) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "head_ref", "headRef":
+			if s.ReadNil() {
+				x.HeadRef = nil
+				return
+			}
+			x.HeadRef = &bucket.ObjectRef{}
+			x.HeadRef.UnmarshalProtoJSON(s.WithField("head_ref", true))
+		case "retained_roots", "retainedRoots":
+			s.AddField("retained_roots")
+			if s.ReadNil() {
+				x.RetainedRoots = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.RetainedRoots = append(x.RetainedRoots, nil)
+					return
+				}
+				v := &RetainedRoot{}
+				v.UnmarshalProtoJSON(s.WithField("retained_roots", false))
+				if s.Err() != nil {
+					return
+				}
+				x.RetainedRoots = append(x.RetainedRoots, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the InnerState from JSON.
+func (x *InnerState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WorldOp message to JSON.
+func (x *WorldOp) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Body != nil {
+		switch ov := x.Body.(type) {
+		case *WorldOp_InitWorld:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("initWorld")
+			ov.InitWorld.MarshalProtoJSON(s.WithField("initWorld"))
+		case *WorldOp_ApplyTxOp:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("applyTxOp")
+			ov.ApplyTxOp.MarshalProtoJSON(s.WithField("applyTxOp"))
+		case *WorldOp_SetRetainedRoot:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("setRetainedRoot")
+			ov.SetRetainedRoot.MarshalProtoJSON(s.WithField("setRetainedRoot"))
+		case *WorldOp_SetTransformConf:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("setTransformConf")
+			ov.SetTransformConf.MarshalProtoJSON(s.WithField("setTransformConf"))
+		case *WorldOp_GraphSettingsStep:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("graphSettingsStep")
+			ov.GraphSettingsStep.MarshalProtoJSON(s.WithField("graphSettingsStep"))
+		}
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WorldOp to JSON.
+func (x *WorldOp) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WorldOp message from JSON.
+func (x *WorldOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "init_world", "initWorld":
+			ov := &WorldOp_InitWorld{}
+			x.Body = ov
+			if s.ReadNil() {
+				ov.InitWorld = nil
+				return
+			}
+			ov.InitWorld = &InitWorldOp{}
+			ov.InitWorld.UnmarshalProtoJSON(s.WithField("init_world", true))
+		case "apply_tx_op", "applyTxOp":
+			ov := &WorldOp_ApplyTxOp{}
+			x.Body = ov
+			if s.ReadNil() {
+				ov.ApplyTxOp = nil
+				return
+			}
+			ov.ApplyTxOp = &ApplyTxOp{}
+			ov.ApplyTxOp.UnmarshalProtoJSON(s.WithField("apply_tx_op", true))
+		case "set_retained_root", "setRetainedRoot":
+			ov := &WorldOp_SetRetainedRoot{}
+			x.Body = ov
+			if s.ReadNil() {
+				ov.SetRetainedRoot = nil
+				return
+			}
+			ov.SetRetainedRoot = &SetRetainedRootOp{}
+			ov.SetRetainedRoot.UnmarshalProtoJSON(s.WithField("set_retained_root", true))
+		case "set_transform_conf", "setTransformConf":
+			ov := &WorldOp_SetTransformConf{}
+			x.Body = ov
+			if s.ReadNil() {
+				ov.SetTransformConf = nil
+				return
+			}
+			ov.SetTransformConf = &SetTransformConfOp{}
+			ov.SetTransformConf.UnmarshalProtoJSON(s.WithField("set_transform_conf", true))
+		case "graph_settings_step", "graphSettingsStep":
+			ov := &WorldOp_GraphSettingsStep{}
+			x.Body = ov
+			if s.ReadNil() {
+				ov.GraphSettingsStep = nil
+				return
+			}
+			ov.GraphSettingsStep = &GraphSettingsStepOp{}
+			ov.GraphSettingsStep.UnmarshalProtoJSON(s.WithField("graph_settings_step", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WorldOp from JSON.
+func (x *WorldOp) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the InitWorldOp message to JSON.
+func (x *InitWorldOp) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.LastChangeDisable || s.HasField("lastChangeDisable") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("lastChangeDisable")
+		s.WriteBool(x.LastChangeDisable)
+	}
+	if x.TransformConf != nil || s.HasField("transformConf") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("transformConf")
+		x.TransformConf.MarshalProtoJSON(s.WithField("transformConf"))
+	}
+	if x.GraphSettings != nil || s.HasField("graphSettings") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("graphSettings")
+		x.GraphSettings.MarshalProtoJSON(s.WithField("graphSettings"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the InitWorldOp to JSON.
+func (x *InitWorldOp) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the InitWorldOp message from JSON.
+func (x *InitWorldOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "last_change_disable", "lastChangeDisable":
+			s.AddField("last_change_disable")
+			x.LastChangeDisable = s.ReadBool()
+		case "transform_conf", "transformConf":
+			if s.ReadNil() {
+				x.TransformConf = nil
+				return
+			}
+			x.TransformConf = &transform.Config{}
+			x.TransformConf.UnmarshalProtoJSON(s.WithField("transform_conf", true))
+		case "graph_settings", "graphSettings":
+			if s.ReadNil() {
+				x.GraphSettings = nil
+				return
+			}
+			x.GraphSettings = &block.GraphSettings{}
+			x.GraphSettings.UnmarshalProtoJSON(s.WithField("graph_settings", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the InitWorldOp from JSON.
+func (x *InitWorldOp) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ApplyTxOp message to JSON.
+func (x *ApplyTxOp) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Tx != nil || s.HasField("tx") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("tx")
+		x.Tx.MarshalProtoJSON(s.WithField("tx"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ApplyTxOp to JSON.
+func (x *ApplyTxOp) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ApplyTxOp message from JSON.
+func (x *ApplyTxOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "tx":
+			if s.ReadNil() {
+				x.Tx = nil
+				return
+			}
+			x.Tx = &tx.Tx{}
+			x.Tx.UnmarshalProtoJSON(s.WithField("tx", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ApplyTxOp from JSON.
+func (x *ApplyTxOp) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SetRetainedRootOp message to JSON.
+func (x *SetRetainedRootOp) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Name != "" || s.HasField("name") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("name")
+		s.WriteString(x.Name)
+	}
+	if x.RootRef != nil || s.HasField("rootRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rootRef")
+		x.RootRef.MarshalProtoJSON(s.WithField("rootRef"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetRetainedRootOp to JSON.
+func (x *SetRetainedRootOp) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetRetainedRootOp message from JSON.
+func (x *SetRetainedRootOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "name":
+			s.AddField("name")
+			x.Name = s.ReadString()
+		case "root_ref", "rootRef":
+			if s.ReadNil() {
+				x.RootRef = nil
+				return
+			}
+			x.RootRef = &block1.BlockRef{}
+			x.RootRef.UnmarshalProtoJSON(s.WithField("root_ref", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SetRetainedRootOp from JSON.
+func (x *SetRetainedRootOp) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SetTransformConfOp message to JSON.
+func (x *SetTransformConfOp) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.TransformConf != nil || s.HasField("transformConf") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("transformConf")
+		x.TransformConf.MarshalProtoJSON(s.WithField("transformConf"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetTransformConfOp to JSON.
+func (x *SetTransformConfOp) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetTransformConfOp message from JSON.
+func (x *SetTransformConfOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "transform_conf", "transformConf":
+			if s.ReadNil() {
+				x.TransformConf = nil
+				return
+			}
+			x.TransformConf = &transform.Config{}
+			x.TransformConf.UnmarshalProtoJSON(s.WithField("transform_conf", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SetTransformConfOp from JSON.
+func (x *SetTransformConfOp) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the GraphSettingsStepOp message to JSON.
+func (x *GraphSettingsStepOp) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Target != nil || s.HasField("target") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("target")
+		x.Target.MarshalProtoJSON(s.WithField("target"))
+	}
+	if x.Max != 0 || s.HasField("max") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("max")
+		s.WriteUint32(x.Max)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GraphSettingsStepOp to JSON.
+func (x *GraphSettingsStepOp) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GraphSettingsStepOp message from JSON.
+func (x *GraphSettingsStepOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "target":
+			if s.ReadNil() {
+				x.Target = nil
+				return
+			}
+			x.Target = &block.GraphSettings{}
+			x.Target.UnmarshalProtoJSON(s.WithField("target", true))
+		case "max":
+			s.AddField("max")
+			x.Max = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the GraphSettingsStepOp from JSON.
+func (x *GraphSettingsStepOp) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RetainedRoot message to JSON.
+func (x *RetainedRoot) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Name != "" || s.HasField("name") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("name")
+		s.WriteString(x.Name)
+	}
+	if x.RootRef != nil || s.HasField("rootRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rootRef")
+		x.RootRef.MarshalProtoJSON(s.WithField("rootRef"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RetainedRoot to JSON.
+func (x *RetainedRoot) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RetainedRoot message from JSON.
+func (x *RetainedRoot) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "name":
+			s.AddField("name")
+			x.Name = s.ReadString()
+		case "root_ref", "rootRef":
+			if s.ReadNil() {
+				x.RootRef = nil
+				return
+			}
+			x.RootRef = &block1.BlockRef{}
+			x.RootRef.UnmarshalProtoJSON(s.WithField("root_ref", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RetainedRoot from JSON.
+func (x *RetainedRoot) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RetainedRootSet message to JSON.
+func (x *RetainedRootSet) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Roots) > 0 || s.HasField("roots") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("roots")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Roots {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("roots"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RetainedRootSet to JSON.
+func (x *RetainedRootSet) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RetainedRootSet message from JSON.
+func (x *RetainedRootSet) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "roots":
+			s.AddField("roots")
+			if s.ReadNil() {
+				x.Roots = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Roots = append(x.Roots, nil)
+					return
+				}
+				v := &RetainedRoot{}
+				v.UnmarshalProtoJSON(s.WithField("roots", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Roots = append(x.Roots, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RetainedRootSet from JSON.
+func (x *RetainedRootSet) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReplayPayloads message to JSON.
+func (x *ReplayPayloads) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Payloads) > 0 || s.HasField("payloads") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("payloads")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Payloads {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("payloads"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReplayPayloads to JSON.
+func (x *ReplayPayloads) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReplayPayloads message from JSON.
+func (x *ReplayPayloads) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "payloads":
+			s.AddField("payloads")
+			if s.ReadNil() {
+				x.Payloads = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Payloads = append(x.Payloads, nil)
+					return
+				}
+				v := &block1.BlockRef{}
+				v.UnmarshalProtoJSON(s.WithField("payloads", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Payloads = append(x.Payloads, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReplayPayloads from JSON.
+func (x *ReplayPayloads) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReplayCursor message to JSON.
+func (x *ReplayCursor) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Base != nil || s.HasField("base") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("base")
+		x.Base.MarshalProtoJSON(s.WithField("base"))
+	}
+	if len(x.Outcomes) > 0 || s.HasField("outcomes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("outcomes")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Outcomes {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("outcomes"))
+		}
+		s.WriteArrayEnd()
+	}
+	if x.Head != nil || s.HasField("head") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("head")
+		x.Head.MarshalProtoJSON(s.WithField("head"))
+	}
+	if x.Height != 0 || s.HasField("height") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("height")
+		s.WriteUint64(x.Height)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReplayCursor to JSON.
+func (x *ReplayCursor) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReplayCursor message from JSON.
+func (x *ReplayCursor) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "base":
+			if s.ReadNil() {
+				x.Base = nil
+				return
+			}
+			x.Base = &InnerState{}
+			x.Base.UnmarshalProtoJSON(s.WithField("base", true))
+		case "outcomes":
+			s.AddField("outcomes")
+			if s.ReadNil() {
+				x.Outcomes = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Outcomes = append(x.Outcomes, nil)
+					return
+				}
+				v := &ReplayCursorOutcome{}
+				v.UnmarshalProtoJSON(s.WithField("outcomes", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Outcomes = append(x.Outcomes, v)
+			})
+		case "head":
+			if s.ReadNil() {
+				x.Head = nil
+				return
+			}
+			x.Head = &InnerState{}
+			x.Head.UnmarshalProtoJSON(s.WithField("head", true))
+		case "height":
+			s.AddField("height")
+			x.Height = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReplayCursor from JSON.
+func (x *ReplayCursor) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReplayCursorOutcome message to JSON.
+func (x *ReplayCursorOutcome) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Hash) > 0 || s.HasField("hash") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("hash")
+		s.WriteBytes(x.Hash)
+	}
+	if x.Reason != "" || s.HasField("reason") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("reason")
+		s.WriteString(x.Reason)
+	}
+	if x.World != nil || s.HasField("world") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("world")
+		x.World.MarshalProtoJSON(s.WithField("world"))
+	}
+	if len(x.Payloads) > 0 || s.HasField("payloads") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("payloads")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Payloads {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("payloads"))
+		}
+		s.WriteArrayEnd()
+	}
+	if x.RetainedRoots != nil || s.HasField("retainedRoots") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("retainedRoots")
+		x.RetainedRoots.MarshalProtoJSON(s.WithField("retainedRoots"))
+	}
+	if x.Seqno != 0 || s.HasField("seqno") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("seqno")
+		s.WriteUint64(x.Seqno)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReplayCursorOutcome to JSON.
+func (x *ReplayCursorOutcome) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReplayCursorOutcome message from JSON.
+func (x *ReplayCursorOutcome) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "hash":
+			s.AddField("hash")
+			x.Hash = s.ReadBytes()
+		case "reason":
+			s.AddField("reason")
+			x.Reason = s.ReadString()
+		case "world":
+			if s.ReadNil() {
+				x.World = nil
+				return
+			}
+			x.World = &block1.BlockRef{}
+			x.World.UnmarshalProtoJSON(s.WithField("world", true))
+		case "payloads":
+			s.AddField("payloads")
+			if s.ReadNil() {
+				x.Payloads = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Payloads = append(x.Payloads, nil)
+					return
+				}
+				v := &block1.BlockRef{}
+				v.UnmarshalProtoJSON(s.WithField("payloads", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Payloads = append(x.Payloads, v)
+			})
+		case "retained_roots", "retainedRoots":
+			if s.ReadNil() {
+				x.RetainedRoots = nil
+				return
+			}
+			x.RetainedRoots = &RetainedRootSet{}
+			x.RetainedRoots.UnmarshalProtoJSON(s.WithField("retained_roots", true))
+		case "seqno":
+			s.AddField("seqno")
+			x.Seqno = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReplayCursorOutcome from JSON.
+func (x *ReplayCursorOutcome) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the BackfillState message to JSON.
+func (x *BackfillState) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Root != nil || s.HasField("root") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("root")
+		x.Root.MarshalProtoJSON(s.WithField("root"))
+	}
+	if x.Holes != 0 || s.HasField("holes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("holes")
+		s.WriteUint32(x.Holes)
+	}
+	if x.Seqno != 0 || s.HasField("seqno") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("seqno")
+		s.WriteUint64(x.Seqno)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the BackfillState to JSON.
+func (x *BackfillState) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the BackfillState message from JSON.
+func (x *BackfillState) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "root":
+			if s.ReadNil() {
+				x.Root = nil
+				return
+			}
+			x.Root = &block1.BlockRef{}
+			x.Root.UnmarshalProtoJSON(s.WithField("root", true))
+		case "holes":
+			s.AddField("holes")
+			x.Holes = s.ReadUint32()
+		case "seqno":
+			s.AddField("seqno")
+			x.Seqno = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the BackfillState from JSON.
+func (x *BackfillState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *WorldContents) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1069,6 +3360,858 @@ func (m *SpacePluginInstallation) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 	return len(dAtA) - i, nil
 }
 
+func (m *Config) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Config) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Verbose {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Verbose)
+		i--
+		dAtA[i] = 0x38
+	}
+	if m.DisableLookup {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.DisableLookup)
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.InitWorldOp != nil {
+		size, err := m.InitWorldOp.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Ref != nil {
+		size, err := m.Ref.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.EngineId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.EngineId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *InnerState) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *InnerState) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *InnerState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.RetainedRoots) > 0 {
+		for iNdEx := len(m.RetainedRoots) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.RetainedRoots[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if m.HeadRef != nil {
+		size, err := m.HeadRef.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WorldOp) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WorldOp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WorldOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if vtmsg, ok := m.Body.(interface {
+		MarshalToSizedBufferVT([]byte) (int, error)
+	}); ok {
+		size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WorldOp_InitWorld) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WorldOp_InitWorld) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.InitWorld != nil {
+		size, err := m.InitWorld.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WorldOp_ApplyTxOp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WorldOp_ApplyTxOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.ApplyTxOp != nil {
+		size, err := m.ApplyTxOp.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x12
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WorldOp_SetRetainedRoot) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WorldOp_SetRetainedRoot) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.SetRetainedRoot != nil {
+		size, err := m.SetRetainedRoot.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x22
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WorldOp_SetTransformConf) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WorldOp_SetTransformConf) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.SetTransformConf != nil {
+		size, err := m.SetTransformConf.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x2a
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x2a
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WorldOp_GraphSettingsStep) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WorldOp_GraphSettingsStep) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.GraphSettingsStep != nil {
+		size, err := m.GraphSettingsStep.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x32
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x32
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *InitWorldOp) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *InitWorldOp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *InitWorldOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.GraphSettings != nil {
+		size, err := m.GraphSettings.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.TransformConf != nil {
+		size, err := m.TransformConf.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.LastChangeDisable {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.LastChangeDisable)
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ApplyTxOp) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ApplyTxOp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ApplyTxOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Tx != nil {
+		size, err := m.Tx.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SetRetainedRootOp) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetRetainedRootOp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetRetainedRootOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.RootRef != nil {
+		size, err := m.RootRef.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Name) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Name)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SetTransformConfOp) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetTransformConfOp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetTransformConfOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.TransformConf != nil {
+		size, err := m.TransformConf.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GraphSettingsStepOp) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GraphSettingsStepOp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GraphSettingsStepOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Max != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Max))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Target != nil {
+		size, err := m.Target.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RetainedRoot) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RetainedRoot) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RetainedRoot) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.RootRef != nil {
+		size, err := m.RootRef.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Name) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Name)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RetainedRootSet) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RetainedRootSet) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RetainedRootSet) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Roots) > 0 {
+		for iNdEx := len(m.Roots) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Roots[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReplayPayloads) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReplayPayloads) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReplayPayloads) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Payloads) > 0 {
+		for iNdEx := len(m.Payloads) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Payloads[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReplayCursor) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReplayCursor) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReplayCursor) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Height != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Height))
+		i--
+		dAtA[i] = 0x38
+	}
+	if m.Head != nil {
+		size, err := m.Head.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Outcomes) > 0 {
+		for iNdEx := len(m.Outcomes) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Outcomes[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if m.Base != nil {
+		size, err := m.Base.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReplayCursorOutcome) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReplayCursorOutcome) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReplayCursorOutcome) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Seqno != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Seqno))
+		i--
+		dAtA[i] = 0x40
+	}
+	if m.RetainedRoots != nil {
+		size, err := m.RetainedRoots.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if len(m.Payloads) > 0 {
+		for iNdEx := len(m.Payloads) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Payloads[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x32
+		}
+	}
+	if m.World != nil {
+		size, err := m.World.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.Reason) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Reason)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Hash) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Hash)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *BackfillState) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *BackfillState) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *BackfillState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Seqno != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Seqno))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.Holes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Holes))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Root != nil {
+		size, err := m.Root.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *WorldContents) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1145,6 +4288,317 @@ func (m *SpacePluginInstallation) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeStringSlice(1, m.ManifestKeys)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *Config) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.EngineId)
+	if m.Ref != nil {
+		l = m.Ref.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.InitWorldOp != nil {
+		l = m.InitWorldOp.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.DisableLookup)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Verbose)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *InnerState) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.HeadRef != nil {
+		l = m.HeadRef.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	for _, e := range m.RetainedRoots {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WorldOp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if vtmsg, ok := m.Body.(interface{ SizeVT() int }); ok {
+		n += vtmsg.SizeVT()
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WorldOp_InitWorld) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.InitWorld != nil {
+		l = m.InitWorld.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *WorldOp_ApplyTxOp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.ApplyTxOp != nil {
+		l = m.ApplyTxOp.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *WorldOp_SetRetainedRoot) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.SetRetainedRoot != nil {
+		l = m.SetRetainedRoot.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *WorldOp_SetTransformConf) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.SetTransformConf != nil {
+		l = m.SetTransformConf.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *WorldOp_GraphSettingsStep) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.GraphSettingsStep != nil {
+		l = m.GraphSettingsStep.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *InitWorldOp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.LastChangeDisable)
+	if m.TransformConf != nil {
+		l = m.TransformConf.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.GraphSettings != nil {
+		l = m.GraphSettings.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ApplyTxOp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Tx != nil {
+		l = m.Tx.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SetRetainedRootOp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Name)
+	if m.RootRef != nil {
+		l = m.RootRef.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SetTransformConfOp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.TransformConf != nil {
+		l = m.TransformConf.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GraphSettingsStepOp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Target != nil {
+		l = m.Target.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Max)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RetainedRoot) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Name)
+	if m.RootRef != nil {
+		l = m.RootRef.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RetainedRootSet) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	for _, e := range m.Roots {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReplayPayloads) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	for _, e := range m.Payloads {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReplayCursor) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Base != nil {
+		l = m.Base.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	for _, e := range m.Outcomes {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.Head != nil {
+		l = m.Head.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Height)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReplayCursorOutcome) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Hash)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Reason)
+	if m.World != nil {
+		l = m.World.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	for _, e := range m.Payloads {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.RetainedRoots != nil {
+		l = m.RetainedRoots.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Seqno)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *BackfillState) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Root != nil {
+		l = m.Root.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Holes)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Seqno)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1297,6 +4751,355 @@ func (x *SpacePluginInstallation) MarshalProtoText() string {
 }
 
 func (x *SpacePluginInstallation) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *Config) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "Config")
+	if x.EngineId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "engine_id")
+		protobuf_go_lite.TextWriteString(&sb, x.EngineId)
+	}
+	if x.Ref != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "ref")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Ref)
+	}
+	if x.InitWorldOp != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "init_world_op")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.InitWorldOp)
+	}
+	if x.DisableLookup != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "disable_lookup")
+		protobuf_go_lite.TextWriteBool(&sb, x.DisableLookup)
+	}
+	if x.Verbose != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "verbose")
+		protobuf_go_lite.TextWriteBool(&sb, x.Verbose)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *Config) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *InnerState) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "InnerState")
+	if x.HeadRef != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "head_ref")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.HeadRef)
+	}
+	if len(x.RetainedRoots) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "retained_roots")
+		for i, v := range x.RetainedRoots {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &RetainedRoot{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *InnerState) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WorldOp) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "WorldOp")
+	switch body := x.Body.(type) {
+	case *WorldOp_InitWorld:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "init_world")
+		if body.InitWorld == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &InitWorldOp{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.InitWorld)
+		}
+	case *WorldOp_ApplyTxOp:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "apply_tx_op")
+		if body.ApplyTxOp == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &ApplyTxOp{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.ApplyTxOp)
+		}
+	case *WorldOp_SetRetainedRoot:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "set_retained_root")
+		if body.SetRetainedRoot == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &SetRetainedRootOp{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.SetRetainedRoot)
+		}
+	case *WorldOp_SetTransformConf:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "set_transform_conf")
+		if body.SetTransformConf == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &SetTransformConfOp{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.SetTransformConf)
+		}
+	case *WorldOp_GraphSettingsStep:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "graph_settings_step")
+		if body.GraphSettingsStep == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &GraphSettingsStepOp{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.GraphSettingsStep)
+		}
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *WorldOp) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *InitWorldOp) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "InitWorldOp")
+	if x.LastChangeDisable != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "last_change_disable")
+		protobuf_go_lite.TextWriteBool(&sb, x.LastChangeDisable)
+	}
+	if x.TransformConf != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "transform_conf")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.TransformConf)
+	}
+	if x.GraphSettings != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "graph_settings")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.GraphSettings)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *InitWorldOp) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ApplyTxOp) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ApplyTxOp")
+	if x.Tx != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "tx")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Tx)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ApplyTxOp) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetRetainedRootOp) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SetRetainedRootOp")
+	if x.Name != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "name")
+		protobuf_go_lite.TextWriteString(&sb, x.Name)
+	}
+	if x.RootRef != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "root_ref")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.RootRef)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SetRetainedRootOp) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetTransformConfOp) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SetTransformConfOp")
+	if x.TransformConf != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "transform_conf")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.TransformConf)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SetTransformConfOp) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *GraphSettingsStepOp) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "GraphSettingsStepOp")
+	if x.Target != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "target")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Target)
+	}
+	if x.Max != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "max")
+		protobuf_go_lite.TextWriteUint(&sb, x.Max)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *GraphSettingsStepOp) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RetainedRoot) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RetainedRoot")
+	if x.Name != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "name")
+		protobuf_go_lite.TextWriteString(&sb, x.Name)
+	}
+	if x.RootRef != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "root_ref")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.RootRef)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RetainedRoot) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RetainedRootSet) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RetainedRootSet")
+	if len(x.Roots) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "roots")
+		for i, v := range x.Roots {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &RetainedRoot{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RetainedRootSet) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReplayPayloads) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ReplayPayloads")
+	if len(x.Payloads) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "payloads")
+		for i, v := range x.Payloads {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &block1.BlockRef{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReplayPayloads) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReplayCursor) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ReplayCursor")
+	if x.Base != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "base")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Base)
+	}
+	if len(x.Outcomes) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "outcomes")
+		for i, v := range x.Outcomes {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &ReplayCursorOutcome{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.Head != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "head")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Head)
+	}
+	if x.Height != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "height")
+		protobuf_go_lite.TextWriteUint(&sb, x.Height)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReplayCursor) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReplayCursorOutcome) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ReplayCursorOutcome")
+	if len(x.Hash) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "hash")
+		protobuf_go_lite.TextWriteBytes(&sb, x.Hash)
+	}
+	if x.Reason != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "reason")
+		protobuf_go_lite.TextWriteString(&sb, x.Reason)
+	}
+	if x.World != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "world")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.World)
+	}
+	if len(x.Payloads) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "payloads")
+		for i, v := range x.Payloads {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &block1.BlockRef{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.RetainedRoots != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "retained_roots")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.RetainedRoots)
+	}
+	if x.Seqno != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "seqno")
+		protobuf_go_lite.TextWriteUint(&sb, x.Seqno)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReplayCursorOutcome) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *BackfillState) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "BackfillState")
+	if x.Root != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "root")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Root)
+	}
+	if x.Holes != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "holes")
+		protobuf_go_lite.TextWriteUint(&sb, x.Holes)
+	}
+	if x.Seqno != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "seqno")
+		protobuf_go_lite.TextWriteUint(&sb, x.Seqno)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *BackfillState) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1660,6 +5463,1121 @@ func (m *SpacePluginInstallation) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ManifestKeys = append(m.ManifestKeys, v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *Config) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Config: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Config: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EngineId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.EngineId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Ref", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Ref == nil {
+				m.Ref = &sobject.SharedObjectRef{}
+			}
+			if err := m.Ref.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field InitWorldOp", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.InitWorldOp == nil {
+				m.InitWorldOp = &InitWorldOp{}
+			}
+			if err := m.InitWorldOp.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DisableLookup", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.DisableLookup = bool(v)
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Verbose", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Verbose = bool(v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *InnerState) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: InnerState: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: InnerState: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field HeadRef", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.HeadRef == nil {
+				m.HeadRef = &bucket.ObjectRef{}
+			}
+			if err := m.HeadRef.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RetainedRoots", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.RetainedRoots = append(m.RetainedRoots, &RetainedRoot{})
+			if err := m.RetainedRoots[len(m.RetainedRoots)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WorldOp) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WorldOp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WorldOp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field InitWorld", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Body.(*WorldOp_InitWorld); ok {
+				if err := oneof.InitWorld.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &InitWorldOp{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &WorldOp_InitWorld{InitWorld: v}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ApplyTxOp", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Body.(*WorldOp_ApplyTxOp); ok {
+				if err := oneof.ApplyTxOp.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &ApplyTxOp{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &WorldOp_ApplyTxOp{ApplyTxOp: v}
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SetRetainedRoot", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Body.(*WorldOp_SetRetainedRoot); ok {
+				if err := oneof.SetRetainedRoot.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &SetRetainedRootOp{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &WorldOp_SetRetainedRoot{SetRetainedRoot: v}
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SetTransformConf", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Body.(*WorldOp_SetTransformConf); ok {
+				if err := oneof.SetTransformConf.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &SetTransformConfOp{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &WorldOp_SetTransformConf{SetTransformConf: v}
+			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field GraphSettingsStep", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Body.(*WorldOp_GraphSettingsStep); ok {
+				if err := oneof.GraphSettingsStep.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &GraphSettingsStepOp{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &WorldOp_GraphSettingsStep{GraphSettingsStep: v}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *InitWorldOp) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: InitWorldOp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: InitWorldOp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastChangeDisable", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.LastChangeDisable = bool(v)
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TransformConf", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.TransformConf == nil {
+				m.TransformConf = &transform.Config{}
+			}
+			if err := m.TransformConf.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field GraphSettings", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.GraphSettings == nil {
+				m.GraphSettings = &block.GraphSettings{}
+			}
+			if err := m.GraphSettings.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ApplyTxOp) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ApplyTxOp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ApplyTxOp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Tx", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Tx == nil {
+				m.Tx = &tx.Tx{}
+			}
+			if err := m.Tx.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetRetainedRootOp) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetRetainedRootOp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetRetainedRootOp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Name = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RootRef", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.RootRef == nil {
+				m.RootRef = &block1.BlockRef{}
+			}
+			if err := m.RootRef.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetTransformConfOp) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetTransformConfOp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetTransformConfOp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TransformConf", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.TransformConf == nil {
+				m.TransformConf = &transform.Config{}
+			}
+			if err := m.TransformConf.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *GraphSettingsStepOp) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GraphSettingsStepOp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GraphSettingsStepOp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Target", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Target == nil {
+				m.Target = &block.GraphSettings{}
+			}
+			if err := m.Target.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Max", wireType)
+			}
+			m.Max = 0
+			m.Max, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RetainedRoot) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RetainedRoot: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RetainedRoot: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Name = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RootRef", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.RootRef == nil {
+				m.RootRef = &block1.BlockRef{}
+			}
+			if err := m.RootRef.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RetainedRootSet) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RetainedRootSet: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RetainedRootSet: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Roots", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Roots = append(m.Roots, &RetainedRoot{})
+			if err := m.Roots[len(m.Roots)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReplayPayloads) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReplayPayloads: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReplayPayloads: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Payloads", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Payloads = append(m.Payloads, &block1.BlockRef{})
+			if err := m.Payloads[len(m.Payloads)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReplayCursor) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReplayCursor: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReplayCursor: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Base", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Base == nil {
+				m.Base = &InnerState{}
+			}
+			if err := m.Base.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Outcomes", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Outcomes = append(m.Outcomes, &ReplayCursorOutcome{})
+			if err := m.Outcomes[len(m.Outcomes)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Head", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Head == nil {
+				m.Head = &InnerState{}
+			}
+			if err := m.Head.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Height", wireType)
+			}
+			m.Height = 0
+			m.Height, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReplayCursorOutcome) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReplayCursorOutcome: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReplayCursorOutcome: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Hash", wireType)
+			}
+			m.Hash, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Hash, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Reason", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Reason = v
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field World", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.World == nil {
+				m.World = &block1.BlockRef{}
+			}
+			if err := m.World.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Payloads", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Payloads = append(m.Payloads, &block1.BlockRef{})
+			if err := m.Payloads[len(m.Payloads)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RetainedRoots", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.RetainedRoots == nil {
+				m.RetainedRoots = &RetainedRootSet{}
+			}
+			if err := m.RetainedRoots.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Seqno", wireType)
+			}
+			m.Seqno = 0
+			m.Seqno, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *BackfillState) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: BackfillState: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: BackfillState: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Root", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Root == nil {
+				m.Root = &block1.BlockRef{}
+			}
+			if err := m.Root.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Holes", wireType)
+			}
+			m.Holes = 0
+			m.Holes, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Seqno", wireType)
+			}
+			m.Seqno = 0
+			m.Seqno, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
