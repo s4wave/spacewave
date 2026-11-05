@@ -20,7 +20,6 @@ import (
 	provider_gccleanup "github.com/s4wave/spacewave/core/provider/gccleanup"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
-	"github.com/s4wave/spacewave/db/block"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/volume"
@@ -196,17 +195,8 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		return err
 	}
 
-	// Identify the account storage from the mounted volume without probing it.
-	le := t.p.le.WithField("account-id", t.accountInfo.GetProviderAccountId())
-	publisher, supportsAtomic := vol.(block.AtomicPublisher)
-	le.WithFields(logrus.Fields{
-		"storage-id":                storageID,
-		"storage-volume-id":         storageVolumeID,
-		"volume-id":                 vol.GetID(),
-		"volume-atomic-publication": supportsAtomic && publisher.SupportsAtomicPublication(),
-	}).Infof("account storage route (volume %T)", vol)
-
 	// Construct the ProviderAccount and keyed trackers.
+	le := t.p.le.WithField("account-id", t.accountInfo.GetProviderAccountId())
 	providerAcc := &ProviderAccount{
 		t:            t,
 		vol:          vol,

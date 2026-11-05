@@ -333,11 +333,8 @@ func shouldLogBrowserConsole(msgType, text string) bool {
 		return true
 	}
 
-	// Retain scoped storage and DEX facts alongside runtime failures.
-	return strings.Contains(text, "level=error") || strings.Contains(text, "level=warning") ||
-		strings.Contains(text, "DEX source local block read incomplete") ||
-		strings.Contains(text, "waiting for a peer that holds a World block with its refs") ||
-		strings.Contains(text, "account storage route") || strings.Contains(text, "plugin storage route")
+	// Retain structured runtime failures.
+	return strings.Contains(text, "level=error") || strings.Contains(text, "level=warning")
 }
 
 func (h *Harness) loadAppPageURL(s *TestSession, targetURL string) error {

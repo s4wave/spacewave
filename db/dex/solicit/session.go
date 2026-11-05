@@ -469,38 +469,7 @@ func (s *peerSession) finishRequest(id uint32, h *handledRequest) {
 
 // lookupLocalBlock looks up a block and its refs in the local bucket store
 // only. Returns nil when the block is not found.
-func (s *peerSession) lookupLocalBlock(ctx context.Context, ref *block.BlockRef) (_ *DexMessage, err error) {
-	// Report incomplete serving reads without probing or logging complete blocks.
-	var stored *block.StoredBlock
-	var lookupReady bool
-	defer func() {
-		// A complete local block needs no diagnostic allocation or output.
-		if err == nil && stored != nil && stored.RefsKnown {
-			return
-		}
-
-		// Identify the serving bucket and authenticated link without payload data.
-		fields := logrus.Fields{
-			"ref":            ref.MarshalString(),
-			"bucket-id":      s.c.cc.GetBucketId(),
-			"requester-peer": s.ms.GetPeerID().String(),
-			"local-peer":     s.ms.GetLink().GetLocalPeer().String(),
-			"lookup-ready":   lookupReady,
-			"body-found":     stored != nil,
-			"refs-known":     false,
-			"children":       0,
-		}
-
-		// Preserve the exact metadata result even when the lookup also failed.
-		if stored != nil {
-			fields["refs-known"] = stored.RefsKnown
-			fields["children"] = len(stored.Refs)
-		}
-
-		// Keep absence distinct from an unavailable or failed local lookup.
-		s.le.WithFields(fields).WithError(err).Info("DEX source local block read incomplete")
-	}()
-
+func (s *peerSession) lookupLocalBlock(ctx context.Context, ref *block.BlockRef) (*DexMessage, error) {
 	// Acquire the configured bucket lookup for this session.
 	lkv, _, lkRel, err := bucket_lookup.ExBuildBucketLookup(ctx, s.c.b, false, s.c.cc.GetBucketId(), nil)
 	if err != nil {
@@ -510,13 +479,12 @@ func (s *peerSession) lookupLocalBlock(ctx context.Context, ref *block.BlockRef)
 
 	// Open the bucket lookup used to read local blocks.
 	lk, err := lkv.GetLookup(ctx)
-	lookupReady = lk != nil
 	if err != nil || lk == nil {
 		return nil, err
 	}
 
 	// Read the requested block without consulting remote peers.
-	stored, err = lk.LookupStoredBlock(ctx, ref, bucket_lookup.WithLocalOnly())
+	stored, err := lk.LookupStoredBlock(ctx, ref, bucket_lookup.WithLocalOnly())
 	if err != nil || stored == nil {
 		return nil, err
 	}
