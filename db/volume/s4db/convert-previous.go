@@ -36,6 +36,21 @@ const (
 // convertProgressInterval is the least time between progress log lines.
 const convertProgressInterval = 10 * time.Second
 
+// Open opens the s4db file at path with opts, first converting in place a file
+// the previous engine wrote, as convertPrevious describes. Every caller that
+// opens a file a previous release may have written opens it here, so upgrading
+// a host needs no manual step.
+func Open(ctx context.Context, le *logrus.Entry, path string, opts s4db.Options) (*s4db.DB, error) {
+	db, err := s4db.Open(path, opts)
+	if !errors.Is(err, s4db.ErrPreviousFormat) {
+		return db, err
+	}
+	if err := convertPrevious(ctx, le, path); err != nil {
+		return nil, err
+	}
+	return s4db.Open(path, opts)
+}
+
 // convertPrevious replaces the previous-format database at path with one in
 // the current format holding the same pairs, and keeps the previous file as
 // <path>.pre-rewrite, so going back is a rename and the previous binary.

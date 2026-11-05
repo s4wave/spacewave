@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 	listener_control "github.com/s4wave/spacewave/core/resource/listener/control"
 	"github.com/s4wave/spacewave/db/s4db"
+	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/sirupsen/logrus"
 )
 
@@ -74,7 +75,7 @@ func prepareDaemonRuntime(
 	}
 
 	// A manual start asks a runtime started for a command to yield the lease.
-	lease, err := acquireStatePathLease(ctx, statePath, handedOff)
+	lease, err := acquireStatePathLease(ctx, le, statePath, handedOff)
 	var held *StatePathLeaseHeldError
 	if claim == claimYield && errors.As(err, &held) {
 		if yieldErr := requestDaemonYield(ctx, sockPath); yieldErr != nil {
@@ -89,7 +90,7 @@ func prepareDaemonRuntime(
 					"use serve --takeover to replace it",
 			)
 		}
-		lease, err = acquireStatePathLease(ctx, statePath, true)
+		lease, err = acquireStatePathLease(ctx, le, statePath, true)
 	}
 	if err != nil {
 		return nil, err
@@ -121,6 +122,7 @@ func requestDaemonYield(ctx context.Context, sockPath string) error {
 // it held. When wait is set it blocks until another process releases it.
 func acquireStatePathLease(
 	ctx context.Context,
+	le *logrus.Entry,
 	statePath string,
 	wait bool,
 ) (*statePathLease, error) {
@@ -140,9 +142,9 @@ func acquireStatePathLease(
 	}
 	leasePath := filepath.Join(statePath, statePathLeaseFile)
 
-	// Open the lease file; this process already holding it open is a
-	// same-process runtime.
-	db, err := s4db.Open(leasePath, s4db.Options{})
+	// Open the lease file, converting one a previous release wrote; this
+	// process already holding it open is a same-process runtime.
+	db, err := volume_s4db.Open(ctx, le, leasePath, s4db.Options{})
 	if errors.Is(err, s4db.ErrOpenInProcess) {
 		return nil, &StatePathLeaseHeldError{
 			StatePath: statePath,

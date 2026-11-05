@@ -18,6 +18,7 @@ import (
 	resource_state "github.com/s4wave/spacewave/bldr/resource/state"
 	"github.com/s4wave/spacewave/core/daemon"
 	listener_control "github.com/s4wave/spacewave/core/resource/listener/control"
+	"github.com/sirupsen/logrus"
 )
 
 // TestAppBundleReplacementRetainsSharedDaemon starts from a separate app copy,
@@ -263,7 +264,7 @@ func TestSharedDaemonStarters(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if lease, err := acquireStatePathLease(t.Context(), statePath, false); !errors.Is(err, daemon.ErrStarting) {
+			if lease, err := acquireStatePathLease(t.Context(), logrus.NewEntry(logrus.New()), statePath, false); !errors.Is(err, daemon.ErrStarting) {
 				if lease != nil {
 					_ = lease.release()
 				}
