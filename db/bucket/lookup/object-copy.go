@@ -166,7 +166,6 @@ func copyObjectToBucket(
 	// seenMtx guards the set of block references claimed by copy workers.
 	var seenMtx sync.Mutex
 	seenBlocks := make(map[string]struct{})
-	childRefs := make(map[string]*block.BlockRef)
 
 	// Track logical block counts across the concurrent copy workers.
 	var seenBlockCount atomic.Int64
@@ -270,8 +269,7 @@ func copyObjectToBucket(
 			// Copy each block with its references. A decoded block, or a leaf
 			// type the walk did not decode, names them; a block without a
 			// constructor takes the refs its source stored, or the copy fails
-			// rather than store a block that hides its children. Retain them
-			// for destination staging cleanup.
+			// rather than store a block that hides its children.
 			var refs []*block.BlockRef
 			if ent.Ctor != nil || ent.Blk != nil {
 				refs, err = block.ExtractBlockRefs(ent.Blk)
@@ -281,11 +279,6 @@ func copyObjectToBucket(
 			if err != nil {
 				return false, err
 			}
-			seenMtx.Lock()
-			for _, ref := range refs {
-				childRefs[ref.MarshalString()] = ref
-			}
-			seenMtx.Unlock()
 
 			// The selected policy determines when existence accounting resolves.
 			// All payloads still receive destination ownership writes.
@@ -339,27 +332,6 @@ func copyObjectToBucket(
 	// updates have reached the destination's durability fence.
 	if err == nil {
 		_, err = writes.Sync(ctx)
-	}
-	if err == nil && block.SupportsRootRetention(writeBkt) {
-		// Concurrent traversal can write a child after its parent. Once all
-		// immutable edges are durable, only the copied root needs bucket
-		// ownership; release descendant staging through the bucket API.
-		cleanup := block.NewBufferedStoreWithSettings(ctx, writeBkt, &block.BufferedStoreSettings{
-			MaxPendingEntries: 128,
-			MaxPendingBytes:   maxPendingBytes,
-			DrainBatchEntries: 128,
-		})
-		for _, ref := range childRefs {
-			if ref.EqualsRef(srcRef.GetRootRef()) {
-				continue
-			}
-			if err = cleanup.RmBlock(ctx, ref); err != nil {
-				break
-			}
-		}
-		if err == nil {
-			_, err = cleanup.Sync(ctx)
-		}
 	}
 
 	// Preserve logical accounting even when the copy fails to complete.

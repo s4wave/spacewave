@@ -4,83 +4,58 @@ import (
 	"context"
 
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
-	kvtx_volume "github.com/s4wave/spacewave/db/volume/common/kvtx"
+	"github.com/s4wave/spacewave/db/volume"
 	"github.com/sirupsen/logrus"
 )
 
+// triggerGCCleanup asks the cleanup runner for a collection pass.
 func (a *ProviderAccount) triggerGCCleanup() {
 	a.gcCleanupRunner.Trigger()
 }
 
+// runGCCleanup runs the cleanup runner until ctx ends.
 func (a *ProviderAccount) runGCCleanup(ctx context.Context) error {
 	return a.gcCleanupRunner.Run(ctx)
 }
 
-func (a *ProviderAccount) collectGCRootlessBlocks(ctx context.Context) (*block_gc.Stats, error) {
+// collectGCRootlessBlocks runs one collection pass of the account's volume,
+// which frees what no held named root reaches.
+func (a *ProviderAccount) collectGCRootlessBlocks(ctx context.Context) (block_gc.CollectResult, error) {
 	if a.gcCleanupCollect != nil {
 		return a.gcCleanupCollect(ctx)
 	}
-	kvVol, ok := a.vol.(kvtx_volume.KvtxVolume)
+	collector, ok := a.vol.(volume.Collector)
 	if !ok {
-		return nil, nil
+		return block_gc.CollectResult{}, nil
 	}
-	rg := kvVol.GetRefGraph()
-	if rg == nil {
-		return nil, nil
-	}
-	return block_gc.NewCollector(rg, a.vol, nil).Collect(ctx)
+	return collector.Collect(ctx)
 }
 
+// removeSharedObjectGCRefs releases every named root of a deleted shared
+// object's block store bucket, so the collector frees what only they reached.
 func (a *ProviderAccount) removeSharedObjectGCRefs(
 	ctx context.Context,
 	id string,
 	le *logrus.Entry,
 ) {
-	kvVol, ok := a.vol.(kvtx_volume.KvtxVolume)
+	releaser, ok := a.vol.(volume.BucketReleaser)
 	if !ok {
 		return
 	}
-	rg := kvVol.GetRefGraph()
-	if rg == nil {
-		return
-	}
-	bstoreID := SobjectBlockStoreID(id)
-	bucketID := BlockStoreBucketID(a.accountID, bstoreID)
-	bucketIRI := block_gc.BucketIRI(bucketID)
-	providerID := a.p.info.GetProviderId()
-	gcOps := block_gc.NewGCStoreOps(a.vol, rg)
-	if err := gcOps.RemoveGCRef(ctx,
-		block_gc.NodeGCRoot,
-		bucketIRI,
-	); err != nil {
-		le.WithError(err).Warn("failed to remove GC root ref")
-	}
-	if err := gcOps.RemoveGCRef(ctx,
-		ProviderIRI(providerID),
-		bucketIRI,
-	); err != nil {
-		le.WithError(err).Warn("failed to remove GC ref")
+	bucketID := BlockStoreBucketID(a.accountID, SobjectBlockStoreID(id))
+	if err := releaser.ReleaseBucket(ctx, bucketID); err != nil {
+		le.WithError(err).Warn("failed to release the deleted shared object's roots")
 	}
 }
 
-func (a *ProviderAccount) removeProviderAccountGCRef(
-	ctx context.Context,
-	le *logrus.Entry,
-) {
-	kvVol, ok := a.vol.(kvtx_volume.KvtxVolume)
+// releaseAccountRoots releases every named root of the deleted account's
+// buckets, so the collector frees what only they reached.
+func (a *ProviderAccount) releaseAccountRoots(ctx context.Context, le *logrus.Entry) {
+	releaser, ok := a.vol.(volume.BucketReleaser)
 	if !ok {
 		return
 	}
-	rg := kvVol.GetRefGraph()
-	if rg == nil {
-		return
-	}
-	providerID := a.p.info.GetProviderId()
-	gcOps := block_gc.NewGCStoreOps(a.vol, rg)
-	if err := gcOps.RemoveGCRef(ctx,
-		block_gc.NodeGCRoot,
-		ProviderIRI(providerID),
-	); err != nil {
-		le.WithError(err).Warn("GC: failed to remove provider edge")
+	if err := releaser.ReleaseBucketPrefix(ctx, ProviderIDPrefix+a.accountID+"/"); err != nil {
+		le.WithError(err).Warn("failed to release the deleted account's roots")
 	}
 }

@@ -60,18 +60,13 @@ func newDebugVolumeCopyCommand() *cli.Command {
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
 				Name:        "reachable",
-				Usage:       "copy only the blocks and graph records reachable from the graph root",
+				Usage:       "copy only the blocks the named roots reach, with their child lists and the root table",
 				Destination: &reachable,
 			},
 			&cli.BoolFlag{
 				Name:        "allow-unknown",
 				Usage:       "with --reachable, copy even when the walk reaches blocks without a child list, dropping the blocks they name",
 				Destination: &opts.AllowUnknown,
-			},
-			&cli.BoolFlag{
-				Name:        "count-unowned",
-				Usage:       "with --reachable, count the dropped blocks no graph record owns, at one index lookup each",
-				Destination: &opts.CountUnowned,
 			},
 			&cli.BoolFlag{
 				Name:        "drop-sql-blocks",
@@ -203,8 +198,8 @@ func copyVolumeFile(ctx context.Context, src, dst string, reachable *volume_kvtx
 // formatCopyProgress describes the work of a copy, with what a reachable copy
 // dropped.
 func formatCopyProgress(p volume_kvtx.CopyProgress) string {
-	// Describe the copied keys, then the blocks the mark could not walk.
-	line := fmt.Sprintf("%d keys, %s, %d graph edges", p.Keys, humanize.IBytes(p.Bytes), p.Edges)
+	// Describe the copied keys, then the blocks the walk could not follow.
+	line := fmt.Sprintf("%d keys, %s", p.Keys, humanize.IBytes(p.Bytes))
 	if p.AbsentBlocks != 0 {
 		line = fmt.Sprintf("%s; %d absent blocks", line, p.AbsentBlocks)
 	}
@@ -217,8 +212,8 @@ func formatCopyProgress(p volume_kvtx.CopyProgress) string {
 		return line
 	}
 	return fmt.Sprintf(
-		"%s; dropped %d blocks (%d unowned), %d graph records, %s of keys",
-		line, p.DroppedBlocks, p.UnownedBlocks, p.DroppedRecords, humanize.IBytes(p.DroppedBytes),
+		"%s; dropped %d blocks, %d liveness records, %s of keys",
+		line, p.DroppedBlocks, p.DroppedRecords, humanize.IBytes(p.DroppedBytes),
 	)
 }
 

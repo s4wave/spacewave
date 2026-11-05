@@ -6,13 +6,13 @@ import (
 
 	"github.com/s4wave/spacewave/core/release"
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
+	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 )
 
 // TestCollectBlocksUnknownRefs checks that release export recovers the refs of
-// an untracked World root from its decoded block.
+// a World root stored without its child list from its decoded block.
 func TestCollectBlocksUnknownRefs(t *testing.T) {
 	// Commit a World with a nonempty graph in the real in-memory testbed.
 	ctx := t.Context()
@@ -38,31 +38,24 @@ func TestCollectBlocksUnknownRefs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Read the complete release closure before removing the root's GC edges.
+	// Read the complete release closure before removing the root's child list.
 	head, before, err := collectBlocks(ctx, tb.Engine, &release.ReleaseMetadata{})
 	if err != nil || head == nil || len(before) == 0 {
 		t.Fatalf("initial closure = %v/%v/%v", head, before, err)
 	}
-	graph := tb.Volume.GetRefGraph()
-	node := block_gc.BlockIRI(head.GetRootRef())
-	outgoing, err := graph.GetOutgoingRefs(ctx, node)
-	if err != nil || len(outgoing) == 0 {
-		t.Fatalf("root edges = %v/%v, want children", outgoing, err)
-	}
-	incoming, err := graph.GetIncomingRefs(ctx, node)
+	// Model a root stored without its child list, without changing its block
+	// bytes: drop its child list record.
+	kvVol := tb.Volume.(volume_kvtx.KvtxVolume)
+	ktx, err := kvVol.GetKvtxStore().NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	// Model a root stored without tracking, without changing its block bytes:
-	// drop its child list and its owner edges.
-	if _, err := graph.RemoveNodeRefs(ctx, node, false); err != nil {
+	if err := volume_kvtx.OpenRecords(ktx).DeleteChildren(ctx, head.GetRootRef()); err != nil {
+		ktx.Discard()
 		t.Fatal(err)
 	}
-	for _, owner := range incoming {
-		if err := graph.RemoveRef(ctx, owner, node); err != nil {
-			t.Fatal(err)
-		}
+	if err := ktx.Commit(ctx); err != nil {
+		t.Fatal(err)
 	}
 
 	// Export the same closure with the typed root's own refs, not a false leaf.

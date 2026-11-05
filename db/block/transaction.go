@@ -314,20 +314,8 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 		writeRoot = subRoot.pos
 	}
 
-	// Close deferred GC flushing after unlocking the cursor graph: RefGraph
-	// may share that lock. Keep the caller context for this final flush.
-	var deferFlushActive bool
-	deferFlushCtx := ctx
-	writeStore := t.store
-	defer func() {
-		if deferFlushActive {
-			if err := EndDeferFlush(deferFlushCtx, writeStore); err != nil && rerr == nil {
-				rerr = err
-			}
-		}
-	}()
-
 	// Serialize graph mutation and restore the returned cursor after writing.
+	writeStore := t.store
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 	defer func() {
@@ -355,7 +343,6 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 	switch {
 	case t.writeBuffer != nil:
 		buffered = t.writeBuffer
-		writeStore = buffered
 	case existingBuffer != nil && t.bufferedStoreSettings == nil:
 		// The caller already owns writeback and its final durability fence.
 		// Draining another coalescer into that buffer only repeats hashing,
@@ -367,11 +354,9 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 		// sub-tree blocks drains both in one pass, in arrival order, so no
 		// root reaches the store before the blocks it references.
 		buffered = staged
-		writeStore = buffered
 		drainBuffered = true
 	case writeStore != nil:
 		buffered = NewBufferedStoreWithSettings(ctx, writeStore, t.bufferedStoreSettings)
-		writeStore = buffered
 		drainBuffered = true
 	}
 
@@ -388,12 +373,6 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 			return nil, nil, err
 		}
 		t.stagedStore.CompareAndSwap(staged, nil)
-	}
-
-	// Batch GC reference updates for the dirty write.
-	if writeStore != nil {
-		deferFlushActive = true
-		BeginDeferFlush(writeStore)
 	}
 
 	// Cancel and join work before releasing transaction state.

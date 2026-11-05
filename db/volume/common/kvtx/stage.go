@@ -2,151 +2,120 @@ package kvtx
 
 import (
 	"context"
-	"sync"
 
 	"github.com/aperturerobotics/util/ulid"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 )
 
-// stagePrefix prefixes the node that owns the blocks written through one stage.
-const stagePrefix = "stage:"
-
 // openStage is the in-process state of one stage.
 type openStage struct {
-	// written records that a transaction hung the stage under its process
-	// owner, which may have committed.
-	written bool
-	// released records that the stage was released after a write, so the next
-	// changing direct transaction removes its edge.
+	// released records that the stage's release was called; the next changing
+	// direct transaction releases its roots.
 	released bool
 }
 
-// OpenStage registers a stage under the process owner of reader pins. Blocks
-// written through the stage belong to it until a parent written outside the
-// stage references them. The stage's first write hangs it under the owner in
-// the same transaction, so a stage that writes nothing costs no transaction.
-// The release leaves the stage's edge for the next changing direct
-// transaction to remove, like a reader pin, and the sweep collects every block
-// no other owner holds. Closing the volume releases its open stages, and
-// ReapRootPins releases those of a crashed process.
+// OpenStage opens a stage of this process and returns its name. A stage holds
+// each block written through it under a leased root of its own, from the put
+// that stores the block until a block written through it names the block, or
+// until the stage releases it. A stage that writes nothing costs no
+// transaction. The release leaves the stage's roots for the next changing
+// direct transaction to release, like a reader pin; closing the Volume
+// releases its open stages, and the collector releases the roots of a process
+// that died once their lease lapses.
 func (v *Volume) OpenStage(ctx context.Context) (string, func(), error) {
-	// Register the stage once the process owner holds its lease.
+	// Refuse new stages after the Volume closes.
 	unlock, err := v.rootPinMu.Lock(ctx)
 	if err != nil {
 		return "", nil, err
 	}
 	defer unlock()
-	if _, err := v.rootPinOwnerLocked(ctx); err != nil {
-		return "", nil, err
+	if v.rootPinsClosed {
+		return "", nil, block.ErrPublicationClosed
 	}
-	stage := stagePrefix + ulid.NewULID()
+
+	// Register the stage.
+	stage := stageRootPrefix + v.procID + "/" + ulid.NewULID()
 	v.stages[stage] = &openStage{}
-	return stage, sync.OnceFunc(func() { v.releaseStage(stage) }), nil
+	return stage, func() { v.releaseStage(stage) }, nil
 }
 
-// releaseStage forgets a stage that wrote nothing and marks a written stage
-// for the next changing direct transaction to remove.
+// releaseStage marks a stage released, for the next changing direct
+// transaction to release its roots.
 func (v *Volume) releaseStage(stage string) {
 	unlock, _ := v.rootPinMu.Lock(context.Background())
 	defer unlock()
-	st := v.stages[stage]
-	switch {
-	case st == nil:
-	case st.written:
+	if st := v.stages[stage]; st != nil {
 		st.released = true
-	default:
-		delete(v.stages, stage)
 	}
 }
 
-// useStage returns the process owner of an open stage, recording a write
-// through it when write is set. It returns block.ErrStageReleased after the
-// stage is released: a released stage's edges would hold blocks that nothing
-// can reach or sweep.
-func (v *Volume) useStage(ctx context.Context, stage string, write bool) (string, error) {
-	// Find the stage under the Volume pin lock.
+// useStage returns block.ErrStageReleased unless the stage is open: a released
+// stage's roots would hold blocks nothing reaches.
+func (v *Volume) useStage(ctx context.Context, stage string) error {
+	// Read the stage under the pin lock.
 	unlock, err := v.rootPinMu.Lock(ctx)
 	if err != nil {
-		return "", err
+		return err
 	}
 	defer unlock()
-	st := v.stages[stage]
-	if st == nil || st.released {
-		return "", block.ErrStageReleased
+	if st := v.stages[stage]; st == nil || st.released {
+		return block.ErrStageReleased
 	}
-	if write {
-		st.written = true
-	}
-	return v.rootPinOwner, nil
+	return nil
 }
 
-// claimStage hangs an open stage under its process owner in the transaction
-// that writes through it, unless an earlier commit already did.
-func (v *Volume) claimStage(ctx context.Context, rg *block_gc.RefGraph, stage string) error {
-	// Record the write, then add the edges a committed write left out.
-	owner, err := v.useStage(ctx, stage, true)
-	if err != nil {
-		return err
-	}
-	held, err := rg.HasIncomingRefs(ctx, stage)
-	if err != nil || held {
-		return err
-	}
-	return rg.ApplyRefBatch(ctx, []block_gc.RefEdge{
-		{Subject: block_gc.NodeGCRoot, Object: owner},
-		{Subject: owner, Object: stage},
-	}, nil)
+// stageRootName returns the name of the root through which stage holds ref.
+func stageRootName(stage string, ref *block.BlockRef) string {
+	return stage + "/" + ref.MarshalString()
 }
 
-// releasedStagesLocked returns the released stages, and appends to removes the
-// edges a direct transaction removes to drop them. The caller holds rootPinMu.
-func (v *Volume) releasedStagesLocked(removes []block_gc.RefEdge) ([]string, []block_gc.RefEdge) {
-	var stages []string
-	for stage, st := range v.stages {
-		if st.released {
-			stages = append(stages, stage)
-			removes = append(removes, block_gc.RefEdge{Subject: v.rootPinOwner, Object: stage})
+// listStageRoots returns a release of every root stage holds in p.
+func listStageRoots(ctx context.Context, p *physicalTx, stage string) ([]block.NamedRoot, error) {
+	var releases []block.NamedRoot
+	err := p.rec.ListRoots(ctx, "", stage+"/", func(name string, entry *block_gc.RootEntry) error {
+		ref, _, err := block_gc.ParseBlockKey(entry.GetRef())
+		if err != nil {
+			return err
 		}
-	}
-	return stages, removes
+		releases = append(releases, block.NamedRoot{Name: name, Previous: ref})
+		return nil
+	})
+	return releases, err
 }
 
-// PrepareStagedBlock writes a block owned by an open stage, together with the
-// stage's ownership edge. It returns block.ErrStageReleased after the stage is
-// released.
-func (v *Volume) PrepareStagedBlock(ctx context.Context, stage string, data []byte, opts *block.PutOpts) (ref *block.BlockRef, existed bool, err error) {
-	// Note a block without references, then write it under the stage.
+// PrepareStagedBlock stores a block the open stage holds. It returns
+// block.ErrStageReleased after the stage is released.
+func (v *Volume) PrepareStagedBlock(ctx context.Context, stage string, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	// Name the block, then store it under the stage.
 	putOpts, _ := block.PutOptsWithoutSync(opts)
 	v.noteUnknownRefs(putStaged, data, putOpts)
-	err = v.prepareOwned(ctx, v.withDirectAtomic, stage, len(data), v.claimStage, func(store block.StoreOps) error {
-		ref, existed, err = store.PutBlock(ctx, data, putOpts)
-		return err
-	})
+	entry, err := putEntry(data, putOpts, v.GetHashType())
+	if err != nil {
+		return nil, false, err
+	}
+	existed, err := v.prepareStaged(ctx, stage, []*block.PutBatchEntry{entry})
 
 	// Count the block it stored, or the refusal.
 	if err == nil {
-		v.countPut(putStaged, len(data), existed)
+		v.countPut(putStaged, len(data), existed[0])
+		return entry.Ref, existed[0], nil
 	}
 	v.countRefused(putStaged, err)
-	return ref, existed, err
+	return nil, false, err
 }
 
-// PrepareStagedBlockBatch writes a batch owned by an open stage.
-func (v *Volume) PrepareStagedBlockBatch(ctx context.Context, stage string, entries []*block.PutBatchEntry) (existed []bool, err error) {
+// PrepareStagedBlockBatch stores a batch the open stage holds.
+func (v *Volume) PrepareStagedBlockBatch(ctx context.Context, stage string, entries []*block.PutBatchEntry) ([]bool, error) {
 	// An empty batch writes nothing.
 	if len(entries) == 0 {
 		return nil, nil
 	}
 
-	// Note blocks without references, then write the batch under the stage.
+	// Store the batch under the stage and count the blocks it stored, or the
+	// refusal.
 	v.noteUnknownRefsBatch(putStaged, entries)
-	err = v.prepareOwned(ctx, v.withDirectAtomic, stage, batchBytes(entries), v.claimStage, func(store block.StoreOps) error {
-		existed, err = store.PutBlockBatch(ctx, entries)
-		return err
-	})
-
-	// Count the blocks it stored, or the refusal.
+	existed, err := v.prepareStaged(ctx, stage, entries)
 	if err == nil {
 		v.countPutBatch(putStaged, entries, existed)
 	}
@@ -154,40 +123,168 @@ func (v *Volume) PrepareStagedBlockBatch(ctx context.Context, stage string, entr
 	return existed, err
 }
 
-// HoldStageCompleteRoots reports which roots have a completion proof, durable
-// or pending, and makes the open stage own each of them in the same
-// transaction. A sweep removes a proof together with its root, so a held root
-// keeps the whole graph its proof names until the stage is released.
-func (v *Volume) HoldStageCompleteRoots(ctx context.Context, stage string, refs []*block.BlockRef) ([]bool, error) {
-	complete := make([]bool, len(refs))
-	err := v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) error {
-		// Require the stage to be open.
-		if _, err := v.useStage(ctx, stage, false); err != nil {
+// prepareStaged stores entries in one transaction. The stage takes a root on
+// each entry it does not hold yet and releases its root on each block an
+// entry names, whose holder the entry now is: so a stage holds the tops of
+// what it built, and a block written through it stays held from its put on.
+func (v *Volume) prepareStaged(ctx context.Context, stage string, entries []*block.PutBatchEntry) ([]bool, error) {
+	// Require an open stage, atomic publication, room above the disk reserve
+	// and the child list of every block.
+	if err := v.useStage(ctx, stage); err != nil {
+		return nil, err
+	}
+	if !v.SupportsAtomicPublication() {
+		return nil, block.ErrAtomicPublicationUnsupported
+	}
+	if err := v.checkReserve(ctx, batchBytes(entries)); err != nil {
+		return nil, err
+	}
+	if err := requireRefsKnown(entries); err != nil {
+		return nil, err
+	}
+
+	// Name every entry, so the stage can name its roots.
+	for _, entry := range entries {
+		if entry != nil && !entry.Tombstone && entry.Ref.GetEmpty() {
+			ref, err := block.BuildBlockRef(entry.Data, &block.PutOpts{HashType: v.GetHashType()})
+			if err != nil {
+				return nil, err
+			}
+			entry.Ref = ref
+		}
+	}
+
+	// Store the entries and move the stage's roots in one transaction.
+	var existed []bool
+	err := v.withDirectAtomic(ctx, func(p *physicalTx) error {
+		roots, err := v.stageMoves(ctx, p, stage, entries)
+		if err != nil {
 			return err
 		}
+		existed, err = v.land(ctx, p, "", entries, roots)
+		return err
+	})
+	return existed, err
+}
 
-		// Hold each root whose proof is in the graph or pending its write.
-		var adds []block_gc.RefEdge
+// stageMoves returns the root moves that hold each entry under stage and
+// release the stage's roots on the blocks the entries name.
+func (v *Volume) stageMoves(ctx context.Context, p *physicalTx, stage string, entries []*block.PutBatchEntry) ([]block.NamedRoot, error) {
+	// Find the entries and the blocks they name.
+	expires := v.leaseExpiry()
+	put := make(map[string]*block.BlockRef)
+	named := make(map[string]*block.BlockRef)
+	for _, entry := range entries {
+		if entry == nil || entry.Tombstone || len(entry.Data) == 0 {
+			continue
+		}
+		put[stageRootName(stage, entry.Ref)] = entry.Ref
+		for _, child := range entry.Refs {
+			named[stageRootName(stage, child)] = child
+		}
+	}
+
+	// Hold each entry the stage does not hold yet, unless another entry
+	// names it.
+	var roots []block.NamedRoot
+	for name, ref := range put {
+		if _, ok := named[name]; ok {
+			continue
+		}
+		entry, err := p.rec.GetRoot(ctx, "", name)
+		if err != nil {
+			return nil, err
+		}
+		if entry == nil {
+			roots = append(roots, block.NamedRoot{Name: name, Ref: ref, Expires: expires})
+		}
+	}
+
+	// Release the stage's roots on the named blocks.
+	for name, ref := range named {
+		entry, err := p.rec.GetRoot(ctx, "", name)
+		if err != nil {
+			return nil, err
+		}
+		if entry != nil {
+			roots = append(roots, block.NamedRoot{Name: name, Previous: ref})
+		}
+	}
+	return roots, nil
+}
+
+// ReleaseStageRoots releases the open stage's roots on refs in one
+// transaction, once a parent written outside the stage holds them. The stage
+// stays open.
+func (v *Volume) ReleaseStageRoots(ctx context.Context, stage string, refs []*block.BlockRef) error {
+	return v.withDirectAtomic(ctx, func(p *physicalTx) error {
+		// Find the stage roots held on refs.
+		var releases []block.NamedRoot
+		for _, ref := range refs {
+			if ref.GetEmpty() {
+				continue
+			}
+			name := stageRootName(stage, ref)
+			entry, err := p.rec.GetRoot(ctx, "", name)
+			if err != nil {
+				return err
+			}
+			if entry != nil {
+				releases = append(releases, block.NamedRoot{Name: name, Previous: ref})
+			}
+		}
+
+		// Release them.
+		if len(releases) == 0 {
+			return nil
+		}
+		_, err := v.land(ctx, p, "", nil, releases)
+		return err
+	})
+}
+
+// HoldStageCompleteRoots reports which roots have a completion proof, durable
+// or pending, and holds each of them under the open stage in the same
+// transaction. The collector frees a proof with its root, so a held root
+// keeps the whole graph its proof names until the stage releases it.
+func (v *Volume) HoldStageCompleteRoots(ctx context.Context, stage string, refs []*block.BlockRef) ([]bool, error) {
+	// Require an open stage.
+	if err := v.useStage(ctx, stage); err != nil {
+		return nil, err
+	}
+
+	// Check the proofs and hold the proved roots in one transaction.
+	complete := make([]bool, len(refs))
+	err := v.withDirectAtomic(ctx, func(p *physicalTx) error {
+		// Hold each root whose proof is recorded or pending.
+		expires := v.leaseExpiry()
+		var holds []block.NamedRoot
 		for i, ref := range refs {
 			if ref.GetEmpty() {
 				continue
 			}
-			ok, err := v.rootCompleteTx(ctx, blocks, rg, ref)
+			ok, err := v.rootCompleteTx(ctx, p, ref)
+			if err != nil || !ok {
+				if err != nil {
+					return err
+				}
+				continue
+			}
+			complete[i] = true
+			name := stageRootName(stage, ref)
+			entry, err := p.rec.GetRoot(ctx, "", name)
 			if err != nil {
 				return err
 			}
-			if ok {
-				complete[i] = true
-				adds = append(adds, block_gc.RefEdge{Subject: stage, Object: block_gc.BlockIRI(ref)})
+			if entry == nil {
+				holds = append(holds, block.NamedRoot{Name: name, Ref: ref, Expires: expires})
 			}
 		}
-		if len(adds) == 0 {
+		if len(holds) == 0 {
 			return nil
 		}
-		if err := v.claimStage(ctx, rg, stage); err != nil {
-			return err
-		}
-		return rg.ApplyRefBatch(ctx, adds, nil)
+		_, err := v.land(ctx, p, "", nil, holds)
+		return err
 	})
 	if err != nil {
 		return nil, err

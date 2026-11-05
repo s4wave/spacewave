@@ -6,7 +6,6 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
@@ -32,24 +31,18 @@ type Volume struct {
 
 	// inner is the underlying volume.
 	inner volume.Volume
-	// refGraph is the ref graph of the view, or nil if the volume has none.
-	refGraph *refGraph
 }
 
 // NewVolume constructs a view of inner limited to the IDs under prefix. The
 // view does not own inner: closing the view leaves inner open.
 func NewVolume(inner volume.Volume, prefix string) *Volume {
-	v := &Volume{
+	return &Volume{
 		blockStore:  &blockStore{ops: inner},
 		bucketStore: &bucketStore{inner: inner, prefix: prefix},
 		objectStore: &objectStore{inner: inner, prefix: prefix},
 		coordinator: &coordinator{inner: inner, prefix: prefix},
 		inner:       inner,
 	}
-	if rg := inner.GetRefGraph(); rg != nil {
-		v.refGraph = &refGraph{inner: rg, prefix: prefix}
-	}
-	return v
 }
 
 // GetID returns the ID of the underlying volume.
@@ -68,14 +61,6 @@ func (v *Volume) GetPeer(ctx context.Context, withPriv bool) (peer.Peer, error) 
 		return nil, peer.ErrNoPrivKey
 	}
 	return v.inner.GetPeer(ctx, false)
-}
-
-// GetRefGraph returns the ref graph of the view, or nil if the volume has none.
-func (v *Volume) GetRefGraph() block_gc.RefGraphOps {
-	if v.refGraph == nil {
-		return nil
-	}
-	return v.refGraph
 }
 
 // GetStorageStats returns the storage usage of the whole underlying volume.

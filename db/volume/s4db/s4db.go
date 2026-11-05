@@ -80,7 +80,7 @@ func NewVolume(ctx context.Context, le *logrus.Entry, conf *Config) (*Volume, er
 
 	// A migration rewrites keys that another process may still read in the
 	// old layout, so it waits until this process holds the file alone.
-	stale, err := volume_kvtx.NeedsFormatUpgrade(ctx, db, keys, conf.GetStoreConfig().GetUpgradeSharedCounts())
+	stale, err := volume_kvtx.NeedsFormatUpgrade(ctx, db, keys)
 	if err == nil && stale {
 		var shared bool
 		shared, err = db.Shared()

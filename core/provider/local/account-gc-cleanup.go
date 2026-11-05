@@ -5,7 +5,7 @@ import (
 
 	provider_gccleanup "github.com/s4wave/spacewave/core/provider/gccleanup"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
-	kvtx_volume "github.com/s4wave/spacewave/db/volume/common/kvtx"
+	"github.com/s4wave/spacewave/db/volume"
 	"github.com/sirupsen/logrus"
 )
 
@@ -30,54 +30,42 @@ func (a *ProviderAccount) runGCCleanup(ctx context.Context) error {
 	return a.gcCleanupRunner.Run(ctx)
 }
 
-func (a *ProviderAccount) collectGCRootlessBlocks(ctx context.Context) (*block_gc.Stats, error) {
-	// Use the installed collector when a test replaces the volume sweep.
+// collectGCRootlessBlocks runs one collection pass of the account's volume,
+// which frees what no held named root reaches.
+func (a *ProviderAccount) collectGCRootlessBlocks(ctx context.Context) (block_gc.CollectResult, error) {
+	// Use the installed collector when a test replaces the volume pass.
 	if a.gcCleanupCollect != nil {
 		return a.gcCleanupCollect(ctx)
 	}
 
-	// Refuse to sweep while the block stores write to an SQL primary, whose
-	// blocks reference volume blocks without graph edges.
+	// Refuse to collect while the block stores write to an SQL primary, whose
+	// blocks reference volume blocks without child lists.
 	if a.sqlPrimary.Load() {
 		a.le.Warn("skipping gc cleanup while block stores write to an SQL primary")
-		return nil, nil
+		return block_gc.CollectResult{}, nil
 	}
 
-	// Sweep rootless blocks through the volume ref graph when one is present.
-	kvVol, ok := a.vol.(kvtx_volume.KvtxVolume)
+	// Collect through the volume when it collects.
+	collector, ok := a.vol.(volume.Collector)
 	if !ok {
-		return nil, nil
+		return block_gc.CollectResult{}, nil
 	}
-	rg := kvVol.GetRefGraph()
-	if rg == nil {
-		return nil, nil
-	}
-	return block_gc.NewCollector(rg, a.vol, nil).Collect(ctx)
+	return collector.Collect(ctx)
 }
 
+// removeSharedObjectGCRefs releases every named root of a deleted shared
+// object's bucket, so the collector frees what only they reached.
 func (a *ProviderAccount) removeSharedObjectGCRefs(
 	ctx context.Context,
-	providerID string,
+	_ string,
 	bucketID string,
 	le *logrus.Entry,
 ) {
-	// Resolve the volume ref graph, or return when this volume has none.
-	kvVol, ok := a.vol.(kvtx_volume.KvtxVolume)
+	releaser, ok := a.vol.(volume.BucketReleaser)
 	if !ok {
 		return
 	}
-	rg := kvVol.GetRefGraph()
-	if rg == nil {
-		return
-	}
-
-	// Drop the node and provider GC refs for the deleted shared-object bucket.
-	gcOps := block_gc.NewGCStoreOps(a.vol, rg)
-	bucketIRI := block_gc.BucketIRI(bucketID)
-	if err := gcOps.RemoveGCRef(ctx, block_gc.NodeGCRoot, bucketIRI); err != nil {
-		le.WithError(err).Warn("failed to remove gc root ref for deleted sobject bucket")
-	}
-	if err := gcOps.RemoveGCRef(ctx, ProviderIRI(providerID), bucketIRI); err != nil {
-		le.WithError(err).Warn("failed to remove gc ref for deleted sobject")
+	if err := releaser.ReleaseBucket(ctx, bucketID); err != nil {
+		le.WithError(err).Warn("failed to release the deleted shared object's roots")
 	}
 }

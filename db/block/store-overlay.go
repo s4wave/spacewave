@@ -473,24 +473,6 @@ func (o *StoreOverlay) Sync(ctx context.Context) (bool, error) {
 	return upperFenced && lowerFenced, err
 }
 
-// BeginDeferFlush forwards the GC defer-flush scope to upper and lower stores.
-func (o *StoreOverlay) BeginDeferFlush() {
-	BeginDeferFlush(o.upper)
-	BeginDeferFlush(o.lower)
-}
-
-// EndDeferFlush forwards closing the GC defer-flush scope to upper and lower stores.
-func (o *StoreOverlay) EndDeferFlush(ctx context.Context) error {
-	var err error
-	if uerr := EndDeferFlush(ctx, o.upper); uerr != nil {
-		err = uerr
-	}
-	if lerr := EndDeferFlush(ctx, o.lower); lerr != nil && err == nil {
-		err = lerr
-	}
-	return err
-}
-
 // _ is a type assertion
 var (
 	_ StoreOps   = (*StoreOverlay)(nil)

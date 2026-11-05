@@ -29,7 +29,6 @@ import (
 	packfile_order "github.com/s4wave/spacewave/db/packfile/order"
 	packfile_store "github.com/s4wave/spacewave/db/packfile/store"
 	"github.com/s4wave/spacewave/db/volume"
-	kvtx_volume "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 )
@@ -223,16 +222,6 @@ func (b *BlockStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block
 // Sync forwards the durability barrier to the inner store.
 func (b *BlockStore) Sync(ctx context.Context) (bool, error) {
 	return b.store.Sync(ctx)
-}
-
-// BeginDeferFlush forwards the GC ref-batch scope to the inner store.
-func (b *BlockStore) BeginDeferFlush() {
-	block.BeginDeferFlush(b.store)
-}
-
-// EndDeferFlush forwards the GC ref-batch scope to the inner store.
-func (b *BlockStore) EndDeferFlush(ctx context.Context) error {
-	return block.EndDeferFlush(ctx, b.store)
 }
 
 // ForceSync flushes any pending dirty blocks to the cloud immediately.
@@ -524,10 +513,11 @@ func (t *bstoreTracker) registerPublicReadCdnRootRefresh(
 	}
 }
 
-// getRefGraph returns the volume-owned pack ordering graph when supported.
-func (t *bstoreTracker) getRefGraph() packfile_order.RefGraph {
-	if kvVol, ok := t.a.vol.(kvtx_volume.KvtxVolume); ok {
-		return kvVol.GetRefGraph()
+// getRefGraph returns the volume's child lists, which order packs, when the
+// volume keeps them.
+func (t *bstoreTracker) getRefGraph() packfile_order.ChildLists {
+	if lists, ok := t.a.vol.(packfile_order.ChildLists); ok {
+		return lists
 	}
 	return nil
 }

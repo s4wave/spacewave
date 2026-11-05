@@ -151,7 +151,9 @@ func TestEngineRetentionPlateausAndPreservesReaders(t *testing.T) {
 			if stats.GetBlockCount() != records {
 				t.Fatalf("fixed live state changed record count: %d -> %d", records, stats.GetBlockCount())
 			}
-			if currentLiveBytes > liveBytes {
+			// Counters such as the journal's sequence numbers gain a byte as
+			// they cross a varint boundary; anything more is accumulation.
+			if currentLiveBytes > liveBytes+16 {
 				t.Fatalf("fixed live state grew: bytes %d -> %d", liveBytes, currentLiveBytes)
 			}
 		}

@@ -3,6 +3,7 @@ package provider_transfer_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -362,20 +363,29 @@ func TestLocalMergeBlockCopy(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Write three test blocks.
+	// Write three test blocks, each held by a root of the store, so the
+	// transfer finds them as it finds a Space's blocks.
 	testData := [][]byte{
 		[]byte("block-data-one"),
 		[]byte("block-data-two"),
 		[]byte("block-data-three"),
 	}
 	var blockRefs []string
-	for _, data := range testData {
-		ref, _, err := srcBS.PutBlock(ctx, data, &block.PutOpts{RefsKnown: true})
+	var entries []*block.PutBatchEntry
+	var roots []block.NamedRoot
+	for i, data := range testData {
+		ref, err := block.BuildBlockRef(data, nil)
 		if err != nil {
 			srcBSRel()
 			t.Fatal(err)
 		}
+		entries = append(entries, &block.PutBatchEntry{Ref: ref, Data: data, RefsKnown: true})
+		roots = append(roots, block.NamedRoot{Name: fmt.Sprintf("test/%d", i), Ref: ref})
 		blockRefs = append(blockRefs, ref.MarshalString())
+	}
+	if err := srcBS.SetRoots(ctx, entries, roots); err != nil {
+		srcBSRel()
+		t.Fatal(err)
 	}
 	srcBSRel()
 

@@ -7,8 +7,8 @@ import (
 	"github.com/s4wave/spacewave/db/tx"
 )
 
-// bucketRootVolume is a volume that owns named roots, reader pins and stages
-// in its block ownership graph.
+// bucketRootVolume is a volume that keeps named roots, reader pins and stages
+// in its liveness records.
 type bucketRootVolume interface {
 	// SupportsAtomicPublication reports whether bytes and ownership share one
 	// physical transaction. The other methods require it.
@@ -33,8 +33,6 @@ type bucketRootVolume interface {
 	// PrepareStagedBlockBatch writes a batch of blocks the stage owns and reports
 	// which of them were stored before.
 	PrepareStagedBlockBatch(context.Context, string, []*block.PutBatchEntry) ([]bool, error)
-	// ReleaseBucketRoots drops a bucket's staging edges to roots.
-	ReleaseBucketRoots(context.Context, string, []*block.BlockRef) error
 	// ReleaseStageRoots drops a stage's edges to roots.
 	ReleaseStageRoots(context.Context, string, []*block.BlockRef) error
 	// HoldStageCompleteRoots reports which roots have a completion proof and
@@ -60,7 +58,7 @@ func (b *bucketHandle) RootsComplete(ctx context.Context, refs []*block.BlockRef
 // SupportsRootRetention requires ownership and bytes in one physical transaction.
 func (b *bucketHandle) SupportsRootRetention() bool {
 	v, ok := b.v.(bucketRootVolume)
-	return ok && b.readOps == nil && v.SupportsAtomicPublication() && b.gcOps != nil
+	return ok && b.readOps == nil && v.SupportsAtomicPublication()
 }
 
 // KeepsHoldCounts reports whether the volume keeps shared counts.
@@ -123,16 +121,13 @@ func (b *bucketHandle) OpenStage(ctx context.Context) (block.StoreOps, func(), e
 	return staged, release, nil
 }
 
-// ReleaseRoots drops the staging ownership of roots held by the owner of this
-// handle's writes: its stage on a staged handle, otherwise its bucket.
+// ReleaseRoots releases the stage's roots on refs on a staged handle. A
+// bucket's own writes hold nothing, so it releases nothing.
 func (b *bucketHandle) ReleaseRoots(ctx context.Context, refs []*block.BlockRef) error {
-	if !b.SupportsRootRetention() {
+	if !b.SupportsRootRetention() || b.stage == "" {
 		return nil
 	}
-	if b.stage != "" {
-		return b.v.(bucketRootVolume).ReleaseStageRoots(ctx, b.stage, refs)
-	}
-	return b.v.(bucketRootVolume).ReleaseBucketRoots(ctx, b.t.bucketID, refs)
+	return b.v.(bucketRootVolume).ReleaseStageRoots(ctx, b.stage, refs)
 }
 
 // HoldCompleteRoots reports which roots have a completion proof and makes this

@@ -90,51 +90,6 @@ var (
 		"Length of the values the volume's storage stored outside its index, by key family, since it opened.",
 		[]string{volumeLabel, "family"}, nil,
 	)
-	volumeDeadlistsCheckedDesc = prometheus.NewDesc(
-		"spacewave_volume_deadlists_checked_total",
-		"Due deadlist records the volume's collector checked against its mark, since it opened.",
-		[]string{volumeLabel}, nil,
-	)
-	volumeDeadlistLivePagesDesc = prometheus.NewDesc(
-		"spacewave_volume_deadlist_live_pages_total",
-		"Pages an applied deadlist record would free that the collector's mark reached, since the volume opened; any is a deadlist error.",
-		[]string{volumeLabel}, nil,
-	)
-	volumeDeadlistLeakedPagesDesc = prometheus.NewDesc(
-		"spacewave_volume_deadlist_leaked_pages_total",
-		"Pages an applied deadlist record kept alive that the collector's mark did not reach, since the volume opened.",
-		[]string{volumeLabel}, nil,
-	)
-	volumeDeadlistCountUnderflowsDesc = prometheus.NewDesc(
-		"spacewave_volume_deadlist_count_underflows_total",
-		"Shared count changes an applied deadlist record made that would take a count below zero, since the volume opened; any is an error.",
-		[]string{volumeLabel}, nil,
-	)
-	volumeReleasesResolvedDesc = prometheus.NewDesc(
-		"spacewave_volume_releases_resolved_total",
-		"Shared count releases the volume's collector resolved, since it opened.",
-		[]string{volumeLabel}, nil,
-	)
-	volumeReleaseFreedBlocksDesc = prometheus.NewDesc(
-		"spacewave_volume_release_freed_blocks_total",
-		"Blocks resolved releases freed, since the volume opened.",
-		[]string{volumeLabel}, nil,
-	)
-	volumeReleaseLiveBlocksDesc = prometheus.NewDesc(
-		"spacewave_volume_release_live_blocks_total",
-		"Blocks resolved releases freed that the collector's next mark reached, since the volume opened; any is an error in the shared counts.",
-		[]string{volumeLabel}, nil,
-	)
-	volumeReleaseUnderflowsDesc = prometheus.NewDesc(
-		"spacewave_volume_release_underflows_total",
-		"Releases beyond a block's shared count and the one that freed it, since the volume opened; any means a holder was never counted.",
-		[]string{volumeLabel}, nil,
-	)
-	volumeRevivedPutsDesc = prometheus.NewDesc(
-		"spacewave_volume_revived_puts_total",
-		"Entries marked as already counted that a put found absent and stored afresh, since the volume opened; any is an error in the writer's proof.",
-		[]string{volumeLabel}, nil,
-	)
 	volumeBuildWaitSecondsDesc = prometheus.NewDesc(
 		"spacewave_volume_build_wait_seconds_total",
 		"Time the volume's background commits waited for its storage's checkpoint build, since it opened; user commits never wait.",
@@ -158,9 +113,6 @@ func (volumeCollector) Describe(ch chan<- *prometheus.Desc) {
 		volumePublicationPendingDesc, volumePublicationPendingBytesDesc, volumeWriteReserveDesc,
 		volumeReserveBytesDesc, volumePutBlocksDesc, volumePutBytesDesc, volumePutExistingDesc,
 		volumePutRefusedDesc, volumeValueWrittenBytesDesc, volumeValueFreedBytesDesc,
-		volumeDeadlistsCheckedDesc, volumeDeadlistLivePagesDesc, volumeDeadlistLeakedPagesDesc,
-		volumeDeadlistCountUnderflowsDesc, volumeReleasesResolvedDesc, volumeReleaseFreedBlocksDesc,
-		volumeReleaseLiveBlocksDesc, volumeReleaseUnderflowsDesc, volumeRevivedPutsDesc,
 		volumeBuildWaitSecondsDesc,
 	} {
 		ch <- d
@@ -197,19 +149,6 @@ func collectFlows(ch chan<- prometheus.Metric, f *volume.VolumeFlows) {
 		ch <- prometheus.MustNewConstMetric(volumeValueFreedBytesDesc, prometheus.CounterValue, float64(v.Freed), id, v.Family)
 	}
 
-	// Report the deadlist checks.
-	ch <- prometheus.MustNewConstMetric(volumeDeadlistsCheckedDesc, prometheus.CounterValue, float64(f.DeadlistsChecked), id)
-	ch <- prometheus.MustNewConstMetric(volumeDeadlistLivePagesDesc, prometheus.CounterValue, float64(f.DeadlistLivePages), id)
-	ch <- prometheus.MustNewConstMetric(volumeDeadlistLeakedPagesDesc, prometheus.CounterValue, float64(f.DeadlistLeakedPages), id)
-	ch <- prometheus.MustNewConstMetric(volumeDeadlistCountUnderflowsDesc, prometheus.CounterValue, float64(f.DeadlistCountUnderflows), id)
-
-	// Report the shared count releases.
-	ch <- prometheus.MustNewConstMetric(volumeReleasesResolvedDesc, prometheus.CounterValue, float64(f.ReleasesResolved), id)
-	ch <- prometheus.MustNewConstMetric(volumeReleaseFreedBlocksDesc, prometheus.CounterValue, float64(f.ReleaseFreedBlocks), id)
-	ch <- prometheus.MustNewConstMetric(volumeReleaseLiveBlocksDesc, prometheus.CounterValue, float64(f.ReleaseLiveBlocks), id)
-	ch <- prometheus.MustNewConstMetric(volumeReleaseUnderflowsDesc, prometheus.CounterValue, float64(f.ReleaseUnderflows), id)
-	ch <- prometheus.MustNewConstMetric(volumeRevivedPutsDesc, prometheus.CounterValue, float64(f.RevivedPuts), id)
-
 	// Report the background commits' wait for a checkpoint.
 	ch <- prometheus.MustNewConstMetric(volumeBuildWaitSecondsDesc, prometheus.CounterValue, f.BuildWait.Seconds(), id)
 }
@@ -218,7 +157,7 @@ func collectFlows(ch chan<- prometheus.Metric, f *volume.VolumeFlows) {
 func collectVolume(ch chan<- prometheus.Metric, h *volume.VolumeHealth, now time.Time) {
 	// Report the phase, one series for each named phase.
 	id := h.GetVolumeId()
-	for phase := volume.VolumeGCPhase_VOLUME_GC_PHASE_IDLE; phase <= volume.VolumeGCPhase_VOLUME_GC_PHASE_MAINTENANCE; phase++ {
+	for _, phase := range gcPhases {
 		ch <- prometheus.MustNewConstMetric(volumeGCPhaseDesc, prometheus.GaugeValue, boolValue(h.GetGcPhase() == phase), id, gcPhaseName(phase))
 	}
 	ch <- prometheus.MustNewConstMetric(volumeGCPhaseSecondsDesc, prometheus.GaugeValue, now.Sub(h.GetGcPhaseStart().AsTime()).Seconds(), id)
@@ -238,6 +177,15 @@ func collectVolume(ch chan<- prometheus.Metric, h *volume.VolumeHealth, now time
 	ch <- prometheus.MustNewConstMetric(volumeFreeDiskBytesDesc, prometheus.GaugeValue, float64(h.GetFreeDiskBytes()), id)
 	ch <- prometheus.MustNewConstMetric(volumeReserveBytesDesc, prometheus.GaugeValue, float64(h.GetReserveBytes()), id)
 	ch <- prometheus.MustNewConstMetric(volumeSizesAgeSecondsDesc, prometheus.GaugeValue, now.Sub(h.GetSizesAt().AsTime()).Seconds(), id)
+}
+
+// gcPhases are the named collection phases, one series each.
+var gcPhases = []volume.VolumeGCPhase{
+	volume.VolumeGCPhase_VOLUME_GC_PHASE_IDLE,
+	volume.VolumeGCPhase_VOLUME_GC_PHASE_NET,
+	volume.VolumeGCPhase_VOLUME_GC_PHASE_SWEEP,
+	volume.VolumeGCPhase_VOLUME_GC_PHASE_MARK,
+	volume.VolumeGCPhase_VOLUME_GC_PHASE_MAINTENANCE,
 }
 
 // gcPhaseName returns the phase label of phase, such as "mark".

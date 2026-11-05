@@ -25,10 +25,6 @@ type SwitchConfig struct {
 	// source's upload and eviction records, and writes fresh upload markers
 	// under it.
 	WritebackPrefix []byte
-	// OmitGraph leaves out the reference graph, so the destination's
-	// collector starts with an empty graph. The packed blocks the graph
-	// described are in packs, which no collector deletes.
-	OmitGraph bool
 	// SkipBlocks seeks past the whole block range without checking each block
 	// against the logs. Use it only when the logs cover the range end to end,
 	// as a finished sharded Pack run's do, and nothing wrote the source since:

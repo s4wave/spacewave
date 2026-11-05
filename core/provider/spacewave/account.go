@@ -614,8 +614,8 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		acc.refreshSelfRejoinSweepState()
 	}
 	acc.wsTracker.onAccountWasDeleted = func() {
-		// Drop the account's GC reference and clean up its storage.
-		acc.removeProviderAccountGCRef(ctx, le)
+		// Release the account's roots and clean up its storage.
+		acc.releaseAccountRoots(ctx, le)
 		acc.triggerGCCleanup()
 
 		// Set account status to DELETED and broadcast so Watch loops see it.

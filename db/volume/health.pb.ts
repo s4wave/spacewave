@@ -24,31 +24,28 @@ export enum VolumeGCPhase {
   VOLUME_GC_PHASE_IDLE = 1,
 
   /**
-   * VOLUME_GC_PHASE_NODES sweeps the nodes that lost their last reference.
-   */
-  VOLUME_GC_PHASE_NODES = 2,
-
-  /**
-   * VOLUME_GC_PHASE_MARK marks the blocks the roots reach.
+   * VOLUME_GC_PHASE_MARK walks from the named roots through child lists, for
+   * an audit or an adoption.
    */
   VOLUME_GC_PHASE_MARK = 3,
 
   /**
-   * VOLUME_GC_PHASE_SWEEP removes the blocks the mark did not reach.
+   * VOLUME_GC_PHASE_SWEEP frees the queued blocks that lost their last
+   * holder.
    */
   VOLUME_GC_PHASE_SWEEP = 4,
 
   /**
-   * VOLUME_GC_PHASE_PROMOTE records a complete mark, so minor passes can mark
-   * only the blocks written after it.
-   */
-  VOLUME_GC_PHASE_PROMOTE = 5,
-
-  /**
-   * VOLUME_GC_PHASE_MAINTENANCE lets the storage reclaim the space of swept
+   * VOLUME_GC_PHASE_MAINTENANCE lets the storage reclaim the space of freed
    * blocks.
    */
   VOLUME_GC_PHASE_MAINTENANCE = 6,
+
+  /**
+   * VOLUME_GC_PHASE_NET nets the journal into the count records and the free
+   * queue.
+   */
+  VOLUME_GC_PHASE_NET = 7,
 }
 
 export const VolumeGCPhase_Enum = /* @__PURE__ */ createEnumType(
@@ -56,11 +53,10 @@ export const VolumeGCPhase_Enum = /* @__PURE__ */ createEnumType(
   [
     [0, 'VOLUME_GC_PHASE_UNKNOWN'],
     [1, 'VOLUME_GC_PHASE_IDLE'],
-    [2, 'VOLUME_GC_PHASE_NODES'],
     [3, 'VOLUME_GC_PHASE_MARK'],
     [4, 'VOLUME_GC_PHASE_SWEEP'],
-    [5, 'VOLUME_GC_PHASE_PROMOTE'],
     [6, 'VOLUME_GC_PHASE_MAINTENANCE'],
+    [7, 'VOLUME_GC_PHASE_NET'],
   ],
 )
 

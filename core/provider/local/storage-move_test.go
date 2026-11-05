@@ -18,7 +18,6 @@ import (
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 )
 
@@ -175,8 +174,11 @@ func setupPlacedStore(ctx context.Context, t *testing.T) *placedStoreTest {
 	if err != nil {
 		t.Fatal(err)
 	}
-	bucketIRI := block_gc.BucketIRI(BlockStoreBucketID(acc.GetProviderID(), acc.GetAccountID(), blockStoreID))
-	if err := acc.GetVolume().GetRefGraph().AddRef(ctx, bucketIRI, block_gc.BlockIRI(rootRef)); err != nil {
+	bucketID := BlockStoreBucketID(acc.GetProviderID(), acc.GetAccountID(), blockStoreID)
+	roots := acc.GetVolume().(interface {
+		SetBucketRoots(context.Context, string, []*block.PutBatchEntry, []block.NamedRoot) error
+	})
+	if err := roots.SetBucketRoots(ctx, bucketID, nil, []block.NamedRoot{{Name: "world", Ref: rootRef}}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -245,12 +247,15 @@ func (p *placedStoreTest) checkLocalGraph(ctx context.Context, t *testing.T, bs 
 			t.Fatalf("local block %s = %v; want %q", ref.MarshalString(), stored, want)
 		}
 	}
-	refs, err := p.acc.GetVolume().GetRefGraph().GetOutgoingRefs(ctx, block_gc.BlockIRI(p.rootRef))
+	lists := p.acc.GetVolume().(interface {
+		GetChildren(context.Context, *block.BlockRef) ([]*block.BlockRef, bool, error)
+	})
+	refs, listed, err := lists.GetChildren(ctx, p.rootRef)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !slices.Contains(refs, block_gc.BlockIRI(p.childRef)) {
-		t.Fatalf("root edges = %v, want the child", refs)
+	if !listed || !slices.ContainsFunc(refs, p.childRef.EqualsRef) {
+		t.Fatalf("root child list = %v listed %v, want the child", refs, listed)
 	}
 }
 
@@ -278,31 +283,27 @@ func TestMoveSpaceStorageRoundTrip(t *testing.T) {
 	p.checkLocalGraph(ctx, t, bs)
 }
 
-// TestPlacedStoreGraphCopyAfterCacheLoss loses the local blocks and edges of
-// a placed Space, then copies its graph through the store: the copy reads the
-// blocks and their edges back from the bucket.
+// TestPlacedStoreGraphCopyAfterCacheLoss loses the local blocks of a placed
+// Space, then copies its graph through the store: the copy reads the blocks
+// back from the bucket, and their child lists stay.
 func TestPlacedStoreGraphCopyAfterCacheLoss(t *testing.T) {
 	// Bound the cache-loss copy.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
 
-	// Drop the local blocks and the root edge, then copy the graph back.
+	// Drop the local blocks, then copy the graph back.
 	p := setupPlacedStore(ctx, t)
 	bs := p.loseLocalBlocks(ctx, t)
-	if _, err := p.acc.GetVolume().GetRefGraph().RemoveNodeRefs(ctx, block_gc.BlockIRI(p.rootRef), false); err != nil {
-		t.Fatal(err)
-	}
 	if err := block.CopyGraph(ctx, bs, bs.placement.local, p.rootRef, nil); err != nil {
 		t.Fatal(err)
 	}
 	p.checkLocalGraph(ctx, t, bs)
 }
 
-// TestPlacedStoreSettleAndLiveness places a Space with a settle age and
-// writes a block it then drops: the GC sweep frees it before it settles, so it
-// never reaches the bucket. The bucket reclaim keeps blocks the graph tracks
-// after their local values are gone, and drops them once a block pass sweeps
-// them. A pending-bytes cap uploads a fresh block before it settles.
+// TestPlacedStoreSettleAndLiveness places a Space with a settle age. The
+// bucket reclaim keeps the blocks the volume keeps child lists for after
+// their local values are gone, and a pending-bytes cap uploads a fresh block
+// before it settles.
 func TestPlacedStoreSettleAndLiveness(t *testing.T) {
 	// Bound the settle and liveness checks.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
@@ -311,59 +312,19 @@ func TestPlacedStoreSettleAndLiveness(t *testing.T) {
 	// Hold writes for an hour before upload.
 	p := setupPlacedStore(ctx, t)
 	p.place(ctx, t, &account_settings.BlockStoreCache{SettleSeconds: 3600})
-	bs := p.waitUpload(ctx, t, func(status UploadStatus) bool {
+	p.waitUpload(ctx, t, func(status UploadStatus) bool {
 		return status.Policy.Settle == time.Hour
 	})
 
-	// Write a block and drop it before it settles.
-	garbage, _, err := bs.PutBlock(ctx, []byte("settling garbage"), &block.PutOpts{RefsKnown: true})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if status, _ := bs.GetUploadStatus(); status.Pending != 1 {
-		t.Fatalf("pending = %d, want the settling block", status.Pending)
-	}
-	if err := bs.RmBlock(ctx, garbage); err != nil {
-		t.Fatal(err)
-	}
-
-	// Drop the local values and require the tracked blocks to stay live.
-	bs = p.loseLocalBlocks(ctx, t)
+	// Drop the local values and require the listed blocks to stay live.
+	bs := p.loseLocalBlocks(ctx, t)
 	refs := []*block.BlockRef{p.rootRef, p.childRef}
 	live, err := bs.placement.live(ctx, refs)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !slices.Equal(live, []bool{true, true}) {
-		t.Fatalf("live = %v, want both tracked blocks live", live)
-	}
-
-	// Release the root and sweep: the reclaim may now drop both, and the
-	// dropped block is gone before it settled.
-	rg := p.acc.GetVolume().GetRefGraph()
-	bucketIRI := block_gc.BucketIRI(BlockStoreBucketID(p.acc.GetProviderID(), p.acc.GetAccountID(), p.tkr.id))
-	if err := rg.RemoveRef(ctx, bucketIRI, block_gc.BlockIRI(p.rootRef)); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := block_gc.NewCollector(rg, p.acc.GetVolume(), nil).Collect(ctx); err != nil {
-		t.Fatal(err)
-	}
-	live, err = bs.placement.live(ctx, append(refs, garbage))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !slices.Equal(live, []bool{false, false, false}) {
-		t.Fatalf("live = %v, want every swept block dead", live)
-	}
-
-	// Force the short batch past the backend's pack linger: the swept block's
-	// marker clears without an upload.
-	p.place(ctx, t, &account_settings.BlockStoreCache{MaxPendingBytes: 1})
-	p.waitUpload(ctx, t, func(status UploadStatus) bool {
-		return status.Policy.Settle == 0 && status.Policy.MaxPendingBytes == 1 && status.Pending == 0
-	})
-	if n := p.bucket.count(); n != 2 {
-		t.Fatalf("bucket holds %d objects, want the 2 from setup", n)
+		t.Fatalf("live = %v, want both listed blocks live", live)
 	}
 
 	// A one-byte cap uploads a fresh block before its hour settles.
@@ -464,19 +425,7 @@ func TestPlacedStoreEviction(t *testing.T) {
 	if found, err := vol.GetBlockExists(ctx, p.rootRef); err != nil || !found {
 		t.Fatalf("refilled root on disk = %v/%v", found, err)
 	}
-	rg := vol.GetRefGraph()
-	staged, err := rg.GetUnreferencedNodes(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if slices.Contains(staged, block_gc.BlockIRI(p.rootRef)) {
-		t.Fatal("refill staged the root as a garbage candidate")
-	}
-
-	// A block pass keeps both blocks, and the refill queued the root again.
-	if _, err := block_gc.NewCollector(rg, vol, nil).Collect(ctx); err != nil {
-		t.Fatal(err)
-	}
+	// The refill keeps both blocks listed, and queued the root again.
 	p.checkLocalGraph(ctx, t, bs)
 	result, err = bs.placement.evict(ctx, math.MaxInt64)
 	if err != nil {

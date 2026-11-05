@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
@@ -144,7 +143,7 @@ func TestGCStoreOpsPreservesWrappedLowerBatchPath(t *testing.T) {
 	t.Cleanup(func() { _ = baseVol.Close() })
 	lowerBlocks := &countingBatchStore{StoreOps: baseVol}
 
-	// Wrap the volume and put a GC store in front of the overlay.
+	// Wrap the volume around the overlay.
 	upperBlocks := newCountingBatchStore()
 	overlay := block.NewOverlay(
 		ctx,
@@ -156,14 +155,8 @@ func TestGCStoreOpsPreservesWrappedLowerBatchPath(t *testing.T) {
 		nil,
 	)
 	wrapped := hydra_volume.NewVolumeBlockStore(baseVol, overlay)
-	gcOps := block_gc.NewGCStoreOpsWithParentAndTraceTask(
-		wrapped,
-		nil,
-		"bucket/test",
-		block_gc.BucketFlushTask(),
-	)
 
-	// Build two block refs for the GC batch.
+	// Build two block refs for the batch.
 	ref1, err := block.BuildBlockRef([]byte("hello"), nil)
 	if err != nil {
 		t.Fatalf("BuildBlockRef failed: %v", err)
@@ -173,8 +166,8 @@ func TestGCStoreOpsPreservesWrappedLowerBatchPath(t *testing.T) {
 		t.Fatalf("BuildBlockRef failed: %v", err)
 	}
 
-	// Write both blocks through the GC store.
-	if _, err := gcOps.PutBlockBatch(ctx, []*block.PutBatchEntry{
+	// Write both blocks through the wrapped volume.
+	if _, err := wrapped.PutBlockBatch(ctx, []*block.PutBatchEntry{
 		{Ref: ref1, Data: []byte("hello"), RefsKnown: true},
 		{Ref: ref2, Data: []byte("world"), RefsKnown: true},
 	}); err != nil {
@@ -186,9 +179,9 @@ func TestGCStoreOpsPreservesWrappedLowerBatchPath(t *testing.T) {
 		t.Fatalf("upper store should be unused in UPPER_READ_CACHE writes: batch=%d put=%d", upperBlocks.putBatchCalls, upperBlocks.putCalls)
 	}
 	if lowerBlocks.putBatchCalls != 1 {
-		t.Fatalf("expected volume batch path to be preserved through GCStoreOps, got %d batch calls", lowerBlocks.putBatchCalls)
+		t.Fatalf("expected the volume batch path to be preserved, got %d batch calls", lowerBlocks.putBatchCalls)
 	}
 	if lowerBlocks.putCalls != 0 {
-		t.Fatalf("expected no singleton PutBlock fallbacks through GCStoreOps, got %d", lowerBlocks.putCalls)
+		t.Fatalf("expected no singleton PutBlock fallbacks, got %d", lowerBlocks.putCalls)
 	}
 }

@@ -30,22 +30,6 @@ func TestKVTXBackendConformance(t *testing.T) {
 	}
 }
 
-func TestKVTXBackendGCRefGraphConformance(t *testing.T) {
-	ctx := context.Background()
-	for _, impl := range backendConformanceImpls() {
-		t.Run(impl.String(), func(t *testing.T) {
-			tree, refGraph := buildBenchKVTreeWithGC(t, impl, makeBenchKeys(128, benchKeySequential))
-			runBenchKVUpdates(t, ctx, tree, 0, 8)
-			if refGraph.applyBatches.Load() == 0 {
-				t.Fatal("expected GC/refgraph apply batch")
-			}
-			if refGraph.addRefs.Load() == 0 {
-				t.Fatal("expected GC/refgraph added refs")
-			}
-		})
-	}
-}
-
 func testBackendKeyValueCommitDiscardReopen(t *testing.T, impl KVImplType) {
 	// Create a saved KV root for commit and discard checks.
 	ctx := context.Background()

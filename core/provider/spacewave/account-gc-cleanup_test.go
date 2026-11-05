@@ -10,6 +10,7 @@ import (
 
 	"github.com/aperturerobotics/util/routine"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
@@ -24,19 +25,19 @@ func TestGCCleanupRunnerCoalescesTriggerDuringSweep(t *testing.T) {
 	firstStarted := make(chan struct{})
 	firstRelease := make(chan struct{})
 	secondStarted := make(chan struct{})
-	acc.gcCleanupCollect = func(ctx context.Context) (*block_gc.Stats, error) {
+	acc.gcCleanupCollect = func(ctx context.Context) (block_gc.CollectResult, error) {
 		switch calls.Add(1) {
 		case 1:
 			close(firstStarted)
 			select {
 			case <-ctx.Done():
-				return nil, context.Canceled
+				return block_gc.CollectResult{}, context.Canceled
 			case <-firstRelease:
 			}
 		case 2:
 			close(secondStarted)
 		}
-		return &block_gc.Stats{}, nil
+		return block_gc.CollectResult{}, nil
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -129,45 +130,30 @@ func TestGCCleanupRoutineLifecycle(t *testing.T) {
 }
 
 func TestRemoveSharedObjectGCRefsRemovesSpacewaveBucketRoots(t *testing.T) {
+	// Hold a root in a shared object's bucket.
 	ctx := context.Background()
 	vol := newGCCleanupTestVolume(t)
 	acc := NewTestProviderAccount(t, "http://example.invalid")
 	acc.vol = vol
 	soID := "so-1"
 	bucketID := BlockStoreBucketID(acc.accountID, SobjectBlockStoreID(soID))
-	bucketIRI := block_gc.BucketIRI(bucketID)
-	providerIRI := ProviderIRI(acc.p.info.GetProviderId())
-	rg := vol.GetRefGraph()
-	gcOps := block_gc.NewGCStoreOps(vol, rg)
-	if err := gcOps.AddGCRef(ctx, block_gc.NodeGCRoot, bucketIRI); err != nil {
-		t.Fatalf("add root ref: %v", err)
+	ref, _, err := vol.PutBlock(ctx, []byte("world"), &block.PutOpts{RefsKnown: true})
+	if err != nil {
+		t.Fatal(err)
 	}
-	if err := gcOps.AddGCRef(ctx, providerIRI, bucketIRI); err != nil {
-		t.Fatalf("add provider ref: %v", err)
+	if err := vol.SetBucketRoots(ctx, bucketID, nil, []block.NamedRoot{{Name: "world", Ref: ref}}); err != nil {
+		t.Fatal(err)
 	}
 
+	// Deleting the shared object releases the bucket's roots.
 	acc.removeSharedObjectGCRefs(ctx, soID, acc.le)
-
-	rootRefs, err := rg.GetOutgoingRefs(ctx, block_gc.NodeGCRoot)
-	if err != nil {
-		t.Fatalf("get root refs: %v", err)
-	}
-	if len(rootRefs) != 0 {
-		t.Fatalf("expected root ref removed, got %v", rootRefs)
-	}
-	providerRefs, err := rg.GetOutgoingRefs(ctx, providerIRI)
-	if err != nil {
-		t.Fatalf("get provider refs: %v", err)
-	}
-	if len(providerRefs) != 0 {
-		t.Fatalf("expected provider ref removed, got %v", providerRefs)
-	}
-	unreferenced, err := rg.GetOutgoingRefs(ctx, block_gc.NodeUnreferenced)
-	if err != nil {
-		t.Fatalf("get unreferenced refs: %v", err)
-	}
-	if len(unreferenced) != 1 || unreferenced[0] != bucketIRI {
-		t.Fatalf("expected bucket marked unreferenced, got %v", unreferenced)
+	var roots []block.NamedRoot
+	err = vol.ListBucketRoots(ctx, bucketID, "", func(root block.NamedRoot) error {
+		roots = append(roots, root)
+		return nil
+	})
+	if err != nil || len(roots) != 0 {
+		t.Fatalf("bucket roots after delete = %v err %v, want none", roots, err)
 	}
 }
 

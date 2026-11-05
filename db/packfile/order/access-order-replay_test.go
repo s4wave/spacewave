@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 )
 
 func TestReplayAccessOrderRecordPrioritizesProfileThenFallback(t *testing.T) {
@@ -18,10 +17,8 @@ func TestReplayAccessOrderRecordPrioritizesProfileThenFallback(t *testing.T) {
 	fallbackChild := testRef(t, "fallback-child")
 	staleRef := testRef(t, "stale-ref")
 
-	// Connect the fallback object root to its child block.
-	graph := newTestRefGraph()
-	graph.add(block_gc.ObjectIRI("fallback-object"), block_gc.BlockIRI(fallbackRoot))
-	graph.add(block_gc.BlockIRI(fallbackRoot), block_gc.BlockIRI(fallbackChild))
+	// List the fallback root's child block.
+	graph := testLists{refKey(fallbackRoot): {fallbackChild}}
 
 	// Capture the profiled paths in their recorded access order.
 	record := testAccessOrderRecord(t, []*AccessOrderEntry{
@@ -101,7 +98,7 @@ func TestReplayAccessOrderRecordMissingRefsDoNotMakeRecordStale(t *testing.T) {
 	})
 
 	// Replay the access profile over the available block candidates.
-	got, err := ReplayAccessOrderRecord(ctx, newTestRefGraph(), AccessOrderManifestIdentityFromRecord(record), record, []*block.BlockRef{present}, nil)
+	got, err := ReplayAccessOrderRecord(ctx, testLists{}, AccessOrderManifestIdentityFromRecord(record), record, []*block.BlockRef{present}, nil)
 	if err != nil {
 		t.Fatalf("ReplayAccessOrderRecord: %v", err)
 	}
@@ -121,10 +118,8 @@ func TestReplayAccessOrderRecordStaleMetadataUsesFallbackOrder(t *testing.T) {
 	child := testRef(t, "stale-fallback-child")
 	profiled := testRef(t, "stale-profiled")
 
-	// Connect the fallback object root to its child block.
-	graph := newTestRefGraph()
-	graph.add(block_gc.ObjectIRI("fallback-object"), block_gc.BlockIRI(root))
-	graph.add(block_gc.BlockIRI(root), block_gc.BlockIRI(child))
+	// List the fallback root's child block.
+	graph := testLists{refKey(root): {child}}
 
 	// Capture the profiled paths in their recorded access order.
 	record := testAccessOrderRecord(t, []*AccessOrderEntry{
@@ -143,8 +138,13 @@ func TestReplayAccessOrderRecordStaleMetadataUsesFallbackOrder(t *testing.T) {
 		t.Fatalf("ReplayAccessOrderRecord: %v", err)
 	}
 
-	// Verify replay order and the reported stale or missing profile entries.
-	assertRefOrder(t, got.Refs, []*block.BlockRef{root, child, profiled})
+	// Verify the stale profile falls back to structural order, the child right
+	// after its root, and the reported stale or missing profile entries.
+	keys := refKeys(got.Refs)
+	i := slices.Index(keys, refKey(root))
+	if len(keys) != 3 || i < 0 || i+1 >= len(keys) || keys[i+1] != refKey(child) {
+		t.Fatalf("order = %v, want the child right after its root", keys)
+	}
 	if !got.StaleRecord {
 		t.Fatal("StaleRecord = false, want true for stale manifest identity")
 	}

@@ -5,8 +5,6 @@ import (
 
 	"github.com/aperturerobotics/starpc/srpc"
 
-	rpc_gc "github.com/s4wave/spacewave/db/block/gc/rpc"
-	rpc_gc_server "github.com/s4wave/spacewave/db/block/gc/rpc/server"
 	rpc_block "github.com/s4wave/spacewave/db/block/rpc"
 	rpc_block_server "github.com/s4wave/spacewave/db/block/rpc/server"
 	rpc_bucket "github.com/s4wave/spacewave/db/bucket/store/rpc"
@@ -24,7 +22,6 @@ type ProxyVolume struct {
 	*rpc_block_server.BlockStore
 	*rpc_bucket_server.BucketStore
 	*rpc_object_server.ObjectStore
-	*rpc_gc_server.RefGraph
 
 	// vol is the volume
 	vol volume.Volume
@@ -40,7 +37,6 @@ func NewProxyVolume(ctx context.Context, vol volume.Volume, exposePrivKey bool) 
 		BlockStore:  rpc_block_server.NewBlockStore(vol),
 		BucketStore: rpc_bucket_server.NewBucketStore(vol),
 		ObjectStore: rpc_object_server.NewObjectStore(ctx, vol),
-		RefGraph:    rpc_gc_server.NewRefGraph(vol.GetRefGraph()),
 
 		vol:               vol,
 		coordinatorLeases: newCoordinatorLeases(),
@@ -91,14 +87,6 @@ func RegisterProxyVolumeWithPrefix(mux srpc.Mux, proxyVol *ProxyVolume, prefix s
 		return err
 	}
 
-	// Register the reference graph alongside the volume service.
-	// register RefGraph
-	if err := mux.Register(rpc_gc.NewSRPCRefGraphHandler(
-		proxyVol,
-		prefix+rpc_gc.SRPCRefGraphServiceID,
-	)); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -397,5 +385,4 @@ var (
 	_ rpc_block.SRPCBlockStoreServer   = (*ProxyVolume)(nil)
 	_ rpc_bucket.SRPCBucketStoreServer = (*ProxyVolume)(nil)
 	_ rpc_object.SRPCObjectStoreServer = (*ProxyVolume)(nil)
-	_ rpc_gc.SRPCRefGraphServer        = (*ProxyVolume)(nil)
 )

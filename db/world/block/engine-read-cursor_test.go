@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
-	blockgc "github.com/s4wave/spacewave/db/block/gc"
 	kvblock "github.com/s4wave/spacewave/db/kvtx/block"
 	volumekvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 
@@ -86,14 +85,9 @@ func setupReadCursorWorld(tb testing.TB, impl kvblock.KVImplType) (*Engine, func
 
 	// Collect real storage and retire memory so a stale node cannot mask loss.
 	collect := func() {
-		// Apply released root pins before walking the persistent reference graph.
-		volume := bed.Volume.(*volumekvtx.Volume)
-		if err := volume.ReapRootPins(ctx); err != nil {
-			tb.Fatal(err)
-		}
-
 		// Run the real volume collector while both snapshot roots remain pinned.
-		if _, err := blockgc.NewCollector(volume.GetRefGraph(), volume, nil).Collect(ctx); err != nil {
+		volume := bed.Volume.(*volumekvtx.Volume)
+		if _, err := volume.Collect(ctx); err != nil {
 			tb.Fatal(err)
 		}
 

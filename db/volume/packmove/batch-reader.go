@@ -6,7 +6,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/packfile/writer"
 	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
@@ -87,23 +86,18 @@ func (r *batchReader) read(ctx context.Context, tx kvtx.Tx) (*packBatch, error) 
 }
 
 // attachRefs sets the references of each block the batch packs from the
-// volume's reference graph in tx, and counts the blocks the graph does not
-// track.
+// volume's child lists in tx, and counts the blocks stored without one.
 func attachRefs(ctx context.Context, tx kvtx.Tx, batch *packBatch) error {
-	graph := volume_kvtx.OpenRefGraph(kvtx.NewTxStore(tx))
+	rec := volume_kvtx.OpenRecords(tx)
 	for _, put := range batch.puts {
-		targets, tracked, err := graph.GetBlockEdges(ctx, block_gc.BlockIRI(put.Ref))
+		children, listed, err := rec.GetChildren(ctx, put.Ref)
 		if err != nil {
 			return errors.Wrap(err, "read block references")
 		}
-		if !tracked {
+		if !listed {
 			batch.untracked++
 		}
-		for _, target := range targets {
-			if ref, ok := block_gc.ParseBlockIRI(target); ok {
-				put.Refs = append(put.Refs, ref)
-			}
-		}
+		put.Refs = append(put.Refs, children...)
 	}
 	return nil
 }

@@ -2,12 +2,10 @@ package kvtx
 
 import (
 	"path/filepath"
-	"slices"
 	"testing"
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/s4db"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
@@ -15,10 +13,10 @@ import (
 
 // TestCacheFillOptimistic runs cache fills on a store with optimistic
 // transactions while other writers commit. A fill reading without the writer
-// lets another write commit meanwhile; another write appending to the logs
-// and counts every write appends to forces no rerun; and a commit that
-// removes a block the fill found stored forces a rerun that stores it afresh,
-// so the fill never reports a block stored that a later commit removed.
+// lets another write commit meanwhile; an unrelated write forces no rerun;
+// and a commit that stores the block a fill found absent forces a rerun that
+// finds it stored, so two writers never both give birth to one block, and the
+// block keeps its child list.
 func TestCacheFillOptimistic(t *testing.T) {
 	// Open a Volume over a store with optimistic transactions.
 	ctx := t.Context()
@@ -48,13 +46,17 @@ func TestCacheFillOptimistic(t *testing.T) {
 		paused, resume := make(chan struct{}), make(chan struct{})
 		done := make(chan error, 1)
 		go func() {
-			done <- v.prepareOwned(ctx, v.withDirectFill, bucketOwner("fill"), len(data), claimBucket, func(store block.StoreOps) error {
+			entry := &block.PutBatchEntry{Data: data, RefsKnown: true}
+			done <- v.withDirectFill(ctx, func(p *physicalTx) error {
 				attempts++
-				var err error
-				_, existed, err = store.PutBlock(ctx, data, &block.PutOpts{RefsKnown: true, CacheFill: true})
+				found, err := v.land(ctx, p, "", []*block.PutBatchEntry{entry}, nil)
 				if err != nil || attempts != 1 {
+					if err == nil {
+						existed = found[0]
+					}
 					return err
 				}
+				existed = found[0]
 				paused <- struct{}{}
 				<-resume
 				return nil
@@ -85,40 +87,25 @@ func TestCacheFillOptimistic(t *testing.T) {
 		return attempts, existed
 	}
 
-	// A write appending to the young log and the counts meanwhile forces no
-	// rerun.
+	// An unrelated write meanwhile forces no rerun.
 	if attempts, _ := fill([]byte("filled alone"), func() { put("other", []byte("written meanwhile")) }); attempts != 1 {
 		t.Fatalf("fill beside an unrelated write ran %d attempts, want 1", attempts)
 	}
 
-	// A block removed after the fill found it makes the fill run again and
-	// store it afresh, tracked as a fill's blocks are, in the unreferenced
-	// queue.
-	data := []byte("found then removed")
-	ref := put("other", data)
-	attempts, existed := fill(data, func() {
-		err := v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) error {
-			if err := rg.RemoveRef(ctx, bucketOwner("other"), block_gc.BlockIRI(ref)); err != nil {
-				return err
-			}
-			return blocks.RmBlock(ctx, ref)
-		})
-		if err != nil {
-			t.Error(err)
-		}
-	})
-	if attempts != 2 || existed {
-		t.Fatalf("fill of a removed block ran %d attempts, existed %v; want 2 attempts storing it afresh", attempts, existed)
+	// A block another writer stores after the fill found it absent makes the
+	// fill run again and find it stored.
+	data := []byte("absent then stored")
+	var ref *block.BlockRef
+	attempts, existed := fill(data, func() { ref = put("other", data) })
+	if attempts != 2 || !existed {
+		t.Fatalf("fill of a block stored meanwhile ran %d attempts, existed %v; want 2 attempts finding it stored", attempts, existed)
 	}
 	got, found, err := v.GetBlock(ctx, ref)
 	if err != nil || !found || string(got) != string(data) {
 		t.Fatalf("filled block: found %v, data %q, err %v", found, got, err)
 	}
-	owners, err := v.GetRefGraph().GetIncomingRefs(ctx, block_gc.BlockIRI(ref))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !slices.Contains(owners, block_gc.NodeUnreferenced) {
-		t.Fatalf("filled block owners %v; want it in the unreferenced queue", owners)
+	listed, err := v.HasChildLists(ctx, []*block.BlockRef{ref})
+	if err != nil || !listed[0] {
+		t.Fatalf("filled block listed %v err %v; want its child list kept", listed, err)
 	}
 }

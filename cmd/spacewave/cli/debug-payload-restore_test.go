@@ -14,7 +14,6 @@ import (
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -111,8 +110,8 @@ func (f *restoreFixture) open(t *testing.T) *volume_s4db.Volume {
 	return vol
 }
 
-// requireOwned fails unless the Space's bucket owns the root of data's blob
-// and the root reaches each of its other blocks.
+// requireOwned fails unless the volume keeps the child list of the root of
+// data's blob, and the root's child lists reach each of its other blocks.
 func (f *restoreFixture) requireOwned(t *testing.T, vol *volume_s4db.Volume, data []byte) {
 	// Rebuild the blob's blocks.
 	ctx := t.Context()
@@ -121,27 +120,31 @@ func (f *restoreFixture) requireOwned(t *testing.T, vol *volume_s4db.Volume, dat
 		t.Fatal(err)
 	}
 
-	// Collect the blocks reachable from the bucket through the blob.
-	rg := vol.GetRefGraph()
-	reached, err := rg.GetOutgoingRefs(ctx, block_gc.BucketIRI(restoreTestBucket))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !slices.Contains(reached, block_gc.BlockIRI(root)) {
-		t.Fatalf("bucket does not own %s", root.MarshalString())
-	}
-	for _, e := range entries {
-		refs, err := rg.GetOutgoingRefs(ctx, block_gc.BlockIRI(e.Ref))
+	// Collect the blocks the root reaches through child lists.
+	reached := map[string]bool{root.MarshalString(): true}
+	queue := []*block.BlockRef{root}
+	for len(queue) != 0 {
+		ref := queue[0]
+		queue = queue[1:]
+		children, listed, err := vol.GetChildren(ctx, ref)
 		if err != nil {
 			t.Fatal(err)
 		}
-		reached = append(reached, refs...)
+		if !listed {
+			t.Fatalf("volume keeps no child list for %s", ref.MarshalString())
+		}
+		for _, child := range children {
+			if !reached[child.MarshalString()] {
+				reached[child.MarshalString()] = true
+				queue = append(queue, child)
+			}
+		}
 	}
 
 	// Require every block of the blob.
 	for _, e := range entries {
-		if !slices.Contains(reached, block_gc.BlockIRI(e.Ref)) {
-			t.Fatalf("bucket does not reach %s", e.Ref.MarshalString())
+		if !reached[e.Ref.MarshalString()] {
+			t.Fatalf("root does not reach %s", e.Ref.MarshalString())
 		}
 	}
 }

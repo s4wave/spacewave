@@ -4,9 +4,6 @@ import (
 	"context"
 	"errors"
 
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
-	rpc_gc "github.com/s4wave/spacewave/db/block/gc/rpc"
-	rpc_gc_client "github.com/s4wave/spacewave/db/block/gc/rpc/client"
 	rpc_block "github.com/s4wave/spacewave/db/block/rpc"
 	rpc_block_client "github.com/s4wave/spacewave/db/block/rpc/client"
 	rpc_bucket "github.com/s4wave/spacewave/db/bucket/store/rpc"
@@ -30,8 +27,6 @@ type ProxyVolume struct {
 
 	// client is the client to use
 	client volume_rpc.SRPCProxyVolumeClient
-	// refGraph is the GC reference graph RPC client
-	refGraph *rpc_gc_client.RefGraph
 	// volInfo is the volume info
 	volInfo *volume.VolumeInfo
 	// volPeer is the parsed volume peer public key & id
@@ -45,18 +40,11 @@ func NewProxyVolume(
 	blockStoreClient rpc_block.SRPCBlockStoreClient,
 	bucketStoreClient rpc_bucket.SRPCBucketStoreClient,
 	objectStoreClient rpc_object.SRPCObjectStoreClient,
-	refGraphClient rpc_gc.SRPCRefGraphClient,
 ) (*ProxyVolume, error) {
 	// Parse the remote volume identity before constructing its storage facade.
 	volPeer, err := volInfo.ParseToPeer()
 	if err != nil {
 		return nil, err
-	}
-
-	// Attach the remote reference graph when its RPC service is available.
-	var refGraph *rpc_gc_client.RefGraph
-	if refGraphClient != nil {
-		refGraph = rpc_gc_client.NewRefGraph(refGraphClient)
 	}
 
 	return &ProxyVolume{
@@ -65,10 +53,9 @@ func NewProxyVolume(
 		ObjectStore: rpc_object_client.NewObjectStore(objectStoreClient),
 		Coordinator: NewCoordinator(proxyVolumeClient),
 
-		client:   proxyVolumeClient,
-		refGraph: refGraph,
-		volInfo:  volInfo,
-		volPeer:  volPeer,
+		client:  proxyVolumeClient,
+		volInfo: volInfo,
+		volPeer: volPeer,
 	}, nil
 }
 
@@ -94,14 +81,6 @@ func (v *ProxyVolume) GetStorageStats(ctx context.Context) (*volume.StorageStats
 // DelegatesGC marks the volume as a view of storage collected by the controller
 // of the served volume.
 func (v *ProxyVolume) DelegatesGC() {}
-
-// GetRefGraph returns the volume's GC reference graph.
-func (v *ProxyVolume) GetRefGraph() block_gc.RefGraphOps {
-	if v.refGraph == nil {
-		return nil
-	}
-	return v.refGraph
-}
 
 // GetVolumeClient returns the proxy volume client.
 func (v *ProxyVolume) GetVolumeClient() volume_rpc.SRPCProxyVolumeClient {

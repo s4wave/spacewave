@@ -14,56 +14,34 @@ import (
 
 // CopyProgress counts the work of a running CopyStore.
 type CopyProgress struct {
-	// Keys is the number of keys copied verbatim.
+	// Keys is the number of keys copied.
 	Keys uint64
-	// Bytes is the size of the keys and values copied verbatim.
+	// Bytes is the size of the keys and values copied.
 	Bytes uint64
-	// Edges is the number of Cayley log edges and version 3 graph records
-	// converted.
-	Edges uint64
 	// UnknownBlocks is the number of blocks without a child list that a
 	// reachable copy's walk reached. The blocks they name are not reached.
 	UnknownBlocks uint64
 	// AbsentBlocks is the number of reached blocks a parent block names that
 	// the source does not hold: holes, which name nothing a reader can reach.
 	AbsentBlocks uint64
-	// DroppedBlocks is the number of blocks a reachable copy left out.
+	// DroppedBlocks is the number of blocks a copy left out.
 	DroppedBlocks uint64
-	// UnownedBlocks is the number of dropped blocks no graph record owned,
-	// which a running collector would never have deleted. A reachable copy
-	// counts them only with CopyReachableOptions.CountUnowned.
-	UnownedBlocks uint64
-	// DroppedRecords is the number of graph records a reachable copy left out.
+	// DroppedRecords is the number of liveness records a reachable copy left
+	// out.
 	DroppedRecords uint64
 	// DroppedBytes is the size of the keys left out. Their values are not
 	// read.
 	DroppedBytes uint64
 }
 
-// CopyStore writes the Volume store src into the empty store dst at
-// store_kvkey.FormatVersion. It copies every key outside the Cayley graph,
-// encoding the version 2 graph records again and moving the edges between
-// blocks of a version 3 graph into child lists, then converts the Cayley
-// graph's live edges, so a store of format version 1 to 3, converted in part
-// or not at all, never rewrites its graph in place.
-//
-// src is read in one snapshot and must have no writer. The format version is
-// written last in a durable commit; a dst without it is an incomplete copy to
-// discard. progress, when set, is called after each commit.
+// CopyStore writes the Volume store src into the empty store dst, every key
+// as it is, so dst holds src's format and liveness; opening dst upgrades an
+// older format. src is read in one snapshot and must have no writer. The
+// format version is written last in a durable commit; a dst without it is an
+// incomplete copy to discard. progress, when set, is called after each
+// commit.
 func CopyStore(ctx context.Context, src, dst kvtx.Store, keys *store_kvkey.KVKey, progress func(CopyProgress)) error {
-	// The copy's commits are background work, which waits for a checkpoint
-	// the copy outpaced, and its scans leave the index cache.
-	ctx = block.WithBackground(ctx)
-
-	// Accept the current format and the earlier graph formats it converts.
-	version, err := readFormatVersion(ctx, src, keys)
-	if err != nil {
-		return err
-	}
-	if version == 0 || version > store_kvkey.FormatVersion {
-		return fmt.Errorf("copy needs store format version 1 to %d, found %d", store_kvkey.FormatVersion, version)
-	}
-	return copyStore(ctx, src, dst, keys, version, nil, nil, nil, nil, progress)
+	return CopyStoreSplitting(ctx, src, dst, keys, SplitOptions{}, progress)
 }
 
 // DropBlocks reports which of refs a copy leaves out, in the order of refs.
@@ -77,8 +55,9 @@ type KeptBlockKeys func(ctx context.Context, src kvtx.Tx, ref *block.BlockRef, v
 // dropCheckBlocks bounds the blocks one DropBlocks call checks.
 const dropCheckBlocks = 1000
 
-// CopyStoreDropping copies src into dst like CopyStore, leaving out the blocks
-// drop reports. Every key outside the blocks is copied verbatim. drop sees the
+// CopyStoreDropping copies src into dst like CopyStore, leaving out the bytes
+// of the blocks drop reports. Every other key is copied as it is, the dropped
+// blocks' child lists too, so their liveness is unchanged. drop sees the
 // blocks in key order, up to dropCheckBlocks at a time, and a dropped block's
 // value is never read.
 func CopyStoreDropping(ctx context.Context, src, dst kvtx.Store, keys *store_kvkey.KVKey, drop DropBlocks, progress func(CopyProgress)) error {
@@ -88,57 +67,43 @@ func CopyStoreDropping(ctx context.Context, src, dst kvtx.Store, keys *store_kvk
 // CopyStoreSplitting copies src into dst like CopyStoreDropping, with the
 // extra keys and omissions of opts.
 func CopyStoreSplitting(ctx context.Context, src, dst kvtx.Store, keys *store_kvkey.KVKey, opts SplitOptions, progress func(CopyProgress)) error {
-	// Mark the copy's commits as background work and accept the formats it converts.
+	ctx = block.WithBackground(ctx)
+	return copyStore(ctx, src, dst, keys, nil, opts, progress)
+}
+
+// CopyReachable writes the Volume store src into the empty store dst like
+// CopyStore, keeping only what a complete collection would keep: the blocks a
+// named root reaches through child lists, their child lists and proofs, the
+// root table and every key outside the blocks and the liveness records. The
+// copy keeps no count, journal or free queue, so dst opens unadopted and an
+// adoption counts its holders.
+//
+// src must be at the current format. It refuses, before writing anything, a
+// source whose walk reaches a block stored without a child list, unless
+// opts.AllowUnknown is set: the blocks such a block names are not reached and
+// may be live.
+func CopyReachable(ctx context.Context, src, dst kvtx.Store, keys *store_kvkey.KVKey, opts CopyReachableOptions, progress func(CopyProgress)) error {
+	// Require a source whose liveness the walk reads.
 	ctx = block.WithBackground(ctx)
 	version, err := readFormatVersion(ctx, src, keys)
 	if err != nil {
 		return err
 	}
-	if version == 0 || version > store_kvkey.FormatVersion {
-		return fmt.Errorf("copy needs store format version 1 to %d, found %d", store_kvkey.FormatVersion, version)
+	if version != store_kvkey.FormatVersion {
+		return fmt.Errorf("reachable copy needs store format version %d, found %d; open it to upgrade it first", store_kvkey.FormatVersion, version)
 	}
-	return copyStore(ctx, src, dst, keys, version, nil, opts.Drop, opts.Kept, opts.Omit, progress)
+	return copyStore(ctx, src, dst, keys, &opts, SplitOptions{}, progress)
 }
 
-// CopyReachable writes the Volume store src into the empty store dst like
-// CopyStore, keeping only what a complete collection would keep: the blocks
-// reachable from the graph root, the graph records of reachable nodes and
-// every key outside the graph and the blocks. It drops the unreferenced queue.
-//
-// src must be at format version 3 or later: the walk reads edge records and
-// child lists, so the records of an older store would be missed and their
-// blocks dropped. A dropped block no graph record tracked or owned is counted
-// in UnownedBlocks with opts.CountUnowned, since a running collector would
-// never have deleted it.
-//
-// It refuses, before writing anything, a source whose walk reaches a block
-// without a child list, unless opts.AllowUnknown is set: the blocks such a
-// block names are not reached and may be live, which is why a sweep waits
-// for unknown blocks.
-func CopyReachable(ctx context.Context, src, dst kvtx.Store, keys *store_kvkey.KVKey, opts CopyReachableOptions, progress func(CopyProgress)) error {
-	// Require a source whose graph the walk reads.
-	version, err := readFormatVersion(ctx, src, keys)
-	if err != nil {
-		return err
-	}
-	if version < 3 || version > store_kvkey.FormatVersion {
-		return fmt.Errorf("reachable copy needs store format version 3 to %d, found %d; copy it to the current format first", store_kvkey.FormatVersion, version)
-	}
-	return copyStore(ctx, src, dst, keys, version, &opts, nil, nil, nil, progress)
-}
-
-// copyStore copies src, at format version, into the empty store dst and
-// records the format version last. With reachable set, it first marks the
-// nodes reachable from the graph root and copies only what they keep.
+// copyStore copies src into the empty store dst and records the format
+// version last. With reachable set, it first walks from the roots and copies
+// only what they keep.
 func copyStore(
 	ctx context.Context,
 	src, dst kvtx.Store,
 	keys *store_kvkey.KVKey,
-	version uint64,
 	reachable *CopyReachableOptions,
-	drop DropBlocks,
-	kept KeptBlockKeys,
-	omit [][]byte,
+	opts SplitOptions,
 	progress func(CopyProgress),
 ) error {
 	// Refuse a destination that already holds keys.
@@ -152,32 +117,12 @@ func copyStore(
 		return err
 	}
 	defer stx.Discard()
+	w := &copyWriter{store: dst, progress: progress, drop: opts.Drop, kept: opts.Kept, omit: opts.Omit, blockPrefix: keys.GetBlockFullPrefix()}
 
-	// Mark the reachable nodes in the same snapshot.
-	w := &copyWriter{store: dst, progress: progress, convert: version < 4, drop: drop, kept: kept, omit: omit}
-	if drop != nil {
-		w.blockPrefix = keys.GetBlockFullPrefix()
-	}
+	// Walk the roots in the same snapshot, and refuse unknown blocks.
 	if reachable != nil {
-		// Mark the nodes the graph root reaches.
-		w.graph = OpenRefGraph(kvtx.NewTxStore(stx))
-		w.blockPrefix = keys.GetBlockFullPrefix()
-		w.countUnowned = reachable.CountUnowned
-		mark, err := w.graph.Reachable(ctx)
-		if err != nil {
-			return fmt.Errorf("mark reachable nodes: %w", err)
-		}
-		w.live = mark.Live
-
-		// Settle the holes among the blocks without a child list against the
-		// same snapshot, as the collector does: a block a parent names that
-		// the source does not hold names nothing a reader can reach.
-		absent, err := mark.SettleAbsent(func(node string) (bool, error) {
-			// Look the block up by its key, keeping any other node.
-			ref, ok := block_gc.ParseBlockIRI(node)
-			if !ok {
-				return true, nil
-			}
+		rec := block_gc.NewRecords(stx, livenessPrefix)
+		mark, err := block_gc.Reachable(ctx, rec, func(ctx context.Context, ref *block.BlockRef) (bool, error) {
 			rm, err := ref.MarshalKey()
 			if err != nil {
 				return false, err
@@ -185,43 +130,45 @@ func copyStore(
 			return stx.Exists(ctx, keys.GetBlockKey(rm))
 		})
 		if err != nil {
-			return fmt.Errorf("settle absent blocks: %w", err)
+			return fmt.Errorf("walk from the named roots: %w", err)
 		}
-
-		// Report the counts, and refuse the blocks still unknown.
-		w.counts.AbsentBlocks = uint64(absent)        //nolint:gosec // counts are never negative.
+		w.mark = mark
+		w.counts.AbsentBlocks = uint64(mark.Absent)   //nolint:gosec // counts are never negative.
 		w.counts.UnknownBlocks = uint64(mark.Unknown) //nolint:gosec // counts are never negative.
 		w.report()
 		if mark.Unknown != 0 && !reachable.AllowUnknown {
-			return fmt.Errorf(
-				"%d reached blocks have no child list, so the blocks they name may be live and would be dropped; sample %v named by %v",
-				mark.Unknown, mark.UnknownSample, mark.UnknownNamers,
-			)
+			return fmt.Errorf("%d reached blocks have no child list, so the blocks they name may be live and would be dropped; sample %v", mark.Unknown, mark.UnknownSample)
 		}
 	}
 
-	// Copy the keys, then convert the Cayley graph.
-	if err := w.copyKeys(ctx, stx, keys.GetFormatVersionKey()); err != nil {
+	// Copy the keys.
+	versionKey := keys.GetFormatVersionKey()
+	version, found, err := stx.Get(ctx, versionKey)
+	if err != nil {
 		return err
 	}
-	if err := w.convertEdges(ctx, stx); err != nil {
+	version = bytes.Clone(version)
+	if err := w.copyKeys(ctx, stx, versionKey); err != nil {
 		return err
 	}
 
-	// Begin the sharing walk, since the copied counts may be incomplete or,
-	// after a reachable copy, name holders it dropped; a full copy of a store
-	// mid-walk keeps its place. Record the version in the same durable commit,
-	// which also makes the ordered commits durable.
+	// Record the version last in a durable commit, which also makes the
+	// ordered commits durable. A reachable copy starts unadopted.
 	tx, err := dst.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 	defer tx.Discard()
-	if _, err := OpenRefGraph(kvtx.NewTxStore(tx)).BeginSharing(ctx); err != nil {
-		return err
+	if reachable != nil {
+		state := &block_gc.LivenessState{Adoption: block_gc.Adoption_ADOPTION_UNADOPTED}
+		if err := block_gc.NewRecords(tx, livenessPrefix).SetState(ctx, state); err != nil {
+			return err
+		}
 	}
-	if err := tx.Set(ctx, keys.GetFormatVersionKey(), store_kvkey.MarshalFormatVersion(store_kvkey.FormatVersion)); err != nil {
-		return err
+	if found {
+		if err := tx.Set(ctx, versionKey, version); err != nil {
+			return err
+		}
 	}
 	return tx.Commit(ctx)
 }
@@ -252,17 +199,11 @@ type copyWriter struct {
 	progress func(CopyProgress)
 	// counts is the work committed so far.
 	counts CopyProgress
-	// live holds the reachable nodes of a reachable copy; nil copies every
+	// mark holds what the roots reach in a reachable copy; nil copies every
 	// key.
-	live *block_gc.NodeSet
-	// blockPrefix is the prefix of the block keys a reachable or dropping
-	// copy filters.
+	mark *block_gc.Mark
+	// blockPrefix is the prefix of the block keys.
 	blockPrefix []byte
-	// graph reads the source's reference graph in the copy's snapshot during
-	// a reachable copy.
-	graph *block_gc.RefGraph
-	// countUnowned counts the dropped blocks no graph record owns.
-	countUnowned bool
 	// drop reports the blocks a dropping copy leaves out; nil keeps them.
 	drop DropBlocks
 	// kept returns the extra keys written beside a block a dropping copy
@@ -272,17 +213,10 @@ type copyWriter struct {
 	omit [][]byte
 	// held are the block keys awaiting a drop check, in key order.
 	held [][]byte
-	// convert moves the edges of a graph older than child lists into them.
-	convert bool
-	// adds are the converted edges of the batch being filled.
-	adds []block_gc.RefEdge
-	// addBytes is the size of the nodes in adds.
-	addBytes int
 }
 
-// copyKeys copies every key of stx except the Cayley graph and versionKey,
-// in commits of up to migrateBatchBytes. It writes each version 2 graph
-// record in the version 3 encoding, and converts version 3 records.
+// copyKeys copies every key of stx except versionKey, in commits of up to
+// migrateBatchBytes.
 func (w *copyWriter) copyKeys(ctx context.Context, stx kvtx.Tx, versionKey []byte) error {
 	// Walk every key in order.
 	it := stx.Iterate(ctx, nil, true, false)
@@ -291,17 +225,11 @@ func (w *copyWriter) copyKeys(ctx context.Context, stx kvtx.Tx, versionKey []byt
 		return err
 	}
 
-	// Fill each batch, seeking past the Cayley graph in one step.
+	// Fill each batch, seeking past an omitted prefix in one step.
 	var batch []keyValue
 	var size int
 	for it.Valid() {
 		key := it.Key()
-		if bytes.HasPrefix(key, cayleyGraphPrefix) {
-			if err := it.Seek(prefixEnd(cayleyGraphPrefix)); err != nil {
-				return err
-			}
-			continue
-		}
 		if prefix := w.omitted(key); prefix != nil {
 			if err := it.Seek(prefixEnd(prefix)); err != nil {
 				return err
@@ -310,20 +238,11 @@ func (w *copyWriter) copyKeys(ctx context.Context, stx kvtx.Tx, versionKey []byt
 		}
 		if !bytes.Equal(key, versionKey) {
 			key = bytes.Clone(key)
-			if record, ok := bytes.CutPrefix(key, legacyRefGraphPrefix); ok {
-				current, err := block_gc.LegacyRecordKey(record)
-				if err != nil {
-					return err
-				}
-				key = append(bytes.Clone(refGraphPrefix), current...)
-			}
-			keep, err := w.keep(ctx, key)
-			if err == nil && keep {
-				keep, err = w.convertRecord(key)
-			}
+			keep, err := w.keep(key)
 			if err != nil {
 				return err
 			}
+
 			// Hold a block for the drop check, writing the held blocks
 			// before any later key so the destination fills in key order.
 			held := keep && w.drop != nil && bytes.HasPrefix(key, w.blockPrefix)
@@ -353,7 +272,7 @@ func (w *copyWriter) copyKeys(ctx context.Context, stx kvtx.Tx, versionKey []byt
 				w.counts.DroppedBytes += uint64(len(key)) //nolint:gosec // lengths are never negative.
 			}
 		}
-		if size+w.addBytes >= migrateBatchBytes {
+		if size >= migrateBatchBytes {
 			if err := w.commitKeys(ctx, batch, size); err != nil {
 				return err
 			}
@@ -441,28 +360,25 @@ func (w *copyWriter) checkHeld(ctx context.Context, stx kvtx.Tx, batch []keyValu
 }
 
 // keep reports whether the copy writes key, counting a dropped key. A
-// reachable copy drops the graph records of unreachable nodes and the blocks
-// no reachable node names.
-func (w *copyWriter) keep(ctx context.Context, key []byte) (bool, error) {
+// reachable copy keeps the root table, the child lists and proofs of reached
+// blocks, the reached blocks and every key outside the blocks and the
+// liveness records.
+func (w *copyWriter) keep(key []byte) (bool, error) {
 	// A full copy keeps every key.
-	if w.live == nil {
+	if w.mark == nil {
 		return true, nil
 	}
 
-	// Keep a graph record whose subject is reachable.
-	if record, ok := bytes.CutPrefix(key, refGraphPrefix); ok {
-		subject, err := block_gc.RecordSubject(record)
-		if err != nil {
-			return false, err
+	// Keep the root table and the reached blocks' child lists and proofs.
+	if record, ok := bytes.CutPrefix(key, livenessPrefix); ok {
+		keep, err := w.keepRecord(record)
+		if err == nil && !keep {
+			w.counts.DroppedRecords++
 		}
-		if w.live.Has(subject) {
-			return true, nil
-		}
-		w.counts.DroppedRecords++
-		return false, nil
+		return keep, err
 	}
 
-	// Keep a reachable block and every key outside the blocks.
+	// Keep a reached block and every key outside the blocks.
 	data, ok := bytes.CutPrefix(key, w.blockPrefix)
 	if !ok {
 		return true, nil
@@ -471,49 +387,36 @@ func (w *copyWriter) keep(ctx context.Context, key []byte) (bool, error) {
 	if err := ref.UnmarshalVT(data); err != nil {
 		return false, fmt.Errorf("decode block key %q: %w", key, err)
 	}
-	node := block_gc.BlockIRI(ref)
-	if w.live.Has(node) {
+	if w.mark.Has(ref) {
 		return true, nil
 	}
-
-	// Count a dropped block that no record names as an object, not even the
-	// unreferenced queue, when asked.
 	w.counts.DroppedBlocks++
-	if !w.countUnowned {
+	return false, nil
+}
+
+// keepRecord reports whether a reachable copy keeps the liveness record whose
+// key after the prefix is record.
+func (w *copyWriter) keepRecord(record []byte) (bool, error) {
+	if len(record) == 0 {
 		return false, nil
 	}
-	owners, err := w.graph.GetIncomingRefs(ctx, node)
-	if err != nil {
-		return false, err
-	}
-	if len(owners) == 0 {
-		w.counts.UnownedBlocks++
+	switch record[0] {
+	case block_gc.RootRecordKind:
+		return true, nil
+	case block_gc.ChildrenRecordKind, block_gc.ProofRecordKind:
+		ref, rest, err := block_gc.ParseBlockKey(record[1:])
+		if err != nil || len(rest) != 0 {
+			return false, fmt.Errorf("liveness record %x names no block", record)
+		}
+		return w.mark.Has(ref), nil
 	}
 	return false, nil
 }
 
-// convertRecord reports whether the copy writes key as it is. A converted
-// graph record that the current encoding drops or holds elsewhere queues its
-// edge for the batch's commit.
-func (w *copyWriter) convertRecord(key []byte) (bool, error) {
-	// Convert only graph records of a version 3 source.
-	record, ok := bytes.CutPrefix(key, refGraphPrefix)
-	if !w.convert || !ok {
-		return true, nil
-	}
-	keep, add, hasAdd, err := block_gc.ConvertFormat3Record(record)
-	if hasAdd {
-		w.adds = append(w.adds, add)
-		w.addBytes += len(add.Subject) + len(add.Object)
-	}
-	return keep, err
-}
-
-// commitKeys writes batch, holding size bytes, and the queued converted
-// edges in one ordered commit.
+// commitKeys writes batch, holding size bytes, in one ordered commit.
 func (w *copyWriter) commitKeys(ctx context.Context, batch []keyValue, size int) error {
 	// Open the commit when there is work.
-	if len(batch) == 0 && len(w.adds) == 0 {
+	if len(batch) == 0 {
 		return nil
 	}
 	tx, err := w.store.NewTransaction(ctx, true)
@@ -522,59 +425,20 @@ func (w *copyWriter) commitKeys(ctx context.Context, batch []keyValue, size int)
 	}
 	defer tx.Discard()
 
-	// Write the batch, then apply the converted edges over it.
+	// Write the batch.
 	for _, m := range batch {
 		if err := tx.Set(ctx, m.key, m.value); err != nil {
 			return err
 		}
 	}
-	if err := OpenRefGraph(kvtx.NewTxStore(tx)).ApplyRefBatch(ctx, w.adds, nil); err != nil {
-		return err
-	}
 	if err := kvtx.CommitOrdered(ctx, tx); err != nil {
 		return err
 	}
-	w.counts.Edges += uint64(len(w.adds))
-	w.adds, w.addBytes = w.adds[:0], 0
 
 	// Count the committed work.
 	w.counts.Keys += uint64(len(batch))
 	w.counts.Bytes += uint64(size) //nolint:gosec
 	w.report()
-	return nil
-}
-
-// convertEdges writes the live reference edges of the Cayley log in stx as
-// edge records, convertBatchEdges log edges per commit.
-func (w *copyWriter) convertEdges(ctx context.Context, stx kvtx.Tx) error {
-	for start := cayleyLogPrefix; start != nil; {
-		// Read the next log edges and their reference edges from the snapshot.
-		edges, next, err := collectCayleyEdges(ctx, stx, start)
-		if err != nil {
-			return err
-		}
-		refs, err := resolveCayleyRefs(ctx, stx, edges)
-		if err != nil {
-			return err
-		}
-
-		// Write them in one commit.
-		tx, err := w.store.NewTransaction(ctx, true)
-		if err != nil {
-			return err
-		}
-		err = OpenRefGraph(kvtx.NewTxStore(tx)).ApplyRefBatch(ctx, refs, nil)
-		if err == nil {
-			err = kvtx.CommitOrdered(ctx, tx)
-		}
-		tx.Discard()
-		if err != nil {
-			return err
-		}
-		w.counts.Edges += uint64(len(edges))
-		w.report()
-		start = next
-	}
 	return nil
 }
 

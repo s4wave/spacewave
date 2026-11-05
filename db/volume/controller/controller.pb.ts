@@ -6,7 +6,6 @@ import type { OverlayMode } from '../../block/block.pb.js'
 import { OverlayMode_Enum, PutOpts } from '../../block/block.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
-import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 /**
  * Config configures the generic volume controller.
@@ -75,23 +74,3 @@ export const Config: MessageType<Config> =
     [9, 'block_store_writeback_put_opts', 11, 0, PutOpts.codec],
     [10, 'gc_interval_dur', 9],
   ])
-
-/**
- * GcSchedule is the volume's collection schedule, kept in the volume's own
- * object store so a restart resumes it.
- *
- * @generated from message volume.controller.GcSchedule
- */
-export interface GcSchedule {
-  /**
-   * NextBlockPass is when the next block pass is due. A time already past
-   * when the volume starts runs the pass at the first collection.
-   */
-  nextBlockPass?: Date
-}
-
-export const GcSchedule: MessageType<GcSchedule> =
-  /* @__PURE__ */ createMessageType<GcSchedule>(
-    'volume.controller.GcSchedule',
-    () => [[1, 'next_block_pass', 11, 0, Timestamp.codec]],
-  )

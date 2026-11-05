@@ -3,19 +3,14 @@ package plugin_host_scheduler
 import (
 	"context"
 	"maps"
-	"slices"
 	"strconv"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/testbed"
-	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
-	volume_kvtxinmem "github.com/s4wave/spacewave/db/volume/kvtxinmem"
 	volume_rpc "github.com/s4wave/spacewave/db/volume/rpc"
 	volume_rpc_client "github.com/s4wave/spacewave/db/volume/rpc/client"
 	"github.com/sirupsen/logrus"
@@ -117,39 +112,34 @@ func servePluginBucket(
 	return handle.GetBucket(), counter
 }
 
-// TestPluginBucketTracksGCInHostGraph checks a block a plugin writes through
-// its volume has its owner and child edges in the host volume's ref graph, and
-// that the host volume's collector keeps it while it is referenced.
-func TestPluginBucketTracksGCInHostGraph(t *testing.T) {
+// TestPluginBucketKeepsChildLists checks a block a plugin writes through its
+// volume keeps its child list in the host volume.
+func TestPluginBucketKeepsChildLists(t *testing.T) {
 	tests := []struct {
 		name string
 		// instanceKey selects a Space's scoped plugin volume when set.
 		instanceKey string
-		// hostBucketID is the plugin bucket's ID in the host volume.
-		hostBucketID string
 	}{
-		{name: "app plugin", hostBucketID: "world"},
-		{
-			name:         "space plugin",
-			instanceKey:  "space-a",
-			hostBucketID: pluginVolumePrefix("space-a", "plugin") + "world",
-		},
+		{name: "app plugin"},
+		{name: "space plugin", instanceKey: "space-a"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Build a host volume whose own controller sweeps every 20ms.
+			// Build a host volume.
 			ctx := t.Context()
-			tb, err := testbed.NewTestbed(ctx, logrus.NewEntry(logrus.New()), testbed.WithVolumeConfig(&volume_kvtxinmem.Config{
-				VolumeConfig: &volume_controller.Config{GcIntervalDur: "20ms"},
-			}))
+			tb, err := testbed.NewTestbed(ctx, logrus.NewEntry(logrus.New()))
 			if err != nil {
 				t.Fatal(err.Error())
 			}
 			defer tb.Release()
-			hostGraph := tb.Volume.GetRefGraph()
+			lists, ok := tb.Volume.(interface {
+				GetChildren(context.Context, *block.BlockRef) ([]*block.BlockRef, bool, error)
+			})
+			if !ok {
+				t.Fatalf("host volume %T keeps no child lists", tb.Volume)
+			}
 
-			// The plugin writes a parent block that references a child block, and
-			// an unrelated block.
+			// The plugin writes a parent block that references a child block.
 			c := &Controller{conf: &Config{InstanceKey: tt.instanceKey}}
 			plugin, _ := servePluginBucket(ctx, t, c, tb, "plugin", "world")
 			child, _, err := plugin.PutBlock(ctx, []byte("child"), &block.PutOpts{RefsKnown: true})
@@ -160,70 +150,18 @@ func TestPluginBucketTracksGCInHostGraph(t *testing.T) {
 			if err != nil {
 				t.Fatal(err.Error())
 			}
-			dropped, _, err := plugin.PutBlock(ctx, []byte("dropped"), &block.PutOpts{RefsKnown: true})
-			if err != nil {
-				t.Fatal(err.Error())
-			}
 
-			// The host graph roots the bucket.
-			bucketIRI := block_gc.BucketIRI(tt.hostBucketID)
-			roots, err := hostGraph.GetOutgoingRefs(ctx, block_gc.NodeGCRoot)
-			if err != nil {
-				t.Fatal(err.Error())
-			}
-			if !slices.Contains(roots, bucketIRI) {
-				t.Fatalf("gcroot does not root %s: %v", bucketIRI, roots)
-			}
-
-			// The bucket owns the parent, which owns the child.
-			owned, err := hostGraph.GetOutgoingRefs(ctx, bucketIRI)
-			if err != nil {
-				t.Fatal(err.Error())
-			}
-			if !slices.Contains(owned, block_gc.BlockIRI(parent)) {
-				t.Fatalf("%s does not own the parent: %v", bucketIRI, owned)
-			}
-			children, err := hostGraph.GetOutgoingRefs(ctx, block_gc.BlockIRI(parent))
-			if err != nil {
-				t.Fatal(err.Error())
-			}
-			if !slices.Equal(children, []string{block_gc.BlockIRI(child)}) {
-				t.Fatalf("parent edges = %v, want the child", children)
-			}
-
-			// The bucket releases the unrelated block, and the host's collector
-			// sweeps it.
-			release := block_gc.RefEdge{Subject: bucketIRI, Object: block_gc.BlockIRI(dropped)}
-			if err := hostGraph.ApplyRefBatch(ctx, nil, []block_gc.RefEdge{release}); err != nil {
-				t.Fatal(err.Error())
-			}
-			deadline := time.Now().Add(10 * time.Second)
-			for {
-				exists, err := tb.Volume.GetBlockExists(ctx, dropped)
-				if err != nil {
-					t.Fatal(err.Error())
-				}
-				if !exists {
-					break
-				}
-				if time.Now().After(deadline) {
-					t.Fatal("host did not sweep the released plugin block")
-				}
-				time.Sleep(10 * time.Millisecond)
-			}
-
-			// The referenced blocks survive the sweep.
-			for name, ref := range map[string]*block.BlockRef{"parent": parent, "child": child} {
-				if exists, err := tb.Volume.GetBlockExists(ctx, ref); err != nil || !exists {
-					t.Fatalf("%s block after the sweep: %v, %v", name, exists, err)
-				}
+			// The host keeps the parent's child list.
+			children, listed, err := lists.GetChildren(ctx, parent)
+			if err != nil || !listed || len(children) != 1 || !children[0].EqualsRef(child) {
+				t.Fatalf("parent child list = %v listed %v err %v, want the child", children, listed, err)
 			}
 		})
 	}
 }
 
 // TestPluginBucketPutBlockRPCCount checks the RPC calls of a plugin's block
-// write: tracking references adds one ref graph call to the block store call.
+// write: the block store call carries its child list, so it is the only one.
 func TestPluginBucketPutBlockRPCCount(t *testing.T) {
 	// Open the plugin's bucket and the volume its handle writes through.
 	ctx := t.Context()
@@ -247,8 +185,8 @@ func TestPluginBucketPutBlockRPCCount(t *testing.T) {
 	}
 	got := counter.take()
 
-	// The block store call is joined by one batch of the owner and child edges.
-	want := map[string]int{"PutBlock": 1, "ApplyRefBatch": 1}
+	// The block store call alone carries the child list.
+	want := map[string]int{"PutBlock": 1}
 	if !maps.Equal(got, want) {
 		t.Fatalf("RPC calls of a plugin PutBlock = %v, want %v", got, want)
 	}

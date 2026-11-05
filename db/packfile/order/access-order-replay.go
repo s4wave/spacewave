@@ -10,7 +10,7 @@ import (
 // ReplayAccessOrderRecord orders refs by record file access, then graph fallback.
 func ReplayAccessOrderRecord(
 	ctx context.Context,
-	graph RefGraph,
+	graph ChildLists,
 	identity AccessOrderManifestIdentity,
 	record *AccessOrderRecord,
 	refs []*block.BlockRef,

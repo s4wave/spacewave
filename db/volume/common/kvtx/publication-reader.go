@@ -20,6 +20,8 @@ import (
 // (RmBlock, tombstones, and physicalTx). An admitted entry is staged until
 // its group commits, and its group can still fail.
 type publicationReader struct {
+	// volume serves the child lists of stored blocks.
+	volume *Volume
 	// writer holds the admitted publications, nil without atomic publication.
 	writer *publicationWriter
 	// store reads and writes the applied blocks.
@@ -63,7 +65,7 @@ func (r publicationReader) BeginReadOperation(ctx context.Context) (block.StoreO
 	if err != nil {
 		return nil, nil, err
 	}
-	return publicationReader{writer: r.writer, store: scope, pinned: pinned, scoped: true, gen: gen}, release, nil
+	return publicationReader{volume: r.volume, writer: r.writer, store: scope, pinned: pinned, scoped: true, gen: gen}, release, nil
 }
 
 // PutBlock writes a block to the store.
@@ -114,8 +116,8 @@ func (r publicationReader) GetBlock(ctx context.Context, ref *block.BlockRef) ([
 }
 
 // GetStoredBlock reads an admitted entry before the store. An admitted entry
-// carries the refs its writer gave, which the Volume admitted only when known
-// or when the store already held the block.
+// carries the child list its writer gave; a stored block's comes from the
+// Volume's liveness records, and is unknown for a block stored without one.
 func (r publicationReader) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	// Read the store when no admitted publication writes the block, so a store
 	// that knows its refs reports them, and mark a found block durable.
@@ -126,8 +128,12 @@ func (r publicationReader) GetStoredBlock(ctx context.Context, ref *block.BlockR
 	}
 	if entry == nil {
 		stored, err := r.store.GetStoredBlock(ctx, ref)
-		if err == nil && stored != nil {
-			block.MarkDurableRead(ctx, ref, gen)
+		if err != nil || stored == nil {
+			return stored, err
+		}
+		block.MarkDurableRead(ctx, ref, gen)
+		if !stored.RefsKnown {
+			stored.Refs, stored.RefsKnown, err = r.volume.GetChildren(ctx, ref)
 		}
 		return stored, err
 	}

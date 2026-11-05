@@ -123,16 +123,6 @@ func (b *StoreRW) Sync(ctx context.Context) (bool, error) {
 	return b.writeHandle.Sync(ctx)
 }
 
-// BeginDeferFlush forwards the GC defer-flush scope to the write handle.
-func (b *StoreRW) BeginDeferFlush() {
-	BeginDeferFlush(b.writeHandle)
-}
-
-// EndDeferFlush forwards closing the GC defer-flush scope to the write handle.
-func (b *StoreRW) EndDeferFlush(ctx context.Context) error {
-	return EndDeferFlush(ctx, b.writeHandle)
-}
-
 // SupportsAtomicPublication follows the write domain, never a cross-volume lookup.
 func (b *StoreRW) SupportsAtomicPublication() bool {
 	if b.publicationReadOnly {

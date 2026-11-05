@@ -471,16 +471,6 @@ func (w *worldPages) RootsComplete(ctx context.Context, refs []*block.BlockRef) 
 	return complete, nil
 }
 
-// BeginDeferFlush forwards the GC defer-flush scope to the store.
-func (w *worldPages) BeginDeferFlush() {
-	block.BeginDeferFlush(w.inner)
-}
-
-// EndDeferFlush closes the GC defer-flush scope on the store.
-func (w *worldPages) EndDeferFlush(ctx context.Context) error {
-	return block.EndDeferFlush(ctx, w.inner)
-}
-
 // pageView serves the kept pages of a pageSet in front of a store.
 type pageView struct {
 	// StoreOps is the store behind the kept pages.
@@ -781,6 +771,5 @@ var (
 	_ bstore.BlockStore                = (*worldPages)(nil)
 	_ block.AtomicPublisher            = (*worldPages)(nil)
 	_ block.RootRetainer               = (*worldPages)(nil)
-	_ block.DeferFlusher               = (*worldPages)(nil)
 	_ block.DecodedBlockCacheFreshener = (*pageView)(nil)
 )

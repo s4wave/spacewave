@@ -32,10 +32,8 @@ import (
 	sobject_invite "github.com/s4wave/spacewave/core/sobject/invite"
 	"github.com/s4wave/spacewave/core/space"
 	space_world "github.com/s4wave/spacewave/core/space/world"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/volume"
-	kvtx_volume "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	"github.com/s4wave/spacewave/db/world"
 	bifrost_crypto "github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/util/confparse"
@@ -1140,8 +1138,8 @@ func (r *SessionResource) LockSession(ctx context.Context, req *s4wave_session.L
 }
 
 // DeleteAccount deletes the entire account associated with this session.
-// Cleans all session keys, removes GC edges, runs volume GC, deletes
-// the volume backing store, and removes all sessions from the list.
+// Cleans all session keys, deletes the volume backing store, and removes all
+// sessions from the list.
 func (r *SessionResource) DeleteAccount(ctx context.Context, req *s4wave_session.DeleteAccountRequest) (*s4wave_session.DeleteAccountResponse, error) {
 	// Resolve the provider identity used to scope account cleanup.
 	sessRef := r.session.GetSessionRef()
@@ -1152,18 +1150,15 @@ func (r *SessionResource) DeleteAccount(ctx context.Context, req *s4wave_session
 	// Look up the provider account to get the volume.
 	providerAcc := r.session.GetProviderAccount()
 
-	// Determine the volume, provider IRI, and object store ID based on provider type.
+	// Determine the volume and object store ID based on provider type.
 	var vol volume.Volume
-	var providerIRI string
 	var objectStoreID string
 	switch acc := providerAcc.(type) {
 	case *provider_local.ProviderAccount:
 		vol = acc.GetVolume()
-		providerIRI = provider_local.ProviderIRI(providerID)
 		objectStoreID = provider_local.SessionObjectStoreID(providerID, providerAccountID)
 	case *provider_spacewave.ProviderAccount:
 		vol = acc.GetVolume()
-		providerIRI = provider_spacewave.ProviderIRI(providerID)
 		objectStoreID = provider_spacewave.SessionObjectStoreID(providerAccountID)
 	default:
 		return nil, errors.New("unsupported provider account type for delete")
@@ -1253,21 +1248,6 @@ func (r *SessionResource) DeleteAccount(ctx context.Context, req *s4wave_session
 			},
 		); err != nil {
 			return nil, errors.Wrap(err, "scan and delete session keys")
-		}
-	}
-
-	// Remove GC root edge and run collection.
-	if kvVol, ok := vol.(kvtx_volume.KvtxVolume); ok {
-		if rg := kvVol.GetRefGraph(); rg != nil {
-			gcOps := block_gc.NewGCStoreOps(vol, rg)
-			if err := gcOps.RemoveGCRef(ctx, block_gc.NodeGCRoot, providerIRI); err != nil {
-				r.le.WithError(err).Warn("failed to remove gc root ref for deleted account")
-			}
-
-			collector := block_gc.NewCollector(rg, vol, nil)
-			if _, err := collector.Collect(ctx); err != nil {
-				r.le.WithError(err).Warn("gc collect after account delete failed")
-			}
 		}
 	}
 

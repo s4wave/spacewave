@@ -2,12 +2,10 @@ package kvtx
 
 import (
 	"fmt"
-	"slices"
 	"testing"
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 )
 
 func TestCacheFillsShareTransactions(t *testing.T) {
@@ -88,14 +86,9 @@ func TestCacheFillsShareTransactions(t *testing.T) {
 		if err != nil || !found || string(got) != string(datas[i]) {
 			t.Fatalf("fill %d stored found=%v err=%v", i, found, err)
 		}
-		node := block_gc.BlockIRI(res.ref)
-		owners, err := v.GetRefGraph().GetIncomingRefs(t.Context(), node)
-		if err != nil || slices.Contains(owners, block_gc.BucketIRI("bucket")) {
-			t.Fatalf("fill %d owners=%v err=%v", i, owners, err)
-		}
-		children, err := v.GetRefGraph().GetOutgoingRefs(t.Context(), node)
-		if err != nil || !slices.Equal(children, []string{block_gc.BlockIRI(leaf)}) {
-			t.Fatalf("fill %d children=%v err=%v", i, children, err)
+		children, listed, err := v.GetChildren(t.Context(), res.ref)
+		if err != nil || !listed || len(children) != 1 || !children[0].EqualsRef(leaf) {
+			t.Fatalf("fill %d children=%v listed=%v err=%v", i, children, listed, err)
 		}
 	}
 

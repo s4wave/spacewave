@@ -69,38 +69,6 @@ type StoreOps interface {
 	RootOps
 }
 
-// DeferFlusher batches deferred GC ref-graph flushes across a write scope.
-//
-// This is an in-process concern owned by GCStoreOps, distinct from the
-// durability surface (StoreOps.Sync). While a scope is open, accumulated
-// ref-graph edge operations are not applied; the outermost EndDeferFlush
-// applies them in one batch. In-process store wrappers forward the scope to
-// their inner store so a GCStoreOps nested behind wrappers still batches. It is
-// never carried over the block RPC wire.
-type DeferFlusher interface {
-	// BeginDeferFlush opens a deferred GC-flush scope. Supports nesting.
-	BeginDeferFlush()
-	// EndDeferFlush closes a scope; the outermost close flushes pending edges.
-	EndDeferFlush(ctx context.Context) error
-}
-
-// BeginDeferFlush opens a deferred GC-flush scope on store when it batches GC
-// ref-graph flushes. Stores without a GC ref-graph are a no-op.
-func BeginDeferFlush(store StoreOps) {
-	if df, ok := store.(DeferFlusher); ok {
-		df.BeginDeferFlush()
-	}
-}
-
-// EndDeferFlush closes a deferred GC-flush scope on store when it batches GC
-// ref-graph flushes. Stores without a GC ref-graph are a no-op.
-func EndDeferFlush(ctx context.Context, store StoreOps) error {
-	if df, ok := store.(DeferFlusher); ok {
-		return df.EndDeferFlush(ctx)
-	}
-	return nil
-}
-
 // DecodedBlockCacheFreshener is implemented by stores whose decoded-cache hits
 // depend on external freshness state that ordinary block reads would refresh.
 type DecodedBlockCacheFreshener interface {

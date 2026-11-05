@@ -34,11 +34,6 @@ type Volume interface {
 	// If withPriv=false ensure that the Peer returned does not have the private key.
 	GetPeer(ctx context.Context, withPriv bool) (peer.Peer, error)
 
-	// GetRefGraph returns the volume's GC reference graph.
-	//
-	// NOTE: May return nil if the volume does not support Garbage Collection.
-	GetRefGraph() block_gc.RefGraphOps
-
 	// GetStorageStats returns storage usage statistics for the volume.
 	// Returns total bytes and block count from the underlying storage backend.
 	GetStorageStats(ctx context.Context) (*StorageStats, error)
@@ -60,6 +55,25 @@ type Volume interface {
 	// After Delete returns, the volume's persistent data is gone.
 	// Close is idempotent after Delete.
 	Delete() error
+}
+
+// Collector is implemented by a volume whose collector frees the blocks no
+// held named root reaches.
+type Collector interface {
+	// Collect runs one bounded collection pass: it releases lapsed leases,
+	// nets the journal and frees what died, in slices that yield to waiting
+	// writers. CollectResult.More reports work left.
+	Collect(ctx context.Context) (block_gc.CollectResult, error)
+}
+
+// BucketReleaser is implemented by a volume that holds named roots by bucket.
+type BucketReleaser interface {
+	// ReleaseBucket releases every named root of the bucket, so the collector
+	// frees what only they reached, such as the blocks of a deleted Space.
+	ReleaseBucket(ctx context.Context, bucketID string) error
+	// ReleaseBucketPrefix releases every named root of each bucket whose ID
+	// starts with prefix, such as the buckets of a deleted account.
+	ReleaseBucketPrefix(ctx context.Context, prefix string) error
 }
 
 // WriteOrderer is implemented by a volume whose block and object store writes

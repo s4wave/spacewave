@@ -13,7 +13,6 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_rpc "github.com/s4wave/spacewave/db/block/rpc"
 	block_rpc_client "github.com/s4wave/spacewave/db/block/rpc/client"
 	block_rpc_server "github.com/s4wave/spacewave/db/block/rpc/server"
@@ -41,11 +40,6 @@ type ownedStore struct {
 // PutBlock writes a block owned by the bucket.
 func (o ownedStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	return o.PrepareOwnedBlock(ctx, "bucket", data, opts)
-}
-
-// GetStoredBlock reads a block with the refs the Volume tracks.
-func (o ownedStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
-	return block_gc.NewGCStoreOps(o.Volume, o.GetRefGraph()).GetStoredBlock(ctx, ref)
 }
 
 // PutBlockBatch writes a batch owned by the bucket.

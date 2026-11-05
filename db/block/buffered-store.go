@@ -593,17 +593,6 @@ func (s *BufferedStore) Flush(ctx context.Context) error {
 	return nil
 }
 
-// BeginDeferFlush forwards the GC defer-flush scope to the inner store.
-func (s *BufferedStore) BeginDeferFlush() {
-	BeginDeferFlush(s.inner)
-}
-
-// EndDeferFlush forwards closing the GC defer-flush scope to the inner store.
-// Buffered blocks are never drained here; only Sync and Flush drain.
-func (s *BufferedStore) EndDeferFlush(ctx context.Context) error {
-	return EndDeferFlush(ctx, s.inner)
-}
-
 // drainForCapacity drains batches until the pending queue is within its
 // configured limits.
 func (s *BufferedStore) drainForCapacity(ctx context.Context) error {

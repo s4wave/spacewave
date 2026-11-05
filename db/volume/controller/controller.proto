@@ -2,7 +2,6 @@ syntax = "proto3";
 package volume.controller;
 
 import "github.com/s4wave/spacewave/db/block/block.proto";
-import "google/protobuf/timestamp.proto";
 
 // Config configures the generic volume controller.
 message Config {
@@ -38,12 +37,4 @@ message Config {
   string gc_interval_dur = 10;
 
   // reserved: 3 disable_reconciler_queues
-}
-
-// GcSchedule is the volume's collection schedule, kept in the volume's own
-// object store so a restart resumes it.
-message GcSchedule {
-  // NextBlockPass is when the next block pass is due. A time already past
-  // when the volume starts runs the pass at the first collection.
-  google.protobuf.Timestamp next_block_pass = 1;
 }

@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/volume/crashtest"
 	"github.com/s4wave/spacewave/db/volume/device"
 	"github.com/s4wave/spacewave/db/volume/logindex"
@@ -125,16 +124,15 @@ func TestCrashCollect(t *testing.T) {
 				s := reopen(t, e, d, nil)
 				v := openVolume(t, s)
 				keep, drop := publish(t, v, "keep"), publish(t, v, "drop")
-				orphan(t, v, drop)
+				orphan(t, v, "drop", drop)
 				if _, err := s.Sync(ctx); err != nil {
 					t.Fatal(err)
 				}
 
 				// Count the calls of an uncrashed collection on the first pass.
-				collector := block_gc.NewCollector(v.GetRefGraph(), v, nil)
 				if n < 0 {
 					base := d.Calls()
-					if _, err := collector.Collect(ctx); err != nil {
+					if _, err := v.Collect(ctx); err != nil {
 						t.Fatal(err)
 					}
 					calls = d.Calls() - base
@@ -145,7 +143,7 @@ func TestCrashCollect(t *testing.T) {
 
 				// Crash the collection, recover, and collect again.
 				d.CrashAfter(n)
-				if _, err := collector.Collect(ctx); err == nil {
+				if _, err := v.Collect(ctx); err == nil {
 					t.Fatalf("crash %d: collection finished without crashing", n)
 				}
 				_ = v.Close()
@@ -153,7 +151,7 @@ func TestCrashCollect(t *testing.T) {
 				d.PowerLoss(rand.New(rand.NewPCG(uint64(n), 1))) //nolint:gosec
 				s = reopen(t, e, d, nil)
 				v = openVolume(t, s)
-				if _, err := block_gc.NewCollector(v.GetRefGraph(), v, nil).Collect(ctx); err != nil {
+				if _, err := v.Collect(ctx); err != nil {
 					t.Fatalf("crash %d: %v", n, err)
 				}
 				checkCollected(t, s, v, keep, drop)

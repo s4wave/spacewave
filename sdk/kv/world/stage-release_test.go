@@ -3,12 +3,10 @@ package s4wave_kv_world_test
 import (
 	"context"
 	"strconv"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/testbed"
 )
 
@@ -50,17 +48,16 @@ func TestWorldBackedStoreReleasesCommittedRoots(t *testing.T) {
 		roots = append(roots, getObjectRoot(t, ctx, tb.WorldState, objectKey).GetRootRef())
 	}
 
-	// No stage owns a committed root while the store stays open.
-	rg := tb.Volume.GetRefGraph()
-	for _, root := range roots {
-		owners, err := rg.GetIncomingRefs(ctx, block_gc.BlockIRI(root))
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, owner := range owners {
-			if strings.HasPrefix(owner, "stage:") {
-				t.Fatalf("stage %s still owns committed root %s", owner, root.MarshalString())
+	// No stage holds a committed root while the store stays open.
+	err = tb.Volume.ListRoots(ctx, "stage:", func(root block.NamedRoot) error {
+		for _, committed := range roots {
+			if root.Ref.EqualsRef(committed) {
+				t.Fatalf("stage root %s still holds committed root %s", root.Name, committed.MarshalString())
 			}
 		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
 }

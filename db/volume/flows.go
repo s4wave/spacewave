@@ -44,33 +44,6 @@ type VolumeFlows struct {
 	// Values are the values of each key family, empty when the storage does
 	// not count them.
 	Values []ValueFlow
-	// DeadlistsChecked is the number of due deadlist records the collector
-	// applied in shadow after its mark.
-	DeadlistsChecked uint64
-	// DeadlistLivePages is the number of pages those records would free that
-	// the mark reached; any is a deadlist error.
-	DeadlistLivePages uint64
-	// DeadlistLeakedPages is the number of pages those records kept alive
-	// that the mark did not reach, which freeing by the records would leak.
-	DeadlistLeakedPages uint64
-	// DeadlistCountUnderflows is the number of shared count changes those
-	// records made that would take a count below zero; any is an error.
-	DeadlistCountUnderflows uint64
-	// ReleasesResolved is the number of shared count releases the collector
-	// resolved.
-	ReleasesResolved uint64
-	// ReleaseFreedBlocks is the number of blocks those releases freed.
-	ReleaseFreedBlocks uint64
-	// ReleaseLiveBlocks is the number of those freed blocks the collector's
-	// next mark reached; any is an error in the counts.
-	ReleaseLiveBlocks uint64
-	// ReleaseUnderflows is the number of releases beyond a block's count and
-	// the one that freed it; any means a holder was never counted.
-	ReleaseUnderflows uint64
-	// RevivedPuts is the number of entries marked as already counted that a
-	// put found absent and stored afresh; any is an error in the writer's
-	// proof that its kept World holds them.
-	RevivedPuts uint64
 	// BuildWait is the time background commits waited for the storage's
 	// checkpoint build, zero when the storage does not count it.
 	BuildWait time.Duration

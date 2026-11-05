@@ -250,7 +250,7 @@ func TestPackSwitch(t *testing.T) {
 	}
 
 	// The write-back store reads the markers and uploads the unpacked blocks.
-	wb, err := block_writeback.NewStore(ctx, nf.world, nf.vol, kvtx_prefixer.NewPrefixer(nf.db, prefix), writebackStoreID(), true)
+	wb, err := block_writeback.NewStore(ctx, nf.vol, nf.vol, kvtx_prefixer.NewPrefixer(nf.db, prefix), writebackStoreID(), true)
 	if err != nil {
 		t.Fatal(err)
 	}

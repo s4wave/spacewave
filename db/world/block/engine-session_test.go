@@ -13,11 +13,11 @@ import (
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/coord"
+	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/tx"
 	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
@@ -102,7 +102,9 @@ func newSessionFixture(t *testing.T) *sessionFixture {
 	log := logrus.New()
 	log.SetLevel(logrus.ErrorLevel)
 	tb, err := testbed.NewTestbed(ctx, logrus.NewEntry(log), testbed.WithVolumeConfig(&volume_s4db.Config{
-		Path: filepath.Join(t.TempDir(), "session.s4wave"), VolumeConfig: &volume_controller.Config{GcIntervalDur: "1h"},
+		Path:         filepath.Join(t.TempDir(), "session.s4wave"),
+		VolumeConfig: &volume_controller.Config{GcIntervalDur: "1h"},
+		StoreConfig:  &store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: "1ns"},
 	}))
 	if err != nil {
 		t.Fatal(err)
@@ -204,15 +206,10 @@ func newSessionFixture(t *testing.T) *sessionFixture {
 	return f
 }
 
-// collect reaps released root pins, then collects unreferenced nodes, in the
-// order of the volume GC sweep.
+// collect runs one collection pass of the volume, as its GC sweep does.
 func (f *sessionFixture) collect(t *testing.T) {
 	t.Helper()
-	ctx := t.Context()
-	if err := f.volume.ReapRootPins(ctx); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := block_gc.NewCollector(f.volume.GetRefGraph(), f.volume, nil).Collect(ctx); err != nil {
+	if _, err := f.volume.Collect(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 }

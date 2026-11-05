@@ -5,44 +5,27 @@ import (
 	"cmp"
 	"context"
 	"slices"
-	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 )
 
-// objectIRIPrefix identifies object roots in the GC graph.
-const objectIRIPrefix = "object:"
-
-// RefGraph is the GC graph surface required for pack locality ordering.
-type RefGraph interface {
-	// GetOutgoingRefs returns all gc/ref targets from a node.
-	GetOutgoingRefs(ctx context.Context, node string) ([]string, error)
-	// GetIncomingRefs returns all gc/ref sources for a node.
-	GetIncomingRefs(ctx context.Context, node string) ([]string, error)
+// ChildLists reads the child list a Volume keeps for each stored block.
+type ChildLists interface {
+	// GetChildren returns the children of ref and whether its list is known.
+	GetChildren(ctx context.Context, ref *block.BlockRef) ([]*block.BlockRef, bool, error)
 }
 
-// rootedRef associates an available block with a named object root.
-type rootedRef struct {
-	// root identifies the object that retains the block.
-	root string
-	// key provides a stable tie-breaker within one object.
-	key string
-	// ref identifies the available root block.
-	ref *block.BlockRef
-}
-
-// BlockRefs groups refs by available subtrees, preferring named GC object roots.
-// GC edges have no intrinsic order, so siblings use stable hash order. With no
-// graph, all refs use stable hash order. Only candidate blocks are queried.
-func BlockRefs(ctx context.Context, graph RefGraph, refs []*block.BlockRef) ([]*block.BlockRef, error) {
-	// Deduplicate candidate identities before querying the graph.
+// BlockRefs groups refs by available subtrees, read from lists. Child lists
+// have no intrinsic order, so siblings use stable hash order. Without lists,
+// all refs use stable hash order. Only candidate blocks are queried.
+func BlockRefs(ctx context.Context, lists ChildLists, refs []*block.BlockRef) ([]*block.BlockRef, error) {
+	// Deduplicate candidate identities before reading their lists.
 	ordered := NewGraph()
 	for _, ref := range refs {
 		ordered.Add(ref, nil)
 	}
-	if graph == nil {
+	if lists == nil {
 		return ordered.Order(ctx, nil)
 	}
 	keys := make([]string, 0, len(ordered.nodes))
@@ -51,48 +34,23 @@ func BlockRefs(ctx context.Context, graph RefGraph, refs []*block.BlockRef) ([]*
 	}
 	slices.Sort(keys)
 
-	// Capture relationships even when no object root is present in this upload.
-	var roots []rootedRef
+	// Capture each candidate's children in stable hash order.
 	for _, key := range keys {
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
 		ref := ordered.nodes[key].ref
-		iri := block_gc.BlockIRI(ref)
-		outgoing, err := graph.GetOutgoingRefs(ctx, iri)
+		children, _, err := lists.GetChildren(ctx, ref)
 		if err != nil {
-			return nil, errors.Wrap(err, "get outgoing gc refs")
+			return nil, errors.Wrap(err, "get child list")
 		}
-		slices.Sort(outgoing)
-		var children []*block.BlockRef
-		for _, target := range outgoing {
-			if child, ok := block_gc.ParseBlockIRI(target); ok {
-				children = append(children, child)
-			}
-		}
+		children = slices.Clone(children)
+		slices.SortFunc(children, func(a, b *block.BlockRef) int {
+			return cmp.Compare(refKey(a), refKey(b))
+		})
 		ordered.Add(ref, children)
-
-		// Named roots retain their existing object-key precedence.
-		incoming, err := graph.GetIncomingRefs(ctx, iri)
-		if err != nil {
-			return nil, errors.Wrap(err, "get incoming gc refs")
-		}
-		for _, source := range incoming {
-			if strings.HasPrefix(source, objectIRIPrefix) {
-				roots = append(roots, rootedRef{root: source, key: key, ref: ref})
-			}
-		}
 	}
-	slices.SortFunc(roots, func(a, b rootedRef) int {
-		return cmp.Or(cmp.Compare(a.root, b.root), cmp.Compare(a.key, b.key))
-	})
-
-	// Use the same structural ordering as producers with intrinsic child order.
-	rootRefs := make([]*block.BlockRef, 0, len(roots))
-	for _, root := range roots {
-		rootRefs = append(rootRefs, root.ref)
-	}
-	return ordered.Order(ctx, rootRefs)
+	return ordered.Order(ctx, nil)
 }
 
 // refKey identifies a nonempty block by its content hash.

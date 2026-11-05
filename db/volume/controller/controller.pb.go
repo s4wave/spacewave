@@ -11,7 +11,6 @@ import (
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
-	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	block "github.com/s4wave/spacewave/db/block"
 )
 
@@ -118,28 +117,6 @@ func (x *Config) GetGcIntervalDur() string {
 	return ""
 }
 
-// GcSchedule is the volume's collection schedule, kept in the volume's own
-// object store so a restart resumes it.
-type GcSchedule struct {
-	unknownFields []byte
-	// NextBlockPass is when the next block pass is due. A time already past
-	// when the volume starts runs the pass at the first collection.
-	NextBlockPass *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=next_block_pass,json=nextBlockPass,proto3" json:"nextBlockPass,omitempty"`
-}
-
-func (x *GcSchedule) Reset() {
-	*x = GcSchedule{}
-}
-
-func (*GcSchedule) ProtoMessage() {}
-
-func (x *GcSchedule) GetNextBlockPass() *timestamppb.Timestamp {
-	if x != nil {
-		return x.NextBlockPass
-	}
-	return nil
-}
-
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -161,22 +138,6 @@ func (m *Config) CloneVT() *Config {
 }
 
 func (m *Config) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (m *GcSchedule) CloneVT() *GcSchedule {
-	if m == nil {
-		return (*GcSchedule)(nil)
-	}
-	r := new(GcSchedule)
-	r.NextBlockPass = protobuf_go_lite.CloneVTValue(m.NextBlockPass)
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *GcSchedule) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -218,26 +179,6 @@ func (this *Config) EqualVT(that *Config) bool {
 
 func (this *Config) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*Config)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-func (this *GcSchedule) EqualVT(that *GcSchedule) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if !protobuf_go_lite.IsEqualVT(this.NextBlockPass, that.NextBlockPass) {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *GcSchedule) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*GcSchedule)
 	if !ok {
 		return false
 	}
@@ -358,52 +299,6 @@ func (x *Config) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the GcSchedule message to JSON.
-func (x *GcSchedule) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.NextBlockPass != nil || s.HasField("nextBlockPass") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("nextBlockPass")
-		x.NextBlockPass.MarshalProtoJSON(s.WithField("nextBlockPass"))
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the GcSchedule to JSON.
-func (x *GcSchedule) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the GcSchedule message from JSON.
-func (x *GcSchedule) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "next_block_pass", "nextBlockPass":
-			if s.ReadNil() {
-				x.NextBlockPass = nil
-				return
-			}
-			x.NextBlockPass = &timestamppb.Timestamp{}
-			x.NextBlockPass.UnmarshalProtoJSON(s.WithField("next_block_pass", true))
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the GcSchedule from JSON.
-func (x *GcSchedule) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
 func (m *Config) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -488,48 +383,6 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *GcSchedule) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *GcSchedule) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *GcSchedule) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
-	}
-	if m.NextBlockPass != nil {
-		size, err := m.NextBlockPass.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
 func (m *Config) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -548,20 +401,6 @@ func (m *Config) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.GcIntervalDur)
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *GcSchedule) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if m.NextBlockPass != nil {
-		l = m.NextBlockPass.SizeVT()
-		n += protobuf_go_lite.SizeMessage(1, l)
-	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -613,20 +452,6 @@ func (x *Config) MarshalProtoText() string {
 }
 
 func (x *Config) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *GcSchedule) MarshalProtoText() string {
-	var sb protobuf_go_lite.TextBuilder
-	initialLen := protobuf_go_lite.TextStartMessage(&sb, "GcSchedule")
-	if x.NextBlockPass != nil {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "next_block_pass")
-		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.NextBlockPass)
-	}
-	return protobuf_go_lite.TextFinishMessage(&sb)
-}
-
-func (x *GcSchedule) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -746,64 +571,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.GcIntervalDur = v
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *GcSchedule) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: GcSchedule: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: GcSchedule: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field NextBlockPass", wireType)
-			}
-			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			if m.NextBlockPass == nil {
-				m.NextBlockPass = &timestamppb.Timestamp{}
-			}
-			if err := m.NextBlockPass.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

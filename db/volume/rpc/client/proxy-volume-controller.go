@@ -6,7 +6,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/srpc"
-	rpc_gc "github.com/s4wave/spacewave/db/block/gc/rpc"
 	rpc_block "github.com/s4wave/spacewave/db/block/rpc"
 	rpc_bucket "github.com/s4wave/spacewave/db/bucket/store/rpc"
 	rpc_object "github.com/s4wave/spacewave/db/object/rpc"
@@ -30,14 +29,12 @@ type ProxyVolumeController struct {
 	bucketStoreClient rpc_bucket.SRPCBucketStoreClient
 	// objectStoreClient is the client for the ObjectStore.
 	objectStoreClient rpc_object.SRPCObjectStoreClient
-	// refGraphClient is the client for the RefGraph
-	refGraphClient rpc_gc.SRPCRefGraphClient
 }
 
 // newProxyVolumeConfig returns the volume controller config of a proxy volume.
 //
-// Bucket handles of the proxy volume track references in the served volume's
-// ref graph. The proxy volume never collects: see ProxyVolume.DelegatesGC.
+// The proxy volume never collects: the served volume's collector does, see
+// ProxyVolume.DelegatesGC.
 func newProxyVolumeConfig(volumeIDAlias []string) *volume_controller.Config {
 	return &volume_controller.Config{
 		VolumeIdAlias: volumeIDAlias,
@@ -57,7 +54,6 @@ func NewProxyVolumeController(
 	blockStoreClient rpc_block.SRPCBlockStoreClient,
 	bucketStoreClient rpc_bucket.SRPCBucketStoreClient,
 	objectStoreClient rpc_object.SRPCObjectStoreClient,
-	refGraphClient rpc_gc.SRPCRefGraphClient,
 ) *ProxyVolumeController {
 	return &ProxyVolumeController{
 		Controller: volume_controller.NewController(
@@ -79,7 +75,6 @@ func NewProxyVolumeController(
 					blockStoreClient,
 					bucketStoreClient,
 					objectStoreClient,
-					refGraphClient,
 				)
 			},
 		),
@@ -89,7 +84,6 @@ func NewProxyVolumeController(
 		blockStoreClient:  blockStoreClient,
 		bucketStoreClient: bucketStoreClient,
 		objectStoreClient: objectStoreClient,
-		refGraphClient:    refGraphClient,
 	}
 }
 
@@ -122,10 +116,6 @@ func NewProxyVolumeControllerWithClient(
 		rpc_object.NewSRPCObjectStoreClientWithServiceID(
 			cc,
 			serviceIDPrefix+rpc_object.SRPCObjectStoreServiceID,
-		),
-		rpc_gc.NewSRPCRefGraphClientWithServiceID(
-			cc,
-			serviceIDPrefix+rpc_gc.SRPCRefGraphServiceID,
 		),
 	)
 }

@@ -1921,16 +1921,6 @@ func (d *probeDirtyTrackingStore) Sync(ctx context.Context) (bool, error) {
 	return d.store.Sync(ctx)
 }
 
-// BeginDeferFlush opens the underlying store's optional deferred flush scope.
-func (d *probeDirtyTrackingStore) BeginDeferFlush() {
-	block.BeginDeferFlush(d.store)
-}
-
-// EndDeferFlush closes the underlying store's deferred flush scope.
-func (d *probeDirtyTrackingStore) EndDeferFlush(ctx context.Context) error {
-	return block.EndDeferFlush(ctx, d.store)
-}
-
 // markDirty commits the dirty entry before notifying the optional packer.
 func (d *probeDirtyTrackingStore) markDirty(ctx context.Context, h *hash.Hash, size int64) error {
 	// Record the block's size under its hash.

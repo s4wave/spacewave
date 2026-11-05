@@ -9,7 +9,6 @@ import (
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	"golang.org/x/sync/errgroup"
 )
@@ -50,43 +49,29 @@ type MoveProgress struct {
 	Upload UploadStatus
 }
 
-// ListBlockStoreRefs returns every block the block store holds: the blocks
-// reachable in the volume's GC ref graph from the store's bucket node.
+// ListBlockStoreRefs returns every block the block store holds: the blocks a
+// named root of the store's bucket reaches through child lists.
 func (a *ProviderAccount) ListBlockStoreRefs(ctx context.Context, blockStoreID string) ([]*block.BlockRef, error) {
-	// Resolve the block-store bucket in the volume ref graph.
-	rg := a.GetVolume().GetRefGraph()
-	if rg == nil {
+	// Resolve the block-store bucket on a volume that keeps child lists.
+	walker, ok := a.GetVolume().(interface {
+		WalkBucket(ctx context.Context, bucketID string, fn func(*block.BlockRef) error) error
+	})
+	if !ok {
 		return nil, nil
 	}
-	bucketIRI := block_gc.BucketIRI(BlockStoreBucketID(
+	bucketID := BlockStoreBucketID(
 		a.t.p.info.GetProviderId(),
 		a.t.accountInfo.GetProviderAccountId(),
 		blockStoreID,
-	))
+	)
 
-	// Walk the bucket's roots and the objects and blocks they reference.
-	seen := map[string]struct{}{bucketIRI: {}}
-	pending := []string{bucketIRI}
+	// Walk the bucket's roots and the blocks they reach.
 	var refs []*block.BlockRef
-	for len(pending) != 0 {
-		node := pending[len(pending)-1]
-		pending = pending[:len(pending)-1]
-		targets, err := rg.GetOutgoingRefs(ctx, node)
-		if err != nil {
-			return nil, errors.Wrapf(err, "read references of %q", block_gc.FormatIRI(node))
-		}
-		for _, target := range targets {
-			if _, ok := seen[target]; ok || block_gc.IsPermanentRoot(target) {
-				continue
-			}
-			seen[target] = struct{}{}
-			pending = append(pending, target)
-			if ref, ok := block_gc.ParseBlockIRI(target); ok {
-				refs = append(refs, ref)
-			}
-		}
-	}
-	return refs, nil
+	err := walker.WalkBucket(ctx, bucketID, func(ref *block.BlockRef) error {
+		refs = append(refs, ref)
+		return nil
+	})
+	return refs, err
 }
 
 // MoveSpaceStorage moves a SharedObject's blocks to a storage backend, or to
