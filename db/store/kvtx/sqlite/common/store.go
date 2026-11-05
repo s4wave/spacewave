@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"regexp"
+	"runtime"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -230,7 +231,19 @@ func openPool[T SQLiteDriverConfig](config T, path string, pragmas Pragmas) (*sq
 	if err != nil {
 		return nil, err
 	}
-	return sql.OpenDB(connector), nil
+
+	// Keep enough idle connections for the concurrent read transactions,
+	// each of which holds one for its life, so a burst of reads reuses
+	// warm connections instead of opening new ones.
+	db := sql.OpenDB(connector)
+	db.SetMaxIdleConns(idleConns())
+	return db, nil
+}
+
+// idleConns is the number of idle connections a pool keeps: twice the
+// processors, and at least 8.
+func idleConns() int {
+	return max(8, 2*runtime.GOMAXPROCS(0))
 }
 
 // OpenDB takes ownership of an already configured SQL pool and opens its KV table.
@@ -358,8 +371,9 @@ func (s *Store[T]) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, err
 		return nil, err
 	}
 	if _, err := conn.ExecContext(ctx, "BEGIN IMMEDIATE"); err != nil {
+		discardConn(conn)
 		release()
-		return nil, errors.Join(err, conn.Close())
+		return nil, err
 	}
 	return newWriteTx(conn, s.queries, s.flusher, s.wakeCheckpoint, release), nil
 }
