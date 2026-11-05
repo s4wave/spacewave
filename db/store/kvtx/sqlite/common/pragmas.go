@@ -26,11 +26,11 @@ type Pragmas struct {
 	// larger than about a twentieth of a page. An existing table keeps its
 	// shape.
 	WithoutRowID bool
-	// WALCheckpointBytes bounds the write-ahead log: past it, a write that
-	// commits starts a background checkpoint, and journal_size_limit truncates
-	// the log to it whenever the log restarts. SQLite's own checkpoint after
-	// a commit copies only what no reader needs and never shrinks the file,
-	// so under constant reads and heavy writes the log can grow without
-	// bound. 0 leaves both to SQLite.
+	// WALCheckpointBytes bounds the write-ahead log: journal_size_limit
+	// truncates the log to it whenever SQLite restarts it, and once the
+	// store's background checkpoint has copied all of a log past it, a
+	// truncating checkpoint resets it. Under constant reads and heavy writes
+	// SQLite may never restart the log, which can then grow without bound.
+	// 0 uses DefaultWALCheckpointBytes.
 	WALCheckpointBytes int64
 }

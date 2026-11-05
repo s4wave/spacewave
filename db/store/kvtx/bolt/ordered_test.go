@@ -48,7 +48,7 @@ func commitTestKey(t *testing.T, s *Store, key string, ordered bool) {
 // checkPending fails unless an ordered commit is pending exactly when want.
 func checkPending(t *testing.T, s *Store, want bool) {
 	t.Helper()
-	if got := s.durable.Load() < s.ordered.Load(); got != want {
+	if got := s.flusher.Pending(); got != want {
 		t.Fatalf("pending = %v, want %v", got, want)
 	}
 }

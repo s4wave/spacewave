@@ -186,13 +186,13 @@ func (t *Tx) Commit(ctx context.Context) error {
 	flushes := t.store != nil && !t.store.db.NoSync
 	var ordered uint64
 	if flushes {
-		ordered = t.store.ordered.Load()
+		ordered = t.store.flusher.Count()
 	}
 	if err := t.commit(t.txn.Commit); err != nil {
 		return err
 	}
 	if flushes {
-		t.store.markDurable(ordered)
+		t.store.flusher.MarkDurable(ordered)
 	}
 	return nil
 }
@@ -203,7 +203,7 @@ func (t *Tx) CommitOrdered(ctx context.Context) error {
 		return err
 	}
 	if t.store != nil {
-		t.store.markOrdered()
+		t.store.flusher.Ordered()
 	}
 	return nil
 }

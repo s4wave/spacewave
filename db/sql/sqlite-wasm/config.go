@@ -47,13 +47,9 @@ func (c SqliteWasmBridgeConfig) IsBusyError(err error) bool {
 	return strings.Contains(err.Error(), "SQLITE_BUSY")
 }
 
-// IsNestedTxError checks if the error is a nested transaction error.
-func (c SqliteWasmBridgeConfig) IsNestedTxError(err error) bool {
-	if err == nil {
-		return false
-	}
-	msg := err.Error()
-	return strings.Contains(msg, "cannot start a transaction within a transaction")
+// SyncWAL returns nil: the bridge flushes the database on its own terms.
+func (SqliteWasmBridgeConfig) SyncWAL(string) error {
+	return nil
 }
 
 // NewStore constructs a new key-value store from a sqlite-wasm database.

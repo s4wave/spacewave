@@ -13,10 +13,15 @@ import (
 // Pragmas re-exports common.Pragmas for callers of this package.
 type Pragmas = common.Pragmas
 
-// Store represents a SQLite-based key-value store.
+// Store represents a SQLite-based key-value store. It keeps the commit
+// contract the kvtx Volume runs on: ordered commits, grouped durability and a
+// writer queue, with atomic commits on a local file.
 type Store interface {
 	kvtx.Store
 	store_kvtx.Store
+	kvtx.OrderedCommitStore
+	kvtx.AtomicCommitStore
+	kvtx.WriterQueueStore
 
 	// GetDB returns the underlying SQL database connection.
 	GetDB() *sql.DB
