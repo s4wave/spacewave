@@ -98,7 +98,7 @@ try {
             if (state.status === 'current')
               seen[index] =
                 state.data.find((entry) => entry.key === '000000')?.value ?? -1
-            if (state.error) throw state.error
+            if (state.status === 'error') throw state.error
           },
         },
       ),

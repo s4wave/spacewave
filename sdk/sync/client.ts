@@ -28,16 +28,27 @@ import {
 } from './sync_srpc.pb.js'
 import { checkFailure, wireVersion } from './wire.js'
 
-export interface ConnectionState {
-  readonly status: 'ready' | 'reconnecting' | 'closed'
-  readonly error?: SyncError
-}
+// ConnectionState is the Database's link to its Gateway. Calls made while
+// reconnecting wait for the root Resource to return; a closed Database rejects
+// them and carries the failure when it closed on an error rather than close().
+export type ConnectionState =
+  | { readonly status: 'ready' }
+  | { readonly status: 'reconnecting' }
+  | { readonly status: 'closed'; readonly error?: SyncError }
 
-export interface SubscriptionState<T> {
-  readonly status: 'loading' | 'current' | 'stale' | 'error'
-  readonly data: readonly RecordEntry<T>[]
-  readonly error?: SyncError
-}
+// SubscriptionState is one published state of a collection watch. data is
+// empty while loading, the Gateway's latest entries when current, and the last
+// entries seen while stale or after an error. An error ends the watch.
+export type SubscriptionState<T> =
+  | {
+      readonly status: 'loading' | 'current' | 'stale'
+      readonly data: readonly RecordEntry<T>[]
+    }
+  | {
+      readonly status: 'error'
+      readonly data: readonly RecordEntry<T>[]
+      readonly error: SyncError
+    }
 
 export interface Observer<T> {
   next(state: SubscriptionState<T>): void | Promise<void>
@@ -200,7 +211,7 @@ class SyncClient<S extends Schema> implements Database<S> {
           try {
             for await (const state of watch(query, { ...options, signal })) {
               await observer.next(state)
-              if (state.error) observer.error?.(state.error)
+              if (state.status === 'error') observer.error?.(state.error)
             }
           } catch (error) {
             if (!signal.aborted) observer.error?.(clientError(error))

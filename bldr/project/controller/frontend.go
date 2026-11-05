@@ -41,7 +41,9 @@ import (
 const refreshExports = "register, injectIntoGlobalHook, createSignatureFunctionForTransform, registerExportsForReactRefresh, validateRefreshBoundaryAndEnqueueUpdate, __hmr_import"
 
 // FrontendService owns the project's current development environment.
-// The project serializes configuration and shutdown; RPC methods run concurrently.
+// The project Controller constructs and configures it, and other packages reach
+// it through Controller.GetFrontendService. The Controller serializes
+// configuration and shutdown; RPC methods run concurrently.
 type FrontendService struct {
 	// le records environment failures and recovery.
 	le *logrus.Entry
