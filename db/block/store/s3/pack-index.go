@@ -138,11 +138,16 @@ const loadReaders = 16
 // so no snapshot stays open across the whole table.
 const readChunk = 1024
 
-// load registers the pack table and reads the entries of its unindexed packs,
-// which a lookup cannot place, and returns the number of packs the table
-// holds with those entries. The indexed packs' entries stay in the KV store
-// until a lookup places a key in one. A failed load registers nothing that a
-// retry would not register again, so the caller may call it until it succeeds.
+// load registers the pack table and reads the entries a lookup cannot place,
+// and returns the number of packs the table holds with those entries. Those
+// are the unindexed packs, and the indexed packs that share a number with
+// another pack: an index written before the table loaded gave out numbers
+// that indexed packs held, so an h row of a shared number may name a pack
+// that lacks the block. Publishing every pack of a shared number lets the
+// filters find the block in whichever pack holds it. The other indexed packs'
+// entries stay in the KV store until a lookup places a key in one. A failed
+// load registers nothing that a retry would not register again, so the caller
+// may call it until it succeeds.
 func (x *packIndex) load(ctx context.Context) (int, []*packfile.PackfileEntry, error) {
 	// Read the pack table, which names every pack that may have a cached
 	// entry, and register it.
@@ -159,19 +164,30 @@ func (x *packIndex) load(ctx context.Context) (int, []*packfile.PackfileEntry, e
 	}
 	x.mtx.Unlock()
 
-	// Read the unindexed packs' entries and queue them for the indexer. A
-	// pack removed since the table read has no entry; forget its row.
-	var unindexed []string
+	// Count the packs holding each number.
+	holders := make(map[uint32]int, len(ids))
 	for _, id := range ids {
-		if !rows[id].indexed {
-			unindexed = append(unindexed, id)
+		holders[rows[id].num]++
+	}
+
+	// Choose the packs a lookup cannot place: the unindexed packs and the
+	// packs sharing a number.
+	var unplaced []string
+	for _, id := range ids {
+		if row := rows[id]; !row.indexed || holders[row.num] > 1 {
+			unplaced = append(unplaced, id)
 		}
 	}
-	read, err := x.readEntries(ctx, unindexed)
+
+	// Read their entries. A pack removed since the table read has no entry;
+	// forget its row.
+	read, err := x.readEntries(ctx, unplaced)
 	if err != nil {
 		return 0, nil, err
 	}
-	x.forgetMissing(unindexed, read)
+	x.forgetMissing(unplaced, read)
+
+	// Register them, queueing the unindexed ones for the indexer.
 	for _, entry := range read {
 		x.register(entry.GetId(), rows[entry.GetId()], entry)
 	}
