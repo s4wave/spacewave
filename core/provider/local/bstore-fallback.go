@@ -23,6 +23,13 @@ const fallbackFillSlots = 64
 // to the backend, the marker keeps eviction from dropping it before then, and
 // later reads find it there instead of the fallback.
 //
+// With a fill cache, the backend's reads go through it: a block read from the
+// packs is copied into the cache instead of the local store, and the next read
+// finds it in the cache. The cache holds only copies of blocks the packs hold,
+// so nothing but a read of the packs fills it: not the fallback, which keeps
+// the marker path above, and not peers, which fill the local store as before.
+// The copy path never reads the cache.
+//
 // With no fallback, reads and copies are the local store over the backend and
 // peers, as they were before fallbacks existed.
 func (p *placementState) readChains(
@@ -33,11 +40,20 @@ func (p *placementState) readChains(
 	// Read the backend and then peers when the placement has no fallback.
 	if fallback == nil {
 		lower := block_store.NewStoreReadThrough(remote, peers, nil)
-		reads = block_store.NewStoreReadThrough(
-			func() block.StoreOps { return recorded },
-			func() block.StoreOps { return lower },
-			p.fill,
-		)
+		if p.cache != nil {
+			packs := p.packReads(recorded, remote)
+			reads = block_store.NewStoreReadThrough(
+				func() block.StoreOps { return packs },
+				peers,
+				p.peerFill(recorded),
+			)
+		} else {
+			reads = block_store.NewStoreReadThrough(
+				func() block.StoreOps { return recorded },
+				func() block.StoreOps { return lower },
+				p.fill,
+			)
+		}
 		copies = block_store.NewStoreReadThrough(
 			func() block.StoreOps { return local },
 			func() block.StoreOps { return lower },
@@ -49,18 +65,12 @@ func (p *placementState) readChains(
 	// Read the local store, then the backend, then the fallback, then peers.
 	// The fallback is read only: nothing writes SQL in this mode.
 	fallback = block.NewReadOnlyStore(fallback)
-	packs := block_store.NewStoreReadThrough(
-		func() block.StoreOps { return recorded },
-		remote,
-		p.fill,
-	)
+	packs := p.packReads(recorded, remote)
 	withFallback := &fallbackReads{StoreOps: packs, fallback: fallback, fills: &p.fallbackFills, fill: p.fillFromFallback}
 	reads = block_store.NewStoreReadThrough(
 		func() block.StoreOps { return withFallback },
 		peers,
-		func(ctx context.Context, _ block.StoreOps, ref *block.BlockRef, stored *block.StoredBlock) error {
-			return p.fill(ctx, recorded, ref, stored)
-		},
+		p.peerFill(recorded),
 	)
 
 	// Copies read the same sources and write nothing.
@@ -75,6 +85,33 @@ func (p *placementState) readChains(
 		nil,
 	)
 	return reads, copies
+}
+
+// packReads builds the reads of the local store over the backend. With a fill
+// cache, a backend hit is copied into the cache and not the local store, and the
+// cache is read between the two. Without one, a backend hit fills the local
+// store.
+func (p *placementState) packReads(recorded block.StoreOps, remote block_store.StoreSource) block.StoreOps {
+	if p.cache == nil {
+		return block_store.NewStoreReadThrough(
+			func() block.StoreOps { return recorded },
+			remote,
+			p.fill,
+		)
+	}
+	return block_store.NewStoreReadThrough(
+		func() block.StoreOps { return recorded },
+		p.cache.Reads(remote),
+		nil,
+	)
+}
+
+// peerFill fills the local store with a block read from a peer. A peer is not
+// the durable store, so the block never enters the fill cache.
+func (p *placementState) peerFill(recorded block.StoreOps) block_store.Fill {
+	return func(ctx context.Context, _ block.StoreOps, ref *block.BlockRef, stored *block.StoredBlock) error {
+		return p.fill(ctx, recorded, ref, stored)
+	}
 }
 
 // fillFromFallback stores a block only the read fallback holds, which the read
