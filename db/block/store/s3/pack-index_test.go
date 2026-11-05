@@ -394,12 +394,14 @@ func TestPackStoreLazyLookup(t *testing.T) {
 	// Index the three packs, then restart over an index whose first
 	// transaction fails.
 	kv := hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())
+	var soleWriter bool
 	open := func(index kvtx.Store) (*PackStore, *countingObjects) {
 		objs := &countingObjects{ObjectStore: client}
 		return NewPackStore(logrus.NewEntry(logrus.New()), objs, "bucket", "p/", &PackStoreOptions{
 			KeepPacks:       true,
 			Index:           index,
 			RefreshInterval: time.Hour,
+			SoleWriter:      soleWriter,
 		}), objs
 	}
 	store, _ := open(kv)
@@ -455,8 +457,8 @@ func TestPackStoreLazyLookup(t *testing.T) {
 	store.Close()
 
 	// Give pack 0 the number of pack 2, as an index written before its
-	// table loaded did. A restart publishes both, so every block reads
-	// without loading the rest.
+	// table loaded did. A restart as the sole writer publishes both, so every
+	// block reads without loading the rest, and never lists the bucket.
 	ids := slices.Sorted(maps.Keys(store.index.rows))
 	moved := store.index.rows[ids[0]]
 	moved.num = store.index.rows[ids[2]].num
@@ -471,6 +473,7 @@ func TestPackStoreLazyLookup(t *testing.T) {
 		t.Fatal(err)
 	}
 	tx.Discard()
+	soleWriter = true
 	store, _ = open(kv)
 	t.Cleanup(store.Close)
 	if err := store.Preload(ctx); err != nil {
@@ -488,6 +491,22 @@ func TestPackStoreLazyLookup(t *testing.T) {
 	}
 	if store.full.Load() {
 		t.Fatal("a shared number loaded every entry")
+	}
+
+	// The sole writer's own pack reads back through the index it wrote, and
+	// no listing ever ran.
+	own, err := block.BuildBlockRef([]byte("sole writer block"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: own, Data: []byte("sole writer block")}}); err != nil {
+		t.Fatal(err)
+	}
+	if data, found, err := store.GetBlock(ctx, own); err != nil || !found || string(data) != "sole writer block" {
+		t.Fatalf("own write = %q, %v, %v", data, found, err)
+	}
+	if n := store.listings.Load(); n != 0 {
+		t.Fatalf("the sole writer listed the bucket %d times", n)
 	}
 }
 

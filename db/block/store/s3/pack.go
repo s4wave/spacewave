@@ -108,6 +108,8 @@ type PackStore struct {
 	refresher *routine.RoutineContainer
 	// refreshInterval is the time between two listings of the refresher.
 	refreshInterval time.Duration
+	// soleWriter stops the refresher: no other writer adds packfiles.
+	soleWriter bool
 	// readWindow is the pack readers' minimum fetch, or zero for their default.
 	readWindow int
 	// linger is how long a short upload batch waits for more blocks.
@@ -192,8 +194,9 @@ type PackStoreOptions struct {
 	// prefixed view.
 	//
 	// With it, a start reads the index's pack table and the entries of its
-	// unindexed packs, and lists the bucket in the background, reading only the
-	// entries the table does not name. A lookup reads the entry of the pack the
+	// unindexed packs, and lists the bucket in the background, unless
+	// SoleWriter is set, reading only the entries the table does not name. A
+	// lookup reads the entry of the pack the
 	// index places its block in from the index, so a start never reads every
 	// entry. A background routine indexes the listed packs: one read of the end
 	// of each pack and a few short write transactions, with a pause between
@@ -211,6 +214,11 @@ type PackStoreOptions struct {
 	// smaller than this many bytes while the merged packfile fits one upload
 	// batch, and deletes the packfile it replaces, even with KeepPacks set.
 	MergeTailBytes int64
+	// SoleWriter says no other writer adds packfiles under the prefix, so the
+	// store lists the bucket only for its first load, and not even then when
+	// the index's table holds a pack: the store's own writes keep its entries
+	// and index current. RefreshInterval is then unused.
+	SoleWriter bool
 }
 
 // NewPackStore builds a packfile block store on the bucket. opts may be nil.
@@ -247,24 +255,30 @@ func NewPackStore(le *logrus.Entry, client ObjectStore, bucket, prefix string, o
 			routine.WithRetry(compactBackoff),
 		),
 		refreshInterval: refresh,
+		soleWriter:      opts.SoleWriter,
 		readWindow:      opts.ReadWindow,
 		linger:          cmp.Or(max(opts.Linger, 0), packLinger),
 		mergeTailBytes:  max(opts.MergeTailBytes, 0),
 	}
 
-	// Read the known packfiles and start compaction.
-	// The local index, when there is one, also keeps each pack's index tail,
-	// so a restart does not read the tails again.
+	// Open the local index, which also keeps each pack's index tail, so a
+	// restart does not read the tails again.
 	var tails packfile_store.IndexCache
 	if opts.Index != nil {
 		s.index = newPackIndex(opts.Index)
 		tails = s.index
 	}
+
+	// Read blocks from the known packfiles within the shared cache budget.
 	s.packs = packfile_store.NewPackfileStore(s.openPack, tails)
 	s.leaveReadCache = s.packs.JoinReadCacheBudget(block.SharedReadCacheBudget())
+
+	// Start compaction; the refresher starts at the first read.
 	s.compactor.SetRoutine(s.runCompaction)
 	s.compactor.SetContext(context.Background(), false)
 	s.refresher.SetRoutine(s.runRefresh)
+
+	// Locate blocks through the index and index the listed packs.
 	if s.index != nil {
 		s.packs.SetLocator(s.index)
 		s.indexer = routine.NewRoutineContainerWithLogger(
@@ -658,7 +672,9 @@ func (s *PackStore) Preload(ctx context.Context) error {
 		return err
 	}
 	s.refreshOnce.Do(func() {
-		s.refresher.SetContext(context.Background(), false)
+		if !s.soleWriter {
+			s.refresher.SetContext(context.Background(), false)
+		}
 		if s.indexer != nil {
 			s.indexer.SetContext(context.Background(), false)
 		}
