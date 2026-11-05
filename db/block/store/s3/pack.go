@@ -118,6 +118,8 @@ type PackStore struct {
 	exactReads bool
 	// linger is how long a short upload batch waits for more blocks.
 	linger time.Duration
+	// maxPackBytes bounds one packfile a batch writes.
+	maxPackBytes int64
 	// mergeTailBytes is the packfile size below which a short batch merges
 	// into the newest packfile, or zero to never merge.
 	mergeTailBytes int64
@@ -218,6 +220,12 @@ type PackStoreOptions struct {
 	// smaller than this many bytes while the merged packfile fits one upload
 	// batch, and deletes the packfile it replaces, even with KeepPacks set.
 	MergeTailBytes int64
+	// MaxPackBytes bounds one packfile a batch writes; zero uses
+	// writer.DefaultMaxPackBytes. A batch's block bytes are bounded by half of
+	// it and its block count in proportion to it, as for the default. Larger
+	// packs mean fewer objects and index rows, and each upload holds about
+	// three copies of its blocks in memory. Readers take a pack of any size.
+	MaxPackBytes int64
 	// SoleWriter says no other writer adds packfiles under the prefix, so the
 	// store lists the bucket only for its first load, and not even then when
 	// the index's table holds a pack: the store's own writes keep its entries
@@ -263,6 +271,7 @@ func NewPackStore(le *logrus.Entry, client ObjectStore, bucket, prefix string, o
 		exactReads:      opts.ExactReads,
 		linger:          cmp.Or(max(opts.Linger, 0), packLinger),
 		mergeTailBytes:  max(opts.MergeTailBytes, 0),
+		maxPackBytes:    cmp.Or(max(opts.MaxPackBytes, 0), writer.DefaultMaxPackBytes),
 	}
 
 	// Open the local index, which also keeps each pack's index tail, so a
@@ -340,13 +349,14 @@ func (s *PackStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 // GetBatchLimits returns the batch that fills a pack, so an upload writes few
 // large packs instead of many small ones.
 func (s *PackStore) GetBatchLimits() block.BatchLimits {
-	return block.BatchLimits{Bytes: packPayloadBytes, Blocks: packMaxBlocks, Workers: packUploads, Linger: s.linger}
+	blocks := max(int(int64(packMaxBlocks)*s.maxPackBytes/writer.DefaultMaxPackBytes), 1)
+	return block.BatchLimits{Bytes: s.maxPackBytes / 2, Blocks: blocks, Workers: packUploads, Linger: s.linger}
 }
 
 // PutBlockBatch writes the batch as one packfile and its entry, or merges it
 // into the newest small packfile, as mergeTail describes.
 //
-// The batch must fit one packfile: at most writer.DefaultMaxPackBytes bytes.
+// The batch must fit one packfile: at most the store's MaxPackBytes.
 // Tombstones are rejected. Every block is written again, so none is reported
 // as existing.
 func (s *PackStore) PutBlockBatch(ctx context.Context, batch []*block.PutBatchEntry) ([]bool, error) {
@@ -423,8 +433,8 @@ func (s *PackStore) writePack(ctx context.Context, next writer.BlockIterator) (*
 	if result.BlockCount == 0 {
 		return nil, nil
 	}
-	if int64(buf.Len()) > writer.DefaultMaxPackBytes {
-		return nil, errors.Errorf("packfile of %d bytes exceeds the %d byte limit", buf.Len(), writer.DefaultMaxPackBytes)
+	if int64(buf.Len()) > s.maxPackBytes {
+		return nil, errors.Errorf("packfile of %d bytes exceeds the %d byte limit", buf.Len(), s.maxPackBytes)
 	}
 
 	// Name the packfile randomly: compaction and reclaim delete packfiles by id,

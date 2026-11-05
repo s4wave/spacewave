@@ -33,4 +33,11 @@ type Pragmas struct {
 	// SQLite may never restart the log, which can then grow without bound.
 	// 0 uses DefaultWALCheckpointBytes.
 	WALCheckpointBytes int64
+	// ReadOnly opens an existing table for reads beside another process that
+	// writes the file. Every connection runs query_only, the store refuses
+	// write transactions, which would take SQLite's write lock from the
+	// writer, and Open neither changes the journal mode nor creates the
+	// table. The other pragmas that shape a file, such as PageSize, are
+	// ignored.
+	ReadOnly bool
 }

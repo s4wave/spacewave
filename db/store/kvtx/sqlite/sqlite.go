@@ -13,6 +13,10 @@ import (
 // Pragmas re-exports common.Pragmas for callers of this package.
 type Pragmas = common.Pragmas
 
+// ErrReadOnly is returned for a write transaction on a store opened with
+// Pragmas.ReadOnly.
+var ErrReadOnly = common.ErrReadOnly
+
 // Store represents a SQLite-based key-value store. It keeps the commit
 // contract the kvtx Volume runs on: ordered commits, grouped durability and a
 // writer queue, with atomic commits on a local file.

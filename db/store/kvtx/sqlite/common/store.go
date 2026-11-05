@@ -57,6 +57,8 @@ type Store[T SQLiteDriverConfig] struct {
 	config T
 	// withoutRowID creates a missing table as WITHOUT ROWID.
 	withoutRowID bool
+	// readOnly refuses write transactions, as Pragmas.ReadOnly describes.
+	readOnly bool
 	// queries are the statements of the table.
 	queries *queries
 	// snapshotReads runs each read transaction in one snapshot on a
@@ -89,6 +91,10 @@ type Store[T SQLiteDriverConfig] struct {
 	// checkpointsDone is closed when the checkpointer has returned.
 	checkpointsDone chan struct{}
 }
+
+// ErrReadOnly is returned for a write transaction on a store opened with
+// Pragmas.ReadOnly.
+var ErrReadOnly = errors.New("sqlite: store is read-only")
 
 // SyncDeadline is how long an ordered commit may stay pending before the store
 // flushes the WAL on its own.
@@ -160,6 +166,11 @@ func OpenWithPragmas[T SQLiteDriverConfig](ctx context.Context, path string, tab
 		poolConfigurator.ConfigureDBPool(db)
 	}
 
+	// Open a reader on the table as the file's writer left it.
+	if pragmas.ReadOnly {
+		return openReadOnly(ctx, db, table, config)
+	}
+
 	// page_size must be applied before the WAL header is written and before
 	// any tables are created on a fresh database. On an existing database it
 	// has no effect unless followed by VACUUM, which we do not run here.
@@ -216,6 +227,9 @@ func openPool[T SQLiteDriverConfig](config T, path string, pragmas Pragmas) (*sq
 		"PRAGMA wal_autocheckpoint=0",
 		"PRAGMA journal_size_limit=" + strconv.FormatInt(walBound(pragmas), 10),
 	}
+	if pragmas.ReadOnly {
+		connPragmas = append(connPragmas, "PRAGMA query_only=1")
+	}
 	if pragmas.CacheSize != 0 {
 		connPragmas = append(connPragmas, "PRAGMA cache_size="+strconv.FormatInt(int64(pragmas.CacheSize), 10))
 	}
@@ -269,6 +283,27 @@ func openDB[T SQLiteDriverConfig](ctx context.Context, db *sql.DB, table string,
 		return nil, errors.Join(err, store.Close())
 	}
 
+	return store, nil
+}
+
+// openReadOnly binds a read-only store to db's existing table. Its
+// checkpointer never runs, since only this store's commits wake it.
+func openReadOnly[T SQLiteDriverConfig](ctx context.Context, db *sql.DB, table string, config T) (*Store[T], error) {
+	// Bind the pool, then require the table, which a reader must not create.
+	store, err := newStore(db, table, config, DefaultWALCheckpointBytes)
+	if err != nil {
+		db.Close()
+		return nil, err
+	}
+	store.readOnly = true
+	var name string
+	err = db.QueryRowContext(ctx, "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?", table).Scan(&name)
+	if errors.Is(err, sql.ErrNoRows) {
+		err = errors.New("sqlite: table " + table + " does not exist")
+	}
+	if err != nil {
+		return nil, errors.Join(err, store.Close())
+	}
 	return store, nil
 }
 
@@ -353,6 +388,11 @@ func (s *Store[T]) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, err
 	// Read transactions open their connection at their first read.
 	if !write {
 		return newReadTx(s.db, s.queries, s.snapshotReads), nil
+	}
+
+	// A read-only store never takes the writer's lock from the file's writer.
+	if s.readOnly {
+		return nil, ErrReadOnly
 	}
 
 	// Queue for the writer turn, counted for WritersWaiting.

@@ -163,9 +163,12 @@ func upgradeHashRows(ctx context.Context, tx kvtx.Tx, id string, num uint32, tai
 
 	// Upgrade each row that names this pack without an extent.
 	return packfile.ScanIndexTail(tail, entry.GetSizeBytes(), func(ie *kvfile.IndexEntry) error {
+		// Skip an extent a row cannot hold.
 		if ie.GetSize() > math.MaxUint32 {
 			return nil
 		}
+
+		// Read the row, leaving one that names another pack or has its extent.
 		rowKey := hashRowKey(ie.GetKey())
 		value, ok, err := tx.Get(ctx, rowKey)
 		if err != nil || !ok {
@@ -175,7 +178,9 @@ func upgradeHashRows(ctx context.Context, tx kvtx.Tx, id string, num uint32, tai
 		if !ok || row.num != num || row.extent {
 			return nil
 		}
-		row.off, row.size, row.extent = ie.GetOffset(), uint32(ie.GetSize()), true
+
+		// Write the extent into the row.
+		row.off, row.size, row.extent = ie.GetOffset(), uint32(ie.GetSize()), true //nolint:gosec // checked against MaxUint32 above.
 		return tx.Set(ctx, rowKey, row.marshal())
 	})
 }

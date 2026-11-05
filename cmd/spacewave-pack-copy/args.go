@@ -89,6 +89,8 @@ type Args struct {
 	Region string
 	// TargetPrefix starts the target's keys.
 	TargetPrefix string
+	// PackMiB bounds one target pack in MiB; zero uses the store's default.
+	PackMiB int64
 
 	// Roots are the blocks to copy, as b58 refs.
 	Roots cli.StringSlice
@@ -105,6 +107,8 @@ type Args struct {
 	// Uploads is the packs written at once.
 	Uploads int
 
+	// Volume configures the Volume file sources.
+	Volume volumeArgs
 	// Archive configures the archive peer source.
 	Archive archiveArgs
 }
@@ -122,13 +126,14 @@ func (a *Args) storeFlags() []cli.Flag {
 		&cli.StringFlag{Name: "sftp-addr", Usage: "source server's host:port", Destination: &a.SFTPAddr, Required: true},
 		&cli.StringFlag{Name: "sftp-user", Usage: "source login; the password comes from " + sftpPasswordEnv, Destination: &a.SFTPUser, Required: true},
 		&cli.StringFlag{Name: "sftp-host-key", Usage: "source server's host key line or SHA256 fingerprint", Destination: &a.SFTPHostKey, Required: true},
-		&cli.IntFlag{Name: "sftp-conns", Usage: "most connections to the source", Value: 2, Destination: &a.SFTPConns},
+		&cli.IntFlag{Name: "sftp-conns", Usage: "most SSH connections to the source at once, each carrying many reads", Value: 2, Destination: &a.SFTPConns},
 		&cli.StringFlag{Name: "sftp-root", Usage: "source directory holding the source prefix", Destination: &a.SFTPRoot, Required: true},
 		&cli.StringFlag{Name: "source-prefix", Usage: "key prefix of the source's packs", Destination: &a.SourcePrefix},
 		&cli.StringFlag{Name: "bucket", Usage: "target bucket; the key comes from " + keyIDEnv + " and " + keyEnv, Destination: &a.Bucket, Required: true},
 		&cli.StringFlag{Name: "endpoint", Usage: "target S3 endpoint", Value: "https://s3.us-east-005.backblazeb2.com", Destination: &a.Endpoint},
 		&cli.StringFlag{Name: "region", Usage: "target S3 region", Value: "us-east-005", Destination: &a.Region},
 		&cli.StringFlag{Name: "target-prefix", Usage: "key prefix of the clean store", Value: "world/v2/", Destination: &a.TargetPrefix},
+		&cli.Int64Flag{Name: "pack-mib", Usage: "most MiB in one target pack, half of it block bytes; zero uses the store's default", Destination: &a.PackMiB},
 	}
 }
 
@@ -142,7 +147,7 @@ func (a *Args) copyFlags() []cli.Flag {
 		&cli.StringFlag{Name: "store", Usage: "block store name in the holes list", Value: "hyperline-world", Destination: &a.Store},
 		&cli.IntFlag{Name: "reads", Usage: "block reads kept in flight", Value: packcopy.DefaultReads, Destination: &a.Reads},
 		&cli.IntFlag{Name: "uploads", Usage: "packs uploaded at once; each holds about 100 MiB of memory", Value: 8, Destination: &a.Uploads},
-	}, a.Archive.flags()...)
+	}, append(a.Volume.flags(), a.Archive.flags()...)...)
 }
 
 // run holds what a command opened.
@@ -240,9 +245,10 @@ func (a *Args) open(ctx context.Context) (_ *run, rerr error) {
 		return nil, err
 	}
 	r.target = block_store_s3.NewPackStore(r.le, r.objects, a.Bucket, a.TargetPrefix, &block_store_s3.PackStoreOptions{
-		KeepPacks:  true,
-		Index:      kvtx_prefixer.NewPrefixer(r.targetIndex, indexPrefix),
-		SoleWriter: true,
+		KeepPacks:    true,
+		Index:        kvtx_prefixer.NewPrefixer(r.targetIndex, indexPrefix),
+		SoleWriter:   true,
+		MaxPackBytes: a.PackMiB << 20,
 	})
 	return r, nil
 }
@@ -356,25 +362,35 @@ func (a *Args) runCopy(*cli.Context) error {
 	return err
 }
 
-// openSources builds the source list and the function that closes it.
+// openSources builds the source list and the function that closes it: the
+// Volume files, the packs, the pulled blocks, then the archive peers.
 func (a *Args) openSources(ctx context.Context, r *run) ([]packcopy.Source, func(), error) {
+	// Open the Volume files, which answer first.
+	sources, closeVolumes, err := a.Volume.open(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	// Mark the listed blocks in the packs.
 	var packs packcopy.Source = r.source
 	if a.UnknownRefs != "" {
 		list, err := os.Open(a.UnknownRefs)
 		if err != nil {
+			closeVolumes()
 			return nil, nil, err
 		}
 		defer list.Close()
 		if packs, err = packcopy.NewUnknownRefs(r.source, list); err != nil {
+			closeVolumes()
 			return nil, nil, err
 		}
 	}
-	sources := []packcopy.Source{packs}
+	sources = append(sources, packs)
 
 	// Add the pulled blocks.
 	frames, err := packcopy.OpenFrameStore(a.Frames.Value())
 	if err != nil {
+		closeVolumes()
 		return nil, nil, err
 	}
 	sources = append(sources, frames)
@@ -383,12 +399,14 @@ func (a *Args) openSources(ctx context.Context, r *run) ([]packcopy.Source, func
 	archives, closeArchives, err := a.Archive.open(ctx, r.le)
 	if err != nil {
 		frames.Close()
+		closeVolumes()
 		return nil, nil, err
 	}
 	sources = append(sources, archives...)
 	return sources, func() {
 		closeArchives()
 		frames.Close()
+		closeVolumes()
 	}, nil
 }
 
