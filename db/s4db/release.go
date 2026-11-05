@@ -45,10 +45,15 @@ func (s *scheduler) releaseStep(ctx context.Context) error {
 		superSeq := db.super.seq
 		db.superMtx.Unlock()
 
-		// Collect the chunks both conditions allow.
+		// Collect the chunks both conditions allow. A table whose tally
+		// counts no pending or reserved chunk has none, so its pass ends
+		// without a scan.
 		n := int(st.m.table.end()) // #nosec G115 -- a chunk count.
 		if s.releaseRemaining == 0 || s.releaseRemaining > n {
 			s.releaseRemaining = n
+		}
+		if st.m.table.count(chunkPending)+st.m.table.count(chunkReserved) == 0 {
+			s.releaseRemaining = 0
 		}
 		var free []uint64
 		for scanned := 0; s.releaseRemaining > 0 && len(free) < freeBatch && scanned < releaseScan; scanned++ {

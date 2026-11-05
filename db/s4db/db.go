@@ -375,10 +375,18 @@ func (db *DB) tail(st *state, verify bool) (*state, bool, error) {
 		return st, torn, nil
 	}
 
-	// Apply them to a copy.
+	// Apply them to a copy, and forget the readers and cached blocks of the
+	// runs a merge removed, as the merging process does; a snapshot that
+	// still reads one reloads its reader from the chunks, which stay pending
+	// until no pin needs them.
 	next := st.derive()
 	for _, r := range kept {
 		next.apply(r, db.budget)
+		if r.kind == kindMerge {
+			for _, id := range r.removed {
+				db.forgetRun(id)
+			}
+		}
 	}
 	return next, torn, nil
 }
@@ -555,7 +563,7 @@ func (db *DB) lookup(st *state, key []byte) (value, bool, error) {
 	if e, ok := st.mem.get(key); ok {
 		return e.val, e.val.kind != valueDeleted, nil
 	}
-	return db.lookupRuns(st, key)
+	return db.lookupRuns(st, key, nil)
 }
 
 // readValue returns the bytes of v: an inline value's own bytes, or the

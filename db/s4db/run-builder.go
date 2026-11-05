@@ -9,8 +9,11 @@ import (
 )
 
 // partitionBlocks is the data blocks one index partition and one filter
-// partition cover.
-const partitionBlocks = 256
+// partition cover: 32 blocks, a 10 KiB filter and a 1.6 KiB index, so a cold
+// lookup reads about 28 KiB with its block rather than 110 KiB, and the cache
+// holds the filters of hot keys at a finer grain. A run's footer lists its
+// partitions, about 10 KiB for a 64 MiB run, so readers take any size.
+const partitionBlocks = 32
 
 // footerMagic ends a run footer.
 var footerMagic = [4]byte{'S', '4', 'R', 'N'}
