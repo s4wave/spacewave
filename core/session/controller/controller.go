@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"slices"
 	"strconv"
@@ -512,6 +513,121 @@ func (c *Controller) DeleteSession(ctx context.Context, ref *session.SessionRef)
 		}
 	}
 	return errors.Join(stopErrs...)
+}
+
+// MoveSession gives the session at index from the free index to, with its
+// metadata, in one transaction, then stops its tracked lifetimes so clients
+// mount it again at the new index.
+func (c *Controller) MoveSession(ctx context.Context, from, to uint32) (*session.SessionListEntry, error) {
+	// Refuse a move that names no new index.
+	if from == 0 || to == 0 {
+		return nil, errors.New("session indexes start at 1")
+	}
+	if from == to {
+		return nil, fmt.Errorf("session %d is already at index %d", from, to)
+	}
+
+	// Move the entry and its metadata under the registry write lock.
+	moved, err := c.moveSessionRecords(ctx, from, to)
+	if err != nil {
+		return nil, err
+	}
+
+	// Stop the mounted lifetimes, which name the old index.
+	var lifetimes []*sessionLifetime
+	c.mtx.Lock()
+	for lifetime := range c.lifetimes {
+		if lifetime.ref.EqualVT(moved.GetSessionRef()) {
+			lifetimes = append(lifetimes, lifetime)
+		}
+	}
+	c.mtx.Unlock()
+	var stopErrs []error
+	for _, lifetime := range lifetimes {
+		if err := lifetime.stop(ctx); err != nil {
+			stopErrs = append(stopErrs, err)
+		}
+	}
+	return moved, errors.Join(stopErrs...)
+}
+
+// moveSessionRecords rewrites the entry at from, and its metadata, at to.
+func (c *Controller) moveSessionRecords(ctx context.Context, from, to uint32) (*session.SessionListEntry, error) {
+	// Serialize registry writes.
+	c.writeMtx.Lock()
+	defer c.writeMtx.Unlock()
+
+	// Open the sessions object store.
+	objStore, err := c.getObjectStore(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Rewrite both records in one transaction.
+	var moved *session.SessionListEntry
+	err = kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return objStore.NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, otx kvtx.Tx) error {
+			// Read the entry and require the target to be free.
+			moved = nil
+			data, found, err := otx.Get(ctx, sessionListEntryKey(from))
+			if err != nil {
+				return err
+			}
+			if !found {
+				return fmt.Errorf("no session at index %d", from)
+			}
+			if _, taken, err := otx.Get(ctx, sessionListEntryKey(to)); err != nil {
+				return err
+			} else if taken {
+				return fmt.Errorf("index %d already holds a session", to)
+			}
+			entry := &session.SessionListEntry{}
+			if err := entry.UnmarshalVT(data); err != nil {
+				return err
+			}
+
+			// Write the entry at the new index and drop the old one.
+			entry.SessionIndex = to
+			next, err := entry.MarshalVT()
+			if err != nil {
+				return err
+			}
+			if err := otx.Set(ctx, sessionListEntryKey(to), next); err != nil {
+				return err
+			}
+			if err := otx.Delete(ctx, sessionListEntryKey(from)); err != nil {
+				return err
+			}
+
+			// Carry the metadata with it.
+			meta, found, err := otx.Get(ctx, sessionMetaKey(from))
+			if err != nil {
+				return err
+			}
+			if found {
+				if err := otx.Set(ctx, sessionMetaKey(to), meta); err != nil {
+					return err
+				}
+				if err := otx.Delete(ctx, sessionMetaKey(from)); err != nil {
+					return err
+				}
+			}
+			moved = entry
+			return nil
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// Wake session list watchers.
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		broadcast()
+	})
+	return moved, nil
 }
 
 // deleteSessionRecords deletes the Session records from the registry.
