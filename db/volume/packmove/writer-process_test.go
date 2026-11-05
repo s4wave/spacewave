@@ -26,9 +26,8 @@ const writerFileEnv = "PACKMOVE_TEST_WRITER_FILE"
 const writerPrefix = "child"
 
 // TestWriterProcess is the body of the helper process that TestPackSwitch
-// starts, standing in for the backend: it holds the file with the writer lock,
-// as the backend does, and adds one World block per round until its input
-// closes. It prints "ready", then "wrote N" after each durable block and
+// starts, standing in for the backend: it holds the file open, as the backend
+// does, and adds one World block per round until its input closes. It prints "ready", then "wrote N" after each durable block and
 // "done N" on exit.
 func TestWriterProcess(t *testing.T) {
 	// Run only as the helper process.
@@ -45,7 +44,7 @@ func TestWriterProcess(t *testing.T) {
 	}()
 
 	// Write blocks until told to stop.
-	f := openFixture(t, path, s4db.Options{SingleProcess: true})
+	f := openFixture(t, path, s4db.Options{})
 	os.Stdout.WriteString("ready\n")
 	var written int
 	for stopped := false; !stopped; {

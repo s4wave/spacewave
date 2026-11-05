@@ -17,11 +17,17 @@ type osFile struct {
 	closeFile func() error
 }
 
-// Open opens or creates the database at path.
+// Open opens or creates the database at path. With Options.ReadOnly it opens
+// an existing file only. The file is still opened for writing: the byte locks
+// and the reader slot need it.
 func Open(path string, opts Options) (*DB, error) {
 	// Open the file once per process.
+	flags := os.O_RDWR | os.O_CREATE
+	if opts.ReadOnly {
+		flags = os.O_RDWR
+	}
 	f, closeFile, err := OpenFile(path, func(name string) (*os.File, error) {
-		return os.OpenFile(name, os.O_RDWR|os.O_CREATE, 0o600) // #nosec G703 -- the caller chooses the path.
+		return os.OpenFile(name, flags, 0o600) // #nosec G703 -- the caller chooses the path.
 	})
 	if err != nil {
 		return nil, err

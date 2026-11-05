@@ -73,7 +73,7 @@ func switchOnce(ctx context.Context, t *testing.T, src, dst, logPath string) pac
 	}
 
 	// Create the new file.
-	ddb, err := s4db.Open(dst, s4db.Options{RelocateBudget: -1})
+	ddb, err := s4db.Open(dst, s4db.Options{})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -113,6 +113,19 @@ func (it *Iterator) Value() ([]byte, error) {
 	return it.db.readValue(it.ent.val)
 }
 
+// ValueLen returns the current value's length without reading a value chunk.
+func (it *Iterator) ValueLen() int {
+	switch {
+	case !it.Valid():
+		return 0
+	case it.ent.buffered:
+		return len(it.ent.data)
+	case it.ent.val.isRef():
+		return int(it.ent.val.ref.n)
+	}
+	return len(it.ent.val.inline)
+}
+
 // ValueCopy copies the current value into buf.
 func (it *Iterator) ValueCopy(buf []byte) ([]byte, error) {
 	v, err := it.Value()

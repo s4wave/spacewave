@@ -5,29 +5,66 @@ stateDiagram-v2
   s0: none
   s1: checking
   s2: none, writer waiting after 0 background spans
-  s3: background
-  s4: checking, writer waiting after 0 background spans
-  s5: writer
-  s6: background, writer waiting after 0 background spans
-  s7: none, writer waiting after 1 background spans
-  s8: checking, writer waiting after 1 background spans
+  s3: otherWriter
+  s4: background
+  s5: checking, writer waiting after 0 background spans
+  s6: otherWriter, writer waiting after 0 background spans
+  s7: writer
+  s8: background, writer waiting after 0 background spans
+  s9: none, background waiting on intent, writer waiting after 0 background spans
+  s10: none, writer waiting after 1 background spans
+  s11: none, background waiting on intent
+  s12: otherWriter, background waiting on intent, writer waiting after 0 background spans
+  s13: writer, background waiting on intent
+  s14: checking, writer waiting after 1 background spans
+  s15: otherWriter, writer waiting after 1 background spans
+  s16: otherWriter, background waiting on intent
+  s17: none, background waiting on intent, writer waiting after 1 background spans
+  s18: otherWriter, background waiting on intent, writer waiting after 1 background spans
   [*] --> s0
   s0 --> s1: BackgroundStart
   s0 --> s2: Want
-  s1 --> s3: BackgroundCheck
-  s1 --> s4: Want
+  s0 --> s3: OtherTake
+  s1 --> s4: BackgroundCheck
+  s1 --> s5: Want
   s2 --> s0: CancelOrDie
-  s2 --> s4: BackgroundStart
-  s2 --> s5: Take
-  s3 --> s0: BackgroundEnd
+  s2 --> s5: BackgroundStart
+  s2 --> s6: OtherTake
+  s2 --> s7: Take
+  s3 --> s0: OtherEnd
   s3 --> s6: Want
-  s4 --> s1: CancelOrDie
-  s4 --> s2: BackgroundCheck
-  s5 --> s0: CommitOrDiscard
+  s4 --> s0: BackgroundEnd
+  s4 --> s8: Want
+  s5 --> s1: CancelOrDie
+  s5 --> s9: BackgroundCheck
+  s6 --> s2: OtherEnd
   s6 --> s3: CancelOrDie
-  s6 --> s7: BackgroundEnd
-  s7 --> s8: BackgroundStart
-  s7 --> s0: CancelOrDie
-  s7 --> s5: Take
-  s8 --> s7: BackgroundCheck
-  s8 --> s1: CancelOrDie
+  s7 --> s0: CommitOrDiscard
+  s8 --> s4: CancelOrDie
+  s8 --> s10: BackgroundEnd
+  s9 --> s11: CancelOrDie
+  s9 --> s12: OtherTake
+  s9 --> s13: Take
+  s10 --> s14: BackgroundStart
+  s10 --> s0: CancelOrDie
+  s10 --> s15: OtherTake
+  s10 --> s7: Take
+  s11 --> s0: WakeBackground
+  s11 --> s9: Want
+  s11 --> s16: OtherTake
+  s12 --> s9: OtherEnd
+  s12 --> s16: CancelOrDie
+  s13 --> s7: WakeBackground
+  s13 --> s11: CommitOrDiscard
+  s14 --> s1: CancelOrDie
+  s14 --> s17: BackgroundCheck
+  s15 --> s10: OtherEnd
+  s15 --> s3: CancelOrDie
+  s16 --> s3: WakeBackground
+  s16 --> s11: OtherEnd
+  s16 --> s12: Want
+  s17 --> s11: CancelOrDie
+  s17 --> s18: OtherTake
+  s17 --> s13: Take
+  s18 --> s17: OtherEnd
+  s18 --> s16: CancelOrDie

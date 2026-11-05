@@ -80,7 +80,6 @@ Next ==
   \/ \E g \in Callers :
        Claim(g) \/ Try(g) \/ Grant(g) \/ Abandon(g) \/ AbandonedGrant(g)
        \/ AbandonedRelease(g) \/ Release(g)
-  \/ UNCHANGED vars
 Spec == Init /\ [][Next]_vars
 
 \* At most one caller in any process holds the lease, and its process holds
