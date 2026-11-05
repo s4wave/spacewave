@@ -4079,7 +4079,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/root": {
-      "hash": "462d18083739c7c48f69e3382217fafb9d1080618be1113249b65467d4a1e481",
+      "hash": "f2f92104f61a113f1e06a3308c1ef7eb43b848d0d3e611acb6e2461fca433604",
       "generatedFiles": [
         "sdk/root/root.pb.go",
         "sdk/root/root.pb.ts",

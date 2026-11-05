@@ -516,6 +516,26 @@ func (s *CoreRootServer) DeleteSession(
 	return &s4wave_root.DeleteSessionResponse{}, nil
 }
 
+// MoveSession gives the session at one index another, free index.
+func (s *CoreRootServer) MoveSession(
+	ctx context.Context,
+	req *s4wave_root.MoveSessionRequest,
+) (*s4wave_root.MoveSessionResponse, error) {
+	// Acquire the Session controller for the move request.
+	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, s.b, "", false, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer sessionCtrlRef.Release()
+
+	// Move the session and report its new entry.
+	moved, err := sessionCtrl.MoveSession(ctx, req.GetFromIdx(), req.GetToIdx())
+	if err != nil {
+		return nil, err
+	}
+	return &s4wave_root.MoveSessionResponse{Session: moved}, nil
+}
+
 // ResetSession resets a PIN-locked session via entity key verification.
 func (s *CoreRootServer) ResetSession(
 	ctx context.Context,

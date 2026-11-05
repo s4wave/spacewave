@@ -734,6 +734,55 @@ func (x *DeleteSessionResponse) Reset() {
 
 func (*DeleteSessionResponse) ProtoMessage() {}
 
+// MoveSessionRequest is the request type for MoveSession.
+type MoveSessionRequest struct {
+	unknownFields []byte
+	// FromIdx is the index of the session to move.
+	FromIdx uint32 `protobuf:"varint,1,opt,name=from_idx,json=fromIdx,proto3" json:"fromIdx,omitempty"`
+	// ToIdx is the free index the session takes.
+	ToIdx uint32 `protobuf:"varint,2,opt,name=to_idx,json=toIdx,proto3" json:"toIdx,omitempty"`
+}
+
+func (x *MoveSessionRequest) Reset() {
+	*x = MoveSessionRequest{}
+}
+
+func (*MoveSessionRequest) ProtoMessage() {}
+
+func (x *MoveSessionRequest) GetFromIdx() uint32 {
+	if x != nil {
+		return x.FromIdx
+	}
+	return 0
+}
+
+func (x *MoveSessionRequest) GetToIdx() uint32 {
+	if x != nil {
+		return x.ToIdx
+	}
+	return 0
+}
+
+// MoveSessionResponse is the response type for MoveSession.
+type MoveSessionResponse struct {
+	unknownFields []byte
+	// Session is the moved session's entry at its new index.
+	Session *session.SessionListEntry `protobuf:"bytes,1,opt,name=session,proto3" json:"session,omitempty"`
+}
+
+func (x *MoveSessionResponse) Reset() {
+	*x = MoveSessionResponse{}
+}
+
+func (*MoveSessionResponse) ProtoMessage() {}
+
+func (x *MoveSessionResponse) GetSession() *session.SessionListEntry {
+	if x != nil {
+		return x.Session
+	}
+	return nil
+}
+
 // ResetSessionByIdxRequest is the request type for ResetSession.
 type ResetSessionByIdxRequest struct {
 	unknownFields []byte
@@ -2586,6 +2635,39 @@ func (m *DeleteSessionResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *MoveSessionRequest) CloneVT() *MoveSessionRequest {
+	if m == nil {
+		return (*MoveSessionRequest)(nil)
+	}
+	r := new(MoveSessionRequest)
+	r.FromIdx = m.FromIdx
+	r.ToIdx = m.ToIdx
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *MoveSessionRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *MoveSessionResponse) CloneVT() *MoveSessionResponse {
+	if m == nil {
+		return (*MoveSessionResponse)(nil)
+	}
+	r := new(MoveSessionResponse)
+	r.Session = protobuf_go_lite.CloneVTValue(m.Session)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *MoveSessionResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *ResetSessionByIdxRequest) CloneVT() *ResetSessionByIdxRequest {
 	if m == nil {
 		return (*ResetSessionByIdxRequest)(nil)
@@ -4007,6 +4089,49 @@ func (this *DeleteSessionResponse) EqualVT(that *DeleteSessionResponse) bool {
 
 func (this *DeleteSessionResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*DeleteSessionResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *MoveSessionRequest) EqualVT(that *MoveSessionRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.FromIdx != that.FromIdx {
+		return false
+	}
+	if this.ToIdx != that.ToIdx {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *MoveSessionRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*MoveSessionRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *MoveSessionResponse) EqualVT(that *MoveSessionResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Session, that.Session) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *MoveSessionResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*MoveSessionResponse)
 	if !ok {
 		return false
 	}
@@ -6533,6 +6658,102 @@ func (x *DeleteSessionResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the DeleteSessionResponse from JSON.
 func (x *DeleteSessionResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the MoveSessionRequest message to JSON.
+func (x *MoveSessionRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.FromIdx != 0 || s.HasField("fromIdx") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("fromIdx")
+		s.WriteUint32(x.FromIdx)
+	}
+	if x.ToIdx != 0 || s.HasField("toIdx") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("toIdx")
+		s.WriteUint32(x.ToIdx)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the MoveSessionRequest to JSON.
+func (x *MoveSessionRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the MoveSessionRequest message from JSON.
+func (x *MoveSessionRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "from_idx", "fromIdx":
+			s.AddField("from_idx")
+			x.FromIdx = s.ReadUint32()
+		case "to_idx", "toIdx":
+			s.AddField("to_idx")
+			x.ToIdx = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the MoveSessionRequest from JSON.
+func (x *MoveSessionRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the MoveSessionResponse message to JSON.
+func (x *MoveSessionResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Session != nil || s.HasField("session") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("session")
+		x.Session.MarshalProtoJSON(s.WithField("session"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the MoveSessionResponse to JSON.
+func (x *MoveSessionResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the MoveSessionResponse message from JSON.
+func (x *MoveSessionResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "session":
+			if s.ReadNil() {
+				x.Session = nil
+				return
+			}
+			x.Session = &session.SessionListEntry{}
+			x.Session.UnmarshalProtoJSON(s.WithField("session", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the MoveSessionResponse from JSON.
+func (x *MoveSessionResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -10291,6 +10512,90 @@ func (m *DeleteSessionResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	return len(dAtA) - i, nil
 }
 
+func (m *MoveSessionRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MoveSessionRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *MoveSessionRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.ToIdx != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ToIdx))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.FromIdx != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.FromIdx))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *MoveSessionResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MoveSessionResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *MoveSessionResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Session != nil {
+		size, err := m.Session.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *ResetSessionByIdxRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -12927,6 +13232,32 @@ func (m *DeleteSessionResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *MoveSessionRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.FromIdx)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ToIdx)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *MoveSessionResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Session != nil {
+		l = m.Session.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *ResetSessionByIdxRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -14041,6 +14372,38 @@ func (x *DeleteSessionResponse) MarshalProtoText() string {
 }
 
 func (x *DeleteSessionResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *MoveSessionRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "MoveSessionRequest")
+	if x.FromIdx != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "from_idx")
+		protobuf_go_lite.TextWriteUint(&sb, x.FromIdx)
+	}
+	if x.ToIdx != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "to_idx")
+		protobuf_go_lite.TextWriteUint(&sb, x.ToIdx)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *MoveSessionRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *MoveSessionResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "MoveSessionResponse")
+	if x.Session != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "session")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Session)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *MoveSessionResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -16384,6 +16747,125 @@ func (m *DeleteSessionResponse) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: DeleteSessionResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *MoveSessionRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MoveSessionRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MoveSessionRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FromIdx", wireType)
+			}
+			m.FromIdx = 0
+			m.FromIdx, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ToIdx", wireType)
+			}
+			m.ToIdx = 0
+			m.ToIdx, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *MoveSessionResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MoveSessionResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MoveSessionResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Session", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Session == nil {
+				m.Session = &session.SessionListEntry{}
+			}
+			if err := m.Session.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
