@@ -12,6 +12,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
+	world_mock "github.com/s4wave/spacewave/db/world/mock"
 )
 
 // TestEngineAuthorityRunThrough walks the World engine's commit through its
@@ -282,6 +283,133 @@ func TestEngineAuthorityRunThrough(t *testing.T) {
 		if f.stored(t, stranded.GetRootRef()) {
 			t.Fatal("a released pending candidate's block survived collection")
 		}
+	})
+
+	// An authority that pipelines lets a writer begin on the previous
+	// writer's admitted candidate before it is durable: the later commit's
+	// Admit returns while the earlier one waits, readers see each head only
+	// once it is decided, and a head the authority rebased is published in
+	// the candidate's place.
+	t.Run("pipelined", func(t *testing.T) {
+		// Open an engine on a pipelining authority at the World root.
+		head, err := f.engine.authority.Head(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		pipe := newPipeAuthority(f.store, head)
+		engine := f.openEngine(t, pipe)
+		published := func(key string, want bool) {
+			t.Helper()
+			r, err := engine.NewTransaction(ctx, false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer r.Discard()
+			fixtureHas(t, r, key, want)
+		}
+
+		// The first writer's commit waits for its decision.
+		w1 := fixtureWriter(t, engine)
+		fixtureObject(t, w1, "pipe-1", "pipe-1")
+		done1 := make(chan error, 1)
+		go func() { done1 <- w1.Commit(ctx) }()
+		pipe.waitAdmitted(t, 1)
+
+		// The second writer begins on the first candidate, and its Admit
+		// returns while the first is not durable.
+		w2 := fixtureWriter(t, engine)
+		fixtureHas(t, w2, "pipe-1", true)
+		fixtureObject(t, w2, "pipe-2", "pipe-2")
+		done2 := make(chan error, 1)
+		go func() { done2 <- w2.Commit(ctx) }()
+		pipe.waitAdmitted(t, 2)
+		published("pipe-1", false)
+
+		// Each commit returns once decided, with its head published.
+		pipe.decide(t, 1, nil, 0)
+		if err := <-done1; err != nil {
+			t.Fatal(err)
+		}
+		published("pipe-1", true)
+		published("pipe-2", false)
+		pipe.decide(t, 2, nil, 0)
+		if err := <-done2; err != nil {
+			t.Fatal(err)
+		}
+		published("pipe-2", true)
+
+		// A pipelined commit the authority rebases onto another writer's
+		// change publishes the rebased head.
+		w3 := fixtureWriter(t, engine)
+		fixtureObject(t, w3, "pipe-3", "pipe-3")
+		done3 := make(chan error, 1)
+		var committed3 *bucket.ObjectRef
+		go func() {
+			var err error
+			committed3, err = w3.CommitBlockTransaction(ctx)
+			done3 <- err
+		}()
+		adm3 := pipe.waitAdmitted(t, 3)
+		root := f.base.Clone()
+		defer root.Release()
+		root.SetRootRef(adm3.candidate.Root)
+		other, err := NewEngine(ctx, f.le, root, world_mock.LookupMockOp, nil, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ow := fixtureWriter(t, other)
+		fixtureObject(t, ow, "pipe-rebase", "pipe-rebase")
+		rebased, err := ow.CommitBlockTransaction(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		seqno, err := other.GetSeqno(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := other.Close(); err != nil {
+			t.Fatal(err)
+		}
+		pipe.decide(t, 3, rebased.GetRootRef(), seqno)
+		if err := <-done3; err != nil {
+			t.Fatal(err)
+		}
+		if !committed3.GetRootRef().EqualsRef(rebased.GetRootRef()) || !engine.GetRootRef().GetRootRef().EqualsRef(rebased.GetRootRef()) {
+			t.Fatal("the rebased head was not published as the commit's head")
+		}
+		published("pipe-3", true)
+		published("pipe-rebase", true)
+
+		// A head the authority reports while a local writer holds its turn
+		// reaches readers at once, and the writer still commits.
+		w4 := fixtureWriter(t, engine)
+		fixtureObject(t, w4, "pipe-4", "pipe-4")
+		root.SetRootRef(engine.GetRootRef().GetRootRef())
+		other, err = NewEngine(ctx, f.le, root, world_mock.LookupMockOp, nil, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ow = fixtureWriter(t, other)
+		fixtureObject(t, ow, "pipe-remote", "pipe-remote")
+		remote, err := ow.CommitBlockTransaction(ctx)
+		if err == nil {
+			seqno, err = other.GetSeqno(ctx)
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := other.Close(); err != nil {
+			t.Fatal(err)
+		}
+		pipe.report(remote.GetRootRef(), seqno)
+		published("pipe-remote", true)
+		done4 := make(chan error, 1)
+		go func() { done4 <- w4.Commit(ctx) }()
+		pipe.decide(t, 4, nil, 0)
+		if err := <-done4; err != nil {
+			t.Fatal(err)
+		}
+		published("pipe-4", true)
 	})
 
 	// A reader that holds a replaced head past the pin delay has it pinned,

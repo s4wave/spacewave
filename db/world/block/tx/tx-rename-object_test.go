@@ -1,4 +1,4 @@
-package world_block_tx
+package world_block_tx_test
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
+	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
 	"github.com/sirupsen/logrus"
 )
@@ -76,7 +77,7 @@ func TestWorldState_RenameObject(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	forkedTx, err := ForkWorldState(ctx, ws, true)
+	forkedTx, err := world_block_tx.ForkWorldState(ctx, ws, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -96,8 +97,8 @@ func TestWorldState_RenameObject(t *testing.T) {
 		t.Fatalf("expected 1 tx, got %d", len(txBatch.GetTxs()))
 	}
 	tx := txBatch.GetTxs()[0]
-	if tt := tx.GetTxType(); tt != TxType_TxType_RENAME_OBJECT {
-		t.Fatalf("expected %s, got %s", TxType_TxType_RENAME_OBJECT.String(), tt.String())
+	if tt := tx.GetTxType(); tt != world_block_tx.TxType_TxType_RENAME_OBJECT {
+		t.Fatalf("expected %s, got %s", world_block_tx.TxType_TxType_RENAME_OBJECT.String(), tt.String())
 	}
 
 	// Replay the recorded object rename against the saved World.
@@ -198,7 +199,7 @@ func TestWorldState_RenameObjectDescendants(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	forkedTx, err := ForkWorldState(ctx, ws, true)
+	forkedTx, err := world_block_tx.ForkWorldState(ctx, ws, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -218,8 +219,8 @@ func TestWorldState_RenameObjectDescendants(t *testing.T) {
 		t.Fatalf("expected %d txs, got %d", len(oldKeys), len(txBatch.GetTxs()))
 	}
 	for i, tx := range txBatch.GetTxs() {
-		if tt := tx.GetTxType(); tt != TxType_TxType_RENAME_OBJECT {
-			t.Fatalf("expected tx %d to be %s, got %s", i, TxType_TxType_RENAME_OBJECT.String(), tt.String())
+		if tt := tx.GetTxType(); tt != world_block_tx.TxType_TxType_RENAME_OBJECT {
+			t.Fatalf("expected tx %d to be %s, got %s", i, world_block_tx.TxType_TxType_RENAME_OBJECT.String(), tt.String())
 		}
 	}
 

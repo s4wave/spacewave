@@ -1,6 +1,9 @@
 package world_block
 
-import "github.com/s4wave/spacewave/db/world"
+import (
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/world"
+)
 
 // engineRetirement is an obsolete resource set detached from Engine publication.
 // The Engine drains it after unlocking so cleanup can reenter Engine state.
@@ -18,6 +21,9 @@ type engineRetirement struct {
 	// turn is the detached writer's Authority turn, released after the
 	// transaction drains.
 	turn world.Turn
+	// base is a detached writer's cursor at an unpublished base, released
+	// after the transaction drains.
+	base *bucket_lookup.Cursor
 	// writeTxRel releases the local writer lock after the transaction drains.
 	writeTxRel func()
 	// watched are heads no longer recorded for change watchers.
@@ -35,6 +41,7 @@ func (r engineRetirement) empty() bool {
 		r.readHead == nil &&
 		r.writeTx == nil &&
 		r.turn == nil &&
+		r.base == nil &&
 		r.writeTxRel == nil &&
 		len(r.watched) == 0
 }
