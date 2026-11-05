@@ -227,9 +227,12 @@ func (s *PendingStore) lookup(ref *BlockRef) *PutBatchEntry {
 	return s.kept[pendingKey(ref)]
 }
 
-// GetBlock serves a kept block, or reads the inner store.
+// GetBlock serves a kept block, or reads the inner store. A kept block's
+// decoded form may enter the shared pool: Sweep reports each block it forgets.
 func (s *PendingStore) GetBlock(ctx context.Context, ref *BlockRef) ([]byte, bool, error) {
+	gen := DurableReadGeneration()
 	if e := s.lookup(ref); e != nil {
+		MarkDurableRead(ctx, ref, gen)
 		return e.Data, true, nil
 	}
 	return s.StoreOps.GetBlock(ctx, ref)
@@ -238,7 +241,9 @@ func (s *PendingStore) GetBlock(ctx context.Context, ref *BlockRef) ([]byte, boo
 // GetStoredBlock serves a kept block with its child list, or reads the inner
 // store.
 func (s *PendingStore) GetStoredBlock(ctx context.Context, ref *BlockRef) (*StoredBlock, error) {
+	gen := DurableReadGeneration()
 	if e := s.lookup(ref); e != nil {
+		MarkDurableRead(ctx, ref, gen)
 		return &StoredBlock{Data: e.Data, Refs: e.Refs, RefsKnown: true}, nil
 	}
 	return s.StoreOps.GetStoredBlock(ctx, ref)
@@ -408,14 +413,21 @@ func (s *PendingStore) Sweep(live []*BlockRef, mark uint64) {
 	}
 
 	// Drop the rest.
+	var forgot []*BlockRef
 	s.mtx.Lock()
-	defer s.mtx.Unlock()
 	for key, e := range s.kept {
 		if _, ok := reached[key]; !ok && s.keptAt[key] <= mark {
 			s.keptBytes -= len(e.Data)
 			delete(s.kept, key)
 			delete(s.keptAt, key)
+			forgot = append(forgot, e.Ref)
 		}
+	}
+	s.mtx.Unlock()
+
+	// Report them, so the decoded pool stops serving a block no store holds.
+	for _, ref := range forgot {
+		InvalidateRemovedBlock(ref)
 	}
 }
 
