@@ -2,9 +2,9 @@ package s4db
 
 // Options configures a database.
 type Options struct {
-	// CacheBytes is the memory budget: a quarter, between 8 and 256 MiB,
-	// bounds the memtable and the rest caches run blocks, index partitions
-	// and filters. Zero selects 256 MiB.
+	// CacheBytes bounds the block cache of decoded run blocks, index
+	// partitions and filters. The memtable has its own budget, a constant of
+	// the file. Zero selects 192 MiB.
 	CacheBytes int
 	// Families are key prefixes whose values Stats counts apart. A key
 	// counts under the first family it starts with.
@@ -37,9 +37,4 @@ func (o Options) withDefaults() Options {
 	}
 	o.memtable = max(o.memtable, minMemtable)
 	return o
-}
-
-// blockCacheBytes returns the block cache budget.
-func (o Options) blockCacheBytes() int64 {
-	return int64(o.CacheBytes)
 }
