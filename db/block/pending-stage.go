@@ -13,6 +13,9 @@ type pendingStage struct {
 	*PendingStore
 	// stage takes the puts past the bound.
 	stage StoreOps
+	// keys are the kept blocks this stage put, which Sweep keeps until the
+	// stage is released. Guarded by the PendingStore's mtx.
+	keys map[string]struct{}
 }
 
 // PutBlock keeps a block whose refs are known while the bound allows, and
@@ -28,7 +31,7 @@ func (p *pendingStage) PutBlock(ctx context.Context, data []byte, opts *PutOpts)
 	if err != nil {
 		return nil, false, err
 	}
-	existed, err := p.put(ctx, p.stage, []*PutBatchEntry{{Ref: ref, Data: data, Refs: opts.GetRefs(), RefsKnown: true}})
+	existed, err := p.put(ctx, p.stage, p, []*PutBatchEntry{{Ref: ref, Data: data, Refs: opts.GetRefs(), RefsKnown: true}})
 	if err != nil {
 		return nil, false, err
 	}
@@ -38,7 +41,7 @@ func (p *pendingStage) PutBlock(ctx context.Context, data []byte, opts *PutOpts)
 // PutBlockBatch keeps the entries the bound allows and puts the rest to the
 // stage.
 func (p *pendingStage) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) ([]bool, error) {
-	return p.put(ctx, p.stage, entries)
+	return p.put(ctx, p.stage, p, entries)
 }
 
 // BeginReadOperation returns the stage view itself.

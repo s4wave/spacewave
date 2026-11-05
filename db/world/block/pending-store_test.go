@@ -88,7 +88,7 @@ func TestPendingStoreRunThrough(t *testing.T) {
 	stored(false, "C1", "R1")
 
 	// A sweep from the live root forgets the replaced tree.
-	ps.Sweep([]*block.BlockRef{tr.ref("R2")})
+	ps.Sweep([]*block.BlockRef{tr.ref("R2")}, ps.SweepMark())
 	if n := ps.KeptBytes(); n != 0 {
 		t.Fatalf("sweep kept %d bytes, want 0", n)
 	}
@@ -122,6 +122,38 @@ func TestPendingStoreRunThrough(t *testing.T) {
 	stored(true, "H", "P1", "P2", "E")
 	if n := ps.KeptBytes(); n != 0 {
 		t.Fatalf("a root move kept %d bytes, want 0", n)
+	}
+
+	// A block kept after a sweep's mark survives it: its root may be one the
+	// sweep's caller gathered its live roots before.
+	tr.add(t, "M1")
+	mark := ps.SweepMark()
+	put(ps, "M1")
+	ps.Sweep(nil, mark)
+	if _, found, err := ps.GetBlock(ctx, tr.ref("M1")); err != nil || !found {
+		t.Fatalf("sweep forgot a block kept after its mark: %v %v", found, err)
+	}
+	ps.Sweep(nil, ps.SweepMark())
+
+	// A tree a writer's stage put survives a sweep that no live root of it
+	// reaches until the stage is released.
+	tr.add(t, "S1")
+	tr.add(t, "S2", "S1")
+	building, releaseBuilding, err := ps.OpenStage(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	put(building, "S1", "S2")
+	ps.Sweep(nil, ps.SweepMark())
+	for _, name := range []string{"S1", "S2"} {
+		if _, found, err := ps.GetBlock(ctx, tr.ref(name)); err != nil || !found {
+			t.Fatalf("sweep forgot %s while its stage was open: %v %v", name, found, err)
+		}
+	}
+	releaseBuilding()
+	ps.Sweep(nil, ps.SweepMark())
+	if n := ps.KeptBytes(); n != 0 {
+		t.Fatalf("sweep after the stage ended kept %d bytes, want 0", n)
 	}
 
 	// A tree past the bound puts the kept blocks under its overflowing

@@ -25,9 +25,9 @@ func (t *spaceTurn) Base() world.Head {
 	return t.base
 }
 
-// Admit keeps the candidate's blocks in the adapter's PendingStore, holds its
-// payloads, makes its root the writer head and appends its operation to the
-// queue. It returns before the operation is queued, with an Admission that
+// Admit registers the candidate, keeps its blocks in the adapter's
+// PendingStore, holds its payloads, makes its root the writer head and
+// appends its operation to the queue. It returns before the operation is queued, with an Admission that
 // waits for the driver to apply it.
 func (t *spaceTurn) Admit(ctx context.Context, candidate world.Candidate) (world.Admission, error) {
 	// Wrap the transaction batch in the Space operation.
@@ -48,14 +48,16 @@ func (t *spaceTurn) Admit(ctx context.Context, candidate world.Candidate) (world
 		return nil, err
 	}
 
-	// Keep the candidate's blocks.
+	// Admit it before keeping its blocks, so a sweep on the driver goroutine
+	// finds its root among the pending candidates once the blocks are kept.
+	adm := a.newAdmission(candidate, op, payloads)
+	a.admit(adm)
 	if _, err := a.pages.PutBlockBatch(ctx, candidate.Entries); err != nil {
+		a.fail(adm, err)
 		return nil, err
 	}
 
-	// Admit it, then hold what the queued operation needs durably.
-	adm := a.newAdmission(candidate, op, payloads)
-	a.admit(adm)
+	// Hold what the queued operation needs durably.
 	if err := a.holdAdmitted(ctx, adm); err != nil {
 		a.fail(adm, err)
 		return nil, err

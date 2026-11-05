@@ -126,6 +126,9 @@ type Adapter struct {
 	// engine is the serving engine once built, until it retires. Guarded by
 	// bcast.
 	engine *Engine
+	// readers is the engine whose readers the sweep keeps live, from when it
+	// serves until it closes, past its retirement. Guarded by bcast.
+	readers *Engine
 	// holders counts the AcquireEngine holds on engine. Guarded by bcast.
 	holders int
 	// ownership is the ownership last derived, for config head ownershipHead.
@@ -219,7 +222,11 @@ func (a *Adapter) Execute(ctx context.Context) error {
 		if err := engine.WaitIdle(idleCtx); err != nil {
 			a.le.WithError(err).Warn("closing the World engine with transactions open")
 		}
-		return engine.close()
+		err = engine.close()
+		a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			a.readers = nil
+		})
+		return err
 	})
 	err := g.Wait()
 	a.replay.close()
@@ -385,7 +392,7 @@ func (a *Adapter) serve(ctx context.Context) (*Engine, error) {
 	}
 	engine := &Engine{Engine: bengine, a: a, cursor: cursor}
 	a.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		a.engine = engine
+		a.engine, a.readers = engine, engine
 		broadcast()
 	})
 	return engine, nil
@@ -1099,10 +1106,16 @@ func (a *Adapter) holdRetained(ctx context.Context, roots []*RetainedRoot) error
 }
 
 // sweep drops the kept pages no live World reaches: the replay's Worlds and
-// payloads, the installed head, the writer head and the pending candidates.
+// payloads, the installed head, the writer head, the pending candidates, and
+// every World the served engine's readers may still read.
 func (a *Adapter) sweep() {
+	// Mark the pages kept so far, then gather the adapter's live Worlds: a
+	// page kept after the mark may belong to a candidate admitted meanwhile.
+	mark := a.pages.SweepMark()
 	live := a.replay.liveRoots()
+	var engine *Engine
 	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		engine = a.readers
 		live = append(live, a.head.Root, a.writer.Root)
 		for _, adm := range a.pending {
 			live = append(live, adm.candidate.Root)
@@ -1112,7 +1125,12 @@ func (a *Adapter) sweep() {
 			live = append(live, root.GetRootRef())
 		}
 	})
-	a.pages.Sweep(live)
+
+	// Add the engine readers' Worlds, then drop the rest.
+	if engine != nil {
+		live = append(live, engine.ReadRoots()...)
+	}
+	a.pages.Sweep(live, mark)
 }
 
 // buildLookupOp composes the built-in operations with the bus lookup.

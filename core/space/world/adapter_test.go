@@ -192,6 +192,13 @@ func TestAdapterRunThrough(t *testing.T) {
 		}
 	}
 
+	// A reader holds a snapshot across the writes and the checkpoint below.
+	snapshot, err := busEngine.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer snapshot.Discard()
+
 	// Concurrent writers each commit and read their own write, and together
 	// pass the checkpoint threshold.
 	var wg sync.WaitGroup
@@ -243,6 +250,23 @@ func TestAdapterRunThrough(t *testing.T) {
 	}, nil)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	// The reader still reads every object its snapshot holds.
+	for _, key := range []string{"backfill-object"} {
+		obj, found, err := snapshot.GetObject(ctx, key)
+		world.ReleaseObjectState(obj)
+		if err != nil || !found {
+			t.Fatalf("snapshot read of %s after the checkpoint: %v, %v", key, found, err)
+		}
+	}
+	iter := snapshot.IterateObjects(ctx, "", false)
+	for iter.Next() {
+	}
+	err = iter.Err()
+	iter.Close()
+	if err != nil {
+		t.Fatalf("snapshot listing after the checkpoint: %v", err)
 	}
 
 	// The replay base holds the checkpoint's World, and the checkpoint root
