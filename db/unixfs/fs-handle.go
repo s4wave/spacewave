@@ -486,9 +486,9 @@ func (h *FSHandle) LookupPathPtsHandles(ctx context.Context, pathParts []string)
 
 // Mknod creates child entries in a directory.
 // inode must be a directory.
-// passing 0 for permissions will set defaults
-// any non-permissions bits in permissions will be ignored
-// if checkExist, checks if name exists, returns ErrExist if so
+// Passing 0 for permissions sets defaults.
+// Any non-permissions bits in permissions are ignored.
+// If checkExist is set, an existing name returns ErrExist.
 func (h *FSHandle) Mknod(
 	ctx context.Context,
 	checkExist bool,
@@ -1020,7 +1020,7 @@ func (h *FSHandle) Clone(ctx context.Context) (*FSHandle, error) {
 // Release commits the buffered writes at the handle's inode and releases the
 // FSHandle. Releasing a root handle commits the buffered writes of the whole
 // tree, so its owner reads a complete root afterward. Call Sync first to
-// observe a commit error.
+// observe a commit error. Unreported failures remain pending for other handles.
 func (h *FSHandle) Release() {
 	// Release once.
 	if h.isReleased.Swap(true) {
@@ -1031,9 +1031,11 @@ func (h *FSHandle) Release() {
 	// Commit buffered writes, then drop the reference and any inodes it kept.
 	inode := h.i()
 	if inode.parent == nil {
-		_ = inode.syncTree(context.Background())
+		for _, node := range inode.tree().snapshot() {
+			node.flushUnreported()
+		}
 	} else {
-		_ = inode.sync(context.Background())
+		inode.flushUnreported()
 	}
 	rel, err := inode.rmtx.Lock(context.Background(), true)
 	if err == nil {
