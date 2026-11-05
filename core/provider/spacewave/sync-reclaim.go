@@ -3,6 +3,7 @@ package provider_spacewave
 import (
 	"context"
 	"slices"
+	"sync/atomic"
 	"time"
 
 	"github.com/pkg/errors"
@@ -31,6 +32,18 @@ const (
 	reclaimConcurrency = 8
 )
 
+// packReclaim enables storage reclaim passes, which trash and retire packs no
+// live root reaches. It is off by default, with the Volume collector's Frees
+// switch: no deletion path of the World convergence frees anything until it
+// is approved.
+var packReclaim atomic.Bool
+
+// SetPackReclaim turns the storage reclaim passes of Spacewave Spaces on or
+// off for the passes that start after the call.
+func SetPackReclaim(enabled bool) {
+	packReclaim.Store(enabled)
+}
+
 // reclaimPack is the liveness of the blocks of one catalog pack.
 type reclaimPack struct {
 	// entry is the catalog entry of the pack.
@@ -56,8 +69,9 @@ type reclaimPack struct {
 // than packfile.TrashAge, after rescuing the blocks it holds that are live
 // again and held by no other pack.
 func (s *syncController) ReclaimStorage(ctx context.Context, fence bstore.ReclaimFence) (time.Time, error) {
-	// A read-only replica of a public Space never writes the catalog.
-	if s.skipPull {
+	// Reclaim nothing while the switch is off, and nothing on a read-only
+	// replica of a public Space, which never writes the catalog.
+	if !packReclaim.Load() || s.skipPull {
 		return time.Time{}, nil
 	}
 

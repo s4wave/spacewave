@@ -67,6 +67,10 @@ type spaceFence struct {
 //     the adapter's roots, reader pins and stages.
 //  5. A writer that does not answer within the timeout fails the pass, which
 //     then deletes nothing.
+//  6. No pass frees anything while frees are off: the Volume collector's
+//     Frees switch and the Spacewave pack reclaim switch (SetPackReclaim) are
+//     both off by default, so the fence answers but no backend deletes by it
+//     until an operator turns them on.
 func (a *Adapter) ReclaimFence(ctx context.Context, copyRoots bool) ([]*block.BlockRef, error) {
 	// Place the fence after this device's admitted operations.
 	pass := ulid.NewULID()
