@@ -22,6 +22,11 @@ var (
 	// ErrInvalidSnapshot is returned when a transaction's storage snapshot can
 	// no longer be trusted and the caller must reopen at a fresh generation.
 	ErrInvalidSnapshot = errors.New("kvtx snapshot is invalid")
+	// ErrConflict is returned by Commit of an optimistic write transaction
+	// when a commit after its snapshot changed what it read. Nothing was
+	// written, and the body must run again on a fresh transaction, as
+	// RunOptimisticTransaction does.
+	ErrConflict = errors.New("kvtx transaction conflicts with a later commit")
 	// ErrTxTooBig is returned by a write when the transaction cannot hold it.
 	// The write was not applied, and the transaction can still commit.
 	ErrTxTooBig = errors.New("kvtx transaction is too big")

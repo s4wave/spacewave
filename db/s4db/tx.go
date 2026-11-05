@@ -11,7 +11,8 @@ import (
 )
 
 // Tx is a transaction on one snapshot. A write transaction buffers its
-// changes and holds the writer lock.
+// changes and holds the writer lock, or, opened optimistically, records what
+// it reads and takes the lock only at Commit.
 type Tx struct {
 	// db is the database.
 	db *DB
@@ -21,6 +22,9 @@ type Tx struct {
 	stripe int
 	// changes buffers the writes of a write transaction; nil when read-only.
 	changes *btree.BTreeG[tentry]
+	// reads records the snapshot reads of an optimistic write transaction;
+	// nil otherwise.
+	reads *readSet
 	// done is set after Commit or Discard.
 	done bool
 }
@@ -30,6 +34,9 @@ func (t *Tx) Size(ctx context.Context) (uint64, error) {
 	// A finished transaction has no snapshot.
 	if t.done {
 		return 0, kvtx.ErrDiscarded
+	}
+	if t.reads != nil {
+		t.reads.all = true
 	}
 
 	// Adjust the snapshot's count by each buffered change that adds or
@@ -73,6 +80,7 @@ func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 
 	// Otherwise read the snapshot. An extent is read into a new buffer, and
 	// an inline value is copied out of the shared index page.
+	t.read(key)
 	v, found, err := t.db.lookup(t.st, key)
 	if err != nil || !found {
 		return nil, false, err
@@ -120,6 +128,7 @@ func (t *Tx) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool, err
 	sorted := make([][]byte, len(order))
 	for j, i := range order {
 		sorted[j] = keys[i]
+		t.read(keys[i])
 	}
 
 	// Resolve them in the snapshot and read their values. An extent is read
@@ -185,6 +194,7 @@ func (t *Tx) Exists(ctx context.Context, key []byte) (bool, error) {
 	}
 
 	// Test presence in the pinned snapshot.
+	t.read(key)
 	_, found, err := t.db.lookup(t.st, key)
 	return found, err
 }
@@ -211,6 +221,13 @@ func (t *Tx) Delete(ctx context.Context, key []byte) error {
 	}
 	t.changes.Set(tentry{key: bytes.Clone(key), del: true})
 	return nil
+}
+
+// read records a snapshot read of key in an optimistic transaction.
+func (t *Tx) read(key []byte) {
+	if t.reads != nil {
+		t.reads.addKey(key)
+	}
 }
 
 // writable checks that the transaction may write key.
@@ -291,6 +308,9 @@ func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvt
 
 // iterate returns an iterator over keys under prefix.
 func (t *Tx) iterate(prefix []byte, reverse bool) *Iterator {
+	if t.reads != nil {
+		t.reads.addPrefix(prefix)
+	}
 	it := newIterator(t.db.p, t.st, t.changes, prefix, reverse)
 	if t.done {
 		it.err = kvtx.ErrDiscarded
@@ -330,10 +350,23 @@ func (t *Tx) commit(ctx context.Context, ordered bool) error {
 		return true
 	})
 
+	// Take the writer lock now for an optimistic transaction, moving it onto
+	// the current state when its reads still hold there.
+	defer db.endWrite()
+	if t.reads != nil {
+		// Reads alone serialize at the snapshot.
+		if len(changes) == 0 {
+			db.release(t.st, t.stripe)
+			return nil
+		}
+		if err := t.lockValidated(ctx, changes); err != nil {
+			return err
+		}
+	}
+
 	// Write them, then run checkpoint and compaction work with the snapshot
 	// released, release the writer lock, and wait for a checkpoint the
 	// writes outpaced when they are background work.
-	defer db.endWrite()
 	err := db.w.commit(ctx, t.st, changes, ordered, false)
 	db.release(t.st, t.stripe)
 	if err == nil {
@@ -353,6 +386,41 @@ func (t *Tx) commit(ctx context.Context, ordered bool) error {
 	return db.flush.syncThrough(ctx, seq, 0)
 }
 
+// lockValidated takes the writer lock for an optimistic transaction and
+// moves it onto the state the lock caught up to, when no commit since its
+// snapshot changed a key it read. Otherwise it releases the lock and the
+// snapshot and returns kvtx.ErrConflict. Before the lock it reads the index
+// pages the commit resolves its changes in, so the commit finds them warm
+// unless a checkpoint replaced the tree meanwhile.
+func (t *Tx) lockValidated(ctx context.Context, changes []tentry) error {
+	// Warm the commit's pages; a failed read leaves them to the commit.
+	db := t.db
+	keys := make([][]byte, len(changes))
+	for i, c := range changes {
+		keys[i] = c.key
+	}
+	_ = db.p.prefetch(ctx, t.st.root, keys)
+
+	// Take the lock and the state it caught up to, in place of the
+	// snapshot.
+	if err := db.w.lock(ctx); err != nil {
+		db.release(t.st, t.stripe)
+		return err
+	}
+	snap := t.st.seq
+	base, stripe := db.acquire()
+	db.release(t.st, t.stripe)
+	t.st, t.stripe = base, stripe
+
+	// Refuse the commit when a later commit changed what it read.
+	if db.recent.changed(snap, base.seq, t.reads) {
+		db.release(base, stripe)
+		db.w.unlock(nil)
+		return kvtx.ErrConflict
+	}
+	return nil
+}
+
 // Discard ends the transaction without writing.
 func (t *Tx) Discard() {
 	// Leave an already finished transaction alone.
@@ -364,7 +432,9 @@ func (t *Tx) Discard() {
 	t.done = true
 	t.db.release(t.st, t.stripe)
 	if t.changes != nil {
-		t.db.w.unlock(nil)
+		if t.reads == nil {
+			t.db.w.unlock(nil)
+		}
 		t.db.endWrite()
 	}
 }

@@ -359,10 +359,11 @@ func (s *Store) evictBatch(
 		result.Evicted += len(drop)
 	}
 
-	// Delete the walked entries and queue the kept ones at the new epoch. A
-	// refused block's next upload queues it again.
+	// Delete the walked entries and queue the kept ones at the new epoch,
+	// reading without the writer lock. A refused block's next upload queues it
+	// again.
 	var delta int64
-	err = kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
+	err = kvtx.RunOptimisticTransaction(ctx, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
 		delta = 0
 		for _, entry := range batch {
 			if err := tx.Delete(ctx, entry.key); err != nil {
@@ -378,7 +379,7 @@ func (s *Store) evictBatch(
 			delta += added
 		}
 		return addEvictableBytes(ctx, tx, delta)
-	})
+	}, kvtx.RetryInvalidSnapshot)
 	if err != nil {
 		return nil, false, errors.Wrap(err, "update eviction queue")
 	}

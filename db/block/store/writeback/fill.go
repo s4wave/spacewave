@@ -156,9 +156,11 @@ func (s *Store) writeFills(ctx context.Context, batch []fill) error {
 	}
 
 	// Queue the step's values for eviction at the current epoch, counting
-	// their bytes once.
+	// their bytes once. The cold entry reads run without the writer lock, so
+	// no writer waits on them; a commit that changed what they read meanwhile
+	// runs the body again.
 	var added, refilled int64
-	err := kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
+	err := kvtx.RunOptimisticTransaction(ctx, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
 		// Read the epoch the step queues under.
 		added, refilled = 0, 0
 		epoch, err := readEpoch(ctx, tx)
@@ -180,7 +182,7 @@ func (s *Store) writeFills(ctx context.Context, batch []fill) error {
 
 		// Count the step's new bytes once.
 		return addEvictableBytes(ctx, tx, added)
-	})
+	}, kvtx.RetryInvalidSnapshot)
 	if err != nil {
 		return errors.Wrap(err, "queue filled blocks")
 	}

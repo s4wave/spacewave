@@ -44,6 +44,9 @@ type DB struct {
 	flush *flusher
 	// w writes commits and checkpoints.
 	w *writer
+	// recent logs the keys of recent commits, which optimistic write
+	// transactions validate their reads against.
+	recent *commitLog
 	// tailer runs the tail loop.
 	tailer *routine.RoutineContainer
 	// warmer reads the tree into the cache after open.
@@ -199,6 +202,7 @@ func (db *DB) load() error {
 	if err != nil {
 		return err
 	}
+	db.recent = newCommitLog(sb.seq)
 	st, torn, err := db.tail(newState(sb, db.opts.checkpointLimit(sb)), true)
 	if err != nil {
 		return err
@@ -294,6 +298,7 @@ func (db *DB) tail(st *state, verify bool) (*state, bool, error) {
 	case sb.gen <= st.gen:
 	case sb.seq > st.seq:
 		next = newState(sb, db.opts.checkpointLimit(sb))
+		db.recent.jump(sb.seq)
 	default:
 		next = st.rebase(sb, db.opts.checkpointLimit(sb))
 	}
@@ -338,6 +343,7 @@ func (db *DB) tail(st *state, verify bool) (*state, bool, error) {
 	if next == st {
 		next = db.derive(st)
 	}
+	db.recent.add(rs...)
 	next.apply(rs...)
 	last := recs[len(rs)-1]
 	next.pos, next.end = last.pos, last.end
@@ -653,11 +659,17 @@ func (db *DB) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 		return nil, ErrReadOnly
 	}
 
-	// Count the writer so Close waits for it, then take the writer lock and
-	// read the state it caught up to.
+	// Count the writer so Close waits for it. An optimistic transaction
+	// reads the published state and takes the writer lock at Commit.
 	if err := db.beginWrite(); err != nil {
 		return nil, err
 	}
+	if kvtx.IsOptimisticContext(ctx) {
+		st, stripe := db.acquire()
+		return &Tx{db: db, st: st, stripe: stripe, changes: newChanges(), reads: newReadSet()}, nil
+	}
+
+	// Otherwise take the writer lock and read the state it caught up to.
 	if err := db.w.lock(ctx); err != nil {
 		db.endWrite()
 		return nil, err

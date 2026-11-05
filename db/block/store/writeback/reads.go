@@ -74,11 +74,12 @@ func (s *Store) SaveReads(ctx context.Context, generation time.Time, keys []byte
 	key = append(key, '/')
 	key = appendReadsStamp(key, time.Now())
 
-	// Write the chunk behind every foreground writer.
+	// Write the chunk behind every foreground writer, taking the writer lock
+	// only to commit.
 	ctx = kvtx.WithBackgroundWriteContext(ctx)
-	return kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
+	return kvtx.RunOptimisticTransaction(ctx, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
 		return tx.Set(ctx, key, bytes.Clone(keys))
-	})
+	}, kvtx.RetryInvalidSnapshot)
 }
 
 // LoadReads returns the saved chunks of reads, oldest generation first.
@@ -111,9 +112,9 @@ func (s *Store) LoadReads(ctx context.Context) ([]ReadChunk, error) {
 // generation.
 func (s *Store) DropReadsBefore(ctx context.Context, generation time.Time) error {
 	// Delete the older chunks in one transaction, behind every foreground
-	// writer.
+	// writer, scanning them without the writer lock.
 	ctx = kvtx.WithBackgroundWriteContext(ctx)
-	return kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
+	return kvtx.RunOptimisticTransaction(ctx, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
 		// Collect the keys of the older generations, then delete them.
 		var drop [][]byte
 		err := tx.ScanPrefixKeys(ctx, []byte(readsPrefix), func(key []byte) error {
@@ -134,5 +135,5 @@ func (s *Store) DropReadsBefore(ctx context.Context, generation time.Time) error
 			}
 		}
 		return nil
-	})
+	}, kvtx.RetryInvalidSnapshot)
 }

@@ -101,21 +101,23 @@ func RunTransactionWithRetry[T TransactionLifecycle](
 	return runOperationWithRetry(
 		ctx,
 		func(ctx context.Context) error {
-			return runTransactionAttempt(ctx, write, open, body)
+			return runTransactionAttempt(ctx, ctx, write, open, body)
 		},
 		retry,
 		"kvtx transaction attempt limit exhausted",
 	)
 }
 
+// runTransactionAttempt opens a transaction with openCtx and runs body in it
+// with ctx, committing a write.
 func runTransactionAttempt[T TransactionLifecycle](
-	ctx context.Context,
+	ctx, openCtx context.Context,
 	write bool,
 	open func(context.Context) (T, error),
 	body func(context.Context, T) error,
 ) error {
 	// Open a fresh transaction and release it after this attempt completes.
-	tx, err := open(ctx)
+	tx, err := open(openCtx)
 	if err != nil {
 		return err
 	}

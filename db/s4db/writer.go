@@ -437,6 +437,7 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, orde
 
 	// Publish the new state.
 	next := db.derive(base)
+	db.recent.add(r)
 	next.apply(r)
 	next.pos, next.end = pos+uint64(len(rec)), end
 	if err := db.publish(ctx, next); err != nil {
