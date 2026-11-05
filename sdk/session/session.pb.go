@@ -2998,6 +2998,14 @@ type RemoveSpaceParticipantsRequest struct {
 	SpaceId string `protobuf:"bytes,1,opt,name=space_id,json=spaceId,proto3" json:"spaceId,omitempty"`
 	// PeerIds are the participant peer IDs to remove in one configuration change.
 	PeerIds []string `protobuf:"bytes,2,rep,name=peer_ids,json=peerIds,proto3" json:"peerIds,omitempty"`
+	// AdmitThrough maps a peer ID to the last of its operations every member
+	// still applies; replay rejects the peer's later operations. A peer it does
+	// not name keeps every operation the Space holds. It recovers a Space whose
+	// removed author signed operations whose payloads no member holds.
+	AdmitThrough map[string]uint64 `protobuf:"bytes,3,rep,name=admit_through,json=admitThrough,proto3" json:"admitThrough,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
+	// DryRun reports the cut for each peer AdmitThrough names without signing
+	// the removal.
+	DryRun bool `protobuf:"varint,4,opt,name=dry_run,json=dryRun,proto3" json:"dryRun,omitempty"`
 }
 
 func (x *RemoveSpaceParticipantsRequest) Reset() {
@@ -3020,6 +3028,20 @@ func (x *RemoveSpaceParticipantsRequest) GetPeerIds() []string {
 	return nil
 }
 
+func (x *RemoveSpaceParticipantsRequest) GetAdmitThrough() map[string]uint64 {
+	if x != nil {
+		return x.AdmitThrough
+	}
+	return nil
+}
+
+func (x *RemoveSpaceParticipantsRequest) GetDryRun() bool {
+	if x != nil {
+		return x.DryRun
+	}
+	return false
+}
+
 // RemoveSpaceParticipantsResponse reports the participant grants that existed.
 type RemoveSpaceParticipantsResponse struct {
 	unknownFields []byte
@@ -3028,6 +3050,8 @@ type RemoveSpaceParticipantsResponse struct {
 	// AwaitingGroup is true when the viewer agreed to the removal under group
 	// control, and it applies once the group decides it.
 	AwaitingGroup bool `protobuf:"varint,2,opt,name=awaiting_group,json=awaitingGroup,proto3" json:"awaitingGroup,omitempty"`
+	// Cuts reports each peer AdmitThrough named, in peer ID order.
+	Cuts []*SpaceParticipantCut `protobuf:"bytes,3,rep,name=cuts,proto3" json:"cuts,omitempty"`
 }
 
 func (x *RemoveSpaceParticipantsResponse) Reset() {
@@ -3048,6 +3072,71 @@ func (x *RemoveSpaceParticipantsResponse) GetAwaitingGroup() bool {
 		return x.AwaitingGroup
 	}
 	return false
+}
+
+func (x *RemoveSpaceParticipantsResponse) GetCuts() []*SpaceParticipantCut {
+	if x != nil {
+		return x.Cuts
+	}
+	return nil
+}
+
+// SpaceParticipantCut describes the operations a removal through a nonce stops
+// applying for one peer.
+type SpaceParticipantCut struct {
+	unknownFields []byte
+	// PeerId is the removed author.
+	PeerId string `protobuf:"bytes,1,opt,name=peer_id,json=peerId,proto3" json:"peerId,omitempty"`
+	// AdmitThrough is the last nonce of the peer's operations that applies.
+	AdmitThrough uint64 `protobuf:"varint,2,opt,name=admit_through,json=admitThrough,proto3" json:"admitThrough,omitempty"`
+	// HeadNonce is the nonce of the peer's latest operation the Space holds.
+	HeadNonce uint64 `protobuf:"varint,3,opt,name=head_nonce,json=headNonce,proto3" json:"headNonce,omitempty"`
+	// CheckpointNonce is the nonce through which the checkpoint covers the peer.
+	CheckpointNonce uint64 `protobuf:"varint,4,opt,name=checkpoint_nonce,json=checkpointNonce,proto3" json:"checkpointNonce,omitempty"`
+	// CutOperations is the number of the peer's held operations above
+	// AdmitThrough that stop applying.
+	CutOperations uint32 `protobuf:"varint,5,opt,name=cut_operations,json=cutOperations,proto3" json:"cutOperations,omitempty"`
+}
+
+func (x *SpaceParticipantCut) Reset() {
+	*x = SpaceParticipantCut{}
+}
+
+func (*SpaceParticipantCut) ProtoMessage() {}
+
+func (x *SpaceParticipantCut) GetPeerId() string {
+	if x != nil {
+		return x.PeerId
+	}
+	return ""
+}
+
+func (x *SpaceParticipantCut) GetAdmitThrough() uint64 {
+	if x != nil {
+		return x.AdmitThrough
+	}
+	return 0
+}
+
+func (x *SpaceParticipantCut) GetHeadNonce() uint64 {
+	if x != nil {
+		return x.HeadNonce
+	}
+	return 0
+}
+
+func (x *SpaceParticipantCut) GetCheckpointNonce() uint64 {
+	if x != nil {
+		return x.CheckpointNonce
+	}
+	return 0
+}
+
+func (x *SpaceParticipantCut) GetCutOperations() uint32 {
+	if x != nil {
+		return x.CutOperations
+	}
+	return 0
 }
 
 // RevokeSpaceInviteRequest is the request for RevokeSpaceInvite.
@@ -4090,6 +4179,32 @@ func (x *AccessPeerTransportRequest_UdpPeerAddrsEntry) GetValue() string {
 		return x.Value
 	}
 	return ""
+}
+
+type RemoveSpaceParticipantsRequest_AdmitThroughEntry struct {
+	unknownFields []byte
+	Key           string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Value         uint64 `protobuf:"varint,2,opt,name=value,proto3" json:"value,omitempty"`
+}
+
+func (x *RemoveSpaceParticipantsRequest_AdmitThroughEntry) Reset() {
+	*x = RemoveSpaceParticipantsRequest_AdmitThroughEntry{}
+}
+
+func (*RemoveSpaceParticipantsRequest_AdmitThroughEntry) ProtoMessage() {}
+
+func (x *RemoveSpaceParticipantsRequest_AdmitThroughEntry) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *RemoveSpaceParticipantsRequest_AdmitThroughEntry) GetValue() uint64 {
+	if x != nil {
+		return x.Value
+	}
+	return 0
 }
 
 func (m *GetSessionInfoRequest) CloneVT() *GetSessionInfoRequest {
@@ -5425,7 +5540,9 @@ func (m *RemoveSpaceParticipantsRequest) CloneVT() *RemoveSpaceParticipantsReque
 	}
 	r := new(RemoveSpaceParticipantsRequest)
 	r.SpaceId = m.SpaceId
+	r.DryRun = m.DryRun
 	r.PeerIds = protobuf_go_lite.CloneSlice(m.PeerIds)
+	r.AdmitThrough = protobuf_go_lite.CloneMap(m.AdmitThrough)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -5443,6 +5560,7 @@ func (m *RemoveSpaceParticipantsResponse) CloneVT() *RemoveSpaceParticipantsResp
 	r := new(RemoveSpaceParticipantsResponse)
 	r.AwaitingGroup = m.AwaitingGroup
 	r.RemovedPeerIds = protobuf_go_lite.CloneSlice(m.RemovedPeerIds)
+	r.Cuts = protobuf_go_lite.CloneVTSlice(m.Cuts)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -5450,6 +5568,26 @@ func (m *RemoveSpaceParticipantsResponse) CloneVT() *RemoveSpaceParticipantsResp
 }
 
 func (m *RemoveSpaceParticipantsResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SpaceParticipantCut) CloneVT() *SpaceParticipantCut {
+	if m == nil {
+		return (*SpaceParticipantCut)(nil)
+	}
+	r := new(SpaceParticipantCut)
+	r.PeerId = m.PeerId
+	r.AdmitThrough = m.AdmitThrough
+	r.HeadNonce = m.HeadNonce
+	r.CheckpointNonce = m.CheckpointNonce
+	r.CutOperations = m.CutOperations
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SpaceParticipantCut) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -7980,6 +8118,12 @@ func (this *RemoveSpaceParticipantsRequest) EqualVT(that *RemoveSpaceParticipant
 	if !protobuf_go_lite.EqualSlice(this.PeerIds, that.PeerIds) {
 		return false
 	}
+	if !protobuf_go_lite.EqualMap(this.AdmitThrough, that.AdmitThrough) {
+		return false
+	}
+	if this.DryRun != that.DryRun {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -8003,11 +8147,46 @@ func (this *RemoveSpaceParticipantsResponse) EqualVT(that *RemoveSpaceParticipan
 	if this.AwaitingGroup != that.AwaitingGroup {
 		return false
 	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Cuts, that.Cuts, func() *SpaceParticipantCut { return &SpaceParticipantCut{} }) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *RemoveSpaceParticipantsResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*RemoveSpaceParticipantsResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SpaceParticipantCut) EqualVT(that *SpaceParticipantCut) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.PeerId != that.PeerId {
+		return false
+	}
+	if this.AdmitThrough != that.AdmitThrough {
+		return false
+	}
+	if this.HeadNonce != that.HeadNonce {
+		return false
+	}
+	if this.CheckpointNonce != that.CheckpointNonce {
+		return false
+	}
+	if this.CutOperations != that.CutOperations {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SpaceParticipantCut) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SpaceParticipantCut)
 	if !ok {
 		return false
 	}
@@ -13493,6 +13672,56 @@ func (x *ListSpaceParticipantsResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the RemoveSpaceParticipantsRequest_AdmitThroughEntry message to JSON.
+func (x *RemoveSpaceParticipantsRequest_AdmitThroughEntry) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Key != "" || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		s.WriteString(x.Key)
+	}
+	if x.Value != 0 || s.HasField("value") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("value")
+		s.WriteUint64(x.Value)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RemoveSpaceParticipantsRequest_AdmitThroughEntry to JSON.
+func (x *RemoveSpaceParticipantsRequest_AdmitThroughEntry) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RemoveSpaceParticipantsRequest_AdmitThroughEntry message from JSON.
+func (x *RemoveSpaceParticipantsRequest_AdmitThroughEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "key":
+			s.AddField("key")
+			x.Key = s.ReadString()
+		case "value":
+			s.AddField("value")
+			x.Value = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RemoveSpaceParticipantsRequest_AdmitThroughEntry from JSON.
+func (x *RemoveSpaceParticipantsRequest_AdmitThroughEntry) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the RemoveSpaceParticipantsRequest message to JSON.
 func (x *RemoveSpaceParticipantsRequest) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -13510,6 +13739,24 @@ func (x *RemoveSpaceParticipantsRequest) MarshalProtoJSON(s *json.MarshalState) 
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("peerIds")
 		s.WriteStringArray(x.PeerIds)
+	}
+	if x.AdmitThrough != nil || s.HasField("admitThrough") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("admitThrough")
+		s.WriteObjectStart()
+		var wroteElement bool
+		for _, k := range slices.Sorted(maps.Keys(x.AdmitThrough)) {
+			v := x.AdmitThrough[k]
+			s.WriteMoreIf(&wroteElement)
+			s.WriteObjectStringField(k)
+			s.WriteUint64(v)
+		}
+		s.WriteObjectEnd()
+	}
+	if x.DryRun || s.HasField("dryRun") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("dryRun")
+		s.WriteBool(x.DryRun)
 	}
 	s.WriteObjectEnd()
 }
@@ -13538,6 +13785,19 @@ func (x *RemoveSpaceParticipantsRequest) UnmarshalProtoJSON(s *json.UnmarshalSta
 				return
 			}
 			x.PeerIds = s.ReadStringArray()
+		case "admit_through", "admitThrough":
+			s.AddField("admit_through")
+			if s.ReadNil() {
+				x.AdmitThrough = nil
+				return
+			}
+			x.AdmitThrough = make(map[string]uint64)
+			s.ReadStringMap(func(key string) {
+				x.AdmitThrough[key] = s.ReadUint64()
+			})
+		case "dry_run", "dryRun":
+			s.AddField("dry_run")
+			x.DryRun = s.ReadBool()
 		}
 	})
 }
@@ -13564,6 +13824,17 @@ func (x *RemoveSpaceParticipantsResponse) MarshalProtoJSON(s *json.MarshalState)
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("awaitingGroup")
 		s.WriteBool(x.AwaitingGroup)
+	}
+	if len(x.Cuts) > 0 || s.HasField("cuts") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("cuts")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Cuts {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("cuts"))
+		}
+		s.WriteArrayEnd()
 	}
 	s.WriteObjectEnd()
 }
@@ -13592,12 +13863,104 @@ func (x *RemoveSpaceParticipantsResponse) UnmarshalProtoJSON(s *json.UnmarshalSt
 		case "awaiting_group", "awaitingGroup":
 			s.AddField("awaiting_group")
 			x.AwaitingGroup = s.ReadBool()
+		case "cuts":
+			s.AddField("cuts")
+			if s.ReadNil() {
+				x.Cuts = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Cuts = append(x.Cuts, nil)
+					return
+				}
+				v := &SpaceParticipantCut{}
+				v.UnmarshalProtoJSON(s.WithField("cuts", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Cuts = append(x.Cuts, v)
+			})
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the RemoveSpaceParticipantsResponse from JSON.
 func (x *RemoveSpaceParticipantsResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SpaceParticipantCut message to JSON.
+func (x *SpaceParticipantCut) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.PeerId != "" || s.HasField("peerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("peerId")
+		s.WriteString(x.PeerId)
+	}
+	if x.AdmitThrough != 0 || s.HasField("admitThrough") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("admitThrough")
+		s.WriteUint64(x.AdmitThrough)
+	}
+	if x.HeadNonce != 0 || s.HasField("headNonce") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("headNonce")
+		s.WriteUint64(x.HeadNonce)
+	}
+	if x.CheckpointNonce != 0 || s.HasField("checkpointNonce") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("checkpointNonce")
+		s.WriteUint64(x.CheckpointNonce)
+	}
+	if x.CutOperations != 0 || s.HasField("cutOperations") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("cutOperations")
+		s.WriteUint32(x.CutOperations)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SpaceParticipantCut to JSON.
+func (x *SpaceParticipantCut) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SpaceParticipantCut message from JSON.
+func (x *SpaceParticipantCut) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "peer_id", "peerId":
+			s.AddField("peer_id")
+			x.PeerId = s.ReadString()
+		case "admit_through", "admitThrough":
+			s.AddField("admit_through")
+			x.AdmitThrough = s.ReadUint64()
+		case "head_nonce", "headNonce":
+			s.AddField("head_nonce")
+			x.HeadNonce = s.ReadUint64()
+		case "checkpoint_nonce", "checkpointNonce":
+			s.AddField("checkpoint_nonce")
+			x.CheckpointNonce = s.ReadUint64()
+		case "cut_operations", "cutOperations":
+			s.AddField("cut_operations")
+			x.CutOperations = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SpaceParticipantCut from JSON.
+func (x *SpaceParticipantCut) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -19146,6 +19509,26 @@ func (m *RemoveSpaceParticipantsRequest) MarshalToSizedBufferVT(dAtA []byte) (in
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.DryRun {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.DryRun)
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.AdmitThrough) > 0 {
+		for k := range m.AdmitThrough {
+			v := m.AdmitThrough[k]
+			baseI := i
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(v))
+			i--
+			dAtA[i] = 0x10
+			i = protobuf_go_lite.EncodeString(dAtA, i, k)
+			i--
+			dAtA[i] = 0xa
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
 	if len(m.PeerIds) > 0 {
 		for iNdEx := len(m.PeerIds) - 1; iNdEx >= 0; iNdEx-- {
 			i = protobuf_go_lite.EncodeString(dAtA, i, m.PeerIds[iNdEx])
@@ -19190,6 +19573,18 @@ func (m *RemoveSpaceParticipantsResponse) MarshalToSizedBufferVT(dAtA []byte) (i
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.Cuts) > 0 {
+		for iNdEx := len(m.Cuts) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Cuts[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
 	if m.AwaitingGroup {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.AwaitingGroup)
 		i--
@@ -19201,6 +19596,63 @@ func (m *RemoveSpaceParticipantsResponse) MarshalToSizedBufferVT(dAtA []byte) (i
 			i--
 			dAtA[i] = 0xa
 		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SpaceParticipantCut) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SpaceParticipantCut) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SpaceParticipantCut) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.CutOperations != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CutOperations))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.CheckpointNonce != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CheckpointNonce))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.HeadNonce != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.HeadNonce))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.AdmitThrough != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.AdmitThrough))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.PeerId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PeerId)
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -21898,6 +22350,13 @@ func (m *RemoveSpaceParticipantsRequest) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SpaceId)
 	n += protobuf_go_lite.SizeStringSlice(1, m.PeerIds)
+	for k, v := range m.AdmitThrough {
+		_ = k
+		_ = v
+		mapEntrySize := protobuf_go_lite.SizeStringValue(1, k) + protobuf_go_lite.SizeVarintValue(1, v)
+		n += protobuf_go_lite.SizeMessage(1, mapEntrySize)
+	}
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.DryRun)
 	n += len(m.unknownFields)
 	return n
 }
@@ -21910,6 +22369,25 @@ func (m *RemoveSpaceParticipantsResponse) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeStringSlice(1, m.RemovedPeerIds)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.AwaitingGroup)
+	for _, e := range m.Cuts {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SpaceParticipantCut) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PeerId)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.AdmitThrough)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.HeadNonce)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.CheckpointNonce)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.CutOperations)
 	n += len(m.unknownFields)
 	return n
 }
@@ -24067,6 +24545,24 @@ func (x *ListSpaceParticipantsResponse) String() string {
 	return x.MarshalProtoText()
 }
 
+func (x *RemoveSpaceParticipantsRequest_AdmitThroughEntry) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "AdmitThroughEntry")
+	if x.Key != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "key")
+		protobuf_go_lite.TextWriteString(&sb, x.Key)
+	}
+	if x.Value != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "value")
+		protobuf_go_lite.TextWriteUint(&sb, x.Value)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RemoveSpaceParticipantsRequest_AdmitThroughEntry) String() string {
+	return x.MarshalProtoText()
+}
+
 func (x *RemoveSpaceParticipantsRequest) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RemoveSpaceParticipantsRequest")
@@ -24081,6 +24577,21 @@ func (x *RemoveSpaceParticipantsRequest) MarshalProtoText() string {
 			protobuf_go_lite.TextWriteString(&sb, v)
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if len(x.AdmitThrough) > 0 {
+		protobuf_go_lite.TextWriteMapStart(&sb, initialLen, "admit_through")
+		for _, k := range slices.Sorted(maps.Keys(x.AdmitThrough)) {
+			v := x.AdmitThrough[k]
+			protobuf_go_lite.TextWriteMapEntryPrefix(&sb)
+			protobuf_go_lite.TextWriteString(&sb, k)
+			protobuf_go_lite.TextWriteMapKeyValueSeparator(&sb)
+			protobuf_go_lite.TextWriteUint(&sb, v)
+		}
+		protobuf_go_lite.TextWriteMapEnd(&sb)
+	}
+	if x.DryRun != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "dry_run")
+		protobuf_go_lite.TextWriteBool(&sb, x.DryRun)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -24104,10 +24615,52 @@ func (x *RemoveSpaceParticipantsResponse) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "awaiting_group")
 		protobuf_go_lite.TextWriteBool(&sb, x.AwaitingGroup)
 	}
+	if len(x.Cuts) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "cuts")
+		for i, v := range x.Cuts {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &SpaceParticipantCut{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *RemoveSpaceParticipantsResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SpaceParticipantCut) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SpaceParticipantCut")
+	if x.PeerId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "peer_id")
+		protobuf_go_lite.TextWriteString(&sb, x.PeerId)
+	}
+	if x.AdmitThrough != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "admit_through")
+		protobuf_go_lite.TextWriteUint(&sb, x.AdmitThrough)
+	}
+	if x.HeadNonce != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "head_nonce")
+		protobuf_go_lite.TextWriteUint(&sb, x.HeadNonce)
+	}
+	if x.CheckpointNonce != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "checkpoint_nonce")
+		protobuf_go_lite.TextWriteUint(&sb, x.CheckpointNonce)
+	}
+	if x.CutOperations != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "cut_operations")
+		protobuf_go_lite.TextWriteUint(&sb, x.CutOperations)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SpaceParticipantCut) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -30023,6 +30576,58 @@ func (m *RemoveSpaceParticipantsRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.PeerIds = append(m.PeerIds, v)
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AdmitThrough", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			iNdEx = msgStart
+			if m.AdmitThrough == nil {
+				m.AdmitThrough = make(map[string]uint64)
+			}
+			var mapkey string
+			var mapvalue uint64
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+				if err != nil {
+					return err
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					mapkey, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+					if err != nil {
+						return err
+					}
+				} else if fieldNum == 2 {
+					mapvalue, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+					if err != nil {
+						return err
+					}
+				} else {
+					iNdEx = entryPreIndex
+					iNdEx, err = protobuf_go_lite.SkipWithin(dAtA, iNdEx, postIndex)
+					if err != nil {
+						return err
+					}
+				}
+			}
+			m.AdmitThrough[mapkey] = mapvalue
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DryRun", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.DryRun = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -30086,6 +30691,108 @@ func (m *RemoveSpaceParticipantsResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.AwaitingGroup = bool(v)
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Cuts", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Cuts = append(m.Cuts, &SpaceParticipantCut{})
+			if err := m.Cuts[len(m.Cuts)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SpaceParticipantCut) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SpaceParticipantCut: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SpaceParticipantCut: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PeerId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PeerId = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AdmitThrough", wireType)
+			}
+			m.AdmitThrough = 0
+			m.AdmitThrough, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field HeadNonce", wireType)
+			}
+			m.HeadNonce = 0
+			m.HeadNonce, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CheckpointNonce", wireType)
+			}
+			m.CheckpointNonce = 0
+			m.CheckpointNonce, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CutOperations", wireType)
+			}
+			m.CutOperations = 0
+			m.CutOperations, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

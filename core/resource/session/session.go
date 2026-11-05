@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"math"
 	"slices"
 	"sync"
 	"time"
@@ -1549,15 +1550,50 @@ func (r *SessionResource) RemoveSpaceParticipants(
 	}
 	defer rel()
 
+	// Describe the cuts the request names; a dry run stops here.
+	admitThrough := req.GetAdmitThrough()
+	removing := make(map[string]struct{}, len(peerIDs))
+	for _, peerID := range peerIDs {
+		removing[peerID] = struct{}{}
+	}
+	for peerID := range admitThrough {
+		if _, ok := removing[peerID]; !ok {
+			return nil, errors.Errorf("admit_through names %s, which the request does not remove", peerID)
+		}
+	}
+	var cuts []*s4wave_session.SpaceParticipantCut
+	if len(admitThrough) != 0 {
+		state, err := ih.GetSOHost().GetHostState(ctx)
+		if err != nil {
+			return nil, errors.Wrap(err, "get shared object state")
+		}
+		planned, err := sobject.PlanParticipantCuts(spaceID, state, admitThrough)
+		if err != nil {
+			return nil, errors.Wrap(err, "plan participant cuts")
+		}
+		for _, cut := range planned {
+			cuts = append(cuts, &s4wave_session.SpaceParticipantCut{
+				PeerId:          cut.PeerID,
+				AdmitThrough:    cut.AdmitThrough,
+				HeadNonce:       cut.HeadNonce,
+				CheckpointNonce: cut.CheckpointNonce,
+				CutOperations:   uint32(min(cut.CutOperations, math.MaxUint32)), // #nosec G115 -- bounded above.
+			})
+		}
+	}
+	if req.GetDryRun() {
+		return &s4wave_session.RemoveSpaceParticipantsResponse{Cuts: cuts}, nil
+	}
+
 	// Remove them, or agree to remove them under group control.
-	removed, err := sobject.RemoveSOParticipants(ctx, ih.GetSOHost(), peerIDs, ih.GetPrivKey(), nil)
+	removed, err := sobject.RemoveSOParticipantsThrough(ctx, ih.GetSOHost(), peerIDs, admitThrough, ih.GetPrivKey(), nil)
 	if errors.Is(err, sobject.ErrAwaitingGroup) {
-		return &s4wave_session.RemoveSpaceParticipantsResponse{AwaitingGroup: true}, nil
+		return &s4wave_session.RemoveSpaceParticipantsResponse{AwaitingGroup: true, Cuts: cuts}, nil
 	}
 	if err != nil {
 		return nil, errors.Wrap(err, "remove participants")
 	}
-	return &s4wave_session.RemoveSpaceParticipantsResponse{RemovedPeerIds: removed}, nil
+	return &s4wave_session.RemoveSpaceParticipantsResponse{RemovedPeerIds: removed, Cuts: cuts}, nil
 }
 
 // RevokeSpaceInvite revokes an invite on a space shared object.
