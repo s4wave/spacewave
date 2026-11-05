@@ -105,6 +105,19 @@ func hasObjects(ctx context.Context, eng world.Engine, keys ...string) error {
 	return nil
 }
 
+// waitBackfilled waits for a complete backfill of the World at or after its
+// current seqno.
+func waitBackfilled(ctx context.Context, eng *space_world.Engine) error {
+	_, seqno, err := eng.GetHead(ctx)
+	if err != nil {
+		return err
+	}
+	_, err = eng.GetBackfillState().WaitValueWithValidator(ctx, func(state *space_world.BackfillState) (bool, error) {
+		return state.IsComplete() && !state.GetRoot().GetEmpty() && state.GetSeqno() >= seqno, nil
+	}, nil)
+	return err
+}
+
 // TestAdapterRunThrough serves a Space World through its adapter on the
 // local provider: the World engine suite runs through the bus; concurrent
 // writers pipeline and each reads its own write after its commit; the owner
@@ -120,6 +133,63 @@ func TestAdapterRunThrough(t *testing.T) {
 	busEngine := world.NewBusEngine(ctx, f.tb.Bus, f.engineID)
 	if err := world_mock.TestWorldEngine(ctx, f.tb.Logger, busEngine); err != nil {
 		t.Fatal(err)
+	}
+
+	// Backfill copies the installed World and holds it, follows a commit, and
+	// clears when turned off; a retained root holds the head it names.
+	err := world.AccessEngine(ctx, busEngine, func(ctx context.Context, eng world.Engine) error {
+		// Turn backfill on and wait for a copy of the current World.
+		se := eng.(*space_world.Engine)
+		if err := se.SetBackfill(ctx, true); err != nil {
+			return err
+		}
+		if err := waitBackfilled(ctx, se); err != nil {
+			return err
+		}
+
+		// Retain the head and wait for a copy that covers the next commit.
+		head, _, err := se.GetHead(ctx)
+		if err != nil {
+			return err
+		}
+		if err := se.SetRetainedRoot(ctx, "export", head); err != nil {
+			return err
+		}
+		tx, err := eng.NewTransaction(ctx, true)
+		if err != nil {
+			return err
+		}
+		obj, err := tx.CreateObject(ctx, "backfill-object", nil)
+		world.ReleaseObjectState(obj)
+		if err == nil {
+			err = tx.Commit(ctx)
+		}
+		tx.Discard()
+		if err != nil {
+			return err
+		}
+		if err := waitBackfilled(ctx, se); err != nil {
+			return err
+		}
+
+		// Turn it off, which clears its state.
+		if err := se.SetBackfill(ctx, false); err != nil {
+			return err
+		}
+		if state := se.GetBackfillState().GetValue(); state != nil {
+			return errors.Errorf("backfill state after turning it off: %v", state)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	store := f.space(t).GetBlockStore()
+	for name, want := range map[string]bool{space_world.RootRetained: true, space_world.RootBackfill: false} {
+		ref, err := store.GetRoot(ctx, name)
+		if err != nil || ref.GetEmpty() == want {
+			t.Fatalf("root %s = %v, %v; want held %v", name, ref, err, want)
+		}
 	}
 
 	// Concurrent writers each commit and read their own write, and together
@@ -177,7 +247,6 @@ func TestAdapterRunThrough(t *testing.T) {
 
 	// The replay base holds the checkpoint's World, and the checkpoint root
 	// is released once the checkpoint is installed.
-	store := so.GetBlockStore()
 	deadline := time.Now().Add(10 * time.Second)
 	for {
 		base, berr := store.GetRoot(ctx, space_world.RootReplayBase)

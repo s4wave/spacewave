@@ -36,4 +36,5 @@ var heldRootNames = []string{
 	RootReplayPayloads,
 	RootRetained,
 	RootPending,
+	RootBackfill,
 }
