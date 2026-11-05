@@ -5,6 +5,8 @@ package block_store_sftp
 type ConnectError struct {
 	// Err is the last dial attempt's error.
 	Err error
+	// slot is the slot that could not connect, or nil.
+	slot *slot
 }
 
 // Error returns the dial error.

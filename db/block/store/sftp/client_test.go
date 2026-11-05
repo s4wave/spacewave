@@ -11,11 +11,13 @@ import (
 	"path/filepath"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/pkg/sftp"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/sync/errgroup"
 )
 
 // testServer is an in-process SSH server with an SFTP subsystem on the real
@@ -26,6 +28,9 @@ type testServer struct {
 	mu   sync.Mutex
 	// conns are the open connections, which kill drops.
 	conns []net.Conn
+	// limit, when not zero, is the most SFTP sessions served at once; the
+	// server refuses the subsystem past it, as a storage account does.
+	limit, sessions int
 }
 
 func startTestServer(t *testing.T) *testServer {
@@ -62,13 +67,13 @@ func startTestServer(t *testing.T) *testServer {
 			s.mu.Lock()
 			s.conns = append(s.conns, nc)
 			s.mu.Unlock()
-			go serve(nc, conf)
+			go s.serve(nc, conf)
 		}
 	}()
 	return s
 }
 
-func serve(nc net.Conn, conf *ssh.ServerConfig) {
+func (s *testServer) serve(nc net.Conn, conf *ssh.ServerConfig) {
 	_, chans, reqs, err := ssh.NewServerConn(nc, conf)
 	if err != nil {
 		return
@@ -81,10 +86,11 @@ func serve(nc net.Conn, conf *ssh.ServerConfig) {
 		}
 		go func() {
 			for r := range creqs {
-				ok := r.Type == "subsystem"
+				ok := r.Type == "subsystem" && s.admit()
 				_ = r.Reply(ok, nil)
 				if ok {
 					go func() {
+						defer s.leave()
 						srv, err := sftp.NewServer(ch)
 						if err == nil {
 							_ = srv.Serve()
@@ -95,6 +101,24 @@ func serve(nc net.Conn, conf *ssh.ServerConfig) {
 			}
 		}()
 	}
+}
+
+// admit counts a new session, refusing it past the limit.
+func (s *testServer) admit() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.limit != 0 && s.sessions >= s.limit {
+		return false
+	}
+	s.sessions++
+	return true
+}
+
+// leave uncounts a session that ended.
+func (s *testServer) leave() {
+	s.mu.Lock()
+	s.sessions--
+	s.mu.Unlock()
 }
 
 // kill drops every open connection.
@@ -188,6 +212,45 @@ func TestClient(t *testing.T) {
 	if _, err := bad.GetObjectRange(ctx, bucket, "world/packs/b.pack", 0, 1); err == nil {
 		t.Fatal("a wrong host key pin was accepted")
 	}
+
+	// A server that serves fewer sessions than the client keeps answers every
+	// read on the sessions it allows.
+	srv.kill()
+	for deadline := time.Now().Add(5 * time.Second); ; time.Sleep(5 * time.Millisecond) {
+		srv.mu.Lock()
+		idle := srv.sessions == 0
+		if idle {
+			srv.limit = 2
+		}
+		srv.mu.Unlock()
+		if idle {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("killed sessions did not end")
+		}
+	}
+	three, err := NewClient(Config{Addr: srv.addr, User: "user", Password: "pass", HostKey: string(ssh.MarshalAuthorizedKey(srv.key.PublicKey())), Conns: 3})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer three.Close()
+	var reads errgroup.Group
+	for range 12 {
+		reads.Go(func() error {
+			got, err := three.GetObjectRange(ctx, bucket, "world/packs/b.pack", 3, 4)
+			if err == nil && string(got) != "3456" {
+				err = errors.Errorf("read %q", got)
+			}
+			return err
+		})
+	}
+	if err := reads.Wait(); err != nil {
+		t.Fatalf("read past the session limit: %v", err)
+	}
+	srv.mu.Lock()
+	srv.limit = 0
+	srv.mu.Unlock()
 
 	// Delete.
 	if err := c.DeleteObject(ctx, bucket, "world/packs/b.pack"); err != nil {

@@ -65,6 +65,14 @@ const idleTimeout = time.Minute
 // sftp-server keeps each handle as one descriptor of its own process.
 const maxOpenFiles = 256
 
+// slotDownFor is how long a slot whose dial failed refuses calls before it
+// dials again. A server past its session limit refuses every dial past it,
+// and the calls on such a slot run on the others meanwhile.
+const slotDownFor = 30 * time.Second
+
+// errNotConnected refuses a retry on a slot without a connection.
+var errNotConnected = errors.New("no connection to retry on")
+
 // requestsPerConn is how many calls one connection runs at once. OpenSSH's
 // sftp-server answers a session's requests one at a time, so calls past the
 // first two only queue at the server, in arrival order, where no read class
@@ -110,9 +118,13 @@ type Client struct {
 // slot holds one SSH connection, dialed when first needed.
 type slot struct {
 	c *Client
-	// mu guards conn and the files of the connection in it.
+	// mu guards conn, the files of the connection in it, and down.
 	mu   sync.Mutex
 	conn *conn
+	// down is when the slot may dial again after its last dial failed.
+	down time.Time
+	// err is the error of that failed dial.
+	err error
 }
 
 // conn is one SSH connection with its SFTP session and open files. Its files
@@ -391,16 +403,50 @@ func (c *Client) do(ctx context.Context, fn func(cn *conn) error) error {
 
 // doOn waits for a lane in the read class of ctx, preferring a connection
 // with the file name open, and runs fn on the lane's connection, dialing it
-// when the slot has none. It returns fn's result, or the context's cause
-// when ctx ends first; fn then runs on and holds its lane until the server
+// when the slot has none. A call whose slot cannot connect runs again on a
+// connected slot it has not tried, so a server that refuses some sessions
+// serves the call on the others; a retry never dials, so a server that
+// refuses every session costs one dial's attempts, not one per slot. It returns fn's result, or the context's cause when
+// ctx ends first; fn then runs on and holds its lane until the server
 // answers, so the lanes count every request the server holds.
 func (c *Client) doOn(ctx context.Context, name string, fn func(cn *conn) error) error {
-	// Wait for a lane.
+	// Each retry is refused at once by a slot without a connection, so a
+	// retry that lands on one again, when no preferred lane is free, costs
+	// nothing; the attempts are bounded all the same.
+	var tried []*slot
+	for attempt := 1; ; attempt++ {
+		// Run once, and return any result but a refused connection.
+		err := c.doOnce(ctx, name, tried, fn)
+		var connectErr *ConnectError
+		if !errors.As(err, &connectErr) || ctx.Err() != nil || attempt >= 2*len(c.slots) {
+			return err
+		}
+
+		// Avoid the refusing slot, and stop once every slot refused.
+		if !slices.Contains(tried, connectErr.slot) {
+			tried = append(tried, connectErr.slot)
+		}
+		if len(tried) == len(c.slots) {
+			return err
+		}
+	}
+}
+
+// doOnce runs fn on one lane, preferring a slot with name open and avoiding
+// the slots tried. A ConnectError it returns names the slot that failed.
+func (c *Client) doOnce(ctx context.Context, name string, tried []*slot, fn func(cn *conn) error) error {
+	// Refuse a call whose caller already left.
 	if ctx.Err() != nil {
 		return context.Cause(ctx)
 	}
+
+	// Wait for a lane, on a connected untried slot for a retry, else on one
+	// with the file open.
 	var prefer func(*slot) bool
-	if name != "" {
+	switch {
+	case len(tried) != 0:
+		prefer = func(s *slot) bool { return !slices.Contains(tried, s) && s.connected() }
+	case name != "":
 		prefer = func(s *slot) bool { return s.hasOpen(name) }
 	}
 	l, err := c.lanes.Take(ctx, prefer)
@@ -411,8 +457,16 @@ func (c *Client) doOn(ctx context.Context, name string, fn func(cn *conn) error)
 	// Run fn under the lane, returning early when ctx ends.
 	done := make(chan error, 1)
 	go func() {
+		// Hold the lane until the server answers.
 		defer c.lanes.Put(l)
-		done <- l.Lane.run(ctx, fn)
+
+		// Run fn, naming the slot in a connect error for the retry.
+		err := l.Lane.run(ctx, len(tried) == 0, fn)
+		var connectErr *ConnectError
+		if errors.As(err, &connectErr) {
+			connectErr.slot = l.Lane
+		}
+		done <- err
 	}()
 	select {
 	case err := <-done:
@@ -422,15 +476,15 @@ func (c *Client) doOn(ctx context.Context, name string, fn func(cn *conn) error)
 	}
 }
 
-// run runs fn on the slot's connection, dialing it when the slot has none.
-// When fn fails on the connection itself, rather than with a server reply,
-// the connection is closed and fn runs once more on a fresh one, since an
-// idle connection the server closed fails only on first use.
-func (s *slot) run(ctx context.Context, fn func(cn *conn) error) error {
+// run runs fn on the slot's connection, dialing it when the slot has none
+// and dial is set. When fn fails on the connection itself, rather than with
+// a server reply, the connection is closed and fn runs once more on a fresh
+// one, since an idle connection the server closed fails only on first use.
+func (s *slot) run(ctx context.Context, dial bool, fn func(cn *conn) error) error {
 	var err error
 	for range 2 {
 		var cn *conn
-		if cn, err = s.connect(ctx); err != nil {
+		if cn, err = s.connect(ctx, dial); err != nil {
 			return err
 		}
 		if err = fn(cn); err == nil || isReply(err) || ctx.Err() != nil {
@@ -439,6 +493,16 @@ func (s *slot) run(ctx context.Context, fn func(cn *conn) error) error {
 		s.reset(cn)
 	}
 	return err
+}
+
+// connected reports whether the slot has a connection. Like hasOpen, it
+// never waits.
+func (s *slot) connected() bool {
+	if !s.mu.TryLock() {
+		return false
+	}
+	defer s.mu.Unlock()
+	return s.conn != nil
 }
 
 // hasOpen reports whether the slot's connection has the file name open or
@@ -455,12 +519,21 @@ func (s *slot) hasOpen(name string) bool {
 // connect returns the slot's connection, dialing it first when it has none.
 // The slot is held for the dial, so the calls on a dropped slot wait for its
 // new connection together.
-func (s *slot) connect(ctx context.Context) (*conn, error) {
-	// Reuse the slot's connection.
+func (s *slot) connect(ctx context.Context, dial bool) (*conn, error) {
+	// Reuse the slot's connection, or the one a dial in progress makes.
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.conn != nil {
 		return s.conn, nil
+	}
+	if !dial {
+		return nil, &ConnectError{Err: errNotConnected}
+	}
+
+	// Refuse at once while the last dial's failure stands, so the calls that
+	// reach the slot move to another instead of dialing again.
+	if time.Now().Before(s.down) {
+		return nil, &ConnectError{Err: s.err}
 	}
 
 	// Dial a new one.
@@ -469,6 +542,7 @@ func (s *slot) connect(ctx context.Context) (*conn, error) {
 		if ctx.Err() != nil {
 			return nil, err
 		}
+		s.down, s.err = time.Now().Add(slotDownFor), err
 		return nil, &ConnectError{Err: err}
 	}
 	cn.slot = s
