@@ -1,4 +1,4 @@
-package sobject_replica
+package space_world_replica
 
 import (
 	"github.com/s4wave/spacewave/core/sobject"

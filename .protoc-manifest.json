@@ -1475,18 +1475,6 @@
         "core/sobject/invite/invite.proto"
       ]
     },
-    "github.com/s4wave/spacewave/core/sobject/replica": {
-      "hash": "39188786ae6e2bd8b922f63b52a3b0d4ed4bda232a42f75589f5e6d199464350",
-      "generatedFiles": [
-        "core/sobject/replica/replica.pb.go",
-        "core/sobject/replica/replica.pb.ts",
-        "core/sobject/replica/replica_srpc.pb.go",
-        "core/sobject/replica/replica_srpc.pb.ts"
-      ],
-      "protoFiles": [
-        "core/sobject/replica/replica.proto"
-      ]
-    },
     "github.com/s4wave/spacewave/core/sobject/sync": {
       "hash": "025407a7f0f84d5aa795b68f26f322399854f08f0970dd6873e0799f250788e7",
       "generatedFiles": [
@@ -1589,6 +1577,18 @@
       ],
       "protoFiles": [
         "core/space/world/ops/ops.proto"
+      ]
+    },
+    "github.com/s4wave/spacewave/core/space/world/replica": {
+      "hash": "0d6272397f089577f8d0dfbb131288f275736c238a0ce7e6a4c752fc9ae37fab",
+      "generatedFiles": [
+        "core/space/world/replica/replica.pb.go",
+        "core/space/world/replica/replica.pb.ts",
+        "core/space/world/replica/replica_srpc.pb.go",
+        "core/space/world/replica/replica_srpc.pb.ts"
+      ],
+      "protoFiles": [
+        "core/space/world/replica/replica.proto"
       ]
     },
     "github.com/s4wave/spacewave/core/sync/node": {

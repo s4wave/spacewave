@@ -1,7 +1,7 @@
-// Package sobject_replica_controller runs replica nodes: each keeps one
+// Package space_world_replica_controller runs replica nodes: each keeps one
 // SharedObject on its Device in step with the pair's ReplicaSpec, talking to
 // the other node of the pair on their peer stream.
-package sobject_replica_controller
+package space_world_replica_controller
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 	"github.com/s4wave/spacewave/core/provider"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_replica "github.com/s4wave/spacewave/core/sobject/replica"
+	space_world_replica "github.com/s4wave/spacewave/core/space/world/replica"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
@@ -38,7 +38,7 @@ type Controller struct {
 	// b is the Session's bus.
 	b bus.Bus
 	// conf is the config.
-	conf *sobject_replica.Config
+	conf *space_world_replica.Config
 	// local is the peer ID of this node's Device.
 	local peer.ID
 	// remote is the peer ID of the other node's Device.
@@ -49,13 +49,13 @@ type Controller struct {
 	// too.
 	bcast broadcast.Broadcast
 	// state is what this node tells the other.
-	state *sobject_replica.ReplicaState
+	state *space_world_replica.ReplicaState
 	// peerState is what the other node last told, nil while not connected.
-	peerState *sobject_replica.ReplicaState
+	peerState *space_world_replica.ReplicaState
 }
 
 // NewController constructs a replica controller.
-func NewController(le *logrus.Entry, b bus.Bus, conf *sobject_replica.Config) (*Controller, error) {
+func NewController(le *logrus.Entry, b bus.Bus, conf *space_world_replica.Config) (*Controller, error) {
 	// Parse both peers.
 	if err := conf.Validate(); err != nil {
 		return nil, err
@@ -74,7 +74,7 @@ func NewController(le *logrus.Entry, b bus.Bus, conf *sobject_replica.Config) (*
 		conf:   conf,
 		local:  local,
 		remote: remote,
-		state:  &sobject_replica.ReplicaState{Spec: conf.GetSpec()},
+		state:  &space_world_replica.ReplicaState{Spec: conf.GetSpec()},
 	}, nil
 }
 
@@ -138,8 +138,8 @@ func (c *Controller) wake() {
 }
 
 // getPeerState returns what the other node last told, or nil.
-func (c *Controller) getPeerState() *sobject_replica.ReplicaState {
-	var st *sobject_replica.ReplicaState
+func (c *Controller) getPeerState() *space_world_replica.ReplicaState {
+	var st *space_world_replica.ReplicaState
 	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		st = c.peerState
 	})
@@ -147,8 +147,8 @@ func (c *Controller) getPeerState() *sobject_replica.ReplicaState {
 }
 
 // getState returns what this node tells the other.
-func (c *Controller) getState() *sobject_replica.ReplicaState {
-	var st *sobject_replica.ReplicaState
+func (c *Controller) getState() *space_world_replica.ReplicaState {
+	var st *space_world_replica.ReplicaState
 	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		st = c.state
 	})
@@ -157,12 +157,12 @@ func (c *Controller) getState() *sobject_replica.ReplicaState {
 
 // setState replaces this node's proof and invite, waking the watchers when
 // either changed.
-func (c *Controller) setState(proof *sobject_replica.SignedSOReplicaProof, invite *sobject.SOInviteMessage) {
+func (c *Controller) setState(proof *space_world_replica.SignedSOReplicaProof, invite *sobject.SOInviteMessage) {
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		if c.state.GetProof().EqualVT(proof) && c.state.GetInvite().EqualVT(invite) {
 			return
 		}
-		c.state = &sobject_replica.ReplicaState{Spec: c.conf.GetSpec(), Proof: proof, Invite: invite}
+		c.state = &space_world_replica.ReplicaState{Spec: c.conf.GetSpec(), Proof: proof, Invite: invite}
 		broadcast()
 	})
 }

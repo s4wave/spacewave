@@ -1,4 +1,4 @@
-package sobject_replica_controller
+package space_world_replica_controller
 
 import (
 	"context"
@@ -7,21 +7,21 @@ import (
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_replica "github.com/s4wave/spacewave/core/sobject/replica"
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	space_world_replica "github.com/s4wave/spacewave/core/space/world/replica"
 	"github.com/s4wave/spacewave/net/crypto"
 )
 
 // act takes step. It keeps this node's invite only while it invites and its
 // proof only while it serves one, so the other node never acts on a stale one.
-func (r *reconciler) act(ctx context.Context, step sobject_replica.ReplicaStep, obs *sobject_replica.Observation) error {
+func (r *reconciler) act(ctx context.Context, step space_world_replica.ReplicaStep, obs *space_world_replica.Observation) error {
 	// Drop what the step no longer serves.
 	state := r.c.getState()
 	proof, invite := state.GetProof(), state.GetInvite()
-	if step != sobject_replica.ReplicaStep_REPLICA_STEP_SERVE_PROOF {
+	if step != space_world_replica.ReplicaStep_REPLICA_STEP_SERVE_PROOF {
 		proof = nil
 	}
-	if step != sobject_replica.ReplicaStep_REPLICA_STEP_INVITE {
+	if step != space_world_replica.ReplicaStep_REPLICA_STEP_INVITE {
 		invite = nil
 	}
 	r.c.setState(proof, invite)
@@ -30,15 +30,15 @@ func (r *reconciler) act(ctx context.Context, step sobject_replica.ReplicaStep, 
 	// successor's hosting commits the departure, and the departing side
 	// follows and serves blocks on its own.
 	switch step {
-	case sobject_replica.ReplicaStep_REPLICA_STEP_JOIN:
+	case space_world_replica.ReplicaStep_REPLICA_STEP_JOIN:
 		return r.join(ctx)
-	case sobject_replica.ReplicaStep_REPLICA_STEP_BACKFILL:
+	case space_world_replica.ReplicaStep_REPLICA_STEP_BACKFILL:
 		return r.backfill(ctx)
-	case sobject_replica.ReplicaStep_REPLICA_STEP_SERVE_PROOF:
+	case space_world_replica.ReplicaStep_REPLICA_STEP_SERVE_PROOF:
 		return r.serveProof(obs.Backfill)
-	case sobject_replica.ReplicaStep_REPLICA_STEP_INVITE:
+	case space_world_replica.ReplicaStep_REPLICA_STEP_INVITE:
 		return r.invite(ctx)
-	case sobject_replica.ReplicaStep_REPLICA_STEP_TRANSFER:
+	case space_world_replica.ReplicaStep_REPLICA_STEP_TRANSFER:
 		return r.transfer(ctx)
 	}
 	return nil
@@ -87,14 +87,14 @@ func (r *reconciler) serveProof(bf *sobject_world_engine.BackfillState) error {
 	// Keep a served proof of the same World.
 	state := r.c.getState()
 	if served := state.GetProof(); served != nil {
-		prev := &sobject_replica.SOReplicaProof{}
+		prev := &space_world_replica.SOReplicaProof{}
 		if err := prev.UnmarshalVT(served.GetProof()); err == nil && prev.GetSeqno() == bf.GetSeqno() && prev.GetRoot().EqualVT(bf.GetRoot()) {
 			return nil
 		}
 	}
 
 	// Sign and serve a proof of bf.
-	signed, err := sobject_replica.SignReplicaProof(r.sessionKey(), &sobject_replica.SOReplicaProof{
+	signed, err := space_world_replica.SignReplicaProof(r.sessionKey(), &space_world_replica.SOReplicaProof{
 		SharedObjectId: r.c.conf.GetSpec().GetSharedObjectId(),
 		PeerId:         r.c.local.String(),
 		Seqno:          bf.GetSeqno(),

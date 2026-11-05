@@ -1,4 +1,4 @@
-package sobject_replica_controller
+package space_world_replica_controller
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
-	sobject_replica "github.com/s4wave/spacewave/core/sobject/replica"
+	space_world_replica "github.com/s4wave/spacewave/core/space/world/replica"
 	"github.com/s4wave/spacewave/net/link"
 	"github.com/s4wave/spacewave/net/protocol"
 	stream_srpc "github.com/s4wave/spacewave/net/stream/srpc"
@@ -24,7 +24,7 @@ func (c *Controller) serve(ctx context.Context) (func(), error) {
 	srv := &peerServer{c: c, ctx: ctx}
 	server, err := stream_srpc_server.NewServer(
 		c.b, c.le, c.GetControllerInfo(),
-		[]stream_srpc_server.RegisterFn{func(mux srpc.Mux) error { return sobject_replica.SRPCRegisterSOReplica(mux, srv) }},
+		[]stream_srpc_server.RegisterFn{func(mux srpc.Mux) error { return space_world_replica.SRPCRegisterSOReplica(mux, srv) }},
 		[]protocol.ID{protocol.ID(c.conf.GetProtocolId())}, []string{c.local.String()}, false,
 	)
 	if err != nil {
@@ -44,7 +44,7 @@ type peerServer struct {
 
 // WatchReplica streams this node's state to the other node, once at start and
 // again on each change, until the stream or the run ends.
-func (s *peerServer) WatchReplica(_ *sobject_replica.WatchReplicaRequest, strm sobject_replica.SRPCSOReplica_WatchReplicaStream) error {
+func (s *peerServer) WatchReplica(_ *space_world_replica.WatchReplicaRequest, strm space_world_replica.SRPCSOReplica_WatchReplicaStream) error {
 	// Serve only the other node's Device.
 	c, ctx := s.c, strm.Context()
 	mounted, err := link.MustGetMountedStreamContext(ctx)
@@ -58,9 +58,9 @@ func (s *peerServer) WatchReplica(_ *sobject_replica.WatchReplicaRequest, strm s
 	// Send the state, then each change. The broadcast also wakes on the
 	// other node's state, which leaves this node's unchanged, and resending it
 	// would echo between the two nodes.
-	var sent *sobject_replica.ReplicaState
+	var sent *space_world_replica.ReplicaState
 	for {
-		var st *sobject_replica.ReplicaState
+		var st *space_world_replica.ReplicaState
 		var waitCh <-chan struct{}
 		c.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			st, waitCh = c.state, getWaitCh()
@@ -106,7 +106,7 @@ func (c *Controller) watchPeer(ctx context.Context) {
 func (c *Controller) followPeer(ctx context.Context) error {
 	// Open the watch on the pair's protocol.
 	open := stream_srpc.NewOpenStreamFunc(c.b, protocol.ID(c.conf.GetProtocolId()), c.local, c.remote, 0)
-	strm, err := sobject_replica.NewSRPCSOReplicaClient(srpc.NewClient(open)).WatchReplica(ctx, &sobject_replica.WatchReplicaRequest{})
+	strm, err := space_world_replica.NewSRPCSOReplicaClient(srpc.NewClient(open)).WatchReplica(ctx, &space_world_replica.WatchReplicaRequest{})
 	if err != nil {
 		return err
 	}
@@ -123,7 +123,7 @@ func (c *Controller) followPeer(ctx context.Context) error {
 }
 
 // setPeerState records the other node's state and wakes the reconcile loop.
-func (c *Controller) setPeerState(st *sobject_replica.ReplicaState) {
+func (c *Controller) setPeerState(st *space_world_replica.ReplicaState) {
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		c.peerState = st
 		broadcast()
@@ -131,4 +131,4 @@ func (c *Controller) setPeerState(st *sobject_replica.ReplicaState) {
 }
 
 // _ is a type assertion
-var _ sobject_replica.SRPCSOReplicaServer = (*peerServer)(nil)
+var _ space_world_replica.SRPCSOReplicaServer = (*peerServer)(nil)

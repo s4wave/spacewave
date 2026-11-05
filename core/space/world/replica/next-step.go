@@ -1,4 +1,4 @@
-package sobject_replica
+package space_world_replica
 
 // NextStep returns the one step that closes the gap between the spec and the
 // observation. It reads only obs, so a pass after a restart picks the same step

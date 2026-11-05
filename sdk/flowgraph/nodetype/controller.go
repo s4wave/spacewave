@@ -5,7 +5,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	sobject_replica "github.com/s4wave/spacewave/core/sobject/replica"
+	space_world_replica "github.com/s4wave/spacewave/core/space/world/replica"
 	alarm_watch "github.com/s4wave/spacewave/sdk/alarm/watch"
 	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 )
@@ -35,7 +35,7 @@ func NewController() *Controller {
 			s4wave_flowgraph.ForgeWorkerNodeTypeID:  forgeWorker{},
 			s4wave_flowgraph.EventSourceNodeTypeID:  eventSource{},
 			alarm_watch.NodeTypeID:                  alarm_watch.NodeType{},
-			sobject_replica.NodeTypeID:              sobject_replica.NodeType{},
+			space_world_replica.NodeTypeID:          space_world_replica.NodeType{},
 		},
 	}
 }
