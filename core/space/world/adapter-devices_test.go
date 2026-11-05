@@ -448,3 +448,81 @@ func TestAdapterSupersedes(t *testing.T) {
 	}
 	waitObjects(ctx, t, busEngine, "base", "contested")
 }
+
+// TestAdapterUnmountMidCommit unmounts a Space while one commit's operation
+// is inside QueueOperation and another waits in the queue behind it: the
+// first reports its durability unknown, the second is superseded, neither
+// hangs, and the Space mounts again.
+func TestAdapterUnmountMidCommit(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
+	defer cancel()
+	f := newAdapterFixture(t)
+	eng, engRef := f.start(t)
+	busEngine := world.NewBusEngine(ctx, f.tb.Bus, f.engineID)
+	waitObjects(ctx, t, eng)
+	so := f.space(t)
+
+	// Hold the state lock, so the first operation stops inside
+	// QueueOperation.
+	held := make(chan struct{})
+	unhold := make(chan struct{})
+	go func() {
+		_ = so.(sobject.InviteHost).GetSOHost().UpdateSOState(ctx, func(*sobject.SOState) error {
+			close(held)
+			<-unhold
+			return errors.New("held only")
+		})
+	}()
+	<-held
+
+	// Commit twice; both admit, then wait.
+	commit := func(key string) <-chan error {
+		out := make(chan error, 1)
+		go func() {
+			tx, err := busEngine.NewTransaction(ctx, true)
+			if err != nil {
+				out <- err
+				return
+			}
+			defer tx.Discard()
+			obj, err := tx.CreateObject(ctx, key, nil)
+			world.ReleaseObjectState(obj)
+			if err == nil {
+				err = tx.Commit(ctx)
+			}
+			out <- err
+		}()
+		return out
+	}
+	first := commit("first")
+	time.Sleep(100 * time.Millisecond)
+	second := commit("second")
+	time.Sleep(100 * time.Millisecond)
+
+	// Unmount: the first is unknown, the second superseded.
+	engRef.Release()
+	_ = eng
+	for name, done := range map[string]<-chan error{"first": first, "second": second} {
+		select {
+		case err := <-done:
+			if !errors.Is(err, world.ErrDurabilityUnknown) && !errors.Is(err, world.ErrSuperseded) {
+				t.Fatalf("%s commit after unmount = %v, want unknown or superseded", name, err)
+			}
+		case <-ctx.Done():
+			t.Fatalf("%s commit hung across the unmount", name)
+		}
+	}
+	close(unhold)
+
+	// The Space mounts again and serves writes.
+	eng, engRef = f.start(t)
+	defer engRef.Release()
+	if err := world.ExecTransaction(ctx, eng, true, func(ctx context.Context, ws world.WorldState) error {
+		obj, err := ws.CreateObject(ctx, "after", nil)
+		world.ReleaseObjectState(obj)
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	waitObjects(ctx, t, eng, "after")
+}

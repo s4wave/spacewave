@@ -227,10 +227,12 @@ func (a *Adapter) Execute(ctx context.Context) error {
 			return err
 		}
 
-		// Retire it when the run ends, let the transactions open on it
-		// finish, then close it.
+		// End the admissions when the run ends, and retire the engine.
 		<-ctx.Done()
+		a.endAdmissions()
 		a.retire()
+
+		// Let the transactions open on it finish, then close it.
 		idleCtx, cancel := context.WithTimeout(context.Background(), engineIdleTimeout)
 		defer cancel()
 		if err := engine.WaitIdle(idleCtx); err != nil {
@@ -245,6 +247,26 @@ func (a *Adapter) Execute(ctx context.Context) error {
 	err := g.Wait()
 	a.replay.close()
 	return err
+}
+
+// endAdmissions ends every admission still undecided at unmount. One still
+// waiting in the queue never reached the SharedObject, so it is superseded:
+// its writer runs again on the next head. Any other may be durable, such as
+// one inside QueueOperation, so its durability is unknown; the next open
+// replays its operation if the SharedObject holds it.
+func (a *Adapter) endAdmissions() {
+	// Supersede the ones the queue never passed on.
+	waiting := a.queue.drain()
+	for _, adm := range waiting {
+		a.fail(adm, world.ErrSuperseded)
+	}
+
+	// Leave the rest unknown.
+	var rest []*spaceAdmission
+	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		rest = slices.Clone(a.pending)
+	})
+	a.decide(rest, world.Undecided, "", world.ErrDurabilityUnknown)
 }
 
 // WaitEngine waits for the engine serving the Space World.
