@@ -297,6 +297,12 @@ type FtpsLocation struct {
 	// fits one upload batch, and deletes the packfile it replaces. Zero only
 	// ever adds packfiles.
 	MergeTailBytes uint64 `protobuf:"varint,11,opt,name=merge_tail_bytes,json=mergeTailBytes,proto3" json:"mergeTailBytes,omitempty"`
+	// SoleWriter says each block store placed on the backend is the only writer
+	// of the packfiles it reads. A store whose pack index holds a pack then
+	// finds every pack in the index and never lists the directory, which on a
+	// large directory reads every file name. A store with an empty index still
+	// lists it once to build the index.
+	SoleWriter bool `protobuf:"varint,12,opt,name=sole_writer,json=soleWriter,proto3" json:"soleWriter,omitempty"`
 }
 
 func (x *FtpsLocation) Reset() {
@@ -380,6 +386,13 @@ func (x *FtpsLocation) GetMergeTailBytes() uint64 {
 		return x.MergeTailBytes
 	}
 	return 0
+}
+
+func (x *FtpsLocation) GetSoleWriter() bool {
+	if x != nil {
+		return x.SoleWriter
+	}
+	return false
 }
 
 // SqlLocation locates a MySQL-compatible database that holds blocks. It only
@@ -1448,6 +1461,7 @@ func (m *FtpsLocation) CloneVT() *FtpsLocation {
 	r.HostKey = m.HostKey
 	r.FtpsPort = m.FtpsPort
 	r.MergeTailBytes = m.MergeTailBytes
+	r.SoleWriter = m.SoleWriter
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2175,6 +2189,9 @@ func (this *FtpsLocation) EqualVT(that *FtpsLocation) bool {
 		return false
 	}
 	if this.MergeTailBytes != that.MergeTailBytes {
+		return false
+	}
+	if this.SoleWriter != that.SoleWriter {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -3512,6 +3529,11 @@ func (x *FtpsLocation) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("mergeTailBytes")
 		s.WriteUint64(x.MergeTailBytes)
 	}
+	if x.SoleWriter || s.HasField("soleWriter") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("soleWriter")
+		s.WriteBool(x.SoleWriter)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -3562,6 +3584,9 @@ func (x *FtpsLocation) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "merge_tail_bytes", "mergeTailBytes":
 			s.AddField("merge_tail_bytes")
 			x.MergeTailBytes = s.ReadUint64()
+		case "sole_writer", "soleWriter":
+			s.AddField("sole_writer")
+			x.SoleWriter = s.ReadBool()
 		}
 	})
 }
@@ -5160,6 +5185,11 @@ func (m *FtpsLocation) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.SoleWriter {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.SoleWriter)
+		i--
+		dAtA[i] = 0x60
+	}
 	if m.MergeTailBytes != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.MergeTailBytes))
 		i--
@@ -6681,6 +6711,7 @@ func (m *FtpsLocation) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.HostKey)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.FtpsPort)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.MergeTailBytes)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.SoleWriter)
 	n += len(m.unknownFields)
 	return n
 }
@@ -7459,6 +7490,10 @@ func (x *FtpsLocation) MarshalProtoText() string {
 	if x.MergeTailBytes != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "merge_tail_bytes")
 		protobuf_go_lite.TextWriteUint(&sb, x.MergeTailBytes)
+	}
+	if x.SoleWriter != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "sole_writer")
+		protobuf_go_lite.TextWriteBool(&sb, x.SoleWriter)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -8467,6 +8502,16 @@ func (m *FtpsLocation) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 12:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SoleWriter", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SoleWriter = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

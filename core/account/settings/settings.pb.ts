@@ -238,6 +238,14 @@ export interface FtpsLocation {
    * ever adds packfiles.
    */
   mergeTailBytes?: bigint
+  /**
+   * SoleWriter says each block store placed on the backend is the only writer
+   * of the packfiles it reads. A store whose pack index holds a pack then
+   * finds every pack in the index and never lists the directory, which on a
+   * large directory reads every file name. A store with an empty index still
+   * lists it once to build the index.
+   */
+  soleWriter?: boolean
 }
 
 export const FtpsLocation: MessageType<FtpsLocation> =
@@ -255,6 +263,7 @@ export const FtpsLocation: MessageType<FtpsLocation> =
       [9, 'host_key', 9],
       [10, 'ftps_port', 13],
       [11, 'merge_tail_bytes', 4],
+      [12, 'sole_writer', 8],
     ],
   )
 

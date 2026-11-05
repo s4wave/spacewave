@@ -63,7 +63,7 @@ class StorageBackend(_message.Message):
     def __init__(self, id: _Optional[str] = ..., display_name: _Optional[str] = ..., s3: _Optional[_Union[S3Location, _Mapping]] = ..., credential: _Optional[_Union[_secret_pb2.Secret, _Mapping]] = ..., sql: _Optional[_Union[SqlLocation, _Mapping]] = ..., ftps: _Optional[_Union[FtpsLocation, _Mapping]] = ...) -> None: ...
 
 class FtpsLocation(_message.Message):
-    __slots__ = ("host", "port", "netrc_path", "root", "prefix", "max_conns", "conns_per_login", "sftp", "host_key", "ftps_port", "merge_tail_bytes")
+    __slots__ = ("host", "port", "netrc_path", "root", "prefix", "max_conns", "conns_per_login", "sftp", "host_key", "ftps_port", "merge_tail_bytes", "sole_writer")
     HOST_FIELD_NUMBER: _ClassVar[int]
     PORT_FIELD_NUMBER: _ClassVar[int]
     NETRC_PATH_FIELD_NUMBER: _ClassVar[int]
@@ -75,6 +75,7 @@ class FtpsLocation(_message.Message):
     HOST_KEY_FIELD_NUMBER: _ClassVar[int]
     FTPS_PORT_FIELD_NUMBER: _ClassVar[int]
     MERGE_TAIL_BYTES_FIELD_NUMBER: _ClassVar[int]
+    SOLE_WRITER_FIELD_NUMBER: _ClassVar[int]
     host: str
     port: int
     netrc_path: str
@@ -86,7 +87,8 @@ class FtpsLocation(_message.Message):
     host_key: str
     ftps_port: int
     merge_tail_bytes: int
-    def __init__(self, host: _Optional[str] = ..., port: _Optional[int] = ..., netrc_path: _Optional[str] = ..., root: _Optional[str] = ..., prefix: _Optional[str] = ..., max_conns: _Optional[int] = ..., conns_per_login: _Optional[int] = ..., sftp: _Optional[bool] = ..., host_key: _Optional[str] = ..., ftps_port: _Optional[int] = ..., merge_tail_bytes: _Optional[int] = ...) -> None: ...
+    sole_writer: bool
+    def __init__(self, host: _Optional[str] = ..., port: _Optional[int] = ..., netrc_path: _Optional[str] = ..., root: _Optional[str] = ..., prefix: _Optional[str] = ..., max_conns: _Optional[int] = ..., conns_per_login: _Optional[int] = ..., sftp: _Optional[bool] = ..., host_key: _Optional[str] = ..., ftps_port: _Optional[int] = ..., merge_tail_bytes: _Optional[int] = ..., sole_writer: _Optional[bool] = ...) -> None: ...
 
 class SqlLocation(_message.Message):
     __slots__ = ("host", "port", "database", "table_prefix", "tls", "tls_cert_sha256")
