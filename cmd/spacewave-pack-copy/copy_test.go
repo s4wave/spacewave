@@ -17,12 +17,15 @@ import (
 	"github.com/pkg/errors"
 	"github.com/pkg/sftp"
 	"github.com/s4wave/spacewave/db/block"
+	block_store_kvtx "github.com/s4wave/spacewave/db/block/store/kvtx"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	"github.com/s4wave/spacewave/db/block/store/s3/s3test"
 	block_store_sftp "github.com/s4wave/spacewave/db/block/store/sftp"
 	kvtx_prefixer "github.com/s4wave/spacewave/db/kvtx/prefixer"
 	"github.com/s4wave/spacewave/db/packfile"
+	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx_sqlite "github.com/s4wave/spacewave/db/store/kvtx/sqlite"
+	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 )
@@ -111,7 +114,9 @@ func buildRef(t *testing.T, data []byte) *block.BlockRef {
 // root with its refs unknown, so the first pass lists the root as a hole and
 // reaches nothing under it. The second pass takes the root's refs and the
 // missing child from a frame file, and a store opened on the target's pack
-// index file then places both blocks without reading any pack.
+// index file then places both blocks without reading any pack. A third pass
+// adds a parent and child that only a SQLite Volume file holds, read beside
+// the file's open writer into larger packs, and the writer still commits.
 func TestCommandRunThrough(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
 	defer cancel()
@@ -233,6 +238,98 @@ func TestCommandRunThrough(t *testing.T) {
 	}
 	if len(bucket.Keys("world/v2/graph/")) == 0 {
 		t.Fatal("no graph stream: " + strings.Join(bucket.Keys(""), " "))
+	}
+
+	// Write a parent and its child to a Volume file with their child lists,
+	// the leaf's empty, and keep the writer open.
+	volumeFile := filepath.Join(dir, "volume.db")
+	writer, err := store_kvtx_sqlite.Open(ctx, volumeFile, "world")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer writer.Close()
+	volume := block_store_kvtx.NewKVTxBlock(store_kvkey.NewDefaultKVKey(), writer, 0, false)
+	leafRef, _, err := volume.PutBlock(ctx, []byte("leaf"), &block.PutOpts{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	parentRef, _, err := volume.PutBlock(ctx, []byte("parent"), &block.PutOpts{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	listTx, err := writer.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	records := volume_kvtx.OpenRecords(listTx)
+	if err := records.PutChildren(ctx, leafRef, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := records.PutChildren(ctx, parentRef, []*block.BlockRef{leafRef}); err != nil {
+		t.Fatal(err)
+	}
+	if err := listTx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	// Copy it from the file into packs of up to 128 MiB, beside the writer.
+	_ = targetIndex.Close()
+	target.Close()
+	args.Roots = *cli.NewStringSlice(rootRef.MarshalString(), parentRef.MarshalString())
+	args.Volume = volumeArgs{files: *cli.NewStringSlice(volumeFile), table: "world", bucket: "hydra"}
+	args.PackMiB = 128
+	if err := args.runCopy(nil); err != nil {
+		t.Fatal(err)
+	}
+	if list, err = os.ReadFile(holes); err != nil || len(list) != 0 {
+		t.Fatalf("holes list after the Volume pass: %q, %v", list, err)
+	}
+
+	// The writer commits beside an open reader, which refuses to write and
+	// reads the commit, and the target serves the parent with its child's ref.
+	reader, err := store_kvtx_sqlite.OpenWithPragmas(ctx, volumeFile, "world", store_kvtx_sqlite.Pragmas{ReadOnly: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reader.Close()
+	if _, err := reader.NewTransaction(ctx, true); !errors.Is(err, store_kvtx_sqlite.ErrReadOnly) {
+		t.Fatalf("read-only write transaction: %v", err)
+	}
+	tx, err := writer.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Set(ctx, []byte("after"), []byte("copy")); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	rtx, err := reader.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, found, err := rtx.Get(ctx, []byte("after")); err != nil || !found {
+		t.Fatalf("reader misses the commit: %v, %v", found, err)
+	}
+	rtx.Discard()
+	targetIndex, err = store_kvtx_sqlite.OpenWithPragmas(ctx, args.TargetIndex, defaultIndexTable, store_kvtx_sqlite.Pragmas{WithoutRowID: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer targetIndex.Close()
+	target = block_store_s3.NewPackStore(le, objects, s3test.BucketName, "world/v2/", &block_store_s3.PackStoreOptions{
+		KeepPacks:  true,
+		Index:      kvtx_prefixer.NewPrefixer(targetIndex, block_store_s3.PackIndexPrefix(storeID)),
+		SoleWriter: true,
+	})
+	defer target.Close()
+	stored, err := target.GetStoredBlock(ctx, parentRef)
+	if err != nil || stored == nil || len(stored.Refs) != 1 || !stored.Refs[0].EqualsRef(leafRef) {
+		t.Fatalf("parent from the Volume = %v, %v; want its leaf ref", stored, err)
+	}
+	if stored, err := target.GetStoredBlock(ctx, leafRef); err != nil || stored == nil || !stored.RefsKnown {
+		t.Fatalf("leaf from the Volume = %v, %v", stored, err)
 	}
 }
 
