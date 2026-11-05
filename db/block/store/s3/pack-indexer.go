@@ -171,9 +171,18 @@ func (s *PackStore) BuildIndex(ctx context.Context, width int, report func(Index
 // pack a tail merge replaced since. The store must have been opened with an
 // Index.
 func (s *PackStore) LocateBlocks(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	// Refuse a store without an index.
 	if s.index == nil {
 		return nil, errors.New("pack store has no index")
 	}
+
+	// Load the pack table first: a row names its pack by number, and only the
+	// loaded table maps the number to a pack.
+	if err := s.loadEntries(ctx); err != nil {
+		return nil, err
+	}
+
+	// Look up each block's row.
 	keys := make([][]byte, len(refs))
 	for i, ref := range refs {
 		keys[i] = packfile.BlockKey(ref.GetHash())
