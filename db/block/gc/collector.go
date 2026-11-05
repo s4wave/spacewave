@@ -37,20 +37,26 @@ import (
 //     grace period. In each free transaction it reads the records appended
 //     since its last look, so nothing lands unseen between the check and the
 //     free.
-//  5. A cascade decrements only the children a freed block's own child list
-//     names, and only those the store keeps a child list for. A child without
-//     one is a hole: its children are unknown here, so they stay. The audit,
-//     not the collector, finds what a hole leaked.
+//  5. A cascade decrements each child a freed block's own child list names,
+//     and queues only a stored child, one with a child list. A child without
+//     one is a hole or not yet stored: its count drops, since the parent's
+//     Land counted it, but it is never freed, and its own children, unknown
+//     here, are untouched. The audit, not the collector, finds what a hole
+//     leaked.
 //  6. A count change that would go below zero is refused, and the block it
 //     names is kept with one holder: a holder vanished that the journal never
 //     added, so the counts cannot be trusted for it.
-//  7. A put of a block already stored journals it as an up and a down
-//     pair, so a writer that puts one tree across several batches within the
-//     grace period keeps every block it put. A writer that builds on a root
-//     it read holds that root for the life of its write under a leased pin,
-//     or the World engine's pending root does for it. Land does not check
-//     that a child a put names is stored, so a writer that names a block the
-//     collector freed, past both guards, names a hole.
+//  7. Grace is a contract on write sessions. A block a batch gives no holder
+//     takes back its implied holder in its record, and a put of a block
+//     already stored journals an up and a down pair, so a session that puts
+//     one tree across several batches keeps every block only while its last
+//     Land, the one that holds the tree under a root or a parent, follows
+//     its first batch within the grace period. A writer whose session can
+//     outlast the grace period writes under a stage, whose leased roots hold
+//     each block from its put. A writer that builds on a root it read holds
+//     that root for the life of its write under a leased pin, or the World
+//     engine's pending root does for it. Land does not check that a child a
+//     put names is stored, so a writer past these rules names a hole.
 type Collector struct {
 	// store runs the collector's transactions.
 	store Store
@@ -559,17 +565,24 @@ func (c *Collector) freeBlock(ctx context.Context, rec *Records, blocks block.St
 }
 
 // release takes one holder from child, whose parent was freed, queueing it
-// when it was the last. A child without a child list is a hole and keeps its
-// count; one already queued keeps a holder, since a parent named it.
+// when it was the last. A child without a child list loses the holder too,
+// since the parent's Land counted it, but is never queued: it is not stored,
+// so nothing frees it and its own children, which are unknown, are untouched.
+// One already queued keeps a holder, since a parent named it.
 func (c *Collector) release(ctx context.Context, rec *Records, child *block.BlockRef, res *CollectResult) error {
-	// Step over a hole.
+	// Take the holder from a child without a list, which only its count holds.
 	listed, err := rec.HasChildren(ctx, child)
 	if err != nil {
 		return err
 	}
 	if !listed {
 		res.Leaked++
-		return nil
+		count, err := rec.GetCount(ctx, child)
+		if err != nil || count == 0 {
+			return err
+		}
+		res.Counted++
+		return rec.SetCount(ctx, child, count-1)
 	}
 
 	// Refuse a release from a block already at zero holders.

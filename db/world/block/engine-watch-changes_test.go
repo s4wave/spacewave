@@ -230,7 +230,10 @@ func TestWatchChangesShareCatchUp(t *testing.T) {
 	after := headSeqno(t, ctx, e)
 	afterRoot := e.GetRootRef().GetRootRef()
 
-	// Count the comparisons from the first head by its pins.
+	// Commit past the first head, then count the comparisons from the first
+	// head by its pins. The commit's stage pins the head it builds over, so
+	// the count starts after it.
+	createWatchTestObject(t, ctx, ws, "share/a")
 	var pins atomic.Int32
 	store := e.writeBlockStore
 	setPin(e, func(ctx context.Context, ref *block.BlockRef) (func(), error) {
@@ -240,9 +243,8 @@ func TestWatchChangesShareCatchUp(t *testing.T) {
 		return block.PinRoot(ctx, store, ref)
 	})
 
-	// Commit past the first head, then start the watch with a live
-	// subscriber, so the watch records no span from the first head.
-	createWatchTestObject(t, ctx, ws, "share/a")
+	// Start the watch with a live subscriber, so the watch records no span
+	// from the first head.
 	reported := make(chan uint64)
 	live := headSeqno(t, ctx, e)
 	go func() {

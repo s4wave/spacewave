@@ -399,6 +399,15 @@ func (h *buildPluginHandler) prepareSDK(ctx context.Context, sourceRoot, distRoo
 // Execution cleanup must not remove the only local root of an installed plugin's input.
 // A failure before the commit leaves the installed plugins unchanged.
 func (h *buildPluginHandler) retainBuild(ctx context.Context, key string, ref *manifest.ManifestRef, result *builder.BuilderResult) (*bucket.ObjectRef, error) {
+	// Stage the source copy until the transaction that records it commits:
+	// a large or peer backed source can take longer than the Volume's grace
+	// period to copy.
+	stage, err := h.engine.StageWorldState(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer stage.Release()
+
 	// Use the repository result or read the native project's stored provenance.
 	tx, err := h.engine.NewTransaction(ctx, true)
 	if err != nil {
@@ -416,7 +425,7 @@ func (h *buildPluginHandler) retainBuild(ctx context.Context, key string, ref *m
 	}
 
 	// Localize the source and record it in the build result.
-	if err := h.retainSource(ctx, tx, result); err != nil {
+	if err := h.retainSource(ctx, stage, result); err != nil {
 		return nil, err
 	}
 	resultRef, err := resultworld.SetManifestBuildResult(ctx, tx, key, result)
@@ -475,13 +484,14 @@ func validateBuildPlatform(platformID string) error {
 	return nil
 }
 
-// retainSource localizes the exact input DAG and makes provenance its retention owner.
-func (h *buildPluginHandler) retainSource(ctx context.Context, ws world.WorldState, result *builder.BuilderResult) error {
+// retainSource localizes the exact input DAG through stage and makes
+// provenance its retention owner once the caller's transaction commits.
+func (h *buildPluginHandler) retainSource(ctx context.Context, stage world.WorldStage, result *builder.BuilderResult) error {
 	// Reusing a compiled artifact preserves the source that originally produced it.
 	if !result.GetSourceRef().GetEmpty() {
 		return nil
 	}
-	return ws.AccessWorldState(ctx, nil, func(dest *bucket_lookup.Cursor) error {
+	return stage.AccessWorldState(ctx, nil, func(dest *bucket_lookup.Cursor) error {
 		return h.handle.AccessStorage(ctx, h.source.GetRootRef(), func(source *bucket_lookup.Cursor) error {
 			// Copy the source DAG into the World bucket when it lives elsewhere.
 			ref := source.GetRef().Clone()

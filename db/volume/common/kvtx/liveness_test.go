@@ -742,6 +742,125 @@ func TestLivenessAdversarial(t *testing.T) {
 		}
 	})
 
+	t.Run("abandoned write", func(t *testing.T) {
+		// A writer puts P -> C in two batches, child first, and never lands
+		// a root on them. Once the grace period passes both are garbage.
+		v, clk := newLivenessVolume(t, true)
+		ctx := t.Context()
+		tr := testTree{}
+		tr.add(t, "C")
+		tr.add(t, "P", "C")
+		for _, name := range []string{"C", "P"} {
+			if _, err := v.PutBlockBatch(ctx, tr.entries(name)); err != nil {
+				t.Fatal(err)
+			}
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, false, "P", "C")
+		requireAudit(t, v, 0)
+	})
+
+	t.Run("parent put before its child", func(t *testing.T) {
+		// A buffered drain puts P under main before its child C, and C lands
+		// alone within the grace period. Both stay, and releasing main frees
+		// both.
+		v, clk := newLivenessVolume(t, true)
+		ctx := t.Context()
+		tr := testTree{}
+		tr.add(t, "C")
+		p := tr.add(t, "P", "C")
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("P"), []block.NamedRoot{{Name: "main", Ref: p}}); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace - time.Second)
+		if _, err := v.PutBlockBatch(ctx, tr.entries("C")); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, true, "P", "C")
+		requireAudit(t, v, 0)
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "main", Previous: p}}); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, false, "P", "C")
+		requireAudit(t, v, 0)
+	})
+
+	t.Run("parent collected before its child is stored", func(t *testing.T) {
+		// A session puts R2 under main before its child C2, journaling an up
+		// for C2. Main lets R2 go and the collector frees it; the cascade
+		// takes C2's holder although C2 has no list yet. C2 then lands alone
+		// and nothing holds it, so it goes after the grace period.
+		v, clk := newLivenessVolume(t, true)
+		ctx := t.Context()
+		tr := testTree{}
+		tr.add(t, "C2")
+		r2 := tr.add(t, "R2", "C2")
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("R2"), []block.NamedRoot{{Name: "main", Ref: r2}}); err != nil {
+			t.Fatal(err)
+		}
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "main", Previous: r2}}); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, false, "R2")
+		if _, err := v.PutBlockBatch(ctx, tr.entries("C2")); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, false, "C2")
+		requireAudit(t, v, 0)
+	})
+
+	for _, pinned := range []bool{true, false} {
+		t.Run("long staged session over an abandoned base pinned="+strconv.FormatBool(pinned), func(t *testing.T) {
+			// main holds B -> X. A staged session observes B, pinning it as
+			// the World engine's StageWorldState does. Main abandons B, and
+			// the session outlasts the grace period before it puts S naming
+			// X without putting X again and lands S under main. With the pin
+			// X stays; without it X is freed before S names it.
+			v, clk := newLivenessVolume(t, true)
+			ctx := t.Context()
+			tr := testTree{}
+			tr.add(t, "X")
+			b := tr.add(t, "B", "X")
+			if err := v.SetBucketRoots(ctx, "b", tr.entries("X", "B"), []block.NamedRoot{{Name: "main", Ref: b}}); err != nil {
+				t.Fatal(err)
+			}
+			stage, release, err := v.OpenStage(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if pinned {
+				unpin, err := v.PinBucketRoot(ctx, b)
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer unpin()
+			}
+			if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "main", Previous: b}}); err != nil {
+				t.Fatal(err)
+			}
+			advanceRenewing(t, v, clk, block_gc.DefaultGrace+time.Second)
+			collectAll(t, v)
+			s := tr.add(t, "S", "X")
+			if _, err := v.PrepareStagedBlockBatch(ctx, stage, tr.entries("S")); err != nil {
+				t.Fatal(err)
+			}
+			if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "main", Ref: s}}); err != nil {
+				t.Fatal(err)
+			}
+			release()
+			requireStored(t, v, tr, pinned, "X")
+		})
+	}
+
 	t.Run("frees off", func(t *testing.T) {
 		// With frees off the collector nets and frees nothing.
 		v, clk := newLivenessVolume(t, false)
