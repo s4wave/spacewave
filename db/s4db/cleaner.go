@@ -26,6 +26,28 @@ type cleaner struct {
 	// stuck holds the chunks a scan found damaged, with the seq each held
 	// then, so the cleaner passes over them until a commit writes them again.
 	stuck map[uint64]uint64
+	// missed is the victim key of the last table a step found no victim in;
+	// the cleaner is not due again until the key changes, so a due cleaner
+	// with nothing to take does not walk the table on every wake.
+	missed victimKey
+}
+
+// victimKey names what decides whether a table holds a victim: the manifest
+// version, the open chunks, and the count of value chunks. A victim appears
+// when a chunk closes, a run or manifest changes, or a value chunk comes or
+// goes; a stuck chunk a commit rewrites waits for one of those.
+type victimKey struct {
+	// version is the manifest version.
+	version uint64
+	// hot and cold are the open value chunks.
+	hot, cold uint64
+	// values counts the value chunks.
+	values int64
+}
+
+// victimKeyOf returns the victim key of m.
+func victimKeyOf(m *manifest) victimKey {
+	return victimKey{version: m.version, hot: m.hot, cold: m.cold, values: m.table.count(chunkValue)}
 }
 
 // slack returns the live bytes and the slack: free chunks plus dead bytes in
@@ -39,6 +61,11 @@ func (m *manifest) slack() (live, slack int64) {
 // passed its bound, or a value chunk sits at the top of a file with free
 // chunks below it.
 func (c *cleaner) due(m *manifest) (urgent, ok bool) {
+	// A table a step found no victim in waits for its key to change.
+	if c.missed == victimKeyOf(m) {
+		return false, false
+	}
+
 	// The slack bounds first, then the top of the file.
 	live, slack := m.slack()
 	if slack > live/cleanUrgentDiv && slack >= chunkSize {
@@ -113,6 +140,7 @@ func (c *cleaner) step(ctx context.Context) (bool, error) {
 	st, stripe := db.acquire()
 	victim, ok := c.victim(st.m)
 	if !ok {
+		c.missed = victimKeyOf(st.m)
 		db.release(st, stripe)
 		return false, nil
 	}
