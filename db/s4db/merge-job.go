@@ -133,17 +133,11 @@ func (m *manifest) pickLevel0(bottom bool) mergePick {
 // topRun returns the run holding the file's last chunk when free chunks sit
 // below it.
 func (m *manifest) topRun() (runMeta, bool) {
-	// The last chunk must be a run chunk with a free chunk below it.
+	// The last chunk must be a run chunk, and since it is not free, every
+	// free chunk the tally counts sits below it.
 	t := m.table
 	end := t.end()
-	if end <= firstChunk || t.get(end-1).kind != chunkRun {
-		return runMeta{}, false
-	}
-	free := false
-	for c := uint64(firstChunk); c < end-1 && !free; c++ {
-		free = t.get(c).kind == chunkFree
-	}
-	if !free {
+	if end <= firstChunk || t.get(end-1).kind != chunkRun || t.count(chunkFree) == 0 {
 		return runMeta{}, false
 	}
 

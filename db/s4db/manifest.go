@@ -2,7 +2,6 @@ package s4db
 
 import (
 	"encoding/binary"
-	"slices"
 
 	"github.com/pkg/errors"
 )
@@ -15,10 +14,14 @@ type manifest struct {
 	// version increases with each record that changes the structure.
 	version uint64
 	// runs holds every run in lookupOrder: level 0 newest first, then each
-	// lower level in key order.
+	// lower level in key order. Clones share it, so a change replaces the
+	// slice rather than writing into it.
 	runs []runMeta
 	// table is the chunk table.
 	table *chunkTable
+	// mchunks are the chunks holding this version's encoding, which the next
+	// version makes pending. Clones share it, as runs.
+	mchunks []uint64
 	// count is the number of keys.
 	count int64
 	// hot and cold are the open value chunks, zero before the first value.
@@ -31,22 +34,18 @@ func newManifest() *manifest {
 	return &manifest{version: 1, table: newChunkTable()}
 }
 
-// clone returns a copy the caller may change.
+// clone returns a copy the caller may change. It shares the run list and
+// the table's pages, so it copies nothing that grows with the file.
 func (m *manifest) clone() *manifest {
-	return &manifest{
-		version: m.version,
-		runs:    slices.Clone(m.runs),
-		table:   m.table.clone(),
-		count:   m.count,
-		hot:     m.hot,
-		cold:    m.cold,
-	}
+	c := *m
+	c.table = m.table.clone()
+	return &c
 }
 
 // encode returns the manifest as one checksummed record.
 func (m *manifest) encode() []byte {
 	// Write the fields.
-	b := make([]byte, 0, 64+len(m.runs)*64+len(m.table.pages)*chunkPageLen*chunkEntrySize)
+	b := make([]byte, 0, 64+len(m.runs)*64+int(m.table.end())*chunkEntrySize) // #nosec G115 -- a chunk count.
 	b = binary.AppendUvarint(b, m.version)
 	b = binary.AppendVarint(b, m.count)
 	b = binary.AppendUvarint(b, m.hot)
@@ -74,6 +73,13 @@ func decodeManifest(b []byte) (*manifest, error) {
 	// Refuse a truncated record.
 	if d.err != nil {
 		return nil, errors.Wrap(ErrCorrupt, "manifest truncated")
+	}
+
+	// Find the chunks holding this encoding.
+	for c, e := range m.table.all() {
+		if e.kind == chunkManifest {
+			m.mchunks = append(m.mchunks, c)
+		}
 	}
 	return m, nil
 }

@@ -142,7 +142,9 @@ func (b *builder) finish(opts Options) error {
 	for i := range b.runs {
 		b.runs[i].id, b.runs[i].level = uint64(i), level // #nosec G115 -- an index.
 		for _, c := range b.runs[i].chunks {
-			b.m.table.at(c).owner = b.runs[i].id
+			e := b.m.table.get(c)
+			e.owner = b.runs[i].id
+			b.m.table.set(c, e)
 		}
 	}
 
@@ -159,6 +161,7 @@ func (b *builder) finish(opts Options) error {
 	var mb []byte
 	for n := uint64(1); ; n++ {
 		b.m.table.set(start+n-1, chunkEntry{kind: chunkManifest, owner: b.m.version})
+		b.m.mchunks = append(b.m.mchunks, start+n-1)
 		if mb = b.m.encode(); chunksFor(uint64(len(mb))) <= n {
 			break
 		}
