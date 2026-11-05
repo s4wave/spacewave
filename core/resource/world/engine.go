@@ -9,6 +9,7 @@ import (
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_bucket_lookup "github.com/s4wave/spacewave/core/resource/bucket/lookup"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
@@ -127,7 +128,7 @@ func (r *EngineResource) GetWorldRootSnapshot(ctx context.Context, req *s4wave_w
 // SetRetainedRoot retains a World root in an engine that supports retention.
 func (r *EngineResource) SetRetainedRoot(ctx context.Context, req *s4wave_world.SetRetainedRootRequest) (*s4wave_world.SetRetainedRootResponse, error) {
 	err := world.AccessEngine(ctx, r.engine, func(ctx context.Context, eng world.Engine) error {
-		retainer, ok := eng.(world.RootRetainingEngine)
+		retainer, ok := eng.(rootRetainingEngine)
 		if !ok {
 			return errors.New("world engine does not retain roots")
 		}
@@ -462,6 +463,15 @@ func (r *EngineResource) AccessTypedObject(ctx context.Context, req *s4wave_worl
 // WatchTypedObject forwards standing typed demand under the Engine mount's authority.
 func (r *EngineResource) WatchTypedObject(req *s4wave_world.WatchTypedObjectRequest, stream s4wave_world.SRPCTypedObjectResourceService_WatchTypedObjectStream) error {
 	return r.typedResource.WatchTypedObject(req, stream)
+}
+
+// rootRetainingEngine is a Space World engine that retains named World roots
+// in its shared state. Only the SharedObject World engine implements it; the
+// Space adapter replaces it with roots chosen on the Space.
+type rootRetainingEngine interface {
+	// SetRetainedRoot retains the World root ref under name, replacing the
+	// root the name held. An empty ref releases the name.
+	SetRetainedRoot(ctx context.Context, name string, ref *block.BlockRef) error
 }
 
 // _ is a type assertion

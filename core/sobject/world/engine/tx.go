@@ -149,7 +149,7 @@ func (t *soEngineWriteTx) CommitAdmit(ctx context.Context) (world.Admission, err
 	if err != nil {
 		return nil, err
 	}
-	return world.DurableAdmission(t.seqno), nil
+	return durableAdmission(t.seqno), nil
 }
 
 // admit adds the operation and installs the World after it, then releases
@@ -633,9 +633,29 @@ func (a *soAdmission) Release() {
 	})
 }
 
+// durableAdmission is the Admission of a write that is durable at its seqno.
+type durableAdmission uint64
+
+// Seqno returns the World seqno after the write.
+func (a durableAdmission) Seqno() uint64 { return uint64(a) }
+
+// Head returns the head at Seqno, without its root.
+func (a durableAdmission) Head() world.Head { return world.Head{Seqno: uint64(a), Durable: true} }
+
+// WaitDecided returns Accepted.
+func (a durableAdmission) WaitDecided(context.Context) (world.Decision, error) {
+	return world.Accepted, nil
+}
+
+// WaitDurable returns Seqno.
+func (a durableAdmission) WaitDurable(context.Context) (uint64, error) { return uint64(a), nil }
+
+// Release does nothing.
+func (a durableAdmission) Release() {}
+
 // _ is a type assertion
 var (
-	_ world.Tx             = (*soEngineWriteTx)(nil)
-	_ world.AdmitCommitter = (*soEngineWriteTx)(nil)
-	_ world.Admission      = (*soAdmission)(nil)
+	_ world.Tx        = (*soEngineWriteTx)(nil)
+	_ world.Admission = durableAdmission(0)
+	_ world.Admission = (*soAdmission)(nil)
 )

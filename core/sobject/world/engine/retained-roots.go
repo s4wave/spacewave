@@ -9,7 +9,6 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
-	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
@@ -153,6 +152,3 @@ func copyWorlds(
 	}
 	return nil
 }
-
-// _ is a type assertion
-var _ world.RootRetainingEngine = (*soEngine)(nil)

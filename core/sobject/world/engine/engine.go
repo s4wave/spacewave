@@ -972,5 +972,4 @@ const acceptedWorldRootName = "accepted-world"
 var (
 	_ Engine                     = (*soEngine)(nil)
 	_ world.IndexedChangeWatcher = (*soEngine)(nil)
-	_ world.ReinstallNotifier    = (*soEngine)(nil)
 )
