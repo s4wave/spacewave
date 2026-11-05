@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/s4wave/spacewave/core/sobject"
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
@@ -46,14 +45,21 @@ func (a *Adapter) maybeSaveCursor(ctx context.Context) error {
 	return nil
 }
 
-// saveCursor moves the replay cursor root onto the World after the last
-// position and holds the payloads above the checkpoint, then writes the
-// cursor record, so the record never names an unheld World.
+// saveCursor adds the World after the last position to the replay cursor
+// root and holds the payloads above the checkpoint, then writes the cursor
+// record, so the record never names an unheld World.
 func (a *Adapter) saveCursor(ctx context.Context) error {
-	// Hold the head World and the payloads.
+	// Hold the head World beside the earlier cursor Worlds, and the
+	// payloads.
 	r := a.replay
 	head, _ := r.head()
-	if err := a.moveRoots(ctx, nil, block.NamedRoot{Name: RootReplayCursor, Ref: head.GetHeadRef().GetRootRef()}); err != nil {
+	release, err := a.rootMtx.Lock(ctx)
+	if err != nil {
+		return err
+	}
+	err = a.addHistory(ctx, &a.cursorWorlds, head.GetHeadRef().GetRootRef())
+	release()
+	if err != nil {
 		return err
 	}
 	if err := a.resetPayloads(ctx); err != nil {
@@ -124,9 +130,9 @@ func (a *Adapter) loadCursor(ctx context.Context) error {
 		return err
 	}
 
-	// Require the root to hold its head.
+	// Require the cursor root to hold its head.
 	head := cursor.GetHead()
-	if !refEqual(a.held[RootReplayCursor], head.GetHeadRef().GetRootRef()) {
+	if !a.cursorWorlds.holds(head.GetHeadRef().GetRootRef()) {
 		return nil
 	}
 

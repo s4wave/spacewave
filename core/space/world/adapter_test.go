@@ -11,12 +11,15 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/pkg/errors"
+	storage_inmem "github.com/s4wave/spacewave/bldr/storage/inmem"
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
 	provider "github.com/s4wave/spacewave/core/provider"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
+	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
+	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/db/world"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
 	"github.com/s4wave/spacewave/testbed"
@@ -31,11 +34,52 @@ type adapterFixture struct {
 	ref *sobject.SharedObjectRef
 	// engineID is the World engine ID.
 	engineID string
+	// volume is the account's Volume.
+	volume volume.Volume
+	// frees is set when the Volume's collector frees at once.
+	frees bool
+	// freed counts the blocks the collections freed.
+	freed uint64
+	// maxPending bounds the pages the adapter keeps, zero for its default.
+	maxPending uint64
+}
+
+// fixtureOpts selects how a fixture stores its Space.
+type fixtureOpts struct {
+	// sql and creds make an SQL location the account's primary store.
+	sql   *account_settings.SqlLocation
+	creds *block_store_s3.Credentials
+	// frees has the account's Volume free every block no root holds, at
+	// once, whenever the test collects.
+	frees bool
+	// maxPending bounds the pages the adapter keeps, zero for its default.
+	maxPending uint64
 }
 
 // newAdapterFixture creates a Space on a local provider.
 func newAdapterFixture(t *testing.T) *adapterFixture {
-	return newAdapterFixtureOn(t, nil)
+	return newAdapterFixtureOn(t, fixtureOpts{})
+}
+
+// collect runs the account Volume's collector until a pass leaves no work,
+// when the fixture frees.
+func (f *adapterFixture) collect(t *testing.T) {
+	t.Helper()
+	if !f.frees {
+		return
+	}
+	collector := f.volume.(volume.Collector)
+	for range 64 {
+		res, err := collector.Collect(t.Context())
+		if err != nil {
+			t.Fatal(err)
+		}
+		f.freed += res.Freed
+		if !res.More {
+			return
+		}
+	}
+	t.Fatal("collection did not finish")
 }
 
 // sqlTestLocation returns the database BLOCK_STORE_SQL_TEST_HOST names, such
@@ -61,13 +105,18 @@ func sqlTestLocation(t *testing.T) (*account_settings.SqlLocation, *block_store_
 	return location, creds
 }
 
-// newAdapterFixtureOn creates a Space on a local provider, with its blocks
-// on the SQL location as the account's primary store when sql is set.
-func newAdapterFixtureOn(t *testing.T, sql *account_settings.SqlLocation, creds ...*block_store_s3.Credentials) *adapterFixture {
-	// Build the testbed with the engine and local provider factories.
+// newAdapterFixtureOn creates a Space on a local provider as opts select.
+func newAdapterFixtureOn(t *testing.T, opts fixtureOpts) *adapterFixture {
+	// Build the testbed with the engine and local provider factories, on
+	// storage that frees at once when asked.
 	t.Helper()
 	ctx := t.Context()
-	tb, err := testbed.Default(ctx)
+	var tbOpts []testbed.Option
+	if opts.frees {
+		storeConf := &store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: "1ns"}
+		tbOpts = append(tbOpts, testbed.WithStorages(storage_inmem.NewInmemStorageWithStoreConfig("default", storeConf)))
+	}
+	tb, err := testbed.Default(ctx, tbOpts...)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,10 +143,10 @@ func newAdapterFixtureOn(t *testing.T, sql *account_settings.SqlLocation, creds 
 	}
 
 	// Make the SQL location the account's primary store.
-	if sql != nil {
-		acc := provAcc.(*provider_local.ProviderAccount)
+	acc := provAcc.(*provider_local.ProviderAccount)
+	if opts.sql != nil {
 		acc.SetSQLPrimary(true)
-		backendID, check, err := acc.AddSQLStorageBackend(ctx, "sql", sql, creds[0], true)
+		backendID, check, err := acc.AddSQLStorageBackend(ctx, "sql", opts.sql, opts.creds, true)
 		if err != nil || backendID == "" {
 			t.Fatalf("add the SQL backend: %v %v", check, err)
 		}
@@ -106,8 +155,7 @@ func newAdapterFixtureOn(t *testing.T, sql *account_settings.SqlLocation, creds 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if sql != nil {
-		acc := provAcc.(*provider_local.ProviderAccount)
+	if opts.sql != nil {
 		settings, err := acc.ResolveNewSpaceStorageBackend(ctx, "", false)
 		if err != nil {
 			t.Fatal(err)
@@ -117,13 +165,20 @@ func newAdapterFixtureOn(t *testing.T, sql *account_settings.SqlLocation, creds 
 			t.Fatal(err)
 		}
 	}
-	return &adapterFixture{tb: tb, ref: ref, engineID: "test-space-world"}
+	return &adapterFixture{tb: tb, ref: ref, engineID: "test-space-world", volume: acc.GetVolume(), frees: opts.frees, maxPending: opts.maxPending}
 }
 
 // start starts the engine controller and returns its engine.
 func (f *adapterFixture) start(t *testing.T) (*world.BusEngine, directive.Reference) {
 	t.Helper()
-	eng, ref, err := world.StartEngine(t.Context(), f.tb.Bus, space_world.NewConfig(f.engineID, f.ref), nil)
+	conf := space_world.NewConfig(f.engineID, f.ref)
+	if f.frees {
+		// The Volume frees at once, so a reader's replaced head is pinned
+		// at once, as the production pin delay stays below the grace.
+		conf.ReaderPinDelay = "0s"
+	}
+	conf.MaxPendingBytes = f.maxPending
+	eng, ref, err := world.StartEngine(t.Context(), f.tb.Bus, conf, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -180,9 +235,23 @@ func TestAdapterRunThrough(t *testing.T) {
 	t.Run("local", func(t *testing.T) {
 		runAdapterThrough(t, newAdapterFixture(t))
 	})
+	t.Run("frees", func(t *testing.T) {
+		f := newAdapterFixtureOn(t, fixtureOpts{frees: true})
+		runAdapterThrough(t, f)
+		if f.freed == 0 {
+			t.Fatal("the collections freed nothing, so the run-through checked no hold")
+		}
+	})
+	t.Run("frees-overflow", func(t *testing.T) {
+		f := newAdapterFixtureOn(t, fixtureOpts{frees: true, maxPending: 4096})
+		runAdapterThrough(t, f)
+		if f.freed == 0 {
+			t.Fatal("the collections freed nothing, so the run-through checked no hold")
+		}
+	})
 	t.Run("sql-primary", func(t *testing.T) {
 		location, creds := sqlTestLocation(t)
-		runAdapterThrough(t, newAdapterFixtureOn(t, location, creds))
+		runAdapterThrough(t, newAdapterFixtureOn(t, fixtureOpts{sql: location, creds: creds}))
 	})
 }
 
@@ -197,6 +266,7 @@ func runAdapterThrough(t *testing.T, f *adapterFixture) {
 	if err := world_mock.TestWorldEngine(ctx, f.tb.Logger, busEngine); err != nil {
 		t.Fatal(err)
 	}
+	f.collect(t)
 
 	// Backfill copies the installed World and holds it, follows a commit, and
 	// clears when turned off; a retained root holds the head it names.
@@ -315,7 +385,10 @@ func runAdapterThrough(t *testing.T, f *adapterFixture) {
 		t.Fatal(err)
 	}
 
-	// The reader still reads every object its snapshot holds.
+	// A collection frees nothing a held root, a kept World or the reader's
+	// snapshot reaches: the reader still reads every object its snapshot
+	// holds.
+	f.collect(t)
 	for _, key := range []string{"backfill-object"} {
 		obj, found, err := snapshot.GetObject(ctx, key)
 		world.ReleaseObjectState(obj)
@@ -350,7 +423,8 @@ func runAdapterThrough(t *testing.T, f *adapterFixture) {
 		time.Sleep(10 * time.Millisecond)
 	}
 
-	// A remounted engine reads every object.
+	// A remounted engine reads every object after a collection.
+	f.collect(t)
 	engRef.Release()
 	_ = eng
 	eng, engRef = f.start(t)

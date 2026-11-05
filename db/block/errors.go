@@ -51,6 +51,9 @@ var (
 	// effects, when a store cannot commit blocks with their ownership in one
 	// transaction.
 	ErrAtomicCommitUnsupported = errors.New("atomic commit unsupported")
+	// ErrPendingTombstone is returned by a PendingStore put of a tombstone: a
+	// kept block may be named by any kept World, so none is deleted by a put.
+	ErrPendingTombstone = errors.New("block: a pending store refuses tombstones")
 	// ErrStageReleased rejects a write through a stage that was released or
 	// reaped, which can no longer own the blocks.
 	ErrStageReleased = errors.New("block: stage released")

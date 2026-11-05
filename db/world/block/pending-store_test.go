@@ -93,8 +93,10 @@ func TestPendingStoreRunThrough(t *testing.T) {
 		t.Fatalf("sweep kept %d bytes, want 0", n)
 	}
 
-	// A pin on a kept World stores its tree, which collection keeps while
-	// the pin holds and frees once it lets go.
+	// A pin on a kept World holds its tree in memory with no write: a sweep
+	// that no live root of it reaches keeps it while the pin holds, a pin and
+	// release leaves a live World kept, and a sweep after the release forgets
+	// it.
 	tr.add(t, "C3", "E")
 	tr.add(t, "R3", "C3")
 	put(ps, "C3", "R3")
@@ -102,12 +104,44 @@ func TestPendingStoreRunThrough(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	f.collect(t)
-	stored(true, "C3", "R3", "E")
+	ps.Sweep(nil, ps.SweepMark())
+	stored(false, "C3", "R3")
+	kept := func(want bool, names ...string) {
+		t.Helper()
+		for _, name := range names {
+			if _, found, err := ps.GetBlock(ctx, tr.ref(name)); err != nil || found != want {
+				t.Fatalf("block %s kept=%v err=%v, want %v", name, found, err, want)
+			}
+		}
+	}
+	kept(true, "C3", "R3")
 	release()
 	f.collect(t)
-	stored(false, "C3", "R3")
+	ps.Sweep([]*block.BlockRef{tr.ref("R3")}, ps.SweepMark())
+	kept(true, "C3", "R3")
+	ps.Sweep(nil, ps.SweepMark())
+	kept(false, "C3", "R3")
 	stored(true, "E")
+
+	// A writer's pages kept through its stage survive a sweep that took its
+	// mark and gathered its live roots before the writer admitted the root
+	// naming them and ended its stage.
+	tr.add(t, "D")
+	tr.add(t, "RD", "D")
+	writer, releaseWriter, err := ps.OpenStage(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	put(writer, "D")
+	raceMark := ps.SweepMark()
+	put(ps, "RD")
+	releaseWriter()
+	ps.Sweep(nil, raceMark)
+	if err := ps.SetRoots(ctx, nil, []block.NamedRoot{{Name: "pending-race", Ref: tr.ref("RD")}}); err != nil {
+		t.Fatal(err)
+	}
+	f.collect(t)
+	stored(true, "D", "RD")
 
 	// A root on a new entry naming kept trees, as a block naming several
 	// payload roots is, stores the trees with the entry.
@@ -157,8 +191,9 @@ func TestPendingStoreRunThrough(t *testing.T) {
 	}
 
 	// A tree past the bound puts the kept blocks under its overflowing
-	// parent with it, under the writer's stage, which holds them across a
-	// collection until the root lands; the root then holds them after the
+	// parent with it, under the writer's stage, and keeps them in memory for
+	// the kept Worlds that name them; the stage holds them across a
+	// collection until the root lands, and the root holds them after the
 	// stage ends.
 	small := block.NewPendingStore(f.store, len(tr.add(t, "X").Data))
 	tr.add(t, "C4", "X")
@@ -169,6 +204,9 @@ func TestPendingStoreRunThrough(t *testing.T) {
 	}
 	put(stage, "X", "C4", "R4")
 	stored(true, "X", "C4", "R4")
+	if n := small.KeptBytes(); n != len(tr["X"].Data) {
+		t.Fatalf("the overflow kept %d bytes of the tree it stored, want %d", n, len(tr["X"].Data))
+	}
 	f.collect(t)
 	stored(true, "X", "C4", "R4")
 	if err := small.SetRoots(ctx, nil, []block.NamedRoot{{Name: "pending-overflow", Ref: tr.ref("R4")}}); err != nil {
@@ -184,12 +222,13 @@ func TestPendingStoreRunThrough(t *testing.T) {
 		{Name: "pending-test", Previous: tr.ref("R2")},
 		{Name: "pending-overflow", Previous: tr.ref("R4")},
 		{Name: "pending-held", Previous: tr.ref("H")},
+		{Name: "pending-race", Previous: tr.ref("RD")},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	f.collect(t)
-	stored(false, "E", "C2", "R2", "X", "C4", "R4", "H", "P1", "P2")
+	stored(false, "E", "C2", "R2", "X", "C4", "R4", "H", "P1", "P2", "D", "RD")
 	audit, err := f.volume.Audit(ctx)
 	if err != nil {
 		t.Fatal(err)
