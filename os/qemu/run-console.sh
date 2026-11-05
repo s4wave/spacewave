@@ -49,5 +49,5 @@ exec "${QEMU:-qemu-system-x86_64}" \
     -chardev stdio,id=console,mux=on,signal=off \
     -serial chardev:console -mon chardev=console,mode=readline \
     -kernel "$kernel" -initrd "$initramfs" \
-    -append "console=ttyS0,115200 rdinit=/init panic=-1 GOMAXPROCS=1 SPACEWAVE_OS_MODE=console SPACEWAVE_OS_STORE=/store/image SPACEWAVE_OS_DATA=/store/data SPACEWAVE_OS_TTY=/dev/ttyS0 SPACEWAVE_OS_NATIVE_BENCH=$native" \
+    -append "console=ttyS0,115200 rdinit=/init panic=-1 quiet GOMAXPROCS=1 SPACEWAVE_OS_MODE=console SPACEWAVE_OS_STORE=/store/image SPACEWAVE_OS_DATA=/store/data SPACEWAVE_OS_TTY=/dev/ttyS0 SPACEWAVE_OS_NATIVE_BENCH=$native" \
     -drive "file=$disk,format=raw,if=virtio,cache=none"

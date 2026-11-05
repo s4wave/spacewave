@@ -49,7 +49,7 @@ SPACEWAVE_OS_TTY=/dev/ttyS0
 SPACEWAVE_OS_NATIVE_BENCH=0
 ```
 
-The launcher also passes `console=ttyS0,115200 rdinit=/init panic=-1`. Bootstrap
+The launcher also passes `console=ttyS0,115200 rdinit=/init panic=-1 quiet`. Bootstrap
 mounts `/dev/vda` as Btrfs at `/store`, outside both served roots. The library API
 is `boot.RunConsole(ctx, systemDir, dataDir, terminalPath, nativeBench)` and
 refuses every non-PID1 invocation before touching storage or mounts. Hosted
