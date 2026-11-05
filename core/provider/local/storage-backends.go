@@ -2,6 +2,7 @@ package provider_local
 
 import (
 	"context"
+	"time"
 
 	"github.com/aperturerobotics/util/ulid"
 	"github.com/pkg/errors"
@@ -319,6 +320,22 @@ func (a *ProviderAccount) WatchUploadStatus(ctx context.Context, sharedObjectID 
 	tkrRef, tkr, _ := a.bstores.AddKeyRef(blockStoreID)
 	defer tkrRef.Release()
 	return watchTrackerUploadStatus(ctx, tkr, fn)
+}
+
+// UploadedBefore reports whether the storage backend of a SharedObject's
+// mounted block store holds every block written before at, false when the
+// store is not mounted. It mounts nothing.
+func (a *ProviderAccount) UploadedBefore(ctx context.Context, sharedObjectID string, at time.Time) (bool, error) {
+	// Find the mounted block store.
+	tkr, ok := a.bstores.GetKey(a.lookupSharedObjectBlockStoreID(sharedObjectID))
+	if !ok || tkr == nil {
+		return false, nil
+	}
+	bs := tkr.bstoreCtr.GetValue()
+	if bs == nil {
+		return false, nil
+	}
+	return bs.UploadedBefore(ctx, at)
 }
 
 // SQLPublishStats returns the SQL publisher's counters of a SharedObject's
