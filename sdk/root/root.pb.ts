@@ -657,6 +657,49 @@ export const DeleteSessionResponse: MessageType<DeleteSessionResponse> =
   )
 
 /**
+ * MoveSessionRequest is the request type for MoveSession.
+ *
+ * @generated from message s4wave.root.MoveSessionRequest
+ */
+export interface MoveSessionRequest {
+  /**
+   * FromIdx is the index of the session to move.
+   */
+  fromIdx?: number
+  /**
+   * ToIdx is the free index the session takes.
+   */
+  toIdx?: number
+}
+
+export const MoveSessionRequest: MessageType<MoveSessionRequest> =
+  /* @__PURE__ */ createMessageType<MoveSessionRequest>(
+    's4wave.root.MoveSessionRequest',
+    () => [
+      [1, 'from_idx', 13],
+      [2, 'to_idx', 13],
+    ],
+  )
+
+/**
+ * MoveSessionResponse is the response type for MoveSession.
+ *
+ * @generated from message s4wave.root.MoveSessionResponse
+ */
+export interface MoveSessionResponse {
+  /**
+   * Session is the moved session's entry at its new index.
+   */
+  session?: SessionListEntry
+}
+
+export const MoveSessionResponse: MessageType<MoveSessionResponse> =
+  /* @__PURE__ */ createMessageType<MoveSessionResponse>(
+    's4wave.root.MoveSessionResponse',
+    () => [[1, 'session', 11, 0, SessionListEntry.codec]],
+  )
+
+/**
  * ResetSessionByIdxRequest is the request type for ResetSession.
  *
  * @generated from message s4wave.root.ResetSessionByIdxRequest
