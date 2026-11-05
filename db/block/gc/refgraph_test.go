@@ -756,6 +756,32 @@ func TestMixedNodeTypes(t *testing.T) {
 			t.Fatalf("expected %s to have incoming refs", node)
 		}
 	}
+
+	// HasRef finds a forward edge, a child edge and the staging edge of a
+	// tracked block, and nothing for an edge never added.
+	if err := rg.AddRef(ctx, blk1, blk2); err != nil {
+		t.Fatal(err)
+	}
+	if err := rg.AddRef(ctx, blk1, "world:complete"); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct {
+		subject, object string
+		want            bool
+	}{
+		{obj, "entity:foo", true},
+		{blk1, "world:complete", true},
+		{blk1, blk2, true},
+		{NodeUnreferenced, blk1, true},
+		{blk2, blk1, false},
+		{blk2, "world:complete", false},
+		{obj, "entity:bar", false},
+	} {
+		has, err := rg.HasRef(ctx, c.subject, c.object)
+		if err != nil || has != c.want {
+			t.Fatalf("HasRef(%s, %s) = %v, %v; want %v", c.subject, c.object, has, err, c.want)
+		}
+	}
 }
 
 func TestApplyRefBatchAddsBeforeRemoves(t *testing.T) {

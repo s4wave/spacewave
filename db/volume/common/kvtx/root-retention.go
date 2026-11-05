@@ -192,11 +192,11 @@ func (v *Volume) RootsComplete(ctx context.Context, refs []*block.BlockRef) ([]b
 	// Read the durable proof edges in one transaction.
 	err := (&transactionRefGraph{volume: v}).read(ctx, func(rg *block_gc.RefGraph) error {
 		for _, i := range durable {
-			edges, err := rg.GetOutgoingRefs(ctx, block_gc.BlockIRI(refs[i]))
+			proved, err := rg.HasRef(ctx, block_gc.BlockIRI(refs[i]), completeWorldNode)
 			if err != nil {
 				return err
 			}
-			complete[i] = slices.Contains(edges, completeWorldNode)
+			complete[i] = proved
 		}
 		return nil
 	})
@@ -220,8 +220,7 @@ func (v *Volume) rootCompleteTx(ctx context.Context, blocks block.StoreOps, rg *
 	}
 
 	// Otherwise read the durable proof edge.
-	refs, err := rg.GetOutgoingRefs(ctx, node)
-	return slices.Contains(refs, completeWorldNode), err
+	return rg.HasRef(ctx, node, completeWorldNode)
 }
 
 // forgetSweptProofs drops the pending proofs of nodes a sweep transaction may

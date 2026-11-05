@@ -562,6 +562,37 @@ func (g *RefGraph) GetOutgoingRefs(ctx context.Context, node string) ([]string, 
 	return answer, nil
 }
 
+// HasRef reports whether the edge from subject to object exists. An edge
+// that is not a child edge is one point read, where GetOutgoingRefs decodes
+// every target of subject.
+func (g *RefGraph) HasRef(ctx context.Context, subject, object string) (bool, error) {
+	var found bool
+	err := g.transaction(ctx, false, func(ctx context.Context, tx kvtx.Tx) error {
+		var err error
+		found, err = hasRefTx(ctx, tx, RefEdge{Subject: subject, Object: object})
+		return err
+	})
+	return found, err
+}
+
+// hasRefTx reports whether edge exists: in its parent's child list, as the
+// list itself for a staging edge, or as its forward record.
+func hasRefTx(ctx context.Context, tx kvtx.Tx, edge RefEdge) (bool, error) {
+	// An edge outside a child list is its own record.
+	parent, child, ok := childEdge(edge)
+	if !ok {
+		return tx.Exists(ctx, edgeKey(edge))
+	}
+
+	// Otherwise look for the child in its parent's sorted list.
+	children, found, err := readChildrenTx(ctx, tx, parent)
+	if err != nil || child == "" {
+		return found, err
+	}
+	_, has := slices.BinarySearch(children, child)
+	return has, nil
+}
+
 // GetBlockEdges returns what GetOutgoingRefs reports for a block node and
 // whether the graph tracks the block, which GetIncomingRefs reports as the
 // unreferenced queue's edge, in one read.
