@@ -1,6 +1,8 @@
 package space_world
 
 import (
+	"time"
+
 	"github.com/aperturerobotics/controllerbus/bus"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 )
@@ -28,6 +30,9 @@ type AdapterOptions struct {
 	// adapter stores the head World under the replay cursor root. Zero is
 	// defaultMaxPendingBytes.
 	MaxPendingBytes int
+	// FenceTimeout bounds the wait of a storage fence for every writer
+	// device's answer. Zero is defaultFenceTimeout.
+	FenceTimeout time.Duration
 	// Verbose logs every operation's outcome.
 	Verbose bool
 }
