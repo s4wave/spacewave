@@ -102,14 +102,16 @@ func (st *state) superblock() superblock {
 	}
 }
 
-// derive returns a copy of st the caller may change: its manifest, memtable
-// and log chunks are copied, its snapshot count is fresh.
+// derive returns a copy of st the caller may change, with a fresh snapshot
+// count. Its manifest, memtable and log chunks share st's storage until
+// written, so deriving copies nothing that grows with the file: the log
+// chunks are clipped, so an append copies them, and a flush reslices them.
 func (st *state) derive() *state {
-	// Copy the view and give it its own manifest and memtable.
+	// Copy the view over shared storage, with no snapshots counted.
 	next := *st
 	next.m = st.m.clone()
 	next.mem = st.mem.copy()
-	next.logChunks = slices.Clone(st.logChunks)
+	next.logChunks = slices.Clip(st.logChunks)
 	next.refs = nil
 	return &next
 }
@@ -167,14 +169,13 @@ func (st *state) apply(r *record, budget int64) {
 		st.flush(r, budget, true)
 	case kindMerge:
 		// The outputs replace the inputs, whose chunks are pending.
-		for _, id := range r.removed {
-			for c, e := range m.table.all() {
-				if e.kind == chunkRun && e.owner == id {
+		for _, in := range m.removeRuns(r.removed) {
+			for _, c := range in.chunks {
+				if e := m.table.get(c); e.kind == chunkRun && e.owner == in.id {
 					m.table.set(c, chunkEntry{kind: chunkPending, owner: chunkRun, seq: r.seq})
 				}
 			}
 		}
-		m.removeRuns(r.removed)
 		st.addRuns(r)
 	case kindSealed:
 		// The value chunks are pending from this record, and an open one
@@ -236,32 +237,34 @@ func (st *state) flush(r *record, budget int64, table bool) {
 			st.m.table.set(c, chunkEntry{kind: chunkPending, owner: chunkLog, seq: r.seq})
 		}
 	}
-	st.logChunks = slices.Delete(st.logChunks, 0, i)
+	st.logChunks = st.logChunks[i:]
 }
 
 // addRuns adds a flush or merge record's runs and manifest chunks, keeping
 // the runs in lookup order, and makes the previous manifest's chunks pending.
 func (st *state) addRuns(r *record) {
-	// Add the runs.
+	// Add the runs into a new list, which clones of the manifest do not
+	// share.
 	m := st.m
 	m.version++
 	for i := range r.runs {
-		m.runs = append(m.runs, r.runs[i])
 		for _, c := range r.runs[i].chunks {
 			m.table.set(c, chunkEntry{kind: chunkRun, owner: r.runs[i].id})
 		}
 	}
+	m.runs = slices.Concat(m.runs, r.runs)
 	slices.SortFunc(m.runs, lookupOrder)
 
 	// Replace the manifest's chunks.
-	for c, e := range m.table.all() {
-		if e.kind == chunkManifest {
+	for _, c := range m.mchunks {
+		if m.table.get(c).kind == chunkManifest {
 			m.table.set(c, chunkEntry{kind: chunkPending, owner: chunkManifest, seq: r.seq})
 		}
 	}
 	for _, c := range r.mchunks {
 		m.table.set(c, chunkEntry{kind: chunkManifest, owner: m.version})
 	}
+	m.mchunks = r.mchunks
 }
 
 // applyCommit applies a commit record's changes to the memtable and, when
@@ -298,21 +301,25 @@ func (st *state) applyCommit(r *record, table bool) {
 	}
 }
 
-// removeRuns drops the runs with the given ids.
-func (m *manifest) removeRuns(ids []uint64) {
-	kept := m.runs[:0]
-	for _, r := range m.runs {
-		drop := false
-		for _, id := range ids {
-			if r.id == id {
-				drop = true
-				break
-			}
-		}
-		if !drop {
-			kept = append(kept, r)
-		}
+// removeRuns drops the runs with the given ids into a new list, which clones
+// of the manifest do not share, and returns the runs it dropped.
+func (m *manifest) removeRuns(ids []uint64) []runMeta {
+	// Index the ids.
+	drop := make(map[uint64]struct{}, len(ids))
+	for _, id := range ids {
+		drop[id] = struct{}{}
 	}
-	clear(m.runs[len(kept):])
+
+	// Split the runs into those kept and those dropped.
+	kept := make([]runMeta, 0, len(m.runs))
+	var removed []runMeta
+	for _, r := range m.runs {
+		if _, ok := drop[r.id]; ok {
+			removed = append(removed, r)
+			continue
+		}
+		kept = append(kept, r)
+	}
 	m.runs = kept
+	return removed
 }

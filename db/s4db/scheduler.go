@@ -88,15 +88,19 @@ func (s *scheduler) run() {
 		}
 
 		// Flush when the memtable or the log since the last flush passed the
-		// budget, and merge when a level is over its target.
-		if st.mem.len() != 0 && (st.mem.bytes > s.db.budget || st.logBytes > 4*s.db.budget) {
-			s.flush()
+		// budget. When another process holds the flush lock, its flush record
+		// changes the state and wakes this loop, so go on to the other jobs
+		// and sleep rather than try again at once.
+		if st.mem.len() != 0 && (st.mem.bytes > s.db.budget || st.logBytes > 4*s.db.budget) && s.flush() {
 			quietAt = time.Now()
 			continue
 		}
-		// Merge in a quiet spell, or at once when level 0 passed its stall.
-		if _, ok := (&mergeJob{db: s.db}).pick(st.m); ok && (s.fg.wait() <= 0 || st.m.level0() > level0Stall) {
-			if s.merge() {
+
+		// Merge when a level is over its target, in a quiet spell, or at once
+		// when level 0 passed its stall; the gate goes first, since the pick
+		// compares runs.
+		if s.fg.wait() <= 0 || st.m.level0() > level0Stall {
+			if _, ok := (&mergeJob{db: s.db}).pick(st.m); ok && s.merge() {
 				quietAt = time.Now()
 				continue
 			}
@@ -146,17 +150,16 @@ func (s *scheduler) run() {
 	}
 }
 
-// flush runs one flush when no other process is flushing.
-func (s *scheduler) flush() {
+// flush runs one flush when no other process is flushing, reporting whether
+// it flushed. A failure leaves the state for the next trigger.
+func (s *scheduler) flush() bool {
 	// Take the flush lock without waiting.
 	ok, err := s.db.s.lock(lockFlush, false)
 	if err != nil || !ok {
-		return
+		return false
 	}
 	defer func() { _ = s.db.s.unlock(lockFlush) }()
-
-	// Run the job; a failure leaves the state for the next trigger.
-	_ = (&flushJob{db: s.db}).run(s.ctx)
+	return (&flushJob{db: s.db}).run(s.ctx) == nil
 }
 
 // merge runs one merge when no other process is merging, reporting whether
@@ -186,12 +189,8 @@ func (s *scheduler) clean() bool {
 
 // hasPending reports whether the table holds pending or reserved chunks.
 func (s *scheduler) hasPending(st *state) bool {
-	for _, e := range st.m.table.all() {
-		if e.kind == chunkPending || e.kind == chunkReserved {
-			return true
-		}
-	}
-	return false
+	t := st.m.table
+	return t.count(chunkPending)+t.count(chunkReserved) != 0
 }
 
 // markStep flushes, appends a mark record carrying the mark that flush

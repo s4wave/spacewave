@@ -29,21 +29,10 @@ type cleaner struct {
 }
 
 // slack returns the live bytes and the slack: free chunks plus dead bytes in
-// value chunks.
+// value chunks, from the table's tally.
 func (m *manifest) slack() (live, slack int64) {
-	for c, e := range m.table.all() {
-		if c == 0 {
-			continue
-		}
-		switch e.kind {
-		case chunkFree:
-			slack += chunkSize
-		case chunkValue:
-			live += int64(e.live)
-			slack += int64(e.used) - int64(e.live)
-		}
-	}
-	return live, slack
+	t := m.table
+	return t.live, t.count(chunkFree)*chunkSize + t.used - t.live
 }
 
 // due reports whether a step is due, and whether it is urgent: the slack
@@ -67,21 +56,17 @@ func (c *cleaner) due(m *manifest) (urgent, ok bool) {
 // a commit opened it while the chunks below were pending, and moving out of it
 // or sealing it closes it, else an idle file could never shrink below it.
 func (c *cleaner) topVictim(m *manifest) (uint64, bool) {
-	// The last chunk must be a value chunk with a free chunk below.
+	// The last chunk must be a value chunk, and since it is not free, every
+	// free chunk the tally counts sits below it.
 	t := m.table
 	end := t.end()
-	if end <= firstChunk || t.get(end-1).kind != chunkValue {
+	if end <= firstChunk || t.get(end-1).kind != chunkValue || t.count(chunkFree) == 0 {
 		return 0, false
 	}
 	if seq, stuck := c.stuck[end-1]; stuck && seq == t.get(end-1).seq {
 		return 0, false
 	}
-	for ch := uint64(firstChunk); ch < end-1; ch++ {
-		if t.get(ch).kind == chunkFree {
-			return end - 1, true
-		}
-	}
-	return 0, false
+	return end - 1, true
 }
 
 // victim chooses the chunk to clean: the top value chunk when free chunks sit

@@ -85,27 +85,35 @@ type blockEntry struct {
 // the grown buffer, so a caller decoding a whole block keeps every key in one
 // buffer; the entry's key is the appended tail.
 func (blk *dataBlock) entryAt(off int, prev, keys []byte) (blockEntry, []byte, bool) {
+	n := len(keys)
+	v, next, keys, ok := blk.decodeAt(off, prev, keys)
+	return blockEntry{key: keys[n:len(keys):len(keys)], val: v, next: next}, keys, ok
+}
+
+// decodeAt decodes the entry at off as entryAt does, returning its value, the
+// offset of the entry after it, and keys with the key appended. The value
+// refers only to the block, never to keys, so a caller that decodes keys into
+// a buffer on its stack keeps it there.
+func (blk *dataBlock) decodeAt(off int, prev, keys []byte) (value, int, []byte, bool) {
 	// Read the lengths and check them against the input.
 	if off > len(blk.data) {
-		return blockEntry{}, keys, false
+		return value{}, 0, keys, false
 	}
 	d := decoder{b: blk.data[off:]}
 	shared, unshared := d.uvarint(), d.uvarint()
 	if d.err != nil || shared > uint64(len(prev)) || unshared > uint64(len(d.b)) {
-		return blockEntry{}, keys, false
+		return value{}, 0, keys, false
 	}
 
 	// Build the key from the shared prefix and the suffix, then the value.
-	n := len(keys)
 	keys = append(keys, prev[:shared]...)
 	keys = append(keys, d.b[:unshared]...)
-	key := keys[n:len(keys):len(keys)]
 	d.b = d.b[unshared:]
 	v := d.decodeValue(d.kind())
 	if d.err != nil {
-		return blockEntry{}, keys, false
+		return value{}, 0, keys, false
 	}
-	return blockEntry{key: key, val: v, next: len(blk.data) - len(d.b)}, keys, true
+	return v, len(blk.data) - len(d.b), keys, true
 }
 
 // restart returns the offset of the last restart point at or before key, or
@@ -128,27 +136,36 @@ func (blk *dataBlock) restart(key, keys []byte) (int, []byte, bool) {
 	return blk.restarts.at(lo), keys, true
 }
 
-// seek returns the first entry at or after key, reporting whether one
-// exists.
-func (blk *dataBlock) seek(key []byte) (blockEntry, bool) {
-	// Start at the last restart point at or before key, then walk forward.
-	off, keys, ok := blk.restart(key, nil)
+// findKeyBuf is the key buffer find decodes into on the stack; a longer key
+// moves it to the heap.
+const findKeyBuf = 256
+
+// find returns the value of key in the block, reporting whether the block
+// holds it. It decodes each key over the one before it in one buffer, so a
+// lookup allocates nothing: an entry's key shares a prefix with the previous
+// key and replaces only its tail.
+func (blk *dataBlock) find(key []byte) (value, bool) {
+	// Start at the last restart point at or before key.
+	var buf [findKeyBuf]byte
+	off, keys, ok := blk.restart(key, buf[:0])
 	if !ok {
-		return blockEntry{}, false
+		return value{}, false
 	}
-	var prev []byte
-	keys = keys[:0]
+
+	// Walk forward to the first key at or after key, each decoded over the
+	// one before.
+	prev := keys[:0]
 	for off < len(blk.data) {
-		e, k, ok := blk.entryAt(off, prev, keys)
+		v, next, k, ok := blk.decodeAt(off, prev, prev[:0])
 		if !ok {
-			return blockEntry{}, false
+			return value{}, false
 		}
-		if bytes.Compare(e.key, key) >= 0 {
-			return e, true
+		if c := bytes.Compare(k, key); c >= 0 {
+			return v, c == 0
 		}
-		keys, prev, off = k, e.key, e.next
+		prev, off = k, next
 	}
-	return blockEntry{}, false
+	return value{}, false
 }
 
 // blockBuilder writes a data block.
