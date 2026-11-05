@@ -1,0 +1,12 @@
+[
+  {
+    "name": "idle failure drops the inode from the buffer-only pending set",
+    "replace": [["RetainFailures == TRUE", "RetainFailures == FALSE"]],
+    "expect": "SyncReportsFailure"
+  },
+  {
+    "name": "Release consumes an error without reporting it to a caller",
+    "replace": [["ReleaseReports == FALSE", "ReleaseReports == TRUE"]],
+    "expect": "SyncReportsFailure"
+  }
+]

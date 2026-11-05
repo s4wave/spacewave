@@ -36,7 +36,7 @@ type fsInode struct {
 	relCbs cqueue.AtomicLIFO[func()]
 	// w holds buffered writes to a file inode.
 	w fsInodeWrites
-	// treeWrites tracks the inodes of the tree with buffered writes.
+	// treeWrites tracks buffered writes and unreported flush failures.
 	// used on the root inode only
 	treeWrites fsTreeWrites
 

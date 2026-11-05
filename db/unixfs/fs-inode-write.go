@@ -32,15 +32,19 @@ type fsInodeWrites struct {
 	limit int64
 	// timer commits buf after the writer pauses.
 	timer *time.Timer
-	// err is the error of an idle flush, returned by the next operation.
+	// err is the first unreported flush error, returned by the next operation.
 	err error
 }
 
-// fsTreeWrites tracks the inodes of one tree that hold buffered writes.
+// fsTreeWrites tracks buffered writes and unreported flush failures in one tree.
+// An inode stays pending from buffering through an asynchronous failure until
+// an operation reports that failure. Update membership under w.mtx, retaining
+// the entry until err is stored so a concurrent Sync snapshot cannot miss it.
+// Release cannot report errors and therefore preserves them for other handles.
 type fsTreeWrites struct {
 	// mtx guards dirty. Never held while taking another lock.
 	mtx sync.Mutex
-	// dirty is the set of inodes with buffered writes.
+	// dirty is the set of inodes with buffered writes or unreported failures.
 	dirty map[*fsInode]struct{}
 }
 
@@ -57,14 +61,14 @@ func (i *fsInode) writeAt(ctx context.Context, offset int64, data []byte, ts tim
 	}
 	defer release()
 
-	// Report an idle flush failure before accepting more data.
-	if err := w.takeErr(); err != nil {
+	// Report an unreported flush failure before accepting more data.
+	if err := i.takeErr(); err != nil {
 		return err
 	}
 
 	// Commit the buffered extent when this write does not continue it.
 	if len(w.buf) != 0 && offset != w.off+int64(len(w.buf)) {
-		if err := i.flushLocked(ctx); err != nil {
+		if err := i.flushLocked(ctx, false); err != nil {
 			return err
 		}
 	}
@@ -97,12 +101,12 @@ func (i *fsInode) writeAt(ctx context.Context, offset int64, data []byte, ts tim
 	w.buf = append(w.buf, data...)
 	w.ts = ts
 	if int64(len(w.buf)) >= w.limit {
-		return i.flushLocked(ctx)
+		return i.flushLocked(ctx, false)
 	}
 
 	// Commit the extent if the writer pauses.
 	if w.timer == nil {
-		w.timer = time.AfterFunc(fsInodeIdleFlush, i.idleFlush)
+		w.timer = time.AfterFunc(fsInodeIdleFlush, i.flushUnreported)
 	} else {
 		w.timer.Reset(fsInodeIdleFlush)
 	}
@@ -110,9 +114,10 @@ func (i *fsInode) writeAt(ctx context.Context, offset int64, data []byte, ts tim
 }
 
 // flushLocked commits the buffered extent. The extent is kept when ctx ends
-// first, and dropped after any other result.
+// first, and dropped after any other result. If keepErr is set, the caller
+// cannot report a failure, so retain the first one for the next operation.
 // caller must hold w.mtx and must NOT hold rmtx
-func (i *fsInode) flushLocked(ctx context.Context) error {
+func (i *fsInode) flushLocked(ctx context.Context, keepErr bool) error {
 	// Cancel the idle commit, which this flush replaces.
 	w := &i.w
 	if w.timer != nil {
@@ -130,54 +135,55 @@ func (i *fsInode) flushLocked(ctx context.Context) error {
 		return err
 	}
 
-	// Clear the extent, written or failed.
+	// Keep an unreported failure pending before clearing the extent's entry.
 	w.buf = nil
-	i.tree().mark(i, false)
+	if keepErr && err != nil && w.err == nil {
+		w.err = err
+	}
+	i.tree().mark(i, w.err != nil)
 	return err
 }
 
-// idleFlush commits the buffered extent after the writer paused, keeping any
-// error for the next operation.
-func (i *fsInode) idleFlush() {
-	// Commit under the buffer lock and keep the first failure.
+// flushUnreported commits on the idle timer or Release, keeping any error for
+// the next operation because these callers cannot report it.
+func (i *fsInode) flushUnreported() {
+	// Serialize the flush with operations that can report its failure.
 	w := &i.w
 	release, err := w.mtx.Lock(context.Background())
 	if err != nil {
 		return
 	}
 	defer release()
-	if err := i.flushLocked(context.Background()); err != nil && w.err == nil {
-		w.err = err
-	}
+	_ = i.flushLocked(context.Background(), true)
 }
 
-// sync commits the buffered writes at i and returns any idle flush error.
+// sync commits the buffered writes at i and returns any unreported flush error.
 // caller must NOT hold rmtx
 func (i *fsInode) sync(ctx context.Context) error {
-	// Commit the extent, then report an earlier idle flush failure.
+	// Commit the extent, then report an earlier unreported failure.
 	w := &i.w
 	release, err := w.mtx.Lock(ctx)
 	if err != nil {
 		return err
 	}
 	defer release()
-	if err := i.flushLocked(ctx); err != nil {
+	if err := i.flushLocked(ctx, false); err != nil {
 		return err
 	}
-	return w.takeErr()
+	return i.takeErr()
 }
 
 // buffered returns the end offset and timestamp of the buffered writes, or a
-// zero end when nothing is buffered, and any idle flush error.
+// zero end when nothing is buffered, and any unreported flush error.
 func (i *fsInode) buffered(ctx context.Context) (int64, time.Time, error) {
-	// Report an earlier idle flush failure first.
+	// Report an earlier unreported flush failure first.
 	w := &i.w
 	release, err := w.mtx.Lock(ctx)
 	if err != nil {
 		return 0, time.Time{}, err
 	}
 	defer release()
-	if err := w.takeErr(); err != nil {
+	if err := i.takeErr(); err != nil {
 		return 0, time.Time{}, err
 	}
 
@@ -188,15 +194,20 @@ func (i *fsInode) buffered(ctx context.Context) (int64, time.Time, error) {
 	return w.off + int64(len(w.buf)), w.ts, nil
 }
 
-// takeErr returns and clears the idle flush error.
-// caller must hold mtx
-func (w *fsInodeWrites) takeErr() error {
+// takeErr returns and clears the unreported flush error and its pending entry.
+// caller must hold w.mtx
+func (i *fsInode) takeErr() error {
+	// Remove only a failure that this operation reports, keeping buffered data.
+	w := &i.w
 	err := w.err
-	w.err = nil
+	if err != nil {
+		w.err = nil
+		i.tree().mark(i, len(w.buf) != 0)
+	}
 	return err
 }
 
-// syncTree commits the buffered writes of every inode in the tree holding i.
+// syncTree commits buffered writes and reports pending failures in i's tree.
 // caller must NOT hold rmtx on any inode
 func (i *fsInode) syncTree(ctx context.Context) error {
 	var firstErr error
@@ -217,9 +228,9 @@ func (i *fsInode) tree() *fsTreeWrites {
 	return &root.treeWrites
 }
 
-// mark adds or removes an inode from the dirty set.
+// mark adds or removes an inode from the pending set.
 func (t *fsTreeWrites) mark(i *fsInode, dirty bool) {
-	// Remove a committed inode.
+	// Remove an inode whose writes and errors have been handled.
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 	if !dirty {
@@ -227,14 +238,14 @@ func (t *fsTreeWrites) mark(i *fsInode, dirty bool) {
 		return
 	}
 
-	// Add an inode that buffered a write.
+	// Add an inode with buffered writes or an unreported failure.
 	if t.dirty == nil {
 		t.dirty = make(map[*fsInode]struct{})
 	}
 	t.dirty[i] = struct{}{}
 }
 
-// snapshot returns the inodes with buffered writes.
+// snapshot returns the inodes with buffered writes or unreported failures.
 func (t *fsTreeWrites) snapshot() []*fsInode {
 	// Copy the set so callers sync without holding mtx.
 	t.mtx.Lock()

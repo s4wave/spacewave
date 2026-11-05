@@ -325,36 +325,219 @@ func TestWriteBehindSharedByHandles(t *testing.T) {
 	if _, writes := ops.committed(); writes != 2 {
 		t.Fatalf("committed %d writes, want 2", writes)
 	}
+
+	// Sync through the shared handle commits the next extent and clears it.
+	if err := h.WriteAt(ctx, 19, []byte("!"), time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	if err := other.Sync(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if data, writes := ops.committed(); writes != 3 || data != "abcdef0123456789xyz!" {
+		t.Fatalf("committed %q in %d writes after shared Sync", data, writes)
+	}
+	if len(h.i().tree().snapshot()) != 0 {
+		t.Fatal("shared Sync retained a clean inode")
+	}
+
+	// A full-extent failure is reported by WriteAt, not retained for Sync.
+	errCommit := errors.New("full commit failed")
+	ops.mtx.Lock()
+	ops.err = errCommit
+	ops.mtx.Unlock()
+	if err := h.WriteAt(ctx, 20, []byte("01234567"), time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	if err := h.WriteAt(ctx, 28, []byte("89abcdef"), time.Now()); !errors.Is(err, errCommit) {
+		t.Fatalf("full WriteAt error %v, want %v", err, errCommit)
+	}
+	if err := other.Sync(ctx); err != nil {
+		t.Fatalf("Sync repeated the caller's error: %v", err)
+	}
+	if len(h.i().tree().snapshot()) != 0 {
+		t.Fatal("full-extent failure retained a clean inode")
+	}
+	if data, writes := ops.committed(); writes != 3 || data != "abcdef0123456789xyz!" {
+		t.Fatalf("full-extent failure changed committed data: %q in %d writes", data, writes)
+	}
 }
 
-// TestWriteBehindIdleFlushError tests that a buffered extent commits after
-// the writer pauses, and that a failed commit is returned by the next
-// operation and not again after.
+// TestWriteBehindIdleFlushError tests that file and root Sync report an idle
+// failure once, including after cancellation or another handle's Release.
 func TestWriteBehindIdleFlushError(t *testing.T) {
-	synctest.Test(t, func(t *testing.T) {
-		// Open a file whose commits fail.
-		ctx := t.Context()
-		errCommit := errors.New("commit failed")
-		ops := &fakeFileOps{err: errCommit}
-		h, err := NewFSHandle(&fakeCursor{ops: ops})
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer h.Release()
+	for _, scope := range []string{"file", "root"} {
+		t.Run(scope, func(t *testing.T) {
+			// Open a file and optionally attach it beneath a directory root.
+			ctx := t.Context()
+			errCommit := errors.New("commit failed")
+			ops := &fakeFileOps{err: errCommit}
+			h, err := NewFSHandle(&fakeCursor{ops: ops})
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer h.Release()
+			syncHandle := h
+			if scope == "root" {
+				root, err := NewFSHandle(&fakeCursor{ops: &fakeOps{}})
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer root.Release()
+				h.i().parent = root.i()
+				root.i().children = []*fsInode{h.i()}
+				syncHandle = root
+			}
 
-		// Buffer a write and let the writer pause.
-		if err := h.WriteAt(ctx, 0, []byte("abc"), time.Now()); err != nil {
-			t.Fatal(err)
-		}
-		time.Sleep(fsInodeIdleFlush)
-		synctest.Wait()
+			// Keep shared file and sync handles attached through cleanup.
+			other, err := h.Clone(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer other.Release()
+			otherSync, err := syncHandle.Clone(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer otherSync.Release()
 
-		// The next operation reports the failed commit once.
-		if _, err := h.GetSize(ctx); !errors.Is(err, errCommit) {
-			t.Fatalf("GetSize error %v, want %v", err, errCommit)
-		}
-		if err := h.Sync(ctx); err != nil {
-			t.Fatalf("Sync reported the error again: %v", err)
-		}
+			// Invoke the timer callback directly, without waiting on its deadline.
+			if err := h.WriteAt(ctx, 0, []byte("abc"), time.Now()); err != nil {
+				t.Fatal(err)
+			}
+			h.i().flushUnreported()
+
+			// A cancelled Sync waiting for the inode cannot consume its failure.
+			unlock, err := h.i().w.mtx.Lock(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			cancelCtx, cancel := context.WithCancel(ctx)
+			cancel()
+			err = syncHandle.Sync(cancelCtx)
+			unlock()
+			if !errors.Is(err, context.Canceled) {
+				t.Fatalf("cancelled Sync error %v, want cancellation", err)
+			}
+
+			// Cleanup and a later callback preserve the first unreported failure.
+			ops.mtx.Lock()
+			ops.err = errors.New("later commit failed")
+			ops.mtx.Unlock()
+			other.Release()
+			otherSync.Release()
+			h.i().flushUnreported()
+			if err := syncHandle.Sync(ctx); !errors.Is(err, errCommit) {
+				t.Fatalf("Sync error %v, want %v", err, errCommit)
+			}
+			if err := syncHandle.Sync(ctx); err != nil {
+				t.Fatalf("Sync reported the error again: %v", err)
+			}
+			if data, writes := ops.committed(); data != "" || writes != 0 {
+				t.Fatalf("retried discarded write: %q in %d writes", data, writes)
+			}
+			if len(h.i().tree().snapshot()) != 0 {
+				t.Fatal("reported failure retained a clean inode")
+			}
+
+			// A new write can progress after the caller observes the error.
+			ops.mtx.Lock()
+			ops.err = nil
+			ops.mtx.Unlock()
+			if err := h.WriteAt(ctx, 0, []byte("xyz"), time.Now()); err != nil {
+				t.Fatal(err)
+			}
+			if err := syncHandle.Sync(ctx); err != nil {
+				t.Fatal(err)
+			}
+			if data, writes := ops.committed(); data != "xyz" || writes != 1 {
+				t.Fatalf("committed %q in %d writes, want xyz in one", data, writes)
+			}
+
+			// Release's own failed flush is also pending until Sync reports it.
+			other, err = syncHandle.Clone(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer other.Release()
+			ops.mtx.Lock()
+			ops.err = errCommit
+			ops.mtx.Unlock()
+			if err := h.WriteAt(ctx, 3, []byte("!"), time.Now()); err != nil {
+				t.Fatal(err)
+			}
+			other.Release()
+			if err := syncHandle.Sync(ctx); !errors.Is(err, errCommit) {
+				t.Fatalf("Sync after Release error %v, want %v", err, errCommit)
+			}
+			if err := syncHandle.Sync(ctx); err != nil {
+				t.Fatalf("Sync after Release repeated the error: %v", err)
+			}
+
+			// Attribute reads still report and consume errors, removing the entry.
+			if err := h.WriteAt(ctx, 3, []byte("!"), time.Now()); err != nil {
+				t.Fatal(err)
+			}
+			h.i().flushUnreported()
+			if _, err := h.GetSize(ctx); !errors.Is(err, errCommit) {
+				t.Fatalf("GetSize error %v, want %v", err, errCommit)
+			}
+			if err := syncHandle.Sync(ctx); err != nil {
+				t.Fatalf("Sync repeated the attribute error: %v", err)
+			}
+			if len(h.i().tree().snapshot()) != 0 {
+				t.Fatal("attribute read retained a reported failure")
+			}
+		})
+	}
+
+	t.Run("sync during idle flush", func(t *testing.T) {
+		synctest.Test(t, func(t *testing.T) {
+			// Buffer a write whose idle commit will fail.
+			ctx := t.Context()
+			errCommit := errors.New("commit failed")
+			ops := &fakeFileOps{err: errCommit}
+			h, err := NewFSHandle(&fakeCursor{ops: ops})
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer h.Release()
+			if err := h.WriteAt(ctx, 0, []byte("abc"), time.Now()); err != nil {
+				t.Fatal(err)
+			}
+
+			// Hold cursor access so the idle callback owns w.mtx during I/O.
+			unlock, err := h.i().rmtx.Lock(ctx, true)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer unlock()
+			idleDone := make(chan struct{})
+			go func() {
+				h.i().flushUnreported()
+				close(idleDone)
+			}()
+			synctest.Wait()
+
+			// Sync snapshots the pending inode while the idle flush is blocked.
+			syncDone := make(chan error, 1)
+			go func() { syncDone <- h.Sync(ctx) }()
+			synctest.Wait()
+			unlock()
+			<-idleDone
+			if err := <-syncDone; !errors.Is(err, errCommit) {
+				t.Fatalf("concurrent Sync error %v, want %v", err, errCommit)
+			}
+
+			// Reporting the failure removes the entry without retrying its bytes.
+			if err := h.Sync(ctx); err != nil {
+				t.Fatalf("concurrent Sync repeated the error: %v", err)
+			}
+			if len(h.i().tree().snapshot()) != 0 {
+				t.Fatal("concurrent Sync retained a clean inode")
+			}
+			if data, writes := ops.committed(); data != "" || writes != 0 {
+				t.Fatalf("retried discarded write: %q in %d writes", data, writes)
+			}
+		})
 	})
 }
