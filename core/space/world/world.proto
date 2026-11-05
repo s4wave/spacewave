@@ -196,19 +196,25 @@ message RetainedRootSet {
   repeated RetainedRoot roots = 1;
 }
 
-// ReplayPayloads is the block the replay payloads root holds: the payload
-// roots of the operations above the checkpoint that no World reaches, which
-// a restart's replay reads again. Its outgoing refs are the payloads.
-message ReplayPayloads {
-  // Payloads are the payload roots in replay order.
-  repeated .block.BlockRef payloads = 1;
+// HeldRoots is a block that holds several roots under one named root, such
+// as the payloads above the checkpoint, a backfill copy or a fence's live
+// roots. Its outgoing refs are the roots.
+message HeldRoots {
+  // Roots are the held roots, in the order the holder gave them.
+  repeated .block.BlockRef roots = 1;
 }
 
-// BackfillRoots is the block the backfill root holds: the installed World
-// and the retained roots a backfill copied. Its outgoing refs are the roots.
-message BackfillRoots {
-  // Roots are the copied roots.
-  repeated .block.BlockRef roots = 1;
+// ReplaySpan is the block a Space engine before the adapter held under its
+// replay-span root: the Worlds after the replayed operations above the
+// checkpoint and their payloads, in a chain. The adapter writes none; the
+// child list repair of a Volume written before it reads them.
+message ReplaySpan {
+  // Worlds are the World root blocks in replay order.
+  repeated .block.BlockRef worlds = 1;
+  // Payloads are the operation payload roots in replay order.
+  repeated .block.BlockRef payloads = 2;
+  // Prev is the span block holding the earlier operations, or empty.
+  .block.BlockRef prev = 3;
 }
 
 // ReplayCursor is the replay a Space engine last saved on this device, so a

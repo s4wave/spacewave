@@ -165,7 +165,7 @@ func (a *Adapter) holdFence(ctx context.Context, pass string, live []*block.Bloc
 	}
 
 	// Hold them under one block.
-	entry, err := refsEntry(&BackfillRoots{Roots: live}, live)
+	entry, err := refsEntry(&HeldRoots{Roots: live}, live)
 	if err != nil {
 		return err
 	}

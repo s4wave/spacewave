@@ -465,42 +465,55 @@ export const RetainedRootSet: MessageType<RetainedRootSet> =
   )
 
 /**
- * ReplayPayloads is the block the replay payloads root holds: the payload
- * roots of the operations above the checkpoint that no World reaches, which
- * a restart's replay reads again. Its outgoing refs are the payloads.
+ * HeldRoots is a block that holds several roots under one named root, such
+ * as the payloads above the checkpoint, a backfill copy or a fence's live
+ * roots. Its outgoing refs are the roots.
  *
- * @generated from message space.world.ReplayPayloads
+ * @generated from message space.world.HeldRoots
  */
-export interface ReplayPayloads {
+export interface HeldRoots {
   /**
-   * Payloads are the payload roots in replay order.
-   */
-  payloads?: BlockRef[]
-}
-
-export const ReplayPayloads: MessageType<ReplayPayloads> =
-  /* @__PURE__ */ createMessageType<ReplayPayloads>(
-    'space.world.ReplayPayloads',
-    () => [[1, 'payloads', 11, 1, BlockRef.codec]],
-  )
-
-/**
- * BackfillRoots is the block the backfill root holds: the installed World
- * and the retained roots a backfill copied. Its outgoing refs are the roots.
- *
- * @generated from message space.world.BackfillRoots
- */
-export interface BackfillRoots {
-  /**
-   * Roots are the copied roots.
+   * Roots are the held roots, in the order the holder gave them.
    */
   roots?: BlockRef[]
 }
 
-export const BackfillRoots: MessageType<BackfillRoots> =
-  /* @__PURE__ */ createMessageType<BackfillRoots>(
-    'space.world.BackfillRoots',
-    () => [[1, 'roots', 11, 1, BlockRef.codec]],
+export const HeldRoots: MessageType<HeldRoots> =
+  /* @__PURE__ */ createMessageType<HeldRoots>('space.world.HeldRoots', () => [
+    [1, 'roots', 11, 1, BlockRef.codec],
+  ])
+
+/**
+ * ReplaySpan is the block a Space engine before the adapter held under its
+ * replay-span root: the Worlds after the replayed operations above the
+ * checkpoint and their payloads, in a chain. The adapter writes none; the
+ * child list repair of a Volume written before it reads them.
+ *
+ * @generated from message space.world.ReplaySpan
+ */
+export interface ReplaySpan {
+  /**
+   * Worlds are the World root blocks in replay order.
+   */
+  worlds?: BlockRef[]
+  /**
+   * Payloads are the operation payload roots in replay order.
+   */
+  payloads?: BlockRef[]
+  /**
+   * Prev is the span block holding the earlier operations, or empty.
+   */
+  prev?: BlockRef
+}
+
+export const ReplaySpan: MessageType<ReplaySpan> =
+  /* @__PURE__ */ createMessageType<ReplaySpan>(
+    'space.world.ReplaySpan',
+    () => [
+      [1, 'worlds', 11, 1, BlockRef.codec],
+      [2, 'payloads', 11, 1, BlockRef.codec],
+      [3, 'prev', 11, 0, BlockRef.codec],
+    ],
   )
 
 /**

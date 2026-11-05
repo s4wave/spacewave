@@ -666,45 +666,65 @@ func (x *RetainedRootSet) GetRoots() []*RetainedRoot {
 	return nil
 }
 
-// ReplayPayloads is the block the replay payloads root holds: the payload
-// roots of the operations above the checkpoint that no World reaches, which
-// a restart's replay reads again. Its outgoing refs are the payloads.
-type ReplayPayloads struct {
+// HeldRoots is a block that holds several roots under one named root, such
+// as the payloads above the checkpoint, a backfill copy or a fence's live
+// roots. Its outgoing refs are the roots.
+type HeldRoots struct {
 	unknownFields []byte
-	// Payloads are the payload roots in replay order.
-	Payloads []*block.BlockRef `protobuf:"bytes,1,rep,name=payloads,proto3" json:"payloads,omitempty"`
+	// Roots are the held roots, in the order the holder gave them.
+	Roots []*block.BlockRef `protobuf:"bytes,1,rep,name=roots,proto3" json:"roots,omitempty"`
 }
 
-func (x *ReplayPayloads) Reset() {
-	*x = ReplayPayloads{}
+func (x *HeldRoots) Reset() {
+	*x = HeldRoots{}
 }
 
-func (*ReplayPayloads) ProtoMessage() {}
+func (*HeldRoots) ProtoMessage() {}
 
-func (x *ReplayPayloads) GetPayloads() []*block.BlockRef {
+func (x *HeldRoots) GetRoots() []*block.BlockRef {
+	if x != nil {
+		return x.Roots
+	}
+	return nil
+}
+
+// ReplaySpan is the block a Space engine before the adapter held under its
+// replay-span root: the Worlds after the replayed operations above the
+// checkpoint and their payloads, in a chain. The adapter writes none; the
+// child list repair of a Volume written before it reads them.
+type ReplaySpan struct {
+	unknownFields []byte
+	// Worlds are the World root blocks in replay order.
+	Worlds []*block.BlockRef `protobuf:"bytes,1,rep,name=worlds,proto3" json:"worlds,omitempty"`
+	// Payloads are the operation payload roots in replay order.
+	Payloads []*block.BlockRef `protobuf:"bytes,2,rep,name=payloads,proto3" json:"payloads,omitempty"`
+	// Prev is the span block holding the earlier operations, or empty.
+	Prev *block.BlockRef `protobuf:"bytes,3,opt,name=prev,proto3" json:"prev,omitempty"`
+}
+
+func (x *ReplaySpan) Reset() {
+	*x = ReplaySpan{}
+}
+
+func (*ReplaySpan) ProtoMessage() {}
+
+func (x *ReplaySpan) GetWorlds() []*block.BlockRef {
+	if x != nil {
+		return x.Worlds
+	}
+	return nil
+}
+
+func (x *ReplaySpan) GetPayloads() []*block.BlockRef {
 	if x != nil {
 		return x.Payloads
 	}
 	return nil
 }
 
-// BackfillRoots is the block the backfill root holds: the installed World
-// and the retained roots a backfill copied. Its outgoing refs are the roots.
-type BackfillRoots struct {
-	unknownFields []byte
-	// Roots are the copied roots.
-	Roots []*block.BlockRef `protobuf:"bytes,1,rep,name=roots,proto3" json:"roots,omitempty"`
-}
-
-func (x *BackfillRoots) Reset() {
-	*x = BackfillRoots{}
-}
-
-func (*BackfillRoots) ProtoMessage() {}
-
-func (x *BackfillRoots) GetRoots() []*block.BlockRef {
+func (x *ReplaySpan) GetPrev() *block.BlockRef {
 	if x != nil {
-		return x.Roots
+		return x.Prev
 	}
 	return nil
 }
@@ -1274,27 +1294,11 @@ func (m *RetainedRootSet) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (m *ReplayPayloads) CloneVT() *ReplayPayloads {
+func (m *HeldRoots) CloneVT() *HeldRoots {
 	if m == nil {
-		return (*ReplayPayloads)(nil)
+		return (*HeldRoots)(nil)
 	}
-	r := new(ReplayPayloads)
-	r.Payloads = protobuf_go_lite.CloneVTSlice(m.Payloads)
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *ReplayPayloads) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (m *BackfillRoots) CloneVT() *BackfillRoots {
-	if m == nil {
-		return (*BackfillRoots)(nil)
-	}
-	r := new(BackfillRoots)
+	r := new(HeldRoots)
 	r.Roots = protobuf_go_lite.CloneVTSlice(m.Roots)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -1302,7 +1306,25 @@ func (m *BackfillRoots) CloneVT() *BackfillRoots {
 	return r
 }
 
-func (m *BackfillRoots) CloneMessageVT() protobuf_go_lite.CloneMessage {
+func (m *HeldRoots) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReplaySpan) CloneVT() *ReplaySpan {
+	if m == nil {
+		return (*ReplaySpan)(nil)
+	}
+	r := new(ReplaySpan)
+	r.Worlds = protobuf_go_lite.CloneVTSlice(m.Worlds)
+	r.Payloads = protobuf_go_lite.CloneVTSlice(m.Payloads)
+	r.Prev = protobuf_go_lite.CloneVTValue(m.Prev)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReplaySpan) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -1884,27 +1906,7 @@ func (this *RetainedRootSet) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
-func (this *ReplayPayloads) EqualVT(that *ReplayPayloads) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if !protobuf_go_lite.EqualVTSliceImplicit(this.Payloads, that.Payloads, func() *block.BlockRef { return &block.BlockRef{} }) {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *ReplayPayloads) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*ReplayPayloads)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-func (this *BackfillRoots) EqualVT(that *BackfillRoots) bool {
+func (this *HeldRoots) EqualVT(that *HeldRoots) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
@@ -1916,8 +1918,34 @@ func (this *BackfillRoots) EqualVT(that *BackfillRoots) bool {
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *BackfillRoots) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*BackfillRoots)
+func (this *HeldRoots) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*HeldRoots)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReplaySpan) EqualVT(that *ReplaySpan) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Worlds, that.Worlds, func() *block.BlockRef { return &block.BlockRef{} }) {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Payloads, that.Payloads, func() *block.BlockRef { return &block.BlockRef{} }) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Prev, that.Prev) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReplaySpan) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReplaySpan)
 	if !ok {
 		return false
 	}
@@ -3187,71 +3215,8 @@ func (x *RetainedRootSet) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the ReplayPayloads message to JSON.
-func (x *ReplayPayloads) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if len(x.Payloads) > 0 || s.HasField("payloads") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("payloads")
-		s.WriteArrayStart()
-		var wroteElement bool
-		for _, element := range x.Payloads {
-			s.WriteMoreIf(&wroteElement)
-			element.MarshalProtoJSON(s.WithField("payloads"))
-		}
-		s.WriteArrayEnd()
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the ReplayPayloads to JSON.
-func (x *ReplayPayloads) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the ReplayPayloads message from JSON.
-func (x *ReplayPayloads) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "payloads":
-			s.AddField("payloads")
-			if s.ReadNil() {
-				x.Payloads = nil
-				return
-			}
-			s.ReadArray(func() {
-				if s.ReadNil() {
-					x.Payloads = append(x.Payloads, nil)
-					return
-				}
-				v := &block.BlockRef{}
-				v.UnmarshalProtoJSON(s.WithField("payloads", false))
-				if s.Err() != nil {
-					return
-				}
-				x.Payloads = append(x.Payloads, v)
-			})
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the ReplayPayloads from JSON.
-func (x *ReplayPayloads) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the BackfillRoots message to JSON.
-func (x *BackfillRoots) MarshalProtoJSON(s *json.MarshalState) {
+// MarshalProtoJSON marshals the HeldRoots message to JSON.
+func (x *HeldRoots) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
 		s.WriteNil()
 		return
@@ -3272,13 +3237,13 @@ func (x *BackfillRoots) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteObjectEnd()
 }
 
-// MarshalJSON marshals the BackfillRoots to JSON.
-func (x *BackfillRoots) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the HeldRoots to JSON.
+func (x *HeldRoots) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the BackfillRoots message from JSON.
-func (x *BackfillRoots) UnmarshalProtoJSON(s *json.UnmarshalState) {
+// UnmarshalProtoJSON unmarshals the HeldRoots message from JSON.
+func (x *HeldRoots) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	if s.ReadNil() {
 		return
 	}
@@ -3308,8 +3273,112 @@ func (x *BackfillRoots) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	})
 }
 
-// UnmarshalJSON unmarshals the BackfillRoots from JSON.
-func (x *BackfillRoots) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the HeldRoots from JSON.
+func (x *HeldRoots) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReplaySpan message to JSON.
+func (x *ReplaySpan) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Worlds) > 0 || s.HasField("worlds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("worlds")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Worlds {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("worlds"))
+		}
+		s.WriteArrayEnd()
+	}
+	if len(x.Payloads) > 0 || s.HasField("payloads") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("payloads")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Payloads {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("payloads"))
+		}
+		s.WriteArrayEnd()
+	}
+	if x.Prev != nil || s.HasField("prev") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("prev")
+		x.Prev.MarshalProtoJSON(s.WithField("prev"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReplaySpan to JSON.
+func (x *ReplaySpan) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReplaySpan message from JSON.
+func (x *ReplaySpan) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "worlds":
+			s.AddField("worlds")
+			if s.ReadNil() {
+				x.Worlds = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Worlds = append(x.Worlds, nil)
+					return
+				}
+				v := &block.BlockRef{}
+				v.UnmarshalProtoJSON(s.WithField("worlds", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Worlds = append(x.Worlds, v)
+			})
+		case "payloads":
+			s.AddField("payloads")
+			if s.ReadNil() {
+				x.Payloads = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Payloads = append(x.Payloads, nil)
+					return
+				}
+				v := &block.BlockRef{}
+				v.UnmarshalProtoJSON(s.WithField("payloads", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Payloads = append(x.Payloads, v)
+			})
+		case "prev":
+			if s.ReadNil() {
+				x.Prev = nil
+				return
+			}
+			x.Prev = &block.BlockRef{}
+			x.Prev.UnmarshalProtoJSON(s.WithField("prev", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReplaySpan from JSON.
+func (x *ReplaySpan) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -4581,7 +4650,7 @@ func (m *RetainedRootSet) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *ReplayPayloads) MarshalVT() (dAtA []byte, err error) {
+func (m *HeldRoots) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -4594,56 +4663,12 @@ func (m *ReplayPayloads) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *ReplayPayloads) MarshalToVT(dAtA []byte) (int, error) {
+func (m *HeldRoots) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *ReplayPayloads) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
-	}
-	if len(m.Payloads) > 0 {
-		for iNdEx := len(m.Payloads) - 1; iNdEx >= 0; iNdEx-- {
-			size, err := m.Payloads[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0xa
-		}
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *BackfillRoots) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *BackfillRoots) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *BackfillRoots) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *HeldRoots) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -4657,6 +4682,72 @@ func (m *BackfillRoots) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if len(m.Roots) > 0 {
 		for iNdEx := len(m.Roots) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.Roots[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReplaySpan) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReplaySpan) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReplaySpan) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Prev != nil {
+		size, err := m.Prev.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Payloads) > 0 {
+		for iNdEx := len(m.Payloads) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Payloads[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.Worlds) > 0 {
+		for iNdEx := len(m.Worlds) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Worlds[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
 			if err != nil {
 				return 0, err
 			}
@@ -5238,21 +5329,7 @@ func (m *RetainedRootSet) SizeVT() (n int) {
 	return n
 }
 
-func (m *ReplayPayloads) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	for _, e := range m.Payloads {
-		l = e.SizeVT()
-		n += protobuf_go_lite.SizeMessage(1, l)
-	}
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *BackfillRoots) SizeVT() (n int) {
+func (m *HeldRoots) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -5260,6 +5337,28 @@ func (m *BackfillRoots) SizeVT() (n int) {
 	_ = l
 	for _, e := range m.Roots {
 		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReplaySpan) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	for _, e := range m.Worlds {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	for _, e := range m.Payloads {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.Prev != nil {
+		l = m.Prev.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += len(m.unknownFields)
@@ -5764,31 +5863,9 @@ func (x *RetainedRootSet) String() string {
 	return x.MarshalProtoText()
 }
 
-func (x *ReplayPayloads) MarshalProtoText() string {
+func (x *HeldRoots) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
-	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ReplayPayloads")
-	if len(x.Payloads) > 0 {
-		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "payloads")
-		for i, v := range x.Payloads {
-			protobuf_go_lite.TextWriteListSeparator(&sb, i)
-			if v == nil {
-				protobuf_go_lite.TextWriteTextMarshaler(&sb, &block.BlockRef{})
-			} else {
-				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
-			}
-		}
-		protobuf_go_lite.TextWriteListEnd(&sb)
-	}
-	return protobuf_go_lite.TextFinishMessage(&sb)
-}
-
-func (x *ReplayPayloads) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *BackfillRoots) MarshalProtoText() string {
-	var sb protobuf_go_lite.TextBuilder
-	initialLen := protobuf_go_lite.TextStartMessage(&sb, "BackfillRoots")
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "HeldRoots")
 	if len(x.Roots) > 0 {
 		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "roots")
 		for i, v := range x.Roots {
@@ -5804,7 +5881,45 @@ func (x *BackfillRoots) MarshalProtoText() string {
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
-func (x *BackfillRoots) String() string {
+func (x *HeldRoots) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReplaySpan) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ReplaySpan")
+	if len(x.Worlds) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "worlds")
+		for i, v := range x.Worlds {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &block.BlockRef{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if len(x.Payloads) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "payloads")
+		for i, v := range x.Payloads {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &block.BlockRef{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.Prev != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "prev")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Prev)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReplaySpan) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -7221,7 +7336,7 @@ func (m *RetainedRootSet) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
-func (m *ReplayPayloads) UnmarshalVT(dAtA []byte) error {
+func (m *HeldRoots) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	var err error
@@ -7235,22 +7350,22 @@ func (m *ReplayPayloads) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: ReplayPayloads: wiretype end group for non-group")
+			return fmt.Errorf("proto: HeldRoots: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ReplayPayloads: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: HeldRoots: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Payloads", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Roots", wireType)
 			}
 			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.Payloads = append(m.Payloads, &block.BlockRef{})
-			if err := m.Payloads[len(m.Payloads)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+			m.Roots = append(m.Roots, &block.BlockRef{})
+			if err := m.Roots[len(m.Roots)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -7277,7 +7392,7 @@ func (m *ReplayPayloads) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
-func (m *BackfillRoots) UnmarshalVT(dAtA []byte) error {
+func (m *ReplaySpan) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	var err error
@@ -7291,22 +7406,50 @@ func (m *BackfillRoots) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: BackfillRoots: wiretype end group for non-group")
+			return fmt.Errorf("proto: ReplaySpan: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: BackfillRoots: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: ReplaySpan: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Roots", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Worlds", wireType)
 			}
 			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.Roots = append(m.Roots, &block.BlockRef{})
-			if err := m.Roots[len(m.Roots)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+			m.Worlds = append(m.Worlds, &block.BlockRef{})
+			if err := m.Worlds[len(m.Worlds)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Payloads", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Payloads = append(m.Payloads, &block.BlockRef{})
+			if err := m.Payloads[len(m.Payloads)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Prev", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Prev == nil {
+				m.Prev = &block.BlockRef{}
+			}
+			if err := m.Prev.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

@@ -13,7 +13,7 @@ const (
 	// RootReplayCursor holds the World after the positions the saved replay
 	// cursor records.
 	RootReplayCursor = "replay-cursor"
-	// RootReplayPayloads holds the ReplayPayloads block naming the payload
+	// RootReplayPayloads holds the HeldRoots block naming the payload
 	// roots of the operations above the checkpoint, and of the local
 	// candidates queued after them.
 	RootReplayPayloads = "replay-payloads"

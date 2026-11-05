@@ -1558,7 +1558,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/space/world": {
-      "hash": "fae0e27be8db298d6dcd5757ee8059e78d56cc2a7d3093b9752d580bb2b067a1",
+      "hash": "4d35ccc9c800b2cbfa81f9dd6cef77e4821591b7028b89fdbac8f01b6640919f",
       "generatedFiles": [
         "core/space/world/world.pb.go",
         "core/space/world/world.pb.ts",

@@ -217,7 +217,7 @@ func (b *spaceBackfill) copy(ctx context.Context, roots []*block.BlockRef, reche
 	}
 
 	// Hold them under one block naming every root.
-	entry, err := refsEntry(&BackfillRoots{Roots: roots}, roots)
+	entry, err := refsEntry(&HeldRoots{Roots: roots}, roots)
 	if err != nil {
 		return 0, err
 	}
