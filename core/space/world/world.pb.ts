@@ -181,6 +181,17 @@ export interface Config {
    * Verbose logs every operation's outcome.
    */
   verbose?: boolean
+  /**
+   * ReaderPinDelay is how long a replaced World head a reader still holds
+   * waits before the engine pins it, as a duration string. It must stay
+   * below the Volume collector's grace. Empty uses the engine's default.
+   */
+  readerPinDelay?: string
+  /**
+   * MaxPendingBytes bounds the World pages the adapter keeps in memory
+   * before it stores them. Zero uses the adapter's default.
+   */
+  maxPendingBytes?: bigint
 }
 
 export const Config: MessageType<Config> =
@@ -190,6 +201,8 @@ export const Config: MessageType<Config> =
     [3, 'init_world_op', 11, 0, InitWorldOp.codec],
     [4, 'disable_lookup', 8],
     [7, 'verbose', 8],
+    [8, 'reader_pin_delay', 9],
+    [9, 'max_pending_bytes', 4],
   ])
 
 /**
