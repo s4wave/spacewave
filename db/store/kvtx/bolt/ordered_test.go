@@ -129,3 +129,45 @@ func TestStoreCloseFlushesOrderedCommits(t *testing.T) {
 	}
 	checkPending(t, s, false)
 }
+
+// TestBackgroundWriterYields holds a write, queues a background writer and
+// then a foreground one, and checks the foreground writer takes the next
+// turn, so a player's write never queues behind background work that
+// arrived first.
+func TestBackgroundWriterYields(t *testing.T) {
+	// Hold the writer turn.
+	ctx := context.Background()
+	store := openOrderedTestStore(t)
+	held, err := store.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Queue a background writer, then a foreground one, each recording its
+	// turn.
+	order := make(chan string, 2)
+	write := func(ctx context.Context, name string) {
+		tx, err := store.NewTransaction(ctx, true)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		order <- name
+		tx.Discard()
+	}
+	go write(kvtx.WithBackgroundWriteContext(ctx), "background")
+	for !store.writers.Waiting(writerBackground) {
+		time.Sleep(time.Millisecond)
+	}
+	go write(ctx, "foreground")
+	for !store.writers.Waiting(writerForeground) {
+		time.Sleep(time.Millisecond)
+	}
+
+	// Release the turn: the foreground writer goes first.
+	held.Discard()
+	if first := <-order; first != "foreground" {
+		t.Fatalf("%s writer went first, want the foreground one", first)
+	}
+	<-order
+}
