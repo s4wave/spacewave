@@ -70,7 +70,7 @@ func writeForkBufferTestBlock(
 func TestForkBlockTransactionBuffersNestedWritesUntilSync(t *testing.T) {
 	// Open a retirement engine and record its write store.
 	ctx := t.Context()
-	engine := newRetirementTestEngine(t, ctx)
+	engine := newRetirementTestEngine(t, ctx, nil)
 	recording := &forkBufferRecordingStore{StoreOps: engine.writeBlockStore}
 	engine.writeBlockStore = recording
 
@@ -126,7 +126,7 @@ func TestForkBlockTransactionBuffersNestedWritesUntilSync(t *testing.T) {
 func TestForkBlockTransactionDiscardDropsNestedWrites(t *testing.T) {
 	// Open a retirement engine and record its write store.
 	ctx := t.Context()
-	engine := newRetirementTestEngine(t, ctx)
+	engine := newRetirementTestEngine(t, ctx, nil)
 	recording := &forkBufferRecordingStore{StoreOps: engine.writeBlockStore}
 	engine.writeBlockStore = recording
 
@@ -151,7 +151,7 @@ func TestForkBlockTransactionDiscardDropsNestedWrites(t *testing.T) {
 func TestForkBlockTransactionFlushWritesWithoutSync(t *testing.T) {
 	// Open a retirement engine and record its write store.
 	ctx := t.Context()
-	engine := newRetirementTestEngine(t, ctx)
+	engine := newRetirementTestEngine(t, ctx, nil)
 	recording := &forkBufferRecordingStore{StoreOps: engine.writeBlockStore}
 	engine.writeBlockStore = recording
 

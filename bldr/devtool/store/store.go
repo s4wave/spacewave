@@ -14,10 +14,12 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/pkg/errors"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
+	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/volume"
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/s4wave/spacewave/db/world"
@@ -31,11 +33,11 @@ const (
 	FileName = "devtool.s4wave"
 	// BucketID is the bucket that holds the World's blocks.
 	BucketID = "bldr/devtool"
-	// ObjectStoreID is the object store that holds the World head.
+	// ObjectStoreID is the object store an older build kept the World head in.
 	ObjectStoreID = "bldr/devtool"
 	// PluginHostObjectKey is the plugin host object the manifests link from.
 	PluginHostObjectKey = "devtool"
-	// headKey is the object store key of the World head state.
+	// headKey is the object store key an older build kept the head under.
 	headKey = "world-head"
 )
 
@@ -69,8 +71,8 @@ func OpenVolumeFile(ctx context.Context, le *logrus.Entry, path string, create b
 
 // OpenWorld opens the devtool World engine over vol. With create it writes an
 // empty World with the plugin host's manifest store; otherwise it reads the
-// stored head and rejects an empty World. Each commit stores the new head in
-// the volume. The caller closes the engine.
+// stored head and rejects an empty World. The World's head is a root of vol, and each commit swaps it with the commit's
+// blocks in one transaction. The caller closes the engine.
 func OpenWorld(ctx context.Context, le *logrus.Entry, vol volume.Volume, create bool) (*world_block.Engine, error) {
 	// Register the gzip step and build the World transform config.
 	sfs := block_transform.NewStepFactorySet()
@@ -80,49 +82,26 @@ func OpenWorld(ctx context.Context, le *logrus.Entry, vol volume.Volume, create 
 		return nil, errors.Wrap(err, "build transform config")
 	}
 
-	// Choose the head reference: a new one, or the stored one.
-	headRef := &bucket.ObjectRef{BucketId: BucketID, TransformConf: transformConf}
-	if !create {
-		headRef, err = loadHeadRef(ctx, vol)
-		if err != nil {
-			return nil, errors.Wrap(err, "load head ref")
-		}
-		if headRef.GetRootRef().GetEmpty() {
-			return nil, errors.New("devtool world is empty")
-		}
-		if headRef.GetBucketId() == "" {
-			headRef.BucketId = BucketID
-		}
-	}
-
-	// Build the block transformer and the bucket cursor over the head.
+	// Build the block transformer and the bucket cursor, and the authority
+	// over the World's root.
 	xfrm, err := block_transform.NewTransformer(controller.ConstructOpts{Logger: le}, sfs, transformConf)
 	if err != nil {
 		return nil, errors.Wrap(err, "build block transformer")
 	}
+	headRef := &bucket.ObjectRef{BucketId: BucketID, TransformConf: transformConf}
 	cursor := bucket_lookup.NewCursor(ctx, nil, le, sfs, vol, xfrm, headRef, &bucket.BucketOpArgs{BucketId: BucketID}, transformConf)
+	authority := world_block.NewLocalAuthority(le, cursor, world_block.WorldRootName(BucketID), nil, coord.Scope{})
 
-	// Write the initial empty World for a new volume.
-	if create {
-		btx, bcs := cursor.BuildTransaction(nil)
-		bcs.ClearAllRefs()
-		bcs.SetBlock(world_block.NewWorld(false), true)
-		rootRef, _, err := btx.Write(ctx, true)
-		if err != nil {
-			return nil, errors.Wrap(err, "write initial world")
-		}
-		headRef.RootRef = rootRef
-		cursor.SetRootRef(rootRef)
-		if err := writeHeadRef(ctx, vol, headRef); err != nil {
-			return nil, errors.Wrap(err, "write head ref")
-		}
+	// Read the head, adopting the head record an older build wrote.
+	head, err := openHead(ctx, vol, authority, cursor, create)
+	if err != nil {
+		cursor.Release()
+		return nil, err
 	}
 
-	// Build the World engine that stores each new head in the volume.
-	commitFn := func(ctx context.Context, _ *bucket.ObjectRef, ref *bucket.ObjectRef) error {
-		return writeHeadRef(ctx, vol, ref)
-	}
-	eng, err := world_block.NewEngine(ctx, le, cursor, world.NewSchema(bldr_manifest_world.WorldTypes).LookupOp, commitFn, false)
+	// Build the World engine at the head.
+	cursor.SetRootRef(head.Root)
+	eng, err := world_block.NewEngine(ctx, le, cursor, world.NewSchema(bldr_manifest_world.WorldTypes).LookupOp, authority, false)
 	if err != nil {
 		return nil, errors.Wrap(err, "build world engine")
 	}
@@ -138,8 +117,43 @@ func OpenWorld(ctx context.Context, le *logrus.Entry, vol volume.Volume, create 
 	return eng, nil
 }
 
-// loadHeadRef reads the World head ref from the volume's object store.
-func loadHeadRef(ctx context.Context, vol volume.Volume) (*bucket.ObjectRef, error) {
+// openHead returns the World's head. With create it writes an empty World
+// when the root is free; otherwise a free root adopts the head record an older
+// build kept in the object store, deleting the record, or fails.
+func openHead(ctx context.Context, vol volume.Volume, authority *world_block.LocalAuthority, cursor *bucket_lookup.Cursor, create bool) (world.Head, error) {
+	// Read the head the root holds.
+	head, err := authority.Head(ctx)
+	if err != nil || !head.Root.GetEmpty() {
+		return head, err
+	}
+
+	// Adopt the older build's head, or write a new World.
+	root, err := loadLegacyHead(ctx, vol)
+	if err != nil {
+		return world.Head{}, err
+	}
+	if root.GetEmpty() {
+		if !create {
+			return world.Head{}, errors.New("devtool world is empty")
+		}
+		btx, bcs := cursor.BuildTransaction(nil)
+		bcs.ClearAllRefs()
+		bcs.SetBlock(world_block.NewWorld(false), true)
+		if root, _, err = btx.Write(ctx, true); err != nil {
+			return world.Head{}, errors.Wrap(err, "write initial world")
+		}
+	}
+	if head, err = authority.Install(ctx, nil, root); err != nil {
+		return world.Head{}, errors.Wrap(err, "install world head")
+	}
+
+	// Delete the older build's record.
+	return head, deleteLegacyHead(ctx, vol)
+}
+
+// loadLegacyHead reads the World root an older build recorded in the
+// volume's object store, or nil.
+func loadLegacyHead(ctx context.Context, vol volume.Volume) (*block.BlockRef, error) {
 	// Open a read transaction on the engine's object store.
 	store, rel, err := vol.AccessObjectStore(ctx, ObjectStoreID, nil)
 	if err != nil {
@@ -152,25 +166,20 @@ func loadHeadRef(ctx context.Context, vol volume.Volume) (*bucket.ObjectRef, err
 	}
 	defer tx.Discard()
 
-	// Read the stored head state.
+	// Read and decode the head record.
 	data, found, err := tx.Get(ctx, []byte(headKey))
-	if err != nil {
+	if err != nil || !found {
 		return nil, errors.Wrap(err, "read world-head")
 	}
-	if !found {
-		return nil, errors.Errorf("world-head not found in object store %s", ObjectStoreID)
-	}
-
-	// Decode the head reference.
 	state := &world_block_engine.HeadState{}
 	if err := state.UnmarshalVT(data); err != nil {
 		return nil, errors.Wrap(err, "unmarshal head state")
 	}
-	return state.GetHeadRef(), nil
+	return state.GetHeadRef().GetRootRef(), nil
 }
 
-// writeHeadRef stores ref as the World head in the volume's object store.
-func writeHeadRef(ctx context.Context, vol volume.Volume, ref *bucket.ObjectRef) error {
+// deleteLegacyHead deletes the head record an older build kept.
+func deleteLegacyHead(ctx context.Context, vol volume.Volume) error {
 	// Open a write transaction on the engine's object store.
 	store, rel, err := vol.AccessObjectStore(ctx, ObjectStoreID, nil)
 	if err != nil {
@@ -183,14 +192,9 @@ func writeHeadRef(ctx context.Context, vol volume.Volume, ref *bucket.ObjectRef)
 	}
 	defer tx.Discard()
 
-	// Store the encoded head state.
-	state := &world_block_engine.HeadState{HeadRef: ref}
-	data, err := state.MarshalVT()
-	if err != nil {
-		return errors.Wrap(err, "marshal head state")
-	}
-	if err := tx.Set(ctx, []byte(headKey), data); err != nil {
-		return errors.Wrap(err, "write world-head")
+	// Delete the record.
+	if err := tx.Delete(ctx, []byte(headKey)); err != nil {
+		return errors.Wrap(err, "delete world-head")
 	}
 	return tx.Commit(ctx)
 }

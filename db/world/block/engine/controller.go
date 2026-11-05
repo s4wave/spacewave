@@ -138,20 +138,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}()
 	ctx = rctx
 
-	// Use the configured root until durable metadata supplies a newer head.
-	var headRef *bucket.ObjectRef
-	initRef := c.conf.GetInitHeadRef()
-	if initRef != nil {
-		headRef = initRef.Clone()
-	}
-
-	// Resolve the configured state store within its Volume.
-	stateStoreID := c.conf.GetObjectStoreId()
-	stateStoreVol := c.conf.GetVolumeId()
-	if stateStoreVol == "" {
-		le.Debug("no volume id set, using any available volume")
-	}
-
 	// Release storage on initialization failure until retainEngine accepts it.
 	var stateStoreRef directive.Reference
 	defer func() {
@@ -160,56 +146,35 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 	}()
 
-	// Resolve the persisted head store and its coordination scope.
+	// Resolve the object store an older engine kept the head in, and the
+	// coordinator of its Volume.
 	var stateStore object.ObjectStore
-	var stateCoordinator coord.Coordinator
-	var stateCoordScope coord.Scope
-	if stateStoreID != "" {
-		storeVal, _, storeRef, err := volume.ExBuildObjectStoreAPI(ctx, c.bus, false, stateStoreID, stateStoreVol, nil)
+	var stateStoreID string
+	var coordinator coord.Coordinator
+	scopeVolumeID := c.conf.GetVolumeId()
+	if id := c.conf.GetObjectStoreId(); id != "" {
+		storeVal, _, storeRef, err := volume.ExBuildObjectStoreAPI(ctx, c.bus, false, id, c.conf.GetVolumeId(), nil)
 		if err != nil {
 			return err
 		}
 		stateStoreRef = storeRef
 		stateStore = storeVal.GetObjectStore()
-		stateVolume := storeVal.GetVolume()
-		stateCoordScope = coord.Scope{
-			VolumeID:      storeVal.GetVolumeId(),
-			ObjectStoreID: storeVal.GetID(),
-			ParticipantID: c.engineID,
-		}
-		stateCoordinator = stateVolume
-	}
-	var persistedHeadRef *bucket.ObjectRef
-
-	// Prefer the persisted head within the configured metadata prefix.
-	var headState *HeadState
-	if stateStore != nil {
-		// Scope durable head metadata to the configured prefix.
 		if prefix := c.conf.GetObjectStorePrefix(); len(prefix) != 0 {
 			stateStore = object.NewPrefixer(stateStore, []byte(prefix))
 		}
-
-		// Load the persisted head before constructing World state.
-		var headStateFound bool
-		var err error
-		headState, headStateFound, err = c.loadHeadState(ctx, stateStore)
-		if err != nil {
-			return err
-		}
-		if headStateFound {
-			headRef = headState.GetHeadRef()
-			if headRef != nil {
-				persistedHeadRef = headRef.Clone()
-			}
-		}
-	} else {
-		le.Debug("state store is not configured, changes will not be persisted")
-	}
-	if headRef == nil {
-		headRef = &bucket.ObjectRef{}
+		stateStoreID = storeVal.GetID()
+		coordinator = storeVal.GetVolume()
+		scopeVolumeID = storeVal.GetVolumeId()
 	}
 
-	// Bind the selected head to the configured bucket.
+	// Bind the configured bucket. A World with no object store and a
+	// configured root is read-only.
+	initRef := c.conf.GetInitHeadRef()
+	readOnly := isReadOnlyInitHead(stateStore, initRef)
+	headRef := &bucket.ObjectRef{}
+	if initRef != nil {
+		headRef = initRef.Clone()
+	}
 	if confBucketID := c.conf.GetBucketId(); confBucketID != "" {
 		headRef.BucketId = confBucketID
 	}
@@ -217,204 +182,44 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return errors.New("head ref bucket id required but was unset")
 	}
 
-	// Permit one explicitly configured recovery from missing durable blocks.
-	var recoveryBaseRef *bucket.ObjectRef
-	var recoveredMissingPersistedHead bool
-	recoverMissingPersistedHead := func(err error) bool {
-		// Require a missing persisted World head and an unused recovery attempt.
-		if err == nil ||
-			!errors.Is(err, block.ErrNotFound) ||
-			persistedHeadRef == nil ||
-			recoveredMissingPersistedHead ||
-			!c.conf.GetRecoverMissingPersistedHead() {
-			return false
-		}
-
-		// Select the configured replacement while retaining the CAS base.
-		recoveredMissingPersistedHead = true
-		recoveryBaseRef = persistedHeadRef
-		if initRef == nil {
-			headRef = &bucket.ObjectRef{}
-		} else {
-			headRef = initRef.Clone()
-		}
-		if confBucketID := c.conf.GetBucketId(); confBucketID != "" {
-			headRef.BucketId = confBucketID
-		}
-		le.WithError(err).Warn("persisted world head is missing blocks; rebuilding world")
-		return true
-	}
-
-	// Build the World engine from the selected bucket root.
-buildWorldEngine:
-
-	// Resolve and validate the selected root before publishing an engine.
+	// Resolve the bucket's cursor.
 	le.Debug("building world engine")
-	cursor, err := bucket_lookup.BuildCursor(
-		ctx,
-		c.bus,
-		le,
-		c.sfs,
-		c.conf.GetVolumeId(),
-		headRef,
-		nil,
-	)
+	cursor, err := bucket_lookup.BuildCursor(ctx, c.bus, le, c.sfs, c.conf.GetVolumeId(), headRef, nil)
 	if isReadOnlyInitHeadNotFound(err, stateStore, initRef) {
 		c.engineCtr.SetValue(&engineResult{err: err})
 		le.WithError(err).Warn("read-only world engine init head is missing")
 		return nil
 	}
 	if err != nil {
-		if recoverMissingPersistedHead(err) {
-			goto buildWorldEngine
-		}
 		return err
 	}
 	cursor.SetDecodedBlockCache(c.decodedBlocks)
-	if err := validateReadOnlyInitHead(ctx, cursor, stateStore, initRef); err != nil {
+
+	// Open a read-only World at its configured root, or a writable World at
+	// the head its authority holds.
+	var lookupWorldOp world.LookupOp
+	if !c.conf.GetDisableLookup() {
+		lookupWorldOp = world.BuildLookupWorldOpFunc(c.bus, le, c.engineID)
+	}
+	var engine *world_block.Engine
+	if readOnly {
+		engine, err = c.openReadOnly(ctx, cursor, initRef, lookupWorldOp)
+	} else {
+		engine, err = c.openWritable(ctx, cursor, stateStore, stateStoreID, coordinator, scopeVolumeID, lookupWorldOp)
+	}
+	if isReadOnlyInitHeadNotFound(err, stateStore, initRef) {
 		c.engineCtr.SetValue(&engineResult{err: err})
 		le.WithError(err).Warn("read-only world engine init head is missing")
 		cursor.Release()
 		return nil
 	}
-
-	// Persist a new empty World before enabling coordinated readers.
-	if headRef.GetRootRef().GetEmpty() {
-		le.Debug("no initial head reference provided, building new world")
-		btx, bcs := cursor.BuildTransaction(nil)
-		worldRoot := world_block.NewWorld(c.conf.GetDisableChangelog())
-		worldRoot.GraphSettings = c.conf.GetGraphSettings().CloneVT()
-		bcs.ClearAllRefs()
-		bcs.SetBlock(worldRoot, true)
-		nrootRef, _, err := btx.Write(ctx, true)
-		if err != nil {
-			cursor.Release()
-			return err
-		}
-		headRef.RootRef = nrootRef
-		cursor.SetRootRef(nrootRef)
-		if stateStore != nil {
-			if err := c.writeHeadState(ctx, stateStore, recoveryBaseRef, headRef.Clone()); err != nil {
-				cursor.Release()
-				return err
-			}
-			recoveryBaseRef = nil
-		}
-	}
-
-	// Resolve World operations through the configured controller bus.
-	var lookupWorldOp world.LookupOp
-	if !c.conf.GetDisableLookup() {
-		lookupWorldOp = world.BuildLookupWorldOpFunc(c.bus, le, c.engineID)
-	}
-
-	// Report the selected root when verbose diagnostics are enabled.
-	verbose := c.conf.GetVerbose()
-	if verbose {
-		le.
-			WithField("world-root", headRef.MarshalB58()).
-			Debug("initialized root")
-	}
-
-	// Persist each accepted head through the ObjectStore CAS contract.
-	var commitFn world_block.CommitFn = func(ctx context.Context, baseRef, nref *bucket.ObjectRef) error {
-		if verbose {
-			le.
-				WithField("world-root", nref.MarshalB58()).
-				Debug("updated root")
-		}
-		if stateStore != nil {
-			if err := c.writeHeadState(ctx, stateStore, baseRef, nref); err != nil {
-				return err
-			}
-			return block.OverwriteRoots(ctx, cursor.GetBucket(), nil, []block.NamedRoot{{Name: world_block.RetainedRootName(stateCoordScope.ObjectStoreID, c.objectStoreHeadKeyPrefix()), Ref: nref.GetRootRef()}})
-		}
-		return nil
-	}
-
-	// Require durable generations before enabling coordinated transactions.
-	useStateCoordinator := false
-	if stateCoordinator != nil && stateStore != nil {
-		useStateCoordinator = c.coordinatorSupported(ctx, stateCoordinator, stateCoordScope)
-	}
-
-	// Enable single-writer deferred durability: in non-coordinator mode block
-	// writes and the durable head batch until Sync (the clean-shutdown flush
-	// below and explicit consumer fences). Ignored when the write coordinator is
-	// active, which keeps durable-on-write per-commit CAS semantics.
-	engineOpts := []world_block.EngineOption{world_block.WithDeferredDurability()}
-	if useStateCoordinator {
-		engineOpts = append(engineOpts, world_block.WithWriteCoordinator(
-			stateCoordinator,
-			stateCoordScope,
-			c.objectStoreHeadKeyPrefix(),
-			c.refreshDurableHeadRef(stateStore),
-		))
-	}
-
-	// Only fuse blocks and metadata when both resolve to the same atomic volume.
-	// Otherwise retain the existing Sync + validated ObjectStore CAS path.
-	if publisher, ok := cursor.GetBucket().(block.AtomicPublisher); ok &&
-		useStateCoordinator && publisher.SupportsAtomicPublication() &&
-		publisher.AtomicPublicationVolumeID() == stateCoordScope.VolumeID {
-		engineOpts = append(engineOpts, world_block.WithAtomicPublication(publisher,
-			func(baseRef, nref *bucket.ObjectRef) *block.AtomicHeadUpdate {
-				baseRef, nref = baseRef.Clone(), nref.Clone()
-				return &block.AtomicHeadUpdate{
-					ObjectStoreID: stateCoordScope.ObjectStoreID,
-					Key:           c.objectStoreHeadKeyPrefix(),
-					Replace: func(ctx context.Context, data []byte, found bool) ([]byte, error) {
-						return c.replaceHeadState(ctx, data, found, baseRef, nref)
-					},
-				}
-			}))
-	}
-
-	// Construct the engine with its storage and observation policies.
-	engine, err := world_block.NewEngine(
-		ctx,
-		le,
-		cursor,
-		lookupWorldOp,
-		commitFn,
-		c.conf.GetVerbose(),
-		engineOpts...,
-	)
 	if err != nil {
-		if recoverMissingPersistedHead(err) {
-			goto buildWorldEngine
-		}
-		return err
-	}
-
-	// NewEngine validates the replacement root before recovery publishes it.
-	// Publish before GetSeqno can refresh the coordinator's persisted head.
-	if recoveryBaseRef != nil {
-		if err := c.writeHeadState(ctx, stateStore, recoveryBaseRef, headRef.Clone()); err != nil {
-			_ = engine.Close()
-			return err
-		}
-		recoveryBaseRef = nil
-	}
-
-	// Verify the published head is readable before exposing the engine.
-	seqno, err := engine.GetSeqno(ctx)
-	if isReadOnlyInitHeadNotFound(err, stateStore, initRef) {
-		c.engineCtr.SetValue(&engineResult{err: err})
-		le.WithError(err).Warn("read-only world engine init head is missing")
-		_ = engine.Close()
-		return nil
-	}
-	if err != nil {
-		_ = engine.Close()
-		if recoverMissingPersistedHead(err) {
-			goto buildWorldEngine
-		}
+		cursor.Release()
 		return err
 	}
 
 	// Apply the configured changelog setting to an existing World.
-	if !isReadOnlyInitHead(stateStore, initRef) {
+	if !readOnly {
 		if err := engine.SetChangelogDisabled(ctx, c.conf.GetDisableChangelog()); err != nil {
 			_ = engine.Close()
 			return err
@@ -422,6 +227,7 @@ buildWorldEngine:
 	}
 
 	// Retain the engine and its store reference across execution restarts.
+	seqno, _ := engine.GetSeqno(ctx)
 	le.WithField("world-seqno", seqno).Info("world engine ready")
 	var wengine world.Engine = engine
 	if c.conf.GetVerbose() {
@@ -436,7 +242,7 @@ buildWorldEngine:
 	// Move an existing World to the configured graph settings in the
 	// background, alongside writers.
 	var graphSettingsDone chan struct{}
-	if target := c.conf.GetGraphSettings(); len(target.GetIndexes()) != 0 && !isReadOnlyInitHead(stateStore, initRef) {
+	if target := c.conf.GetGraphSettings(); len(target.GetIndexes()) != 0 && !readOnly {
 		graphSettingsDone = make(chan struct{})
 		go func() {
 			defer close(graphSettingsDone)
@@ -445,16 +251,12 @@ buildWorldEngine:
 	}
 
 	// Fence durability when this execution ends, after the settings change
-	// stops.
+	// stops. Controller-lifetime resources remain mounted until Close.
 	<-rctx.Done()
 	le.Debug("shutting down")
 	if graphSettingsDone != nil {
 		<-graphSettingsDone
 	}
-
-	// Clean-shutdown durability flush. In the single-writer path the durable
-	// head advances only at Sync, so a normal shutdown must fence before ending
-	// this execution. Controller-lifetime resources remain mounted until Close.
 	if _, err := engine.Sync(context.WithoutCancel(ctx)); err != nil {
 		le.WithError(err).Warn("world engine shutdown sync failed")
 	}
@@ -463,20 +265,99 @@ buildWorldEngine:
 	return nil
 }
 
-// coordinatorSupported requires durable generation fencing for direct writers.
+// openReadOnly opens the World at its configured root with no authority: its
+// commits stay in memory and are never persisted.
+func (c *Controller) openReadOnly(
+	ctx context.Context,
+	cursor *bucket_lookup.Cursor,
+	initRef *bucket.ObjectRef,
+	lookupWorldOp world.LookupOp,
+) (*world_block.Engine, error) {
+	// Require the configured root to exist in its bucket.
+	if err := validateReadOnlyInitHead(ctx, cursor, nil, initRef); err != nil {
+		return nil, err
+	}
+
+	// Open the engine at the root.
+	return world_block.NewEngine(ctx, c.le, cursor, lookupWorldOp, nil, c.conf.GetVerbose(), world_block.WithDeferredDurability())
+}
+
+// openWritable opens the World at the head its local authority holds under
+// the world root, adopting or creating the head first when the root is free,
+// and replacing a head whose blocks are missing when configured to.
+func (c *Controller) openWritable(
+	ctx context.Context,
+	cursor *bucket_lookup.Cursor,
+	stateStore object.ObjectStore,
+	stateStoreID string,
+	coordinator coord.Coordinator,
+	scopeVolumeID string,
+	lookupWorldOp world.LookupOp,
+) (*world_block.Engine, error) {
+	// A writable World names its head root after its engine.
+	if c.engineID == "" {
+		return nil, world.ErrEmptyEngineID
+	}
+	name := world_block.WorldRootName(c.engineID)
+
+	// Order the writers of every process when the Volume's coordinator can.
+	scope := coord.Scope{VolumeID: scopeVolumeID, ObjectStoreID: name, ParticipantID: c.engineID}
+	if coordinator != nil {
+		supported, err := c.coordinatorSupported(ctx, coordinator, scope)
+		if err != nil {
+			return nil, err
+		}
+		if !supported {
+			coordinator = nil
+		}
+	}
+	authority := world_block.NewLocalAuthority(c.le, cursor, name, coordinator, scope)
+
+	// Read the head, adopting or creating it when the root is free.
+	legacy := legacyHead{store: stateStore, key: c.objectStoreHeadKey(), rootName: retainedRootName(stateStoreID, c.objectStoreHeadKeyPrefix())}
+	head, err := c.openHead(ctx, authority, cursor, legacy)
+	if err != nil {
+		return nil, err
+	}
+
+	// Open the engine at the head, replacing a head with missing blocks once
+	// when configured to.
+	recovered := false
+	for {
+		cursor.SetRootRef(head.Root)
+		engine, err := world_block.NewEngine(ctx, c.le, cursor, lookupWorldOp, authority, c.conf.GetVerbose())
+		if err == nil || recovered || !errors.Is(err, block.ErrNotFound) || !c.conf.GetRecoverMissingPersistedHead() {
+			return engine, err
+		}
+		c.le.WithError(err).Warn("world head is missing blocks; rebuilding world")
+		recovered = true
+		root, err := c.initialRoot(ctx, cursor)
+		if err != nil {
+			return nil, err
+		}
+		if head, err = authority.Install(ctx, head.Root, root); err != nil {
+			return nil, err
+		}
+	}
+}
+
+// coordinatorSupported reports whether the coordinator orders the World's
+// writers with durable generations. A coordinator that reports the scope
+// unsupported answers false; a failed lookup fails the open, which the loader
+// retries, rather than opening a shared World without a lease or a watch.
 func (c *Controller) coordinatorSupported(
 	ctx context.Context,
 	coordinator coord.Coordinator,
 	scope coord.Scope,
-) bool {
+) (bool, error) {
 	capability, err := coordinator.Capability(ctx, scope)
-	if err != nil {
-		if ctx.Err() == nil {
-			c.le.WithError(err).Warn("world coordinator capability lookup failed")
-		}
-		return false
+	if errors.Is(err, coord.ErrUnsupported) {
+		return false, nil
 	}
-	return capability != nil && capability.Supported && capability.Generations
+	if err != nil {
+		return false, errors.Wrap(err, "world coordinator capability")
+	}
+	return capability != nil && capability.Supported && capability.Generations, nil
 }
 
 // HandleDirective asks if the handler can resolve the directive.

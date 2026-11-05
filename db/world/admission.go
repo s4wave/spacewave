@@ -37,8 +37,10 @@ type Admission interface {
 	// at least Seqno.
 	// A candidate that was not accepted returns ErrSuperseded or its
 	// rejection.
-	// The wait ends with the Authority's lifetime, not with ctx: the outcome
-	// is then unknown.
+	// The wait ends with the Authority's lifetime, not with ctx. An error
+	// after Accepted means the candidate's durability is unknown, not that
+	// it failed: the writer reconciles with Authority.Head, where a head at
+	// the candidate's root or past its seqno means it is durable.
 	WaitDurable(ctx context.Context) (uint64, error)
 	// Release drops the admission.
 	// Call it once, after WaitDurable returns, or to abandon the candidate.

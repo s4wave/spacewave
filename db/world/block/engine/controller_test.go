@@ -29,18 +29,23 @@ func TestControllerCoordinatorSupported(t *testing.T) {
 		ParticipantID: "engine",
 	}
 
-	// Require generation support as well as coordinator availability.
-	if !ctrl.coordinatorSupported(ctx, fakeCoordinator{capability: &coord.Capability{Supported: true, Generations: true}}, scope) {
-		t.Fatal("supported coordinator reported false")
-	}
-	if ctrl.coordinatorSupported(ctx, fakeCoordinator{capability: &coord.Capability{Supported: true}}, scope) {
-		t.Fatal("coordinator without generations reported true")
-	}
-	if ctrl.coordinatorSupported(ctx, fakeCoordinator{capability: &coord.Capability{Supported: false}}, scope) {
-		t.Fatal("unsupported coordinator reported true")
-	}
-	if ctrl.coordinatorSupported(ctx, fakeCoordinator{err: coord.ErrUnsupported}, scope) {
-		t.Fatal("errored coordinator reported true")
+	// Require generation support as well as coordinator availability, and
+	// fail on a lookup error other than unsupported.
+	for _, c := range []struct {
+		coord coord.Coordinator
+		want  bool
+		fails bool
+	}{
+		{coord: fakeCoordinator{capability: &coord.Capability{Supported: true, Generations: true}}, want: true},
+		{coord: fakeCoordinator{capability: &coord.Capability{Supported: true}}},
+		{coord: fakeCoordinator{capability: &coord.Capability{Supported: false}}},
+		{coord: fakeCoordinator{err: coord.ErrUnsupported}},
+		{coord: fakeCoordinator{err: errors.New("lookup failed")}, fails: true},
+	} {
+		got, err := ctrl.coordinatorSupported(ctx, c.coord, scope)
+		if got != c.want || (err != nil) != c.fails {
+			t.Fatalf("coordinatorSupported = %v, %v; want %v, failing %v", got, err, c.want, c.fails)
+		}
 	}
 }
 
@@ -193,29 +198,21 @@ func TestControllerRecoversMissingPersistedHead(t *testing.T) {
 		t.Fatalf("recovered world seqno = %d, want 0", seqno)
 	}
 
-	// Read persisted metadata to verify the replacement was committed.
+	// The World root holds the configured replacement, and the old head
+	// record is gone.
 	storeVal, _, storeRef, err := volume.ExBuildObjectStoreAPI(ctx, tb.Bus, false, objectStoreID, tb.Volume.GetID(), nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	t.Cleanup(storeRef.Release)
-	headState, found, err := ctrl.loadHeadState(ctx, storeVal.GetObjectStore())
-	if err != nil {
-		t.Fatal(err.Error())
+	if _, found, err := ctrl.loadHeadState(ctx, storeVal.GetObjectStore(), ctrl.objectStoreHeadKey()); err != nil || found {
+		t.Fatalf("old world head record found=%v err=%v after recovery", found, err)
 	}
-	if !found {
-		t.Fatal("recovered world head was not persisted")
-	}
-
-	// Require the recovered head to select the configured replacement root.
-	recoveredHeadRef := headState.GetHeadRef()
-	if recoveredHeadRef.GetRootRef().GetEmpty() {
-		t.Fatal("recovered world head is empty")
-	}
-	if recoveredHeadRef.GetRootRef().EqualsRef(missingRootRef) {
+	recovered := controllerTestWorldRoot(t, ctx, tb, objectStoreID)
+	if recovered.EqualsRef(missingRootRef) {
 		t.Fatal("recovered world retained the missing root")
 	}
-	if !recoveredHeadRef.GetRootRef().EqualsRef(currentRootRef) {
+	if !recovered.EqualsRef(currentRootRef) {
 		t.Fatal("recovered world did not select the configured current generation")
 	}
 
@@ -235,6 +232,84 @@ func TestControllerRecoversMissingPersistedHead(t *testing.T) {
 		}
 	case <-getCtx.Done():
 		t.Fatalf("Execute did not stop after cancellation: %v", getCtx.Err())
+	}
+}
+
+// TestControllerAdoptsLegacyHead checks that a World an older engine kept
+// under a HeadState record and a retained root opens at the record's head,
+// held by the World root alone: the open moves the head to the World root,
+// releases the retained root and deletes the record, and the World commits.
+func TestControllerAdoptsLegacyHead(t *testing.T) {
+	// Write two Worlds: the record's head, and an older one the retained root
+	// still holds, so the two disagree.
+	ctx := t.Context()
+	le := logrus.NewEntry(logrus.New())
+	tb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(false))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(tb.Release)
+	engineID := "test-world-engine-adopt"
+	recorded := controllerTestWorld(t, ctx, tb, "recorded")
+	retained := controllerTestWorld(t, ctx, tb, "retained")
+
+	// Keep them as the older engine did.
+	writeControllerTestHead(t, ctx, tb, engineID, &bucket.ObjectRef{BucketId: tb.BucketId, RootRef: recorded})
+	cursor, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(cursor.Release)
+	oldName := retainedRootName(engineID, []byte(defaultHeadStateKey))
+	if err := cursor.GetBucket().SetRoots(ctx, nil, []block.NamedRoot{{Name: oldName, Ref: retained}}); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Open the World through the controller.
+	conf := NewConfig(engineID, tb.Volume.GetID(), tb.BucketId, engineID, nil, nil, true)
+	ctrl, err := NewController(le, tb.Bus, conf, transform_all.BuildFactorySet())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(func() { _ = ctrl.Close() })
+	execCtx, execCancel := context.WithCancel(ctx)
+	t.Cleanup(execCancel)
+	go func() { _ = ctrl.Execute(execCtx) }()
+	getCtx, getCancel := context.WithTimeout(ctx, 5*time.Second)
+	t.Cleanup(getCancel)
+	eng, err := ctrl.GetWorldEngine(getCtx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// The record's head is the World root's, and nothing else holds it.
+	if root := controllerTestWorldRoot(t, ctx, tb, engineID); !root.EqualsRef(recorded) {
+		t.Fatalf("World root %v, want the recorded head", root)
+	}
+	if old, err := cursor.GetBucket().GetRoot(ctx, oldName); err != nil || old != nil {
+		t.Fatalf("retained root %v %v survived the adoption", old, err)
+	}
+	storeVal, _, storeRef, err := volume.ExBuildObjectStoreAPI(ctx, tb.Bus, false, engineID, tb.Volume.GetID(), nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(storeRef.Release)
+	if _, found, err := ctrl.loadHeadState(ctx, storeVal.GetObjectStore(), ctrl.objectStoreHeadKey()); err != nil || found {
+		t.Fatalf("head record found=%v err=%v after the adoption", found, err)
+	}
+
+	// The adopted World reads its object and commits through the World root.
+	ws := world.NewEngineWorldState(eng, true)
+	if found, err := ws.HasObject(ctx, "recorded"); err != nil || !found {
+		t.Fatalf("adopted World lost its object: %v %v", found, err)
+	}
+	obj, err := ws.CreateObject(ctx, "after-adoption", nil)
+	world.ReleaseObjectState(obj)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if root := controllerTestWorldRoot(t, ctx, tb, engineID); root.EqualsRef(recorded) {
+		t.Fatal("a commit after the adoption did not move the World root")
 	}
 }
 
@@ -482,6 +557,50 @@ func controllerTestBlockRef(t *testing.T, data string) *block.BlockRef {
 		t.Fatal(err.Error())
 	}
 	return block.NewBlockRef(h)
+}
+
+// controllerTestWorldRoot returns the block the World root of engineID holds
+// in the testbed's bucket.
+func controllerTestWorldRoot(t *testing.T, ctx context.Context, tb *testbed.Testbed, engineID string) *block.BlockRef {
+	// Read the root through a cursor on the bucket.
+	t.Helper()
+	cursor, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer cursor.Release()
+	ref, err := cursor.GetBucket().GetRoot(ctx, world_block.WorldRootName(engineID))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return ref
+}
+
+// controllerTestWorld writes a new World with object key and returns its root.
+func controllerTestWorld(t *testing.T, ctx context.Context, tb *testbed.Testbed, key string) *block.BlockRef {
+	// Open a World state on an empty cursor.
+	t.Helper()
+	cursor, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer cursor.Release()
+	ws, err := world_block.BuildMockWorldState(ctx, tb.Logger, true, cursor, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ws.Discard()
+
+	// Create the object and write the World.
+	obj, err := ws.CreateObject(ctx, key, nil)
+	world.ReleaseObjectState(obj)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := ws.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	return ws.GetRootRef()
 }
 
 // fakeCoordinator reports only the configured capability response.

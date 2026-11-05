@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/coord"
 	coord_inmem "github.com/s4wave/spacewave/db/coord/inmem"
 	"github.com/s4wave/spacewave/db/testbed"
@@ -38,8 +37,17 @@ func TestEngineRootPublicationUnlocksBeforeReadTransactionDrain(t *testing.T) {
 	}
 	defer base.Release()
 
-	// Open the engine on the test root.
-	engine, err := NewEngine(ctx, le, base, world_mock.LookupMockOp, nil, false)
+	// Open the engine on the test root, signaling when a commit reaches its
+	// Authority.
+	commitEntered := make(chan struct{})
+	authority := &hookAuthority{
+		Authority: newTestAuthority(t, le, base, "world:retirement"),
+		admit: func(context.Context, world.Candidate) error {
+			close(commitEntered)
+			return nil
+		},
+	}
+	engine, err := NewEngine(ctx, le, base, world_mock.LookupMockOp, authority, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,15 +84,6 @@ func TestEngineRootPublicationUnlocksBeforeReadTransactionDrain(t *testing.T) {
 			holdRead()
 		}
 	}()
-
-	// Signal when the commit reaches root publication.
-	commitEntered := make(chan struct{})
-	locked = engine.bcast.Lock()
-	engine.commitFn = func(context.Context, *bucket.ObjectRef, *bucket.ObjectRef) error {
-		close(commitEntered)
-		return nil
-	}
-	locked.Unlock()
 
 	// Commit the writer while the old reader is held.
 	commitDone := make(chan error, 1)
@@ -130,7 +129,7 @@ func TestEngineConcurrentCloseWaitsForFinalBroadcast(t *testing.T) {
 	// Open an engine with a bounded close context.
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	defer cancel()
-	engine := newRetirementTestEngine(t, ctx)
+	engine := newRetirementTestEngine(t, ctx, nil)
 
 	// Remove the head before Close so final baseRoot publication is the only
 	// broadcast that can release concurrent Close waiters.
@@ -180,7 +179,7 @@ func TestEngineConcurrentCloseWaitsForFinalBroadcast(t *testing.T) {
 
 func TestEngineHeadPublishesRootAndReadTransactionTogether(t *testing.T) {
 	ctx := t.Context()
-	engine := newRetirementTestEngine(t, ctx)
+	engine := newRetirementTestEngine(t, ctx, nil)
 
 	for i := range 8 {
 		writer, err := engine.NewBlockEngineTransaction(ctx, true)
@@ -220,16 +219,7 @@ func TestEngineCloseDrainsCoordinatorSnapshot(t *testing.T) {
 	// Open an engine with coordinated snapshots.
 	ctx := t.Context()
 	coordinator := coord_inmem.NewCoordinator()
-	engine := newRetirementTestEngine(
-		t,
-		ctx,
-		WithWriteCoordinator(
-			coordinator,
-			coord.Scope{VolumeID: "retirement-volume", ObjectStoreID: "retirement-store"},
-			nil,
-			func(context.Context) (*bucket.ObjectRef, error) { return nil, nil },
-		),
-	)
+	engine := newRetirementTestEngine(t, ctx, coordinator)
 
 	// Require the read snapshot to register with the engine.
 	snapshot, err := engine.NewBlockEngineTransaction(ctx, false)
@@ -273,7 +263,7 @@ func TestEngineWriterLockReleasesAfterTransactionDrain(t *testing.T) {
 	// Open an engine with a bounded writer context.
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	defer cancel()
-	engine := newRetirementTestEngine(t, ctx)
+	engine := newRetirementTestEngine(t, ctx, nil)
 
 	// Hold the first writer transaction against discard.
 	first, err := engine.NewBlockEngineTransaction(ctx, true)
@@ -352,16 +342,7 @@ func TestEngineWriterLockReleasesAfterTransactionDrain(t *testing.T) {
 
 func TestCoordinatorSnapshotDeregistersOnDiscard(t *testing.T) {
 	ctx := t.Context()
-	engine := newRetirementTestEngine(
-		t,
-		ctx,
-		WithWriteCoordinator(
-			coord_inmem.NewCoordinator(),
-			coord.Scope{VolumeID: "retirement-volume", ObjectStoreID: "retirement-store"},
-			nil,
-			func(context.Context) (*bucket.ObjectRef, error) { return nil, nil },
-		),
-	)
+	engine := newRetirementTestEngine(t, ctx, coord_inmem.NewCoordinator())
 
 	for i := range 8 {
 		snapshot, err := engine.NewBlockEngineTransaction(ctx, false)
@@ -386,16 +367,7 @@ func TestEngineReleasesCoordinatorLeaseAndWriterLockAfterUnlock(t *testing.T) {
 		Coordinator: coord_inmem.NewCoordinator(),
 		engine:      func() *Engine { return engine },
 	}
-	engine = newRetirementTestEngine(
-		t,
-		ctx,
-		WithWriteCoordinator(
-			checking,
-			coord.Scope{VolumeID: "retirement-volume", ObjectStoreID: "retirement-store"},
-			nil,
-			nil,
-		),
-	)
+	engine = newRetirementTestEngine(t, ctx, checking)
 
 	// Record whether writer cleanup holds the engine lock.
 	writer, err := engine.NewBlockEngineTransaction(ctx, true)
@@ -427,115 +399,6 @@ func TestEngineReleasesCoordinatorLeaseAndWriterLockAfterUnlock(t *testing.T) {
 	}
 }
 
-func TestEngineCloseWaitsForInFlightCommitLease(t *testing.T) {
-	// Create a pending write with a blocked lease refresh.
-	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
-	defer cancel()
-	coordinator := &blockingRefreshCoordinator{
-		Coordinator: coord_inmem.NewCoordinator(),
-		entered:     make(chan struct{}),
-		proceed:     make(chan struct{}),
-	}
-	engine := newRetirementTestEngine(
-		t,
-		ctx,
-		WithWriteCoordinator(
-			coordinator,
-			coord.Scope{VolumeID: "retirement-volume", ObjectStoreID: "retirement-store"},
-			nil,
-			nil,
-		),
-	)
-	writer, err := engine.NewBlockEngineTransaction(ctx, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	{
-		createdObject, err := writer.CreateObject(ctx, "retirement/close-commit", nil)
-		world.ReleaseObjectState(createdObject)
-		if err != nil {
-			writer.Discard()
-			t.Fatal(err)
-		}
-	}
-
-	// Commit the writer and wait for lease refresh.
-	commitDone := make(chan error, 1)
-	go func() {
-		_, err := writer.CommitBlockTransaction(ctx)
-		commitDone <- err
-	}()
-	select {
-	case <-coordinator.entered:
-	case <-ctx.Done():
-		t.Fatalf("commit did not reach lease refresh: %v", ctx.Err())
-	}
-
-	// Require Close to wait for the blocked commit.
-	closeDone := make(chan error, 1)
-	go func() { closeDone <- engine.Close() }()
-	select {
-	case err := <-closeDone:
-		t.Fatalf("Engine.Close returned before in-flight commit released its lease: %v", err)
-	case <-time.After(100 * time.Millisecond):
-	}
-
-	// Release the lease refresh and require Close to join the commit.
-	close(coordinator.proceed)
-	if err := <-commitDone; !errors.Is(err, tx.ErrDiscarded) {
-		t.Fatalf("commit during Close = %v, want %v", err, tx.ErrDiscarded)
-	}
-	select {
-	case err := <-closeDone:
-		if err != nil {
-			t.Fatal(err)
-		}
-	case <-ctx.Done():
-		t.Fatalf("Engine.Close did not join in-flight commit: %v", ctx.Err())
-	}
-}
-
-type blockingRefreshCoordinator struct {
-	coord.Coordinator
-	entered chan struct{}
-	proceed chan struct{}
-}
-
-func (c *blockingRefreshCoordinator) WaitAcquireWriteLease(
-	ctx context.Context,
-	scope coord.Scope,
-) (coord.WriteLease, error) {
-	lease, err := c.Coordinator.WaitAcquireWriteLease(ctx, scope)
-	if err != nil {
-		return nil, err
-	}
-	return &blockingRefreshLease{
-		WriteLease: lease,
-		entered:    c.entered,
-		proceed:    c.proceed,
-	}, nil
-}
-
-type blockingRefreshLease struct {
-	coord.WriteLease
-	refreshes int
-	entered   chan struct{}
-	proceed   chan struct{}
-}
-
-func (l *blockingRefreshLease) Refresh(ctx context.Context) (*coord.Snapshot, error) {
-	l.refreshes++
-	if l.refreshes == 2 {
-		close(l.entered)
-		select {
-		case <-l.proceed:
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		}
-	}
-	return l.WriteLease.Refresh(ctx)
-}
-
 func TestEngineCloseWaitsForPublishedCommitCleanup(t *testing.T) {
 	// Create a pending write with blocked publication.
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
@@ -545,16 +408,7 @@ func TestEngineCloseWaitsForPublishedCommitCleanup(t *testing.T) {
 		entered:     make(chan struct{}),
 		proceed:     make(chan struct{}),
 	}
-	engine := newRetirementTestEngine(
-		t,
-		ctx,
-		WithWriteCoordinator(
-			coordinator,
-			coord.Scope{VolumeID: "retirement-volume", ObjectStoreID: "retirement-store"},
-			nil,
-			nil,
-		),
-	)
+	engine := newRetirementTestEngine(t, ctx, coordinator)
 	writer, err := engine.NewBlockEngineTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
@@ -689,7 +543,7 @@ func (l *lockCheckingLease) Release(ctx context.Context) error {
 func newRetirementTestEngine(
 	t *testing.T,
 	ctx context.Context,
-	opts ...EngineOption,
+	coordinator coord.Coordinator,
 ) *Engine {
 	// Open the engine testbed.
 	t.Helper()
@@ -707,8 +561,13 @@ func newRetirementTestEngine(
 	}
 	t.Cleanup(base.Release)
 
-	// Open the engine and close it when the test ends.
-	engine, err := NewEngine(ctx, le, base, world_mock.LookupMockOp, nil, false, opts...)
+	// Open the engine, over a local authority on coordinator when one is
+	// given, and close it when the test ends.
+	var authority world.Authority
+	if coordinator != nil {
+		authority = NewLocalAuthority(le, base, "world:retirement", coordinator, coord.Scope{VolumeID: "retirement-volume", ObjectStoreID: "world:retirement"})
+	}
+	engine, err := NewEngine(ctx, le, base, world_mock.LookupMockOp, authority, false)
 	if err != nil {
 		t.Fatal(err)
 	}

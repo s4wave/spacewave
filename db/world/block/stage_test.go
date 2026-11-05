@@ -39,7 +39,7 @@ func stageBody(t *testing.T, stage world.WorldStage, msg string) *bucket.ObjectR
 // builds until release, after which only the build a commit adopted remains.
 func TestStageWorldStateReclaimsUnadoptedBuild(t *testing.T) {
 	// Stage two builds on the coordinated engine.
-	f := newSessionFixture(t)
+	f := newVolumeFixture(t)
 	ctx := t.Context()
 	store := f.engine.writeBlockStore
 	stage, err := f.engine.StageWorldState(ctx)
@@ -62,7 +62,7 @@ func TestStageWorldStateReclaimsUnadoptedBuild(t *testing.T) {
 	collect(map[*block.BlockRef]bool{kept.GetRootRef(): true, dropped.GetRootRef(): true})
 
 	// Adopt one build, then release the stage.
-	w := sessionWriter(t, f)
+	w := fixtureWriter(t, f.engine)
 	obj, err := w.CreateObject(ctx, "object", kept)
 	world.ReleaseObjectState(obj)
 	if err != nil {
@@ -74,7 +74,7 @@ func TestStageWorldStateReclaimsUnadoptedBuild(t *testing.T) {
 	stage.Release()
 
 	// A later commit must not publish the unadopted build either.
-	w = sessionWriter(t, f)
+	w = fixtureWriter(t, f.engine)
 	other, err := w.CreateObject(ctx, "other", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -98,7 +98,7 @@ func TestStageWorldStateReclaimsUnadoptedBuild(t *testing.T) {
 // the published root never references are both reclaimed.
 func TestAccessObjectStateReclaimsReplayedBuild(t *testing.T) {
 	// Create the object on the engine World state.
-	f := newSessionFixture(t)
+	f := newVolumeFixture(t)
 	ctx := t.Context()
 	ws := world.NewEngineWorldState(f.engine, true)
 	obj, err := ws.CreateObject(ctx, "object", nil)

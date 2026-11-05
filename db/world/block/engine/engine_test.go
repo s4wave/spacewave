@@ -22,8 +22,6 @@ import (
 	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/util/blockenc"
-	"github.com/s4wave/spacewave/db/volume"
-	common_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
@@ -161,110 +159,6 @@ func TestWorldEngineController(t *testing.T) {
 	}
 }
 
-func TestWorldEngineControllerUsesDeferredDurabilityWithoutGenerations(t *testing.T) {
-	// Bound the unsupported-coordinator test lifetime.
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	// Initialize logging for the unsupported-coordinator test.
-	log := logrus.New()
-	log.SetLevel(logrus.DebugLevel)
-	le := logrus.NewEntry(log)
-
-	// Start a testbed and register the World engine factory.
-	tb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(false))
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer tb.Release()
-	tb.StaticResolver.AddFactory(world_block_engine.NewFactory(tb.Bus))
-
-	// Require a kvtx volume before substituting its generationless coordinator.
-	kvtxVolume, ok := tb.Volume.(*common_kvtx.Volume)
-	if !ok {
-		t.Fatalf("testbed volume type = %T, want *common_kvtx.Volume", tb.Volume)
-	}
-	kvtxVolume.Coordinator = generationlessCoordinator{Coordinator: kvtxVolume.Coordinator}
-
-	// Build the transform configuration for the unsupported engine.
-	transformConf, err := block_transform.NewConfig(nil)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Configure the World engine to use the unsupported coordinator.
-	engineConf := world_block_engine.NewConfig(
-		"test-world-engine-unsupported-coordinator",
-		tb.Volume.GetID(),
-		tb.BucketId,
-		"test-world-engine-unsupported-coordinator-store",
-		&bucket.ObjectRef{
-			BucketId:      tb.BucketId,
-			TransformConf: transformConf,
-		},
-		nil,
-		false,
-	)
-
-	// Start the World engine with that configuration.
-	engine, engRef, err := world.StartEngine(ctx, tb.Bus, engineConf, nil)
-	if err != nil {
-		t.Fatalf("start world engine with unsupported coordinator: %v", err)
-	}
-	defer engRef.Release()
-
-	// Open a write transaction to exercise deferred durability.
-	tx, err := engine.NewTransaction(ctx, true)
-	if err != nil {
-		t.Fatalf("new write transaction with unsupported coordinator: %v", err)
-	}
-
-	// Create an object to confirm the transaction remains writable.
-	{
-		createdObject, err := tx.CreateObject(ctx, "unsupported-coordinator-fallback", nil)
-		world.ReleaseObjectState(createdObject)
-		if err != nil {
-			tx.Discard()
-			t.Fatalf("create object with unsupported coordinator: %v", err)
-		}
-	}
-
-	// Commit the object through deferred durability.
-	if err := tx.Commit(ctx); err != nil {
-		t.Fatalf("commit with unsupported coordinator: %v", err)
-	}
-
-	// Sync the World and require the generationless fallback to fence its write.
-	fenced, err := engine.Sync(ctx)
-	if err != nil {
-		t.Fatalf("sync deferred write: %v", err)
-	}
-	if !fenced {
-		t.Fatal("generationless coordinator did not select deferred durability")
-	}
-}
-
-// generationlessCoordinator reports a coordinator that supports leases but not
-// generations.
-type generationlessCoordinator struct {
-	coord.Coordinator
-}
-
-// Capability returns the wrapped capability with generations disabled.
-func (c generationlessCoordinator) Capability(
-	ctx context.Context,
-	scope coord.Scope,
-) (*coord.Capability, error) {
-	// Read the wrapped capability and clear its generation support.
-	capability, err := c.Coordinator.Capability(ctx, scope)
-	if err != nil {
-		return nil, err
-	}
-	capability.Supported = true
-	capability.Generations = false
-	return capability, nil
-}
-
 // TestWorldEngineControllerCoordinatorHeadWatch checks that engines sharing an
 // object store serialize writers through the coordinator lease, reject stale
 // heads, publish accepted roots and adopt each other's durable heads.
@@ -284,19 +178,22 @@ func TestWorldEngineControllerCoordinatorHeadWatch(t *testing.T) {
 	defer tb.Release()
 	tb.StaticResolver.AddFactory(world_block_engine.NewFactory(tb.Bus))
 
-	// Start a writer and a reader engine on the same object store.
+	// Start a writer and a reader engine on the same World, as two
+	// processes sharing the Volume would.
 	volumeID := tb.Volume.GetID()
+	engineID := "test-world-engine-head-watch"
 	objectStoreID := "test-world-engine-head-watch-store"
-	writerEngine, releaseWriter := startHeadWatchEngine(ctx, t, tb, "test-world-engine-head-watch-writer", objectStoreID)
+	rootName := world_block.WorldRootName(engineID)
+	writerEngine, releaseWriter := startHeadWatchEngine(ctx, t, tb, engineID, objectStoreID)
 	defer releaseWriter()
-	readerEngine, releaseReader := startHeadWatchEngine(ctx, t, tb, "test-world-engine-head-watch-reader", objectStoreID)
+	readerEngine, releaseReader := startHeadWatchEngine(ctx, t, tb, engineID, objectStoreID)
 	defer releaseReader()
 
 	// A writer transaction waits while an external participant holds the
 	// coordinator write lease, and acquires once the lease is released.
 	externalLease, err := tb.Volume.WaitAcquireWriteLease(ctx, coord.Scope{
 		VolumeID:      volumeID,
-		ObjectStoreID: objectStoreID,
+		ObjectStoreID: rootName,
 		ParticipantID: "external-writer",
 	})
 	if err != nil {
@@ -309,20 +206,20 @@ func TestWorldEngineControllerCoordinatorHeadWatch(t *testing.T) {
 	}
 	waitWriteAcquired(t, blockedTx, blockedErr, "external lease release").Discard()
 
-	// A commit against a head replaced underneath the transaction fails as
-	// stale; then restore the original head.
+	// A commit against a root another writer swapped underneath the
+	// transaction is superseded; then restore the original head.
 	baseHead := blockEngine(ctx, t, writerEngine).GetRootRef()
 	staleTx := createObjectTx(ctx, t, writerEngine, "coordinator-stale-head-object")
-	writeRawHead(ctx, t, tb, objectStoreID, &bucket.ObjectRef{BucketId: tb.BucketId})
-	if err := staleTx.Commit(ctx); !errors.Is(err, coord.ErrStaleGeneration) {
-		t.Fatalf("stale head commit error = %v, want ErrStaleGeneration", err)
+	writeRawRoot(ctx, t, tb, rootName, nil)
+	if err := staleTx.Commit(ctx); !errors.Is(err, world.ErrSuperseded) {
+		t.Fatalf("stale head commit error = %v, want ErrSuperseded", err)
 	}
-	writeRawHead(ctx, t, tb, objectStoreID, baseHead)
+	writeRawRoot(ctx, t, tb, rootName, baseHead.GetRootRef())
 
 	// Watch the coordinator from the current generation.
 	watchScope := coord.Scope{
 		VolumeID:      volumeID,
-		ObjectStoreID: objectStoreID,
+		ObjectStoreID: rootName,
 		ParticipantID: "watcher",
 	}
 	capability, err := tb.Volume.Capability(ctx, watchScope)
@@ -348,7 +245,7 @@ func TestWorldEngineControllerCoordinatorHeadWatch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if publishedSnapshot.Root == nil || !publishedSnapshot.Root.EqualsRef(acceptedRoot) {
+	if !publishedSnapshot.Root.GetRootRef().EqualsRef(acceptedRoot.GetRootRef()) {
 		t.Fatalf("published coordinator root = %#v, want %#v", publishedSnapshot.Root, acceptedRoot)
 	}
 
@@ -498,32 +395,37 @@ func waitWriteAcquired(t *testing.T, txCh <-chan world.Tx, errCh <-chan error, a
 	return nil
 }
 
-// writeRawHead overwrites the World head key in the object store with ref.
-func writeRawHead(ctx context.Context, t *testing.T, tb *testbed.Testbed, objectStoreID string, ref *bucket.ObjectRef) {
-	// Report failures at the caller and open the object store.
+// writeRawRoot swaps the World root to ref as a writer that ignores the
+// lease would, writing a new empty World when ref is nil, and returns the
+// root it wrote.
+func writeRawRoot(ctx context.Context, t *testing.T, tb *testbed.Testbed, rootName string, ref *block.BlockRef) *block.BlockRef {
+	// Open a cursor on the World's bucket.
 	t.Helper()
-	storeVal, _, storeRef, err := volume.ExBuildObjectStoreAPI(ctx, tb.Bus, false, objectStoreID, tb.Volume.GetID(), nil)
+	cursor, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer storeRef.Release()
+	defer cursor.Release()
 
-	// Write the encoded head state and commit.
-	ktx, err := storeVal.GetObjectStore().NewTransaction(ctx, true)
+	// Write a new empty World when no root is given.
+	if ref == nil {
+		btx, bcs := cursor.BuildTransaction(nil)
+		bcs.SetBlock(world_block.NewWorld(false), true)
+		if ref, _, err = btx.Write(ctx, true); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+
+	// Swap the root from what it holds.
+	store := cursor.GetBucket()
+	held, err := store.GetRoot(ctx, rootName)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer ktx.Discard()
-	data, err := (&world_block_engine.HeadState{HeadRef: ref}).MarshalVT()
-	if err != nil {
+	if err := store.SetRoots(ctx, nil, []block.NamedRoot{{Name: rootName, Ref: ref, Previous: held}}); err != nil {
 		t.Fatal(err.Error())
 	}
-	if err := ktx.Set(ctx, []byte("world-head"), data); err != nil {
-		t.Fatal(err.Error())
-	}
-	if err := ktx.Commit(ctx); err != nil {
-		t.Fatal(err.Error())
-	}
+	return ref
 }
 
 // waitRootPublished waits until watch reports root published at the World
@@ -545,7 +447,7 @@ func waitRootPublished(ctx context.Context, t *testing.T, watch coord.Watch, roo
 				t.Fatal("coordinator watch closed before accepted world root publication")
 			}
 			seenEvents = append(seenEvents, event)
-			if event.RootChanged != nil && event.RootChanged.EqualsRef(root) && string(event.KeyPrefixChanged) == "world-head" {
+			if event.RootChanged.GetRootRef().EqualsRef(root.GetRootRef()) {
 				return
 			}
 		}

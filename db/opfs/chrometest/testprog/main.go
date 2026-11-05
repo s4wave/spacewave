@@ -43,11 +43,9 @@ import (
 	"github.com/s4wave/spacewave/db/core"
 	"github.com/s4wave/spacewave/db/kvtx"
 	node_controller "github.com/s4wave/spacewave/db/node/controller"
-	"github.com/s4wave/spacewave/db/object"
 	"github.com/s4wave/spacewave/db/opfs"
 	"github.com/s4wave/spacewave/db/opfs/filelock"
 	packfile_writer "github.com/s4wave/spacewave/db/packfile/writer"
-	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	unixfs_sdk "github.com/s4wave/spacewave/db/unixfs"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
@@ -56,7 +54,6 @@ import (
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
-	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
 	s4wave_unixfs "github.com/s4wave/spacewave/sdk/unixfs"
@@ -210,8 +207,8 @@ func run(ctx context.Context, c *config) error {
 		return runVolumeKVWriteSingleTx(ctx, c)
 	case "world-init-unixfs":
 		return runWorldInitUnixFS(ctx, c)
-	case "world-deferred-crash-recovery":
-		return runWorldDeferredCrashRecovery(ctx, c)
+	case "world-crash-recovery":
+		return runWorldCrashRecovery(ctx, c)
 	case "world-large-unixfs-upload":
 		return runWorldLargeUnixFSUpload(ctx, c)
 	case "world-resource-large-unixfs-upload":
@@ -948,103 +945,68 @@ func largeFileSize(c *config) int {
 	return c.iterations
 }
 
-// runWorldDeferredCrashRecovery checks that world commits with deferred
-// durability survive a crash only up to the last Sync. A commit advances only
-// the in-memory root; Sync writes the blocks, then advances the durable head.
-// After a teardown without a final Sync, a reopened engine lands on the last
-// synced head: the head, not block absence, provides the rollback.
-func runWorldDeferredCrashRecovery(ctx context.Context, c *config) error {
-	// Commit obj-a, Sync, commit obj-b, and tear down without a final Sync.
-	headA, err := writeDeferredCommits(ctx, c)
+// runWorldCrashRecovery checks that every world commit survives a crash: a
+// commit stores its blocks and swaps the World root in one transaction, so a
+// teardown without Sync loses nothing, and a reopened engine lands on the
+// last commit.
+func runWorldCrashRecovery(ctx context.Context, c *config) error {
+	// Commit obj-a and obj-b, and tear down without a Sync.
+	headB, err := writeWorldCommits(ctx, c)
 	if err != nil {
 		return err
 	}
 
-	// Reopen at the durable head and check that it is the synced one.
-	recovered, err := openDeferredWorldEngine(ctx, c)
+	// Reopen at the World root and check that it is the last commit.
+	recovered, err := openWorldEngine(ctx, c)
 	if err != nil {
 		return err
 	}
 	defer recovered.release()
-	if !objectRefsEqual(recovered.engine.GetRootRef(), headA) {
-		return errors.Errorf("OPFS recovery root=%v want last Sync'd head=%v", recovered.engine.GetRootRef(), headA)
+	if !objectRefsEqual(recovered.engine.GetRootRef(), headB) {
+		return errors.Errorf("OPFS recovery root=%v want last commit=%v", recovered.engine.GetRootRef(), headB)
 	}
 
-	// Check that obj-a recovered and obj-b rolled back. Reading obj-a also
-	// shows that the head names only durable blocks.
+	// Check that both objects recovered.
 	tx, err := recovered.engine.NewTransaction(ctx, false)
 	if err != nil {
 		return errors.Wrap(err, "open OPFS recovery read transaction")
 	}
 	defer tx.Discard()
-	if _, found, err := tx.GetObject(ctx, "opfs-deferred-obj-a"); err != nil {
-		return errors.Wrap(err, "read obj-a after OPFS recovery")
-	} else if !found {
-		return errors.New("OPFS recovery must land on the last Sync'd head with obj-a present")
-	}
-	if _, found, err := tx.GetObject(ctx, "opfs-deferred-obj-b"); err != nil {
-		return errors.Wrap(err, "read obj-b after OPFS recovery")
-	} else if found {
-		return errors.New("post-Sync OPFS commit must not survive a crash before the next Sync")
+	for _, key := range []string{"opfs-crash-obj-a", "opfs-crash-obj-b"} {
+		if _, found, err := tx.GetObject(ctx, key); err != nil {
+			return errors.Wrapf(err, "read %s after OPFS recovery", key)
+		} else if !found {
+			return errors.Errorf("OPFS recovery lost the committed %s", key)
+		}
 	}
 	return nil
 }
 
-// writeDeferredCommits commits obj-a, syncs, and commits obj-b on a deferred
-// world engine, checking the durable head after each step, then tears the
-// engine down without a final Sync. It returns the synced head.
-func writeDeferredCommits(ctx context.Context, c *config) (*bucket.ObjectRef, error) {
-	// Open the engine and read the seed head.
-	writer, err := openDeferredWorldEngine(ctx, c)
+// writeWorldCommits commits obj-a and obj-b, checking after each that the
+// World root holds the commit, then tears the engine down without a Sync. It
+// returns the last head.
+func writeWorldCommits(ctx context.Context, c *config) (*bucket.ObjectRef, error) {
+	// Open the engine.
+	writer, err := openWorldEngine(ctx, c)
 	if err != nil {
 		return nil, err
 	}
 	defer writer.release()
-	seedHead, err := writer.readHead(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "read seed OPFS world head")
-	}
 
-	// Commit obj-a; the durable head must stay at the seed.
-	if err := createWorldObject(ctx, writer, "opfs-deferred-obj-a"); err != nil {
-		return nil, err
+	// Commit each object; the root must hold the commit when it returns.
+	for _, key := range []string{"opfs-crash-obj-a", "opfs-crash-obj-b"} {
+		if err := createWorldObject(ctx, writer, key); err != nil {
+			return nil, err
+		}
+		head, err := writer.authority.Head(ctx)
+		if err != nil {
+			return nil, errors.Wrap(err, "read OPFS world head")
+		}
+		if !head.Root.EqualsRef(writer.engine.GetRootRef().GetRootRef()) {
+			return nil, errors.Errorf("OPFS world root does not hold the commit of %s", key)
+		}
 	}
-	if err := checkHead(ctx, writer, seedHead, "deferred commit must not advance the durable OPFS head before Sync"); err != nil {
-		return nil, err
-	}
-	rootAfterA := writer.engine.GetRootRef().Clone()
-
-	// Sync; the durable head must advance to the in-memory root.
-	if _, err := writer.engine.Sync(ctx); err != nil {
-		return nil, errors.Wrap(err, "Sync OPFS deferred world engine")
-	}
-	if err := checkHead(ctx, writer, rootAfterA, "Sync must advance the durable OPFS head to the in-memory root"); err != nil {
-		return nil, err
-	}
-	if objectRefsEqual(rootAfterA, seedHead) {
-		return nil, errors.New("Sync'd OPFS head must differ from the seed head")
-	}
-
-	// Commit obj-b; the durable head must stay at obj-a.
-	if err := createWorldObject(ctx, writer, "opfs-deferred-obj-b"); err != nil {
-		return nil, err
-	}
-	if err := checkHead(ctx, writer, rootAfterA, "post-Sync deferred commit must not advance the durable OPFS head"); err != nil {
-		return nil, err
-	}
-	return rootAfterA, nil
-}
-
-// checkHead returns an error with msg unless the durable head of h is want.
-func checkHead(ctx context.Context, h *worldEngine, want *bucket.ObjectRef, msg string) error {
-	head, err := h.readHead(ctx)
-	if err != nil {
-		return errors.Wrap(err, "read OPFS world head")
-	}
-	if !objectRefsEqual(head, want) {
-		return errors.New(msg)
-	}
-	return nil
+	return writer.engine.GetRootRef(), nil
 }
 
 // createWorldObject commits one named object through the world transaction interface.
@@ -1064,53 +1026,27 @@ func createWorldObject(ctx context.Context, h *worldEngine, key string) error {
 	return nil
 }
 
-// worldEngine owns a volume, object store, cursor, and world engine.
+// worldEngine owns a volume, cursor, authority and world engine.
 type worldEngine struct {
 	// vol owns the persisted volume.
 	vol *volume_browser.Volume
-	// store provides the durable world head transaction API.
-	store object.ObjectStore
-	// storeRelease releases the object-store reference.
-	storeRelease func()
 	// cursor pins the world root used to construct the engine.
 	cursor *bucket_lookup.Cursor
+	// authority holds the World's head as a root of the volume.
+	authority *world_block.LocalAuthority
 	// engine owns the world transaction lifecycle.
 	engine *world_block.Engine
 }
 
-// openDeferredWorldEngine mounts a single-writer world at the persisted head.
-// Block writes and the durable head both batch until Sync, so a teardown
-// without Sync rolls back to the last synced head.
-func openDeferredWorldEngine(ctx context.Context, c *config) (*worldEngine, error) {
-	// Open the volume and the object store holding the head.
+// openWorldEngine mounts a world at the head its volume root holds.
+func openWorldEngine(ctx context.Context, c *config) (*worldEngine, error) {
+	// Open the volume and a cursor on the World's bucket.
 	vol, err := openVolume(ctx, c)
 	if err != nil {
 		return nil, err
 	}
+	h := &worldEngine{vol: vol}
 	bucketID := c.root + "/world-coord-bucket"
-	kvStore := store_kvtx.NewKVTx(store_kvkey.NewDefaultKVKey(), vol.GetKvtxStore(), &store_kvtx.Config{})
-	objStore, storeRelease, err := kvStore.AccessObjectStore(ctx, c.root+"/world-coord-store", nil)
-	if err != nil {
-		_ = vol.Close()
-		return nil, errors.Wrap(err, "open OPFS world object store")
-	}
-	h := &worldEngine{vol: vol, store: objStore, storeRelease: storeRelease}
-
-	// Read the durable head, seeding an empty one on first open.
-	headRef, err := h.readHead(ctx)
-	if err != nil {
-		h.release()
-		return nil, err
-	}
-	if headRef == nil {
-		headRef = &bucket.ObjectRef{BucketId: bucketID}
-		if err := h.writeHead(ctx, headRef); err != nil {
-			h.release()
-			return nil, errors.Wrap(err, "seed OPFS world head")
-		}
-	}
-
-	// Open the engine on a cursor at the head, publishing heads through casHead.
 	le := logrus.NewEntry(logrus.New())
 	h.cursor = bucket_lookup.NewCursor(
 		ctx,
@@ -1119,76 +1055,28 @@ func openDeferredWorldEngine(ctx context.Context, c *config) (*worldEngine, erro
 		nil,
 		vol,
 		nil,
-		headRef,
+		&bucket.ObjectRef{BucketId: bucketID},
 		&bucket.BucketOpArgs{BucketId: bucketID, VolumeId: vol.GetID()},
 		nil,
 	)
-	engine, err := world_block.NewEngine(
-		ctx,
-		le,
-		h.cursor,
-		lookupSpaceOp,
-		h.casHead,
-		false,
-		world_block.WithDeferredDurability(),
-	)
+
+	// Read the head the World's root holds.
+	h.authority = world_block.NewLocalAuthority(le, h.cursor, world_block.WorldRootName(c.root), nil, coord.Scope{})
+	head, err := h.authority.Head(ctx)
+	if err != nil {
+		h.release()
+		return nil, errors.Wrap(err, "read OPFS world head")
+	}
+
+	// Open the engine at the head.
+	h.cursor.SetRootRef(head.Root)
+	engine, err := world_block.NewEngine(ctx, le, h.cursor, lookupSpaceOp, h.authority, false)
 	if err != nil {
 		h.release()
 		return nil, errors.Wrap(err, "open OPFS world engine")
 	}
 	h.engine = engine
 	return h, nil
-}
-
-// readHead reads the durable world head.
-func (h *worldEngine) readHead(ctx context.Context) (*bucket.ObjectRef, error) {
-	// Read the head record, if any.
-	tx, err := h.store.NewTransaction(ctx, false)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Discard()
-	data, found, err := tx.Get(ctx, []byte("world-head"))
-	if err != nil || !found {
-		return nil, err
-	}
-
-	// Decode the head reference.
-	state := &world_block_engine.HeadState{}
-	if err := state.UnmarshalVT(data); err != nil {
-		return nil, err
-	}
-	return state.GetHeadRef().Clone(), nil
-}
-
-// writeHead commits a serialized world head through the object store.
-func (h *worldEngine) writeHead(ctx context.Context, ref *bucket.ObjectRef) error {
-	// Encode the head and commit it in a write transaction.
-	tx, err := h.store.NewTransaction(ctx, true)
-	if err != nil {
-		return err
-	}
-	defer tx.Discard()
-	data, err := (&world_block_engine.HeadState{HeadRef: ref}).MarshalVT()
-	if err != nil {
-		return err
-	}
-	if err := tx.Set(ctx, []byte("world-head"), data); err != nil {
-		return err
-	}
-	return tx.Commit(ctx)
-}
-
-// casHead rejects a changed base before publishing the next head.
-func (h *worldEngine) casHead(ctx context.Context, baseRef, nextRef *bucket.ObjectRef) error {
-	current, err := h.readHead(ctx)
-	if err != nil {
-		return err
-	}
-	if !objectRefsEqual(current, baseRef) {
-		return coord.ErrStaleGeneration
-	}
-	return h.writeHead(ctx, nextRef)
 }
 
 // objectRefsEqual compares optional object references by value.
@@ -1199,16 +1087,13 @@ func objectRefsEqual(a, b *bucket.ObjectRef) bool {
 	return a.EqualsRef(b)
 }
 
-// release closes the world engine before releasing its cursor, store, and volume.
+// release closes the world engine before releasing its cursor and volume.
 func (h *worldEngine) release() {
 	if h.engine != nil {
 		_ = h.engine.Close()
 	}
 	if h.cursor != nil {
 		h.cursor.Release()
-	}
-	if h.storeRelease != nil {
-		h.storeRelease()
 	}
 	if h.vol != nil {
 		_ = h.vol.Close()

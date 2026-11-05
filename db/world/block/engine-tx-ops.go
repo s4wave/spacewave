@@ -2,11 +2,11 @@ package world_block
 
 import (
 	"context"
+	stderrors "errors"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
-	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
@@ -275,15 +275,10 @@ func (e *EngineTx) HasObject(ctx context.Context, key string) (bool, error) {
 func (e *EngineTx) performOp(ctx context.Context, cb func(tx *Tx) error) error {
 	if e.writeTx != nil {
 		err := cb(e.writeTx)
-		if isCoordinatedWriteSnapshotError(err) {
-			// Commit and retirement move the lease under the Engine lock.
-			locked := e.engine.bcast.Lock()
-			leased := e.lease != nil || e.session != nil
-			locked.Unlock()
-			if leased {
-				e.Discard()
-				return errors.Wrapf(coord.ErrStaleGeneration, "coordinated write snapshot: %v", err)
-			}
+		if isCoordinatedWriteSnapshotError(err) && e.engine.authority != nil {
+			// Another writer remapped the storage under the base: rebase.
+			e.Discard()
+			return stderrors.Join(errors.Wrap(world.ErrSuperseded, "coordinated write snapshot"), err)
 		}
 		return err
 	}

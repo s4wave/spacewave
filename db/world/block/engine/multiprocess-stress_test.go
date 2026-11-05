@@ -38,7 +38,9 @@ const (
 	multiProcessStressReadersEnv = "SPACEWAVE_WORLD_ENGINE_STRESS_READERS"
 
 	multiProcessStressObjectStoreID = "multi-process-world-head"
-	multiProcessStressBucketID      = "test-bucket"
+	// multiProcessStressEngineID names the one World every process opens.
+	multiProcessStressEngineID = "stress"
+	multiProcessStressBucketID = "test-bucket"
 
 	objectStoreCASEnv        = "SPACEWAVE_OBJECTSTORE_CAS_ROLE"
 	objectStoreCASPathEnv    = "SPACEWAVE_OBJECTSTORE_CAS_PATH"
@@ -155,7 +157,7 @@ func initWorldEngineStressVolume(t *testing.T, path string) {
 	// Open the s4db testbed and its World engine controller.
 	tb := newWorldEngineStressTestbed(t, ctx, path, "init")
 	defer tb.Release()
-	eng, ref := startWorldEngineStress(t, ctx, tb, "stress-init")
+	eng, ref := startWorldEngineStress(t, ctx, tb, multiProcessStressEngineID)
 	defer ref.Release()
 
 	// Commit the initial World object before concurrent stress begins.
@@ -298,7 +300,7 @@ func runWorldEngineStressWorker(t *testing.T, role string) {
 	// Open the shared s4db World through the stress controller.
 	tb := newWorldEngineStressTestbed(t, ctx, path, fmt.Sprintf("%s-%d", role, id))
 	defer tb.Release()
-	eng, ref := startWorldEngineStress(t, ctx, tb, fmt.Sprintf("stress-%s-%d", role, id))
+	eng, ref := startWorldEngineStress(t, ctx, tb, multiProcessStressEngineID)
 	defer ref.Release()
 
 	// Execute the configured World stress writer, reader, or verifier.
@@ -602,7 +604,7 @@ func commitWorldEngineStressKey(ctx context.Context, eng world.Engine, key strin
 		tx, err := eng.NewTransaction(ctx, true)
 		if err != nil {
 			lastErr = fmt.Errorf("new write transaction: %w", err)
-			if errors.Is(err, coord.ErrStaleGeneration) {
+			if world.IsSuperseded(err) {
 				select {
 				case <-ctx.Done():
 					return fmt.Errorf("after %d attempts: %w; context: %v", attempt+1, lastErr, ctx.Err())
@@ -618,7 +620,7 @@ func commitWorldEngineStressKey(ctx context.Context, eng world.Engine, key strin
 			if err != nil {
 				tx.Discard()
 				lastErr = fmt.Errorf("create object: %w", err)
-				if errors.Is(err, coord.ErrStaleGeneration) {
+				if world.IsSuperseded(err) {
 					select {
 					case <-ctx.Done():
 						return fmt.Errorf("after %d attempts: %w; context: %v", attempt+1, lastErr, ctx.Err())
@@ -634,7 +636,7 @@ func commitWorldEngineStressKey(ctx context.Context, eng world.Engine, key strin
 			return nil
 		}
 		lastErr = fmt.Errorf("commit transaction: %w", err)
-		if !errors.Is(err, coord.ErrStaleGeneration) {
+		if !world.IsSuperseded(err) {
 			return lastErr
 		}
 		select {

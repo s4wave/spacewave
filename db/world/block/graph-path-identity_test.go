@@ -11,7 +11,7 @@ import (
 func TestGraphPathFieldBoundaries(t *testing.T) {
 	// Open a writer on the existing World engine testbed.
 	ctx := t.Context()
-	engine := newRetirementTestEngine(t, ctx)
+	engine := newRetirementTestEngine(t, ctx, nil)
 	writer, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)

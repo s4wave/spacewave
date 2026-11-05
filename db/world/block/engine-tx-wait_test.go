@@ -12,7 +12,7 @@ import (
 func TestEngineTxWaitSeqnoFollowsPendingWriter(t *testing.T) {
 	// Capture a pending writer's sequence while the engine head remains unchanged.
 	ctx := t.Context()
-	engine := newRetirementTestEngine(t, ctx)
+	engine := newRetirementTestEngine(t, ctx, nil)
 	writer, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
@@ -55,7 +55,7 @@ func TestEngineTxWaitSeqnoFollowsPendingWriter(t *testing.T) {
 func TestEngineTxWaitSeqnoKeepsReadSnapshot(t *testing.T) {
 	// Open an immutable read revision before another transaction publishes an object.
 	ctx := t.Context()
-	engine := newRetirementTestEngine(t, ctx)
+	engine := newRetirementTestEngine(t, ctx, nil)
 	reader, err := engine.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)

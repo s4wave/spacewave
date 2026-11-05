@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/coord"
 	coord_inmem "github.com/s4wave/spacewave/db/coord/inmem"
 	"github.com/s4wave/spacewave/db/world"
@@ -16,20 +15,15 @@ import (
 func TestReadTransactionKeepsRevision(t *testing.T) {
 	for _, coordinated := range []bool{false, true} {
 		name := "local"
-		var options []EngineOption
+		var coordinator coord.Coordinator
 		if coordinated {
 			name = "coordinated"
-			options = append(options, WithWriteCoordinator(
-				coord_inmem.NewCoordinator(),
-				coord.Scope{VolumeID: "snapshot-volume", ObjectStoreID: "snapshot-store"},
-				nil,
-				func(context.Context) (*bucket.ObjectRef, error) { return nil, nil },
-			))
+			coordinator = coord_inmem.NewCoordinator()
 		}
 		t.Run(name, func(t *testing.T) {
 			// Open a reader and a writer on the retirement engine.
 			ctx := t.Context()
-			engine := newRetirementTestEngine(t, ctx, options...)
+			engine := newRetirementTestEngine(t, ctx, coordinator)
 			reader, err := engine.NewBlockEngineTransaction(ctx, false)
 			if err != nil {
 				t.Fatal(err)
@@ -93,7 +87,7 @@ func TestReadSnapshotWaitRev(t *testing.T) {
 	// Open a writer on the retirement engine.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
-	engine := newRetirementTestEngine(t, ctx)
+	engine := newRetirementTestEngine(t, ctx, nil)
 	writer, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)

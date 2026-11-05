@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	"github.com/s4wave/spacewave/db/coord"
+	"github.com/s4wave/spacewave/db/world"
 )
 
 // Tx represents a transaction against the world state.
@@ -57,8 +58,7 @@ func NewTx(client *resource_client.Client, ref resource_client.ResourceRef, read
 // transport still ends the call, and its outcome is then unknown.
 //
 // A commit rejected because another writer advanced the World returns an error
-// matching coord.ErrStaleGeneration; the caller may retry from a new
-// transaction.
+// world.IsSuperseded matches; the caller may retry from a new transaction.
 func (tx *Tx) Commit(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return err
@@ -67,26 +67,27 @@ func (tx *Tx) Commit(ctx context.Context) error {
 	return CommitError(err)
 }
 
-// CommitError restores the stale-generation classification that the RPC
-// boundary flattens to text in a Commit error.
+// CommitError restores the superseded classification that the RPC boundary
+// flattens to text in a Commit error, so world.IsSuperseded matches it.
 func CommitError(err error) error {
 	// Preserve a successful transaction commit.
 	if err == nil {
 		return nil
 	}
 
-	// Recognize a stale-generation error flattened by the RPC boundary.
-	msg, stale := strings.CutSuffix(err.Error(), coord.ErrStaleGeneration.Error())
-	if !stale {
-		return err
+	// Recognize a superseded or stale-generation error flattened by the RPC
+	// boundary, and restore its sentinel with the remote message.
+	for _, sentinel := range []error{world.ErrSuperseded, coord.ErrStaleGeneration} {
+		msg, found := strings.CutSuffix(err.Error(), sentinel.Error())
+		if !found {
+			continue
+		}
+		if msg = strings.TrimSuffix(msg, ": "); msg == "" {
+			return sentinel
+		}
+		return errors.Wrap(sentinel, msg)
 	}
-
-	// Restore the stale-generation classification with its remote message.
-	msg = strings.TrimSuffix(msg, ": ")
-	if msg == "" {
-		return coord.ErrStaleGeneration
-	}
-	return errors.Wrap(coord.ErrStaleGeneration, msg)
+	return err
 }
 
 // Discard discards the transaction without committing changes.

@@ -15,7 +15,7 @@ import (
 // state bounds retained records and payload bytes while preserving live readers.
 func TestEngineRetentionPlateausAndPreservesReaders(t *testing.T) {
 	// Use the durable volume with explicit collection after each World commit.
-	f := newSessionFixture(t)
+	f := newVolumeFixture(t)
 	ctx := t.Context()
 	store := f.engine.writeBlockStore
 	kvStore := f.volume.GetKvtxStore()
@@ -27,7 +27,7 @@ func TestEngineRetentionPlateausAndPreservesReaders(t *testing.T) {
 	var records, liveBytes uint64
 	for i := range 64 {
 		// Disable explicit history for the fixed-state workload.
-		w := sessionWriter(t, f)
+		w := fixtureWriter(t, f.engine)
 		if i == 0 {
 			w.writeTx.state.bcs.SetBlock(NewWorld(true), true)
 		}
@@ -94,7 +94,7 @@ func TestEngineRetentionPlateausAndPreservesReaders(t *testing.T) {
 
 		// Closing one reader must preserve the fork's snapshot until it closes.
 		if i == 15 {
-			sessionHas(t, reader, "object", true)
+			fixtureHas(t, reader, "object", true)
 			reader.Discard()
 			f.collect(t)
 			if found, err := store.GetBlockExists(ctx, firstBody); err != nil || !found {
@@ -164,17 +164,17 @@ func TestEngineRetentionPlateausAndPreservesReaders(t *testing.T) {
 // historical bodies referenced by the current World's changelog.
 func TestEngineRetentionPreservesExplicitHistory(t *testing.T) {
 	// Commit an object with the default history retention enabled.
-	f := newSessionFixture(t)
+	f := newVolumeFixture(t)
 	ctx := t.Context()
-	w := sessionWriter(t, f)
-	_, body := sessionObject(t, w, "history")
+	w := fixtureWriter(t, f.engine)
+	body := fixtureObject(t, w, "history", "payload history")
 	if err := w.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
 	old := f.engine.GetRootRef().GetRootRef()
 
 	// Delete the object while preserving its explicit historical reference.
-	w = sessionWriter(t, f)
+	w = fixtureWriter(t, f.engine)
 	if _, err := w.DeleteObject(ctx, "history"); err != nil {
 		t.Fatal(err)
 	}

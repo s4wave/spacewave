@@ -4,12 +4,11 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"sync/atomic"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
-	"github.com/s4wave/spacewave/db/bucket"
+	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/testbed"
 	volume_world "github.com/s4wave/spacewave/db/volume/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
@@ -20,7 +19,7 @@ import (
 // TestWorldVolumeAtomicPublicationFencesAndRollsBack checks that nested volume
 // publication preserves rejected and discarded state and survives reopening.
 func TestWorldVolumeAtomicPublicationFencesAndRollsBack(t *testing.T) {
-	// Start real block storage for a World whose commits defer their durable head.
+	// Start real block storage for a World whose head is a root of the Volume.
 	ctx := t.Context()
 	tb, err := testbed.NewTestbed(ctx, logrus.NewEntry(logrus.New()))
 	if err != nil {
@@ -28,23 +27,27 @@ func TestWorldVolumeAtomicPublicationFencesAndRollsBack(t *testing.T) {
 	}
 	defer tb.Release()
 
-	// Record only durable World heads so recovery cannot read an unfenced root.
+	// Open the World over the local authority, whose root holds only durable
+	// heads, so recovery cannot read an unfenced root.
 	cur, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	var durableHead atomic.Pointer[bucket.ObjectRef]
-	commitHead := func(_ context.Context, _, next *bucket.ObjectRef) error {
-		durableHead.Store(next.Clone())
-		return nil
+	authority := world_block.NewLocalAuthority(tb.Logger, cur, "world:atomic", nil, coord.Scope{})
+	durableHead := func() *block.BlockRef {
+		head, err := authority.Head(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return head.Root
 	}
-	engine, err := world_block.NewEngine(ctx, tb.Logger, cur, world_mock.LookupMockOp, commitHead, false, world_block.WithDeferredDurability())
+	engine, err := world_block.NewEngine(ctx, tb.Logger, cur, world_mock.LookupMockOp, authority, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer engine.Close()
 
-	// Open the nested volume on the deferred parent World.
+	// Open the nested volume on the parent World.
 	conf := &volume_world.Config{ObjectKey: "atomic-volume"}
 	vol, err := volume_world.NewVolumeWithEngine(ctx, tb.Logger, tb.Bus, transform_all.BuildFactorySet(), conf, engine)
 	if err != nil {
@@ -75,8 +78,8 @@ func TestWorldVolumeAtomicPublicationFencesAndRollsBack(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// A successful nested commit must already have fenced the deferred World.
-	if saved := durableHead.Load(); saved == nil || !saved.EqualsRef(engine.GetRootRef()) {
+	// A successful nested commit must already have made the World durable.
+	if saved := durableHead(); saved == nil || !saved.EqualsRef(engine.GetRootRef().GetRootRef()) {
 		t.Fatal("publication returned before its World root became durable")
 	}
 
@@ -129,7 +132,7 @@ func TestWorldVolumeAtomicPublicationFencesAndRollsBack(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	recoveryCursor.SetRootRef(durableHead.Load().GetRootRef())
+	recoveryCursor.SetRootRef(durableHead())
 	recovered, err := world_block.NewEngine(ctx, tb.Logger, recoveryCursor, world_mock.LookupMockOp, nil, false)
 	if err != nil {
 		t.Fatal(err)
