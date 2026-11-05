@@ -23,9 +23,8 @@ message Config {
   .volume.controller.Config volume_config = 6;
   // StoreConfig is the store configuration for kvtx.
   .store.kvtx.Config store_config = 7;
-  // CacheBytes is the s4db memory budget: a quarter bounds the memtable and
-  // the rest caches run blocks, index partitions and filters. Zero selects
-  // the s4db default.
+  // CacheBytes bounds the s4db block cache of decoded run blocks, index
+  // partitions and filters. Zero selects the s4db default.
   int64 cache_bytes = 8;
   // ReserveBytes is the free disk below which the volume refuses new writes
   // while reads, collection and deletes continue. Zero selects the disk one

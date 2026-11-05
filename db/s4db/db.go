@@ -132,7 +132,7 @@ func open(s storage, opts Options) (*DB, error) {
 		tailer: routine.NewRoutineContainer(),
 		leases: make(map[int64]struct{}),
 		flows:  make([]flowCount, len(opts.Families)+1),
-		cache:  newBlockCache(opts.blockCacheBytes()),
+		cache:  newBlockCache(int64(opts.CacheBytes)),
 		runs:   runs{readers: make(map[uint64]*runReader)},
 	}
 	db.flush = newFlusher(s, &db.cur)
