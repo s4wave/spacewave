@@ -16,6 +16,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
+	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	world_types "github.com/s4wave/spacewave/db/world/types"
@@ -244,14 +245,24 @@ func TestFlowgraphBindsObject(t *testing.T) {
 	requireBinding(t, watch.next("one"), "thing/one", boundType, flowgraph.FlowgraphBindingState_FLOWGRAPH_BINDING_STATE_BOUND)
 	watchCancel()
 
-	// A World reopened from the same store reads the same binding.
-	reopenedID := tb.EngineID + "-reopened"
+	// A World reopened from the same store at its head reads the same binding.
+	// With no object store the reopened engine is read-only at the head root,
+	// so it runs beside the testbed's writer.
+	cursor, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	headRoot, err := cursor.GetBucket().GetRoot(ctx, world_block.WorldRootName(tb.EngineID))
+	cursor.Release()
+	if err != nil {
+		t.Fatal(err)
+	}
 	transformConf, err := world_testbed.NewEngineTransformConfig(tb.EngineBucketID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	initRef := &bucket.ObjectRef{BucketId: tb.EngineBucketID, TransformConf: transformConf}
-	conf := world_block_engine.NewConfig(reopenedID, tb.EngineVolumeID, tb.EngineBucketID, tb.EngineObjectStoreID, initRef, nil, false)
+	initRef := &bucket.ObjectRef{BucketId: tb.EngineBucketID, TransformConf: transformConf, RootRef: headRoot}
+	conf := world_block_engine.NewConfig(tb.EngineID+"-reopened", tb.EngineVolumeID, tb.EngineBucketID, "", initRef, nil, false)
 	engine, engineRef, err := world.StartEngine(ctx, tb.Bus, conf, nil)
 	if err != nil {
 		t.Fatal(err)
