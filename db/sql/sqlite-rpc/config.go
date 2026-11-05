@@ -26,9 +26,9 @@ func (Config) IsBusyError(err error) bool {
 	return err != nil && (strings.Contains(err.Error(), "SQLITE_BUSY") || strings.Contains(err.Error(), "database is locked"))
 }
 
-// IsNestedTxError identifies a connection with an unfinished transaction.
-func (Config) IsNestedTxError(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "cannot start a transaction within a transaction")
+// SyncWAL returns nil: the bridge flushes the database on its own terms.
+func (Config) SyncWAL(string) error {
+	return nil
 }
 
 // OpenStore opens the existing KVTX implementation over a supplied SQLite bridge.

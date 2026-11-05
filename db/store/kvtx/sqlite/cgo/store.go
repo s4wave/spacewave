@@ -36,12 +36,9 @@ func (c CGOConfig) IsBusyError(err error) bool {
 	return ok && sqliteErr.Code == sqlite3.ErrBusy
 }
 
-// IsNestedTxError checks if the error is a nested transaction error for CGO driver.
-// This occurs when BeginTx is called on a connection that already has an active transaction.
-func (c CGOConfig) IsNestedTxError(err error) bool {
-	sqliteErr, ok := err.(sqlite3.Error)
-	// ErrError is SQLITE_ERROR (1)
-	return ok && sqliteErr.Code == sqlite3.ErrError
+// SyncWAL flushes the database's WAL on the local file system.
+func (c CGOConfig) SyncWAL(path string) error {
+	return common.SyncLocalWAL(path)
 }
 
 // Store is a SQLite database key-value store using CGO SQLite driver.

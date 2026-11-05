@@ -10,10 +10,12 @@ type SQLiteDriverConfig interface {
 	OpenDSN(path string) string
 	// Description returns a human-readable description of the driver.
 	Description() string
-	// IsBusyError checks if the error is a SQLITE_BUSY error for this driver
+	// IsBusyError checks if the error is a SQLITE_BUSY error for this driver.
 	IsBusyError(err error) bool
-	// IsNestedTxError checks if the error is a nested transaction error for this driver
-	IsNestedTxError(err error) bool
+	// SyncWAL makes durable every commit the WAL of the database at path
+	// holds, where path is the file SQLite reports for the main database. A
+	// driver behind a bridge returns nil.
+	SyncWAL(path string) error
 }
 
 // SQLiteDriverPoolConfigurator optionally constrains the sql.DB pool created by

@@ -6,12 +6,14 @@ import (
 	"context"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/s4wave/spacewave/db/kvtx"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
+	"github.com/s4wave/spacewave/db/store/kvtx/sqlite/common"
 	store_test "github.com/s4wave/spacewave/db/store/test"
 )
 
@@ -227,72 +229,193 @@ func TestSQLitePragmas(t *testing.T) {
 	}
 	defer db.Close()
 
-	// Read the cache-size pragma from the open database connection.
-	var got int32
-	if err := db.GetDB().QueryRowContext(ctx, "PRAGMA cache_size").Scan(&got); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Verify SQLite retained the configured cache size.
-	if got != wantCacheSize {
-		t.Fatalf("expected cache_size=%d, got %d", wantCacheSize, got)
+	// Read the cache-size pragma on two connections held at once, so each is
+	// its own connection of the pool.
+	for range 2 {
+		conn, err := db.GetDB().Conn(ctx)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		defer conn.Close()
+		var got int32
+		if err := conn.QueryRowContext(ctx, "PRAGMA cache_size").Scan(&got); err != nil {
+			t.Fatal(err.Error())
+		}
+		if got != wantCacheSize {
+			t.Fatalf("expected cache_size=%d, got %d", wantCacheSize, got)
+		}
 	}
 }
 
-// TestSQLiteReadHandle ensures read-only sqlite transactions are lightweight
-// handles over sql.DB and still honor Commit/Discard lifecycle semantics.
-func TestSQLiteReadHandle(t *testing.T) {
-	// Set up the context for the read-handle lifecycle test.
-	ctx := context.Background()
-
-	// Allocate a temporary database path for the read-handle test.
-	tp := newTempDBPath(t, "hydra-test-sqlite-read-handle-*.sqlite")
-
-	// Open the SQLite store used for read and write transactions.
-	db, err := Open(ctx, tp, "test_read_handle")
+// TestSQLiteWriterContract walks the commit contract the kvtx Volume relies
+// on: ordered commits wait for a flush, full commits are durable, the deadline
+// flushes a pending commit, writers queue in arrival order, a read transaction
+// keeps one snapshot, and the background checkpoint moves the WAL into the
+// database file.
+func TestSQLiteWriterContract(t *testing.T) {
+	// Open a store and its contract views.
+	ctx := t.Context()
+	tp := newTempDBPath(t, "hydra-test-sqlite-contract-*.sqlite")
+	db, err := Open(ctx, tp, "test_contract")
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	defer db.Close()
+	ordered := db.(kvtx.OrderedCommitStore)
+	queue := db.(kvtx.WriterQueueStore)
+	if !db.(kvtx.AtomicCommitStore).SupportsAtomicCommit() {
+		t.Fatal("local store does not support atomic commit")
+	}
 
-	// Begin a write transaction to seed the read-handle fixture.
-	writeTx, err := db.NewTransaction(ctx, true)
+	// Probe durability with a done context, which WaitDurable answers at once
+	// when nothing is pending.
+	done, cancel := context.WithCancel(ctx)
+	cancel()
+	durable := func() bool {
+		return ordered.WaitDurable(done) == nil
+	}
+
+	// Write one key, committing it as the caller chooses.
+	write := func(key, value string, commit func(kvtx.Tx) error) {
+		// Begin the write and set the key.
+		t.Helper()
+		tx, err := db.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer tx.Discard()
+		if err := tx.Set(ctx, []byte(key), []byte(value)); err != nil {
+			t.Fatal(err)
+		}
+
+		// Commit it.
+		if err := commit(tx); err != nil {
+			t.Fatal(err)
+		}
+	}
+	commitOrdered := func(tx kvtx.Tx) error { return kvtx.CommitOrdered(ctx, tx) }
+	commitFull := func(tx kvtx.Tx) error { return tx.Commit(ctx) }
+
+	// An ordered commit stays pending until Sync; a full commit is durable.
+	write("k", "1", commitOrdered)
+	if durable() {
+		t.Fatal("ordered commit durable before a flush")
+	}
+	if err := ordered.Sync(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if !durable() {
+		t.Fatal("ordered commit pending after Sync")
+	}
+	write("k", "2", commitOrdered)
+	write("k", "3", commitFull)
+	if !durable() {
+		t.Fatal("ordered commit before a full commit still pending")
+	}
+
+	// The deadline flushes a pending ordered commit.
+	write("k", "4", commitOrdered)
+	start := time.Now()
+	if err := ordered.WaitDurable(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if waited := time.Since(start); waited > 2*common.SyncDeadline {
+		t.Fatalf("deadline flush took %v", waited)
+	}
+
+	// A second writer queues behind the first and runs once it commits.
+	first, err := db.NewTransaction(ctx, true)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
-	defer writeTx.Discard()
+	second := make(chan error, 1)
+	go func() {
+		tx, err := db.NewTransaction(ctx, true)
+		if err == nil {
+			err = tx.Set(ctx, []byte("k"), []byte("6"))
+		}
+		if err == nil {
+			err = tx.Commit(ctx)
+		}
+		second <- err
+	}()
+	for !queue.WritersWaiting() {
+		time.Sleep(time.Millisecond)
+	}
 
-	// Write the fixture key and value before opening a read handle.
-	if err := writeTx.Set(ctx, []byte("k"), []byte("v")); err != nil {
-		t.Fatal(err.Error())
+	// The first writer commits, and the second follows it.
+	if err := first.Set(ctx, []byte("k"), []byte("5")); err != nil {
+		t.Fatal(err)
 	}
-	if err := writeTx.Commit(ctx); err != nil {
-		t.Fatal(err.Error())
+	if err := first.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := <-second; err != nil {
+		t.Fatal(err)
+	}
+	if queue.WritersWaiting() {
+		t.Fatal("writer still waiting after both committed")
 	}
 
-	// Open a read-only transaction over the committed fixture.
-	readTx, err := db.NewTransaction(ctx, false)
+	// A read transaction keeps its snapshot across a later commit, and ends
+	// with Discard.
+	read, err := db.NewTransaction(ctx, false)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 
-	// Read the fixture value through the read-only transaction.
-	val, found, err := readTx.Get(ctx, []byte("k"))
+	// Read the key through a transaction.
+	get := func(tx kvtx.Tx) string {
+		t.Helper()
+		v, _, err := tx.Get(ctx, []byte("k"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(v)
+	}
+	if got := get(read); got != "6" {
+		t.Fatalf("read %q, want 6", got)
+	}
+
+	// A commit after the first read leaves the snapshot unchanged.
+	write("k", "7", commitFull)
+	if got := get(read); got != "6" {
+		t.Fatalf("snapshot read %q after a commit, want 6", got)
+	}
+
+	// Discard ends the read, and a new read sees the commit.
+	read.Discard()
+	if _, _, err := read.Get(ctx, []byte("k")); err != kvtx.ErrDiscarded {
+		t.Fatalf("read after Discard: %v, want ErrDiscarded", err)
+	}
+	fresh, err := db.NewTransaction(ctx, false)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
-	if !found || string(val) != "v" {
-		t.Fatalf("unexpected read result: found=%v val=%q", found, string(val))
+	if got := get(fresh); got != "7" {
+		t.Fatalf("new read %q, want 7", got)
 	}
+	fresh.Discard()
 
-	// Commit the read handle and exercise its lifecycle boundary.
-	if err := readTx.Commit(ctx); err != nil {
-		t.Fatal(err.Error())
+	// The background checkpoint copies the WAL into the database file.
+	before, err := os.Stat(tp)
+	if err != nil {
+		t.Fatal(err)
 	}
-
-	// Verify a committed read handle rejects subsequent reads.
-	if _, _, err := readTx.Get(ctx, []byte("k")); err != kvtx.ErrDiscarded {
-		t.Fatalf("expected ErrDiscarded after read commit, got %v", err)
+	write("big", strings.Repeat("x", 1<<20), commitFull)
+	deadline := time.Now().Add(3 * common.CheckpointInterval)
+	for {
+		after, err := os.Stat(tp)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if after.Size() >= before.Size()+(1<<19) {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("database file %d bytes after checkpoint interval, was %d", after.Size(), before.Size())
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
 }
 
