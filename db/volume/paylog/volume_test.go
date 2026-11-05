@@ -3,7 +3,6 @@
 package paylog
 
 import (
-	"context"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -67,29 +66,20 @@ func closeVolume(t *testing.T, v *volume_kvtx.Volume) {
 	}
 }
 
-// publish publishes one block held by a root of bucket "owner" named id, with
-// a head named id, and returns its reference.
+// publish stores one block held by a root of bucket "owner" named id, in one
+// commit, and returns its reference.
 func publish(t *testing.T, v *volume_kvtx.Volume, id string) *block.BlockRef {
-	// Build the block and a head update that always applies.
+	// Build the block.
 	t.Helper()
 	data := []byte("block for " + id)
 	ref, err := block.BuildBlockRef(data, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	head := &block.AtomicHeadUpdate{ObjectStoreID: id, Key: []byte("head"), Replace: func(context.Context, []byte, bool) ([]byte, error) {
-		return []byte(id), nil
-	}}
 
-	// Publish the block and its root in one commit.
-	p := &block.AtomicPublication{
-		Entries:  []*block.PutBatchEntry{{Ref: ref, Data: data, RefsKnown: true}},
-		BucketID: "owner",
-		TrackGC:  true,
-		Heads:    []*block.AtomicHeadUpdate{head},
-		Roots:    []block.NamedRoot{{Name: id, Ref: ref}},
-	}
-	if err := v.PublishAtomic(t.Context(), p); err != nil {
+	// Store the block and its root in one commit.
+	entries := []*block.PutBatchEntry{{Ref: ref, Data: data, RefsKnown: true}}
+	if err := v.SetBucketRoots(t.Context(), "owner", entries, []block.NamedRoot{{Name: id, Ref: ref}}); err != nil {
 		t.Fatal(err)
 	}
 	return ref

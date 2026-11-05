@@ -46,7 +46,7 @@ func (v *Volume) MarkRootsComplete(ctx context.Context, roots []*block.BlockRef)
 // proofs whose roots are gone for a later carry to drop.
 func (v *Volume) carryRootProofBacklog(ctx context.Context) error {
 	// Leave carrying to other writers when the store has no atomic publication.
-	if !v.SupportsAtomicPublication() {
+	if !v.SupportsRootRetention() {
 		return nil
 	}
 
@@ -201,7 +201,7 @@ func (v *Volume) RootsComplete(ctx context.Context, refs []*block.BlockRef) ([]b
 		}
 	}
 	v.proofMu.Unlock()
-	if len(durable) == 0 || !v.SupportsAtomicPublication() {
+	if len(durable) == 0 || !v.SupportsRootRetention() {
 		return complete, nil
 	}
 

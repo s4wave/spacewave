@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/volume"
 )
 
 // pinRootPrefix prefixes the reader pins of the Volume's bucket with the empty
@@ -59,7 +60,7 @@ func (v *Volume) pinRoot(ctx context.Context, ref *block.BlockRef, prepared bool
 		}
 		if v.rootPinsClosed {
 			unlock()
-			return "", nil, block.ErrPublicationClosed
+			return "", nil, volume.ErrVolumeClosed
 		}
 
 		// Wait out a pin write in flight, then observe its result.
@@ -242,7 +243,7 @@ func (v *Volume) closeRootPins() error {
 	clear(v.rootPins)
 	clear(v.stages)
 	unlock()
-	if (len(releases) == 0 && len(stages) == 0) || !v.SupportsAtomicPublication() {
+	if (len(releases) == 0 && len(stages) == 0) || !v.SupportsRootRetention() {
 		return nil
 	}
 

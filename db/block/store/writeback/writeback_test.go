@@ -230,28 +230,20 @@ func TestUploadAfterRestart(t *testing.T) {
 	}
 }
 
-// publicationOf builds a publication of blocks that moves head from the
-// previous number to number.
-func publicationOf(t *testing.T, number int, blocks ...string) (*block.AtomicPublication, []*block.BlockRef) {
-	// Build the publication from the blocks in order.
+// batchOf builds a batch of the blocks in order.
+func batchOf(t *testing.T, blocks ...string) ([]*block.PutBatchEntry, []*block.BlockRef) {
 	t.Helper()
-	pub := &block.AtomicPublication{BucketID: "bucket", TrackGC: true}
+	var entries []*block.PutBatchEntry
 	var refs []*block.BlockRef
 	for _, data := range blocks {
 		ref, err := block.BuildBlockRef([]byte(data), nil)
 		if err != nil {
 			t.Fatal(err)
 		}
-		pub.Entries = append(pub.Entries, &block.PutBatchEntry{Ref: ref, Data: []byte(data), RefsKnown: true})
+		entries = append(entries, &block.PutBatchEntry{Ref: ref, Data: []byte(data), RefsKnown: true})
 		refs = append(refs, ref)
 	}
-	pub.Heads = []*block.AtomicHeadUpdate{{ObjectStoreID: "so", Key: []byte("head"), Replace: func(_ context.Context, current []byte, found bool) ([]byte, error) {
-		if want := strconv.Itoa(number - 1); (number > 1) != found || (found && string(current) != want) {
-			return nil, errors.Errorf("head %q is not %q", current, want)
-		}
-		return []byte(strconv.Itoa(number)), nil
-	}}}
-	return pub, refs
+	return entries, refs
 }
 
 // failingMarker marks its blocks, then fails, as a marker that wrote its
@@ -268,21 +260,21 @@ func (f *failingMarker) MarkBlocks(ctx context.Context, tx kvtx.Tx, blocks []kvt
 	return nil, errors.New("marker failed")
 }
 
-// TestAtomicPublicationMarks checks that a publication and the markers of its
-// blocks commit together: a publication that fails leaves neither, a
-// committed one survives a restart marked, and the restarted store uploads it.
-func TestAtomicPublicationMarks(t *testing.T) {
+// TestAtomicBatchMarks checks that a batch and the markers of its blocks
+// commit together: a batch whose marker fails leaves neither, a committed one
+// survives a restart marked, and the restarted store uploads it.
+func TestAtomicBatchMarks(t *testing.T) {
 	// Publish, crash before upload, reopen, and upload.
 	ctx := t.Context()
 	env := newTestEnv(t)
 	s := env.newStore(t, true)
 
-	// A publication whose marker fails after writing its records commits
-	// neither the blocks nor the records.
-	failed, failedRefs := publicationOf(t, 1, "failed-a", "failed-b")
+	// A batch whose marker fails after writing its records commits neither
+	// the blocks nor the records.
+	failed, failedRefs := batchOf(t, "failed-a", "failed-b")
 	failCtx, _ := kvtx.WithBlockMarker(ctx, &failingMarker{BlockMarker: s})
-	if err := env.vol.PublishAtomic(failCtx, failed); err == nil {
-		t.Fatal("expected the publication to fail")
+	if _, err := env.vol.PutBlockBatch(failCtx, failed); err == nil {
+		t.Fatal("expected the batch to fail")
 	}
 	for _, ref := range failedRefs {
 		if found, err := env.vol.GetBlockExists(ctx, ref); err != nil || found {
@@ -293,20 +285,20 @@ func TestAtomicPublicationMarks(t *testing.T) {
 		}
 	}
 	if status, _ := s.GetStatus(); status.Pending != 0 || status.PendingBytes != 0 {
-		t.Fatalf("failed publication left %+v", status)
+		t.Fatalf("failed batch left %+v", status)
 	}
 
-	// Publish atomically, repeating one block already stored and marked.
+	// Store a batch, repeating one block already stored and marked.
 	if _, _, err := s.PutBlock(ctx, []byte("shared"), leafOpts); err != nil {
 		t.Fatal(err)
 	}
-	pub, refs := publicationOf(t, 1, "atomic-a", "atomic-b", "shared")
-	pubCtx, req := kvtx.WithBlockMarker(ctx, s)
-	if err := env.vol.PublishAtomic(pubCtx, pub); err != nil {
+	batch, refs := batchOf(t, "atomic-a", "atomic-b", "shared")
+	batchCtx, req := kvtx.WithBlockMarker(ctx, s)
+	if _, err := env.vol.PutBlockBatch(batchCtx, batch); err != nil {
 		t.Fatal(err)
 	}
 	if !req.Applied() {
-		t.Fatal("the publication did not mark its blocks")
+		t.Fatal("the batch did not mark its blocks")
 	}
 	if status, _ := s.GetStatus(); status.Pending != 3 || status.PendingBytes != int64(len("atomic-a")+len("atomic-b")+len("shared")) {
 		t.Fatalf("after publish: %+v", status)

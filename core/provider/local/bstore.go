@@ -78,9 +78,6 @@ type placementState struct {
 	// sqlPrimary reports that the store writes to its SQL backend, which
 	// then holds blocks the reference graph may not track.
 	sqlPrimary bool
-	// sqlPublish publishes the writes of a store whose SQL backend is
-	// primary, or holds nil when local cannot publish its heads.
-	sqlPublish *sqlPublisher
 	// fallbackFills runs and counts the fills of the SQL read fallback.
 	fallbackFills fallbackFills
 }
@@ -531,27 +528,11 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		fallbackStore,
 	)
 
-	// A primary SQL backend takes the writes. Its publisher drains published
-	// blocks to it outside the writer's lock, and serves them until they land.
+	// A primary SQL backend takes the writes and holds the roots.
 	if sqlStore != nil {
 		localStore, reads = sqlPrimaryStores(blockStoreLocalID, localBucket, sqlStore, func() block.StoreOps {
 			return t.a.getP2PStore(bucketID)
 		})
-		if local, ok := localBucket.(block.AtomicPublisher); ok && local.SupportsAtomicPublication() {
-			pub := newSQLPublisher(le.WithField("routine", "sql-publish"), sqlStore, local)
-			placement.sqlPublish = pub
-			reads = newSQLPublishReads(pub, reads)
-			pubCtx, pubCancel := context.WithCancel(ctx)
-			pubDone := make(chan struct{})
-			go func() {
-				pub.run(pubCtx)
-				close(pubDone)
-			}()
-			defer func() {
-				pubCancel()
-				<-pubDone
-			}()
-		}
 		copies = reads
 	}
 

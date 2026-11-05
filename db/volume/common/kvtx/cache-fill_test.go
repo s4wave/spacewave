@@ -10,7 +10,7 @@ import (
 
 func TestCacheFillsShareTransactions(t *testing.T) {
 	// Hold the first fill's transaction so the rest queue behind it.
-	v, raw := newPublicationTestVolume(t)
+	v, raw := newTestVolume(t)
 	leaf, err := block.BuildBlockRef([]byte("leaf"), nil)
 	if err != nil {
 		t.Fatal(err)

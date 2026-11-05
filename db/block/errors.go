@@ -47,45 +47,14 @@ var (
 	ErrBlockRefMismatch = errors.New("block: block ref hash mismatch")
 	// ErrBufferedStoreFull is returned when a buffered store reaches its memory limits.
 	ErrBufferedStoreFull = errors.New("block: buffered store is full")
-	// ErrAtomicPublicationUnsupported is returned before admission, with no side
-	// effects, when a store cannot atomically persist blocks, ownership and metadata.
-	// It is the only publication error for which a caller may use a legacy path.
-	ErrAtomicPublicationUnsupported = errors.New("atomic publication unsupported")
-	// ErrPublicationClosed means the publication writer no longer accepts work.
-	ErrPublicationClosed = errors.New("publication writer closed")
-	// ErrPublicationTooLarge rejects a publication that cannot fit the writer's
-	// bounded admission budget. Large block bodies should be prepared durably first.
-	ErrPublicationTooLarge = errors.New("publication exceeds bounded admission budget")
-	// ErrPublicationDependency means a predecessor failed or was not submitted to
-	// this writer before its dependent publication.
-	ErrPublicationDependency = errors.New("publication predecessor did not succeed")
+	// ErrAtomicCommitUnsupported is returned before any I/O, with no side
+	// effects, when a store cannot commit blocks with their ownership in one
+	// transaction.
+	ErrAtomicCommitUnsupported = errors.New("atomic commit unsupported")
 	// ErrStageReleased rejects a write through a stage that was released or
 	// reaped, which can no longer own the blocks.
 	ErrStageReleased = errors.New("block: stage released")
 )
-
-// publicationDependencyError joins the dependency sentinel with the predecessor
-// failure. Callers match the sentinel with errors.Is while the original cause
-// stays inspectable.
-type publicationDependencyError struct {
-	cause error
-}
-
-// Error returns the sentinel message followed by the predecessor failure.
-func (e *publicationDependencyError) Error() string {
-	return ErrPublicationDependency.Error() + ": " + e.cause.Error()
-}
-
-// Unwrap returns both parents: the dependency sentinel and the predecessor result.
-func (e *publicationDependencyError) Unwrap() []error {
-	return []error{ErrPublicationDependency, e.cause}
-}
-
-// NewPublicationDependencyError wraps a failed or unordered predecessor result
-// with ErrPublicationDependency. Use it to reject a dependent publication.
-func NewPublicationDependencyError(cause error) error {
-	return &publicationDependencyError{cause: cause}
-}
 
 // IsNotAvailable reports whether err means a block is not available here now:
 // missing from the store, or not served by any source. A reader that needs the

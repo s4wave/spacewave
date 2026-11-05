@@ -62,10 +62,9 @@ type Volume struct {
 	collector *block_gc.Collector
 	// adoptMu runs one adoption of this Volume at a time.
 	adoptMu sync.Mutex
-	// publications owns bounded grouped writes in this volume's raw
-	// transaction domain and serves admitted blocks until their group
-	// resolves.
-	publications *publicationWriter
+	// atomic is set when the store commits transactions atomically, which
+	// the Volume's liveness, roots, pins and stages need.
+	atomic bool
 	// ordered flushes direct atomic writes committed with write ordering, may
 	// be nil.
 	ordered kvtx.OrderedCommitStore
@@ -199,10 +198,10 @@ func NewVolume(
 	// Coordinate direct writers using the initialized Volume identity.
 	v.Coordinator = coord_inmem.ForVolume(v.GetID())
 
-	// Route atomic publications and liveness through physical transactions.
+	// Keep liveness, roots, pins and stages on a store that commits atomically.
 	if atomicStore, ok := store.(kvtx.AtomicCommitStore); ok && atomicStore.SupportsAtomicCommit() {
 		v.atomicHashGet = !conf.GetDisableHashGet()
-		v.publications = newPublicationWriter(v)
+		v.atomic = true
 		if orderedStore, ok := store.(kvtx.OrderedCommitStore); ok {
 			v.ordered = orderedStore
 		}
@@ -428,9 +427,9 @@ func (v *Volume) GetStorageStatsSnapshotWithWait(
 	return stats, waitCh, nil
 }
 
-// reader reads the embedded store with admitted publications laid over it.
-func (v *Volume) reader() publicationReader {
-	return publicationReader{volume: v, writer: v.publications, store: v.Store}
+// reader reads the embedded store, marking durable reads.
+func (v *Volume) reader() storeReader {
+	return storeReader{volume: v, store: v.Store}
 }
 
 // broadcastStorageStatsChanged wakes watchers of the Volume storage statistics.
@@ -469,7 +468,7 @@ func (v *Volume) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEnt
 	// keeps none.
 	var existed []bool
 	var err error
-	if v.SupportsAtomicPublication() {
+	if v.SupportsRootRetention() {
 		existed, err = v.putEntries(ctx, v.withDirectPlain, entries)
 	} else {
 		existed, err = v.reader().PutBlockBatch(ctx, entries)
@@ -513,7 +512,7 @@ func (v *Volume) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts)
 	// keeps none.
 	var ref *block.BlockRef
 	var exists bool
-	if v.SupportsAtomicPublication() {
+	if v.SupportsRootRetention() {
 		entry, err := putEntry(data, putOpts, v.GetHashType())
 		if err != nil {
 			return nil, false, err
@@ -549,36 +548,32 @@ func (v *Volume) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts)
 	return ref, exists, nil
 }
 
-// BeginReadOperation opens a read scope on the embedded store that reads
-// admitted publications first.
+// BeginReadOperation opens a read scope on the embedded store.
 func (v *Volume) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
 	return v.reader().BeginReadOperation(ctx)
 }
 
-// GetBlock reads a block of an admitted publication before the embedded store.
+// GetBlock reads a block from the embedded store.
 func (v *Volume) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	return v.reader().GetBlock(ctx, ref)
 }
 
-// GetStoredBlock reads a block without its refs, admitted publications first.
+// GetStoredBlock reads a block with its refs from the embedded store.
 func (v *Volume) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	return v.reader().GetStoredBlock(ctx, ref)
 }
 
-// GetBlockExists reports a block of an admitted publication before the
-// embedded store.
+// GetBlockExists asks the embedded store for a block.
 func (v *Volume) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	return v.reader().GetBlockExists(ctx, ref)
 }
 
-// GetBlockExistsBatch reports blocks of admitted publications and probes the
-// embedded store for the rest.
+// GetBlockExistsBatch asks the embedded store for each block.
 func (v *Volume) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	return v.reader().GetBlockExistsBatch(ctx, refs)
 }
 
-// StatBlock reports a block of an admitted publication before the embedded
-// store.
+// StatBlock asks the embedded store for a block's size.
 func (v *Volume) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
 	return v.reader().StatBlock(ctx, ref)
 }
@@ -592,7 +587,7 @@ func (v *Volume) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.Blo
 func (v *Volume) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	// Evict through a tombstone, or remove from a store without liveness.
 	var err error
-	if v.SupportsAtomicPublication() {
+	if v.SupportsRootRetention() {
 		_, err = v.putEntries(ctx, v.withDirectPlain, []*block.PutBatchEntry{{Ref: ref, Tombstone: true}})
 	} else {
 		err = v.reader().RmBlock(ctx, ref)
@@ -606,13 +601,6 @@ func (v *Volume) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 
 // Sync forwards the durability barrier to the embedded store.
 func (v *Volume) Sync(ctx context.Context) (bool, error) {
-	// Fence queued publications before synchronizing the Volume store.
-	if v.publications != nil {
-		if err := v.publications.fence(ctx); err != nil {
-			return false, err
-		}
-	}
-
 	// Synchronize block bytes through the embedded Volume store.
 	fenced, err := v.Store.Sync(ctx)
 	if err != nil {
@@ -704,14 +692,10 @@ func (v *Volume) Close() error {
 	v.directClosed = true
 	v.directMu.Unlock()
 
-	// Stop measuring sizes, then drain Volume publications and close the
-	// reference graph and backing store.
+	// Stop measuring sizes, then close the reference graph and backing store.
 	if v.healthCancel != nil {
 		v.healthCancel()
 		<-v.healthDone
-	}
-	if v.publications != nil {
-		v.publications.close()
 	}
 	if v.closeFn != nil {
 		closeErr = errors.Join(closeErr, v.closeFn())

@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
+	"github.com/s4wave/spacewave/db/volume"
 )
 
 // openStage is the in-process state of one stage.
@@ -90,7 +91,7 @@ func (v *Volume) OpenStage(ctx context.Context) (string, func(), error) {
 	}
 	defer unlock()
 	if v.rootPinsClosed {
-		return "", nil, block.ErrPublicationClosed
+		return "", nil, volume.ErrVolumeClosed
 	}
 
 	// Register the stage.
@@ -197,8 +198,8 @@ func (v *Volume) prepareStaged(ctx context.Context, stage string, entries []*blo
 	if err := v.useStage(ctx, stage); err != nil {
 		return nil, err
 	}
-	if !v.SupportsAtomicPublication() {
-		return nil, block.ErrAtomicPublicationUnsupported
+	if !v.SupportsRootRetention() {
+		return nil, block.ErrAtomicCommitUnsupported
 	}
 	if err := v.checkReserve(ctx, batchBytes(entries)); err != nil {
 		return nil, err

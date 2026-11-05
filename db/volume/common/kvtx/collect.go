@@ -122,8 +122,8 @@ func (v *Volume) readBlockRun(ctx context.Context, prefix, after []byte, limit i
 // it holds what it needs under named roots.
 func (v *Volume) Adopt(ctx context.Context) (block_gc.AdoptResult, error) {
 	// Require liveness, then adopt one run at a time.
-	if !v.SupportsAtomicPublication() {
-		return block_gc.AdoptResult{}, block.ErrAtomicPublicationUnsupported
+	if !v.SupportsRootRetention() {
+		return block_gc.AdoptResult{}, block.ErrAtomicCommitUnsupported
 	}
 	v.adoptMu.Lock()
 	defer v.adoptMu.Unlock()
@@ -135,8 +135,8 @@ func (v *Volume) Adopt(ctx context.Context) (block_gc.AdoptResult, error) {
 // walk with the counts and the free queue, as block_gc.Audit describes,
 // reporting the mark phase while it runs. It frees nothing.
 func (v *Volume) Audit(ctx context.Context) (block_gc.AuditResult, error) {
-	if !v.SupportsAtomicPublication() {
-		return block_gc.AuditResult{}, block.ErrAtomicPublicationUnsupported
+	if !v.SupportsRootRetention() {
+		return block_gc.AuditResult{}, block.ErrAtomicCommitUnsupported
 	}
 	defer v.enterGCPhase(volume.VolumeGCPhase_VOLUME_GC_PHASE_MARK)()
 	return block_gc.Audit(backgroundPass(ctx), collectorStore{v: v})

@@ -18,7 +18,7 @@ import (
 func TestFlowsCountNewBlocksByPath(t *testing.T) {
 	// A direct write counts once, and writing the same block again counts as
 	// existing.
-	v, _ := newPublicationTestVolume(t)
+	v, _ := newTestVolume(t)
 	logger, hook := logrus_test.NewNullLogger()
 	v.SetLogger(logrus.NewEntry(logger))
 	ctx := t.Context()
@@ -75,9 +75,9 @@ func TestFlowsCountNewBlocksByPath(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// A committed publication counts its entry.
-	p := publicationFor(t, "store", "", "one")
-	if err := awaitPublication(t, submitPublication(t, v, p)); err != nil {
+	// A committed batch counts its entry.
+	batch := batchFor(t, "store", "one")
+	if err := putBatch(ctx, v, batch); err != nil {
 		t.Fatal(err)
 	}
 
@@ -90,17 +90,15 @@ func TestFlowsCountNewBlocksByPath(t *testing.T) {
 		}
 		return &block.PutBatchEntry{Ref: ref, Data: unknown(path)}
 	}
-	refused := unknownEntry("publication")
-	unknownPub := publicationFor(t, "store", "one", "two")
-	unknownPub.Entries = []*block.PutBatchEntry{refused}
+	refused := unknownEntry("batch")
 	roots := unknownEntry("roots")
 	puts := map[string]func() error{
 		"direct": func() error {
 			_, _, err := v.PutBlock(ctx, unknown("direct"), nil)
 			return err
 		},
-		"publication": func() error {
-			return awaitPublication(t, submitPublication(t, v, unknownPub))
+		"batch": func() error {
+			return putBatch(ctx, v, []*block.PutBatchEntry{refused})
 		},
 		"owned": func() error {
 			_, _, err := v.PrepareOwnedBlock(ctx, "bucket", unknown("owned"), nil)
@@ -130,8 +128,7 @@ func TestFlowsCountNewBlocksByPath(t *testing.T) {
 	// Each path reports exactly its own blocks, its repeated puts and one
 	// refusal.
 	want := []volume.PutFlow{
-		{Path: "direct", Blocks: 1, Bytes: uint64(len(direct)), Existing: 1, Refused: 2},
-		{Path: "publication", Blocks: 1, Bytes: uint64(len(p.Entries[0].Data)), Refused: 1},
+		{Path: "direct", Blocks: 2, Bytes: uint64(len(direct) + len(batch[0].Data)), Existing: 1, Refused: 3},
 		{Path: "owned", Blocks: 1, Bytes: uint64(len(owned)), Refused: 1},
 		{Path: "fill", Blocks: 1, Bytes: uint64(len(fill)), Existing: 1, Refused: 1},
 		{Path: "staged", Blocks: 2, Bytes: uint64(staged), Refused: 1},

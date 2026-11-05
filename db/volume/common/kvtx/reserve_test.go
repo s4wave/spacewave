@@ -17,7 +17,7 @@ import (
 // above it.
 func TestReserve(t *testing.T) {
 	// Measure a chosen free disk against a 100 MiB reserve.
-	v, _ := newPublicationTestVolume(t)
+	v, _ := newTestVolume(t)
 	ctx := t.Context()
 	const reserve = 100 << 20
 	var free atomic.Uint64
@@ -26,7 +26,7 @@ func TestReserve(t *testing.T) {
 		return HealthSizes{FreeDiskBytes: free.Load(), ReserveBytes: reserve}, nil
 	})
 	waitWriteState(t, v, volume.VolumeWriteState_VOLUME_WRITE_STATE_WRITABLE)
-	if err := v.PublishAtomic(ctx, publicationFor(t, "reserve-a", "", "one")); err != nil {
+	if err := putBatch(ctx, v, batchFor(t, "reserve-a", "one")); err != nil {
 		t.Fatal(err)
 	}
 
@@ -40,8 +40,8 @@ func TestReserve(t *testing.T) {
 	free.Store(reserve / 2)
 	v.wakeHealthSizes()
 	waitWriteState(t, v, volume.VolumeWriteState_VOLUME_WRITE_STATE_RESERVE)
-	if err := v.PublishAtomic(ctx, publicationFor(t, "reserve-b", "", "one")); !errors.Is(err, volume.ErrReserve) {
-		t.Fatalf("publish below the reserve: %v", err)
+	if err := putBatch(ctx, v, batchFor(t, "reserve-b", "one")); !errors.Is(err, volume.ErrReserve) {
+		t.Fatalf("batch below the reserve: %v", err)
 	}
 	if _, _, err := v.PrepareOwnedBlock(ctx, "owner", []byte("refused"), nil); !errors.Is(err, volume.ErrReserve) {
 		t.Fatalf("prepare below the reserve: %v", err)
@@ -49,7 +49,7 @@ func TestReserve(t *testing.T) {
 	if _, _, err := v.PutBlock(ctx, []byte("refused"), nil); !errors.Is(err, volume.ErrReserve) {
 		t.Fatalf("put below the reserve: %v", err)
 	}
-	stored := publicationFor(t, "reserve-a", "", "one").Entries[0].Ref
+	stored := batchFor(t, "reserve-a", "one")[0].Ref
 	if _, found, err := v.GetBlock(ctx, stored); err != nil || !found {
 		t.Fatalf("read below the reserve: found %v, %v", found, err)
 	}
@@ -64,22 +64,22 @@ func TestReserve(t *testing.T) {
 
 	// An exempt write is admitted below the reserve.
 	exempt := volume.WithReserveExempt(ctx)
-	if err := v.PublishAtomic(exempt, publicationFor(t, "reserve-c", "", "one")); err != nil {
-		t.Fatalf("exempt publish below the reserve: %v", err)
+	if err := putBatch(exempt, v, batchFor(t, "reserve-c", "one")); err != nil {
+		t.Fatalf("exempt batch below the reserve: %v", err)
 	}
 
 	// Inside the margin the state holds; above it, writes resume.
 	free.Store(reserve + reserve/reserveMarginDivisor/2)
 	v.wakeHealthSizes()
 	waitSizes(t, v, free.Load())
-	if err := v.PublishAtomic(ctx, publicationFor(t, "reserve-b", "", "one")); !errors.Is(err, volume.ErrReserve) {
-		t.Fatalf("publish inside the margin: %v", err)
+	if err := putBatch(ctx, v, batchFor(t, "reserve-b", "one")); !errors.Is(err, volume.ErrReserve) {
+		t.Fatalf("batch inside the margin: %v", err)
 	}
 	free.Store(2 * reserve)
 	v.wakeHealthSizes()
 	waitWriteState(t, v, volume.VolumeWriteState_VOLUME_WRITE_STATE_WRITABLE)
-	if err := v.PublishAtomic(ctx, publicationFor(t, "reserve-b", "", "one")); err != nil {
-		t.Fatalf("publish above the margin: %v", err)
+	if err := putBatch(ctx, v, batchFor(t, "reserve-b", "one")); err != nil {
+		t.Fatalf("batch above the margin: %v", err)
 	}
 }
 
@@ -88,7 +88,7 @@ func TestReserve(t *testing.T) {
 // becomes writable once the release frees the disk.
 func TestReserveRelease(t *testing.T) {
 	// Start below a 100 MiB reserve, with a release that frees the disk.
-	v, _ := newPublicationTestVolume(t)
+	v, _ := newTestVolume(t)
 	ctx := t.Context()
 	const reserve = 100 << 20
 	var free atomic.Uint64
@@ -105,8 +105,8 @@ func TestReserveRelease(t *testing.T) {
 	// again.
 	waitWriteState(t, v, volume.VolumeWriteState_VOLUME_WRITE_STATE_RESERVE)
 	waitWriteState(t, v, volume.VolumeWriteState_VOLUME_WRITE_STATE_WRITABLE)
-	if err := v.PublishAtomic(ctx, publicationFor(t, "release", "", "one")); err != nil {
-		t.Fatalf("publish after the release: %v", err)
+	if err := putBatch(ctx, v, batchFor(t, "release", "one")); err != nil {
+		t.Fatalf("batch after the release: %v", err)
 	}
 }
 

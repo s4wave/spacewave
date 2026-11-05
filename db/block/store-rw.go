@@ -8,9 +8,8 @@ import (
 
 // StoreRW combines a read and write store together.
 type StoreRW struct {
-	readHandle          StoreOps
-	writeHandle         StoreOps
-	publicationReadOnly bool
+	readHandle  StoreOps
+	writeHandle StoreOps
 }
 
 // NewStoreRW constructs a new Store handle using a read handle and an optional
@@ -58,7 +57,7 @@ func (b *StoreRW) BeginReadOperation(ctx context.Context) (StoreOps, func(), err
 	if err != nil {
 		return nil, nil, err
 	}
-	return &StoreRW{readHandle: readHandle, writeHandle: readHandle, publicationReadOnly: true}, release, nil
+	return &StoreRW{readHandle: readHandle, writeHandle: readHandle}, release, nil
 }
 
 // EnsureDecodedBlockCacheFresh forwards decoded-cache freshness to the read handle.
@@ -123,39 +122,6 @@ func (b *StoreRW) Sync(ctx context.Context) (bool, error) {
 	return b.writeHandle.Sync(ctx)
 }
 
-// SupportsAtomicPublication follows the write domain, never a cross-volume lookup.
-func (b *StoreRW) SupportsAtomicPublication() bool {
-	if b.publicationReadOnly {
-		return false
-	}
-	p, ok := b.writeHandle.(AtomicPublisher)
-	return ok && p.SupportsAtomicPublication()
-}
-
-// AtomicPublicationVolumeID returns the write domain's shared publication namespace.
-func (b *StoreRW) AtomicPublicationVolumeID() string {
-	if !b.SupportsAtomicPublication() {
-		return ""
-	}
-	return b.writeHandle.(AtomicPublisher).AtomicPublicationVolumeID()
-}
-
-// SubmitAtomic forwards admission to the write handle's publisher.
-func (b *StoreRW) SubmitAtomic(ctx context.Context, p *AtomicPublication) (*PublicationReceipt, error) {
-	if !b.SupportsAtomicPublication() {
-		return nil, ErrAtomicPublicationUnsupported
-	}
-	return b.writeHandle.(AtomicPublisher).SubmitAtomic(ctx, p)
-}
-
-// PublishAtomic forwards the uncancelled durability wait to the write handle.
-func (b *StoreRW) PublishAtomic(ctx context.Context, p *AtomicPublication) error {
-	if !b.SupportsAtomicPublication() {
-		return ErrAtomicPublicationUnsupported
-	}
-	return b.writeHandle.(AtomicPublisher).PublishAtomic(ctx, p)
-}
-
 // HoldCompleteRoots forwards stage ownership to the write handle, never the read handle.
 func (b *StoreRW) HoldCompleteRoots(ctx context.Context, refs []*BlockRef) ([]bool, error) {
 	return HoldCompleteRoots(ctx, b.writeHandle, refs)
@@ -165,6 +131,5 @@ func (b *StoreRW) HoldCompleteRoots(ctx context.Context, refs []*BlockRef) ([]bo
 var (
 	_ StoreOps                   = (*StoreRW)(nil)
 	_ DecodedBlockCacheFreshener = (*StoreRW)(nil)
-	_ AtomicPublisher            = (*StoreRW)(nil)
 	_ CompleteRootHolder         = (*StoreRW)(nil)
 )
