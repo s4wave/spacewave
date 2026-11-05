@@ -435,15 +435,15 @@ func (v *Volume) GetRefGraph() block_gc.RefGraphOps {
 // markers in one transaction, or fails with block.ErrAtomicPublicationUnsupported
 // when the store cannot commit atomically.
 // It returns volume.ErrReserve while the volume is in the reserve state, and
-// block.ErrRefsUnknown for a new block written without its references.
+// block.ErrRefsUnknown for a block written without its child list.
 func (v *Volume) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Store a batch that asked for marking with its markers in one transaction.
 	if kvtx.GetBlockMarkRequest(ctx) != nil {
 		return v.PrepareOwnedBlockBatch(ctx, "", entries)
 	}
 
-	// Refuse new data below the disk reserve, and new blocks without their
-	// references, then write the batch. A batch of tombstones only frees
+	// Refuse new data below the disk reserve, and blocks without their child
+	// lists, then write the batch. A batch of tombstones only frees
 	// space, so it runs below the reserve too.
 	if !onlyTombstones(entries) {
 		if err := v.checkReserve(ctx, batchBytes(entries)); err != nil {
@@ -451,7 +451,7 @@ func (v *Volume) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEnt
 		}
 	}
 	v.noteUnknownRefsBatch(putDirect, entries)
-	if err := requireRefsKnown(ctx, v.reader(), entries); err != nil {
+	if err := requireRefsKnown(entries); err != nil {
 		v.countRefused(putDirect, err)
 		return nil, err
 	}
@@ -468,7 +468,7 @@ func (v *Volume) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEnt
 
 // PutBlock forwards block writes to the embedded store. It returns
 // volume.ErrReserve while the volume is in the reserve state, and
-// block.ErrRefsUnknown for a new block written without its references.
+// block.ErrRefsUnknown for a block written without its child list.
 func (v *Volume) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	// Store a block that asked for marking with its marker in one transaction.
 	if kvtx.GetBlockMarkRequest(ctx) != nil {
@@ -485,11 +485,11 @@ func (v *Volume) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts)
 		return nil, false, err
 	}
 
-	// Refuse a new block without its references, then write the block while
+	// Refuse a block without its child list, then write the block while
 	// retaining the requested Volume durability barrier.
 	putOpts, syncRequested := block.PutOptsWithoutSync(opts)
 	v.noteUnknownRefs(putDirect, data, putOpts)
-	if err := requireRefKnown(ctx, v.reader(), data, putOpts); err != nil {
+	if err := requireRefKnown(data, putOpts); err != nil {
 		v.countRefused(putDirect, err)
 		return nil, false, err
 	}

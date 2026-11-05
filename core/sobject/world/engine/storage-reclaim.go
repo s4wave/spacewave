@@ -146,7 +146,7 @@ func (e *soEngine) reclaimStorage(ctx context.Context) (time.Time, error) {
 	if ctx.Err() != nil {
 		return time.Time{}, ctx.Err()
 	}
-	if relErr := block.SetRetainedRoot(ctx, store, reclaimFenceRootName, nil); err == nil {
+	if relErr := block.OverwriteRoots(ctx, store, nil, []block.NamedRoot{{Name: reclaimFenceRootName}}); err == nil {
 		err = relErr
 	}
 	if err != nil {

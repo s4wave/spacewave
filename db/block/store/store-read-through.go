@@ -118,6 +118,29 @@ func (s *StoreReadThrough) BeginReadOperation(ctx context.Context) (block.StoreO
 	}, nil
 }
 
+// GetRoot reads the root from the primary source.
+func (s *StoreReadThrough) GetRoot(ctx context.Context, name string) (*block.BlockRef, error) {
+	primary := s.source(s.primary)
+	if primary == nil {
+		return nil, nil
+	}
+	return primary.GetRoot(ctx, name)
+}
+
+// ListRoots lists the roots of the primary source.
+func (s *StoreReadThrough) ListRoots(ctx context.Context, prefix string, fn func(block.NamedRoot) error) error {
+	primary := s.source(s.primary)
+	if primary == nil {
+		return nil
+	}
+	return primary.ListRoots(ctx, prefix, fn)
+}
+
+// SetRoots is unsupported because this store is read-only.
+func (*StoreReadThrough) SetRoots(context.Context, []*block.PutBatchEntry, []block.NamedRoot) error {
+	return ErrReadOnly
+}
+
 // PutBlock is unsupported because this store is read-only.
 func (*StoreReadThrough) PutBlock(context.Context, []byte, *block.PutOpts) (*block.BlockRef, bool, error) {
 	return nil, false, ErrReadOnly

@@ -10,9 +10,19 @@ import (
 // SupportsRootRetention reports the underlying ownership capability.
 func (s *VLoggerStore) SupportsRootRetention() bool { return block.SupportsRootRetention(s.st) }
 
-// SetRetainedRoots forwards durable root ownership to the underlying store.
-func (s *VLoggerStore) SetRetainedRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
-	return block.SetRetainedRoots(ctx, s.st, entries, roots)
+// GetRoot reads the root from the underlying store.
+func (s *VLoggerStore) GetRoot(ctx context.Context, name string) (*block.BlockRef, error) {
+	return s.st.GetRoot(ctx, name)
+}
+
+// ListRoots lists the roots of the underlying store.
+func (s *VLoggerStore) ListRoots(ctx context.Context, prefix string, fn func(block.NamedRoot) error) error {
+	return s.st.ListRoots(ctx, prefix, fn)
+}
+
+// SetRoots moves the roots on the underlying store.
+func (s *VLoggerStore) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	return s.st.SetRoots(ctx, entries, roots)
 }
 
 // KeepsHoldCounts reports whether the underlying store keeps shared counts.

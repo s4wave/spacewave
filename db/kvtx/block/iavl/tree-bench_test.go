@@ -56,6 +56,21 @@ type benchBlockStore struct {
 	syncCalls atomic.Int64
 }
 
+// GetRoot reads the root from the inner store.
+func (s *benchBlockStore) GetRoot(ctx context.Context, name string) (*block.BlockRef, error) {
+	return s.inner.GetRoot(ctx, name)
+}
+
+// ListRoots lists the inner store's roots.
+func (s *benchBlockStore) ListRoots(ctx context.Context, prefix string, fn func(block.NamedRoot) error) error {
+	return s.inner.ListRoots(ctx, prefix, fn)
+}
+
+// SetRoots moves the roots on the inner store.
+func (s *benchBlockStore) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	return s.inner.SetRoots(ctx, entries, roots)
+}
+
 func newBenchBlockStore() *benchBlockStore {
 	return newBenchBlockStoreWithOps(block_mock.NewMockStore(0))
 }

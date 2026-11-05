@@ -65,6 +65,8 @@ type StoreOps interface {
 	// provides no durability fence. A nil error with false means "no fence
 	// available", not a failure; a non-nil error means a real sync failure.
 	Sync(ctx context.Context) (bool, error)
+	// RootOps holds the named roots that decide which blocks are live.
+	RootOps
 }
 
 // DeferFlusher batches deferred GC ref-graph flushes across a write scope.

@@ -550,9 +550,9 @@ func (w *publicationWriter) preflight(
 		}
 	}
 
-	// Refuse a new block without its references here, so the refusal fails
+	// Refuse a block without its child list here, so the refusal fails
 	// this request rather than the group.
-	if err := requireRefsKnown(ctx, blocks, p.Entries); err != nil {
+	if err := requireRefsKnown(p.Entries); err != nil {
 		w.volume.countRefused(putPublication, err)
 		return err
 	}
@@ -635,7 +635,7 @@ func (w *publicationWriter) apply(
 	// bridges publication and consumer handoff, and can be reaped after a
 	// crash.
 	if p.RootName != "" {
-		if err := w.volume.setBucketRoot(ctx, blocks, rg, p.BucketID, p.RootName, p.Root); err != nil {
+		if err := w.volume.setBucketRoot(ctx, blocks, rg, p.BucketID, block.NamedRoot{Name: p.RootName, Ref: p.Root}); err != nil {
 			return err
 		}
 		if req.rootOwner != "" {
@@ -656,7 +656,7 @@ func (w *publicationWriter) apply(
 
 	// Set the further named roots.
 	for _, root := range p.Roots {
-		if err := w.volume.setBucketRoot(ctx, blocks, rg, p.BucketID, root.Name, root.Ref); err != nil {
+		if err := w.volume.setBucketRoot(ctx, blocks, rg, p.BucketID, root); err != nil {
 			return err
 		}
 	}

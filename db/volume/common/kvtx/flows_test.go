@@ -16,19 +16,24 @@ import (
 // the storage, and its puts of blocks the volume held. Each path refuses a new block written without its references,
 // stores nothing for it, counts the refusal, and logs its first caller once.
 func TestFlowsCountNewBlocksByPath(t *testing.T) {
-	// A direct write counts once; writing the same block again counts as
-	// existing, and writing it again without its references passes, since it
-	// is stored.
+	// A direct write counts once, and writing the same block again counts as
+	// existing.
 	v, _ := newPublicationTestVolume(t)
 	logger, hook := logrus_test.NewNullLogger()
 	v.SetLogger(logrus.NewEntry(logger))
 	ctx := t.Context()
 	known := &block.PutOpts{RefsKnown: true}
 	direct := []byte("direct block")
-	for _, opts := range []*block.PutOpts{known, known, nil} {
-		if _, _, err := v.PutBlock(ctx, direct, opts); err != nil {
+	for range 2 {
+		if _, _, err := v.PutBlock(ctx, direct, known); err != nil {
 			t.Fatal(err)
 		}
+	}
+
+	// Writing the stored block again without its child list is refused: the
+	// refusal reads only the put.
+	if _, _, err := v.PutBlock(ctx, direct, nil); !errors.Is(err, block.ErrRefsUnknown) {
+		t.Fatalf("stored block put without references = %v; want refused", err)
 	}
 
 	// An owned write and a cache fill count under their own paths, and a
@@ -66,7 +71,7 @@ func TestFlowsCountNewBlocksByPath(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Each path refuses a new block without its references.
+	// Each path refuses a block without its child list.
 	unknown := func(path string) []byte { return []byte("unknown " + path) }
 	unknownEntry := func(path string) *block.PutBatchEntry {
 		ref, err := block.BuildBlockRef(unknown(path), nil)
@@ -100,7 +105,7 @@ func TestFlowsCountNewBlocksByPath(t *testing.T) {
 			return err
 		},
 		"roots": func() error {
-			return v.SetBucketRoots(ctx, "bucket", []*block.PutBatchEntry{roots}, []block.NamedRoot{{Name: "head", Ref: roots.Ref}})
+			return v.SetBucketRoots(ctx, "bucket", []*block.PutBatchEntry{roots}, []block.NamedRoot{{Name: "head", Ref: roots.Ref, Previous: rootRef}})
 		},
 	}
 	for path, put := range puts {
@@ -115,7 +120,7 @@ func TestFlowsCountNewBlocksByPath(t *testing.T) {
 	// Each path reports exactly its own blocks, its repeated puts and one
 	// refusal.
 	want := []volume.PutFlow{
-		{Path: "direct", Blocks: 1, Bytes: uint64(len(direct)), Existing: 2, Refused: 1},
+		{Path: "direct", Blocks: 1, Bytes: uint64(len(direct)), Existing: 1, Refused: 2},
 		{Path: "publication", Blocks: 1, Bytes: uint64(len(p.Entries[0].Data)), Refused: 1},
 		{Path: "owned", Blocks: 1, Bytes: uint64(len(owned)), Refused: 1},
 		{Path: "fill", Blocks: 1, Bytes: uint64(len(fill)), Existing: 1, Refused: 1},

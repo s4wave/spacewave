@@ -26,11 +26,6 @@ func (s *proofCountingStore) KeepsHoldCounts() bool {
 	return block.KeepsHoldCounts(s.Store)
 }
 
-// SetRetainedRoots forwards durable root ownership to the underlying store.
-func (s *proofCountingStore) SetRetainedRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
-	return block.SetRetainedRoots(ctx, s.Store, entries, roots)
-}
-
 // PinRoot forwards a reader pin to the underlying store.
 func (s *proofCountingStore) PinRoot(ctx context.Context, ref *block.BlockRef) (func(), error) {
 	return block.PinRoot(ctx, s.Store, ref)

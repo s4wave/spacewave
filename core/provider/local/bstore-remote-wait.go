@@ -203,5 +203,32 @@ func (r *pendingRemote) Sync(ctx context.Context) (bool, error) {
 	return remote.Sync(ctx)
 }
 
+// GetRoot reads the root from the backend once it opens.
+func (r *pendingRemote) GetRoot(ctx context.Context, name string) (*block.BlockRef, error) {
+	remote, err := r.wait(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return remote.GetRoot(ctx, name)
+}
+
+// ListRoots lists the backend's roots once it opens.
+func (r *pendingRemote) ListRoots(ctx context.Context, prefix string, fn func(block.NamedRoot) error) error {
+	remote, err := r.wait(ctx)
+	if err != nil {
+		return err
+	}
+	return remote.ListRoots(ctx, prefix, fn)
+}
+
+// SetRoots moves the roots on the backend once it opens.
+func (r *pendingRemote) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	remote, err := r.wait(ctx)
+	if err != nil {
+		return err
+	}
+	return remote.SetRoots(ctx, entries, roots)
+}
+
 // _ is a type assertion.
 var _ block.StoreOps = (*pendingRemote)(nil)

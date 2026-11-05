@@ -33,6 +33,21 @@ type sessionLookupTestLower struct {
 	putDone chan struct{}
 }
 
+// GetRoot reports that no name is held: the fake holds no roots.
+func (s *sessionLookupTestLower) GetRoot(context.Context, string) (*block.BlockRef, error) {
+	return nil, nil
+}
+
+// ListRoots reports no roots.
+func (s *sessionLookupTestLower) ListRoots(context.Context, string, func(block.NamedRoot) error) error {
+	return nil
+}
+
+// SetRoots stores the entries and drops the roots.
+func (s *sessionLookupTestLower) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, _ []block.NamedRoot) error {
+	return block.SetRootsUnheld(ctx, s, entries)
+}
+
 func (s *sessionLookupTestLower) GetHashType() hash.HashType {
 	return hash.HashType_HashType_SHA256
 }

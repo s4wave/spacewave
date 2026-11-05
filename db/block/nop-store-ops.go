@@ -27,6 +27,17 @@ func (n NopStoreOps) BeginReadOperation(context.Context) (StoreOps, func(), erro
 	return n, func() {}, nil
 }
 
+// GetRoot reports that no name is held.
+func (NopStoreOps) GetRoot(context.Context, string) (*BlockRef, error) { return nil, nil }
+
+// ListRoots reports no roots.
+func (NopStoreOps) ListRoots(context.Context, string, func(NamedRoot) error) error { return nil }
+
+// SetRoots stores the entries and drops the roots.
+func (n NopStoreOps) SetRoots(ctx context.Context, entries []*PutBatchEntry, _ []NamedRoot) error {
+	return SetRootsUnheld(ctx, n, entries)
+}
+
 // PutBlock returns ErrBlockStoreUnavailable.
 func (NopStoreOps) PutBlock(context.Context, []byte, *PutOpts) (*BlockRef, bool, error) {
 	return nil, false, ErrBlockStoreUnavailable

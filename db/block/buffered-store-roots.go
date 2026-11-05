@@ -9,13 +9,25 @@ import (
 // SupportsRootRetention reports the destination's root ownership capability.
 func (s *BufferedStore) SupportsRootRetention() bool { return SupportsRootRetention(s.inner) }
 
-// SetRetainedRoots fences prepared blocks before publishing their durable
-// roots. The drain also turns deferred reader pins into inner pins.
-func (s *BufferedStore) SetRetainedRoots(ctx context.Context, entries []*PutBatchEntry, roots []NamedRoot) error {
+// GetRoot reads the root from the destination. Roots move only through
+// SetRoots, which fences the buffer first, so the destination holds every
+// root this store has set.
+func (s *BufferedStore) GetRoot(ctx context.Context, name string) (*BlockRef, error) {
+	return s.inner.GetRoot(ctx, name)
+}
+
+// ListRoots lists the destination's roots.
+func (s *BufferedStore) ListRoots(ctx context.Context, prefix string, fn func(NamedRoot) error) error {
+	return s.inner.ListRoots(ctx, prefix, fn)
+}
+
+// SetRoots fences prepared blocks before publishing their durable roots. The
+// drain also turns deferred reader pins into inner pins.
+func (s *BufferedStore) SetRoots(ctx context.Context, entries []*PutBatchEntry, roots []NamedRoot) error {
 	if _, err := s.Sync(ctx); err != nil {
 		return err
 	}
-	return SetRetainedRoots(ctx, s.inner, entries, roots)
+	return s.inner.SetRoots(ctx, entries, roots)
 }
 
 // KeepsHoldCounts reports whether the destination keeps shared counts.

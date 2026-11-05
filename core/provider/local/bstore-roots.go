@@ -12,9 +12,19 @@ import (
 // SupportsRootRetention reports the underlying ownership capability.
 func (b *BlockStore) SupportsRootRetention() bool { return block.SupportsRootRetention(b.store) }
 
-// SetRetainedRoots forwards durable root ownership to the underlying store.
-func (b *BlockStore) SetRetainedRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
-	return block.SetRetainedRoots(ctx, b.store, entries, roots)
+// GetRoot reads the root from the underlying store.
+func (b *BlockStore) GetRoot(ctx context.Context, name string) (*block.BlockRef, error) {
+	return b.store.GetRoot(ctx, name)
+}
+
+// ListRoots lists the roots of the underlying store.
+func (b *BlockStore) ListRoots(ctx context.Context, prefix string, fn func(block.NamedRoot) error) error {
+	return b.store.ListRoots(ctx, prefix, fn)
+}
+
+// SetRoots moves the roots on the underlying store.
+func (b *BlockStore) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	return b.store.SetRoots(ctx, entries, roots)
 }
 
 // KeepsHoldCounts reports whether the underlying store keeps shared counts.

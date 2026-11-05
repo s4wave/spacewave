@@ -581,5 +581,20 @@ func (s *streamStoreOps) Sync(_ context.Context) (bool, error) {
 	return true, nil
 }
 
+// GetRoot reports that no name is held: this source holds no roots.
+func (s *streamStoreOps) GetRoot(context.Context, string) (*block.BlockRef, error) {
+	return nil, nil
+}
+
+// ListRoots reports no roots.
+func (s *streamStoreOps) ListRoots(context.Context, string, func(block.NamedRoot) error) error {
+	return nil
+}
+
+// SetRoots is not used on the source side.
+func (s *streamStoreOps) SetRoots(context.Context, []*block.PutBatchEntry, []block.NamedRoot) error {
+	return block_store.ErrReadOnly
+}
+
 // _ is a type assertion
 var _ block.StoreOps = (*streamStoreOps)(nil)

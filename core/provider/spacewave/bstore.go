@@ -864,6 +864,21 @@ func (a *ProviderAccount) EnumerateBlockRefs(ctx context.Context, bstoreID strin
 	return refs, nil
 }
 
+// GetRoot reads the root from the inner store.
+func (b *BlockStore) GetRoot(ctx context.Context, name string) (*block.BlockRef, error) {
+	return b.store.GetRoot(ctx, name)
+}
+
+// ListRoots lists the roots of the inner store.
+func (b *BlockStore) ListRoots(ctx context.Context, prefix string, fn func(block.NamedRoot) error) error {
+	return b.store.ListRoots(ctx, prefix, fn)
+}
+
+// SetRoots moves the roots on the inner store.
+func (b *BlockStore) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	return b.store.SetRoots(ctx, entries, roots)
+}
+
 // Interface assertions.
 var (
 	_ bstore.BlockStoreProvider = (*ProviderAccount)(nil)

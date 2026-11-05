@@ -4716,6 +4716,21 @@ type countingBlockStore struct {
 	gets  *atomic.Uint32
 }
 
+// GetRoot reads the root from the inner store.
+func (s *countingBlockStore) GetRoot(ctx context.Context, name string) (*block.BlockRef, error) {
+	return s.store.GetRoot(ctx, name)
+}
+
+// ListRoots lists the inner store's roots.
+func (s *countingBlockStore) ListRoots(ctx context.Context, prefix string, fn func(block.NamedRoot) error) error {
+	return s.store.ListRoots(ctx, prefix, fn)
+}
+
+// SetRoots moves the roots on the inner store.
+func (s *countingBlockStore) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	return s.store.SetRoots(ctx, entries, roots)
+}
+
 func (s *countingBlockStore) GetHashType() hash.HashType {
 	return s.store.GetHashType()
 }

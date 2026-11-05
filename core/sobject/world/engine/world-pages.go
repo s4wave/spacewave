@@ -390,9 +390,19 @@ func (w *worldPages) KeepsHoldCounts() bool {
 	return block.KeepsHoldCounts(w.inner)
 }
 
-// SetRetainedRoots forwards named roots to the store.
-func (w *worldPages) SetRetainedRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
-	return block.SetRetainedRoots(ctx, w.inner, entries, roots)
+// GetRoot reads the root from the store.
+func (w *worldPages) GetRoot(ctx context.Context, name string) (*block.BlockRef, error) {
+	return w.inner.GetRoot(ctx, name)
+}
+
+// ListRoots lists the store's roots.
+func (w *worldPages) ListRoots(ctx context.Context, prefix string, fn func(block.NamedRoot) error) error {
+	return w.inner.ListRoots(ctx, prefix, fn)
+}
+
+// SetRoots forwards named roots to the store.
+func (w *worldPages) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	return w.inner.SetRoots(ctx, entries, roots)
 }
 
 // PinRoot protects ref until release. A kept page is not in the store, so no

@@ -282,7 +282,7 @@ func (a *ProviderAccount) copyAndPersistAccountWorld(ctx context.Context, so sob
 
 	// Retain the head and republish when this head already completed.
 	if progress.GetComplete() && progress.GetHead().EqualVT(head) {
-		if err := block.SetRetainedRoot(ctx, so.GetBlockStore(), "account-world", head.GetRootRef()); err != nil {
+		if err := block.OverwriteRoots(ctx, so.GetBlockStore(), nil, []block.NamedRoot{{Name: "account-world", Ref: head.GetRootRef()}}); err != nil {
 			return err
 		}
 		state.publishCopyProgress(progress)
@@ -294,7 +294,7 @@ func (a *ProviderAccount) copyAndPersistAccountWorld(ctx context.Context, so sob
 	state.publishCopyProgress(progress)
 	err = a.copyAccountWorld(ctx, so, progress, func() { state.publishCopyProgress(progress) })
 	if err == nil {
-		err = block.SetRetainedRoot(ctx, so.GetBlockStore(), "account-world", head.GetRootRef())
+		err = block.OverwriteRoots(ctx, so.GetBlockStore(), nil, []block.NamedRoot{{Name: "account-world", Ref: head.GetRootRef()}})
 	}
 
 	// Record the outcome in the progress state.

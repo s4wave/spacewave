@@ -107,11 +107,11 @@ func (r *txBlocks) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	return r.StoreOps.RmBlock(ctx, ref)
 }
 
-// PutBlock refuses a new block without its references, writes the block and
+// PutBlock refuses a block without its child list, writes the block and
 // marks it, also when it existed, for a write that asked for marking.
 func (r *txBlocks) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	// Refuse a new block without its references, then write it.
-	if err := requireRefKnown(ctx, r.StoreOps, data, opts); err != nil {
+	// Refuse a block without its child list, then write it.
+	if err := requireRefKnown(data, opts); err != nil {
 		return nil, false, err
 	}
 	ref, existed, err := r.StoreOps.PutBlock(ctx, data, opts)
@@ -124,12 +124,12 @@ func (r *txBlocks) PutBlock(ctx context.Context, data []byte, opts *block.PutOpt
 	return ref, existed, err
 }
 
-// PutBlockBatch refuses a batch holding a new block without its references,
+// PutBlockBatch refuses a batch holding a block without its child list,
 // then records the batch's tombstones, writes the batch and marks its blocks,
 // also those that existed, for a write that asked for marking.
 func (r *txBlocks) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
-	// Refuse a new block without its references.
-	if err := requireRefsKnown(ctx, r.StoreOps, entries); err != nil {
+	// Refuse a block without its child list.
+	if err := requireRefsKnown(entries); err != nil {
 		return nil, err
 	}
 

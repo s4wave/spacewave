@@ -44,7 +44,7 @@ type putCount struct {
 	blocks, bytes atomic.Uint64
 	// existing counts the path's puts of blocks the volume held already.
 	existing atomic.Uint64
-	// refused counts the path's puts refused for a new block without its
+	// refused counts the path's puts refused for a block without its
 	// references.
 	refused atomic.Uint64
 	// callerLogged records that the first caller putting a block without its
@@ -161,7 +161,7 @@ func (v *Volume) countPutBatch(path putPath, entries []*block.PutBatchEntry, exi
 	}
 }
 
-// countRefused counts a put on path that err refused for a new block without
+// countRefused counts a put on path that err refused for a block without
 // its references.
 func (v *Volume) countRefused(path putPath, err error) {
 	if errors.Is(err, block.ErrRefsUnknown) {
