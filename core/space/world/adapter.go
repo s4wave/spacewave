@@ -998,11 +998,11 @@ func (a *Adapter) readPayloads(ctx context.Context) error {
 	}
 
 	// Decode its payloads.
-	msg := &ReplayPayloads{}
+	msg := &HeldRoots{}
 	if err := msg.UnmarshalVT(data); err != nil {
 		return err
 	}
-	a.payloads = msg.GetPayloads()
+	a.payloads = msg.GetRoots()
 	return nil
 }
 
@@ -1015,7 +1015,7 @@ func (a *Adapter) holdPayloads(ctx context.Context, payloads []*block.BlockRef) 
 	}
 
 	// Hold them under one block.
-	entry, err := refsEntry(&ReplayPayloads{Payloads: payloads}, payloads)
+	entry, err := refsEntry(&HeldRoots{Roots: payloads}, payloads)
 	if err != nil {
 		return err
 	}
