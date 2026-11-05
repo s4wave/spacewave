@@ -92,12 +92,18 @@ type Adapter struct {
 	// payloads are the payload roots the replay payloads root holds. Guarded
 	// by rootMtx.
 	payloads []*block.BlockRef
+	// retainedHeld are the retained roots the retained root holds. Guarded
+	// by rootMtx.
+	retainedHeld []*RetainedRoot
 	// cursorWorlds, pendingWorlds and checkpointWorlds are the Worlds the
 	// replay cursor, pending and checkpoint roots hold, each until a
 	// checkpoint covers them.
 	cursorWorlds, pendingWorlds, checkpointWorlds worldHistory
 	// watchMtx serializes the head watchers' callbacks.
 	watchMtx sync.Mutex
+	// reported is the last head reported to the watchers. Guarded by
+	// watchMtx.
+	reported world.Head
 
 	// bcast guards the fields below.
 	bcast broadcast.Broadcast
@@ -973,8 +979,6 @@ func (a *Adapter) installHead(ctx context.Context) error {
 	head := world.Head{Root: state.GetHeadRef().GetRootRef().Clone(), Seqno: seqno, Durable: true}
 	var placed []*spaceAdmission
 	var watchers []*headWatch
-	var prevState *InnerState
-	var changed bool
 	a.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		// Collect the placed candidates.
 		for _, adm := range a.pending {
@@ -987,9 +991,8 @@ func (a *Adapter) installHead(ctx context.Context) error {
 		// place, which serve waits on.
 		moved := a.headHeight != height || a.headPositions != positions
 		a.headHeight, a.headPositions = height, positions
-		changed = !state.EqualVT(a.headState) || a.head.Seqno != seqno
+		changed := !state.EqualVT(a.headState) || a.head.Seqno != seqno
 		if changed {
-			prevState = a.headState
 			a.head, a.headState = head, state
 		}
 		if changed || moved {
@@ -998,18 +1001,21 @@ func (a *Adapter) installHead(ctx context.Context) error {
 		watchers = slices.Clone(a.watchers)
 	})
 
-	// Hold changed retained roots.
-	if changed && !slices.EqualFunc(state.GetRetainedRoots(), prevState.GetRetainedRoots(), (*RetainedRoot).EqualVT) {
-		if err := a.holdRetained(ctx, state.GetRetainedRoots()); err != nil {
-			return err
-		}
+	// Hold the retained roots unless they are held already, so a failed hold
+	// is tried again by the next install.
+	if err := a.holdRetained(ctx, state.GetRetainedRoots()); err != nil {
+		return err
 	}
 
-	// Report the head, then decide what it holds.
-	if changed && !head.Root.GetEmpty() {
+	// Report the head unless the watchers saw it, then decide what it holds,
+	// so a candidate is decided only once every watcher saw its head.
+	if !head.Root.GetEmpty() {
 		a.watchMtx.Lock()
-		for _, w := range watchers {
-			w.fn(head)
+		if !head.Root.EqualsRef(a.reported.Root) || head.Seqno != a.reported.Seqno {
+			for _, w := range watchers {
+				w.fn(head)
+			}
+			a.reported = head
 		}
 		a.watchMtx.Unlock()
 	}
@@ -1090,7 +1096,32 @@ func (a *Adapter) loadRoots(ctx context.Context) error {
 			return err
 		}
 	}
+	if err := a.readRetained(ctx); err != nil {
+		return err
+	}
 	return a.readPayloads(ctx)
+}
+
+// readRetained reads the retained roots the retained root holds. The caller
+// holds rootMtx.
+func (a *Adapter) readRetained(ctx context.Context) error {
+	// Read the block the root holds.
+	ref := a.held[RootRetained]
+	if ref.GetEmpty() {
+		return nil
+	}
+	data, found, err := a.pages.GetBlock(ctx, ref)
+	if err != nil || !found {
+		return err
+	}
+
+	// Decode its roots.
+	msg := &RetainedRootSet{}
+	if err := msg.UnmarshalVT(data); err != nil {
+		return err
+	}
+	a.retainedHeld = msg.GetRoots()
+	return nil
 }
 
 // readPayloads reads the payloads the replay payloads root holds. The caller
@@ -1150,29 +1181,44 @@ func (a *Adapter) addPayloads(ctx context.Context, extra []*block.BlockRef) erro
 // of the pending admissions, dropping those a checkpoint covered. The driver
 // goroutine calls it.
 func (a *Adapter) resetPayloads(ctx context.Context) error {
-	// Gather them.
+	// Take the root lock before the gather, so an admission is either pending
+	// at the gather or adds its payloads after the reset.
+	release, err := a.rootMtx.Lock(ctx)
+	if err != nil {
+		return err
+	}
+	defer release()
+
+	// Gather and hold them.
 	payloads := a.replay.payloads()
 	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		for _, adm := range a.pending {
 			payloads = append(payloads, adm.payloads...)
 		}
 	})
-
-	// Hold them.
-	release, err := a.rootMtx.Lock(ctx)
-	if err != nil {
-		return err
-	}
-	defer release()
 	return a.holdPayloads(ctx, payloads)
 }
 
 // holdRetained holds the retained roots under the retained root, or releases
 // it when there are none.
 func (a *Adapter) holdRetained(ctx context.Context, roots []*RetainedRoot) error {
+	// Skip a set the root holds already.
+	release, err := a.rootMtx.Lock(ctx)
+	if err != nil {
+		return err
+	}
+	defer release()
+	if slices.EqualFunc(roots, a.retainedHeld, (*RetainedRoot).EqualVT) {
+		return nil
+	}
+
 	// Release the name when nothing is retained.
 	if len(roots) == 0 {
-		return a.moveRoots(ctx, nil, block.NamedRoot{Name: RootRetained})
+		if err := a.moveRootsLocked(ctx, nil, block.NamedRoot{Name: RootRetained}); err != nil {
+			return err
+		}
+		a.retainedHeld = nil
+		return nil
 	}
 
 	// Hold them under one block.
@@ -1184,7 +1230,11 @@ func (a *Adapter) holdRetained(ctx context.Context, roots []*RetainedRoot) error
 	if err != nil {
 		return err
 	}
-	return a.moveRoots(ctx, []*block.PutBatchEntry{entry}, block.NamedRoot{Name: RootRetained, Ref: entry.Ref})
+	if err := a.moveRootsLocked(ctx, []*block.PutBatchEntry{entry}, block.NamedRoot{Name: RootRetained, Ref: entry.Ref}); err != nil {
+		return err
+	}
+	a.retainedHeld = slices.Clone(roots)
+	return nil
 }
 
 // sweep drops the kept pages no live World reaches: the replay's Worlds and
