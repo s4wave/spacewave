@@ -17,19 +17,34 @@ type AdmitCommitter interface {
 	CommitAdmit(ctx context.Context) (Admission, error)
 }
 
-// Admission is an admitted write whose durable result may be pending.
+// Admission is one Candidate's place in its Authority's order, from Admit
+// until the head moves past it or it is released.
 type Admission interface {
-	// Seqno returns the World seqno after the write.
+	// Seqno returns the World seqno at the candidate's root.
 	Seqno() uint64
-	// WaitDurable waits until the write is durable and readers see it, and
-	// returns Seqno. When the write fails, the engine installs the World
-	// without it and the writes admitted after it, and WaitDurable returns
-	// the seqno of that World with the error. The wait ends with the engine's
-	// lifetime, not with ctx: the outcome is then unknown.
+	// Head returns the head the Authority held when it decided, so a
+	// superseded writer learns what to rebase onto.
+	// Before WaitDecided returns a decision, it returns the zero Head.
+	Head() Head
+	// WaitDecided waits until the Authority accepts, supersedes or rejects
+	// the candidate.
+	// A rejection returns its reason with Rejected.
+	// An error with Undecided means the wait ended first and the outcome is
+	// unknown.
+	WaitDecided(ctx context.Context) (Decision, error)
+	// WaitDurable waits until a record the Authority keeps covers the
+	// accepted candidate, and returns the World seqno that record reaches,
+	// at least Seqno.
+	// A candidate that was not accepted returns ErrSuperseded or its
+	// rejection.
+	// The wait ends with the Authority's lifetime, not with ctx: the outcome
+	// is then unknown.
 	WaitDurable(ctx context.Context) (uint64, error)
-	// Release releases the write. Call it once, after WaitDurable returns:
-	// it drops the write's hold on the World after it, which the durable head
-	// may not hold yet before then, so a sweep could free that World's blocks.
+	// Release drops the admission.
+	// Call it once, after WaitDurable returns, or to abandon the candidate.
+	// Releasing a candidate the Authority has not accepted releases what
+	// Admit holds of it; an accepted candidate stays the Authority's promise
+	// and becomes durable regardless.
 	Release()
 }
 
@@ -95,6 +110,13 @@ type DurableAdmission uint64
 
 // Seqno returns the World seqno after the write.
 func (a DurableAdmission) Seqno() uint64 { return uint64(a) }
+
+// Head returns the head at Seqno.
+// It carries no root: a DurableAdmission is made after the head was read.
+func (a DurableAdmission) Head() Head { return Head{Seqno: uint64(a), Durable: true} }
+
+// WaitDecided returns Accepted.
+func (a DurableAdmission) WaitDecided(context.Context) (Decision, error) { return Accepted, nil }
 
 // WaitDurable returns Seqno.
 func (a DurableAdmission) WaitDurable(context.Context) (uint64, error) { return uint64(a), nil }

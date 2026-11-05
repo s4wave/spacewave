@@ -582,6 +582,18 @@ func (a *soAdmission) Seqno() uint64 {
 	return a.t.seqno
 }
 
+// Head returns the World head after the write. An soAdmission is made once
+// the engine admitted the write, so it carries the seqno and no root.
+func (a *soAdmission) Head() world.Head {
+	return world.Head{Seqno: a.t.seqno}
+}
+
+// WaitDecided returns Accepted: CommitAdmit returns an soAdmission only once
+// the engine admitted the write.
+func (a *soAdmission) WaitDecided(context.Context) (world.Decision, error) {
+	return world.Accepted, nil
+}
+
 // WaitDurable waits for the receipt, then for the durable head to install or
 // drop the write, and returns the seqno readers see. A failed write returns
 // once the durable head dropped it, with the seqno of the World readers kept,
