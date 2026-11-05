@@ -132,10 +132,6 @@ type VolumeHealth struct {
 	SizesKnown bool `protobuf:"varint,7,opt,name=sizes_known,json=sizesKnown,proto3" json:"sizesKnown,omitempty"`
 	// SizesAt is when the storage last measured the sizes.
 	SizesAt *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=sizes_at,json=sizesAt,proto3" json:"sizesAt,omitempty"`
-	// PublicationPending is the number of publications queued for the writer.
-	PublicationPending uint32 `protobuf:"varint,9,opt,name=publication_pending,json=publicationPending,proto3" json:"publicationPending,omitempty"`
-	// PublicationPendingBytes is the admission cost of the queued publications.
-	PublicationPendingBytes uint64 `protobuf:"varint,10,opt,name=publication_pending_bytes,json=publicationPendingBytes,proto3" json:"publicationPendingBytes,omitempty"`
 	// WriteState is whether the volume admits new writes.
 	WriteState VolumeWriteState `protobuf:"varint,11,opt,name=write_state,json=writeState,proto3" json:"writeState,omitempty"`
 	// ReserveBytes is the free disk below which the volume refuses new writes,
@@ -205,20 +201,6 @@ func (x *VolumeHealth) GetSizesAt() *timestamppb.Timestamp {
 	return nil
 }
 
-func (x *VolumeHealth) GetPublicationPending() uint32 {
-	if x != nil {
-		return x.PublicationPending
-	}
-	return 0
-}
-
-func (x *VolumeHealth) GetPublicationPendingBytes() uint64 {
-	if x != nil {
-		return x.PublicationPendingBytes
-	}
-	return 0
-}
-
 func (x *VolumeHealth) GetWriteState() VolumeWriteState {
 	if x != nil {
 		return x.WriteState
@@ -244,8 +226,6 @@ func (m *VolumeHealth) CloneVT() *VolumeHealth {
 	r.LiveValueBytes = m.LiveValueBytes
 	r.FreeDiskBytes = m.FreeDiskBytes
 	r.SizesKnown = m.SizesKnown
-	r.PublicationPending = m.PublicationPending
-	r.PublicationPendingBytes = m.PublicationPendingBytes
 	r.WriteState = m.WriteState
 	r.ReserveBytes = m.ReserveBytes
 	r.GcPhaseStart = protobuf_go_lite.CloneVTValue(m.GcPhaseStart)
@@ -288,12 +268,6 @@ func (this *VolumeHealth) EqualVT(that *VolumeHealth) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.SizesAt, that.SizesAt) {
-		return false
-	}
-	if this.PublicationPending != that.PublicationPending {
-		return false
-	}
-	if this.PublicationPendingBytes != that.PublicationPendingBytes {
 		return false
 	}
 	if this.WriteState != that.WriteState {
@@ -441,16 +415,6 @@ func (x *VolumeHealth) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("sizesAt")
 		x.SizesAt.MarshalProtoJSON(s.WithField("sizesAt"))
 	}
-	if x.PublicationPending != 0 || s.HasField("publicationPending") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("publicationPending")
-		s.WriteUint32(x.PublicationPending)
-	}
-	if x.PublicationPendingBytes != 0 || s.HasField("publicationPendingBytes") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("publicationPendingBytes")
-		s.WriteUint64(x.PublicationPendingBytes)
-	}
 	if x.WriteState != 0 || s.HasField("writeState") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("writeState")
@@ -510,12 +474,6 @@ func (x *VolumeHealth) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.SizesAt = &timestamppb.Timestamp{}
 			x.SizesAt.UnmarshalProtoJSON(s.WithField("sizes_at", true))
-		case "publication_pending", "publicationPending":
-			s.AddField("publication_pending")
-			x.PublicationPending = s.ReadUint32()
-		case "publication_pending_bytes", "publicationPendingBytes":
-			s.AddField("publication_pending_bytes")
-			x.PublicationPendingBytes = s.ReadUint64()
 		case "write_state", "writeState":
 			s.AddField("write_state")
 			x.WriteState.UnmarshalProtoJSON(s)
@@ -569,16 +527,6 @@ func (m *VolumeHealth) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.WriteState))
 		i--
 		dAtA[i] = 0x58
-	}
-	if m.PublicationPendingBytes != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PublicationPendingBytes))
-		i--
-		dAtA[i] = 0x50
-	}
-	if m.PublicationPending != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PublicationPending))
-		i--
-		dAtA[i] = 0x48
 	}
 	if m.SizesAt != nil {
 		size, err := m.SizesAt.MarshalToSizedBufferVT(dAtA[:i])
@@ -653,8 +601,6 @@ func (m *VolumeHealth) SizeVT() (n int) {
 		l = m.SizesAt.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.PublicationPending)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.PublicationPendingBytes)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.WriteState)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ReserveBytes)
 	n += len(m.unknownFields)
@@ -703,14 +649,6 @@ func (x *VolumeHealth) MarshalProtoText() string {
 	if x.SizesAt != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "sizes_at")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.SizesAt)
-	}
-	if x.PublicationPending != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "publication_pending")
-		protobuf_go_lite.TextWriteUint(&sb, x.PublicationPending)
-	}
-	if x.PublicationPendingBytes != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "publication_pending_bytes")
-		protobuf_go_lite.TextWriteUint(&sb, x.PublicationPendingBytes)
 	}
 	if x.WriteState != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "write_state")
@@ -835,24 +773,6 @@ func (m *VolumeHealth) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 9:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PublicationPending", wireType)
-			}
-			m.PublicationPending = 0
-			m.PublicationPending, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 10:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PublicationPendingBytes", wireType)
-			}
-			m.PublicationPendingBytes = 0
-			m.PublicationPendingBytes, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
 		case 11:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field WriteState", wireType)

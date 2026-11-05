@@ -45,16 +45,6 @@ var (
 		"Seconds since the volume's sizes were measured.",
 		[]string{volumeLabel}, nil,
 	)
-	volumePublicationPendingDesc = prometheus.NewDesc(
-		"spacewave_volume_publication_pending",
-		"Publications queued for the volume's writer.",
-		[]string{volumeLabel}, nil,
-	)
-	volumePublicationPendingBytesDesc = prometheus.NewDesc(
-		"spacewave_volume_publication_pending_bytes",
-		"Admission cost of the publications queued for the volume's writer.",
-		[]string{volumeLabel}, nil,
-	)
 	volumeWriteReserveDesc = prometheus.NewDesc(
 		"spacewave_volume_write_reserve",
 		"Whether the volume refuses new writes because free disk is below its reserve.",
@@ -110,7 +100,7 @@ func (volumeCollector) Describe(ch chan<- *prometheus.Desc) {
 	for _, d := range []*prometheus.Desc{
 		volumeGCPhaseDesc, volumeGCPhaseSecondsDesc, volumeFileBytesDesc,
 		volumeLiveValueBytesDesc, volumeFreeDiskBytesDesc, volumeSizesAgeSecondsDesc,
-		volumePublicationPendingDesc, volumePublicationPendingBytesDesc, volumeWriteReserveDesc,
+		volumeWriteReserveDesc,
 		volumeReserveBytesDesc, volumePutBlocksDesc, volumePutBytesDesc, volumePutExistingDesc,
 		volumePutRefusedDesc, volumeValueWrittenBytesDesc, volumeValueFreedBytesDesc,
 		volumeBuildWaitSecondsDesc,
@@ -163,8 +153,6 @@ func collectVolume(ch chan<- prometheus.Metric, h *volume.VolumeHealth, now time
 	ch <- prometheus.MustNewConstMetric(volumeGCPhaseSecondsDesc, prometheus.GaugeValue, now.Sub(h.GetGcPhaseStart().AsTime()).Seconds(), id)
 
 	// Report the queue and the write state.
-	ch <- prometheus.MustNewConstMetric(volumePublicationPendingDesc, prometheus.GaugeValue, float64(h.GetPublicationPending()), id)
-	ch <- prometheus.MustNewConstMetric(volumePublicationPendingBytesDesc, prometheus.GaugeValue, float64(h.GetPublicationPendingBytes()), id)
 	reserve := h.GetWriteState() == volume.VolumeWriteState_VOLUME_WRITE_STATE_RESERVE
 	ch <- prometheus.MustNewConstMetric(volumeWriteReserveDesc, prometheus.GaugeValue, boolValue(reserve), id)
 

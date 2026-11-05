@@ -87,15 +87,12 @@ func (v *Volume) GetHealthSnapshotWithWait() (*volume.VolumeHealth, <-chan struc
 		waitCh = getWaitCh()
 	})
 
-	// Build the snapshot with the current publication occupancy.
-	pub := v.GetPublicationStats()
+	// Build the snapshot.
 	h := &volume.VolumeHealth{
-		VolumeId:                v.GetID(),
-		GcPhase:                 st.phase,
-		GcPhaseStart:            timestamppb.New(st.phaseStart),
-		PublicationPending:      uint32(pub.Pending),      // #nosec G115 -- the queue is bounded far below 2^32.
-		PublicationPendingBytes: uint64(pub.PendingBytes), // #nosec G115 -- a byte count is not negative.
-		WriteState:              volume.VolumeWriteState_VOLUME_WRITE_STATE_WRITABLE,
+		VolumeId:     v.GetID(),
+		GcPhase:      st.phase,
+		GcPhaseStart: timestamppb.New(st.phaseStart),
+		WriteState:   volume.VolumeWriteState_VOLUME_WRITE_STATE_WRITABLE,
 	}
 	if st.reserve {
 		h.WriteState = volume.VolumeWriteState_VOLUME_WRITE_STATE_RESERVE

@@ -56,10 +56,7 @@ message VolumeHealth {
   bool sizes_known = 7;
   // SizesAt is when the storage last measured the sizes.
   .google.protobuf.Timestamp sizes_at = 8;
-  // PublicationPending is the number of publications queued for the writer.
-  uint32 publication_pending = 9;
-  // PublicationPendingBytes is the admission cost of the queued publications.
-  uint64 publication_pending_bytes = 10;
+  reserved 9, 10;
   // WriteState is whether the volume admits new writes.
   VolumeWriteState write_state = 11;
   // ReserveBytes is the free disk below which the volume refuses new writes,

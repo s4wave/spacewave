@@ -132,14 +132,6 @@ export interface VolumeHealth {
    */
   sizesAt?: Date
   /**
-   * PublicationPending is the number of publications queued for the writer.
-   */
-  publicationPending?: number
-  /**
-   * PublicationPendingBytes is the admission cost of the queued publications.
-   */
-  publicationPendingBytes?: bigint
-  /**
    * WriteState is whether the volume admits new writes.
    */
   writeState?: VolumeWriteState
@@ -160,8 +152,6 @@ export const VolumeHealth: MessageType<VolumeHealth> =
     [6, 'free_disk_bytes', 4],
     [7, 'sizes_known', 8],
     [8, 'sizes_at', 11, 0, Timestamp.codec],
-    [9, 'publication_pending', 13],
-    [10, 'publication_pending_bytes', 4],
     [11, 'write_state', 14, 0, VolumeWriteState_Enum],
     [12, 'reserve_bytes', 4],
   ])

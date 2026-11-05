@@ -73,10 +73,6 @@ export interface Report {
    * Writers is the number of writes that could run at once.
    */
   writers?: number
-  /**
-   * Publications is the account volume's publication queue over the load.
-   */
-  publications?: PublicationStats
 }
 
 export const Report: MessageType<Report> =
@@ -96,7 +92,6 @@ export const Report: MessageType<Report> =
     [13, 'cpu', 11, 1, CpuShare.codec],
     [14, 'writes_dropped', 4],
     [15, 'writers', 13],
-    [16, 'publications', 11, 0, PublicationStats.codec],
   ])
 
 /**
@@ -262,34 +257,3 @@ export const CpuShare: MessageType<CpuShare> =
     [2, 'fraction', 1],
     [3, 'cpu_ms', 4],
   ])
-
-/**
- * PublicationStats is the publication queue change over the load.
- *
- * @generated from message storebench.PublicationStats
- */
-export interface PublicationStats {
-  /**
-   * Accepted is the number of publications the queue admitted.
-   */
-  accepted?: bigint
-  /**
-   * PhysicalCommits is the number of physical transactions that made them
-   * durable.
-   */
-  physicalCommits?: bigint
-  /**
-   * PerCommit is accepted over physical commits.
-   */
-  perCommit?: number
-}
-
-export const PublicationStats: MessageType<PublicationStats> =
-  /* @__PURE__ */ createMessageType<PublicationStats>(
-    'storebench.PublicationStats',
-    () => [
-      [1, 'accepted', 4],
-      [2, 'physical_commits', 4],
-      [3, 'per_commit', 1],
-    ],
-  )

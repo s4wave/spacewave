@@ -997,7 +997,7 @@
       ]
     },
     "github.com/s4wave/spacewave/cmd/spacewave-store-bench/storebench": {
-      "hash": "e5be1061fd0e8204575605649811160527b30ee5956a726b8ae0603f8107c66a",
+      "hash": "8280f9e6e1d79391fdc4a565d1ab70a717248a6d6310073fea8f6715bc67b2e9",
       "generatedFiles": [
         "cmd/spacewave-store-bench/storebench/bench.pb.go",
         "cmd/spacewave-store-bench/storebench/bench.pb.ts"
@@ -2421,7 +2421,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/volume": {
-      "hash": "48f3a6ebd05d25152d480900177f8445c1cdcaea08e8ddfbe760f003ebba61dd",
+      "hash": "e225bf8f7a7b51888fa6fd12c2859582a2eaa67381627e75f369370b3f85fc73",
       "generatedFiles": [
         "db/volume/health.pb.go",
         "db/volume/health.pb.ts",
