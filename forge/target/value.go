@@ -150,25 +150,34 @@ func CopyValueToBucket(
 		return nil, nil
 	}
 
-	// Copy a root block from another bucket into the target storage.
-	// fetch the data if the bucket id is different
+	// Copy the root block from another bucket into the target storage, with
+	// the child list the target Volume requires of every block it stores.
+	// Only the root moves; the blocks it names are not copied.
 	if bktRef.GetBucketId() != "" {
-		// Fetch the source root block and require it to exist.
-		var rootBlockData []byte
-		var rootBlockFound bool
+		// Read the source root's bytes and child list, and decode the bytes.
+		var root *block.StoredBlock
 		err = handle.AccessStorage(
 			ctx,
 			bktRef,
 			func(bls *bucket_lookup.Cursor) error {
-				_, bcs := bls.BuildTransactionAtRef(nil, outputRef)
-				// TODO: copy full reference graph
-				// for now, just copy the root block.
+				// Read the stored root and require its child list.
 				var berr error
-				rootBlockData, rootBlockFound, berr = bcs.Fetch(ctx)
+				root, berr = bls.GetBlockStore().GetStoredBlock(ctx, outputRef)
+				if berr != nil || root == nil {
+					return berr
+				}
+				if !root.RefsKnown {
+					return errors.Wrap(block.ErrRefsUnknown, outputRef.MarshalString())
+				}
+
+				// Decode the bytes with the source bucket's transformer.
+				if xfrm := bls.GetTransformer(); xfrm != nil {
+					root.Data, berr = xfrm.DecodeBlock(root.Data)
+				}
 				return berr
 			},
 		)
-		if err == nil && !rootBlockFound {
+		if err == nil && root == nil {
 			err = errors.Errorf(
 				"block %s in bucket %s not found",
 				outputRef.MarshalString(),
@@ -179,10 +188,14 @@ func CopyValueToBucket(
 			return nil, err
 		}
 
-		// Persist the fetched root block in the target bucket.
+		// Persist the root block in the target bucket.
 		err = handle.AccessStorage(ctx, nil, func(bls *bucket_lookup.Cursor) error {
 			var berr error
-			outputRef, _, berr = bls.PutBlock(ctx, rootBlockData, &block.PutOpts{Sync: true})
+			outputRef, _, berr = bls.PutBlock(ctx, root.Data, &block.PutOpts{
+				Sync:      true,
+				Refs:      root.Refs,
+				RefsKnown: true,
+			})
 			return berr
 		})
 		if err != nil {
