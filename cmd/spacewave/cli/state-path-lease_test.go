@@ -139,7 +139,7 @@ func TestPrepareDaemonRuntimeCleanHandoffAcquiresLease(t *testing.T) {
 	// Acquire the old runtime lease and serve the old listener.
 	statePath := shortSocketDir(t)
 	sockPath := filepath.Join(statePath, socketName)
-	oldLease, err := acquireStatePathLease(t.Context(), statePath, false)
+	oldLease, err := acquireStatePathLease(t.Context(), logrus.NewEntry(logrus.New()), statePath, false)
 	if err != nil {
 		t.Fatalf("acquire old runtime lease: %v", err)
 	}
@@ -340,7 +340,7 @@ func TestAcquireStatePathLeaseAfterProcessExit(t *testing.T) {
 	}
 
 	// Reacquire immediately after the process exit without repairing files.
-	lease, err := acquireStatePathLease(t.Context(), statePath, false)
+	lease, err := acquireStatePathLease(t.Context(), logrus.NewEntry(logrus.New()), statePath, false)
 	if err != nil {
 		t.Fatalf("acquire state path after holder exit: %v", err)
 	}
@@ -361,7 +361,7 @@ func TestStatePathLeaseHolderProcess(t *testing.T) {
 	}
 
 	// Hold the runtime's kernel lease throughout the subprocess lifetime.
-	lease, err := acquireStatePathLease(t.Context(), statePath, false)
+	lease, err := acquireStatePathLease(t.Context(), logrus.NewEntry(logrus.New()), statePath, false)
 	if err != nil {
 		t.Fatalf("acquire runtime lease: %v", err)
 	}
@@ -445,7 +445,7 @@ func startStatePathLeaseHolder(t *testing.T, statePath string) (*exec.Cmd, strin
 func TestStateLeasePrecedesSocketCleanup(t *testing.T) {
 	// Hold a runtime lease while a second starter sees a stale-looking socket.
 	statePath := shortSocketDir(t)
-	lease, err := acquireStatePathLease(t.Context(), statePath, false)
+	lease, err := acquireStatePathLease(t.Context(), logrus.NewEntry(logrus.New()), statePath, false)
 	if err != nil {
 		t.Fatal(err)
 	}
