@@ -7,10 +7,10 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { KeybindingOverrideSet } from '../../../sdk/command/command.pb.js'
 import { SharedObjectRef } from '../../sobject/sobject.pb.js'
 import { ObjectRef } from '../../../db/bucket/bucket.pb.js'
+import { BlockRef } from '../../../db/block/block.pb.js'
 import { Config as Config$1 } from '../../../db/block/transform/transform.pb.js'
 import { GraphSettings } from '../../../db/world/block/world.pb.js'
 import { Tx } from '../../../db/world/block/tx/tx.pb.js'
-import { BlockRef } from '../../../db/block/block.pb.js'
 
 /**
  * WorldContents contains a list of world objects and types.
@@ -238,6 +238,8 @@ export interface WorldOp {
     | { value: SetRetainedRootOp; case: 'setRetainedRoot' }
     | { value: SetTransformConfOp; case: 'setTransformConf' }
     | { value: GraphSettingsStepOp; case: 'graphSettingsStep' }
+    | { value: FenceOp; case: 'fence' }
+    | { value: RootSetOp; case: 'rootSet' }
 }
 
 export const WorldOp: MessageType<WorldOp> =
@@ -247,6 +249,51 @@ export const WorldOp: MessageType<WorldOp> =
     [4, 'set_retained_root', 11, 0, SetRetainedRootOp.codec, 'body'],
     [5, 'set_transform_conf', 11, 0, SetTransformConfOp.codec, 'body'],
     [6, 'graph_settings_step', 11, 0, GraphSettingsStepOp.codec, 'body'],
+    [7, 'fence', 11, 0, FenceOp.codec, 'body'],
+    [8, 'root_set', 11, 0, RootSetOp.codec, 'body'],
+  ])
+
+/**
+ * FenceOp asks every writer device of the Space for the roots it holds. It
+ * changes nothing in the World. A device answers after every operation it
+ * started before it saw the fence, so the answer covers what it may still
+ * reference.
+ *
+ * @generated from message space.world.FenceOp
+ */
+export interface FenceOp {
+  /**
+   * Pass identifies the reclaim pass.
+   */
+  pass?: string
+}
+
+export const FenceOp: MessageType<FenceOp> =
+  /* @__PURE__ */ createMessageType<FenceOp>('space.world.FenceOp', () => [
+    [1, 'pass', 9],
+  ])
+
+/**
+ * RootSetOp answers a fence with every root its author's device holds for the
+ * Space. It changes nothing in the World.
+ *
+ * @generated from message space.world.RootSetOp
+ */
+export interface RootSetOp {
+  /**
+   * Fence is the hash of the FenceOp it answers.
+   */
+  fence?: Uint8Array
+  /**
+   * Roots are the blocks the device holds under its named roots.
+   */
+  roots?: BlockRef[]
+}
+
+export const RootSetOp: MessageType<RootSetOp> =
+  /* @__PURE__ */ createMessageType<RootSetOp>('space.world.RootSetOp', () => [
+    [1, 'fence', 12],
+    [2, 'roots', 11, 1, BlockRef.codec],
   ])
 
 /**

@@ -13,10 +13,10 @@ import (
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	sobject "github.com/s4wave/spacewave/core/sobject"
-	block1 "github.com/s4wave/spacewave/db/block"
+	block "github.com/s4wave/spacewave/db/block"
 	transform "github.com/s4wave/spacewave/db/block/transform"
 	bucket "github.com/s4wave/spacewave/db/bucket"
-	block "github.com/s4wave/spacewave/db/world/block"
+	block1 "github.com/s4wave/spacewave/db/world/block"
 	tx "github.com/s4wave/spacewave/db/world/block/tx"
 	command "github.com/s4wave/spacewave/sdk/command"
 )
@@ -295,6 +295,8 @@ type WorldOp struct {
 	//	*WorldOp_SetRetainedRoot
 	//	*WorldOp_SetTransformConf
 	//	*WorldOp_GraphSettingsStep
+	//	*WorldOp_Fence
+	//	*WorldOp_RootSet
 	Body isWorldOp_Body `protobuf_oneof:"body"`
 }
 
@@ -346,6 +348,20 @@ func (x *WorldOp) GetGraphSettingsStep() *GraphSettingsStepOp {
 	return nil
 }
 
+func (x *WorldOp) GetFence() *FenceOp {
+	if x, ok := x.GetBody().(*WorldOp_Fence); ok {
+		return x.Fence
+	}
+	return nil
+}
+
+func (x *WorldOp) GetRootSet() *RootSetOp {
+	if x, ok := x.GetBody().(*WorldOp_RootSet); ok {
+		return x.RootSet
+	}
+	return nil
+}
+
 type isWorldOp_Body interface {
 	isWorldOp_Body()
 }
@@ -377,6 +393,17 @@ type WorldOp_GraphSettingsStep struct {
 	GraphSettingsStep *GraphSettingsStepOp `protobuf:"bytes,6,opt,name=graph_settings_step,json=graphSettingsStep,proto3,oneof"`
 }
 
+type WorldOp_Fence struct {
+	// Fence asks every writer device for the roots it holds, before a
+	// storage reclaim pass judges which blocks of the shared backend are live.
+	Fence *FenceOp `protobuf:"bytes,7,opt,name=fence,proto3,oneof"`
+}
+
+type WorldOp_RootSet struct {
+	// RootSet answers a fence with the roots its author holds.
+	RootSet *RootSetOp `protobuf:"bytes,8,opt,name=root_set,json=rootSet,proto3,oneof"`
+}
+
 func (*WorldOp_InitWorld) isWorldOp_Body() {}
 
 func (*WorldOp_ApplyTxOp) isWorldOp_Body() {}
@@ -386,6 +413,63 @@ func (*WorldOp_SetRetainedRoot) isWorldOp_Body() {}
 func (*WorldOp_SetTransformConf) isWorldOp_Body() {}
 
 func (*WorldOp_GraphSettingsStep) isWorldOp_Body() {}
+
+func (*WorldOp_Fence) isWorldOp_Body() {}
+
+func (*WorldOp_RootSet) isWorldOp_Body() {}
+
+// FenceOp asks every writer device of the Space for the roots it holds. It
+// changes nothing in the World. A device answers after every operation it
+// started before it saw the fence, so the answer covers what it may still
+// reference.
+type FenceOp struct {
+	unknownFields []byte
+	// Pass identifies the reclaim pass.
+	Pass string `protobuf:"bytes,1,opt,name=pass,proto3" json:"pass,omitempty"`
+}
+
+func (x *FenceOp) Reset() {
+	*x = FenceOp{}
+}
+
+func (*FenceOp) ProtoMessage() {}
+
+func (x *FenceOp) GetPass() string {
+	if x != nil {
+		return x.Pass
+	}
+	return ""
+}
+
+// RootSetOp answers a fence with every root its author's device holds for the
+// Space. It changes nothing in the World.
+type RootSetOp struct {
+	unknownFields []byte
+	// Fence is the hash of the FenceOp it answers.
+	Fence []byte `protobuf:"bytes,1,opt,name=fence,proto3" json:"fence,omitempty"`
+	// Roots are the blocks the device holds under its named roots.
+	Roots []*block.BlockRef `protobuf:"bytes,2,rep,name=roots,proto3" json:"roots,omitempty"`
+}
+
+func (x *RootSetOp) Reset() {
+	*x = RootSetOp{}
+}
+
+func (*RootSetOp) ProtoMessage() {}
+
+func (x *RootSetOp) GetFence() []byte {
+	if x != nil {
+		return x.Fence
+	}
+	return nil
+}
+
+func (x *RootSetOp) GetRoots() []*block.BlockRef {
+	if x != nil {
+		return x.Roots
+	}
+	return nil
+}
 
 // InitWorldOp initializes an empty World.
 type InitWorldOp struct {
@@ -398,7 +482,7 @@ type InitWorldOp struct {
 	TransformConf *transform.Config `protobuf:"bytes,2,opt,name=transform_conf,json=transformConf,proto3" json:"transformConf,omitempty"`
 	// GraphSettings are the settings the World's graph store starts with.
 	// Empty means the default settings.
-	GraphSettings *block.GraphSettings `protobuf:"bytes,3,opt,name=graph_settings,json=graphSettings,proto3" json:"graphSettings,omitempty"`
+	GraphSettings *block1.GraphSettings `protobuf:"bytes,3,opt,name=graph_settings,json=graphSettings,proto3" json:"graphSettings,omitempty"`
 }
 
 func (x *InitWorldOp) Reset() {
@@ -421,7 +505,7 @@ func (x *InitWorldOp) GetTransformConf() *transform.Config {
 	return nil
 }
 
-func (x *InitWorldOp) GetGraphSettings() *block.GraphSettings {
+func (x *InitWorldOp) GetGraphSettings() *block1.GraphSettings {
 	if x != nil {
 		return x.GraphSettings
 	}
@@ -455,7 +539,7 @@ type SetRetainedRootOp struct {
 	// Name identifies the root within the Space.
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// RootRef is the World root block to retain, or empty to release.
-	RootRef *block1.BlockRef `protobuf:"bytes,2,opt,name=root_ref,json=rootRef,proto3" json:"rootRef,omitempty"`
+	RootRef *block.BlockRef `protobuf:"bytes,2,opt,name=root_ref,json=rootRef,proto3" json:"rootRef,omitempty"`
 }
 
 func (x *SetRetainedRootOp) Reset() {
@@ -471,7 +555,7 @@ func (x *SetRetainedRootOp) GetName() string {
 	return ""
 }
 
-func (x *SetRetainedRootOp) GetRootRef() *block1.BlockRef {
+func (x *SetRetainedRootOp) GetRootRef() *block.BlockRef {
 	if x != nil {
 		return x.RootRef
 	}
@@ -507,7 +591,7 @@ type GraphSettingsStepOp struct {
 	unknownFields []byte
 	// Target are the graph settings to move to. Empty means the default
 	// settings.
-	Target *block.GraphSettings `protobuf:"bytes,1,opt,name=target,proto3" json:"target,omitempty"`
+	Target *block1.GraphSettings `protobuf:"bytes,1,opt,name=target,proto3" json:"target,omitempty"`
 	// Max bounds the links the step indexes or the postings it deletes.
 	Max uint32 `protobuf:"varint,2,opt,name=max,proto3" json:"max,omitempty"`
 }
@@ -518,7 +602,7 @@ func (x *GraphSettingsStepOp) Reset() {
 
 func (*GraphSettingsStepOp) ProtoMessage() {}
 
-func (x *GraphSettingsStepOp) GetTarget() *block.GraphSettings {
+func (x *GraphSettingsStepOp) GetTarget() *block1.GraphSettings {
 	if x != nil {
 		return x.Target
 	}
@@ -538,7 +622,7 @@ type RetainedRoot struct {
 	// Name identifies the root within the Space.
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// RootRef is the World root block. It uses the head's transform config.
-	RootRef *block1.BlockRef `protobuf:"bytes,2,opt,name=root_ref,json=rootRef,proto3" json:"rootRef,omitempty"`
+	RootRef *block.BlockRef `protobuf:"bytes,2,opt,name=root_ref,json=rootRef,proto3" json:"rootRef,omitempty"`
 }
 
 func (x *RetainedRoot) Reset() {
@@ -554,7 +638,7 @@ func (x *RetainedRoot) GetName() string {
 	return ""
 }
 
-func (x *RetainedRoot) GetRootRef() *block1.BlockRef {
+func (x *RetainedRoot) GetRootRef() *block.BlockRef {
 	if x != nil {
 		return x.RootRef
 	}
@@ -588,7 +672,7 @@ func (x *RetainedRootSet) GetRoots() []*RetainedRoot {
 type ReplayPayloads struct {
 	unknownFields []byte
 	// Payloads are the payload roots in replay order.
-	Payloads []*block1.BlockRef `protobuf:"bytes,1,rep,name=payloads,proto3" json:"payloads,omitempty"`
+	Payloads []*block.BlockRef `protobuf:"bytes,1,rep,name=payloads,proto3" json:"payloads,omitempty"`
 }
 
 func (x *ReplayPayloads) Reset() {
@@ -597,7 +681,7 @@ func (x *ReplayPayloads) Reset() {
 
 func (*ReplayPayloads) ProtoMessage() {}
 
-func (x *ReplayPayloads) GetPayloads() []*block1.BlockRef {
+func (x *ReplayPayloads) GetPayloads() []*block.BlockRef {
 	if x != nil {
 		return x.Payloads
 	}
@@ -609,7 +693,7 @@ func (x *ReplayPayloads) GetPayloads() []*block1.BlockRef {
 type BackfillRoots struct {
 	unknownFields []byte
 	// Roots are the copied roots.
-	Roots []*block1.BlockRef `protobuf:"bytes,1,rep,name=roots,proto3" json:"roots,omitempty"`
+	Roots []*block.BlockRef `protobuf:"bytes,1,rep,name=roots,proto3" json:"roots,omitempty"`
 }
 
 func (x *BackfillRoots) Reset() {
@@ -618,7 +702,7 @@ func (x *BackfillRoots) Reset() {
 
 func (*BackfillRoots) ProtoMessage() {}
 
-func (x *BackfillRoots) GetRoots() []*block1.BlockRef {
+func (x *BackfillRoots) GetRoots() []*block.BlockRef {
 	if x != nil {
 		return x.Roots
 	}
@@ -682,9 +766,9 @@ type ReplayCursorOutcome struct {
 	// Reason is empty when the operation applied, and otherwise says why not.
 	Reason string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
 	// World is the root block of the World after the operation.
-	World *block1.BlockRef `protobuf:"bytes,5,opt,name=world,proto3" json:"world,omitempty"`
+	World *block.BlockRef `protobuf:"bytes,5,opt,name=world,proto3" json:"world,omitempty"`
 	// Payloads are the roots of the operation's payload.
-	Payloads []*block1.BlockRef `protobuf:"bytes,6,rep,name=payloads,proto3" json:"payloads,omitempty"`
+	Payloads []*block.BlockRef `protobuf:"bytes,6,rep,name=payloads,proto3" json:"payloads,omitempty"`
 	// RetainedRoots are the retained roots after the operation when they
 	// differ from those before it, and unset when the operation kept them.
 	RetainedRoots *RetainedRootSet `protobuf:"bytes,7,opt,name=retained_roots,json=retainedRoots,proto3" json:"retainedRoots,omitempty"`
@@ -712,14 +796,14 @@ func (x *ReplayCursorOutcome) GetReason() string {
 	return ""
 }
 
-func (x *ReplayCursorOutcome) GetWorld() *block1.BlockRef {
+func (x *ReplayCursorOutcome) GetWorld() *block.BlockRef {
 	if x != nil {
 		return x.World
 	}
 	return nil
 }
 
-func (x *ReplayCursorOutcome) GetPayloads() []*block1.BlockRef {
+func (x *ReplayCursorOutcome) GetPayloads() []*block.BlockRef {
 	if x != nil {
 		return x.Payloads
 	}
@@ -746,7 +830,7 @@ type BackfillState struct {
 	unknownFields []byte
 	// Root is the installed World root the copy covered, with the retained
 	// roots of that World.
-	Root *block1.BlockRef `protobuf:"bytes,1,opt,name=root,proto3" json:"root,omitempty"`
+	Root *block.BlockRef `protobuf:"bytes,1,opt,name=root,proto3" json:"root,omitempty"`
 	// Holes counts the blocks of those roots that no reachable store held.
 	// Zero means the local store holds every block of them.
 	Holes uint32 `protobuf:"varint,2,opt,name=holes,proto3" json:"holes,omitempty"`
@@ -760,7 +844,7 @@ func (x *BackfillState) Reset() {
 
 func (*BackfillState) ProtoMessage() {}
 
-func (x *BackfillState) GetRoot() *block1.BlockRef {
+func (x *BackfillState) GetRoot() *block.BlockRef {
 	if x != nil {
 		return x.Root
 	}
@@ -1011,6 +1095,65 @@ func (m *WorldOp_GraphSettingsStep) CloneVT() *WorldOp_GraphSettingsStep {
 }
 
 func (m *WorldOp_GraphSettingsStep) CloneOneofVT() isWorldOp_Body {
+	return m.CloneVT()
+}
+
+func (m *WorldOp_Fence) CloneVT() *WorldOp_Fence {
+	if m == nil {
+		return (*WorldOp_Fence)(nil)
+	}
+	r := new(WorldOp_Fence)
+	r.Fence = protobuf_go_lite.CloneVTValue(m.Fence)
+	return r
+}
+
+func (m *WorldOp_Fence) CloneOneofVT() isWorldOp_Body {
+	return m.CloneVT()
+}
+
+func (m *WorldOp_RootSet) CloneVT() *WorldOp_RootSet {
+	if m == nil {
+		return (*WorldOp_RootSet)(nil)
+	}
+	r := new(WorldOp_RootSet)
+	r.RootSet = protobuf_go_lite.CloneVTValue(m.RootSet)
+	return r
+}
+
+func (m *WorldOp_RootSet) CloneOneofVT() isWorldOp_Body {
+	return m.CloneVT()
+}
+
+func (m *FenceOp) CloneVT() *FenceOp {
+	if m == nil {
+		return (*FenceOp)(nil)
+	}
+	r := new(FenceOp)
+	r.Pass = m.Pass
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *FenceOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RootSetOp) CloneVT() *RootSetOp {
+	if m == nil {
+		return (*RootSetOp)(nil)
+	}
+	r := new(RootSetOp)
+	r.Fence = protobuf_go_lite.CloneBytes(m.Fence)
+	r.Roots = protobuf_go_lite.CloneVTSlice(m.Roots)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RootSetOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -1509,6 +1652,83 @@ func (this *WorldOp_GraphSettingsStep) EqualVT(thatIface isWorldOp_Body) bool {
 	return true
 }
 
+func (this *WorldOp_Fence) EqualVT(thatIface isWorldOp_Body) bool {
+	that, ok := thatIface.(*WorldOp_Fence)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Fence, that.Fence, func() *FenceOp { return &FenceOp{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *WorldOp_RootSet) EqualVT(thatIface isWorldOp_Body) bool {
+	that, ok := thatIface.(*WorldOp_RootSet)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.RootSet, that.RootSet, func() *RootSetOp { return &RootSetOp{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *FenceOp) EqualVT(that *FenceOp) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Pass != that.Pass {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *FenceOp) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*FenceOp)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RootSetOp) EqualVT(that *RootSetOp) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Fence, that.Fence) {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Roots, that.Roots, func() *block.BlockRef { return &block.BlockRef{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RootSetOp) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RootSetOp)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 func (this *InitWorldOp) EqualVT(that *InitWorldOp) bool {
 	if this == that {
 		return true
@@ -1670,7 +1890,7 @@ func (this *ReplayPayloads) EqualVT(that *ReplayPayloads) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
-	if !protobuf_go_lite.EqualVTSliceImplicit(this.Payloads, that.Payloads, func() *block1.BlockRef { return &block1.BlockRef{} }) {
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Payloads, that.Payloads, func() *block.BlockRef { return &block.BlockRef{} }) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1690,7 +1910,7 @@ func (this *BackfillRoots) EqualVT(that *BackfillRoots) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
-	if !protobuf_go_lite.EqualVTSliceImplicit(this.Roots, that.Roots, func() *block1.BlockRef { return &block1.BlockRef{} }) {
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Roots, that.Roots, func() *block.BlockRef { return &block.BlockRef{} }) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1748,7 +1968,7 @@ func (this *ReplayCursorOutcome) EqualVT(that *ReplayCursorOutcome) bool {
 	if !protobuf_go_lite.IsEqualVT(this.World, that.World) {
 		return false
 	}
-	if !protobuf_go_lite.EqualVTSliceImplicit(this.Payloads, that.Payloads, func() *block1.BlockRef { return &block1.BlockRef{} }) {
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Payloads, that.Payloads, func() *block.BlockRef { return &block.BlockRef{} }) {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.RetainedRoots, that.RetainedRoots) {
@@ -2372,6 +2592,14 @@ func (x *WorldOp) MarshalProtoJSON(s *json.MarshalState) {
 			s.WriteMoreIf(&wroteField)
 			s.WriteObjectField("graphSettingsStep")
 			ov.GraphSettingsStep.MarshalProtoJSON(s.WithField("graphSettingsStep"))
+		case *WorldOp_Fence:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("fence")
+			ov.Fence.MarshalProtoJSON(s.WithField("fence"))
+		case *WorldOp_RootSet:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("rootSet")
+			ov.RootSet.MarshalProtoJSON(s.WithField("rootSet"))
 		}
 	}
 	s.WriteObjectEnd()
@@ -2436,12 +2664,143 @@ func (x *WorldOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			ov.GraphSettingsStep = &GraphSettingsStepOp{}
 			ov.GraphSettingsStep.UnmarshalProtoJSON(s.WithField("graph_settings_step", true))
+		case "fence":
+			ov := &WorldOp_Fence{}
+			x.Body = ov
+			if s.ReadNil() {
+				ov.Fence = nil
+				return
+			}
+			ov.Fence = &FenceOp{}
+			ov.Fence.UnmarshalProtoJSON(s.WithField("fence", true))
+		case "root_set", "rootSet":
+			ov := &WorldOp_RootSet{}
+			x.Body = ov
+			if s.ReadNil() {
+				ov.RootSet = nil
+				return
+			}
+			ov.RootSet = &RootSetOp{}
+			ov.RootSet.UnmarshalProtoJSON(s.WithField("root_set", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the WorldOp from JSON.
 func (x *WorldOp) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the FenceOp message to JSON.
+func (x *FenceOp) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Pass != "" || s.HasField("pass") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pass")
+		s.WriteString(x.Pass)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the FenceOp to JSON.
+func (x *FenceOp) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the FenceOp message from JSON.
+func (x *FenceOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "pass":
+			s.AddField("pass")
+			x.Pass = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the FenceOp from JSON.
+func (x *FenceOp) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RootSetOp message to JSON.
+func (x *RootSetOp) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Fence) > 0 || s.HasField("fence") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("fence")
+		s.WriteBytes(x.Fence)
+	}
+	if len(x.Roots) > 0 || s.HasField("roots") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("roots")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Roots {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("roots"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RootSetOp to JSON.
+func (x *RootSetOp) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RootSetOp message from JSON.
+func (x *RootSetOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "fence":
+			s.AddField("fence")
+			x.Fence = s.ReadBytes()
+		case "roots":
+			s.AddField("roots")
+			if s.ReadNil() {
+				x.Roots = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Roots = append(x.Roots, nil)
+					return
+				}
+				v := &block.BlockRef{}
+				v.UnmarshalProtoJSON(s.WithField("roots", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Roots = append(x.Roots, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RootSetOp from JSON.
+func (x *RootSetOp) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -2500,7 +2859,7 @@ func (x *InitWorldOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				x.GraphSettings = nil
 				return
 			}
-			x.GraphSettings = &block.GraphSettings{}
+			x.GraphSettings = &block1.GraphSettings{}
 			x.GraphSettings.UnmarshalProtoJSON(s.WithField("graph_settings", true))
 		}
 	})
@@ -2600,7 +2959,7 @@ func (x *SetRetainedRootOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				x.RootRef = nil
 				return
 			}
-			x.RootRef = &block1.BlockRef{}
+			x.RootRef = &block.BlockRef{}
 			x.RootRef.UnmarshalProtoJSON(s.WithField("root_ref", true))
 		}
 	})
@@ -2697,7 +3056,7 @@ func (x *GraphSettingsStepOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				x.Target = nil
 				return
 			}
-			x.Target = &block.GraphSettings{}
+			x.Target = &block1.GraphSettings{}
 			x.Target.UnmarshalProtoJSON(s.WithField("target", true))
 		case "max":
 			s.AddField("max")
@@ -2754,7 +3113,7 @@ func (x *RetainedRoot) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				x.RootRef = nil
 				return
 			}
-			x.RootRef = &block1.BlockRef{}
+			x.RootRef = &block.BlockRef{}
 			x.RootRef.UnmarshalProtoJSON(s.WithField("root_ref", true))
 		}
 	})
@@ -2875,7 +3234,7 @@ func (x *ReplayPayloads) UnmarshalProtoJSON(s *json.UnmarshalState) {
 					x.Payloads = append(x.Payloads, nil)
 					return
 				}
-				v := &block1.BlockRef{}
+				v := &block.BlockRef{}
 				v.UnmarshalProtoJSON(s.WithField("payloads", false))
 				if s.Err() != nil {
 					return
@@ -2938,7 +3297,7 @@ func (x *BackfillRoots) UnmarshalProtoJSON(s *json.UnmarshalState) {
 					x.Roots = append(x.Roots, nil)
 					return
 				}
-				v := &block1.BlockRef{}
+				v := &block.BlockRef{}
 				v.UnmarshalProtoJSON(s.WithField("roots", false))
 				if s.Err() != nil {
 					return
@@ -3121,7 +3480,7 @@ func (x *ReplayCursorOutcome) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				x.World = nil
 				return
 			}
-			x.World = &block1.BlockRef{}
+			x.World = &block.BlockRef{}
 			x.World.UnmarshalProtoJSON(s.WithField("world", true))
 		case "payloads":
 			s.AddField("payloads")
@@ -3134,7 +3493,7 @@ func (x *ReplayCursorOutcome) UnmarshalProtoJSON(s *json.UnmarshalState) {
 					x.Payloads = append(x.Payloads, nil)
 					return
 				}
-				v := &block1.BlockRef{}
+				v := &block.BlockRef{}
 				v.UnmarshalProtoJSON(s.WithField("payloads", false))
 				if s.Err() != nil {
 					return
@@ -3205,7 +3564,7 @@ func (x *BackfillState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				x.Root = nil
 				return
 			}
-			x.Root = &block1.BlockRef{}
+			x.Root = &block.BlockRef{}
 			x.Root.UnmarshalProtoJSON(s.WithField("root", true))
 		case "holes":
 			s.AddField("holes")
@@ -3758,6 +4117,140 @@ func (m *WorldOp_GraphSettingsStep) MarshalToSizedBufferVT(dAtA []byte) (int, er
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
 		i--
 		dAtA[i] = 0x32
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WorldOp_Fence) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WorldOp_Fence) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Fence != nil {
+		size, err := m.Fence.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x3a
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x3a
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WorldOp_RootSet) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WorldOp_RootSet) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.RootSet != nil {
+		size, err := m.RootSet.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x42
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x42
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *FenceOp) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *FenceOp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *FenceOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Pass) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Pass)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RootSetOp) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RootSetOp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RootSetOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Roots) > 0 {
+		for iNdEx := len(m.Roots) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Roots[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.Fence) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Fence)
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -4583,6 +5076,62 @@ func (m *WorldOp_GraphSettingsStep) SizeVT() (n int) {
 	return n
 }
 
+func (m *WorldOp_Fence) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Fence != nil {
+		l = m.Fence.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *WorldOp_RootSet) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.RootSet != nil {
+		l = m.RootSet.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *FenceOp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Pass)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RootSetOp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Fence)
+	for _, e := range m.Roots {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *InitWorldOp) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -5027,11 +5576,65 @@ func (x *WorldOp) MarshalProtoText() string {
 		} else {
 			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.GraphSettingsStep)
 		}
+	case *WorldOp_Fence:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "fence")
+		if body.Fence == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &FenceOp{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Fence)
+		}
+	case *WorldOp_RootSet:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "root_set")
+		if body.RootSet == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &RootSetOp{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.RootSet)
+		}
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *WorldOp) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *FenceOp) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "FenceOp")
+	if x.Pass != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "pass")
+		protobuf_go_lite.TextWriteString(&sb, x.Pass)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *FenceOp) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RootSetOp) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RootSetOp")
+	if len(x.Fence) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "fence")
+		protobuf_go_lite.TextWriteBytes(&sb, x.Fence)
+	}
+	if len(x.Roots) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "roots")
+		for i, v := range x.Roots {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &block.BlockRef{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RootSetOp) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -5169,7 +5772,7 @@ func (x *ReplayPayloads) MarshalProtoText() string {
 		for i, v := range x.Payloads {
 			protobuf_go_lite.TextWriteListSeparator(&sb, i)
 			if v == nil {
-				protobuf_go_lite.TextWriteTextMarshaler(&sb, &block1.BlockRef{})
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &block.BlockRef{})
 			} else {
 				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
 			}
@@ -5191,7 +5794,7 @@ func (x *BackfillRoots) MarshalProtoText() string {
 		for i, v := range x.Roots {
 			protobuf_go_lite.TextWriteListSeparator(&sb, i)
 			if v == nil {
-				protobuf_go_lite.TextWriteTextMarshaler(&sb, &block1.BlockRef{})
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &block.BlockRef{})
 			} else {
 				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
 			}
@@ -5259,7 +5862,7 @@ func (x *ReplayCursorOutcome) MarshalProtoText() string {
 		for i, v := range x.Payloads {
 			protobuf_go_lite.TextWriteListSeparator(&sb, i)
 			if v == nil {
-				protobuf_go_lite.TextWriteTextMarshaler(&sb, &block1.BlockRef{})
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &block.BlockRef{})
 			} else {
 				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
 			}
@@ -5980,6 +6583,163 @@ func (m *WorldOp) UnmarshalVT(dAtA []byte) error {
 				m.Body = &WorldOp_GraphSettingsStep{GraphSettingsStep: v}
 			}
 			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Fence", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Body.(*WorldOp_Fence); ok {
+				if err := oneof.Fence.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &FenceOp{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &WorldOp_Fence{Fence: v}
+			}
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RootSet", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Body.(*WorldOp_RootSet); ok {
+				if err := oneof.RootSet.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &RootSetOp{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &WorldOp_RootSet{RootSet: v}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *FenceOp) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: FenceOp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: FenceOp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Pass", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Pass = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RootSetOp) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RootSetOp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RootSetOp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Fence", wireType)
+			}
+			m.Fence, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Fence, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Roots", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Roots = append(m.Roots, &block.BlockRef{})
+			if err := m.Roots[len(m.Roots)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -6057,7 +6817,7 @@ func (m *InitWorldOp) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			if m.GraphSettings == nil {
-				m.GraphSettings = &block.GraphSettings{}
+				m.GraphSettings = &block1.GraphSettings{}
 			}
 			if err := m.GraphSettings.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
@@ -6183,7 +6943,7 @@ func (m *SetRetainedRootOp) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			if m.RootRef == nil {
-				m.RootRef = &block1.BlockRef{}
+				m.RootRef = &block.BlockRef{}
 			}
 			if err := m.RootRef.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
@@ -6299,7 +7059,7 @@ func (m *GraphSettingsStepOp) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			if m.Target == nil {
-				m.Target = &block.GraphSettings{}
+				m.Target = &block1.GraphSettings{}
 			}
 			if err := m.Target.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
@@ -6376,7 +7136,7 @@ func (m *RetainedRoot) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			if m.RootRef == nil {
-				m.RootRef = &block1.BlockRef{}
+				m.RootRef = &block.BlockRef{}
 			}
 			if err := m.RootRef.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
@@ -6489,7 +7249,7 @@ func (m *ReplayPayloads) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			m.Payloads = append(m.Payloads, &block1.BlockRef{})
+			m.Payloads = append(m.Payloads, &block.BlockRef{})
 			if err := m.Payloads[len(m.Payloads)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
@@ -6545,7 +7305,7 @@ func (m *BackfillRoots) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			m.Roots = append(m.Roots, &block1.BlockRef{})
+			m.Roots = append(m.Roots, &block.BlockRef{})
 			if err := m.Roots[len(m.Roots)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
@@ -6715,7 +7475,7 @@ func (m *ReplayCursorOutcome) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			if m.World == nil {
-				m.World = &block1.BlockRef{}
+				m.World = &block.BlockRef{}
 			}
 			if err := m.World.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
@@ -6729,7 +7489,7 @@ func (m *ReplayCursorOutcome) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			m.Payloads = append(m.Payloads, &block1.BlockRef{})
+			m.Payloads = append(m.Payloads, &block.BlockRef{})
 			if err := m.Payloads[len(m.Payloads)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
@@ -6810,7 +7570,7 @@ func (m *BackfillState) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			if m.Root == nil {
-				m.Root = &block1.BlockRef{}
+				m.Root = &block.BlockRef{}
 			}
 			if err := m.Root.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err

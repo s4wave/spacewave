@@ -108,7 +108,30 @@ message WorldOp {
     // GraphSettingsStep moves the World's graph store one bounded step toward
     // new graph settings.
     GraphSettingsStepOp graph_settings_step = 6;
+    // Fence asks every writer device for the roots it holds, before a
+    // storage reclaim pass judges which blocks of the shared backend are live.
+    FenceOp fence = 7;
+    // RootSet answers a fence with the roots its author holds.
+    RootSetOp root_set = 8;
   }
+}
+
+// FenceOp asks every writer device of the Space for the roots it holds. It
+// changes nothing in the World. A device answers after every operation it
+// started before it saw the fence, so the answer covers what it may still
+// reference.
+message FenceOp {
+  // Pass identifies the reclaim pass.
+  string pass = 1;
+}
+
+// RootSetOp answers a fence with every root its author's device holds for the
+// Space. It changes nothing in the World.
+message RootSetOp {
+  // Fence is the hash of the FenceOp it answers.
+  bytes fence = 1;
+  // Roots are the blocks the device holds under its named roots.
+  repeated .block.BlockRef roots = 2;
 }
 
 // InitWorldOp initializes an empty World.
