@@ -1,7 +1,8 @@
 package common
 
-// Pragmas configures tunable SQLite pragmas applied during Open.
-// A zero value leaves SQLite's compiled default in place.
+// Pragmas configures tunable SQLite pragmas applied during Open, and the shape
+// of a table Open creates. A zero value leaves SQLite's compiled default in
+// place.
 type Pragmas struct {
 	// FullSync selects synchronous=FULL; the existing default is NORMAL.
 	// Connectors that open several physical connections must configure each one.
@@ -19,4 +20,10 @@ type Pragmas struct {
 	// of two between 512 and 65536. 0 leaves the SQLite default. Only
 	// effective on a fresh database.
 	PageSize int32
+	// WithoutRowID creates a missing table as WITHOUT ROWID, so each row is
+	// stored once, in the key's B-tree, instead of in a rowid table plus a key
+	// index. It suits many small rows; SQLite advises against it for rows
+	// larger than about a twentieth of a page. An existing table keeps its
+	// shape.
+	WithoutRowID bool
 }
