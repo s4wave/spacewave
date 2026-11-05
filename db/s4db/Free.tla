@@ -237,7 +237,6 @@ Next ==
   \/ OpenHot \/ OpenCold \/ Scan \/ Close \/ Move \/ Seal \/ Abandon \/ Release
   \/ Reserve \/ Finish \/ Die \/ Reclaim
   \/ \E r \in Readers : Snap(r) \/ End(r)
-  \/ UNCHANGED vars
 
 Fairness ==
   /\ WF_vars(Release) /\ WF_vars(Reclaim) /\ WF_vars(Seal) /\ WF_vars(Move) /\ WF_vars(Scan)
