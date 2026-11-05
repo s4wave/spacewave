@@ -158,20 +158,29 @@ func readYoungRecordTx(ctx context.Context, tx kvtx.TxOps, seq uint64) (youngRec
 // logYoungTx appends the blocks whose child lists a write created or changed
 // to the young log, whether or not a block pass runs. It reads and writes only
 // the range record and the new log record.
-func logYoungTx(ctx context.Context, tx kvtx.TxOps, r youngRecord) error {
+func logYoungTx(ctx context.Context, tx kvtx.Tx, r youngRecord) error {
 	// Log nothing for a write that left every list as it was.
 	if len(r.created) == 0 && len(r.changed) == 0 {
 		return nil
 	}
-	head, err := readYoungTx(ctx, tx)
-	if err != nil {
-		return err
-	}
-	if err := tx.Set(ctx, youngRecordKey(head.hi), r.encode()); err != nil {
-		return err
-	}
-	head.hi++
-	return writeYoungTx(ctx, tx, head)
+
+	// Append at the head as the transaction commits: nearly every write
+	// appends, so a head read in the body would conflict with each.
+	value := r.encode()
+	return kvtx.AtCommit(ctx, tx, func(ctx context.Context, tx kvtx.Tx) error {
+		// Read the head.
+		head, err := readYoungTx(ctx, tx)
+		if err != nil {
+			return err
+		}
+
+		// Write the record at the head, then advance it.
+		if err := tx.Set(ctx, youngRecordKey(head.hi), value); err != nil {
+			return err
+		}
+		head.hi++
+		return writeYoungTx(ctx, tx, head)
+	})
 }
 
 // LogSettled appends the namers of the holes mark settled since the last call

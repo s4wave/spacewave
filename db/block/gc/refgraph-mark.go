@@ -845,26 +845,34 @@ func logAdoptedTx(ctx context.Context, tx kvtx.Tx, blocks []string) error {
 	if len(blocks) == 0 {
 		return nil
 	}
-	r, open, err := readPassTx(ctx, tx)
-	if err != nil || !open {
-		return err
-	}
 
-	// A legacy pass numbers its log once by a scan, then keeps the range.
-	if r.legacy {
-		if r, err = legacyRangeTx(ctx, tx); err != nil {
-			return err
-		}
-	}
-
-	// Write the sorted, distinct blocks at the next sequence.
+	// Append as the transaction commits: during a pass every write that
+	// adopts a block appends, so a range read in the body would conflict
+	// with each.
 	blocks = slices.Clone(blocks)
 	slices.Sort(blocks)
-	if err := tx.Set(ctx, adoptKey(r.hi), encodeChildren(slices.Compact(blocks))); err != nil {
-		return err
-	}
-	r.hi++
-	return tx.Set(ctx, passKey, r.encode())
+	value := encodeChildren(slices.Compact(blocks))
+	return kvtx.AtCommit(ctx, tx, func(ctx context.Context, tx kvtx.Tx) error {
+		// Read the pass's log range, logging nothing when no pass runs.
+		r, open, err := readPassTx(ctx, tx)
+		if err != nil || !open {
+			return err
+		}
+
+		// A legacy pass numbers its log once by a scan, then keeps the range.
+		if r.legacy {
+			if r, err = legacyRangeTx(ctx, tx); err != nil {
+				return err
+			}
+		}
+
+		// Write the blocks at the next sequence.
+		if err := tx.Set(ctx, adoptKey(r.hi), value); err != nil {
+			return err
+		}
+		r.hi++
+		return tx.Set(ctx, passKey, r.encode())
+	})
 }
 
 // legacyRangeTx returns the range of a legacy pass's log, from its first

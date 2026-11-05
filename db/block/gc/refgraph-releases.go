@@ -89,16 +89,19 @@ func (g *RefGraph) SettleOwnerCounts(ctx context.Context) error {
 	// Write each change in key order.
 	nodes := slices.Sorted(maps.Keys(net))
 	return g.transaction(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
+		// Change nothing while the counts are not complete.
 		s, err := readSharingTx(ctx, tx)
 		if err != nil || !s.Phase.Counting() {
 			return err
 		}
+
+		// Add each gain to the holds, and each loss of a tracked block to
+		// its releases, as the transaction commits.
+		var adds []countAdd
 		for _, node := range nodes {
 			change := net[node]
 			if change > 0 {
-				if err := addCountTx(ctx, tx, kindHold, node, uint64(change)); err != nil { // #nosec G115 -- change is positive.
-					return err
-				}
+				adds = append(adds, countAdd{kind: kindHold, block: node, delta: uint64(change)}) // #nosec G115 -- change is positive.
 				continue
 			}
 			tracked, err := tx.Exists(ctx, graphKey(kindChildren, node))
@@ -106,9 +109,45 @@ func (g *RefGraph) SettleOwnerCounts(ctx context.Context) error {
 				return err
 			}
 			if tracked {
-				if err := addCountTx(ctx, tx, kindRelease, node, uint64(-change)); err != nil { // #nosec G115 -- change is negative.
-					return err
-				}
+				adds = append(adds, countAdd{kind: kindRelease, block: node, delta: uint64(-change)}) // #nosec G115 -- change is negative.
+			}
+		}
+		return addCountsAtCommit(ctx, tx, adds)
+	})
+}
+
+// countAdd is an addition to one count.
+type countAdd struct {
+	// kind is the count's kind.
+	kind byte
+	// block is the counted block.
+	block string
+	// delta is added to the count.
+	delta uint64
+}
+
+// addCountsAtCommit adds to the counts as the transaction commits, since
+// every write that changes an owner edge adds to them, and a count read in
+// the body would conflict with each. It prefetches the counts first, so the
+// commit reads them warm.
+func addCountsAtCommit(ctx context.Context, tx kvtx.Tx, adds []countAdd) error {
+	// Warm the counts the commit reads.
+	if len(adds) == 0 {
+		return nil
+	}
+	keys := make([][]byte, len(adds))
+	for i, a := range adds {
+		keys[i] = graphKey(a.kind, a.block)
+	}
+	if err := kvtx.Prefetch(ctx, tx, keys); err != nil {
+		return err
+	}
+
+	// Add to each in order.
+	return kvtx.AtCommit(ctx, tx, func(ctx context.Context, tx kvtx.Tx) error {
+		for _, a := range adds {
+			if err := addCountTx(ctx, tx, a.kind, a.block, a.delta); err != nil {
+				return err
 			}
 		}
 		return nil

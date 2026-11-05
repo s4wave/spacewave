@@ -2,7 +2,6 @@ package block_gc
 
 import (
 	"context"
-	"encoding/binary"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -17,23 +16,21 @@ func (g *RefGraph) AddHolds(ctx context.Context, blocks []string) error {
 		return nil
 	}
 	return g.transaction(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
+		// Add nothing while the counts are not complete.
 		s, err := readSharingTx(ctx, tx)
 		if err != nil || !s.Phase.Counting() {
 			return err
 		}
-		for _, block := range blocks {
+
+		// Add one hold to each block as the transaction commits.
+		adds := make([]countAdd, len(blocks))
+		for i, block := range blocks {
 			if !isBlockNode(block) {
 				return errors.Errorf("hold on %q, which is not a block", block)
 			}
-			n, err := readHoldsTx(ctx, tx, block)
-			if err != nil {
-				return err
-			}
-			if err := tx.Set(ctx, graphKey(kindHold, block), binary.AppendUvarint(nil, n+1)); err != nil {
-				return err
-			}
+			adds[i] = countAdd{kind: kindHold, block: block, delta: 1}
 		}
-		return nil
+		return addCountsAtCommit(ctx, tx, adds)
 	})
 }
 
