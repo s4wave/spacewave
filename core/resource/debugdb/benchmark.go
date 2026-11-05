@@ -10,7 +10,6 @@ import (
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	volume_browser "github.com/s4wave/spacewave/db/volume/browser"
 	s4wave_debugdb "github.com/s4wave/spacewave/sdk/debugdb"
 	"github.com/sirupsen/logrus"
@@ -83,9 +82,9 @@ func (r *BenchmarkRunner) Run(ctx context.Context) {
 	results.Suites = append(results.Suites, sr.runEnginePutBatch(vol))
 	results.Suites = append(results.Suites, sr.runEngineGet(vol, engineRefs))
 
-	// Block store suites: through the full StoreOps interface (includes GC wrapper).
-	gcStore := block_gc.NewGCStoreOps(vol, vol.GetRefGraph())
-	results.Suites = append(results.Suites, sr.runBlockStorePut(gcStore))
+	// Block store suites: through the Volume's StoreOps, which keeps the
+	// blocks' liveness in each put.
+	results.Suites = append(results.Suites, sr.runBlockStorePut(vol))
 
 	// Collect block refs for get benchmark.
 	var refs []*block.BlockRef
@@ -93,16 +92,16 @@ func (r *BenchmarkRunner) Run(ctx context.Context) {
 		data := make([]byte, 4096)
 		data[0] = byte(i)
 		runtime.Gosched()
-		ref, _, err := gcStore.PutBlock(ctx, data, &block.PutOpts{RefsKnown: true})
+		ref, _, err := vol.PutBlock(ctx, data, &block.PutOpts{RefsKnown: true})
 		if err != nil {
 			break
 		}
 		refs = append(refs, ref)
 	}
-	results.Suites = append(results.Suites, sr.runBlockStoreGet(gcStore, refs))
+	results.Suites = append(results.Suites, sr.runBlockStoreGet(vol, refs))
 
-	// GC flush suite.
-	results.Suites = append(results.Suites, sr.runGCFlush(gcStore))
+	// Collection suite.
+	results.Suites = append(results.Suites, sr.runCollect(vol, vol))
 
 	// Meta store suite.
 	results.Suites = append(results.Suites, sr.runMetaStoreRW(vol.GetKvtxStore()))

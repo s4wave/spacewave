@@ -71,7 +71,7 @@ func NewVolume(ctx context.Context, conf *Config) (*Volume, error) {
 	}
 
 	// Move the reference graph the engine kept beside the Volume into it.
-	err = volume_kvtx.AdoptRefGraph(ctx, s.Domain(nil), []byte(volumePrefix), []byte(legacyGraphPrefix), []byte(graphPrefix))
+	err = volume_kvtx.MoveSideGraph(ctx, s.Domain(nil), []byte(volumePrefix), []byte(legacyGraphPrefix), []byte(graphPrefix))
 	if err != nil {
 		return nil, errors.Join(err, closeStore())
 	}

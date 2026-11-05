@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/kvtx"
+	"github.com/s4wave/spacewave/db/volume"
 	s4wave_debugdb "github.com/s4wave/spacewave/sdk/debugdb"
 )
 
@@ -35,7 +35,7 @@ func newSuiteRunner(ctx context.Context, r *BenchmarkRunner) *suiteRunner {
 		"engine-get",
 		"blockstore-put",
 		"blockstore-get",
-		"gc-flush",
+		"collect",
 		"metastore-rw",
 	}
 	if r.config.GetIncludeWorldSuite() {
@@ -257,15 +257,16 @@ func (s *suiteRunner) runBlockStoreGet(store block.StoreOps, refs []*block.Block
 	}
 }
 
-// runGCFlush benchmarks FlushPending after buffered block puts.
-func (s *suiteRunner) runGCFlush(store *block_gc.GCStoreOps) *s4wave_debugdb.BenchmarkSuite {
+// runCollect benchmarks one collection pass of the Volume after ten block
+// puts.
+func (s *suiteRunner) runCollect(vol volume.Collector, store block.StoreOps) *s4wave_debugdb.BenchmarkSuite {
 	// Publish the suite and start its time budget.
 	idx := 5
-	s.updateProgress(idx, "flush-pending")
+	s.updateProgress(idx, "collect")
 	timer := s.timer(idx)
-	m := NewMetricCollector("flush-pending", "ms")
+	m := NewMetricCollector("collect", "ms")
 
-	// Buffer ten puts, then time the flush.
+	// Put ten blocks, then time a pass.
 	for timer.Running() {
 		for range 10 {
 			data := make([]byte, 4096)
@@ -276,7 +277,7 @@ func (s *suiteRunner) runGCFlush(store *block_gc.GCStoreOps) *s4wave_debugdb.Ben
 		}
 		runtime.Gosched()
 		m.Start()
-		err := store.FlushPending(s.ctx)
+		_, err := vol.Collect(s.ctx)
 		m.Stop()
 		if err != nil {
 			break
@@ -284,7 +285,7 @@ func (s *suiteRunner) runGCFlush(store *block_gc.GCStoreOps) *s4wave_debugdb.Ben
 	}
 
 	return &s4wave_debugdb.BenchmarkSuite{
-		Name:    "gc-flush",
+		Name:    "collect",
 		Metrics: []*s4wave_debugdb.BenchmarkMetric{m.Build()},
 	}
 }
