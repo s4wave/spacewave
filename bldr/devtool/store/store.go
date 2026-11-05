@@ -21,6 +21,7 @@ import (
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/volume"
+	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
@@ -31,10 +32,6 @@ import (
 const (
 	// FileName is the devtool database's file name inside a .bldr directory.
 	FileName = "devtool.s4wave"
-	// BucketID is the bucket that holds the World's blocks.
-	BucketID = "bldr/devtool"
-	// ObjectStoreID is the object store an older build kept the World head in.
-	ObjectStoreID = "bldr/devtool"
 	// PluginHostObjectKey is the plugin host object the manifests link from.
 	PluginHostObjectKey = "devtool"
 	// headKey is the object store key an older build kept the head under.
@@ -69,7 +66,8 @@ func OpenVolumeFile(ctx context.Context, le *logrus.Entry, path string, create b
 	return vol, nil
 }
 
-// OpenWorld opens the devtool World engine over vol. With create it writes an
+// OpenWorld opens the devtool World engine over vol, through the bucket handle
+// the devtool's engine controller uses, so both hold one head. With create it writes an
 // empty World with the plugin host's manifest store; otherwise it reads the
 // stored head and rejects an empty World. The World's head is a root of vol, and each commit swaps it with the commit's
 // blocks in one transaction. The caller closes the engine.
@@ -89,8 +87,9 @@ func OpenWorld(ctx context.Context, le *logrus.Entry, vol volume.Volume, create 
 		return nil, errors.Wrap(err, "build block transformer")
 	}
 	headRef := &bucket.ObjectRef{BucketId: BucketID, TransformConf: transformConf}
-	cursor := bucket_lookup.NewCursor(ctx, nil, le, sfs, vol, xfrm, headRef, &bucket.BucketOpArgs{BucketId: BucketID}, transformConf)
-	authority := world_block.NewLocalAuthority(le, cursor, world_block.WorldRootName(BucketID), nil, coord.Scope{})
+	store := volume_controller.NewBucketStore(vol, &bucket.Config{Id: BucketID, Rev: 1})
+	cursor := bucket_lookup.NewCursor(ctx, nil, le, sfs, store, xfrm, headRef, &bucket.BucketOpArgs{BucketId: BucketID}, transformConf)
+	authority := world_block.NewLocalAuthority(le, cursor, world_block.WorldRootName(EngineID), nil, coord.Scope{})
 
 	// Read the head, adopting the head record an older build wrote.
 	head, err := openHead(ctx, vol, authority, cursor, create)
@@ -119,7 +118,8 @@ func OpenWorld(ctx context.Context, le *logrus.Entry, vol volume.Volume, create 
 
 // openHead returns the World's head. With create it writes an empty World
 // when the root is free; otherwise a free root adopts the head record an older
-// build kept in the object store, deleting the record, or fails.
+// build kept in the object store, releasing the root that build held it under
+// and deleting the record, as the devtool's engine controller does, or fails.
 func openHead(ctx context.Context, vol volume.Volume, authority *world_block.LocalAuthority, cursor *bucket_lookup.Cursor, create bool) (world.Head, error) {
 	// Read the head the root holds.
 	head, err := authority.Head(ctx)
@@ -143,7 +143,14 @@ func openHead(ctx context.Context, vol volume.Volume, authority *world_block.Loc
 			return world.Head{}, errors.Wrap(err, "write initial world")
 		}
 	}
-	if head, err = authority.Install(ctx, nil, root); err != nil {
+	var release []block.NamedRoot
+	legacyName := world_block_engine.LegacyRootName(ObjectStoreID, headKey)
+	if old, err := cursor.GetBucket().GetRoot(ctx, legacyName); err != nil {
+		return world.Head{}, err
+	} else if !old.GetEmpty() {
+		release = append(release, block.NamedRoot{Name: legacyName, Previous: old})
+	}
+	if head, err = authority.Install(ctx, nil, root, release...); err != nil {
 		return world.Head{}, errors.Wrap(err, "install world head")
 	}
 

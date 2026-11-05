@@ -119,7 +119,7 @@ func Open(ctx context.Context, le *logrus.Entry, backing storage.Storage) (_ *En
 		return nil, err
 	}
 	worldConf := world_block_engine.NewConfig(
-		"sync", volume.GetID(), "sync", "sync", &bucket.ObjectRef{BucketId: "sync"}, nil, false,
+		WorldEngineID, volume.GetID(), "sync", "sync", &bucket.ObjectRef{BucketId: "sync"}, nil, false,
 	)
 	worldEngine, worldRef, err := world.StartEngine(ctx, b, worldConf, nil)
 	if err != nil {
