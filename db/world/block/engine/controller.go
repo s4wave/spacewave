@@ -202,9 +202,12 @@ func (c *Controller) Execute(ctx context.Context) error {
 		lookupWorldOp = world.BuildLookupWorldOpFunc(c.bus, le, c.engineID)
 	}
 	var engine *world_block.Engine
-	if readOnly {
+	switch {
+	case c.conf.GetEphemeral():
+		engine, err = c.openEphemeral(ctx, cursor, lookupWorldOp)
+	case readOnly:
 		engine, err = c.openReadOnly(ctx, cursor, initRef, lookupWorldOp)
-	} else {
+	default:
 		engine, err = c.openWritable(ctx, cursor, stateStore, stateStoreID, coordinator, scopeVolumeID, lookupWorldOp)
 	}
 	if isReadOnlyInitHeadNotFound(err, stateStore, initRef) {
@@ -279,6 +282,25 @@ func (c *Controller) openReadOnly(
 	}
 
 	// Open the engine at the root.
+	return world_block.NewEngine(ctx, c.le, cursor, lookupWorldOp, nil, c.conf.GetVerbose(), world_block.WithDeferredDurability())
+}
+
+// openEphemeral opens a World that persists no head at the configured
+// initial root, or a new empty World: its commits stay in memory and the next
+// open starts from the same root again.
+func (c *Controller) openEphemeral(
+	ctx context.Context,
+	cursor *bucket_lookup.Cursor,
+	lookupWorldOp world.LookupOp,
+) (*world_block.Engine, error) {
+	// Start at the initial root.
+	root, err := c.initialRoot(ctx, cursor)
+	if err != nil {
+		return nil, err
+	}
+	cursor.SetRootRef(root)
+
+	// Open the engine with no authority, holding commits in memory.
 	return world_block.NewEngine(ctx, c.le, cursor, lookupWorldOp, nil, c.conf.GetVerbose(), world_block.WithDeferredDurability())
 }
 

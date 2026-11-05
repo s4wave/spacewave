@@ -32,20 +32,23 @@ type Config struct {
 	// VolumeId is the volume id to attach to for writing DB state.
 	// If unset, init_head_ref must be set, and the db will be read-only.
 	VolumeId string `protobuf:"bytes,3,opt,name=volume_id,json=volumeId,proto3" json:"volumeId,omitempty"`
-	// ObjectStoreId is the hydra object store to open to store the HEAD ref.
-	// If unset, init_head_ref must be set, and the db will be read-only.
+	// ObjectStoreId is the object store an older engine kept the head in, and
+	// whose Volume coordinates the World's writers. The head is the
+	// world:<engine_id> root of the bucket; an open adopts the head the object
+	// store kept once and deletes its record.
+	// If unset with an init_head_ref root, the World is read-only at that root.
 	ObjectStoreId string `protobuf:"bytes,4,opt,name=object_store_id,json=objectStoreId,proto3" json:"objectStoreId,omitempty"`
-	// ObjectStorePrefix is the prefix to use for all object store ops.
+	// ObjectStorePrefix is the prefix of the older engine's head record.
 	ObjectStorePrefix string `protobuf:"bytes,5,opt,name=object_store_prefix,json=objectStorePrefix,proto3" json:"objectStorePrefix,omitempty"`
-	// ObjectStoreHeadKey is the key to use in the object store for HEAD ref.
+	// ObjectStoreHeadKey is the key of the older engine's head record.
 	//
 	// Defaults to "world-head"
 	ObjectStoreHeadKey string `protobuf:"bytes,6,opt,name=object_store_head_key,json=objectStoreHeadKey,proto3" json:"objectStoreHeadKey,omitempty"`
 	// InitHeadRef is the reference to the initial HEAD state of the database.
-	// If the object store is empty, uses this reference to initialize it.
+	// A writable World with no head starts at it.
 	// BucketId is overridden by BucketId field if it is set.
 	InitHeadRef *bucket.ObjectRef `protobuf:"bytes,7,opt,name=init_head_ref,json=initHeadRef,proto3" json:"initHeadRef,omitempty"`
-	// StateTransformConf transforms the HEAD ref before storing it in storage.
+	// StateTransformConf is the transform of the older engine's head record.
 	// NOTE: this does not transform the entire world state.
 	// To transform the world state, add the transform config to InitHeadRef.
 	StateTransformConf *transform.Config `protobuf:"bytes,11,opt,name=state_transform_conf,json=stateTransformConf,proto3" json:"stateTransformConf,omitempty"`
@@ -65,6 +68,10 @@ type Config struct {
 	DisableApplyWorldOp bool `protobuf:"varint,9,opt,name=disable_apply_world_op,json=disableApplyWorldOp,proto3" json:"disableApplyWorldOp,omitempty"`
 	// DisableApplyObjectOp directive.
 	DisableApplyObjectOp bool `protobuf:"varint,10,opt,name=disable_apply_object_op,json=disableApplyObjectOp,proto3" json:"disableApplyObjectOp,omitempty"`
+	// Ephemeral opens a World that persists no head: it starts at
+	// init_head_ref's root, or empty, on every open, and its commits stay in
+	// memory, for scratch work such as a bundle build.
+	Ephemeral bool `protobuf:"varint,16,opt,name=ephemeral,proto3" json:"ephemeral,omitempty"`
 	// RecoverMissingPersistedHead replaces a persisted head that cannot be
 	// resolved because one of its blocks is missing with InitHeadRef. An empty
 	// InitHeadRef creates a new World. Enable only for reconstructible state.
@@ -170,6 +177,13 @@ func (x *Config) GetDisableApplyObjectOp() bool {
 	return false
 }
 
+func (x *Config) GetEphemeral() bool {
+	if x != nil {
+		return x.Ephemeral
+	}
+	return false
+}
+
 func (x *Config) GetRecoverMissingPersistedHead() bool {
 	if x != nil {
 		return x.RecoverMissingPersistedHead
@@ -184,7 +198,8 @@ func (x *Config) GetVerbose() bool {
 	return false
 }
 
-// HeadState contains the head state in the object storage.
+// HeadState is the record an older engine kept the head in. An open reads it
+// once to adopt the head into the World root, then deletes it.
 type HeadState struct {
 	unknownFields []byte
 	// HeadRef is the reference to the current HEAD state of the database.
@@ -219,6 +234,7 @@ func (m *Config) CloneVT() *Config {
 	r.DisableLookup = m.DisableLookup
 	r.DisableApplyWorldOp = m.DisableApplyWorldOp
 	r.DisableApplyObjectOp = m.DisableApplyObjectOp
+	r.Ephemeral = m.Ephemeral
 	r.RecoverMissingPersistedHead = m.RecoverMissingPersistedHead
 	r.Verbose = m.Verbose
 	r.InitHeadRef = protobuf_go_lite.CloneVTValue(m.InitHeadRef)
@@ -299,6 +315,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.GraphSettings, that.GraphSettings) {
+		return false
+	}
+	if this.Ephemeral != that.Ephemeral {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -415,6 +434,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("graphSettings")
 		x.GraphSettings.MarshalProtoJSON(s.WithField("graphSettings"))
 	}
+	if x.Ephemeral || s.HasField("ephemeral") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("ephemeral")
+		s.WriteBool(x.Ephemeral)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -489,6 +513,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.GraphSettings = &block.GraphSettings{}
 			x.GraphSettings.UnmarshalProtoJSON(s.WithField("graph_settings", true))
+		case "ephemeral":
+			s.AddField("ephemeral")
+			x.Ephemeral = s.ReadBool()
 		}
 	})
 }
@@ -572,6 +599,13 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Ephemeral {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Ephemeral)
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
 	}
 	if m.GraphSettings != nil {
 		size, err := m.GraphSettings.MarshalToSizedBufferVT(dAtA[:i])
@@ -738,6 +772,7 @@ func (m *Config) SizeVT() (n int) {
 		l = m.GraphSettings.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeBoolNonZero(2, m.Ephemeral)
 	n += len(m.unknownFields)
 	return n
 }
@@ -818,6 +853,10 @@ func (x *Config) MarshalProtoText() string {
 	if x.GraphSettings != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "graph_settings")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.GraphSettings)
+	}
+	if x.Ephemeral != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "ephemeral")
+		protobuf_go_lite.TextWriteBool(&sb, x.Ephemeral)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1025,6 +1064,16 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 16:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Ephemeral", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Ephemeral = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

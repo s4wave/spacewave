@@ -264,7 +264,9 @@ func BuildDistBundle(
 	}
 
 	// Reuse scratch blocks, but rebuild the head from this bundle's selected
-	// manifests and transform. A persisted head would restore an older codec.
+	// manifests and transform: the World is ephemeral and persists no head. A
+	// persisted head would restore an older codec and an older build's
+	// manifests.
 	embedEngineConf := world_block_engine.NewConfig(
 		embedWorldID,
 		workingDbVolID,
@@ -274,6 +276,7 @@ func BuildDistBundle(
 		nil,
 		false,
 	)
+	embedEngineConf.Ephemeral = true
 
 	// Run the embedded world engine controller.
 	embedEngineCtrli, _, embedEngineCtrlRef, err := loader.WaitExecControllerRunning(

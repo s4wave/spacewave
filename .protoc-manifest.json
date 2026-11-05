@@ -2589,7 +2589,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/world/block/engine": {
-      "hash": "a892944594b70e8e474df6fd73080d5682dfdc7e97dc74bec7ff6164be4245c9",
+      "hash": "73253074cd634b5c3237afea1ecae8683a7e9f880eb262b6d581b99350e84a70",
       "generatedFiles": [
         "db/world/block/engine/engine.pb.go",
         "db/world/block/engine/engine.pb.ts"
