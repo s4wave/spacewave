@@ -384,6 +384,17 @@ FirstCertificate(E, K, refills, cached, certified, recovery) ==
      ELSE IF recovery THEN {}
      ELSE firstCurrent \cup IF Ready /\ certified /\ refills = {} /\ cached = {}
                               THEN born ELSE {}
+\* The receipt choices for selected set R among entries E. A refill or cached
+\* entry outside R changes only whether the receipt is uncertified, so one
+\* witness stands for all of them; certified matters only for a clean receipt.
+Witnesses(S) == IF S = {} THEN {{}} ELSE {{}, {CHOOSE x \in S : TRUE}}
+ReceiptPicks(E, R) ==
+  IF ~Shadow THEN {[refills |-> {}, cached |-> {}]}
+  ELSE {[refills |-> ri \cup ro, cached |-> ci \cup co] :
+          ri \in SUBSET (R \cap E \cap stored), ro \in Witnesses((E \cap stored) \ R),
+          ci \in SUBSET ((R \cap E) \ stored), co \in Witnesses((E \ stored) \ R)}
+Certified(pick) == IF pick.refills \cup pick.cached = {} THEN BOOLEAN ELSE {FALSE}
+
 Receipts(E, K, refills, cached) ==
   /\ ReceiptInputs(E, K, refills, cached, {})
   /\ \E certified \in BOOLEAN :
@@ -433,14 +444,14 @@ Commit ==
         IN \E countInput \in {IF counting /\ doubt /\ E # {} THEN Zero
                ELSE IF Shadow THEN TLCEval(ClassCounts(E, O, {}, h))
                ELSE TLCEval(PutCounts(O, {}, {}))} :
-           \E refills \in IF Shadow THEN SUBSET (E \cap stored) ELSE {{}},
-              cached \in IF Shadow THEN SUBSET (E \ stored) ELSE {{}} :
+           \E pick \in ReceiptPicks(E, O) :
+           LET refills == pick.refills cached == pick.cached IN
            /\ steps' = AppendJoinedStep(steps, cur, r, Rp, C)
            /\ kept' = kept \cup (C \ O)
            /\ extra' = IF counting /\ (doubt \/ cached # {}) /\ E # {} THEN Zero ELSE countInput
            /\ stored' = stored \cup E
            /\ SelectedInputs(E, O, {}, refills, cached, HoldKids(h), O # {})
-           /\ \E certified \in BOOLEAN :
+           /\ \E certified \in Certified(pick) :
               /\ basisCurrent' = IF counting /\ (doubt \/ cached # {}) /\ E # {}
                    THEN putSet \cup O = {}
                    ELSE basisCurrent /\ (O = {} \/ (Ready /\ certified /\ refills = {} /\ cached = {}))
@@ -486,13 +497,13 @@ Discard ==
         IN \E countInput \in {IF counting /\ doubt /\ E # {} THEN Zero
                ELSE IF Shadow THEN TLCEval(ClassCounts(E, O, {}, h))
                ELSE TLCEval(PutCounts(O, {}, {}))} :
-           \E refills \in IF Shadow THEN SUBSET (E \cap stored) ELSE {{}},
-              cached \in IF Shadow THEN SUBSET (E \ stored) ELSE {{}} :
+           \E pick \in ReceiptPicks(E, O) :
+           LET refills == pick.refills cached == pick.cached IN
            /\ extra' = IF counting /\ (doubt \/ cached # {}) /\ E # {} THEN Zero ELSE countInput
            /\ stored' = stored \cup E
            /\ kept' = kept
            /\ SelectedInputs(E, O, {}, refills, cached, HoldKids(h), O # {})
-           /\ \E certified \in BOOLEAN :
+           /\ \E certified \in Certified(pick) :
               /\ basisCurrent' = IF counting /\ (doubt \/ cached # {}) /\ E # {}
                    THEN putSet \cup O = {}
                    ELSE basisCurrent /\ (O = {} \/ (Ready /\ certified /\ refills = {} /\ cached = {}))
@@ -1241,11 +1252,17 @@ ReadHole ==
 \* An ordinary sweep may erase just a child while its unmarked parent remains.
 \* Every actual c/h/l erasure advances provenance and starts the existing walk
 \* when completed. An already-running walk retains phase/cursor and counters.
+EraseOne(g, l, h, o) == [gone |-> g, leaves |-> l, headers |-> h, oldHolds |-> o]
+EraseChoices ==
+  {EraseOne({p}, {}, {}, {}) : p \in stored \ MarkLive}
+  \cup {EraseOne({}, {l}, {}, {}) : l \in partStore \ PendingParts}
+  \cup {EraseOne({}, {}, {h}, {}) : h \in {r \in retired : r.id \notin headerAliases}}
+  \cup {EraseOne({}, {}, {}, {o}) : o \in wrappers \ ({wrapper} \cup aliases)}
+
 Erase ==
   /\ Shadow /\ UnknownLive = {}
-  /\ \E gone \in SUBSET (stored \ MarkLive),
-        leaves \in SUBSET (partStore \ PendingParts), headers \in SUBSET {h \in retired : h.id \notin headerAliases}, oldHolds \in SUBSET (wrappers \ ({wrapper} \cup aliases)) :
-     /\ (gone # {} \/ leaves # {} \/ headers # {} \/ oldHolds # {})
+  /\ \E e \in EraseChoices :
+     LET gone == e.gone leaves == e.leaves headers == e.headers oldHolds == e.oldHolds IN
      /\ wrappers' = wrappers \ oldHolds
      /\ wrapperReleases' = wrapperReleases \ oldHolds
      /\ stored' = stored \ gone
@@ -1398,9 +1415,10 @@ HoldLand ==
          E == save.entries
      IN /\ WrapperAvailable(h, E)
         /\ \E N \in SUBSET (save.kept \cap kept) :
-           \E refills \in SUBSET (E \cap stored), cached \in SUBSET (E \ stored),
-                 certified \in BOOLEAN :
-           LET recovery == counting /\ (doubt \/ cached # {})
+           \E pick \in ReceiptPicks(E, N) :
+           \E certified \in Certified(pick) :
+           LET refills == pick.refills cached == pick.cached
+               recovery == counting /\ (doubt \/ cached # {})
            IN /\ stored' = stored \cup E /\ kept' = kept \ N
               /\ SelectedInputs(E, N, {}, refills, cached, HoldKids(h), N # {})
               /\ basisCurrent' = IF recovery THEN putSet \cup N = {}
@@ -1456,10 +1474,10 @@ SealCheckpoint ==
            /\ \E N \in {IF early THEN {} ELSE checkpointInput.kept \cap kept} :
                  \* Receipt and layout choices leave this physical count map unchanged.
                  \E checkpointCounts \in {TLCEval(ClassCounts(E, N, K, checkpointRoots))} :
-                 \E certified \in IF early THEN {TRUE} ELSE BOOLEAN :
-                 \E refills \in IF Shadow THEN SUBSET (E \cap stored) ELSE {{}},
-                    cached \in IF Shadow THEN SUBSET (E \ stored) ELSE {{}} :
-                 LET rawFound == (((N \ K) \cap stored) \ refills) \cup ((N \ K) \cap cached)
+                 \E pick \in ReceiptPicks(E, N \ K) :
+                 \E certified \in IF early THEN {TRUE} ELSE Certified(pick) :
+                 LET refills == pick.refills cached == pick.cached
+                     rawFound == (((N \ K) \cap stored) \ refills) \cup ((N \ K) \cap cached)
                      P == putSet \cup (N \ K)
                   fresh == freshSet \cup ((N \ K) \ rawFound)
                   foundAll == P \ fresh
@@ -1564,9 +1582,10 @@ CarryRecord ==
             selected == IF save.on THEN save.kept \cap kept ELSE {}
         IN /\ WrapperAvailable(h, E)
            /\ \E N \in SUBSET selected :
-              \E refills \in SUBSET (E \cap stored), cached \in SUBSET (E \ stored),
-                    certified \in BOOLEAN :
-              LET recovery == entry.record.large \/ (counting /\ (doubt \/ cached # {}))
+              \E pick \in ReceiptPicks(E, N) :
+              \E certified \in Certified(pick) :
+              LET refills == pick.refills cached == pick.cached
+                  recovery == entry.record.large \/ (counting /\ (doubt \/ cached # {}))
                   trusted == entry.record.current /\ Ready /\ ~recovery
                   rec == [entry.record EXCEPT !.current = trusted,
                            !.transfer = (trusted /\ entry.record.from # None)]
@@ -1633,19 +1652,25 @@ ResolveWrapper ==
 \* wrapper. It adds an owner of that block, not another copy of its child list.
 \* Monotone acquisition is finite because the modeled physical wrappers are
 \* created only by bounded role events; no unrelated publication budget exists.
+\* The owner puts the World pages with the block, so it names a wrapper only
+\* while everything the wrapper reaches is stored; re-storing an erased page
+\* is another lineage's write, which SharedCounts.tla covers.
 AliasWrapper ==
   /\ Shadow
-  /\ \E h \in wrappers \ aliases : aliases' = aliases \cup {h}
+  /\ \E h \in wrappers \ aliases :
+       /\ WrapperAvailable(h, {})
+       /\ aliases' = aliases \cup {h}
   /\ walk' = InvalidateRead
   /\ UNCHANGED <<save, receiptSeen, firstCurrent, wrapper, wrappers, wrapperReleases, base, written, writtenEpoch, unwritten, pendingWorlds, waiting, curEpoch, checkpointEpoch, storageMode, cur, named, stored, extra, rel, kept, steps, putSet, freshSet, firstFresh, foundPuts, funded, lineage, queue, pin, hold, commits, lossy, underflow, counting, basisCurrent, staged, lineageCurrent, partStore, retired, doubt, sighted, tainted>>
   /\ UNCHANGED headerAliases
 
 \* Receipt completion can drop already-stored kept entries after gathering.
 \* A captured immutable entry remains in save; publication observes which of
-\* its kept pointers still match. Each drop removes at least one finite page.
+\* its kept pointers still match. One page drops per step; the rest stay
+\* droppable, so a sequence reaches every set a completion drops at once.
 DropStoredPages ==
   /\ Shadow
-  /\ \E dropped \in SUBSET (kept \cap stored) \ {{}} : kept' = kept \ dropped
+  /\ \E p \in kept \cap stored : kept' = kept \ {p}
   /\ UNCHANGED <<aliases, save, receiptSeen, firstCurrent, wrapper, wrappers, wrapperReleases, base, written, writtenEpoch, unwritten, pendingWorlds, waiting, curEpoch, checkpointEpoch, storageMode, cur, named, stored, extra, rel, steps, putSet, freshSet, firstFresh, foundPuts, funded, lineage, queue, walk, pin, hold, commits, lossy, underflow, counting, basisCurrent, staged, lineageCurrent, partStore, retired, doubt, sighted, tainted>>
   /\ UNCHANGED headerAliases
 

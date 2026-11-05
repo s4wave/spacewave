@@ -61,9 +61,9 @@ HistoricalNext ==
   \/ /\ checkStep = 3 /\ ReleaseStage /\ staged' = {} /\ checkStep' = 4
   \/ /\ checkStep = 4 /\ Resolve("R2") /\ counting' /\ checkStep' = 5
   \/ /\ checkStep = 5 /\ Erase
-     /\ stored' = {"R0", "A", "L"}
+     /\ {"R0", "A", "L"} \subseteq stored'
      /\ wrappers' = wrappers /\ retired' = retired
-     /\ checkStep' = 6
+     /\ checkStep' = IF stored' = {"R0", "A", "L"} THEN 6 ELSE 5
   \/ /\ checkStep = 6 /\ PrepareRecord
      /\ waiting'[1].prepared = waiting'[1].record.parts /\ checkStep' = 7
   \/ /\ checkStep = 7 /\ Sight /\ checkStep' = 8
