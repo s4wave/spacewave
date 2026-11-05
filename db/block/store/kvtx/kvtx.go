@@ -128,8 +128,10 @@ func (k *KVTxBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 	}
 	key := k.kvkey.GetBlockKey(rm)
 
-	// Write the block through a replayable kvtx transaction.
-	err = kvtx.RunTransaction(ctx, true,
+	// Write the block through a replayable kvtx transaction that reads
+	// without the writer lock: the existence read of a cold block waits on
+	// the disk, and only a commit to the same block key conflicts with it.
+	err = kvtx.RunOptimisticTransaction(ctx,
 		func(ctx context.Context) (kvtx.Tx, error) {
 			taskCtx, subtask := trace.NewTask(ctx, "hydra/block-store/kvtx/put-block/new-transaction")
 			tx, err := k.store.NewTransaction(taskCtx, true)
@@ -155,6 +157,7 @@ func (k *KVTxBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 
 			return tx.Set(ctx, key, data)
 		},
+		kvtx.RetryInvalidSnapshot,
 	)
 	return ref, exists, err
 }
@@ -163,7 +166,8 @@ func (k *KVTxBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 // another where the store reports the transaction full. Blocks are
 // independent, so a batch split across transactions is safe. Reports whether
 // each block was stored before the write, from the same Exists read the write
-// makes.
+// makes. The transactions read without the writer lock, as PutBlock's do; a
+// tombstone reads nothing, so it never conflicts.
 func (k *KVTxBlock) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Trace the batch.
 	ctx, task := trace.NewTask(ctx, "hydra/block-store/kvtx/put-block-batch")
@@ -190,7 +194,7 @@ func (k *KVTxBlock) PutBlockBatch(ctx context.Context, entries []*block.PutBatch
 	for remaining := ops; len(remaining) != 0; {
 		var written int
 		var attempt []bool
-		err := kvtx.RunTransaction(ctx, true,
+		err := kvtx.RunOptimisticTransaction(ctx,
 			func(ctx context.Context) (kvtx.Tx, error) {
 				taskCtx, subtask := trace.NewTask(ctx, "hydra/block-store/kvtx/put-block-batch/new-transaction")
 				tx, err := k.store.NewTransaction(taskCtx, true)
@@ -218,6 +222,7 @@ func (k *KVTxBlock) PutBlockBatch(ctx context.Context, entries []*block.PutBatch
 				}
 				return nil
 			},
+			kvtx.RetryInvalidSnapshot,
 		)
 		if err != nil {
 			return nil, err
