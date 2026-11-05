@@ -1,5 +1,6 @@
 // Package s3test serves an in-memory S3 bucket for tests of code that writes
-// objects: PUT, ranged GET and HEAD, and ListObjectsV2 by prefix.
+// objects: PUT, ranged GET and HEAD, ListObjectsV2 by prefix, and the versions
+// of an overwritten key.
 package s3test
 
 import (
@@ -27,6 +28,10 @@ type Bucket struct {
 	mtx sync.Mutex
 	// objects are the stored objects by key.
 	objects map[string][]byte
+	// history holds the versions of each key, newest first.
+	history map[string][]objectVersion
+	// versions counts the versions stored, which names the next one.
+	versions int
 	// puts counts the accepted PUT requests.
 	puts int
 	// failPut, when set, decides whether to refuse a PUT of the key with a
@@ -40,12 +45,20 @@ type Bucket struct {
 	parts map[string]map[int][]byte
 }
 
+// objectVersion is one stored version of a key.
+type objectVersion struct {
+	// id names the version.
+	id string
+	// data is its content.
+	data []byte
+}
+
 // New serves an empty bucket until the test ends and returns it with a client
 // that reaches it.
 func New(t *testing.T) (*Bucket, *block_store_s3.Client) {
 	// Serve the bucket on a loopback port.
 	t.Helper()
-	b := &Bucket{objects: make(map[string][]byte), parts: make(map[string]map[int][]byte)}
+	b := &Bucket{objects: make(map[string][]byte), history: make(map[string][]objectVersion), parts: make(map[string]map[int][]byte)}
 	srv := httptest.NewServer(b)
 	t.Cleanup(srv.Close)
 	b.url = srv.URL
@@ -129,6 +142,8 @@ func (b *Bucket) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	key := strings.TrimPrefix(r.URL.Path, "/"+BucketName+"/")
 	query := r.URL.Query()
 	switch {
+	case query.Has("versions"):
+		b.listVersions(w, query.Get("prefix"))
 	case query.Get("list-type") == "2":
 		prefix := query.Get("prefix")
 		var result listResult
@@ -158,7 +173,7 @@ func (b *Bucket) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		for _, number := range slices.Sorted(maps.Keys(parts)) {
 			object = append(object, parts[number]...)
 		}
-		b.objects[key] = object
+		b.store(key, object)
 		delete(b.parts, query.Get("uploadId"))
 		_, _ = io.WriteString(w, "<CompleteMultipartUploadResult/>")
 	case r.Method == http.MethodDelete && query.Has("uploadId"):
@@ -170,10 +185,19 @@ func (b *Bucket) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		body, _ := io.ReadAll(r.Body)
-		b.objects[key] = body
+		b.store(key, body)
 		b.puts++
+	case r.Method == http.MethodDelete && query.Has("versionId"):
+		b.deleteVersion(key, query.Get("versionId"))
+		w.WriteHeader(http.StatusNoContent)
 	case r.Method == http.MethodGet || r.Method == http.MethodHead:
 		data, ok := b.objects[key]
+		if version := query.Get("versionId"); version != "" {
+			i := slices.IndexFunc(b.history[key], func(v objectVersion) bool { return v.id == version })
+			if ok = i >= 0; ok {
+				data = b.history[key][i].data
+			}
+		}
 		if !ok {
 			http.Error(w, "<Error><Code>NoSuchKey</Code></Error>", http.StatusNotFound)
 			return
@@ -182,4 +206,41 @@ func (b *Bucket) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	default:
 		w.WriteHeader(http.StatusNoContent)
 	}
+}
+
+// store makes data the current version of key.
+func (b *Bucket) store(key string, data []byte) {
+	b.versions++
+	version := objectVersion{id: strconv.Itoa(b.versions), data: data}
+	b.objects[key] = data
+	b.history[key] = slices.Insert(b.history[key], 0, version)
+}
+
+// deleteVersion removes one version of key, so the next newest becomes current.
+func (b *Bucket) deleteVersion(key, id string) {
+	// Remove the version from the history.
+	history := slices.DeleteFunc(b.history[key], func(v objectVersion) bool { return v.id == id })
+	b.history[key] = history
+
+	// Serve the newest version left, or nothing.
+	if len(history) == 0 {
+		delete(b.objects, key)
+		return
+	}
+	b.objects[key] = history[0].data
+}
+
+// listVersions writes a ListVersionsResult of the keys under prefix, each key's
+// versions newest first.
+func (b *Bucket) listVersions(w io.Writer, prefix string) {
+	_, _ = io.WriteString(w, "<ListVersionsResult><IsTruncated>false</IsTruncated>")
+	for _, key := range slices.Sorted(maps.Keys(b.history)) {
+		if !strings.HasPrefix(key, prefix) {
+			continue
+		}
+		for _, version := range b.history[key] {
+			_, _ = io.WriteString(w, "<Version><Key>"+key+"</Key><VersionId>"+version.id+"</VersionId></Version>")
+		}
+	}
+	_, _ = io.WriteString(w, "</ListVersionsResult>")
 }

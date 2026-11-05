@@ -194,11 +194,13 @@ func TestUploadAfterRestart(t *testing.T) {
 	if _, _, err := s.PutBlock(ctx, []byte("unplaced"), leafOpts); err != nil {
 		t.Fatal(err)
 	}
+	checkUploadedBefore(t, s, time.Now(), false)
 	if err := s.SetEnabled(ctx, true); err != nil {
 		t.Fatal(err)
 	}
 
 	// Two distinct writes and one repeat queue two blocks.
+	start := time.Now()
 	var refs []*block.BlockRef
 	for _, data := range []string{"alpha", "beta", "alpha"} {
 		ref, _, err := s.PutBlock(ctx, []byte(data), leafOpts)
@@ -219,6 +221,11 @@ func TestUploadAfterRestart(t *testing.T) {
 		t.Fatalf("after failure: pending %d, err %v", status.Pending, status.Err)
 	}
 
+	// The report holds a head back until the blocks before it uploaded.
+	written := time.Now()
+	checkUploadedBefore(t, s, start, true)
+	checkUploadedBefore(t, s, written, false)
+
 	// A reopened store recounts the markers and drains them.
 	s = env.newStore(t, true)
 	remote := newInmemBlockStore()
@@ -227,12 +234,27 @@ func TestUploadAfterRestart(t *testing.T) {
 		t.Fatalf("drain counted %d blocks, %d bytes, %d reads", status.Uploaded, status.UploadedBytes, status.UploadReads)
 	}
 
+	// The drained queue proves any head, until queueing stops.
+	checkUploadedBefore(t, s, written, true)
+
 	// Require the remote store to contain both queued blocks.
 	for _, ref := range refs[:2] {
 		found, err := remote.GetBlockExists(ctx, ref)
 		if err != nil || !found {
 			t.Fatalf("remote missing %s: %v", ref.MarshalString(), err)
 		}
+	}
+}
+
+// checkUploadedBefore requires the store's report for at.
+func checkUploadedBefore(t *testing.T, s *Store, at time.Time, expected bool) {
+	t.Helper()
+	uploaded, err := s.UploadedBefore(t.Context(), at)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if uploaded != expected {
+		t.Fatalf("uploaded before %v: %v, expected %v", at, uploaded, expected)
 	}
 }
 

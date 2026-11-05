@@ -191,6 +191,12 @@ func (b *BlockStore) GetUploadStatus() (UploadStatus, <-chan struct{}) {
 	return UploadStatus{Backend: b.placement.backend.Load(), Status: status, Fallback: b.placement.fallbackFills.status()}, changed
 }
 
+// UploadedBefore reports whether the storage backend holds every block written
+// before at.
+func (b *BlockStore) UploadedBefore(ctx context.Context, at time.Time) (bool, error) {
+	return b.placement.wb.UploadedBefore(ctx, at)
+}
+
 // ReclaimStorage drops the blocks the volume no longer tracks or holds from
 // the storage backend's bucket. Returns zero without calling fence when no storage
 // backend is open.

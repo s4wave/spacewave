@@ -327,6 +327,42 @@ func (s *Store) GetUploadReads() int {
 	return s.reads.getLimit()
 }
 
+// UploadedBefore reports whether the remote holds every block written before
+// at. It reads the queue's first entry from the committed markers rather than
+// the status, which follows a commit, so a head read at at can be named durable
+// the moment this returns true. A disabled store uploads nothing and reports
+// false.
+func (s *Store) UploadedBefore(ctx context.Context, at time.Time) (bool, error) {
+	// A store that does not queue proves nothing about its blocks.
+	if status, _ := s.GetStatus(); !status.Enabled {
+		return false, nil
+	}
+
+	// Read the floor after the transaction opens: a clear that raised it past
+	// an entry this view holds removed that entry after uploading it.
+	tx, err := s.markers.NewTransaction(ctx, false)
+	if err != nil {
+		return false, err
+	}
+	defer tx.Discard()
+	floor, _ := s.readFloor()
+
+	// Compare the first entry, which is the oldest block awaiting upload.
+	uploaded := true
+	err = scanQueue(ctx, tx, floor, func(item queueItem) error {
+		first, err := item.at()
+		if err != nil {
+			return err
+		}
+		uploaded = !first.Before(at)
+		return errScanDone
+	})
+	if err != nil && !errors.Is(err, errScanDone) {
+		return false, err
+	}
+	return uploaded, nil
+}
+
 // MarkerStoreID returns the ID of the object store that holds the markers.
 func (s *Store) MarkerStoreID() string {
 	return s.markersID

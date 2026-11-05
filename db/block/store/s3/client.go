@@ -111,6 +111,21 @@ func (c *Client) GetObject(ctx context.Context, bucket, key string) (io.ReadClos
 	return resp.Body, nil
 }
 
+// GetObjectVersion downloads one version of an object, from ObjectVersions.
+// Caller must Close the returned reader. Returns ErrNotFound if the version
+// does not exist.
+func (c *Client) GetObjectVersion(ctx context.Context, bucket, key, version string) (io.ReadCloser, error) {
+	resp, err := c.do(ctx, http.MethodGet, bucket, key, url.Values{"versionId": {version}}, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	if err := checkStatus(resp, bucket, key, http.MethodGet); err != nil {
+		_ = resp.Body.Close()
+		return nil, err
+	}
+	return resp.Body, nil
+}
+
 // GetObjectRange reads length bytes of an object from offset off. The result
 // is shorter than length when the object ends first.
 // Returns ErrNotFound if the object does not exist.
@@ -199,7 +214,7 @@ func (c *Client) PresignPut(bucket, key string, size int64, sum []byte, expires 
 func (c *Client) DeleteObject(ctx context.Context, bucket, key string) error {
 	// List the versions, or delete the current version alone where they are
 	// not listed.
-	versions, err := c.listObjectVersions(ctx, bucket, key)
+	versions, err := c.ObjectVersions(ctx, bucket, key)
 	var serr *StatusError
 	if errors.As(err, &serr) && (serr.StatusCode == http.StatusNotImplemented || serr.StatusCode == http.StatusForbidden) {
 		return c.deleteObjectVersion(ctx, bucket, key, "")
@@ -239,9 +254,27 @@ func (c *Client) deleteObjectVersion(ctx context.Context, bucket, key, version s
 	return err
 }
 
-// listObjectVersions returns the version ids of key, including delete
-// markers.
-func (c *Client) listObjectVersions(ctx context.Context, bucket, key string) ([]string, error) {
+// KeepObjectVersions deletes every version of key but the newest keep, so a
+// writer keeps a fixed history of an object it overwrites.
+func (c *Client) KeepObjectVersions(ctx context.Context, bucket, key string, keep int) error {
+	// List the versions, newest first.
+	versions, err := c.ObjectVersions(ctx, bucket, key)
+	if err != nil {
+		return err
+	}
+
+	// Delete those past the newest keep.
+	for _, version := range versions[min(keep, len(versions)):] {
+		if err := c.deleteObjectVersion(ctx, bucket, key, version); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// ObjectVersions returns the version ids of key, newest first, including
+// delete markers.
+func (c *Client) ObjectVersions(ctx context.Context, bucket, key string) ([]string, error) {
 	query := url.Values{"versions": {""}, "prefix": {key}}
 	var versions []string
 	for {
