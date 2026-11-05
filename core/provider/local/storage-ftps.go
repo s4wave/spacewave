@@ -80,12 +80,6 @@ func buildFTPSClient(le *logrus.Entry, location *account_settings.FtpsLocation, 
 	return newMuxServer(le, client, ftps), nil
 }
 
-// ftpsReadWindow is the fewest bytes a block miss reads from a pack: one SFTP
-// packet. The packs hold blocks in key order, which is hash order, so the
-// bytes beside a block belong to unrelated blocks and a wider read only adds
-// transfer time to the miss.
-const ftpsReadWindow = 32 << 10
-
 // ftpsLinger is how long a short upload batch waits for more blocks. A
 // location keeps every packfile, so a short batch written early stays a small
 // packfile for good; waiting lets a trickle of writes fill one.
@@ -121,7 +115,7 @@ func buildFTPSBlockStore(le *logrus.Entry, location *account_settings.FtpsLocati
 	return block_store_s3.NewPackStore(le, client, location.GetRoot(), location.GetPrefix(), &block_store_s3.PackStoreOptions{
 		KeepPacks:      true,
 		Index:          index,
-		ReadWindow:     ftpsReadWindow,
+		ExactReads:     true,
 		Linger:         linger,
 		MergeTailBytes: mergeTail,
 		SoleWriter:     location.GetSoleWriter(),

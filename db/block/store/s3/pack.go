@@ -110,8 +110,8 @@ type PackStore struct {
 	refreshInterval time.Duration
 	// soleWriter stops the refresher: no other writer adds packfiles.
 	soleWriter bool
-	// readWindow is the pack readers' minimum fetch, or zero for their default.
-	readWindow int
+	// exactReads makes the pack readers fetch only the bytes a miss needs.
+	exactReads bool
 	// linger is how long a short upload batch waits for more blocks.
 	linger time.Duration
 	// mergeTailBytes is the packfile size below which a short batch merges
@@ -203,10 +203,10 @@ type PackStoreOptions struct {
 	// them. It takes no lock a read waits on. Until a pack is indexed, lookups
 	// test its bloom filter as without the index.
 	Index kvtx.Store
-	// ReadWindow is the fewest bytes one block miss fetches from a pack, and
-	// their alignment. Zero uses the pack reader's default, which suits
-	// HTTP range requests.
-	ReadWindow int
+	// ExactReads makes a block miss fetch only the block's bytes from its
+	// pack. False uses the pack reader's adaptive window, which suits HTTP
+	// range requests.
+	ExactReads bool
 	// Linger is how long a short upload batch of settled blocks waits for more
 	// blocks before it is written anyway. Zero uses packLinger.
 	Linger time.Duration
@@ -256,7 +256,7 @@ func NewPackStore(le *logrus.Entry, client ObjectStore, bucket, prefix string, o
 		),
 		refreshInterval: refresh,
 		soleWriter:      opts.SoleWriter,
-		readWindow:      opts.ReadWindow,
+		exactReads:      opts.ExactReads,
 		linger:          cmp.Or(max(opts.Linger, 0), packLinger),
 		mergeTailBytes:  max(opts.MergeTailBytes, 0),
 	}
@@ -963,7 +963,9 @@ func (s *PackStore) updateEntries(add []*packfile.PackfileEntry, remove []string
 func (s *PackStore) openPack(id string, size int64) (*packfile_store.PackReader, error) {
 	transport := &rangeTransport{client: s.client, bucket: s.bucket, key: s.prefix + packDir + id}
 	eng := packfile_store.NewPackReader(id, size, transport)
-	eng.SetReadWindow(s.readWindow)
+	if s.exactReads {
+		eng.SetExactReads()
+	}
 	return eng, nil
 }
 

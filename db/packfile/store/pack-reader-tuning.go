@@ -40,6 +40,16 @@ func (e *PackReader) normalizeTransportLocked() {
 	e.currentWindow = e.clampWindow(e.currentWindow)
 }
 
+// SetExactReads makes each miss fetch exactly the bytes it needs, such as one
+// block's extent, with no minimum window, alignment, adaptive growth or
+// read-ahead. It suits a transport whose cost is the bytes moved over few
+// connections, over packs whose neighboring bytes are unrelated blocks.
+func (e *PackReader) SetExactReads() {
+	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		e.exactReads = true
+	})
+}
+
 // SetReadWindow sets the minimum transport window and its alignment quantum,
 // which bound the bytes one miss fetches. A transport with cheap round trips
 // over packs without locality, such as SFTP, wants a window near one block; a

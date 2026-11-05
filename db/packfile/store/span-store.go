@@ -243,11 +243,18 @@ func (e *PackReader) planFetchLocked(off, readEnd int64, readAhead int) fetchKey
 		return fetchKey{}
 	}
 
-	// Determine the required payload extent and its sparse locality.
+	// Determine the required payload extent.
 	mustEnd := min(readEnd, gapEnd)
 	if mustEnd <= off {
 		mustEnd = off + 1
 	}
+
+	// An exact reader fetches the required extent alone.
+	if e.exactReads {
+		return fetchKey{off: off, size: int(mustEnd - off)}
+	}
+
+	// Measure the extent's sparse locality.
 	needLen := int(max(int64(1), mustEnd-off))
 	sparseLocal := false
 	if e.sparseReads {

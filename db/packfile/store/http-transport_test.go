@@ -73,6 +73,20 @@ func TestPackReaderPlanFetchLeftShiftsWithinGap(t *testing.T) {
 	if key.off != 1<<20 || key.size != 2<<20 {
 		t.Fatalf("planFetchLocked() = [%d,%d), want [%d,%d)", key.off, key.end(), int64(1<<20), int64(3<<20))
 	}
+
+	// An exact reader fetches the requested extent alone, whatever the window,
+	// the last fetch's goodput and the read-ahead hint propose.
+	eng.SetExactReads()
+	eng.lastFetchBytes, eng.lastFetchAt = 4<<20, time.Now().Add(-time.Millisecond)
+	off, end := int64(5<<19)+7, int64(5<<19)+7+6000
+	if key := eng.planFetchLocked(off, end, 4<<20); key.off != off || key.end() != end {
+		t.Fatalf("exact planFetchLocked() = [%d,%d), want [%d,%d)", key.off, key.end(), off, end)
+	}
+
+	// The extent still stops at the resident span.
+	if key := eng.planFetchLocked((3<<20)-10, (3<<20)+10, 0); key.off != (3<<20)-10 || key.end() != 3<<20 {
+		t.Fatalf("exact planFetchLocked() at a span = [%d,%d), want [%d,%d)", key.off, key.end(), int64(3<<20)-10, int64(3<<20))
+	}
 }
 
 // TestPackReaderSparsePlanCapsColdBackshift bounds speculative sparse reads.
