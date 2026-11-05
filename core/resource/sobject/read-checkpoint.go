@@ -6,8 +6,8 @@ import (
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_world "github.com/s4wave/spacewave/core/resource/world"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/core/space"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_engine "github.com/s4wave/spacewave/core/space/world/engine"
 	"github.com/s4wave/spacewave/net/peer"
 	s4wave_sobject "github.com/s4wave/spacewave/sdk/sobject"
@@ -47,7 +47,7 @@ func (r *SharedObjectResource) OpenReadCheckpoint(
 
 	// Serve the checkpoint's World as an engine resource.
 	engineID := space.SpaceEngineId(r.ref)
-	engine, release, err := sobject_world_engine.OpenReadCheckpoint(ctx, r.le, r.b, r.sharedObject, engineID, space_world_engine.OpTypes, checkpoint.Snapshot)
+	engine, release, err := space_world.OpenReadCheckpoint(ctx, r.le, r.b, r.sharedObject, engineID, space_world_engine.OpTypes, checkpoint.Snapshot)
 	if err != nil {
 		return nil, err
 	}

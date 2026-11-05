@@ -38,7 +38,7 @@ func addDevice(t *testing.T, so sobject.SharedObject) *testDevice {
 	if err != nil {
 		t.Fatal(err)
 	}
-	host := so.(sobject.StateHost)
+	host := so.(sobject.InviteHost)
 	_, err = sobject.AddSOParticipant(t.Context(), host.GetSOHost(), so.GetSharedObjectID(), host.GetPrivKey(), so.GetPeerID().String(),
 		p.GetPeerID().String(), p.GetPubKey(), sobject.SOParticipantRole_SOParticipantRole_WRITER, "", "")
 	if err != nil {
@@ -68,7 +68,7 @@ func createOp(t *testing.T, key string) []byte {
 // sorts first in the order, ahead of every operation above the checkpoint.
 func (d *testDevice) write(t *testing.T, so sobject.SharedObject, data []byte, concurrent, first bool) {
 	t.Helper()
-	err := so.(sobject.StateHost).GetSOHost().UpdateSOState(t.Context(), func(state *sobject.SOState) error {
+	err := so.(sobject.InviteHost).GetSOHost().UpdateSOState(t.Context(), func(state *sobject.SOState) error {
 		return d.addOp(t, so, state, data, concurrent, first)
 	})
 	if err != nil {
@@ -86,7 +86,7 @@ func (d *testDevice) add(t *testing.T, so sobject.SharedObject, state *sobject.S
 func (d *testDevice) addOp(t *testing.T, so sobject.SharedObject, state *sobject.SOState, data []byte, concurrent, first bool) error {
 	// Place the operation in the device's chain.
 	ctx := t.Context()
-	host := so.(sobject.StateHost)
+	host := so.(sobject.InviteHost)
 	soID := so.GetSharedObjectID()
 	set, err := state.OperationSet(soID)
 	if err != nil {
@@ -280,7 +280,7 @@ func TestAdapterSupersedes(t *testing.T) {
 	// Hold the state lock while a local write builds on the head without the
 	// other device's operation, then add that operation, so the local one
 	// queues after it.
-	host := so.(sobject.StateHost).GetSOHost()
+	host := so.(sobject.InviteHost).GetSOHost()
 	var attempts int
 	built := make(chan struct{})
 	done := make(chan error, 1)

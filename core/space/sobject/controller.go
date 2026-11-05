@@ -8,8 +8,8 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	cdn_sharedobject "github.com/s4wave/spacewave/core/cdn/sharedobject"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/core/space"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_engine "github.com/s4wave/spacewave/core/space/world/engine"
 	"github.com/s4wave/spacewave/db/world"
 )
@@ -80,7 +80,7 @@ func (c *Controller) resolveMountSharedObjectBody(dir sobject.MountSharedObjectB
 		// at construction, before its first replay. The body's engine
 		// follows each engine the controller serves, across restarts and
 		// replacements after read access returns.
-		factory := sobject_world_engine.NewFactoryWithOpTypes(c.GetBus(), space_world_engine.OpTypes)
+		factory := space_world.NewFactory(c.GetBus(), space_world_engine.OpTypes)
 		eng, ref, err := world.StartEngine(ctx, c.GetBus(), conf, factory)
 		if err != nil {
 			soRef.Release()
@@ -103,11 +103,11 @@ func (c *Controller) resolveMountSharedObjectBody(dir sobject.MountSharedObjectB
 // Space body. A Space World starts without a changelog, matching the default
 // SpaceSettings. Writing SpaceSettings with changelog_enabled switches it on
 // in the same transaction, so every participant replays the same choice.
-func newSpaceWorldEngineConfig(mountRef *sobject.SharedObjectRef, conf *Config) *sobject_world_engine.Config {
-	return &sobject_world_engine.Config{
+func newSpaceWorldEngineConfig(mountRef *sobject.SharedObjectRef, conf *Config) *space_world.Config {
+	return &space_world.Config{
 		EngineId: space.SpaceEngineId(mountRef),
 		Ref:      mountRef,
-		InitWorldOp: &sobject_world_engine.InitWorldOp{
+		InitWorldOp: &space_world.InitWorldOp{
 			LastChangeDisable: true,
 		},
 		Verbose: conf.GetVerbose(),

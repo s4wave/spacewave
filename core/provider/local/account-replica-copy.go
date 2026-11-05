@@ -9,7 +9,7 @@ import (
 	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -89,7 +89,7 @@ func (a *ProviderAccount) runAccountReplicaCopy(
 		if snapshot == nil {
 			continue
 		}
-		span, root, err := sobject_world_engine.PublishedGraph(ctx, snapshot, space_world_optypes.LookupWorldOp)
+		span, root, err := space_world.PublishedGraph(ctx, snapshot, space_world_optypes.LookupWorldOp)
 		if err != nil {
 			return err
 		}
@@ -355,7 +355,7 @@ func (a *ProviderAccount) copyAccountWorld(ctx context.Context, so sobject.Share
 	}
 	holes := &worldHolesError{}
 	missing := func(ref *block.BlockRef) { holes.refs = append(holes.refs, ref.CloneVT()) }
-	if err := sobject_world_engine.RetainWorld(ctx, so, progress.GetHead(), local, &sobject_world_engine.RetainOptions{Visited: visited, Missing: missing}); err != nil {
+	if err := space_world.RetainWorld(ctx, so, progress.GetHead(), local, &space_world.RetainOptions{Visited: visited, Missing: missing}); err != nil {
 		return err
 	}
 	if len(holes.refs) != 0 {
@@ -411,10 +411,20 @@ func (a *ProviderAccount) GetAccountCopyProgress() ([]*AccountReplicaCopyState, 
 	return out, wait
 }
 
-// holdAccountWorld holds the copied account World under its root. A store
-// that holds no roots keeps every block it stores, so it needs no hold.
+// holdAccountWorld moves the account World root onto the copied World. The
+// copy routine is the root's only writer, so it reads the root it moves from;
+// a move that loses a race returns ErrRootMoved and the next copy tries again.
+// A store that holds no roots keeps every block it stores, so it needs no
+// hold.
 func holdAccountWorld(ctx context.Context, store block.StoreOps, root *block.BlockRef) error {
-	err := block.OverwriteRoots(ctx, store, nil, []block.NamedRoot{{Name: "account-world", Ref: root}})
+	// Read what the root holds.
+	held, err := store.GetRoot(ctx, "account-world")
+	if err != nil {
+		return err
+	}
+
+	// Move it onto the copy.
+	err = store.SetRoots(ctx, nil, []block.NamedRoot{{Name: "account-world", Ref: root, Previous: held}})
 	if errors.Is(err, block.ErrRootsUnheld) {
 		return nil
 	}

@@ -2,6 +2,7 @@ package cdn_sharedobject
 
 import (
 	"context"
+	"io"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/util/ccontainer"
@@ -9,10 +10,11 @@ import (
 	"github.com/s4wave/spacewave/core/bstore"
 	cdn_bstore "github.com/s4wave/spacewave/core/cdn/bstore"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/net/peer"
+	"github.com/sirupsen/logrus"
 )
 
 // CdnDisplayName is the human-readable name surfaced for the CDN Space mount.
@@ -35,6 +37,8 @@ type CdnSharedObject struct {
 	snap   *cdnStateSnapshot
 	watch  *ccontainer.CContainer[sobject.SharedObjectStateSnapshot]
 	health *ccontainer.CContainer[*sobject.SharedObjectHealth]
+	// body drives an attached body through each published checkpoint.
+	body *sobject.BodyHost
 }
 
 // CdnSharedObjectOptions configure a CdnSharedObject.
@@ -46,6 +50,8 @@ type CdnSharedObjectOptions struct {
 	// PeerID is the local peer id. An empty value is allowed for anonymous
 	// mounts on local-only bootstraps where no session identity exists yet.
 	PeerID peer.ID
+	// Logger logs the driver of an attached body, or is nil to discard.
+	Logger *logrus.Entry
 	// BlockStore reads the CDN Space and tracks its root pointer. It is
 	// either the transport-owning CdnBlockStore or a SuppliedBlockStore reading
 	// through a process that already owns that transport.
@@ -78,6 +84,13 @@ func NewCdnSharedObject(opts CdnSharedObjectOptions) (*CdnSharedObject, error) {
 	}
 	so.snap = newCdnStateSnapshot(so)
 	so.watch.SetValue(so.snap)
+	le := opts.Logger
+	if le == nil {
+		discard := logrus.New()
+		discard.SetOutput(io.Discard)
+		le = logrus.NewEntry(discard)
+	}
+	so.body = sobject.NewBodyHost(le.WithField("cdn-space-id", opts.SpaceID), so, nil)
 	so.setHealth(nil)
 	return so, nil
 }
@@ -162,13 +175,13 @@ func (s *CdnSharedObject) RefreshSnapshot(ctx context.Context) error {
 
 // GetHeadInnerState decodes the World of the published checkpoint. Returns
 // nil, nil before the first published checkpoint.
-func (s *CdnSharedObject) GetHeadInnerState() (*sobject_world_engine.InnerState, error) {
+func (s *CdnSharedObject) GetHeadInnerState() (*space_world.InnerState, error) {
 	// Decode the World state of the checkpoint.
 	checkpoint, err := s.GetCheckpoint()
 	if err != nil || checkpoint == nil {
 		return nil, err
 	}
-	inner := &sobject_world_engine.InnerState{}
+	inner := &space_world.InnerState{}
 	if err := inner.UnmarshalVT(checkpoint.GetStateData()); err != nil {
 		return nil, errors.Wrap(err, "decode InnerState")
 	}
@@ -198,6 +211,15 @@ func (s *CdnSharedObject) AccessSharedObjectState(_ context.Context, _ func()) (
 // AccessSharedObjectHealth returns a watchable health container for the CDN mount.
 func (s *CdnSharedObject) AccessSharedObjectHealth(_ context.Context, _ func()) (ccontainer.Watchable[*sobject.SharedObjectHealth], func(), error) {
 	return s.health, func() {}, nil
+}
+
+// SetBody attaches body, which the mount installs each published checkpoint
+// into, until release. A CDN mount has no lifecycle of its own, so an
+// attached body's driver runs until the body is detached.
+func (s *CdnSharedObject) SetBody(body sobject.Body) func() {
+	release := s.body.SetBody(body)
+	s.body.SetContext(context.Background())
+	return release
 }
 
 // QueueOperation is not supported on a read-only CDN mount.

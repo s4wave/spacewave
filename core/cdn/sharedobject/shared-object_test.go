@@ -12,7 +12,7 @@ import (
 	alpha_cdn "github.com/s4wave/spacewave/core/cdn"
 	cdn_bstore "github.com/s4wave/spacewave/core/cdn/bstore"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/sirupsen/logrus"
@@ -40,7 +40,7 @@ func testCheckpoint(t *testing.T, stateData []byte) *sobject.SOCheckpoint {
 // testHeadCheckpoint returns a checkpoint whose World has an empty head ref.
 func testHeadCheckpoint(t *testing.T) *sobject.SOCheckpoint {
 	t.Helper()
-	data, err := (&sobject_world_engine.InnerState{HeadRef: &bucket.ObjectRef{}}).MarshalVT()
+	data, err := (&space_world.InnerState{HeadRef: &bucket.ObjectRef{}}).MarshalVT()
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -13,7 +13,7 @@ import (
 	"github.com/s4wave/spacewave/core/pairing"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -278,7 +278,7 @@ func replicaWorldHead(ctx context.Context, t *testing.T, so sobject.SharedObject
 	}
 
 	// Return its World head.
-	head := &sobject_world_engine.InnerState{}
+	head := &space_world.InnerState{}
 	if err := head.UnmarshalVT(inner.GetStateData()); err != nil {
 		t.Fatal(err)
 	}

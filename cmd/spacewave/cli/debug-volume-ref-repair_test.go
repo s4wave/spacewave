@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/util/prng"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -152,16 +152,16 @@ func TestDebugRefRepair(t *testing.T) {
 	}
 
 	// Store a replay cursor pointing to the World.
-	state := &sobject_world_engine.InnerState{HeadRef: &bucket.ObjectRef{
+	state := &space_world.InnerState{HeadRef: &bucket.ObjectRef{
 		RootRef:       eng.GetRootRef().GetRootRef(),
 		TransformConf: base.GetTransformConf(),
 	}}
-	data, err := (&sobject_world_engine.ReplayCursor{Base: state, Head: state}).MarshalVT()
+	data, err := (&space_world.ReplayCursor{Base: state, Head: state}).MarshalVT()
 	if err != nil {
 		t.Fatal(err)
 	}
 	conf := kvkey.DefaultConfig()
-	key := slices.Concat(conf.GetPrefix(), conf.GetObjectStorePrefix(), []byte("account/so/"+restoreTestSpace+"/ls/world-replay/cursor"))
+	key := slices.Concat(conf.GetPrefix(), conf.GetObjectStorePrefix(), []byte("account/so/"+restoreTestSpace+"/ls/space-world-replay/cursor"))
 	if err := putKey(ctx, vol, key, data); err != nil {
 		t.Fatal(err)
 	}

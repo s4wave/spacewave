@@ -13,7 +13,7 @@ import (
 	"github.com/aperturerobotics/util/ulid"
 	"github.com/s4wave/spacewave/core/bstore"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -429,7 +429,7 @@ func mountSeededReplicaSource(ctx context.Context, t *testing.T) (*ProviderAccou
 	if err != nil {
 		t.Fatal(err)
 	}
-	head := &sobject_world_engine.InnerState{}
+	head := &space_world.InnerState{}
 	if err := head.UnmarshalVT(inner.GetStateData()); err != nil {
 		t.Fatal(err)
 	}

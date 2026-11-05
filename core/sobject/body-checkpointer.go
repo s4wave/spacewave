@@ -49,13 +49,7 @@ func (c *bodyCheckpointer) adopt(ctx context.Context, le *logrus.Entry, so Share
 	}
 
 	// Encrypt the state data with the current key epoch.
-	handle := NewSOStateParticipantHandle(le, c.sfs, soID, state, c.privKey, so.GetPeerID()).
-		WithGrantKeyring(c.host.GetGrantKeyring())
-	xfrm, err := handle.GetTransformer(ctx)
-	if err != nil {
-		return err
-	}
-	dataEnc, err := xfrm.EncodeBlock(data)
+	dataEnc, err := c.encrypt(ctx, le, so, state, data)
 	if err != nil {
 		return err
 	}
@@ -66,4 +60,24 @@ func (c *bodyCheckpointer) adopt(ctx context.Context, le *logrus.Entry, so Share
 		return err
 	}
 	return state.AdoptCheckpoint(soID, checkpoint)
+}
+
+// handle returns the local participant's view of state.
+func (c *bodyCheckpointer) handle(le *logrus.Entry, so SharedObject, state *SOState) *SOStateParticipantHandle {
+	return NewSOStateParticipantHandle(le, c.sfs, so.GetSharedObjectID(), state, c.privKey, so.GetPeerID()).
+		WithGrantKeyring(c.host.GetGrantKeyring())
+}
+
+// encrypt encrypts body state data with state's current key epoch.
+func (c *bodyCheckpointer) encrypt(ctx context.Context, le *logrus.Entry, so SharedObject, state *SOState, data []byte) ([]byte, error) {
+	xfrm, err := c.handle(le, so, state).GetTransformer(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return xfrm.EncodeBlock(data)
+}
+
+// decode returns inner with its state data decoded by state's keys.
+func (c *bodyCheckpointer) decode(le *logrus.Entry, so SharedObject, state *SOState, inner *SOCheckpointInner) (*SOCheckpointInner, error) {
+	return c.handle(le, so, state).DecodeCheckpoint(inner)
 }

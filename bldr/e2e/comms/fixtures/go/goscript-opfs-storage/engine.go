@@ -19,9 +19,9 @@ import (
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/core/space"
 	space_sobject "github.com/s4wave/spacewave/core/space/sobject"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -307,7 +307,7 @@ func produceEngineGraph(ctx context.Context, tb *db_testbed.Testbed, name string
 		if err != nil {
 			return false, err
 		}
-		inner := &sobject_world_engine.InnerState{}
+		inner := &space_world.InnerState{}
 		if err := inner.UnmarshalVT(checkpoint.GetStateData()); err != nil {
 			return false, err
 		}
@@ -334,7 +334,7 @@ func inspectEngineGraph(ctx context.Context, tb *db_testbed.Testbed, so sobject.
 	}
 
 	// Require the expected operation payload to belong to the advertised graph.
-	span, root, err := sobject_world_engine.PublishedGraph(ctx, snapshot, space_world_optypes.LookupWorldOp)
+	span, root, err := space_world.PublishedGraph(ctx, snapshot, space_world_optypes.LookupWorldOp)
 	if err != nil {
 		return nil, err
 	}
@@ -342,7 +342,7 @@ func inspectEngineGraph(ctx context.Context, tb *db_testbed.Testbed, so sobject.
 		if span == nil {
 			return nil, errors.New("precheckpoint advertisement omitted the committed object payload")
 		}
-		decoded := &sobject_world_engine.ReplaySpan{}
+		decoded := &space_world.ReplaySpan{}
 		if err := decoded.UnmarshalVT(span.Data); err != nil {
 			return nil, err
 		}

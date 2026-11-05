@@ -7,7 +7,7 @@ import (
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_replica "github.com/s4wave/spacewave/core/space/world/replica"
 	"github.com/s4wave/spacewave/net/crypto"
 )
@@ -57,7 +57,7 @@ func (r *reconciler) join(ctx context.Context) error {
 // backfill turns on the copy and asks once for a recheck that trusts no
 // earlier proof. A recheck that found holes is asked for again.
 func (r *reconciler) backfill(ctx context.Context) error {
-	return r.mount.accessBackfill(ctx, func(be sobject_world_engine.BackfillEngine) error {
+	return r.mount.accessBackfill(ctx, func(be space_world.BackfillEngine) error {
 		// Turn the copy on.
 		if !be.GetBackfill().GetValue() {
 			if err := be.SetBackfill(ctx, true); err != nil {
@@ -83,7 +83,7 @@ func (r *reconciler) backfill(ctx context.Context) error {
 
 // serveProof signs a proof of the complete copy bf and serves it, unless the
 // served proof already covers bf.
-func (r *reconciler) serveProof(bf *sobject_world_engine.BackfillState) error {
+func (r *reconciler) serveProof(bf *space_world.BackfillState) error {
 	// Keep a served proof of the same World.
 	state := r.c.getState()
 	if served := state.GetProof(); served != nil {

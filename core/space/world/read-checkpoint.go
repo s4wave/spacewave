@@ -1,4 +1,4 @@
-package sobject_world_engine
+package space_world
 
 import (
 	"context"
@@ -12,14 +12,14 @@ import (
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
+	world_block "github.com/s4wave/spacewave/db/world/block"
 	"github.com/sirupsen/logrus"
 )
 
 // OpenReadCheckpoint serves the World of snap, the state this participant held
-// when its read access ended, without starting a live body controller. It
-// replays the operation set as the World engine engineID would, resolving
-// operations with opTypes first, then through the bus. Release closes
-// the cursor after all readers have released their transactions.
+// when its read access ended, without a live adapter. It replays the operation
+// set as the Space World engine engineID would, keeping the replayed pages in
+// memory, and serves the World read-only. Release closes the engine.
 func OpenReadCheckpoint(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -29,30 +29,42 @@ func OpenReadCheckpoint(
 	opTypes OpTypes,
 	snap sobject.SharedObjectStateSnapshot,
 ) (world.Engine, func(), error) {
-	// Replay the held operations onto the checkpoint's World.
+	// Replay the held operations onto the checkpoint's World in memory.
 	sfs := transform_all.BuildFactorySet()
-	state, err := ReplayWorld(ctx, le, b, sfs, so, engineID, opTypes, snap)
+	a, err := replayOnce(ctx, le, b, sfs, so, engineID, opTypes, snap, defaultMaxPendingBytes)
 	if err != nil {
 		return nil, nil, err
 	}
-	head := state.GetHeadRef()
-	if head == nil {
+	state, _ := a.replay.head()
+	if state.GetHeadRef().GetEmpty() {
 		return nil, nil, errors.New("read checkpoint holds no World")
 	}
 
-	// Open a read-only block engine on the replayed World.
-	engine, err := buildBlockEngine(ctx, le, b, sfs, so.GetBlockStore(), head, head.GetTransformConf(), nil, false)
+	// Serve it read-only over the kept pages.
+	cursor, err := a.newCursor(ctx, state.GetHeadRef())
 	if err != nil {
 		return nil, nil, err
 	}
-	return &readCheckpointEngine{Engine: engine.bengine, bus: b, le: le}, engine.Release, nil
+	engine, err := world_block.NewEngine(ctx, le, cursor, a.lookupOp, nil, false)
+	if err != nil {
+		cursor.Release()
+		return nil, nil, err
+	}
+	release := func() {
+		_ = engine.Close()
+		cursor.Release()
+	}
+	return &readCheckpointEngine{Engine: engine, bus: b, le: le}, release, nil
 }
 
 // readCheckpointEngine rejects mutations through every exported World surface.
 type readCheckpointEngine struct {
-	world.Engine
+	// Engine serves the replayed World.
+	*world_block.Engine
+	// bus resolves the read-only cursors.
 	bus bus.Bus
-	le  *logrus.Entry
+	// le is the logger.
+	le *logrus.Entry
 }
 
 // NewTransaction opens a read snapshot; a write request cannot acquire authority.
@@ -112,3 +124,6 @@ func (e *readCheckpointEngine) readOnlyCursor(ctx context.Context, cursor *bucke
 	read.SetBucketIDOverride(cursor.GetBucketIDOverride())
 	return read
 }
+
+// _ is a type assertion
+var _ world.Engine = (*readCheckpointEngine)(nil)

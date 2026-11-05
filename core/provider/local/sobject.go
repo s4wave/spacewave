@@ -12,7 +12,6 @@ import (
 	"github.com/aperturerobotics/util/promise"
 	"github.com/s4wave/spacewave/core/bstore"
 	"github.com/s4wave/spacewave/core/sobject"
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/object"
 	"github.com/s4wave/spacewave/db/volume"
@@ -47,6 +46,8 @@ type SharedObject struct {
 	joinRequestsMtx csync.Mutex
 	// joinRequests contains the persisted pending join requests.
 	joinRequests *ccontainer.CContainer[*sobject.SOJoinRequestList]
+	// body drives the attached body for the mount's lifetime.
+	body *sobject.BodyHost
 }
 
 // GetSOHostState returns a snapshot of the current SOState via the SOHost.
@@ -85,13 +86,6 @@ func (s *SharedObject) WaitDurable(ctx context.Context) error {
 	return s.soHost.WaitDurable(ctx)
 }
 
-// QueueOrdersBlockWrites reports whether queueing orders block writes. The
-// block store and the operation queue share the account volume's ordered
-// store.
-func (s *SharedObject) QueueOrdersBlockWrites() bool {
-	return volume.OrdersWrites(s.tkr.a.vol)
-}
-
 // AccessLocalStateStore isolates state by SharedObject and store ID within the
 // account's object store. Releasing the mount invalidates its local stores.
 func (s *SharedObject) AccessLocalStateStore(ctx context.Context, storeID string, released func()) (kvtx.Store, func(), error) {
@@ -102,28 +96,6 @@ func (s *SharedObject) AccessLocalStateStore(ctx context.Context, storeID string
 	}
 	relReleased := context.AfterFunc(s.ctx, released)
 	return prefixedObjStore, func() { relReleased() }, nil
-}
-
-// LocalStateHead returns a head update that sets key to value in the local
-// state store storeID, for a publication through the block store.
-func (s *SharedObject) LocalStateHead(storeID string, key, value []byte) *block.AtomicHeadUpdate {
-	return &block.AtomicHeadUpdate{
-		ObjectStoreID: s.objStoreID,
-		Key:           append(s.localStatePrefix(storeID), key...),
-		Replace: func(context.Context, []byte, bool) ([]byte, error) {
-			return value, nil
-		},
-	}
-}
-
-// TryReserveStateWrite claims local write intent without waiting.
-func (s *SharedObject) TryReserveStateWrite(ctx context.Context, settled bool) (sobject.StateWriteReservation, error) {
-	return s.soHost.TryReserveStateWrite(ctx, settled)
-}
-
-// ReserveStateWrite reserves the local host's write intent before engine writers.
-func (s *SharedObject) ReserveStateWrite(ctx context.Context, settled bool) (sobject.StateWriteReservation, error) {
-	return s.soHost.ReserveStateWrite(ctx, settled)
 }
 
 // localStatePrefix returns the object store prefix of the local state store
@@ -153,12 +125,6 @@ func (s *SharedObject) AccessSharedObjectState(ctx context.Context, released fun
 	return s.lsoHost.AccessSharedObjectState(ctx, released)
 }
 
-// AccessAdmittedState adds a reference to the admitted state and returns the
-// state container.
-func (s *SharedObject) AccessAdmittedState(ctx context.Context, released func()) (ccontainer.Watchable[sobject.SharedObjectStateSnapshot], func(), error) {
-	return s.lsoHost.AccessAdmittedState(ctx, released)
-}
-
 // AccessSharedObjectHealth retains the provider's health watch for this mount.
 func (s *SharedObject) AccessSharedObjectHealth(ctx context.Context, released func()) (ccontainer.Watchable[*sobject.SharedObjectHealth], func(), error) {
 	ref, err := s.tkr.ref.Await(ctx)
@@ -168,37 +134,23 @@ func (s *SharedObject) AccessSharedObjectHealth(ctx context.Context, released fu
 	return s.tkr.a.AccessSharedObjectHealth(ctx, ref, released)
 }
 
-// SetRejectedEdits shows edits in the health as this device's edits that replay
-// no longer applies.
-func (s *SharedObject) SetRejectedEdits(edits []*sobject.SORejectedEdit) {
+// showReplay shows in the health what the body driver reports of this
+// device's replay: its revoked edits, a checkpoint whose state differs from
+// the replayed one, and the edits the sequencer has not placed.
+func (s *SharedObject) showReplay(r *sobject.BodyReport) {
 	if s.tkr.healthCtr == nil {
 		return
 	}
 	s.tkr.healthCtr.SwapValue(func(health *sobject.SharedObjectHealth) *sobject.SharedObjectHealth {
-		return health.WithRejectedEdits(edits)
+		return health.WithRejectedEdits(r.RejectedEdits).WithCheckpointMismatch(r.CheckpointMismatch).WithUnorderedCount(r.Unordered)
 	})
 }
 
-// SetCheckpointMismatch shows mismatch in the health as a checkpoint whose
-// World differs from the World this device replayed.
-func (s *SharedObject) SetCheckpointMismatch(mismatch *sobject.SOCheckpointMismatch) {
-	if s.tkr.healthCtr == nil {
-		return
-	}
-	s.tkr.healthCtr.SwapValue(func(health *sobject.SharedObjectHealth) *sobject.SharedObjectHealth {
-		return health.WithCheckpointMismatch(mismatch)
-	})
-}
-
-// SetUnorderedCount shows in the health that n operations wait for the
-// sequencer to place them.
-func (s *SharedObject) SetUnorderedCount(n uint32) {
-	if s.tkr.healthCtr == nil {
-		return
-	}
-	s.tkr.healthCtr.SwapValue(func(health *sobject.SharedObjectHealth) *sobject.SharedObjectHealth {
-		return health.WithUnorderedCount(n)
-	})
+// SetBody attaches the body the SharedObject agrees on until release. The
+// mount drives the body through its replay, signs the checkpoints this device
+// owes and votes in the group's decisions while the body is attached.
+func (s *SharedObject) SetBody(body sobject.Body) func() {
+	return s.body.SetBody(body)
 }
 
 // QueueOperation signs op as the local participant and adds it to the
@@ -347,7 +299,7 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 
 	// Share the accepted-state watch and lock with the local persistence owner.
 	// State writes share the account volume, which reports their durability.
-	watchFn, lockFn, syncFuncs := NewObjectStoreSOStateFuncs(ctx, objStore, objectStoreID, localPeerID)
+	watchFn, lockFn, syncFuncs := NewObjectStoreSOStateFuncs(ctx, objStore, localPeerID)
 	vol := t.a.vol
 	syncFuncs.WaitDurable = func(ctx context.Context) error {
 		return volume.WaitDurable(ctx, vol)
@@ -382,6 +334,9 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 		localPid:     localPeerID,
 		joinRequests: ccontainer.NewCContainer(joinRequests),
 	}
+	so.body = sobject.NewBodyHost(le, so, so.showReplay)
+	so.body.SetSigner(soHost, localPriv, t.a.t.p.sfs)
+	so.body.SetContext(ctx)
 
 	// A mounted local SharedObject is ready only after LocalSOHost publishes its
 	// first state snapshot; otherwise immediate callers can block on state reads.
@@ -787,7 +742,6 @@ func (s *SharedObject) SequenceOperations(ctx context.Context) error {
 // _ verifies the local provider's SharedObject contracts.
 var (
 	_ sobject.SharedObjectHealthAccessor = (*SharedObject)(nil)
-	_ sobject.ReplayReporter             = (*SharedObject)(nil)
 	_ sobject.SharedObjectProvider       = (*ProviderAccount)(nil)
 	_ sobject.SharedObject               = (*SharedObject)(nil)
 	_ sobject.InviteHost                 = (*SharedObject)(nil)
@@ -795,5 +749,4 @@ var (
 	_ sobject.SequencerHost              = (*SharedObject)(nil)
 	_ sobject.ControlHost                = (*SharedObject)(nil)
 	_ sobject.MainDevice                 = (*SharedObject)(nil)
-	_ sobject.StatePublisher             = (*SharedObject)(nil)
 )

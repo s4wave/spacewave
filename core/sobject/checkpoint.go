@@ -13,7 +13,8 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
-// SOReplayVersion is the replay rule version this build computes Worlds with.
+// SOReplayVersion is the replay rule version this build computes body states
+// with.
 const SOReplayVersion = 1
 
 // soCheckpointHashDomain separates checkpoint hashes from other SHA-256 digests.

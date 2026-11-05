@@ -7,7 +7,7 @@ import (
 
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/db/block"
 )
 
@@ -25,7 +25,7 @@ func TestMainDeviceOffline(t *testing.T) {
 	tb, _, ownerAccount, ownerSession, release := setupProviderAndSession(ctx, t)
 	t.Cleanup(release)
 	memberAccount, memberSession := addLocalSession(ctx, t, tb)
-	tb.StaticResolver.AddFactory(sobject_world_engine.NewFactory(tb.Bus))
+	tb.StaticResolver.AddFactory(space_world.NewFactory(tb.Bus, space_world.OpTypes{}))
 
 	// The owner creates the Space and a writer joins it.
 	ref, err := ownerAccount.CreateSharedObject(ctx, "main-device-space", &sobject.SharedObjectMeta{BodyType: "space"}, "", "")
@@ -70,9 +70,7 @@ func TestMainDeviceOffline(t *testing.T) {
 	owner.requireObjects(ctx, "while-main-offline")
 	ownerRoot := owner.root(ctx)
 	member.waitCheckpoint(ctx, ownerRoot)
-	if memberRoot := member.root(ctx); !memberRoot.EqualVT(ownerRoot) {
-		t.Fatalf("member World root %v; want the owner's %v", memberRoot, ownerRoot)
-	}
+	member.waitRoot(ctx, ownerRoot)
 }
 
 // TestFollowerInstallsLeaderCheckpoint has the owner's device lead a Space: it
@@ -89,7 +87,7 @@ func TestFollowerInstallsLeaderCheckpoint(t *testing.T) {
 	tb, _, ownerAccount, ownerSession, release := setupProviderAndSession(ctx, t)
 	t.Cleanup(release)
 	memberAccount, memberSession := addLocalSession(ctx, t, tb)
-	tb.StaticResolver.AddFactory(sobject_world_engine.NewFactory(tb.Bus))
+	tb.StaticResolver.AddFactory(space_world.NewFactory(tb.Bus, space_world.OpTypes{}))
 
 	// The owner creates the Space and a writer joins it.
 	ref, err := ownerAccount.CreateSharedObject(ctx, "follower-space", &sobject.SharedObjectMeta{BodyType: "space"}, "", "")
@@ -123,9 +121,7 @@ func TestFollowerInstallsLeaderCheckpoint(t *testing.T) {
 		keys = append(keys, key)
 		root := owner.root(ctx)
 		member.waitCheckpoint(ctx, root)
-		if memberRoot := member.root(ctx); !memberRoot.EqualVT(root) {
-			t.Fatalf("member World root %v after %s; want the checkpoint's %v", memberRoot, key, root)
-		}
+		member.waitRoot(ctx, root)
 		member.requireObjects(ctx, keys...)
 	}
 }
@@ -138,7 +134,7 @@ func (m *offlineMember) waitCheckpoint(ctx context.Context, root *block.BlockRef
 	// Watch the admitted state.
 	t := m.t
 	t.Helper()
-	states, release, err := m.object.AccessAdmittedState(ctx, nil)
+	states, release, err := m.object.AccessSharedObjectState(ctx, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -154,7 +150,7 @@ func (m *offlineMember) waitCheckpoint(ctx context.Context, root *block.BlockRef
 		if err != nil {
 			return false, err
 		}
-		head := &sobject_world_engine.InnerState{}
+		head := &space_world.InnerState{}
 		if err := head.UnmarshalVT(checkpoint.GetStateData()); err != nil {
 			return false, err
 		}
@@ -207,12 +203,9 @@ func (m *offlineMember) waitSequencer(ctx context.Context, peerID string) {
 // waitUnordered waits until the health counts n operations waiting for the
 // sequencer.
 func (m *offlineMember) waitUnordered(ctx context.Context, n uint32) {
-	// Replay the latest state so the World engine reports its count.
+	// Watch the health.
 	t := m.t
 	t.Helper()
-	m.sync(ctx)
-
-	// Watch the health.
 	healths, release, err := m.object.AccessSharedObjectHealth(ctx, nil)
 	if err != nil {
 		t.Fatal(err)

@@ -60,6 +60,7 @@ func newCdnInstance(
 	so, err := cdn_sharedobject.NewCdnSharedObject(cdn_sharedobject.CdnSharedObjectOptions{
 		SpaceID:    spaceID,
 		Bus:        b,
+		Logger:     le,
 		BlockStore: bs,
 	})
 	if err != nil {

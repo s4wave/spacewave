@@ -8,8 +8,8 @@ import (
 	"github.com/pkg/errors"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/core/space"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/db/world"
 )
 
@@ -65,9 +65,9 @@ func openMount(ctx context.Context, r *reconciler, ref *sobject.SharedObjectRef)
 }
 
 // accessBackfill calls cb with the backfill engine serving the Space's World.
-func (m *mount) accessBackfill(ctx context.Context, cb func(be sobject_world_engine.BackfillEngine) error) error {
+func (m *mount) accessBackfill(ctx context.Context, cb func(be space_world.BackfillEngine) error) error {
 	return world.AccessEngine(ctx, m.engine, func(_ context.Context, eng world.Engine) error {
-		be, ok := eng.(sobject_world_engine.BackfillEngine)
+		be, ok := eng.(space_world.BackfillEngine)
 		if !ok {
 			return errors.New("the replicated World cannot be backfilled")
 		}
@@ -80,7 +80,7 @@ func (m *mount) accessBackfill(ctx context.Context, cb func(be sobject_world_eng
 func (m *mount) wakeOnBackfill(ctx context.Context, wake func()) {
 	_ = world.AccessEngine(ctx, m.engine, func(ctx context.Context, eng world.Engine) error {
 		// Require the backfill engine.
-		be, ok := eng.(sobject_world_engine.BackfillEngine)
+		be, ok := eng.(space_world.BackfillEngine)
 		if !ok {
 			return errors.New("the replicated World cannot be backfilled")
 		}

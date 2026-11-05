@@ -15,7 +15,7 @@ type SharedObjectReadCheckpointAccessor interface {
 type SharedObjectReadCheckpoint struct {
 	// Config records the audience at departure.
 	Config *SharedObjectConfig
-	// Snapshot is the state held at departure. Replaying it yields the World
-	// the participant last could read.
+	// Snapshot is the state held at departure. Replaying it yields the body's
+	// state the participant last could read.
 	Snapshot SharedObjectStateSnapshot
 }

@@ -50,6 +50,7 @@ func MountWorld(
 	so, err := NewCdnSharedObject(CdnSharedObjectOptions{
 		SpaceID:    spaceID,
 		Bus:        b,
+		Logger:     le,
 		BlockStore: store,
 	})
 	if err != nil {

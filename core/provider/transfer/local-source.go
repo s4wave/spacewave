@@ -7,7 +7,7 @@ import (
 	"github.com/s4wave/spacewave/core/bstore"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/sirupsen/logrus"
 )
@@ -49,7 +49,7 @@ func (s *LocalTransferSource) GetSharedObjectList(ctx context.Context) (*sobject
 }
 
 // ReplaySharedObject returns the World of a Space after its last operation.
-func (s *LocalTransferSource) ReplaySharedObject(ctx context.Context, le *logrus.Entry, ref *sobject.SharedObjectRef) (*sobject_world_engine.InnerState, error) {
+func (s *LocalTransferSource) ReplaySharedObject(ctx context.Context, le *logrus.Entry, ref *sobject.SharedObjectRef) (*space_world.InnerState, error) {
 	return replaySharedObject(ctx, le, s.b, s.account.GetStepFactorySet(), s.account, ref)
 }
 

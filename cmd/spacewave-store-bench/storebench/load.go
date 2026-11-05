@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/byteslice"
 	"github.com/s4wave/spacewave/db/volume"
@@ -62,12 +61,6 @@ type load struct {
 	mtx sync.Mutex
 	// latencies are the measured write latencies.
 	latencies []time.Duration
-	// holds are the measured writer lock holds.
-	holds []time.Duration
-	// stages are the measured stage times by stage index.
-	stages [][]time.Duration
-	// stageNames are the stage names in stage order.
-	stageNames []string
 	// errors counts failed writes in the measured window.
 	errors uint64
 }
@@ -210,7 +203,6 @@ func (l *load) measure(ctx context.Context) (*Report, error) {
 		Writes:        uint64(len(l.latencies)),
 		WriteErrors:   l.errors,
 		WriteLatency:  summarize(l.latencies),
-		Hold:          summarize(l.holds),
 		ViewRuns:      l.viewRuns.Load(),
 		Cache:         cacheStats(cache0, cache1),
 		Gc:            gcStats(&mem0, &mem1),
@@ -218,9 +210,6 @@ func (l *load) measure(ctx context.Context) (*Report, error) {
 		WritesDropped: l.dropped.Load(),
 		Writers:       uint32(max(l.conf.Writers, 1)), // #nosec G115 -- a flag bounds the count.
 		Publications:  publicationDelta(pub0, pub1),
-	}
-	for i, name := range l.stageNames {
-		report.Stages = append(report.Stages, &StageLatency{Name: name, Latency: summarize(l.stages[i])})
 	}
 	return report, nil
 }
@@ -266,18 +255,11 @@ func (l *load) writer(ctx context.Context, queue <-chan struct{}) {
 
 // write commits one World write and records its times when measuring.
 func (l *load) write(ctx context.Context) {
-	// Collect the stage times of this write through the commit observer.
-	var times sobject_world_engine.CommitTimes
-	var observed bool
-	wctx := sobject_world_engine.WithCommitObserver(ctx, func(t sobject_world_engine.CommitTimes) {
-		times, observed = t, true
-	})
-
 	// Run the write, dumping the goroutines when it stalls.
 	seq := l.writeSeq.Add(1)
 	stall := l.watchStall(seq)
 	start := time.Now()
-	err := l.commitWrite(wctx, seq)
+	err := l.commitWrite(ctx, seq)
 	elapsed := time.Since(start)
 	if stall != nil {
 		stall.Stop()
@@ -302,19 +284,6 @@ func (l *load) write(ctx context.Context) {
 		return
 	}
 	l.latencies = append(l.latencies, elapsed)
-	if !observed {
-		return
-	}
-	l.holds = append(l.holds, times.Hold)
-	if l.stageNames == nil {
-		l.stages = make([][]time.Duration, len(times.Stages))
-		for _, st := range times.Stages {
-			l.stageNames = append(l.stageNames, st.Name)
-		}
-	}
-	for i, st := range times.Stages {
-		l.stages[i] = append(l.stages[i], st.Duration)
-	}
 }
 
 // commitWrite commits write seq: it reads sampled store objects, stores a new

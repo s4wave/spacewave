@@ -17,7 +17,7 @@ import (
 	"github.com/s4wave/spacewave/core/cdn"
 	cdn_world_controller "github.com/s4wave/spacewave/core/cdn/world/controller"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
@@ -88,7 +88,7 @@ func TestReleaseMetadataRoutineWakesMountOnEmptySpace(t *testing.T) {
 func encodeTestRootPointer(t *testing.T, spaceID string) []byte {
 	// Encode an empty World checkpoint and its CDN root pointer.
 	t.Helper()
-	state, err := (&sobject_world_engine.InnerState{HeadRef: &bucket.ObjectRef{}}).MarshalVT()
+	state, err := (&space_world.InnerState{HeadRef: &bucket.ObjectRef{}}).MarshalVT()
 	if err != nil {
 		t.Fatal(err)
 	}

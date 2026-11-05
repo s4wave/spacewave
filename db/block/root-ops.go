@@ -86,32 +86,3 @@ func SetRootsUnheld(ctx context.Context, store StoreOps, entries []*PutBatchEntr
 func RootMoved(name string) error {
 	return errors.Wrap(ErrRootMoved, name)
 }
-
-// OverwriteRoots writes entries and sets each named root to its Ref whatever
-// it held, for a caller that is the only writer of those names and keeps no
-// copy of their references. It reads the roots and swaps them, again if
-// another writer moved one between the two. It replaces any Previous in roots.
-//
-// It exists only for three callers that never tracked their root: the account
-// World copy, the storage reclaim fence and the replay root hold. It is
-// deleted when they are.
-func OverwriteRoots(ctx context.Context, store StoreOps, entries []*PutBatchEntry, roots []NamedRoot) error {
-	checked := make([]NamedRoot, len(roots))
-	for {
-		for i, root := range roots {
-			held, err := store.GetRoot(ctx, root.Name)
-			if err != nil {
-				return err
-			}
-			root.Previous = held
-			checked[i] = root
-		}
-		err := store.SetRoots(ctx, entries, checked)
-		if !errors.Is(err, ErrRootMoved) {
-			return err
-		}
-		if err := ctx.Err(); err != nil {
-			return err
-		}
-	}
-}

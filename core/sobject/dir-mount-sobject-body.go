@@ -159,7 +159,7 @@ func (d *mountSharedObjectBody) Validate() error {
 
 // GetValueOptions returns options relating to value handling.
 func (d *mountSharedObjectBody) GetValueOptions() directive.ValueOptions {
-	// A mounted body owns a live World engine. Dispose it with its final
+	// A mounted body owns a live engine. Dispose it with its final
 	// reference so a later admission cannot reuse an engine that is closing
 	// under the previous participation state.
 	return directive.ValueOptions{}

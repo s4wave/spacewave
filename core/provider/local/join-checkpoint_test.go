@@ -8,7 +8,7 @@ import (
 
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 )
 
 // joinCheckpointEdits is the number of objects the owner creates before the
@@ -30,8 +30,8 @@ func TestJoinFromCheckpoint(t *testing.T) {
 	t.Cleanup(releaseMember)
 
 	// Run a World engine on each.
-	ownerTb.StaticResolver.AddFactory(sobject_world_engine.NewFactory(ownerTb.Bus))
-	memberTb.StaticResolver.AddFactory(sobject_world_engine.NewFactory(memberTb.Bus))
+	ownerTb.StaticResolver.AddFactory(space_world.NewFactory(ownerTb.Bus, space_world.OpTypes{}))
+	memberTb.StaticResolver.AddFactory(space_world.NewFactory(memberTb.Bus, space_world.OpTypes{}))
 
 	// The owner creates and mounts the Space.
 	ref, err := ownerAccount.CreateSharedObject(ctx, "join-space", &sobject.SharedObjectMeta{BodyType: "space"}, "", "")
@@ -74,9 +74,7 @@ func TestJoinFromCheckpoint(t *testing.T) {
 	// It reaches the owner's World with every object, and reports no wrong
 	// checkpoint.
 	member.requireObjects(ctx, keys...)
-	if ownerRoot, memberRoot := owner.root(ctx), member.root(ctx); !memberRoot.EqualVT(ownerRoot) {
-		t.Fatalf("member World root %v; want the owner's %v", memberRoot, ownerRoot)
-	}
+	member.waitRoot(ctx, owner.root(ctx))
 	if mismatch := member.health(ctx).GetCheckpointMismatch(); mismatch != nil {
 		t.Fatalf("member reported a wrong checkpoint %v", mismatch)
 	}

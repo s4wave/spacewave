@@ -8,7 +8,7 @@ import (
 	spacewave_provider "github.com/s4wave/spacewave/core/provider/spacewave"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/keypem"
@@ -27,7 +27,7 @@ func EncodeHeadState(headRef *bucket.ObjectRef) ([]byte, error) {
 	if err := innerHead.Validate(); err != nil {
 		return nil, errors.Wrap(err, "validate head ref")
 	}
-	return (&sobject_world_engine.InnerState{HeadRef: innerHead}).MarshalVT()
+	return (&space_world.InnerState{HeadRef: innerHead}).MarshalVT()
 }
 
 // LoadOwnerKey reads the PEM-encoded private key of a CDN Space owner.

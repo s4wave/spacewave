@@ -70,6 +70,9 @@ type Engine struct {
 	snapMu sync.Mutex
 	// snapIdle wakes Close when opening or snapRetiring reaches zero.
 	snapIdle *sync.Cond
+	// snapChanged is closed and replaced when a read open ends or a snapshot
+	// finishes releasing, for WaitIdle. Guarded by snapMu.
+	snapChanged chan struct{}
 	// snapClosed rejects new read snapshots once Close starts. Guarded by snapMu.
 	snapClosed bool
 	// snapshotTxs tracks immutable read snapshots owned by caller-held EngineTx
@@ -207,6 +210,7 @@ func NewEngine(
 		headChanged:    make(chan struct{}),
 		verbose:        verbose,
 		snapshotTxs:    make(map[*EngineTx]struct{}),
+		snapChanged:    make(chan struct{}),
 		watchedHeads:   make([]*watchedHead, 0, changeWatchHeads),
 		readerPinDelay: defaultReaderPinDelay,
 	}
@@ -627,6 +631,46 @@ func (e *Engine) drainRetirement(ctx context.Context, retirement engineRetiremen
 	locked.Unlock()
 }
 
+// signalSnapLocked wakes Close and WaitIdle after a read open ends or a
+// snapshot finishes releasing. The caller must hold snapMu.
+func (e *Engine) signalSnapLocked() {
+	e.snapIdle.Broadcast()
+	close(e.snapChanged)
+	e.snapChanged = make(chan struct{})
+}
+
+// WaitIdle returns once no transaction is open on the engine: no read
+// snapshot opening or held, no write transaction, and no commit or release
+// under way. It does not stop new transactions, so a caller that retires the
+// engine stops handing it out first, and then lets the transactions already
+// open finish before Close discards them.
+func (e *Engine) WaitIdle(ctx context.Context) error {
+	for {
+		// Read the snapshot count and the wait for its next change.
+		e.snapMu.Lock()
+		snaps := len(e.snapshotTxs) + e.opening + e.snapRetiring
+		snapWait := e.snapChanged
+		e.snapMu.Unlock()
+
+		// Read the writer state and the wait for its next change.
+		locked := e.bcast.Lock()
+		busy := e.writeTx != nil || e.committing != 0 || e.retiring != 0
+		wait := locked.WaitCh()
+		locked.Unlock()
+		if snaps == 0 && !busy {
+			return nil
+		}
+
+		// Wait for either to change.
+		select {
+		case <-ctx.Done():
+			return context.Cause(ctx)
+		case <-wait:
+		case <-snapWait:
+		}
+	}
+}
+
 // finishCommit publishes completion after coordinator commit cleanup finishes.
 func (e *Engine) finishCommit() {
 	locked := e.bcast.Lock()
@@ -794,9 +838,7 @@ func (e *Engine) openReadTx(ctx context.Context) (*EngineTx, error) {
 	e.snapMu.Lock()
 	e.opening--
 	closed := e.snapClosed
-	if closed {
-		e.snapIdle.Broadcast()
-	}
+	e.signalSnapLocked()
 	if err == nil && !closed {
 		engTx = newEngineTx(e, nil)
 		engTx.readTx.Store(NewTx(world))
@@ -846,7 +888,7 @@ func (e *Engine) discardSnapshot(tx *EngineTx) {
 	// Publish completion for Close.
 	e.snapMu.Lock()
 	e.snapRetiring--
-	e.snapIdle.Broadcast()
+	e.signalSnapLocked()
 	e.snapMu.Unlock()
 }
 

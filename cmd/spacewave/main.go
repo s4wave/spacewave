@@ -49,10 +49,10 @@ import (
 	core_alarm_watch "github.com/s4wave/spacewave/core/alarm/watch"
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
 	session_controller "github.com/s4wave/spacewave/core/session/controller"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	space_http_download "github.com/s4wave/spacewave/core/space/http/download"
 	space_http_export "github.com/s4wave/spacewave/core/space/http/export"
 	space_sobject "github.com/s4wave/spacewave/core/space/sobject"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_blocktype "github.com/s4wave/spacewave/core/space/world/blocktype"
 	optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 	background "github.com/s4wave/spacewave/db/background"
@@ -218,7 +218,7 @@ var factories = []cli_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Fac
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{signaling_rpc_client.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{sobject_world_engine.NewFactory(b)}
+	return []controller.Factory{space_world.NewFactory(b, space_world.OpTypes{})}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{space_http_download.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {

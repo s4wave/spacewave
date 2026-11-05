@@ -35,4 +35,8 @@ type AdapterOptions struct {
 	FenceTimeout time.Duration
 	// Verbose logs every operation's outcome.
 	Verbose bool
+
+	// transient replays without holding roots or saving the cursor, for a
+	// one-off replay beside the Space's own adapter.
+	transient bool
 }

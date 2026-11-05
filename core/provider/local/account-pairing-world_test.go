@@ -8,9 +8,9 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/core/space"
 	space_sobject "github.com/s4wave/spacewave/core/space/sobject"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
@@ -108,7 +108,7 @@ func seedPairingWorldPayload(ctx context.Context, t *testing.T, tb *testbed.Test
 			if err != nil {
 				return false, err
 			}
-			head := &sobject_world_engine.InnerState{}
+			head := &space_world.InnerState{}
 			if err := head.UnmarshalVT(cp.GetStateData()); err != nil {
 				return false, err
 			}
@@ -134,7 +134,7 @@ func logPairingStoredRoots(ctx context.Context, t *testing.T, tb *testbed.Testbe
 	}
 
 	// Resolve checkpoint and operation payload roots from the same snapshot.
-	span, root, err := sobject_world_engine.PublishedGraph(ctx, snapshot, space_world_optypes.LookupWorldOp)
+	span, root, err := space_world.PublishedGraph(ctx, snapshot, space_world_optypes.LookupWorldOp)
 	if err != nil {
 		t.Fatal(err)
 	}

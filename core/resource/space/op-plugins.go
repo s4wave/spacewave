@@ -9,7 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/broadcast"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 )
 
 // opPluginLoaderControllerID identifies the operation plugin loader.
@@ -67,7 +67,7 @@ func (l *opPluginLoader) Execute(ctx context.Context) error {
 // engine requests. It resolves no value.
 func (l *opPluginLoader) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
 	// Accept only requests from this Space's World engine.
-	dir, ok := di.GetDirective().(sobject_world_engine.LoadOpPlugins)
+	dir, ok := di.GetDirective().(space_world.LoadOpPlugins)
 	if !ok || dir.LoadOpPluginsEngineID() != l.r.GetWorldEngineID() {
 		return nil, nil
 	}

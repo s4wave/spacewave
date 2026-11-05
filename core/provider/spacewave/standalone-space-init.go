@@ -11,7 +11,7 @@ import (
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
 	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
@@ -140,11 +140,11 @@ func buildInitialWorldStateData(seedWorldHead bool) ([]byte, error) {
 	if !seedWorldHead {
 		return nil, nil
 	}
-	initOp, err := sobject_world_engine.NewInitWorldOp(nil)
+	initOp, err := space_world.NewInitWorldOp(nil)
 	if err != nil {
 		return nil, err
 	}
-	state, err := sobject_world_engine.BuildInitialInnerState(initOp)
+	state, err := space_world.BuildInitialInnerState(initOp)
 	if err != nil {
 		return nil, err
 	}
