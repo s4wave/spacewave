@@ -25,9 +25,12 @@ const replayCursorOperations = 32
 // last, which replay computes again from the checkpoint if it needs them. The
 // driver goroutine calls it.
 func (a *Adapter) maybeSaveCursor(ctx context.Context) error {
-	// Wait for enough positions or pages.
+	// Wait for enough positions or pages; a transient replay saves nothing.
 	r := a.replay
 	full := a.pages.Full()
+	if a.opts.transient {
+		return nil
+	}
 	if len(r.positions) == 0 || (!full && len(r.positions)-r.saved < replayCursorOperations) {
 		return nil
 	}

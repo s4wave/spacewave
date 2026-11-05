@@ -9,7 +9,7 @@ import (
 	"github.com/aperturerobotics/util/broadcast"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
@@ -30,10 +30,10 @@ func TestJoinViaInviteStaticUDP(t *testing.T) {
 	// path between them, each with a World engine.
 	ownerTb, _, owner, ownerSession, releaseOwner := setupProviderAndSession(ctx, t)
 	t.Cleanup(releaseOwner)
-	ownerTb.StaticResolver.AddFactory(sobject_world_engine.NewFactory(ownerTb.Bus))
+	ownerTb.StaticResolver.AddFactory(space_world.NewFactory(ownerTb.Bus, space_world.OpTypes{}))
 	readerTb, _, reader, readerSession, releaseReader := setupProviderAndSession(ctx, t)
 	t.Cleanup(releaseReader)
-	readerTb.StaticResolver.AddFactory(sobject_world_engine.NewFactory(readerTb.Bus))
+	readerTb.StaticResolver.AddFactory(space_world.NewFactory(readerTb.Bus, space_world.OpTypes{}))
 
 	// The owner creates the Space it invites the reader's Session to.
 	ref, err := owner.CreateSharedObject(ctx, "static-udp", &sobject.SharedObjectMeta{BodyType: "space"}, "", "")
@@ -118,7 +118,7 @@ func TestJoinViaInviteStaticUDP(t *testing.T) {
 
 	// The reader's World engine refuses a write transaction, since every
 	// replay would reject the operation it commits.
-	eng, engRef, err := world.StartEngine(ctx, readerTb.Bus, sobject_world_engine.NewConfig("static-udp-world", joinedRef), nil)
+	eng, engRef, err := world.StartEngine(ctx, readerTb.Bus, space_world.NewConfig("static-udp-world", joinedRef), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

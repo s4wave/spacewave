@@ -17,8 +17,8 @@ type FoldOutcome struct {
 	Reason string
 }
 
-// FoldResult is the state of a non-World shared object after replaying its
-// operation set from the checkpoint.
+// FoldResult is the state of a shared object folded without a Body, after
+// replaying its operation set from the checkpoint.
 type FoldResult struct {
 	// StateData is the decoded state after the last placed operation.
 	StateData []byte

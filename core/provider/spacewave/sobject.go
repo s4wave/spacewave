@@ -39,6 +39,8 @@ type SharedObject struct {
 	privKey crypto.PrivKey
 	// localPid identifies the local participant.
 	localPid peer.ID
+	// body drives the attached body for the mount's lifetime.
+	body *sobject.BodyHost
 }
 
 // GetBus returns the bus used for the shared object.
@@ -83,20 +85,6 @@ func (s *SharedObject) AccessLocalStateStore(ctx context.Context, storeID string
 	return store, func() { stop() }, nil
 }
 
-// AccessPublicationRetention retains completion proofs for cloud-bound graphs.
-func (s *SharedObject) AccessPublicationRetention(ctx context.Context) (kvtx.Store, func(), error) {
-	// Lock the cloud block store's retention store for the caller.
-	store, ok := s.blkStore.(*BlockStore)
-	if !ok || store.retention == nil {
-		return nil, nil, errors.New("cloud block retention unavailable")
-	}
-	release, err := store.retention.mu.Lock(ctx)
-	if err != nil {
-		return nil, nil, err
-	}
-	return store.retention.store, release, nil
-}
-
 // GetSharedObjectState returns a snapshot of the shared object state.
 func (s *SharedObject) GetSharedObjectState(ctx context.Context) (sobject.SharedObjectStateSnapshot, error) {
 	// Wait for the host's first accepted state.
@@ -129,37 +117,23 @@ func (s *SharedObject) AccessSharedObjectHealth(ctx context.Context, released fu
 	return s.tkr.a.AccessSharedObjectHealth(ctx, ref, released)
 }
 
-// SetRejectedEdits shows edits in the health as this device's edits that replay
-// no longer applies.
-func (s *SharedObject) SetRejectedEdits(edits []*sobject.SORejectedEdit) {
+// showReplay shows in the health what the body driver reports of this
+// device's replay: its revoked edits, a checkpoint whose state differs from
+// the replayed one, and the edits the sequencer has not placed.
+func (s *SharedObject) showReplay(r *sobject.BodyReport) {
 	if s.tkr.healthCtr == nil {
 		return
 	}
 	s.tkr.healthCtr.SwapValue(func(health *sobject.SharedObjectHealth) *sobject.SharedObjectHealth {
-		return health.WithRejectedEdits(edits)
+		return health.WithRejectedEdits(r.RejectedEdits).WithCheckpointMismatch(r.CheckpointMismatch).WithUnorderedCount(r.Unordered)
 	})
 }
 
-// SetCheckpointMismatch shows mismatch in the health as a checkpoint whose
-// World differs from the World this device replayed.
-func (s *SharedObject) SetCheckpointMismatch(mismatch *sobject.SOCheckpointMismatch) {
-	if s.tkr.healthCtr == nil {
-		return
-	}
-	s.tkr.healthCtr.SwapValue(func(health *sobject.SharedObjectHealth) *sobject.SharedObjectHealth {
-		return health.WithCheckpointMismatch(mismatch)
-	})
-}
-
-// SetUnorderedCount shows in the health that n operations wait for the
-// sequencer to place them.
-func (s *SharedObject) SetUnorderedCount(n uint32) {
-	if s.tkr.healthCtr == nil {
-		return
-	}
-	s.tkr.healthCtr.SwapValue(func(health *sobject.SharedObjectHealth) *sobject.SharedObjectHealth {
-		return health.WithUnorderedCount(n)
-	})
+// SetBody attaches the body the SharedObject agrees on until release. The
+// mount drives the body through its replay, signs the checkpoints this device
+// owes and votes in the group's decisions while the body is attached.
+func (s *SharedObject) SetBody(body sobject.Body) func() {
+	return s.body.SetBody(body)
 }
 
 // QueueOperation signs op as the session peer and adds it to the operation
@@ -335,6 +309,9 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 		privKey:  sessionPriv,
 		localPid: sessionPeerID,
 	}
+	so.body = sobject.NewBodyHost(le, so, so.showReplay)
+	so.body.SetSigner(host.GetSOHost(), sessionPriv, t.a.sfs)
+	so.body.SetContext(ctx)
 	defer t.sobjectProm.SetPromise(nil)
 	err = host.execute(ctx, func(ctx context.Context) error {
 		// Restore this peer's membership, then publish the Space.
@@ -1563,7 +1540,6 @@ func (s *SharedObject) GetProviderID() string {
 // _ is a type assertion
 var (
 	_ sobject.SharedObjectHealthAccessor = (*SharedObject)(nil)
-	_ sobject.ReplayReporter             = (*SharedObject)(nil)
 	_ sobject.ProviderSequencer          = (*SharedObject)(nil)
 	_ sobject.SharedObjectProvider       = (*ProviderAccount)(nil)
 	_ sobject.SharedObject               = (*SharedObject)(nil)

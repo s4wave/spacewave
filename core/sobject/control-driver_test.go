@@ -180,7 +180,7 @@ func (v *groupVoter) start(ctx context.Context, t *testing.T) {
 // startLocked runs a new driver while v.mtx is held.
 func (v *groupVoter) startLocked(ctx context.Context, t *testing.T) {
 	// Build a driver with short rounds.
-	c, err := NewControl(logrus.NewEntry(logrus.New()), v.host.host, v.priv, nil)
+	c, err := NewControl(logrus.NewEntry(logrus.New()), v.host.host, v.priv)
 	if err != nil {
 		t.Error(err)
 		return
@@ -556,7 +556,7 @@ func TestGroupControlThreeVotersWaitForAll(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		c, err := NewControl(logrus.NewEntry(logrus.New()), h.host, keys[i], nil)
+		c, err := NewControl(logrus.NewEntry(logrus.New()), h.host, keys[i])
 		if err != nil {
 			t.Fatal(err)
 		}

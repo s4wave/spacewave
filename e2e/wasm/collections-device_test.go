@@ -20,7 +20,7 @@ import (
 	worldop_registry "github.com/s4wave/spacewave/core/resource/worldop/registry"
 	session_controller "github.com/s4wave/spacewave/core/session/controller"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_engine "github.com/s4wave/spacewave/core/space/world/engine"
 	space_objecttypes "github.com/s4wave/spacewave/core/space/world/objecttypes"
 	space_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
@@ -62,7 +62,7 @@ func mountPluginBuildDevice(t *testing.T, ctx context.Context, author *s4wave_se
 
 	// Register the local provider and world engine.
 	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus))
-	tb.StaticResolver.AddFactory(sobject_world_engine.NewFactory(tb.Bus))
+	tb.StaticResolver.AddFactory(space_world.NewFactory(tb.Bus, space_world.OpTypes{}))
 	_, providerRef, err := tb.Bus.AddDirective(ctx, resolver.NewLoadControllerWithConfig(&provider_local.Config{
 		ProviderId: "local", PeerId: tb.Volume.GetPeerID().String(), StorageId: tb.StorageID,
 	}), nil)
@@ -181,8 +181,8 @@ func mountPluginBuildDevice(t *testing.T, ctx context.Context, author *s4wave_se
 	// Start the Space world engine with the Space operations.
 	ref := sobject.NewSharedObjectRef("local", pairedRef.GetProviderResourceRef().GetProviderAccountId(), spaceID, provider_local.SobjectBlockStoreID(spaceID))
 	worldEngine, engineRef, err := world.StartEngine(ctx, tb.Bus,
-		sobject_world_engine.NewConfig("plugin-device-space", ref),
-		sobject_world_engine.NewFactoryWithOpTypes(tb.Bus, space_world_engine.OpTypes))
+		space_world.NewConfig("plugin-device-space", ref),
+		space_world.NewFactory(tb.Bus, space_world_engine.OpTypes))
 	if err != nil {
 		t.Fatal(err)
 	}

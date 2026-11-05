@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ulid"
@@ -16,12 +17,13 @@ import (
 	"github.com/s4wave/spacewave/core/session"
 	session_controller "github.com/s4wave/spacewave/core/session/controller"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/core/space"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
+	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
@@ -467,7 +469,7 @@ func TestAccountPairingExchange(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				_, reverseHead, err := sobject_world_engine.PublishedGraph(ctx, snapshot, space_world_optypes.LookupWorldOp)
+				_, reverseHead, err := space_world.PublishedGraph(ctx, snapshot, space_world_optypes.LookupWorldOp)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -643,8 +645,18 @@ func seedProviderReplicaPayload(ctx context.Context, t *testing.T, fixture *Prov
 		t.Fatal(err)
 	}
 
-	// Build a World over the store that names the root as an object.
-	cursor := bucket_lookup.NewCursor(ctx, fixture.t.p.b, fixture.le, fixture.t.p.sfs, store, nil, &bucket.ObjectRef{}, nil, nil)
+	// Build a World over the store, under a Space World transform, that names
+	// the root as an object.
+	initOp, err := space_world.NewInitWorldOp(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	conf := initOp.GetTransformConf()
+	worldXfrm, err := block_transform.NewTransformer(controller.ConstructOpts{Logger: fixture.le}, fixture.t.p.sfs, conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cursor := bucket_lookup.NewCursor(ctx, fixture.t.p.b, fixture.le, fixture.t.p.sfs, store, worldXfrm, &bucket.ObjectRef{TransformConf: conf}, nil, conf)
 	defer cursor.Release()
 	ws, err := world_block.BuildWorldStateFromCursor(ctx, fixture.le, true, cursor, world.NewWorldStorageFromCursor(cursor), nil, false)
 	if err != nil {
@@ -666,7 +678,7 @@ func seedProviderReplicaPayload(ctx context.Context, t *testing.T, fixture *Prov
 	if err := ws.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
-	state, err := (&sobject_world_engine.InnerState{HeadRef: &bucket.ObjectRef{RootRef: ws.GetRootRef()}}).MarshalVT()
+	state, err := (&space_world.InnerState{HeadRef: &bucket.ObjectRef{RootRef: ws.GetRootRef(), TransformConf: conf}}).MarshalVT()
 	if err != nil {
 		t.Fatal(err)
 	}

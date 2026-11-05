@@ -10,7 +10,7 @@ import (
 	provider_migration "github.com/s4wave/spacewave/core/provider/migration"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 )
 
 // ImportMigrationObject preserves the resource ID, signed history, and accepted
@@ -54,7 +54,7 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, source prov
 	}
 
 	// Checkpoint a Space so the destination needs only the blocks of its World.
-	var world *sobject_world_engine.InnerState
+	var world *space_world.InnerState
 	if entry.GetMeta().GetBodyType() == "space" {
 		state, world, err = provider_migration.Checkpoint(ctx, a.le, a.p.b, a.p.sfs, entry.GetRef(), object, state)
 		if err != nil {

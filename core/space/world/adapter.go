@@ -5,6 +5,7 @@ import (
 	"context"
 	"slices"
 	"sync"
+	"time"
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/csync"
@@ -145,7 +146,7 @@ func NewAdapter(le *logrus.Entry, so sobject.SharedObject, opts AdapterOptions) 
 	if opts.StepFactorySet == nil {
 		return nil, errors.New("space world adapter requires a step factory set")
 	}
-	if opts.MaxPendingBytes == 0 {
+	if opts.MaxPendingBytes == 0 && !opts.transient {
 		opts.MaxPendingBytes = defaultMaxPendingBytes
 	}
 
@@ -174,6 +175,10 @@ func NewAdapter(le *logrus.Entry, so sobject.SharedObject, opts AdapterOptions) 
 	return a, nil
 }
 
+// engineIdleTimeout bounds the wait of a retired engine for the transactions
+// open on it before it closes them.
+const engineIdleTimeout = 30 * time.Second
+
 // Execute serves the Space World until ctx ends: it reads the held roots and
 // the saved cursor, runs the operation queue and the body driver, initializes
 // an empty World as an owner, and builds the engine at the installed head.
@@ -189,14 +194,12 @@ func (a *Adapter) Execute(ctx context.Context) error {
 		return err
 	}
 
-	// Run the queue and the driver.
+	// Run the queue, and attach the adapter to the SharedObject as its body,
+	// which the SharedObject's driver replays the agreed order into.
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error { return a.queue.execute(ctx, a.queued) })
-	driver := sobject.NewBodyDriver(a.le, a.so, a, a.report)
-	if host, ok := a.so.(sobject.StateHost); ok {
-		driver.SetCheckpointer(host.GetSOHost(), host.GetPrivKey(), a.opts.StepFactorySet)
-	}
-	g.Go(func() error { return driver.Execute(ctx) })
+	detach := a.so.SetBody(a)
+	defer detach()
 	g.Go(func() error { return a.executeStorageReclaim(ctx) })
 
 	// Serve the engine once the World is initialized.
@@ -207,9 +210,15 @@ func (a *Adapter) Execute(ctx context.Context) error {
 			return err
 		}
 
-		// Retire it when the run ends, then close it.
+		// Retire it when the run ends, let the transactions open on it
+		// finish, then close it.
 		<-ctx.Done()
 		a.retire()
+		idleCtx, cancel := context.WithTimeout(context.Background(), engineIdleTimeout)
+		defer cancel()
+		if err := engine.WaitIdle(idleCtx); err != nil {
+			a.le.WithError(err).Warn("closing the World engine with transactions open")
+		}
 		return engine.close()
 	})
 	err := g.Wait()
@@ -337,7 +346,9 @@ func (a *Adapter) serve(ctx context.Context) (*Engine, error) {
 		if !state.GetHeadRef().GetEmpty() && reached {
 			break
 		}
-		if installed && !queued {
+
+		// Initialize a World that replay of the opening order left empty.
+		if installed && reached && !queued {
 			init, err := a.initOp(ctx)
 			if err != nil {
 				return nil, err
@@ -888,12 +899,16 @@ func (a *Adapter) installHead(ctx context.Context) error {
 			}
 		}
 
-		// Move the head when it changed.
+		// Move the head when it changed. A refused position moves only the
+		// place, which serve waits on.
+		moved := a.headHeight != height || a.headPositions != positions
 		a.headHeight, a.headPositions = height, positions
 		changed = !state.EqualVT(a.headState) || a.head.Seqno != seqno
 		if changed {
 			prevState = a.headState
 			a.head, a.headState = head, state
+		}
+		if changed || moved {
 			broadcast()
 		}
 		watchers = slices.Clone(a.watchers)
@@ -934,6 +949,11 @@ func (a *Adapter) moveRoots(ctx context.Context, entries []*block.PutBatchEntry,
 
 // moveRootsLocked is moveRoots for a caller holding rootMtx.
 func (a *Adapter) moveRootsLocked(ctx context.Context, entries []*block.PutBatchEntry, roots ...block.NamedRoot) error {
+	// A transient replay holds nothing.
+	if a.opts.transient {
+		return nil
+	}
+
 	// Move only the roots that change, from what they hold.
 	moves := make([]block.NamedRoot, 0, len(roots))
 	for _, root := range roots {
@@ -1093,21 +1113,6 @@ func (a *Adapter) sweep() {
 		}
 	})
 	a.pages.Sweep(live)
-}
-
-// report shows what the driver reports of the replay in the SharedObject's
-// health.
-func (a *Adapter) report(r *sobject.BodyReport) {
-	// Show it only on a SharedObject that reports replay.
-	reporter, ok := a.so.(sobject.ReplayReporter)
-	if !ok {
-		return
-	}
-
-	// Replace each part.
-	reporter.SetRejectedEdits(r.RejectedEdits)
-	reporter.SetCheckpointMismatch(r.CheckpointMismatch)
-	reporter.SetUnorderedCount(r.Unordered)
 }
 
 // buildLookupOp composes the built-in operations with the bus lookup.

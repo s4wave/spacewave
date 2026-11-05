@@ -13,7 +13,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/pkg/errors"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
@@ -261,7 +261,7 @@ func (r *refRepair) walkSpace(ctx context.Context, sc spaceReplayCursor) error {
 
 	// Collect the replay span the bucket holds as a named root.
 	var roots []refRepairNode
-	span, err := r.vol.GetBucketRoot(ctx, bucketID, sobject_world_engine.ReplaySpanRootName)
+	span, err := r.vol.GetBucketRoot(ctx, bucketID, legacyReplaySpanRootName)
 	if err != nil {
 		return err
 	}
@@ -271,7 +271,7 @@ func (r *refRepair) walkSpace(ctx context.Context, sc spaceReplayCursor) error {
 
 	// Collect the cursor's Worlds with their retained roots, and the World and
 	// payloads of each outcome.
-	for _, state := range []*sobject_world_engine.InnerState{sc.cursor.GetBase(), sc.cursor.GetHead()} {
+	for _, state := range []*space_world.InnerState{sc.cursor.GetBase(), sc.cursor.GetHead()} {
 		head := state.GetHeadRef()
 		if head == nil {
 			continue
@@ -404,7 +404,7 @@ func (r *refRepair) read(ctx context.Context, n refRepairNode) (refRepairRead, e
 	if err != nil {
 		return rd, err
 	}
-	if span, ok := rd.blk.(*sobject_world_engine.ReplaySpan); ok {
+	if span, ok := rd.blk.(*space_world.ReplaySpan); ok {
 		rd.refs = slices.Concat(span.GetWorlds(), span.GetPayloads())
 	}
 	listed, err := r.vol.HasChildLists(ctx, []*block.BlockRef{n.ref})
@@ -461,11 +461,15 @@ func (r *refRepair) verify(ctx context.Context, ref *block.BlockRef, refs []*blo
 	return r.rebuild.Verify(ctx, ref, refs)
 }
 
+// legacyReplaySpanRootName names the root a Space engine before the adapter
+// held its replay span under.
+const legacyReplaySpanRootName = "replay-span"
+
 // decodeRefRepairNode decodes the stored bytes of n by its type.
 func decodeRefRepairNode(n refRepairNode, data []byte) (any, error) {
 	// The replay span is a raw protobuf block.
 	if n.ctor == nil {
-		span := &sobject_world_engine.ReplaySpan{}
+		span := &space_world.ReplaySpan{}
 		return span, span.UnmarshalVT(data)
 	}
 
@@ -497,7 +501,7 @@ func (r *refRepair) children(ctx context.Context, blk any, n refRepairNode, valu
 	// The replay span and Objects name their children's types themselves.
 	// Only tree blocks pass the tree's value constructor down.
 	switch b := blk.(type) {
-	case *sobject_world_engine.ReplaySpan:
+	case *space_world.ReplaySpan:
 		return r.spanChildren(b)
 	case *world_block.Object:
 		return r.objectRoot(ctx, b, n)
@@ -581,7 +585,7 @@ func treeValueCtor(blk any, id uint32, ref *block.BlockRef, values block.Ctor) b
 
 // spanChildren returns the Worlds and payload blobs of a replay span, which
 // the Space's World transform encodes.
-func (r *refRepair) spanChildren(span *sobject_world_engine.ReplaySpan) ([]refRepairNode, error) {
+func (r *refRepair) spanChildren(span *space_world.ReplaySpan) ([]refRepairNode, error) {
 	// Queue each World of the span.
 	out := make([]refRepairNode, 0, len(span.GetWorlds())+len(span.GetPayloads()))
 	for _, ref := range span.GetWorlds() {

@@ -1,4 +1,4 @@
-package sobject_world_engine
+package space_world
 
 import (
 	"context"
@@ -10,26 +10,6 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/kvtx"
 )
-
-// retainPublicationWorld fences dependencies for asynchronously persisted providers.
-func (c *Controller) retainPublicationWorld(ctx context.Context, so sobject.SharedObject, head *bucket.ObjectRef) error {
-	// Skip objects without publication retention or an empty head.
-	retention, ok := so.(sobject.PublicationRetention)
-	if !ok {
-		return nil
-	}
-	if head.GetRootRef().GetEmpty() {
-		return nil
-	}
-
-	// Retain the World into the publication's local retention store.
-	local, release, err := retention.AccessPublicationRetention(ctx)
-	if err != nil {
-		return err
-	}
-	defer release()
-	return RetainWorld(ctx, so, head, local, nil)
-}
 
 // RetainOptions adjusts a RetainWorld copy.
 type RetainOptions struct {
@@ -148,11 +128,7 @@ func storeRootBlock(ctx context.Context, so sobject.SharedObject, root *block.Bl
 	}
 	kept := len(existed) != 0 && existed[0]
 
-	// The caller moves a named root next. A store ordered with the
-	// SharedObject state never makes that write durable before this one.
-	if sobject.QueueOrdersBlockWrites(so) {
-		return kept, nil
-	}
+	// The caller moves a named root next, after this write is durable.
 	_, err = store.Sync(ctx)
 	return kept, err
 }

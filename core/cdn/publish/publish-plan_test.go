@@ -14,7 +14,7 @@ import (
 	spacewave_provider "github.com/s4wave/spacewave/core/provider/spacewave"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/packfile"
@@ -238,7 +238,7 @@ func testPublishCheckpoint(t *testing.T, spaceID string, stateData []byte) *sobj
 // is headRef.
 func testPublishHeadCheckpoint(t *testing.T, spaceID string, headRef *bucket.ObjectRef) *sobject.SOCheckpoint {
 	t.Helper()
-	stateData, err := (&sobject_world_engine.InnerState{HeadRef: headRef}).MarshalVT()
+	stateData, err := (&space_world.InnerState{HeadRef: headRef}).MarshalVT()
 	if err != nil {
 		t.Fatalf("MarshalVT() error = %v", err)
 	}

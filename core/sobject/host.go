@@ -93,15 +93,6 @@ func (s *SOHost) GetSOStateCtr(ctx context.Context, released func()) (ccontainer
 	return s.soRc.ResolveWithReleased(ctx, released)
 }
 
-// GetAdmittedSOStateCtr watches the admitted shared object state, which
-// leads the state of GetSOStateCtr while admitted publications are pending.
-func (s *SOHost) GetAdmittedSOStateCtr(ctx context.Context, released func()) (ccontainer.Watchable[*SOState], func(), error) {
-	if s.syncFuncs.Admitted == nil {
-		return s.GetSOStateCtr(ctx, released)
-	}
-	return s.syncFuncs.Admitted(ctx, s.sharedObjectID, released)
-}
-
 // GetHostState returns a snapshot of the current SOState.
 // Its signed operations are immutable and shared with the held state.
 func (s *SOHost) GetHostState(ctx context.Context) (*SOState, error) {
@@ -586,8 +577,7 @@ func retryConfigChange[T any](ctx context.Context, host *SOHost, change func() (
 // AddLocalOperation signs opData as the owner of privKey and adds it to the
 // operation set, encoded with the key of the epoch the operation names. It
 // returns the operation's local ID and nonce once the state holding it is
-// written, or admitted when ctx carries a PublishStateFunc. Empty opData
-// writes an acknowledgment.
+// written. Empty opData writes an acknowledgment.
 func (s *SOHost) AddLocalOperation(
 	ctx context.Context,
 	le *logrus.Entry,

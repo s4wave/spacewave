@@ -11,7 +11,7 @@ const (
 	MaxInnerDataSize = 1024 * 1024 // 1 MB
 
 	// MaxBatchSize is the size in bytes at which a long-running write commits
-	// its World batch and continues in the next. It is half of MaxInnerDataSize,
+	// its batch and continues in the next. It is half of MaxInnerDataSize,
 	// leaving room for the entries the size accounting does not count and for
 	// the operation envelope.
 	MaxBatchSize = MaxInnerDataSize / 2

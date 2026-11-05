@@ -22,7 +22,7 @@ import (
 	"github.com/s4wave/spacewave/core/cdn"
 	cdn_bstore "github.com/s4wave/spacewave/core/cdn/bstore"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_bucket "github.com/s4wave/spacewave/db/block/store/bucket"
@@ -131,7 +131,7 @@ func encodeRootPointer(t *testing.T, ptr *cdn.CdnRootPointer) []byte {
 func testHeadCheckpoint(t *testing.T, spaceID string) *sobject.SOCheckpoint {
 	// Sign a checkpoint whose World has an empty head.
 	t.Helper()
-	state, err := (&sobject_world_engine.InnerState{HeadRef: &bucket.ObjectRef{}}).MarshalVT()
+	state, err := (&space_world.InnerState{HeadRef: &bucket.ObjectRef{}}).MarshalVT()
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -9,7 +9,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -143,7 +143,7 @@ func newReleaseWorldProbeEngine(
 	if err != nil {
 		t.Fatalf("decode CDN checkpoint: %v", err)
 	}
-	inner := &sobject_world_engine.InnerState{}
+	inner := &space_world.InnerState{}
 	if err := inner.UnmarshalVT(checkpoint.GetStateData()); err != nil {
 		t.Fatalf("decode CDN world head: %v", err)
 	}

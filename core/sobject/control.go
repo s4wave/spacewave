@@ -19,7 +19,7 @@ import (
 const MaxVotingWeight = 1 << 16
 
 // maxControlValueSize bounds the value a control message carries: a
-// checkpoint body with its World, or a control record.
+// checkpoint body with its state, or a control record.
 const maxControlValueSize = MaxStateDataSize + 1024*1024
 
 // soControlMessageHashDomain separates control message hashes from other

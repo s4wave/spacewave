@@ -180,6 +180,7 @@ func (c *Controller) mount(ctx context.Context) error {
 	// Represent the published CDN Space without creating authored state.
 	so, err := cdn_sharedobject.NewCdnSharedObject(cdn_sharedobject.CdnSharedObjectOptions{
 		SpaceID:    c.conf.GetSpaceId(),
+		Logger:     c.le,
 		BlockStore: store,
 	})
 	if err != nil {

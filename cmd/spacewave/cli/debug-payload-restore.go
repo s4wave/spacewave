@@ -16,7 +16,7 @@ import (
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/pkg/errors"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
 	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
@@ -437,7 +437,7 @@ type spaceReplayCursor struct {
 	// spaceID is the SharedObject the cursor replays.
 	spaceID string
 	// cursor is the decoded replay.
-	cursor *sobject_world_engine.ReplayCursor
+	cursor *space_world.ReplayCursor
 }
 
 // world returns the World the cursor last replayed to, or its base when it
@@ -466,11 +466,14 @@ func readReplayCursors(ctx context.Context, db *s4db.DB, spaceID string) ([]spac
 	// Decode each cursor key of the selected Spaces.
 	var cursors []spaceReplayCursor
 	err = tx.ScanPrefix(ctx, prefix, func(k, v []byte) error {
+		// Select the cursor keys of the chosen Spaces.
 		id, ok := parseReplayCursorKey(k)
 		if !ok || (spaceID != "" && id != spaceID) {
 			return nil
 		}
-		cursor := &sobject_world_engine.ReplayCursor{}
+
+		// Decode the cursor.
+		cursor := &space_world.ReplayCursor{}
 		if err := cursor.UnmarshalVT(v); err != nil {
 			return errors.Wrapf(err, "decode replay cursor of space %s", id)
 		}
@@ -481,10 +484,11 @@ func readReplayCursors(ctx context.Context, db *s4db.DB, spaceID string) ([]spac
 }
 
 // parseReplayCursorKey returns the Space ID of a replay cursor key, which ends
-// in so/<id>/ls/world-replay/cursor or so-local/<id>/world-replay/cursor.
+// in so/<id>/ls/space-world-replay/cursor or
+// so-local/<id>/space-world-replay/cursor.
 func parseReplayCursorKey(key []byte) (string, bool) {
 	// Strip the cursor suffix and the local provider's state segment.
-	rest, ok := bytes.CutSuffix(key, []byte("/world-replay/cursor"))
+	rest, ok := bytes.CutSuffix(key, []byte("/space-world-replay/cursor"))
 	if !ok {
 		return "", false
 	}

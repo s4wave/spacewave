@@ -19,7 +19,6 @@ import (
 	resource_provider "github.com/s4wave/spacewave/core/resource/provider"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/core/space"
 	space_sobject "github.com/s4wave/spacewave/core/space/sobject"
 	space_world "github.com/s4wave/spacewave/core/space/world"
@@ -42,7 +41,7 @@ func TestCloudSpaceGuestDevice(t *testing.T) {
 	// Mount the real cloud account against the isolated coordinator.
 	ctx, cancel := context.WithTimeout(env.ctx, 90*time.Second)
 	t.Cleanup(cancel)
-	env.tb.StaticResolver.AddFactory(sobject_world_engine.NewFactory(env.tb.Bus))
+	env.tb.StaticResolver.AddFactory(space_world.NewFactory(env.tb.Bus, space_world.OpTypes{}))
 	env.tb.StaticResolver.AddFactory(space_sobject.NewFactory(env.tb.Bus))
 	_, controller, err := env.tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&space_sobject.Config{}), nil)
 	if err != nil {

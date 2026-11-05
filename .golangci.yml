@@ -57,6 +57,18 @@ linters:
             - '**/runtimeenv/**'
           allow:
             - $gostd
+        sobject-layering:
+          list-mode: lax
+          files:
+            - '**/core/sobject/**'
+            - '!$test'
+          deny:
+            - pkg: github.com/s4wave/spacewave/db/world
+              desc: >-
+                The SharedObject agrees on an opaque body through sobject.Body;
+                World code lives with the Space adapter in core/space/world.
+            - pkg: github.com/s4wave/spacewave/sdk
+              desc: The consensus packages build on core and db primitives, never the SDK.
         db-layering:
           list-mode: lax
           files:

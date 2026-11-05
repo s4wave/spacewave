@@ -32,10 +32,10 @@ import (
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	resource_root "github.com/s4wave/spacewave/core/resource/root"
 	session_controller "github.com/s4wave/spacewave/core/session/controller"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	space_http_download "github.com/s4wave/spacewave/core/space/http/download"
 	space_http_export "github.com/s4wave/spacewave/core/space/http/export"
 	space_sobject "github.com/s4wave/spacewave/core/space/sobject"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_blocktype "github.com/s4wave/spacewave/core/space/world/blocktype"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
@@ -158,7 +158,7 @@ func (c *Controller) buildApp(ctx context.Context, binding resource_root.AppStor
 		space_http_export.NewFactory(child),
 		session_controller.NewFactory(child),
 		space_sobject.NewFactory(child),
-		sobject_world_engine.NewFactory(child),
+		space_world.NewFactory(child, space_world.OpTypes{}),
 		space_world_optypes.NewFactory(child),
 		space_world_blocktype.NewFactory(child),
 		plugin_space.NewFactory(child, plugin_space.WithManifestSource(c.GetBus())),

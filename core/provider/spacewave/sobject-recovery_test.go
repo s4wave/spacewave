@@ -11,8 +11,8 @@ import (
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/core/space"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 )
 
@@ -107,7 +107,7 @@ func TestProviderAccountCreateSpaceSeedsWorldHead(t *testing.T) {
 		postedEpoch,
 		postedCheckpoint,
 	)
-	worldState := &sobject_world_engine.InnerState{}
+	worldState := &space_world.InnerState{}
 	if err := worldState.UnmarshalVT(stateData); err != nil {
 		t.Fatalf("unmarshal world state: %v", err)
 	}

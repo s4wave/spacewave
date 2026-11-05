@@ -20,7 +20,7 @@ import (
 	provider "github.com/s4wave/spacewave/core/provider"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/db/block"
 	block_store_bucket "github.com/s4wave/spacewave/db/block/store/bucket"
 	bucket_lookup_concurrent "github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
@@ -77,7 +77,7 @@ func OpenStore(ctx context.Context, le *logrus.Entry, conf *StoreConfig, create 
 	sr.AddFactory(storage_volume.NewFactory(b))
 	sr.AddFactory(block_store_bucket.NewFactory(b))
 	sr.AddFactory(provider_local.NewFactory(b))
-	sr.AddFactory(sobject_world_engine.NewFactory(b))
+	sr.AddFactory(space_world.NewFactory(b, space_world.OpTypes{}))
 
 	// Start the node and configset controllers.
 	for _, c := range []config.Config{&node_controller.Config{}, &configset_controller.Config{}} {
@@ -141,7 +141,7 @@ func OpenStore(ctx context.Context, le *logrus.Entry, conf *StoreConfig, create 
 	}
 
 	// Serve the World from the SharedObject.
-	eng, engRef, err := world.StartEngine(ctx, b, sobject_world_engine.NewConfig(conf.EngineID, ref), nil)
+	eng, engRef, err := world.StartEngine(ctx, b, space_world.NewConfig(conf.EngineID, ref), nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "start world engine")
 	}

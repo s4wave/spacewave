@@ -12,7 +12,7 @@ import (
 	provider_migration "github.com/s4wave/spacewave/core/provider/migration"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
 )
@@ -207,7 +207,7 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, _ provider_
 
 	// Checkpoint and copy a Space.
 	if entry.GetMeta().GetBodyType() == "space" {
-		var world *sobject_world_engine.InnerState
+		var world *space_world.InnerState
 		state, world, err = provider_migration.Checkpoint(ctx, a.le, a.t.p.b, a.t.p.sfs, entry.GetRef(), object, state)
 		if err != nil {
 			return err

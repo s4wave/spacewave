@@ -17,8 +17,8 @@ import (
 	"github.com/s4wave/spacewave/net/util/confparse"
 )
 
-// ProcessOpsFunc applies decoded operations to the state of a non-World
-// shared object. Replay calls it with one operation at a time.
+// ProcessOpsFunc applies decoded operations to the state of a shared object
+// folded without a Body. Replay calls it with one operation at a time.
 // If rawNextStateData is nil, the state is unchanged.
 type ProcessOpsFunc = func(
 	ctx context.Context,
@@ -55,34 +55,17 @@ type SharedObject interface {
 	AccessSharedObjectState(ctx context.Context, released func()) (ccontainer.Watchable[SharedObjectStateSnapshot], func(), error)
 
 	// QueueOperation signs op as the local peer and adds it to the operation
-	// set. Returns the local operation id once the local state holds it. When
-	// the operation was admitted to a publication whose receipt then failed,
-	// returns the local operation id with the publication's error.
+	// set. Returns the local operation id once the local state holds it
+	// durably.
 	QueueOperation(ctx context.Context, op []byte) (string, error)
-}
 
-// PublicationRetention is implemented by providers that publish local state
-// asynchronously. Its store retains graph-completion proofs for the mounted
-// block store; World consumers fence all dependencies before accepting a write.
-type PublicationRetention interface {
-	// AccessPublicationRetention returns the proof store and its release.
-	AccessPublicationRetention(context.Context) (kvtx.Store, func(), error)
-}
-
-// OrderedQueue is implemented by a SharedObject whose operation queue write
-// shares one ordered store with its block store: the queue write never becomes
-// durable before an earlier block write. A writer may then queue an operation
-// after writing its blocks without a block store Sync in between.
-type OrderedQueue interface {
-	// QueueOrdersBlockWrites reports whether queueing orders block writes.
-	QueueOrdersBlockWrites() bool
-}
-
-// QueueOrdersBlockWrites reports whether so's queue write is ordered after its
-// earlier block writes.
-func QueueOrdersBlockWrites(so SharedObject) bool {
-	ordered, ok := so.(OrderedQueue)
-	return ok && ordered.QueueOrdersBlockWrites()
+	// SetBody attaches the body the SharedObject agrees on, replacing any
+	// attached body, until release. The SharedObject replays its agreed order
+	// into the body through a BodyDriver while the body is attached, and a
+	// host that signs checkpoints asks the body for the state each one
+	// carries. release detaches the body only while it is still the attached
+	// one, so a body that replaced it stays attached.
+	SetBody(body Body) (release func())
 }
 
 // SharedObjectHealthAccessor exposes SharedObject health directly from a mounted object.
@@ -92,36 +75,16 @@ type SharedObjectHealthAccessor interface {
 	AccessSharedObjectHealth(ctx context.Context, released func()) (ccontainer.Watchable[*SharedObjectHealth], func(), error)
 }
 
-// ReplayReporter is implemented by a SharedObject that shows the results of
-// its device's replay in its health: rejected edits, a wrong checkpoint and
-// the operations not yet in order. The World engine reports them after each
-// replay it installs.
-type ReplayReporter interface {
-	// SetRejectedEdits replaces the rejected edits in the health.
-	SetRejectedEdits(edits []*SORejectedEdit)
-	// SetCheckpointMismatch replaces the checkpoint mismatch in the health.
-	SetCheckpointMismatch(mismatch *SOCheckpointMismatch)
-	// SetUnorderedCount replaces the count of operations the sequencer has not
-	// placed in the health.
-	SetUnorderedCount(n uint32)
-}
+// InviteHost is an optional interface on SharedObject implementations that
+// hold the state on this device and support invite creation and management.
+// Both local and spacewave providers implement this.
+type InviteHost interface {
+	InviteMutator
 
-// StateHost is an optional interface on SharedObject implementations that hold
-// the state on this device. The World engine checkpoints and votes in the
-// group's decisions through it.
-type StateHost interface {
 	// GetSOHost returns the SOHost holding the state.
 	GetSOHost() *SOHost
 	// GetPrivKey returns the private key of the local participant.
 	GetPrivKey() crypto.PrivKey
-}
-
-// InviteHost is an optional interface on SharedObject implementations that
-// support invite creation and management. Both local and spacewave providers
-// implement this.
-type InviteHost interface {
-	StateHost
-	InviteMutator
 
 	// GetProviderID returns the provider identifier for the invite message.
 	GetProviderID() string

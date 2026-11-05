@@ -15,7 +15,7 @@ import (
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_engine "github.com/s4wave/spacewave/core/space/world/engine"
 	"github.com/s4wave/spacewave/core/space/world/optypes"
 	"github.com/s4wave/spacewave/db/block"
@@ -49,7 +49,7 @@ func testChatResourceCrossSessionAppend(t *testing.T, transactionID string) {
 
 	// Start the local provider that hosts both Sessions.
 	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus))
-	tb.StaticResolver.AddFactory(sobject_world_engine.NewFactory(tb.Bus))
+	tb.StaticResolver.AddFactory(space_world.NewFactory(tb.Bus, space_world.OpTypes{}))
 	_, providerController, err := tb.Bus.AddDirective(ctx, resolver.NewLoadControllerWithConfig(&provider_local.Config{
 		ProviderId: "local", PeerId: tb.Volume.GetPeerID().String(), StorageId: tb.StorageID,
 	}), nil)
@@ -126,7 +126,7 @@ func testChatResourceCrossSessionAppend(t *testing.T, transactionID string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	head, err := sobject_world_engine.ReplayWorld(ctx, tb.Logger, tb.Bus, tb.StepFactorySet, ownerObject, "", space_world_engine.OpTypes, snapshot)
+	head, err := space_world.ReplayWorld(ctx, tb.Logger, tb.Bus, tb.StepFactorySet, ownerObject, "", space_world_engine.OpTypes, snapshot)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -239,13 +239,23 @@ func testChatResourceCrossSessionAppend(t *testing.T, transactionID string) {
 		}, "")
 	}
 
-	// Fence each engine against the accepted SharedObject snapshot before readback.
-	for _, engine := range []world.Engine{ownerEngine, writerEngine} {
-		tx, err := engine.NewTransaction(ctx, true)
-		if err != nil {
-			t.Fatal(err)
+	// Wait for each engine to apply both sends. An engine applies the
+	// operations after its SharedObject state holds them.
+	for _, resource := range []*chat.ChatResource{first, second} {
+		for {
+			info, err := resource.GetChannelInfo(ctx, &chat_rpc.GetChannelInfoRequest{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if info.GetMessageCount() == 3 {
+				break
+			}
+			select {
+			case <-ctx.Done():
+				t.Fatal(ctx.Err())
+			case <-time.After(20 * time.Millisecond):
+			}
 		}
-		tx.Discard()
 	}
 
 	// Both replicas place the concurrent sends after the seed in one order,
@@ -382,7 +392,7 @@ func mountChatEngine(t *testing.T, ctx context.Context, tb *testbed.Testbed, ref
 	t.Cleanup(releaseLookup)
 
 	// Keep the engine controller mounted until all chat reads and writes finish.
-	engine, release, err := world.StartEngine(ctx, tb.Bus, sobject_world_engine.NewConfig(id, ref), nil)
+	engine, release, err := world.StartEngine(ctx, tb.Bus, space_world.NewConfig(id, ref), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -392,16 +402,11 @@ func mountChatEngine(t *testing.T, ctx context.Context, tb *testbed.Testbed, ref
 
 // waitOperationSet waits until the operation set the World engine of object
 // replays satisfies cond and returns the nonce of author's latest operation in
-// it. The engine replays the admitted state, which the host publishes apart
-// from the durable state, so a durable snapshot can lead what the engine sees.
+// it.
 func waitOperationSet(t *testing.T, ctx context.Context, object sobject.SharedObject, cond func(*sobject.SOOperationSet) bool, author string) uint64 {
-	// Watch the admitted state.
+	// Watch the state.
 	t.Helper()
-	publisher, ok := object.(sobject.StatePublisher)
-	if !ok {
-		t.Fatal("shared object does not publish its admitted state")
-	}
-	states, release, err := publisher.AccessAdmittedState(ctx, nil)
+	states, release, err := object.AccessSharedObjectState(ctx, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

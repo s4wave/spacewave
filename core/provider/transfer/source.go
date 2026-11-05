@@ -6,8 +6,8 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/core/space"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_engine "github.com/s4wave/spacewave/core/space/world/engine"
 	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
@@ -21,7 +21,7 @@ type TransferSource interface {
 	// ReplaySharedObject returns the World of a Space after its last
 	// operation. Replay writes the blocks it creates to the Space's block
 	// store, so it runs before the blocks are copied.
-	ReplaySharedObject(ctx context.Context, le *logrus.Entry, ref *sobject.SharedObjectRef) (*sobject_world_engine.InnerState, error)
+	ReplaySharedObject(ctx context.Context, le *logrus.Entry, ref *sobject.SharedObjectRef) (*space_world.InnerState, error)
 	// GetBlockStore returns the block store ops for a shared object's block store.
 	GetBlockStore(ctx context.Context, ref *sobject.SharedObjectRef) (block.StoreOps, func(), error)
 	// GetBlockRefs returns all block refs tracked for a shared object's block store.
@@ -46,7 +46,7 @@ func replaySharedObject(
 	sfs *block_transform.StepFactorySet,
 	provider sobject.SharedObjectProvider,
 	ref *sobject.SharedObjectRef,
-) (*sobject_world_engine.InnerState, error) {
+) (*space_world.InnerState, error) {
 	// Mount the shared object.
 	so, relSO, err := provider.MountSharedObject(ctx, ref, nil)
 	if err != nil {
@@ -64,5 +64,5 @@ func replaySharedObject(
 	if err != nil {
 		return nil, err
 	}
-	return sobject_world_engine.ReplayWorld(ctx, le, b, sfs, so, space.SpaceEngineId(ref), space_world_engine.OpTypes, snap)
+	return space_world.ReplayWorld(ctx, le, b, sfs, so, space.SpaceEngineId(ref), space_world_engine.OpTypes, snap)
 }

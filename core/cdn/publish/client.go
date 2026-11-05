@@ -9,7 +9,7 @@ import (
 	"github.com/s4wave/spacewave/bldr/util/packedmsg"
 	alpha_cdn "github.com/s4wave/spacewave/core/cdn"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/packfile"
 )
@@ -53,7 +53,7 @@ func decodeCheckpointHeadRef(checkpoint *sobject.SOCheckpoint) (*bucket.ObjectRe
 	if err != nil {
 		return nil, err
 	}
-	innerState := &sobject_world_engine.InnerState{}
+	innerState := &space_world.InnerState{}
 	if err := innerState.UnmarshalVT(inner.GetStateData()); err != nil {
 		return nil, errors.Wrap(err, "unmarshal inner state")
 	}

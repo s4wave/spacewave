@@ -1,13 +1,12 @@
 ---- MODULE ReplayCancellation ----
-\* processApplyTxOpWithEngine and processGraphSettingsStepOp replay against a
-\* transport whose request lifetime may end while the engine context stays live.
-\* A canceled dependency stops the pass; executeWorld's caller replaces it and
-\* replays the same operation. A semantic failure alone may place a rejection.
-\* Existing ReplayPublication models cancellation only as engine retirement,
-\* so it cannot distinguish a retiring transport from a malformed operation.
+\* spaceReplay.applyTx and applyGraphSettingsStep run an operation against a
+\* transport whose request lifetime may end while the adapter stays live. A
+\* canceled dependency stops the pass with an error, never a refusal; the
+\* BodyDriver applies the same operation again on the next state or after a
+\* backoff. A semantic failure alone may place a rejection.
 \* Three operations include one semantic rejection between two valid writes.
 \* One transport restart covers cancellation both before and after a read starts.
-\* Payload transfer, publication durability and ordering are covered separately.
+\* Payload transfer and ordering are covered separately.
 EXTENDS Naturals, FiniteSets
 CONSTANT PropagateCancellation
 VARIABLES phase, nextOp, transport, generation, readGeneration,

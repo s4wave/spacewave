@@ -21,7 +21,6 @@ import (
 	"github.com/s4wave/spacewave/core/resource/space/sharingstate"
 	resource_world "github.com/s4wave/spacewave/core/resource/world"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/core/space"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
@@ -380,7 +379,7 @@ func (r *SpaceResource) SetSpaceBackfill(
 	ctx context.Context,
 	req *s4wave_space.SetSpaceBackfillRequest,
 ) (*s4wave_space.SetSpaceBackfillResponse, error) {
-	err := r.accessBackfill(ctx, func(ctx context.Context, engine sobject_world_engine.BackfillEngine) error {
+	err := r.accessBackfill(ctx, func(ctx context.Context, engine space_world.BackfillEngine) error {
 		return engine.SetBackfill(ctx, req.GetBackfill())
 	})
 	if err != nil {
@@ -396,7 +395,7 @@ func (r *SpaceResource) WatchSpaceBackfill(
 ) error {
 	// Send the choice, then each change. A replaced engine sends its
 	// successor's choice.
-	return r.accessBackfill(strm.Context(), func(ctx context.Context, engine sobject_world_engine.BackfillEngine) error {
+	return r.accessBackfill(strm.Context(), func(ctx context.Context, engine space_world.BackfillEngine) error {
 		choice := engine.GetBackfill()
 		backfill := choice.GetValue()
 		for {
@@ -416,10 +415,10 @@ func (r *SpaceResource) WatchSpaceBackfill(
 // shared object World keeps a backfill choice.
 func (r *SpaceResource) accessBackfill(
 	ctx context.Context,
-	cb func(ctx context.Context, engine sobject_world_engine.BackfillEngine) error,
+	cb func(ctx context.Context, engine space_world.BackfillEngine) error,
 ) error {
 	return world.AccessEngine(ctx, r.space.GetWorldEngine(), func(ctx context.Context, eng world.Engine) error {
-		engine, ok := eng.(sobject_world_engine.BackfillEngine)
+		engine, ok := eng.(space_world.BackfillEngine)
 		if !ok {
 			return errors.New("this Space's World cannot be backfilled")
 		}

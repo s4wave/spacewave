@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/controller"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
@@ -57,11 +57,11 @@ func newRestoreFixture(t *testing.T, preset ...[]byte) *restoreFixture {
 	}
 
 	// Build a World state that names a fresh transform.
-	initOp, err := sobject_world_engine.NewInitWorldOp(nil)
+	initOp, err := space_world.NewInitWorldOp(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	state, err := sobject_world_engine.BuildInitialInnerState(initOp)
+	state, err := space_world.BuildInitialInnerState(initOp)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,12 +72,12 @@ func newRestoreFixture(t *testing.T, preset ...[]byte) *restoreFixture {
 	}
 
 	// Store the cursor under the Space's key in an account object store.
-	cursor, err := (&sobject_world_engine.ReplayCursor{Base: state, Head: state}).MarshalVT()
+	cursor, err := (&space_world.ReplayCursor{Base: state, Head: state}).MarshalVT()
 	if err != nil {
 		t.Fatal(err)
 	}
 	conf := kvkey.DefaultConfig()
-	key := slices.Concat(conf.GetPrefix(), conf.GetObjectStorePrefix(), []byte("account/so/"+restoreTestSpace+"/ls/world-replay/cursor"))
+	key := slices.Concat(conf.GetPrefix(), conf.GetObjectStorePrefix(), []byte("account/so/"+restoreTestSpace+"/ls/space-world-replay/cursor"))
 	if err := putKey(ctx, vol, key, cursor); err != nil {
 		t.Fatal(err)
 	}

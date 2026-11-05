@@ -12,7 +12,7 @@ import (
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	provider_transfer "github.com/s4wave/spacewave/core/provider/transfer"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/db/block"
 	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
 	"github.com/s4wave/spacewave/db/object"
@@ -32,8 +32,8 @@ func (s *orderTestSource) GetSharedObjectList(context.Context) (*sobject.SharedO
 	return s.list, nil
 }
 
-func (s *orderTestSource) ReplaySharedObject(context.Context, *logrus.Entry, *sobject.SharedObjectRef) (*sobject_world_engine.InnerState, error) {
-	return &sobject_world_engine.InnerState{}, nil
+func (s *orderTestSource) ReplaySharedObject(context.Context, *logrus.Entry, *sobject.SharedObjectRef) (*space_world.InnerState, error) {
+	return &space_world.InnerState{}, nil
 }
 
 func (s *orderTestSource) GetBlockStore(context.Context, *sobject.SharedObjectRef) (block.StoreOps, func(), error) {

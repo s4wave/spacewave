@@ -11,10 +11,10 @@ import (
 	"github.com/s4wave/spacewave/core/session"
 	session_controller "github.com/s4wave/spacewave/core/session/controller"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/core/space"
 	space_resolve "github.com/s4wave/spacewave/core/space/resolve"
 	space_sobject "github.com/s4wave/spacewave/core/space/sobject"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/testbed"
 )
 
@@ -37,7 +37,7 @@ func TestResolveSpaceRetainsEngineMount(t *testing.T) {
 	// Register factories.
 	tb.StaticResolver.AddFactory(session_controller.NewFactory(tb.Bus))
 	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus))
-	tb.StaticResolver.AddFactory(sobject_world_engine.NewFactory(tb.Bus))
+	tb.StaticResolver.AddFactory(space_world.NewFactory(tb.Bus, space_world.OpTypes{}))
 	tb.StaticResolver.AddFactory(space_sobject.NewFactory(tb.Bus))
 
 	// Start session controller.

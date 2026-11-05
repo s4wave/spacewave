@@ -4,12 +4,14 @@ import (
 	"context"
 	"slices"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/provider"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
@@ -25,7 +27,7 @@ type offlineMember struct {
 	account *provider_local.ProviderAccount
 	object  *provider_local.SharedObject
 	ref     *sobject.SharedObjectRef
-	engine  sobject_world_engine.Engine
+	engine  world.Engine
 	release directive.Reference
 }
 
@@ -114,7 +116,7 @@ func (m *offlineMember) start(ctx context.Context) {
 	// Start the engine and wait for the replayed World.
 	t := m.t
 	t.Helper()
-	conf := sobject_world_engine.NewConfig("offline-world-"+m.name, m.ref)
+	conf := space_world.NewConfig("offline-world-"+m.name, m.ref)
 	eng, ref, err := world.StartEngine(ctx, m.tb.Bus, conf, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -164,50 +166,38 @@ func (m *offlineMember) write(ctx context.Context, fn func(tx world.Tx) error) {
 	}
 }
 
-// requireObjects checks that the World holds every key.
+// requireObjects waits until the World holds every key. The engine applies
+// an operation after the SharedObject state holds it.
 func (m *offlineMember) requireObjects(ctx context.Context, keys ...string) {
-	// Read the World as of the latest operation set.
 	t := m.t
 	t.Helper()
-	m.sync(ctx)
-	tx, err := m.engine.NewTransaction(ctx, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer tx.Discard()
-
-	// Look up each key.
-	for _, key := range keys {
-		obj, found, err := tx.GetObject(ctx, key)
-		world.ReleaseObjectState(obj)
+	m.wait(ctx, func() error {
+		// Read the installed World.
+		tx, err := m.engine.NewTransaction(ctx, false)
 		if err != nil {
-			t.Fatal(err)
+			return err
 		}
-		if !found {
-			t.Fatalf("%s World lacks %q", m.name, key)
+		defer tx.Discard()
+
+		// Look up each key.
+		for _, key := range keys {
+			obj, found, err := tx.GetObject(ctx, key)
+			world.ReleaseObjectState(obj)
+			if err != nil {
+				return err
+			}
+			if !found {
+				return errors.Errorf("%s World lacks %q", m.name, key)
+			}
 		}
-	}
+		return nil
+	})
 }
 
-// sync replays the latest operation set into the World, as each write
-// transaction does before it forks.
-func (m *offlineMember) sync(ctx context.Context) {
-	m.t.Helper()
-	tx, err := m.engine.NewTransaction(ctx, true)
-	if err != nil {
-		m.t.Fatal(err)
-	}
-	tx.Discard()
-}
-
-// root replays the latest operation set and returns the World root block.
+// root returns the root block of the installed World.
 func (m *offlineMember) root(ctx context.Context) *block.BlockRef {
-	// Bring the World up to the latest operation set.
 	t := m.t
 	t.Helper()
-	m.sync(ctx)
-
-	// Read its root.
 	var root *block.BlockRef
 	if err := m.engine.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
 		root = cursor.GetRef().GetRootRef().CloneVT()
@@ -216,6 +206,34 @@ func (m *offlineMember) root(ctx context.Context) *block.BlockRef {
 		t.Fatal(err)
 	}
 	return root
+}
+
+// waitRoot waits until the installed World's root block is want.
+func (m *offlineMember) waitRoot(ctx context.Context, want *block.BlockRef) {
+	m.t.Helper()
+	m.wait(ctx, func() error {
+		if got := m.root(ctx); !got.EqualVT(want) {
+			return errors.Errorf("%s World root %v; want %v", m.name, got, want)
+		}
+		return nil
+	})
+}
+
+// wait retries check until it succeeds, failing the test with its last error
+// once ctx ends.
+func (m *offlineMember) wait(ctx context.Context, check func() error) {
+	m.t.Helper()
+	for {
+		err := check()
+		if err == nil {
+			return
+		}
+		select {
+		case <-ctx.Done():
+			m.t.Fatal(err)
+		case <-time.After(20 * time.Millisecond):
+		}
+	}
 }
 
 // health returns the current health of the Space.

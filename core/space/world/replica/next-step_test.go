@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
 )
@@ -26,8 +26,8 @@ func TestNextStep(t *testing.T) {
 	aOwnsBJoined := settled(t, owner(a), member(b))
 	handingOver := handover(t, keyA, owner(a), owner(b))
 	bOwns := settled(t, owner(b), member(a))
-	complete := &sobject_world_engine.BackfillState{Seqno: 4}
-	holes := &sobject_world_engine.BackfillState{Seqno: 4, Holes: 3}
+	complete := &space_world.BackfillState{Seqno: 4}
+	holes := &space_world.BackfillState{Seqno: 4, Holes: 3}
 
 	// Each row is one Device's observation and its step.
 	cases := []struct {

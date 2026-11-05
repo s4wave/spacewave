@@ -11,16 +11,16 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// CheckpointJudge proposes and judges the checkpoints a group decides. The
-// World engine implements it from its replay.
-type CheckpointJudge interface {
+// checkpointJudge proposes and judges the checkpoints a group decides. A
+// BodyDriver implements it from its body's replay.
+type checkpointJudge interface {
 	// ProposeCheckpoint returns the body of the checkpoint the local voter
 	// proposes after the held one, or nil while too few operations are
 	// stable or the replay has not reached them.
 	ProposeCheckpoint(ctx context.Context, state *SOState) (*SOCheckpointInner, error)
 	// JudgeCheckpoint reports whether inner is the checkpoint after the held
 	// one that the local replay reached: the same covered operations, sequence
-	// position and World. ok is false while the replay cannot tell.
+	// position and state. ok is false while the replay cannot tell.
 	JudgeCheckpoint(ctx context.Context, state *SOState, inner *SOCheckpointInner) (valid, ok bool, err error)
 }
 
@@ -46,7 +46,7 @@ type Control struct {
 	// self is the voter's peer ID.
 	self string
 	// judge proposes and judges checkpoints, or nil to take no part in them.
-	judge CheckpointJudge
+	judge checkpointJudge
 	// timeout is the wait of each step in a round.
 	timeout func(round uint32) time.Duration
 	// wake carries errControlWake to the driver.
@@ -69,8 +69,13 @@ type controlDecision struct {
 }
 
 // NewControl builds the driver of privKey's votes on host's shared object.
-// judge may be nil.
-func NewControl(le *logrus.Entry, host *SOHost, privKey crypto.PrivKey, judge CheckpointJudge) (*Control, error) {
+// It votes on control records; a BodyHost has it judge checkpoints too.
+func NewControl(le *logrus.Entry, host *SOHost, privKey crypto.PrivKey) (*Control, error) {
+	return newControl(le, host, privKey, nil)
+}
+
+// newControl builds the voter with judge, which may be nil.
+func newControl(le *logrus.Entry, host *SOHost, privKey crypto.PrivKey, judge checkpointJudge) (*Control, error) {
 	self, err := peer.IDFromPrivateKey(privKey)
 	if err != nil {
 		return nil, err
