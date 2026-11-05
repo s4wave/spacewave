@@ -110,8 +110,10 @@ func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 	return data, true, nil
 }
 
-// GetBatch reads keys in key order and returns owned values in caller order,
-// so the lookups of adjacent keys share blocks.
+// GetBatch returns owned values in caller order. Buffered changes decide
+// their keys; the rest are read from the snapshot in key order, so adjacent
+// keys share blocks, with up to lookupInFlight index and value reads in
+// flight.
 func (t *Tx) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool, error) {
 	// Check the transaction and keys.
 	if t.done {
@@ -123,25 +125,48 @@ func (t *Tx) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool, err
 		}
 	}
 
-	// Order the reads by key, retaining the caller's result positions.
-	order := make([]int, len(keys))
-	for i := range keys {
-		order[i] = i
+	// Answer the buffered changes, and order the rest by key.
+	values := make([][]byte, len(keys))
+	found := make([]bool, len(keys))
+	var order []int
+	for i, key := range keys {
+		if t.changes != nil {
+			if c, ok := t.changes.Get(tentry{key: key}); ok {
+				values[i], found[i] = bytes.Clone(c.data), !c.del
+				continue
+			}
+		}
+		order = append(order, i)
 	}
 	slices.SortFunc(order, func(i, j int) int { return bytes.Compare(keys[i], keys[j]) })
 
-	// Read in key order into the caller's slots.
-	values := make([][]byte, len(keys))
-	found := make([]bool, len(keys))
-	for _, i := range order {
-		if err := ctx.Err(); err != nil {
-			return nil, nil, err
+	// Look the rest up and read their values into the caller's slots. A
+	// reference is read into a new buffer, and an inline value is copied out
+	// of the shared memory.
+	if err := ctx.Err(); err != nil {
+		return nil, nil, err
+	}
+	sorted := make([][]byte, len(order))
+	for j, i := range order {
+		sorted[j] = keys[i]
+	}
+	err := t.db.lookupEach(t.st, sorted, true, func(j int, v value, ok bool) error {
+		// Read a found key's value; an absent key keeps its empty slot.
+		if !ok {
+			return nil
 		}
-		var err error
-		values[i], found[i], err = t.Get(ctx, keys[i])
+		data, err := t.db.readValue(v)
 		if err != nil {
-			return nil, nil, err
+			return err
 		}
+		if !v.isRef() {
+			data = bytes.Clone(data)
+		}
+		values[order[j]], found[order[j]] = data, true
+		return nil
+	})
+	if err != nil {
+		return nil, nil, err
 	}
 	return values, found, nil
 }

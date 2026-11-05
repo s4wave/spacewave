@@ -139,8 +139,26 @@ func (rr *runReader) index(i int, scratch *[]byte) (fenceIndex, error) {
 	return decodeFenceIndex(b)
 }
 
-// get returns the value of key in the run.
-func (rr *runReader) get(key []byte) (value, bool, error) {
+// getScratch holds the reads of a lookup that leaves the block cache alone,
+// as a background pass does. An inline value found through it lasts until the
+// next lookup through the same scratch.
+type getScratch struct {
+	// filter, index and block hold the partitions and block read.
+	filter, index, block []byte
+}
+
+// bufs returns the buffers the filter, index and block reads land in, all
+// nil to read through the cache when sc is nil.
+func (sc *getScratch) bufs() (filter, index, block *[]byte) {
+	if sc == nil {
+		return nil, nil, nil
+	}
+	return &sc.filter, &sc.index, &sc.block
+}
+
+// get returns the value of key in the run, reading through the cache, or
+// through sc around it when sc is set.
+func (rr *runReader) get(key []byte, sc *getScratch) (value, bool, error) {
 	// Find the partition, and ask its filter.
 	if bytes.Compare(key, rr.footer.smallest) < 0 || bytes.Compare(key, rr.footer.largest) > 0 {
 		return value{}, false, nil
@@ -149,7 +167,8 @@ func (rr *runReader) get(key []byte) (value, bool, error) {
 	if i < 0 {
 		return value{}, false, nil
 	}
-	fb, err := rr.block(rr.footer.parts[i].filter, nil)
+	fbuf, xbuf, bbuf := sc.bufs()
+	fb, err := rr.block(rr.footer.parts[i].filter, fbuf)
 	if err != nil {
 		return value{}, false, err
 	}
@@ -158,7 +177,7 @@ func (rr *runReader) get(key []byte) (value, bool, error) {
 	}
 
 	// Find the block by its fence.
-	x, err := rr.index(i, nil)
+	x, err := rr.index(i, xbuf)
 	if err != nil {
 		return value{}, false, err
 	}
@@ -172,7 +191,7 @@ func (rr *runReader) get(key []byte) (value, bool, error) {
 	}
 
 	// Search the block.
-	bb, err := rr.block(f.at, nil)
+	bb, err := rr.block(f.at, bbuf)
 	if err != nil {
 		return value{}, false, err
 	}
@@ -188,8 +207,9 @@ func (rr *runReader) get(key []byte) (value, bool, error) {
 // A tombstone found first hides the key. Level 0's runs overlap and are read
 // newest first; each lower level's runs do not, so only the one whose range
 // covers the key is read, found by bisection. A lookup reads R0 + L runs at
-// most, and tests each one's range before it touches the run's reader.
-func (db *DB) lookupRuns(st *state, key []byte) (value, bool, error) {
+// most, and tests each one's range before it touches the run's reader. A
+// lookup through sc leaves the block cache alone.
+func (db *DB) lookupRuns(st *state, key []byte, sc *getScratch) (value, bool, error) {
 	runs := st.m.runs
 	for len(runs) != 0 {
 		// Split off the next level, which lookupOrder keeps contiguous.
@@ -215,7 +235,7 @@ func (db *DB) lookupRuns(st *state, key []byte) (value, bool, error) {
 			if err != nil {
 				return value{}, false, err
 			}
-			v, ok, err := rr.get(key)
+			v, ok, err := rr.get(key, sc)
 			if err != nil {
 				return value{}, false, err
 			}
@@ -229,13 +249,7 @@ func (db *DB) lookupRuns(st *state, key []byte) (value, bool, error) {
 
 // level0 counts the level 0 runs.
 func (m *manifest) level0() int {
-	n := 0
-	for _, r := range m.runs {
-		if r.level == 0 {
-			n++
-		}
-	}
-	return n
+	return len(m.level(0))
 }
 
 // lookupOrder orders runs as a lookup reads them: level 0 newest first, then
@@ -250,12 +264,12 @@ func lookupOrder(a, b runMeta) int {
 	return bytes.Compare(a.smallest, b.smallest)
 }
 
-// runLayers returns one merge layer per run of st that may hold keys under
-// prefix, newest first. Level 0's runs are tested one by one; in each lower
-// level, whose runs are in key order and do not overlap, the first run ending
-// at or after the prefix is found by bisection and the runs from it are taken
-// while they start before the prefix's end, so the pass grows with the levels
-// and the runs taken, not with every run.
+// runLayers returns the merge layers of st's runs that may hold keys under
+// prefix, newest first: one per level 0 run, whose runs overlap, and one per
+// lower level, whose runs are in key order and do not, over the runs from the
+// first ending at or after the prefix, found by bisection, to the last
+// starting before its end. A scan's layers grow with level 0 and the levels,
+// not with the runs it crosses.
 func (db *DB) runLayers(st *state, prefix []byte) []layer {
 	// Walk the levels in lookup order.
 	var layers []layer
@@ -268,24 +282,24 @@ func (db *DB) runLayers(st *state, prefix []byte) []layer {
 		lv := runs[:n]
 		runs = runs[n:]
 
-		// Skip a lower level's runs that end before the prefix.
-		if level != 0 {
-			lv = lv[sort.Search(len(lv), func(i int) bool { return bytes.Compare(lv[i].largest, prefix) >= 0 }):]
+		// Level 0 gives a layer per run whose range meets the prefix.
+		if level == 0 {
+			for _, m := range lv {
+				if bytes.Compare(m.largest, prefix) >= 0 && (end == nil || bytes.Compare(m.smallest, end) < 0) {
+					layers = append(layers, &runIter{db: db, meta: m, cache: true})
+				}
+			}
+			continue
 		}
 
-		// Take each run whose range meets the prefix; a lower level's runs
-		// past the prefix's end are all past it.
-		for _, m := range lv {
-			if end != nil && bytes.Compare(m.smallest, end) >= 0 {
-				if level != 0 {
-					break
-				}
-				continue
-			}
-			if bytes.Compare(m.largest, prefix) < 0 {
-				continue
-			}
-			layers = append(layers, &runIter{db: db, meta: m, cache: true})
+		// A lower level gives one layer over its runs in range.
+		lo := sort.Search(len(lv), func(i int) bool { return bytes.Compare(lv[i].largest, prefix) >= 0 })
+		hi := len(lv)
+		if end != nil {
+			hi = sort.Search(len(lv), func(i int) bool { return bytes.Compare(lv[i].smallest, end) >= 0 })
+		}
+		if lo < hi {
+			layers = append(layers, newLevelIter(db, lv[lo:hi]))
 		}
 	}
 	return layers
@@ -447,6 +461,11 @@ func (it *runIter) seekBlock(k []byte) {
 	}
 	it.i, it.ok = len(it.entries)-1, true
 	it.step(false)
+}
+
+// failure returns the first read or decode error.
+func (it *runIter) failure() error {
+	return it.err
 }
 
 // valid reports whether the layer is on an entry.

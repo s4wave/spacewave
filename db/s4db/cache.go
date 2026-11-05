@@ -21,6 +21,8 @@ type cacheItem struct {
 	// hits counts reads since insertion, capped at three; S3-FIFO promotes
 	// a small-queue item with any hits and keeps a main-queue item with some.
 	hits uint8
+	// small reports that the item waits in the small queue.
+	small bool
 }
 
 // blockCache holds run blocks, index partitions and filter partitions under
@@ -34,9 +36,11 @@ type blockCache struct {
 	mtx sync.Mutex
 	// budget is the byte limit, and bytes the bytes held.
 	budget, bytes int64
-	// items maps each cached key to its item.
-	items map[cacheKey]*cacheItem
-	// small and main are the two FIFO queues, oldest first.
+	// items maps each cached run, then each block offset, to its item, so
+	// dropping a run finds its items alone.
+	items map[uint64]map[uint64]*cacheItem
+	// small and main are the two FIFO queues, oldest first. A dropped run's
+	// items stay queued without their data, and eviction passes over them.
 	small, main []*cacheItem
 	// smallBytes is the bytes in small; it is kept at a tenth of the budget.
 	smallBytes int64
@@ -51,7 +55,7 @@ const ghostMax = 4096
 
 // newBlockCache returns a cache of budget bytes.
 func newBlockCache(budget int64) *blockCache {
-	return &blockCache{budget: budget, items: make(map[cacheKey]*cacheItem), ghost: make(map[cacheKey]struct{})}
+	return &blockCache{budget: budget, items: make(map[uint64]map[uint64]*cacheItem), ghost: make(map[cacheKey]struct{})}
 }
 
 // get returns the cached block, or nil.
@@ -59,7 +63,7 @@ func (c *blockCache) get(k cacheKey) []byte {
 	// Count the read on the item.
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
-	it := c.items[k]
+	it := c.items[k.run][k.off]
 	if it == nil {
 		return nil
 	}
@@ -74,18 +78,24 @@ func (c *blockCache) put(k cacheKey, data []byte) {
 	// Skip a block the cache already holds or cannot hold.
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
-	if _, ok := c.items[k]; ok || int64(len(data)) > c.budget/4 {
+	if _, ok := c.items[k.run][k.off]; ok || int64(len(data)) > c.budget/4 {
 		return
 	}
 
 	// Insert into main when the ghost remembers it, else into small.
 	it := &cacheItem{key: k, data: data}
-	c.items[k] = it
+	run := c.items[k.run]
+	if run == nil {
+		run = make(map[uint64]*cacheItem)
+		c.items[k.run] = run
+	}
+	run[k.off] = it
 	c.bytes += int64(len(data))
 	if _, ok := c.ghost[k]; ok {
 		delete(c.ghost, k)
 		c.main = append(c.main, it)
 	} else {
+		it.small = true
 		c.small = append(c.small, it)
 		c.smallBytes += int64(len(data))
 	}
@@ -108,36 +118,51 @@ func (c *blockCache) put(k cacheKey, data []byte) {
 // else dropped and remembered in the ghost set. The queue's vacated slot is
 // cleared, so the backing array does not keep a dropped block's bytes.
 func (c *blockCache) evictSmall() {
-	// Take the oldest.
+	// Take the oldest, passing over a dropped run's item.
 	it := c.small[0]
 	c.small[0] = nil
 	c.small = c.small[1:]
+	if it.data == nil {
+		return
+	}
 	c.smallBytes -= int64(len(it.data))
 
 	// Promote or drop.
 	if it.hits > 0 {
-		it.hits = 0
+		it.hits, it.small = 0, false
 		c.main = append(c.main, it)
 		return
 	}
-	delete(c.items, it.key)
-	c.bytes -= int64(len(it.data))
+	c.forget(it)
 	c.remember(it.key)
 }
 
 // evictMain takes the oldest main item: reinserted with one fewer hit when
 // it was read, else dropped.
 func (c *blockCache) evictMain() {
-	// Take the oldest, reinserting it when it was read.
+	// Take the oldest, passing over a dropped run's item and reinserting one
+	// that was read.
 	it := c.main[0]
 	c.main[0] = nil
 	c.main = c.main[1:]
-	if it.hits > 0 {
+	switch {
+	case it.data == nil:
+		return
+	case it.hits > 0:
 		it.hits--
 		c.main = append(c.main, it)
 		return
 	}
-	delete(c.items, it.key)
+	c.forget(it)
+}
+
+// forget removes it from the items and the byte count.
+func (c *blockCache) forget(it *cacheItem) {
+	run := c.items[it.key.run]
+	delete(run, it.key.off)
+	if len(run) == 0 {
+		delete(c.items, it.key.run)
+	}
 	c.bytes -= int64(len(it.data))
 }
 
@@ -151,43 +176,17 @@ func (c *blockCache) remember(k cacheKey) {
 	}
 }
 
-// drop forgets every block of run.
+// drop forgets every block of run, touching only its items: each leaves its
+// queue when eviction reaches it.
 func (c *blockCache) drop(run uint64) {
-	// Remove the items and compact the queues.
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
-	for k, it := range c.items {
-		if k.run == run {
-			delete(c.items, k)
-			c.bytes -= int64(len(it.data))
-			if c.inSmall(it) {
-				c.smallBytes -= int64(len(it.data))
-			}
-			it.data = nil
+	for _, it := range c.items[run] {
+		c.bytes -= int64(len(it.data))
+		if it.small {
+			c.smallBytes -= int64(len(it.data))
 		}
+		it.data = nil
 	}
-	c.small = compactItems(c.small)
-	c.main = compactItems(c.main)
-}
-
-// inSmall reports whether it waits in the small queue.
-func (c *blockCache) inSmall(it *cacheItem) bool {
-	for _, s := range c.small {
-		if s == it {
-			return true
-		}
-	}
-	return false
-}
-
-// compactItems removes the dropped items from a queue.
-func compactItems(q []*cacheItem) []*cacheItem {
-	kept := q[:0]
-	for _, it := range q {
-		if it.data != nil {
-			kept = append(kept, it)
-		}
-	}
-	clear(q[len(kept):])
-	return kept
+	delete(c.items, run)
 }

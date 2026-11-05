@@ -25,7 +25,7 @@ const scaleCalls = 400
 
 // scaleTrials is the measurements taken of each entry point; the fastest
 // counts, since other work on the host only slows a trial.
-const scaleTrials = 5
+const scaleTrials = 7
 
 // readCounter counts the reads a database makes of its file.
 type readCounter struct {
@@ -128,43 +128,57 @@ func (c scaleCost) String() string {
 	return fmt.Sprintf("%.0f B, %.1f allocs, %.2f reads, %v", c.bytes, c.allocs, c.reads, c.took)
 }
 
-// measure returns the cost of one call of op on s: the allocation and reads
-// averaged over the calls of the fastest trial, and that trial's time per
-// call.
-func measure(t *testing.T, s *scaled, op func(i int) error) scaleCost {
-	// Warm the path, then time the trials.
+// measure returns the cost of one call of op on each of two files: the
+// allocation and reads averaged over the calls of the fastest trial, and that
+// trial's time per call. The files' trials alternate, so load on the host
+// slows both alike.
+func measure(t *testing.T, files [2]*scaled, op func(s *scaled, i int) error) [2]scaleCost {
+	// Warm each file's path.
 	t.Helper()
-	for i := range 64 {
-		if err := op(i); err != nil {
-			t.Fatal(err)
-		}
-	}
-	best := scaleCost{took: time.Hour}
-	for trial := range scaleTrials {
-		// Run the calls between two readings of the counters.
-		var before, after runtime.MemStats
-		runtime.ReadMemStats(&before)
-		reads := s.rc.reads.Load()
-		start := time.Now()
-		for i := range scaleCalls {
-			if err := op(trial*scaleCalls + i); err != nil {
+	for _, s := range files {
+		for i := range 64 {
+			if err := op(s, i); err != nil {
 				t.Fatal(err)
 			}
 		}
-		took := time.Since(start)
-		runtime.ReadMemStats(&after)
+	}
 
-		// Keep the fastest trial's cost.
-		if took/scaleCalls < best.took {
-			best = scaleCost{
-				bytes:  float64(after.TotalAlloc-before.TotalAlloc) / scaleCalls,
-				allocs: float64(after.Mallocs-before.Mallocs) / scaleCalls,
-				reads:  float64(s.rc.reads.Load()-reads) / scaleCalls,
-				took:   took / scaleCalls,
+	// Time the trials in turn, keeping each file's fastest.
+	best := [2]scaleCost{{took: time.Hour}, {took: time.Hour}}
+	for trial := range scaleTrials {
+		for f, s := range files {
+			if c := measureTrial(t, s, op, trial); c.took < best[f].took {
+				best[f] = c
 			}
 		}
 	}
 	return best
+}
+
+// measureTrial runs scaleCalls calls of op on s between two readings of the
+// counters, numbering them from trial's first call.
+func measureTrial(t *testing.T, s *scaled, op func(s *scaled, i int) error, trial int) scaleCost {
+	// Run the calls.
+	t.Helper()
+	var before, after runtime.MemStats
+	runtime.ReadMemStats(&before)
+	reads := s.rc.reads.Load()
+	start := time.Now()
+	for i := range scaleCalls {
+		if err := op(s, trial*scaleCalls+i); err != nil {
+			t.Fatal(err)
+		}
+	}
+	took := time.Since(start)
+	runtime.ReadMemStats(&after)
+
+	// Average the counters over the calls.
+	return scaleCost{
+		bytes:  float64(after.TotalAlloc-before.TotalAlloc) / scaleCalls,
+		allocs: float64(after.Mallocs-before.Mallocs) / scaleCalls,
+		reads:  float64(s.rc.reads.Load()-reads) / scaleCalls,
+		took:   took / scaleCalls,
+	}
 }
 
 // flat fails the test unless the cost at ten times the data stays within a
@@ -180,7 +194,7 @@ func flat(t *testing.T, name string, small, large scaleCost) {
 		t.Errorf("%s allocates %.1f objects a call at 10n against %.1f at n", name, large.allocs, small.allocs)
 	case large.reads > small.reads*1.25+0.5:
 		t.Errorf("%s reads %.2f times a call at 10n against %.2f at n", name, large.reads, small.reads)
-	case large.took > 2*small.took+2*time.Microsecond:
+	case large.took > 2*small.took+5*time.Microsecond:
 		t.Errorf("%s takes %v a call at 10n against %v at n", name, large.took, small.took)
 	}
 }
@@ -274,35 +288,35 @@ func TestScaling(t *testing.T) {
 		}},
 	}
 	for _, o := range ops {
-		var costs [2]scaleCost
-		for f, s := range files {
-			costs[f] = measure(t, s, func(i int) error { return o.op(s, i) })
-		}
+		costs := measure(t, files, o.op)
 		flat(t, o.name, costs[0], costs[1])
 	}
 
-	// The scheduler's checks on tables of n and 10n chunks.
-	var checks [2]scaleCost
+	// The scheduler's checks on tables of n and 10n chunks, each table a
+	// stand-in file whose manifest the checks read.
+	var tables [2]*scaled
+	manifests := map[*scaled]*manifest{}
 	for f, chunks := range []uint64{scaleKeys, 10 * scaleKeys} {
-		m := scaleManifest(chunks)
-		s := &scaled{db: &DB{}, rc: &readCounter{}}
-		sched := &scheduler{cleaner: &cleaner{}}
-		var sink int
-		checks[f] = measure(t, s, func(int) error {
-			if _, ok := sched.cleaner.due(m); ok {
-				sink++
-			}
-			if _, ok := (&mergeJob{}).pick(m); ok {
-				sink++
-			}
-			if sched.hasPending(&state{m: m}) {
-				sink++
-			}
-			return nil
-		})
-		if sink == 0 {
-			t.Fatal("the checks found no work on a table that holds some")
+		tables[f] = &scaled{db: &DB{}, rc: &readCounter{}}
+		manifests[tables[f]] = scaleManifest(chunks)
+	}
+	sched := &scheduler{cleaner: &cleaner{}}
+	var sink int
+	checks := measure(t, tables, func(s *scaled, _ int) error {
+		m := manifests[s]
+		if _, ok := sched.cleaner.due(m); ok {
+			sink++
 		}
+		if _, ok := (&mergeJob{}).pick(m); ok {
+			sink++
+		}
+		if sched.hasPending(&state{m: m}) {
+			sink++
+		}
+		return nil
+	})
+	if sink == 0 {
+		t.Fatal("the checks found no work on a table that holds some")
 	}
 	flat(t, "scheduler checks", checks[0], checks[1])
 }

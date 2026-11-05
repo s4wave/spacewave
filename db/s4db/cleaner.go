@@ -180,17 +180,29 @@ func (c *cleaner) step(ctx context.Context) (bool, error) {
 // liveEntries returns, as move changes, the entries of a victim whose keys
 // still point at them in st.
 func (c *cleaner) liveEntries(st *state, entries []valueEntry) ([]tentry, error) {
-	var live []tentry
-	for _, e := range entries {
-		v, found, err := c.db.lookup(st, e.key)
-		if err != nil {
-			return nil, err
-		}
-		if found && v.isRef() && v.ref.off == e.off {
-			live = append(live, tentry{key: e.key, data: e.data, expect: e.off})
+	// Check each entry's key against the snapshot around the block cache,
+	// with up to lookupInFlight reads in flight.
+	keys := make([][]byte, len(entries))
+	for i := range entries {
+		keys[i] = entries[i].key
+	}
+	live := make([]bool, len(entries))
+	err := c.db.lookupEach(st, keys, false, func(i int, v value, found bool) error {
+		live[i] = found && v.isRef() && v.ref.off == entries[i].off
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Keep the live ones, in the victim's order.
+	var out []tentry
+	for i, e := range entries {
+		if live[i] {
+			out = append(out, tentry{key: e.key, data: e.data, expect: e.off})
 		}
 	}
-	return live, nil
+	return out, nil
 }
 
 // batch splits off the first changes up to cleanBatch bytes.

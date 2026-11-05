@@ -212,14 +212,29 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, move
 		flows = make([]Flow, len(db.flows))
 	}
 
-	// Resolve each change against the base state: frees, count, value
+	// Look up each change's old value in the base state, with up to
+	// lookupInFlight reads in flight. A cleaner's moves read around the block
+	// cache, and keep only the old value's kind and reference.
+	keys := make([][]byte, len(changes))
+	for i := range changes {
+		keys[i] = changes[i].key
+	}
+	olds := make([]value, len(changes))
+	founds := make([]bool, len(changes))
+	err := db.lookupEach(base, keys, !moves, func(i int, v value, found bool) error {
+		v.inline = nil
+		olds[i], founds[i] = v, found
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	// Resolve each change against its old value: frees, count, value
 	// placement, and the flow of its family.
 	var userBytes int64
-	for _, c := range changes {
-		old, found, err := db.lookup(base, c.key)
-		if err != nil {
-			return err
-		}
+	for i, c := range changes {
+		old, found := olds[i], founds[i]
 		if c.del && !found {
 			continue
 		}

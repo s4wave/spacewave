@@ -3,6 +3,7 @@ package s4db
 import (
 	"bytes"
 	"context"
+	"sort"
 )
 
 // mergeJob combines runs level by level, as the design's Merge path
@@ -36,15 +37,22 @@ func (m *manifest) levelBytes() []int64 {
 	return sizes
 }
 
-// overlapping returns the runs of level holding keys between lo and hi.
+// level returns the runs of level, a slice of the manifest's list, which
+// lookupOrder keeps grouped by level.
+func (m *manifest) level(level uint8) []runMeta {
+	lo := sort.Search(len(m.runs), func(i int) bool { return m.runs[i].level >= level })
+	hi := sort.Search(len(m.runs), func(i int) bool { return m.runs[i].level > level })
+	return m.runs[lo:hi]
+}
+
+// overlapping returns the runs of level, which must be below 0, holding keys
+// between lo and hi: a slice of the manifest's list, found by bisection,
+// since the level's runs are in key order and do not overlap.
 func (m *manifest) overlapping(level uint8, lo, hi []byte) []runMeta {
-	var out []runMeta
-	for _, r := range m.runs {
-		if r.level == level && bytes.Compare(r.largest, lo) >= 0 && bytes.Compare(r.smallest, hi) <= 0 {
-			out = append(out, r)
-		}
-	}
-	return out
+	runs := m.level(level)
+	a := sort.Search(len(runs), func(i int) bool { return bytes.Compare(runs[i].largest, lo) >= 0 })
+	b := sort.Search(len(runs), func(i int) bool { return bytes.Compare(runs[i].smallest, hi) > 0 })
+	return runs[a:max(a, b)]
 }
 
 // pick chooses the next merge of m, or reports none. The level furthest over
@@ -90,10 +98,7 @@ func (j *mergeJob) pick(m *manifest) (mergePick, bool) {
 	var best runMeta
 	bestOverlap := int64(-1)
 	var bestBelow []runMeta
-	for _, r := range m.runs {
-		if int(r.level) != bestLevel {
-			continue
-		}
+	for _, r := range m.level(uint8(bestLevel)) { // #nosec G115 -- a level.
 		below := m.overlapping(r.level+1, r.smallest, r.largest)
 		var overlap int64
 		for _, b := range below {
@@ -321,11 +326,11 @@ func (j *mergeJob) merge(pick mergePick, chunks []uint64, more func() (uint64, e
 	return outputs, chunks, nil
 }
 
-// checkLayers returns the first error a run layer hit.
+// checkLayers returns the first error a layer hit.
 func (j *mergeJob) checkLayers(layers []layer) error {
 	for _, l := range layers {
-		if it, ok := l.(*runIter); ok && it.err != nil {
-			return it.err
+		if err := l.failure(); err != nil {
+			return err
 		}
 	}
 	return nil

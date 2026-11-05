@@ -102,8 +102,11 @@ func checkTally(t *testing.T, table *chunkTable) {
 	// Walk the entries.
 	t.Helper()
 	var want chunkTable
-	for _, e := range table.all() {
+	for c, e := range table.all() {
 		want.tally(e, 1)
+		if e.kind == chunkFree && c != 0 && c < table.lowFree {
+			t.Fatalf("chunk %d is free below the free hint %d", c, table.lowFree)
+		}
 	}
 
 	// Compare the counters.

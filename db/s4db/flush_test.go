@@ -122,7 +122,7 @@ func TestRunBuilderRoundTrip(t *testing.T) {
 	}
 	for i := 0; i < 2*n; i += 37 {
 		k := fmt.Appendf(nil, "key/%08d", i)
-		v, ok, err := rr.get(k)
+		v, ok, err := rr.get(k, nil)
 		if err != nil {
 			t.Fatal(err)
 		}

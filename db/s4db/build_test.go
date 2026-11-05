@@ -116,6 +116,13 @@ func TestBuild(t *testing.T) {
 	}
 	checkKeys(0)
 
+	// Get every key, scan in reverse and seek across the level's many runs.
+	m := make(model, keys)
+	for n := range keys {
+		m[string(key(n))] = buildValue(n)
+	}
+	m.check(t, db)
+
 	// Write past the memtable budget, so a flush names a run by the next
 	// record, and read again.
 	const extra = 3000
