@@ -2,12 +2,14 @@ package volume_sqlite_test
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/core"
 	"github.com/s4wave/spacewave/db/volume"
@@ -107,4 +109,35 @@ func TestSqliteKeyedLeaseNamespacesTables(t *testing.T) {
 		t.Fatalf("acquire second SQLite table lease: acquired=%v err=%v", acquired, err)
 	}
 	t.Cleanup(func() { _ = leaseB.Release(ctx) })
+}
+
+// TestSqliteVolumeHoldsRoots checks that a SQLite volume holds named roots,
+// so a World whose head is a root opens on it, and refuses a stale move.
+func TestSqliteVolumeHoldsRoots(t *testing.T) {
+	// Open a SQLite volume.
+	ctx := context.Background()
+	vol, err := volume_sqlite.NewSqlite(ctx, logrus.NewEntry(logrus.New()), volume_sqlite.NewConfig(filepath.Join(t.TempDir(), "roots.db"), "hydra"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = vol.Close() })
+
+	// Hold a block under a root and read it back.
+	data := []byte("sqlite root")
+	ref, err := block.BuildBlockRef(data, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entries := []*block.PutBatchEntry{{Ref: ref, Data: data, RefsKnown: true}}
+	if err := vol.SetRoots(ctx, entries, []block.NamedRoot{{Name: "world:sqlite", Ref: ref}}); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := vol.GetRoot(ctx, "world:sqlite"); err != nil || !got.EqualsRef(ref) {
+		t.Fatalf("root = %v, %v", got, err)
+	}
+
+	// A move from a stale Previous is refused.
+	if err := vol.SetRoots(ctx, nil, []block.NamedRoot{{Name: "world:sqlite"}}); !errors.Is(err, block.ErrRootMoved) {
+		t.Fatalf("stale move = %v, want ErrRootMoved", err)
+	}
 }

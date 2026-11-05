@@ -184,8 +184,12 @@ type OrderedCommitStore interface {
 }
 
 // AtomicCommitStore opts into using one physical transaction as a publication
-// fence. Commit must synchronously finish the transaction (including its normal
-// durability barrier), and Discard must roll back every mutation. Wrappers that
+// fence. Commit must synchronously finish the transaction atomically, with the
+// durability barrier the store is configured for, and Discard must roll back
+// every mutation. The fence is atomicity: a store configured not to sync still
+// commits all of a transaction or none of it. A write transaction's reads must
+// see the writes of every committed transaction of every process, so a check
+// and the write it guards land together. Wrappers that
 // defer Commit across calls, and stores that split blocks into another domain,
 // must not advertise this capability. In-memory stores can implement it for
 // transactional tests; this does not make their data process-persistent.
