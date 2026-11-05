@@ -1,0 +1,7 @@
+[
+  {
+    "name": "already-cancelled authority relies only on asynchronous AfterFunc",
+    "replace": [["CheckAuthorities == TRUE", "CheckAuthorities == FALSE"]],
+    "expect": "AlreadyClosedNeverPublishes"
+  }
+]

@@ -122,6 +122,14 @@ func (r *TypedObjectResource) WatchTypedObject(req *s4wave_world.WatchTypedObjec
 	stopClient := context.AfterFunc(resourceCtx.Context(), cancel)
 	defer stopClient()
 
+	// Reject retired authority before asynchronous cancellation can admit an owner.
+	if err := r.lifecycleCtx.Err(); err != nil {
+		return err
+	}
+	if err := resourceCtx.Context().Err(); err != nil {
+		return err
+	}
+
 	// Require an object key and preserve the trusted factory scope.
 	objectKey := req.GetObjectKey()
 	if objectKey == "" {
