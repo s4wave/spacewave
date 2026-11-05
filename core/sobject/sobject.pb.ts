@@ -644,7 +644,7 @@ export interface SharedObjectHealth {
   rejectedEdits?: SORejectedEdit[]
   /**
    * CheckpointMismatch is set while the latest checkpoint this device could
-   * judge holds a World different from the one this device replayed through
+   * judge holds a state different from the one this device replayed through
    * the operations it covers.
    */
   checkpointMismatch?: SOCheckpointMismatch
@@ -744,7 +744,7 @@ export const SORejectedEdit: MessageType<SORejectedEdit> =
   )
 
 /**
- * SOCheckpointMismatch is a checkpoint whose World differs from the World this
+ * SOCheckpointMismatch is a checkpoint whose state differs from the state this
  * device reached by replaying the operations the checkpoint covers. The device
  * continues from the checkpoint, since its signers are authoritative.
  *
@@ -1212,8 +1212,8 @@ export const SOParticipantConfig: MessageType<SOParticipantConfig> =
   )
 
 /**
- * SOCheckpoint is a signed checkpoint: the World at a point of the operation
- * order, from which members replay the operations after it.
+ * SOCheckpoint is a signed checkpoint: the body's state at a point of the
+ * operation order, from which members replay the operations after it.
  *
  * @generated from message sobject.SOCheckpoint
  */
@@ -1365,12 +1365,12 @@ export interface SOCheckpointInner {
    */
   configHash?: Uint8Array
   /**
-   * StateData is the World state after the prefix, encrypted with the key of
+   * StateData is the body's state after the prefix, encrypted with the key of
    * key_epoch.
    */
   stateData?: Uint8Array
   /**
-   * ReplayVersion is the replay rule version the World was computed with.
+   * ReplayVersion is the replay rule version the state was computed with.
    */
   replayVersion?: number
   /**
@@ -1889,7 +1889,7 @@ export interface SOState {
    */
   config?: SharedObjectConfig
   /**
-   * Checkpoint is the latest checkpoint: the World members replay from.
+   * Checkpoint is the latest checkpoint: the state members replay from.
    */
   checkpoint?: SOCheckpoint
   /**

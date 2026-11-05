@@ -168,7 +168,7 @@ message SharedObjectHealth {
   repeated SORejectedEdit rejected_edits = 9;
 
   // CheckpointMismatch is set while the latest checkpoint this device could
-  // judge holds a World different from the one this device replayed through
+  // judge holds a state different from the one this device replayed through
   // the operations it covers.
   SOCheckpointMismatch checkpoint_mismatch = 10;
 
@@ -210,7 +210,7 @@ message SORejectedEdit {
   repeated string lost_to_peer_ids = 3;
 }
 
-// SOCheckpointMismatch is a checkpoint whose World differs from the World this
+// SOCheckpointMismatch is a checkpoint whose state differs from the state this
 // device reached by replaying the operations the checkpoint covers. The device
 // continues from the checkpoint, since its signers are authoritative.
 message SOCheckpointMismatch {
@@ -499,8 +499,8 @@ message SOParticipantConfig {
   uint32 voting_weight = 5;
 }
 
-// SOCheckpoint is a signed checkpoint: the World at a point of the operation
-// order, from which members replay the operations after it.
+// SOCheckpoint is a signed checkpoint: the body's state at a point of the
+// operation order, from which members replay the operations after it.
 message SOCheckpoint {
   // Inner is the encoded SOCheckpointInner.
   bytes inner = 1;
@@ -608,11 +608,11 @@ message SOCheckpointInner {
 
   reserved 5;
 
-  // StateData is the World state after the prefix, encrypted with the key of
+  // StateData is the body's state after the prefix, encrypted with the key of
   // key_epoch.
   bytes state_data = 6;
 
-  // ReplayVersion is the replay rule version the World was computed with.
+  // ReplayVersion is the replay rule version the state was computed with.
   uint32 replay_version = 7;
 
   // KeyEpoch is the key epoch whose key encrypted state_data.
@@ -829,7 +829,7 @@ message SOState {
   // Config is the shared object config.
   SharedObjectConfig config = 1;
 
-  // Checkpoint is the latest checkpoint: the World members replay from.
+  // Checkpoint is the latest checkpoint: the state members replay from.
   SOCheckpoint checkpoint = 2;
 
   // KeyEpochs are the key epochs, sorted by epoch, each with a grant to every
