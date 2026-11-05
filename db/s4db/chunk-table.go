@@ -89,6 +89,9 @@ type chunkTable struct {
 	kinds [chunkKinds]int64
 	// live and used sum the live and used bytes of the value chunks.
 	live, used int64
+	// lowFree is at or below the lowest free chunk: no chunk below it is
+	// free, so alloc starts its search there.
+	lowFree uint64
 }
 
 // chunkDir is one directory of a chunk table's pages.
@@ -175,6 +178,7 @@ func (t *chunkTable) at(c uint64) *chunkEntry {
 	}
 	if c >= t.n {
 		t.kinds[chunkFree] += int64(c + 1 - t.n) // #nosec G115 -- a chunk count.
+		t.lowFree = min(t.lowFree, t.n)
 		t.n = c + 1
 	}
 
@@ -196,10 +200,14 @@ func (t *chunkTable) at(c uint64) *chunkEntry {
 
 // set sets the entry of chunk c.
 func (t *chunkTable) set(c uint64, e chunkEntry) {
+	// Replace the entry, keeping the tally and the free hint.
 	p := t.at(c)
 	t.tally(*p, -1)
 	*p = e
 	t.tally(e, 1)
+	if e.kind == chunkFree {
+		t.lowFree = min(t.lowFree, c)
+	}
 }
 
 // truncate drops the entries from chunk n on.
@@ -247,14 +255,17 @@ func (t *chunkTable) trimEnd(n uint64) uint64 {
 // alloc returns the lowest run of n consecutive free chunks, extending the
 // table when none exists, and marks them kind with owner.
 func (t *chunkTable) alloc(n uint64, kind uint8, owner uint64) uint64 {
-	// Find the lowest free run of n chunks; a table with no free chunk
-	// extends at once.
+	// Find the lowest free run of n chunks from the free hint, which moves
+	// up to the first free chunk the search meets; a table with no free
+	// chunk extends at once, and a free run at the end extends past it.
 	start, free := uint64(0), uint64(0)
-	for c := uint64(firstChunk); c < t.end() && t.kinds[chunkFree] != 0; c++ {
+	first := t.end()
+	for c := max(firstChunk, t.lowFree); c < t.end() && t.kinds[chunkFree] != 0; c++ {
 		if t.get(c).kind != chunkFree {
 			free = 0
 			continue
 		}
+		first = min(first, c)
 		if free == 0 {
 			start = c
 		}
@@ -263,10 +274,9 @@ func (t *chunkTable) alloc(n uint64, kind uint8, owner uint64) uint64 {
 			break
 		}
 	}
-	if free < n {
-		if free == 0 {
-			start = t.end()
-		}
+	t.lowFree = max(t.lowFree, first)
+	if free == 0 {
+		start = t.end()
 	}
 
 	// Take the chunks.

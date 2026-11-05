@@ -20,6 +20,8 @@ type layer interface {
 	seek(k []byte, reverse bool)
 	// step moves to the next key in the direction.
 	step(reverse bool)
+	// failure returns the first error the layer met, which ended it.
+	failure() error
 }
 
 // ientry is an entry seen through a merged iterator.
@@ -190,7 +192,7 @@ func (it *Iterator) Seek(k []byte) error {
 		}
 	}
 	it.settle()
-	return nil
+	return it.err
 }
 
 // prefixEnd returns the smallest key above every key with prefix p, or nil
@@ -225,6 +227,10 @@ func (it *Iterator) settle() bool {
 		var best []byte
 		var ent ientry
 		for _, l := range it.layers {
+			if err := l.failure(); err != nil {
+				it.err = err
+				return false
+			}
 			if !l.valid() {
 				continue
 			}

@@ -66,5 +66,10 @@ func (l *treeIter[T]) step(reverse bool) {
 	l.ok = l.it.Next()
 }
 
+// failure returns nil: a tree in memory does not fail.
+func (l *treeIter[T]) failure() error {
+	return nil
+}
+
 // _ is a type assertion
 var _ layer = (*treeIter[tentry])(nil)
