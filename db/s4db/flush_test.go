@@ -7,6 +7,7 @@ import (
 	"maps"
 	"math/rand/v2"
 	"path/filepath"
+	"slices"
 	"testing"
 	"time"
 )
@@ -90,12 +91,21 @@ func TestFlush(t *testing.T) {
 // TestRunBuilderRoundTrip writes keys through the builder into a file and
 // reads them back through a reader: present keys, absent keys, and a scan.
 func TestRunBuilderRoundTrip(t *testing.T) {
-	// Open a fresh file and a builder over eight chunks of it.
+	// Open a fresh file and a builder over two chunks reserved before the
+	// manifest's, as a job reserves them, so it asks for more as it grows.
 	ctx := context.Background()
 	db := openTest(t, filepath.Join(t.TempDir(), "run.s4wave"), Options{})
 	defer db.Close()
-	chunks := []uint64{10, 11, 12, 13, 14, 15, 16, 17}
-	rb := newRunBuilder(db.s, chunks, func() (uint64, error) { return 0, fmt.Errorf("out of chunks") })
+	reserved := []uint64{10, 11, 30, 31}
+	chunks, mchunks := reserved[:2], reserved[2:]
+	next := uint64(12)
+	rb := newRunBuilder(db.s, chunks, func() (uint64, error) {
+		if next > 17 {
+			return 0, fmt.Errorf("out of chunks")
+		}
+		next++
+		return next - 1, nil
+	})
 
 	// Build a run of keys whose values fill more than one partition.
 	const n = 20000
@@ -111,8 +121,13 @@ func TestRunBuilderRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	meta.id = 16
-	if meta.count != n || len(meta.chunks) == 0 || len(rb.parts) < 2 {
+	if meta.count != n || len(meta.chunks) <= 2 || len(rb.parts) < 2 {
 		t.Fatalf("meta %+v in %d partitions", meta, len(rb.parts))
+	}
+
+	// The chunks it asked for left the manifest's reservation alone.
+	if !slices.Equal(mchunks, []uint64{30, 31}) {
+		t.Fatalf("manifest chunks became %v", mchunks)
 	}
 
 	// Read even keys back and miss odd ones.
