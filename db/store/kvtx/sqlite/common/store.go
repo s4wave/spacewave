@@ -41,6 +41,8 @@ type Store[T SQLiteDriverConfig] struct {
 	table string
 	// config classifies driver errors for bounded recovery.
 	config T
+	// withoutRowID creates a missing table as WITHOUT ROWID.
+	withoutRowID bool
 }
 
 // NewStore constructs a new key-value store from a SQLite database.
@@ -125,18 +127,24 @@ func OpenWithPragmas[T SQLiteDriverConfig](ctx context.Context, path string, tab
 	}
 
 	// Initialize the table through the same path used by injected SQL pools.
-	return OpenDB(ctx, db, table, config)
+	return openDB(ctx, db, table, pragmas.WithoutRowID, config)
 }
 
 // OpenDB takes ownership of an already configured SQL pool and opens its KV table.
 // It closes the pool on failure; the caller selects durability on every connection.
 func OpenDB[T SQLiteDriverConfig](ctx context.Context, db *sql.DB, table string, config T) (*Store[T], error) {
+	return openDB(ctx, db, table, false, config)
+}
+
+// openDB is OpenDB with the shape of a table it creates.
+func openDB[T SQLiteDriverConfig](ctx context.Context, db *sql.DB, table string, withoutRowID bool, config T) (*Store[T], error) {
 	// Bind the validated table to its supplied database pool.
 	store, err := NewStore(db, table, config)
 	if err != nil {
 		db.Close()
 		return nil, err
 	}
+	store.withoutRowID = withoutRowID
 
 	// Initialize table with retry on SQLITE_BUSY.
 	// This can happen when another process is closing the database and holds
@@ -176,6 +184,9 @@ func (s *Store[T]) GetDB() *sql.DB {
 func (s *Store[T]) initTable() error {
 	query := `CREATE TABLE IF NOT EXISTS ` + s.table + ` ( ` + //nolint:gosec
 		`key BLOB PRIMARY KEY, value BLOB)`
+	if s.withoutRowID {
+		query += ` WITHOUT ROWID`
+	}
 	_, err := s.db.Exec(query)
 	return err
 }
