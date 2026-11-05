@@ -69,10 +69,11 @@ func (s *PendingStore) KeptBytes() int {
 	return s.keptBytes
 }
 
-// GetSupportedFeatures reports the inner store's features, less its own
-// buffering, since a kept block is never in the inner store's buffer.
+// GetSupportedFeatures reports the inner store's features, and that the store
+// buffers its own puts: they are readable from memory at once, so a World
+// engine that defers durability writes to it directly.
 func (s *PendingStore) GetSupportedFeatures() StoreFeature {
-	return s.StoreOps.GetSupportedFeatures() &^ StoreFeatureSelfBuffered
+	return s.StoreOps.GetSupportedFeatures() | StoreFeatureSelfBuffered
 }
 
 // BeginReadOperation returns the store itself, so a scoped read still serves
