@@ -210,32 +210,21 @@ func (s *StoreReadThrough) source(src StoreSource) block.StoreOps {
 }
 
 // readLower reads a block and its refs from lower. With a fill, a hit with
-// known refs is written into primary; a block with unknown refs would look
-// like a leaf there, so it is served without the fill.
+// known refs is written into primary before the read returns; a block with
+// unknown refs would look like a leaf there, so it is served without the fill.
+// A fill that fails leaves the block readable from lower, so its error is
+// dropped and the next read fills it again. A placed store's fill only queues
+// the block for its store's background drain.
 func (s *StoreReadThrough) readLower(ctx context.Context, primary, lower block.StoreOps, ref *block.BlockRef) (*block.StoredBlock, error) {
 	stored, err := lower.GetStoredBlock(ctx, ref)
 	if err != nil || stored == nil {
 		return nil, err
 	}
 	if s.fill != nil && primary != nil && stored.RefsKnown {
-		// Fill in the background so the read does not wait on the primary's
-		// writer, which a standby's backfill can hold for seconds. A fill that
-		// finds the pool full is skipped; the next read fills it again.
-		select {
-		case fillSlots <- struct{}{}:
-			fillCtx := context.WithoutCancel(ctx)
-			go func() {
-				defer func() { <-fillSlots }()
-				_ = s.fill(fillCtx, primary, ref, stored)
-			}()
-		default:
-		}
+		_ = s.fill(context.WithoutCancel(ctx), primary, ref, stored)
 	}
 	return stored, nil
 }
-
-// fillSlots bounds the background fills of every read-through store.
-var fillSlots = make(chan struct{}, 256)
 
 // GetBlockExists checks the primary source, then the current lower source.
 // It asks each source for existence rather than reading the block, so a lower
