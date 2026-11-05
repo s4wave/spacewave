@@ -11,7 +11,6 @@ import (
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/db/block"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
-	"github.com/s4wave/spacewave/db/world"
 )
 
 // TestBackfillStartupSnapshot restarts a real local World before its first
@@ -106,7 +105,7 @@ func TestBackfillStartupSnapshot(t *testing.T) {
 	// later write, settling that receipt must still copy the admitted World.
 	applying, releasePublication := so.hold(nil)
 	defer releasePublication()
-	admission, err := world.CommitAdmit(ctx, w.newWrite(t, "backfill/pending"))
+	admission, err := commitAdmitTest(ctx, w.newWrite(t, "backfill/pending"))
 	if err != nil {
 		t.Fatal(err)
 	}

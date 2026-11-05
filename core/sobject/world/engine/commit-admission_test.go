@@ -31,7 +31,7 @@ func TestCommitForksFromAdmittedWorld(t *testing.T) {
 	// Hold the publication of the first write and admit it.
 	applying, release := so.hold(nil)
 	defer release()
-	first, err := world.CommitAdmit(t.Context(), w.newWrite(t, "admit/1"))
+	first, err := commitAdmitTest(t.Context(), w.newWrite(t, "admit/1"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +88,7 @@ func TestCommitReceiptFailure(t *testing.T) {
 	// Watch the reinstalls through a wrapper, as a bus engine's user does.
 	w, so := startGatedWorld(t, t.TempDir(), nil)
 	reinstalled := make(chan uint64, 8)
-	unhook, err := world.OnReinstall(t.Context(), world.NewReadTrackingEngine(w.eng), func(seqno uint64) {
+	unhook, err := onReinstallTest(t.Context(), w.eng, func(seqno uint64) {
 		reinstalled <- seqno
 	})
 	if err != nil {
@@ -105,7 +105,7 @@ func TestCommitReceiptFailure(t *testing.T) {
 	injected := errors.New("injected publication failure")
 	applying, release := so.hold(injected)
 	defer release()
-	first, err := world.CommitAdmit(t.Context(), w.newWrite(t, "fail/1"))
+	first, err := commitAdmitTest(t.Context(), w.newWrite(t, "fail/1"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -172,7 +172,7 @@ func TestWaitDurableSkipsHooks(t *testing.T) {
 	w, so := startGatedWorld(t, t.TempDir(), nil)
 	var consumer sync.Mutex
 	reinstalled := make(chan uint64, 8)
-	unhook, err := world.OnReinstall(t.Context(), w.eng, func(seqno uint64) {
+	unhook, err := onReinstallTest(t.Context(), w.eng, func(seqno uint64) {
 		consumer.Lock()
 		defer consumer.Unlock()
 		time.Sleep(20 * time.Millisecond)
@@ -191,7 +191,7 @@ func TestWaitDurableSkipsHooks(t *testing.T) {
 	injected := errors.New("injected publication failure")
 	applying, release := so.hold(injected)
 	defer release()
-	adm, err := world.CommitAdmit(t.Context(), w.newWrite(t, "hook/1"))
+	adm, err := commitAdmitTest(t.Context(), w.newWrite(t, "hook/1"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -272,7 +272,7 @@ func TestCommitAfterFailedBase(t *testing.T) {
 	w, so := startGatedWorld(t, t.TempDir(), nil)
 	var consumer sync.Mutex
 	reinstalled := make(chan uint64, 8)
-	unhook, err := world.OnReinstall(t.Context(), w.eng, func(seqno uint64) {
+	unhook, err := onReinstallTest(t.Context(), w.eng, func(seqno uint64) {
 		consumer.Lock()
 		defer consumer.Unlock()
 		reinstalled <- seqno
@@ -290,7 +290,7 @@ func TestCommitAfterFailedBase(t *testing.T) {
 	injected := errors.New("injected publication failure")
 	applying, release := so.hold(injected)
 	defer release()
-	first, err := world.CommitAdmit(t.Context(), w.newWrite(t, "base/1"))
+	first, err := commitAdmitTest(t.Context(), w.newWrite(t, "base/1"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -320,7 +320,7 @@ func TestCommitAfterFailedBase(t *testing.T) {
 	// B's CommitAdmit fails without running the hook.
 	committed := make(chan error, 1)
 	go func() {
-		adm, err := world.CommitAdmit(t.Context(), tx)
+		adm, err := commitAdmitTest(t.Context(), tx)
 		if err == nil {
 			_, err = adm.WaitDurable(t.Context())
 			adm.Release()

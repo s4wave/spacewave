@@ -284,7 +284,7 @@ func TestSQLWorldReservationLifecycle(t *testing.T) {
 		waiting, cancel := context.WithCancel(ctx)
 		done := make(chan error, 1)
 		if control {
-			go func() { done <- eng.(world.RootRetainingEngine).SetRetainedRoot(waiting, "probe", nil) }()
+			go func() { done <- eng.(rootRetainingTestEngine).SetRetainedRoot(waiting, "probe", nil) }()
 		} else {
 			tx := newWrite("intent-canceled")
 			go func() { done <- tx.Commit(waiting) }()
@@ -415,7 +415,7 @@ func TestSQLWorldReservationLifecycle(t *testing.T) {
 	releaseHead := sync.OnceFunc(func() { close(gate.release) })
 
 	// Admit the predecessor but hold its physical state replacement.
-	first, err := world.CommitAdmit(ctx, newWrite("failed-base"))
+	first, err := commitAdmitTest(ctx, newWrite("failed-base"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -541,7 +541,7 @@ func TestSQLWorldReservationLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := localEngine.(world.RootRetainingEngine).SetRetainedRoot(ctx, "local", nil); err != nil {
+	if err := localEngine.(rootRetainingTestEngine).SetRetainedRoot(ctx, "local", nil); err != nil {
 		t.Fatalf("control required disabled preparation: %v", err)
 	}
 	localTx, err := localEngine.NewTransaction(ctx, true)

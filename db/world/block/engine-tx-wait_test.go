@@ -78,20 +78,18 @@ func TestEngineTxWaitSeqnoKeepsReadSnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Admit it.
-	adm, err := world.CommitAdmit(ctx, writer)
-	if err != nil {
+	// Commit it.
+	if err := writer.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
-	defer adm.Release()
 
-	// The Admission reports the seqno after the write.
+	// The engine reports the seqno after the write.
 	after, err := engine.GetSeqno(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if adm.Seqno() != after || after != before+1 {
-		t.Fatalf("admission seqno %d, engine %d, want %d", adm.Seqno(), after, before+1)
+	if after != before+1 {
+		t.Fatalf("engine seqno %d, want %d", after, before+1)
 	}
 
 	// A canceled wait beyond the snapshot cannot return the newer accepted head.
