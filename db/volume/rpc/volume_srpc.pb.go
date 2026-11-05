@@ -276,6 +276,34 @@ type SRPCProxyVolumeClient interface {
 	GetPeerPriv(ctx context.Context, in *GetPeerPrivRequest) (*GetPeerPrivResponse, error)
 	// GetStorageStats returns storage usage statistics for the volume.
 	GetStorageStats(ctx context.Context, in *GetStorageStatsRequest) (*GetStorageStatsResponse, error)
+	// GetBucketRoot returns the block a named root of a bucket holds.
+	GetBucketRoot(ctx context.Context, in *GetBucketRootRequest) (*GetBucketRootResponse, error)
+	// ListBucketRoots streams the named roots of a bucket under a prefix.
+	ListBucketRoots(ctx context.Context, in *ListBucketRootsRequest) (SRPCProxyVolume_ListBucketRootsClient, error)
+	// SetBucketRoots stores blocks and moves named roots of a bucket in one
+	// transaction of the volume.
+	SetBucketRoots(ctx context.Context, in *SetBucketRootsRequest) (*SetBucketRootsResponse, error)
+	// GetRootRetention reports whether the volume holds roots, pins and stages.
+	GetRootRetention(ctx context.Context, in *GetRootRetentionRequest) (*GetRootRetentionResponse, error)
+	// HoldPin pins a reader's root, sends one message once pinned, and holds
+	// the pin until the client ends the stream.
+	HoldPin(ctx context.Context, in *HoldPinRequest) (SRPCProxyVolume_HoldPinClient, error)
+	// HoldStage opens a stage, sends its name, and holds it until the client
+	// ends the stream.
+	HoldStage(ctx context.Context, in *HoldStageRequest) (SRPCProxyVolume_HoldStageClient, error)
+	// PrepareStagedBlock writes a block a stage this connection holds keeps.
+	PrepareStagedBlock(ctx context.Context, in *PrepareStagedBlockRequest) (*PrepareStagedBlockResponse, error)
+	// PrepareStagedBlockBatch writes a batch a stage this connection holds keeps.
+	PrepareStagedBlockBatch(ctx context.Context, in *PrepareStagedBlockBatchRequest) (*PrepareStagedBlockBatchResponse, error)
+	// ReleaseStageRoots drops a stage's holds on blocks.
+	ReleaseStageRoots(ctx context.Context, in *StageRefsRequest) (*ReleaseStageRootsResponse, error)
+	// HoldStageCompleteRoots makes a stage hold each proved root, and reports
+	// which roots have a completion proof.
+	HoldStageCompleteRoots(ctx context.Context, in *StageRefsRequest) (*RootsCompleteResponse, error)
+	// MarkRootsComplete records completion proofs for stored roots.
+	MarkRootsComplete(ctx context.Context, in *RefsRequest) (*MarkRootsCompleteResponse, error)
+	// RootsComplete reports which roots have a completion proof.
+	RootsComplete(ctx context.Context, in *RefsRequest) (*RootsCompleteResponse, error)
 }
 
 type srpcProxyVolumeClient struct {
@@ -467,6 +495,186 @@ func (c *srpcProxyVolumeClient) GetStorageStats(ctx context.Context, in *GetStor
 	return out, nil
 }
 
+func (c *srpcProxyVolumeClient) GetBucketRoot(ctx context.Context, in *GetBucketRootRequest) (*GetBucketRootResponse, error) {
+	out := new(GetBucketRootResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "GetBucketRoot", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcProxyVolumeClient) ListBucketRoots(ctx context.Context, in *ListBucketRootsRequest) (SRPCProxyVolume_ListBucketRootsClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "ListBucketRoots", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcProxyVolume_ListBucketRootsClient{stream}
+	// A failed half-close means the call ended; MsgRecv reports its outcome.
+	_ = strm.CloseSend()
+	return strm, nil
+}
+
+type SRPCProxyVolume_ListBucketRootsClient interface {
+	srpc.Stream
+	Recv() (*ListBucketRootsResponse, error)
+	RecvTo(*ListBucketRootsResponse) error
+}
+
+type srpcProxyVolume_ListBucketRootsClient struct {
+	srpc.Stream
+}
+
+func (x *srpcProxyVolume_ListBucketRootsClient) Recv() (*ListBucketRootsResponse, error) {
+	m := new(ListBucketRootsResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcProxyVolume_ListBucketRootsClient) RecvTo(m *ListBucketRootsResponse) error {
+	return x.MsgRecv(m)
+}
+
+func (c *srpcProxyVolumeClient) SetBucketRoots(ctx context.Context, in *SetBucketRootsRequest) (*SetBucketRootsResponse, error) {
+	out := new(SetBucketRootsResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "SetBucketRoots", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcProxyVolumeClient) GetRootRetention(ctx context.Context, in *GetRootRetentionRequest) (*GetRootRetentionResponse, error) {
+	out := new(GetRootRetentionResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "GetRootRetention", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcProxyVolumeClient) HoldPin(ctx context.Context, in *HoldPinRequest) (SRPCProxyVolume_HoldPinClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "HoldPin", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcProxyVolume_HoldPinClient{stream}
+	// A failed half-close means the call ended; MsgRecv reports its outcome.
+	_ = strm.CloseSend()
+	return strm, nil
+}
+
+type SRPCProxyVolume_HoldPinClient interface {
+	srpc.Stream
+	Recv() (*HoldPinResponse, error)
+	RecvTo(*HoldPinResponse) error
+}
+
+type srpcProxyVolume_HoldPinClient struct {
+	srpc.Stream
+}
+
+func (x *srpcProxyVolume_HoldPinClient) Recv() (*HoldPinResponse, error) {
+	m := new(HoldPinResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcProxyVolume_HoldPinClient) RecvTo(m *HoldPinResponse) error {
+	return x.MsgRecv(m)
+}
+
+func (c *srpcProxyVolumeClient) HoldStage(ctx context.Context, in *HoldStageRequest) (SRPCProxyVolume_HoldStageClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "HoldStage", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcProxyVolume_HoldStageClient{stream}
+	// A failed half-close means the call ended; MsgRecv reports its outcome.
+	_ = strm.CloseSend()
+	return strm, nil
+}
+
+type SRPCProxyVolume_HoldStageClient interface {
+	srpc.Stream
+	Recv() (*HoldStageResponse, error)
+	RecvTo(*HoldStageResponse) error
+}
+
+type srpcProxyVolume_HoldStageClient struct {
+	srpc.Stream
+}
+
+func (x *srpcProxyVolume_HoldStageClient) Recv() (*HoldStageResponse, error) {
+	m := new(HoldStageResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcProxyVolume_HoldStageClient) RecvTo(m *HoldStageResponse) error {
+	return x.MsgRecv(m)
+}
+
+func (c *srpcProxyVolumeClient) PrepareStagedBlock(ctx context.Context, in *PrepareStagedBlockRequest) (*PrepareStagedBlockResponse, error) {
+	out := new(PrepareStagedBlockResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "PrepareStagedBlock", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcProxyVolumeClient) PrepareStagedBlockBatch(ctx context.Context, in *PrepareStagedBlockBatchRequest) (*PrepareStagedBlockBatchResponse, error) {
+	out := new(PrepareStagedBlockBatchResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "PrepareStagedBlockBatch", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcProxyVolumeClient) ReleaseStageRoots(ctx context.Context, in *StageRefsRequest) (*ReleaseStageRootsResponse, error) {
+	out := new(ReleaseStageRootsResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "ReleaseStageRoots", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcProxyVolumeClient) HoldStageCompleteRoots(ctx context.Context, in *StageRefsRequest) (*RootsCompleteResponse, error) {
+	out := new(RootsCompleteResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "HoldStageCompleteRoots", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcProxyVolumeClient) MarkRootsComplete(ctx context.Context, in *RefsRequest) (*MarkRootsCompleteResponse, error) {
+	out := new(MarkRootsCompleteResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "MarkRootsComplete", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcProxyVolumeClient) RootsComplete(ctx context.Context, in *RefsRequest) (*RootsCompleteResponse, error) {
+	out := new(RootsCompleteResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "RootsComplete", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 type SRPCProxyVolumeServer interface {
 	// GetVolumeInfo returns the basic volume information.
 	GetVolumeInfo(context.Context, *GetVolumeInfoRequest) (*GetVolumeInfoResponse, error)
@@ -491,6 +699,34 @@ type SRPCProxyVolumeServer interface {
 	GetPeerPriv(context.Context, *GetPeerPrivRequest) (*GetPeerPrivResponse, error)
 	// GetStorageStats returns storage usage statistics for the volume.
 	GetStorageStats(context.Context, *GetStorageStatsRequest) (*GetStorageStatsResponse, error)
+	// GetBucketRoot returns the block a named root of a bucket holds.
+	GetBucketRoot(context.Context, *GetBucketRootRequest) (*GetBucketRootResponse, error)
+	// ListBucketRoots streams the named roots of a bucket under a prefix.
+	ListBucketRoots(*ListBucketRootsRequest, SRPCProxyVolume_ListBucketRootsStream) error
+	// SetBucketRoots stores blocks and moves named roots of a bucket in one
+	// transaction of the volume.
+	SetBucketRoots(context.Context, *SetBucketRootsRequest) (*SetBucketRootsResponse, error)
+	// GetRootRetention reports whether the volume holds roots, pins and stages.
+	GetRootRetention(context.Context, *GetRootRetentionRequest) (*GetRootRetentionResponse, error)
+	// HoldPin pins a reader's root, sends one message once pinned, and holds
+	// the pin until the client ends the stream.
+	HoldPin(*HoldPinRequest, SRPCProxyVolume_HoldPinStream) error
+	// HoldStage opens a stage, sends its name, and holds it until the client
+	// ends the stream.
+	HoldStage(*HoldStageRequest, SRPCProxyVolume_HoldStageStream) error
+	// PrepareStagedBlock writes a block a stage this connection holds keeps.
+	PrepareStagedBlock(context.Context, *PrepareStagedBlockRequest) (*PrepareStagedBlockResponse, error)
+	// PrepareStagedBlockBatch writes a batch a stage this connection holds keeps.
+	PrepareStagedBlockBatch(context.Context, *PrepareStagedBlockBatchRequest) (*PrepareStagedBlockBatchResponse, error)
+	// ReleaseStageRoots drops a stage's holds on blocks.
+	ReleaseStageRoots(context.Context, *StageRefsRequest) (*ReleaseStageRootsResponse, error)
+	// HoldStageCompleteRoots makes a stage hold each proved root, and reports
+	// which roots have a completion proof.
+	HoldStageCompleteRoots(context.Context, *StageRefsRequest) (*RootsCompleteResponse, error)
+	// MarkRootsComplete records completion proofs for stored roots.
+	MarkRootsComplete(context.Context, *RefsRequest) (*MarkRootsCompleteResponse, error)
+	// RootsComplete reports which roots have a completion proof.
+	RootsComplete(context.Context, *RefsRequest) (*RootsCompleteResponse, error)
 }
 
 const SRPCProxyVolumeServiceID = "volume.rpc.ProxyVolume"
@@ -530,6 +766,18 @@ func (SRPCProxyVolumeHandler) GetMethodIDs() []string {
 		"ReleaseCoordinatorWriteLease",
 		"GetPeerPriv",
 		"GetStorageStats",
+		"GetBucketRoot",
+		"ListBucketRoots",
+		"SetBucketRoots",
+		"GetRootRetention",
+		"HoldPin",
+		"HoldStage",
+		"PrepareStagedBlock",
+		"PrepareStagedBlockBatch",
+		"ReleaseStageRoots",
+		"HoldStageCompleteRoots",
+		"MarkRootsComplete",
+		"RootsComplete",
 	}
 }
 
@@ -564,6 +812,30 @@ func (d *SRPCProxyVolumeHandler) InvokeMethod(
 		return true, d.InvokeMethod_GetPeerPriv(d.impl, strm)
 	case "GetStorageStats":
 		return true, d.InvokeMethod_GetStorageStats(d.impl, strm)
+	case "GetBucketRoot":
+		return true, d.InvokeMethod_GetBucketRoot(d.impl, strm)
+	case "ListBucketRoots":
+		return true, d.InvokeMethod_ListBucketRoots(d.impl, strm)
+	case "SetBucketRoots":
+		return true, d.InvokeMethod_SetBucketRoots(d.impl, strm)
+	case "GetRootRetention":
+		return true, d.InvokeMethod_GetRootRetention(d.impl, strm)
+	case "HoldPin":
+		return true, d.InvokeMethod_HoldPin(d.impl, strm)
+	case "HoldStage":
+		return true, d.InvokeMethod_HoldStage(d.impl, strm)
+	case "PrepareStagedBlock":
+		return true, d.InvokeMethod_PrepareStagedBlock(d.impl, strm)
+	case "PrepareStagedBlockBatch":
+		return true, d.InvokeMethod_PrepareStagedBlockBatch(d.impl, strm)
+	case "ReleaseStageRoots":
+		return true, d.InvokeMethod_ReleaseStageRoots(d.impl, strm)
+	case "HoldStageCompleteRoots":
+		return true, d.InvokeMethod_HoldStageCompleteRoots(d.impl, strm)
+	case "MarkRootsComplete":
+		return true, d.InvokeMethod_MarkRootsComplete(d.impl, strm)
+	case "RootsComplete":
+		return true, d.InvokeMethod_RootsComplete(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -686,6 +958,141 @@ func (SRPCProxyVolumeHandler) InvokeMethod_GetStorageStats(impl SRPCProxyVolumeS
 		return err
 	}
 	out, err := impl.GetStorageStats(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCProxyVolumeHandler) InvokeMethod_GetBucketRoot(impl SRPCProxyVolumeServer, strm srpc.Stream) error {
+	req := new(GetBucketRootRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.GetBucketRoot(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCProxyVolumeHandler) InvokeMethod_ListBucketRoots(impl SRPCProxyVolumeServer, strm srpc.Stream) error {
+	req := new(ListBucketRootsRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcProxyVolume_ListBucketRootsStream{strm}
+	return impl.ListBucketRoots(req, serverStrm)
+}
+
+func (SRPCProxyVolumeHandler) InvokeMethod_SetBucketRoots(impl SRPCProxyVolumeServer, strm srpc.Stream) error {
+	req := new(SetBucketRootsRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.SetBucketRoots(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCProxyVolumeHandler) InvokeMethod_GetRootRetention(impl SRPCProxyVolumeServer, strm srpc.Stream) error {
+	req := new(GetRootRetentionRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.GetRootRetention(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCProxyVolumeHandler) InvokeMethod_HoldPin(impl SRPCProxyVolumeServer, strm srpc.Stream) error {
+	req := new(HoldPinRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcProxyVolume_HoldPinStream{strm}
+	return impl.HoldPin(req, serverStrm)
+}
+
+func (SRPCProxyVolumeHandler) InvokeMethod_HoldStage(impl SRPCProxyVolumeServer, strm srpc.Stream) error {
+	req := new(HoldStageRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcProxyVolume_HoldStageStream{strm}
+	return impl.HoldStage(req, serverStrm)
+}
+
+func (SRPCProxyVolumeHandler) InvokeMethod_PrepareStagedBlock(impl SRPCProxyVolumeServer, strm srpc.Stream) error {
+	req := new(PrepareStagedBlockRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.PrepareStagedBlock(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCProxyVolumeHandler) InvokeMethod_PrepareStagedBlockBatch(impl SRPCProxyVolumeServer, strm srpc.Stream) error {
+	req := new(PrepareStagedBlockBatchRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.PrepareStagedBlockBatch(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCProxyVolumeHandler) InvokeMethod_ReleaseStageRoots(impl SRPCProxyVolumeServer, strm srpc.Stream) error {
+	req := new(StageRefsRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.ReleaseStageRoots(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCProxyVolumeHandler) InvokeMethod_HoldStageCompleteRoots(impl SRPCProxyVolumeServer, strm srpc.Stream) error {
+	req := new(StageRefsRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.HoldStageCompleteRoots(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCProxyVolumeHandler) InvokeMethod_MarkRootsComplete(impl SRPCProxyVolumeServer, strm srpc.Stream) error {
+	req := new(RefsRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.MarkRootsComplete(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCProxyVolumeHandler) InvokeMethod_RootsComplete(impl SRPCProxyVolumeServer, strm srpc.Stream) error {
+	req := new(RefsRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.RootsComplete(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -822,5 +1229,146 @@ type SRPCProxyVolume_GetStorageStatsStream interface {
 }
 
 type srpcProxyVolume_GetStorageStatsStream struct {
+	srpc.Stream
+}
+
+type SRPCProxyVolume_GetBucketRootStream interface {
+	srpc.Stream
+}
+
+type srpcProxyVolume_GetBucketRootStream struct {
+	srpc.Stream
+}
+
+type SRPCProxyVolume_ListBucketRootsStream interface {
+	srpc.Stream
+	Send(*ListBucketRootsResponse) error
+	SendAndClose(*ListBucketRootsResponse) error
+}
+
+type srpcProxyVolume_ListBucketRootsStream struct {
+	srpc.Stream
+}
+
+func (x *srpcProxyVolume_ListBucketRootsStream) Send(m *ListBucketRootsResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcProxyVolume_ListBucketRootsStream) SendAndClose(m *ListBucketRootsResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
+}
+
+type SRPCProxyVolume_SetBucketRootsStream interface {
+	srpc.Stream
+}
+
+type srpcProxyVolume_SetBucketRootsStream struct {
+	srpc.Stream
+}
+
+type SRPCProxyVolume_GetRootRetentionStream interface {
+	srpc.Stream
+}
+
+type srpcProxyVolume_GetRootRetentionStream struct {
+	srpc.Stream
+}
+
+type SRPCProxyVolume_HoldPinStream interface {
+	srpc.Stream
+	Send(*HoldPinResponse) error
+	SendAndClose(*HoldPinResponse) error
+}
+
+type srpcProxyVolume_HoldPinStream struct {
+	srpc.Stream
+}
+
+func (x *srpcProxyVolume_HoldPinStream) Send(m *HoldPinResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcProxyVolume_HoldPinStream) SendAndClose(m *HoldPinResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
+}
+
+type SRPCProxyVolume_HoldStageStream interface {
+	srpc.Stream
+	Send(*HoldStageResponse) error
+	SendAndClose(*HoldStageResponse) error
+}
+
+type srpcProxyVolume_HoldStageStream struct {
+	srpc.Stream
+}
+
+func (x *srpcProxyVolume_HoldStageStream) Send(m *HoldStageResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcProxyVolume_HoldStageStream) SendAndClose(m *HoldStageResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
+}
+
+type SRPCProxyVolume_PrepareStagedBlockStream interface {
+	srpc.Stream
+}
+
+type srpcProxyVolume_PrepareStagedBlockStream struct {
+	srpc.Stream
+}
+
+type SRPCProxyVolume_PrepareStagedBlockBatchStream interface {
+	srpc.Stream
+}
+
+type srpcProxyVolume_PrepareStagedBlockBatchStream struct {
+	srpc.Stream
+}
+
+type SRPCProxyVolume_ReleaseStageRootsStream interface {
+	srpc.Stream
+}
+
+type srpcProxyVolume_ReleaseStageRootsStream struct {
+	srpc.Stream
+}
+
+type SRPCProxyVolume_HoldStageCompleteRootsStream interface {
+	srpc.Stream
+}
+
+type srpcProxyVolume_HoldStageCompleteRootsStream struct {
+	srpc.Stream
+}
+
+type SRPCProxyVolume_MarkRootsCompleteStream interface {
+	srpc.Stream
+}
+
+type srpcProxyVolume_MarkRootsCompleteStream struct {
+	srpc.Stream
+}
+
+type SRPCProxyVolume_RootsCompleteStream interface {
+	srpc.Stream
+}
+
+type srpcProxyVolume_RootsCompleteStream struct {
 	srpc.Stream
 }

@@ -2,6 +2,7 @@ package volume_rpc_server
 
 import (
 	"context"
+	"sync"
 
 	"github.com/aperturerobotics/starpc/srpc"
 
@@ -29,6 +30,11 @@ type ProxyVolume struct {
 	coordinatorLeases *coordinatorLeases
 	// exposePrivKey controls if we allow exposing the private key
 	exposePrivKey bool
+	// stageMtx guards stages.
+	stageMtx sync.Mutex
+	// stages are the stages this service's HoldStage streams hold, so a stage
+	// call names only a stage a client of this service opened.
+	stages map[string]struct{}
 }
 
 // NewProxyVolume constructs a new ProxyVolume.
@@ -41,6 +47,7 @@ func NewProxyVolume(ctx context.Context, vol volume.Volume, exposePrivKey bool) 
 		vol:               vol,
 		coordinatorLeases: newCoordinatorLeases(),
 		exposePrivKey:     exposePrivKey,
+		stages:            make(map[string]struct{}),
 	}
 }
 

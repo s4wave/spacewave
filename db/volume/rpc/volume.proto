@@ -4,6 +4,8 @@ package volume.rpc;
 import "github.com/s4wave/spacewave/db/volume/volume.proto";
 import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
 import "github.com/aperturerobotics/starpc/rpcstream/rpcstream.proto";
+import "github.com/s4wave/spacewave/db/block/block.proto";
+import "github.com/s4wave/spacewave/db/block/rpc/block.proto";
 
 // AccessVolumes is a service to access available volumes over RPC.
 service AccessVolumes {
@@ -71,6 +73,46 @@ service ProxyVolume {
 
   // GetStorageStats returns storage usage statistics for the volume.
   rpc GetStorageStats(GetStorageStatsRequest) returns (GetStorageStatsResponse);
+
+  // GetBucketRoot returns the block a named root of a bucket holds.
+  rpc GetBucketRoot(GetBucketRootRequest) returns (GetBucketRootResponse);
+
+  // ListBucketRoots streams the named roots of a bucket under a prefix.
+  rpc ListBucketRoots(ListBucketRootsRequest) returns (stream ListBucketRootsResponse);
+
+  // SetBucketRoots stores blocks and moves named roots of a bucket in one
+  // transaction of the volume.
+  rpc SetBucketRoots(SetBucketRootsRequest) returns (SetBucketRootsResponse);
+
+  // GetRootRetention reports whether the volume holds roots, pins and stages.
+  rpc GetRootRetention(GetRootRetentionRequest) returns (GetRootRetentionResponse);
+
+  // HoldPin pins a reader's root, sends one message once pinned, and holds
+  // the pin until the client ends the stream.
+  rpc HoldPin(HoldPinRequest) returns (stream HoldPinResponse);
+
+  // HoldStage opens a stage, sends its name, and holds it until the client
+  // ends the stream.
+  rpc HoldStage(HoldStageRequest) returns (stream HoldStageResponse);
+
+  // PrepareStagedBlock writes a block a stage this connection holds keeps.
+  rpc PrepareStagedBlock(PrepareStagedBlockRequest) returns (PrepareStagedBlockResponse);
+
+  // PrepareStagedBlockBatch writes a batch a stage this connection holds keeps.
+  rpc PrepareStagedBlockBatch(PrepareStagedBlockBatchRequest) returns (PrepareStagedBlockBatchResponse);
+
+  // ReleaseStageRoots drops a stage's holds on blocks.
+  rpc ReleaseStageRoots(StageRefsRequest) returns (ReleaseStageRootsResponse);
+
+  // HoldStageCompleteRoots makes a stage hold each proved root, and reports
+  // which roots have a completion proof.
+  rpc HoldStageCompleteRoots(StageRefsRequest) returns (RootsCompleteResponse);
+
+  // MarkRootsComplete records completion proofs for stored roots.
+  rpc MarkRootsComplete(RefsRequest) returns (MarkRootsCompleteResponse);
+
+  // RootsComplete reports which roots have a completion proof.
+  rpc RootsComplete(RefsRequest) returns (RootsCompleteResponse);
 }
 
 // GetVolumeInfoRequest is a request to get volume information.
@@ -249,4 +291,163 @@ message GetStorageStatsRequest {}
 message GetStorageStatsResponse {
   // StorageStats contains the storage usage statistics.
   .volume.StorageStats storage_stats = 1;
+}
+
+// GetBucketRootRequest reads a named root of a bucket.
+message GetBucketRootRequest {
+  // BucketId is the bucket.
+  string bucket_id = 1;
+  // Name is the root name.
+  string name = 2;
+}
+
+// GetBucketRootResponse is the block a named root holds.
+message GetBucketRootResponse {
+  // Ref is the block the root holds, empty when the name is free.
+  .block.BlockRef ref = 1;
+}
+
+// ListBucketRootsRequest lists the named roots of a bucket under a prefix.
+message ListBucketRootsRequest {
+  // BucketId is the bucket.
+  string bucket_id = 1;
+  // Prefix filters the root names.
+  string prefix = 2;
+}
+
+// ListBucketRootsResponse is one named root of the listing.
+message ListBucketRootsResponse {
+  // Root is the named root.
+  NamedRoot root = 1;
+}
+
+// NamedRoot is a named root, or a move of one.
+message NamedRoot {
+  // Name is the root name.
+  string name = 1;
+  // Ref is the block the name holds, or after the move, empty to release.
+  .block.BlockRef ref = 2;
+  // Previous is the block the name must hold before the move, empty when it
+  // must be free.
+  .block.BlockRef previous = 3;
+  // ExpiresUnixMilli is when the volume releases a leased root, zero for one
+  // held until released.
+  int64 expires_unix_milli = 4;
+}
+
+// SetBucketRootsRequest stores blocks and moves named roots of a bucket.
+message SetBucketRootsRequest {
+  // BucketId is the bucket.
+  string bucket_id = 1;
+  // Entries are the blocks to store with the moves.
+  repeated .block.rpc.PutBlockBatchEntry entries = 2;
+  // Roots are the moves.
+  repeated NamedRoot roots = 3;
+}
+
+// SetBucketRootsResult is the outcome of a SetBucketRoots call that reached
+// the volume.
+enum SetBucketRootsResult {
+  // SET_BUCKET_ROOTS_RESULT_OK means the blocks are stored and the roots moved.
+  SET_BUCKET_ROOTS_RESULT_OK = 0;
+  // SET_BUCKET_ROOTS_RESULT_ROOT_MOVED means a root did not hold its
+  // Previous, and nothing was written.
+  SET_BUCKET_ROOTS_RESULT_ROOT_MOVED = 1;
+  // SET_BUCKET_ROOTS_RESULT_UNHELD means the volume holds no roots and
+  // refused a root that would hold a block.
+  SET_BUCKET_ROOTS_RESULT_UNHELD = 2;
+}
+
+// SetBucketRootsResponse is the outcome of a SetBucketRoots call.
+message SetBucketRootsResponse {
+  // Result is the outcome.
+  SetBucketRootsResult result = 1;
+  // Name is the root a refusal names.
+  string name = 2;
+}
+
+// GetRootRetentionRequest asks whether the volume holds roots.
+message GetRootRetentionRequest {}
+
+// GetRootRetentionResponse reports whether the volume holds roots.
+message GetRootRetentionResponse {
+  // Supported reports that the volume holds roots, pins and stages.
+  bool supported = 1;
+}
+
+// HoldPinRequest pins a reader's root.
+message HoldPinRequest {
+  // Ref is the root to pin.
+  .block.BlockRef ref = 1;
+}
+
+// HoldPinResponse reports that the pin is held.
+message HoldPinResponse {}
+
+// HoldStageRequest opens a stage.
+message HoldStageRequest {}
+
+// HoldStageResponse names the stage the stream holds.
+message HoldStageResponse {
+  // Stage is the stage's name.
+  string stage = 1;
+}
+
+// PrepareStagedBlockRequest writes one block a stage holds.
+message PrepareStagedBlockRequest {
+  // Stage is a stage this connection holds.
+  string stage = 1;
+  // Data is the encoded block.
+  bytes data = 2;
+  // Opts are the put options.
+  .block.PutOpts opts = 3;
+}
+
+// PrepareStagedBlockResponse is the stored block.
+message PrepareStagedBlockResponse {
+  // Ref is the block's reference.
+  .block.BlockRef ref = 1;
+  // Existed reports that the block was stored before.
+  bool existed = 2;
+}
+
+// PrepareStagedBlockBatchRequest writes a batch a stage holds.
+message PrepareStagedBlockBatchRequest {
+  // Stage is a stage this connection holds.
+  string stage = 1;
+  // Entries are the blocks.
+  repeated .block.rpc.PutBlockBatchEntry entries = 2;
+}
+
+// PrepareStagedBlockBatchResponse reports which blocks were stored before.
+message PrepareStagedBlockBatchResponse {
+  // Existed reports, for each entry in order, that its block was stored
+  // before.
+  repeated bool existed = 1;
+}
+
+// StageRefsRequest names blocks of a stage.
+message StageRefsRequest {
+  // Stage is a stage this connection holds.
+  string stage = 1;
+  // Refs are the blocks.
+  repeated .block.BlockRef refs = 2;
+}
+
+// ReleaseStageRootsResponse reports that the holds are dropped.
+message ReleaseStageRootsResponse {}
+
+// RefsRequest names blocks.
+message RefsRequest {
+  // Refs are the blocks.
+  repeated .block.BlockRef refs = 1;
+}
+
+// MarkRootsCompleteResponse reports that the proofs are recorded.
+message MarkRootsCompleteResponse {}
+
+// RootsCompleteResponse reports a completion proof per block.
+message RootsCompleteResponse {
+  // Complete reports, for each block in order, whether it has a proof.
+  repeated bool complete = 1;
 }

@@ -3,6 +3,7 @@ package volume_rpc_client
 import (
 	"context"
 	"errors"
+	"sync"
 
 	rpc_block "github.com/s4wave/spacewave/db/block/rpc"
 	rpc_block_client "github.com/s4wave/spacewave/db/block/rpc/client"
@@ -31,6 +32,8 @@ type ProxyVolume struct {
 	volInfo *volume.VolumeInfo
 	// volPeer is the parsed volume peer public key & id
 	volPeer peer.Peer
+	// retention caches whether the remote volume holds roots, read once.
+	retention func() bool
 }
 
 // NewProxyVolume constructs a new ProxyVolume.
@@ -47,7 +50,9 @@ func NewProxyVolume(
 		return nil, err
 	}
 
-	return &ProxyVolume{
+	// Build the storage facade, asking the remote volume's root retention
+	// once on first use.
+	v := &ProxyVolume{
 		BlockStore:  rpc_block_client.NewBlockStore(blockStoreClient, volInfo.ResolveHashType(), false),
 		BucketStore: rpc_bucket_client.NewBucketStore(bucketStoreClient),
 		ObjectStore: rpc_object_client.NewObjectStore(objectStoreClient),
@@ -56,7 +61,9 @@ func NewProxyVolume(
 		client:  proxyVolumeClient,
 		volInfo: volInfo,
 		volPeer: volPeer,
-	}, nil
+	}
+	v.retention = sync.OnceValue(v.loadRootRetention)
+	return v, nil
 }
 
 // GetID returns the volume ID, should be derived from the peer ID.

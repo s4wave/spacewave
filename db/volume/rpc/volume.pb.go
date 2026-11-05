@@ -8,12 +8,58 @@ import (
 	fmt "fmt"
 	io "io"
 	slices "slices"
+	strconv "strconv"
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	block "github.com/s4wave/spacewave/db/block"
+	rpc "github.com/s4wave/spacewave/db/block/rpc"
 	bucket "github.com/s4wave/spacewave/db/bucket"
 	volume "github.com/s4wave/spacewave/db/volume"
 )
+
+// SetBucketRootsResult is the outcome of a SetBucketRoots call that reached
+// the volume.
+type SetBucketRootsResult int32
+
+const (
+	// SET_BUCKET_ROOTS_RESULT_OK means the blocks are stored and the roots moved.
+	SetBucketRootsResult_SET_BUCKET_ROOTS_RESULT_OK SetBucketRootsResult = 0
+	// SET_BUCKET_ROOTS_RESULT_ROOT_MOVED means a root did not hold its
+	// Previous, and nothing was written.
+	SetBucketRootsResult_SET_BUCKET_ROOTS_RESULT_ROOT_MOVED SetBucketRootsResult = 1
+	// SET_BUCKET_ROOTS_RESULT_UNHELD means the volume holds no roots and
+	// refused a root that would hold a block.
+	SetBucketRootsResult_SET_BUCKET_ROOTS_RESULT_UNHELD SetBucketRootsResult = 2
+)
+
+// Enum value maps for SetBucketRootsResult.
+var (
+	SetBucketRootsResult_name = map[int32]string{
+		0: "SET_BUCKET_ROOTS_RESULT_OK",
+		1: "SET_BUCKET_ROOTS_RESULT_ROOT_MOVED",
+		2: "SET_BUCKET_ROOTS_RESULT_UNHELD",
+	}
+	SetBucketRootsResult_value = map[string]int32{
+		"SET_BUCKET_ROOTS_RESULT_OK":         0,
+		"SET_BUCKET_ROOTS_RESULT_ROOT_MOVED": 1,
+		"SET_BUCKET_ROOTS_RESULT_UNHELD":     2,
+	}
+)
+
+func (x SetBucketRootsResult) Enum() *SetBucketRootsResult {
+	p := new(SetBucketRootsResult)
+	*p = x
+	return p
+}
+
+func (x SetBucketRootsResult) String() string {
+	name, valid := SetBucketRootsResult_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
 
 // WatchVolumeInfoRequest is a request to watch volume information.
 type WatchVolumeInfoRequest struct {
@@ -704,6 +750,521 @@ func (x *GetStorageStatsResponse) GetStorageStats() *volume.StorageStats {
 	return nil
 }
 
+// GetBucketRootRequest reads a named root of a bucket.
+type GetBucketRootRequest struct {
+	unknownFields []byte
+	// BucketId is the bucket.
+	BucketId string `protobuf:"bytes,1,opt,name=bucket_id,json=bucketId,proto3" json:"bucketId,omitempty"`
+	// Name is the root name.
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+}
+
+func (x *GetBucketRootRequest) Reset() {
+	*x = GetBucketRootRequest{}
+}
+
+func (*GetBucketRootRequest) ProtoMessage() {}
+
+func (x *GetBucketRootRequest) GetBucketId() string {
+	if x != nil {
+		return x.BucketId
+	}
+	return ""
+}
+
+func (x *GetBucketRootRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+// GetBucketRootResponse is the block a named root holds.
+type GetBucketRootResponse struct {
+	unknownFields []byte
+	// Ref is the block the root holds, empty when the name is free.
+	Ref *block.BlockRef `protobuf:"bytes,1,opt,name=ref,proto3" json:"ref,omitempty"`
+}
+
+func (x *GetBucketRootResponse) Reset() {
+	*x = GetBucketRootResponse{}
+}
+
+func (*GetBucketRootResponse) ProtoMessage() {}
+
+func (x *GetBucketRootResponse) GetRef() *block.BlockRef {
+	if x != nil {
+		return x.Ref
+	}
+	return nil
+}
+
+// ListBucketRootsRequest lists the named roots of a bucket under a prefix.
+type ListBucketRootsRequest struct {
+	unknownFields []byte
+	// BucketId is the bucket.
+	BucketId string `protobuf:"bytes,1,opt,name=bucket_id,json=bucketId,proto3" json:"bucketId,omitempty"`
+	// Prefix filters the root names.
+	Prefix string `protobuf:"bytes,2,opt,name=prefix,proto3" json:"prefix,omitempty"`
+}
+
+func (x *ListBucketRootsRequest) Reset() {
+	*x = ListBucketRootsRequest{}
+}
+
+func (*ListBucketRootsRequest) ProtoMessage() {}
+
+func (x *ListBucketRootsRequest) GetBucketId() string {
+	if x != nil {
+		return x.BucketId
+	}
+	return ""
+}
+
+func (x *ListBucketRootsRequest) GetPrefix() string {
+	if x != nil {
+		return x.Prefix
+	}
+	return ""
+}
+
+// ListBucketRootsResponse is one named root of the listing.
+type ListBucketRootsResponse struct {
+	unknownFields []byte
+	// Root is the named root.
+	Root *NamedRoot `protobuf:"bytes,1,opt,name=root,proto3" json:"root,omitempty"`
+}
+
+func (x *ListBucketRootsResponse) Reset() {
+	*x = ListBucketRootsResponse{}
+}
+
+func (*ListBucketRootsResponse) ProtoMessage() {}
+
+func (x *ListBucketRootsResponse) GetRoot() *NamedRoot {
+	if x != nil {
+		return x.Root
+	}
+	return nil
+}
+
+// NamedRoot is a named root, or a move of one.
+type NamedRoot struct {
+	unknownFields []byte
+	// Name is the root name.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// Ref is the block the name holds, or after the move, empty to release.
+	Ref *block.BlockRef `protobuf:"bytes,2,opt,name=ref,proto3" json:"ref,omitempty"`
+	// Previous is the block the name must hold before the move, empty when it
+	// must be free.
+	Previous *block.BlockRef `protobuf:"bytes,3,opt,name=previous,proto3" json:"previous,omitempty"`
+	// ExpiresUnixMilli is when the volume releases a leased root, zero for one
+	// held until released.
+	ExpiresUnixMilli int64 `protobuf:"varint,4,opt,name=expires_unix_milli,json=expiresUnixMilli,proto3" json:"expiresUnixMilli,omitempty"`
+}
+
+func (x *NamedRoot) Reset() {
+	*x = NamedRoot{}
+}
+
+func (*NamedRoot) ProtoMessage() {}
+
+func (x *NamedRoot) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *NamedRoot) GetRef() *block.BlockRef {
+	if x != nil {
+		return x.Ref
+	}
+	return nil
+}
+
+func (x *NamedRoot) GetPrevious() *block.BlockRef {
+	if x != nil {
+		return x.Previous
+	}
+	return nil
+}
+
+func (x *NamedRoot) GetExpiresUnixMilli() int64 {
+	if x != nil {
+		return x.ExpiresUnixMilli
+	}
+	return 0
+}
+
+// SetBucketRootsRequest stores blocks and moves named roots of a bucket.
+type SetBucketRootsRequest struct {
+	unknownFields []byte
+	// BucketId is the bucket.
+	BucketId string `protobuf:"bytes,1,opt,name=bucket_id,json=bucketId,proto3" json:"bucketId,omitempty"`
+	// Entries are the blocks to store with the moves.
+	Entries []*rpc.PutBlockBatchEntry `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Roots are the moves.
+	Roots []*NamedRoot `protobuf:"bytes,3,rep,name=roots,proto3" json:"roots,omitempty"`
+}
+
+func (x *SetBucketRootsRequest) Reset() {
+	*x = SetBucketRootsRequest{}
+}
+
+func (*SetBucketRootsRequest) ProtoMessage() {}
+
+func (x *SetBucketRootsRequest) GetBucketId() string {
+	if x != nil {
+		return x.BucketId
+	}
+	return ""
+}
+
+func (x *SetBucketRootsRequest) GetEntries() []*rpc.PutBlockBatchEntry {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
+func (x *SetBucketRootsRequest) GetRoots() []*NamedRoot {
+	if x != nil {
+		return x.Roots
+	}
+	return nil
+}
+
+// SetBucketRootsResponse is the outcome of a SetBucketRoots call.
+type SetBucketRootsResponse struct {
+	unknownFields []byte
+	// Result is the outcome.
+	Result SetBucketRootsResult `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	// Name is the root a refusal names.
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+}
+
+func (x *SetBucketRootsResponse) Reset() {
+	*x = SetBucketRootsResponse{}
+}
+
+func (*SetBucketRootsResponse) ProtoMessage() {}
+
+func (x *SetBucketRootsResponse) GetResult() SetBucketRootsResult {
+	if x != nil {
+		return x.Result
+	}
+	return SetBucketRootsResult_SET_BUCKET_ROOTS_RESULT_OK
+}
+
+func (x *SetBucketRootsResponse) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+// GetRootRetentionRequest asks whether the volume holds roots.
+type GetRootRetentionRequest struct {
+	unknownFields []byte
+}
+
+func (x *GetRootRetentionRequest) Reset() {
+	*x = GetRootRetentionRequest{}
+}
+
+func (*GetRootRetentionRequest) ProtoMessage() {}
+
+// GetRootRetentionResponse reports whether the volume holds roots.
+type GetRootRetentionResponse struct {
+	unknownFields []byte
+	// Supported reports that the volume holds roots, pins and stages.
+	Supported bool `protobuf:"varint,1,opt,name=supported,proto3" json:"supported,omitempty"`
+}
+
+func (x *GetRootRetentionResponse) Reset() {
+	*x = GetRootRetentionResponse{}
+}
+
+func (*GetRootRetentionResponse) ProtoMessage() {}
+
+func (x *GetRootRetentionResponse) GetSupported() bool {
+	if x != nil {
+		return x.Supported
+	}
+	return false
+}
+
+// HoldPinRequest pins a reader's root.
+type HoldPinRequest struct {
+	unknownFields []byte
+	// Ref is the root to pin.
+	Ref *block.BlockRef `protobuf:"bytes,1,opt,name=ref,proto3" json:"ref,omitempty"`
+}
+
+func (x *HoldPinRequest) Reset() {
+	*x = HoldPinRequest{}
+}
+
+func (*HoldPinRequest) ProtoMessage() {}
+
+func (x *HoldPinRequest) GetRef() *block.BlockRef {
+	if x != nil {
+		return x.Ref
+	}
+	return nil
+}
+
+// HoldPinResponse reports that the pin is held.
+type HoldPinResponse struct {
+	unknownFields []byte
+}
+
+func (x *HoldPinResponse) Reset() {
+	*x = HoldPinResponse{}
+}
+
+func (*HoldPinResponse) ProtoMessage() {}
+
+// HoldStageRequest opens a stage.
+type HoldStageRequest struct {
+	unknownFields []byte
+}
+
+func (x *HoldStageRequest) Reset() {
+	*x = HoldStageRequest{}
+}
+
+func (*HoldStageRequest) ProtoMessage() {}
+
+// HoldStageResponse names the stage the stream holds.
+type HoldStageResponse struct {
+	unknownFields []byte
+	// Stage is the stage's name.
+	Stage string `protobuf:"bytes,1,opt,name=stage,proto3" json:"stage,omitempty"`
+}
+
+func (x *HoldStageResponse) Reset() {
+	*x = HoldStageResponse{}
+}
+
+func (*HoldStageResponse) ProtoMessage() {}
+
+func (x *HoldStageResponse) GetStage() string {
+	if x != nil {
+		return x.Stage
+	}
+	return ""
+}
+
+// PrepareStagedBlockRequest writes one block a stage holds.
+type PrepareStagedBlockRequest struct {
+	unknownFields []byte
+	// Stage is a stage this connection holds.
+	Stage string `protobuf:"bytes,1,opt,name=stage,proto3" json:"stage,omitempty"`
+	// Data is the encoded block.
+	Data []byte `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	// Opts are the put options.
+	Opts *block.PutOpts `protobuf:"bytes,3,opt,name=opts,proto3" json:"opts,omitempty"`
+}
+
+func (x *PrepareStagedBlockRequest) Reset() {
+	*x = PrepareStagedBlockRequest{}
+}
+
+func (*PrepareStagedBlockRequest) ProtoMessage() {}
+
+func (x *PrepareStagedBlockRequest) GetStage() string {
+	if x != nil {
+		return x.Stage
+	}
+	return ""
+}
+
+func (x *PrepareStagedBlockRequest) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+func (x *PrepareStagedBlockRequest) GetOpts() *block.PutOpts {
+	if x != nil {
+		return x.Opts
+	}
+	return nil
+}
+
+// PrepareStagedBlockResponse is the stored block.
+type PrepareStagedBlockResponse struct {
+	unknownFields []byte
+	// Ref is the block's reference.
+	Ref *block.BlockRef `protobuf:"bytes,1,opt,name=ref,proto3" json:"ref,omitempty"`
+	// Existed reports that the block was stored before.
+	Existed bool `protobuf:"varint,2,opt,name=existed,proto3" json:"existed,omitempty"`
+}
+
+func (x *PrepareStagedBlockResponse) Reset() {
+	*x = PrepareStagedBlockResponse{}
+}
+
+func (*PrepareStagedBlockResponse) ProtoMessage() {}
+
+func (x *PrepareStagedBlockResponse) GetRef() *block.BlockRef {
+	if x != nil {
+		return x.Ref
+	}
+	return nil
+}
+
+func (x *PrepareStagedBlockResponse) GetExisted() bool {
+	if x != nil {
+		return x.Existed
+	}
+	return false
+}
+
+// PrepareStagedBlockBatchRequest writes a batch a stage holds.
+type PrepareStagedBlockBatchRequest struct {
+	unknownFields []byte
+	// Stage is a stage this connection holds.
+	Stage string `protobuf:"bytes,1,opt,name=stage,proto3" json:"stage,omitempty"`
+	// Entries are the blocks.
+	Entries []*rpc.PutBlockBatchEntry `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
+}
+
+func (x *PrepareStagedBlockBatchRequest) Reset() {
+	*x = PrepareStagedBlockBatchRequest{}
+}
+
+func (*PrepareStagedBlockBatchRequest) ProtoMessage() {}
+
+func (x *PrepareStagedBlockBatchRequest) GetStage() string {
+	if x != nil {
+		return x.Stage
+	}
+	return ""
+}
+
+func (x *PrepareStagedBlockBatchRequest) GetEntries() []*rpc.PutBlockBatchEntry {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
+// PrepareStagedBlockBatchResponse reports which blocks were stored before.
+type PrepareStagedBlockBatchResponse struct {
+	unknownFields []byte
+	// Existed reports, for each entry in order, that its block was stored
+	// before.
+	Existed []bool `protobuf:"varint,1,rep,packed,name=existed,proto3" json:"existed,omitempty"`
+}
+
+func (x *PrepareStagedBlockBatchResponse) Reset() {
+	*x = PrepareStagedBlockBatchResponse{}
+}
+
+func (*PrepareStagedBlockBatchResponse) ProtoMessage() {}
+
+func (x *PrepareStagedBlockBatchResponse) GetExisted() []bool {
+	if x != nil {
+		return x.Existed
+	}
+	return nil
+}
+
+// StageRefsRequest names blocks of a stage.
+type StageRefsRequest struct {
+	unknownFields []byte
+	// Stage is a stage this connection holds.
+	Stage string `protobuf:"bytes,1,opt,name=stage,proto3" json:"stage,omitempty"`
+	// Refs are the blocks.
+	Refs []*block.BlockRef `protobuf:"bytes,2,rep,name=refs,proto3" json:"refs,omitempty"`
+}
+
+func (x *StageRefsRequest) Reset() {
+	*x = StageRefsRequest{}
+}
+
+func (*StageRefsRequest) ProtoMessage() {}
+
+func (x *StageRefsRequest) GetStage() string {
+	if x != nil {
+		return x.Stage
+	}
+	return ""
+}
+
+func (x *StageRefsRequest) GetRefs() []*block.BlockRef {
+	if x != nil {
+		return x.Refs
+	}
+	return nil
+}
+
+// ReleaseStageRootsResponse reports that the holds are dropped.
+type ReleaseStageRootsResponse struct {
+	unknownFields []byte
+}
+
+func (x *ReleaseStageRootsResponse) Reset() {
+	*x = ReleaseStageRootsResponse{}
+}
+
+func (*ReleaseStageRootsResponse) ProtoMessage() {}
+
+// RefsRequest names blocks.
+type RefsRequest struct {
+	unknownFields []byte
+	// Refs are the blocks.
+	Refs []*block.BlockRef `protobuf:"bytes,1,rep,name=refs,proto3" json:"refs,omitempty"`
+}
+
+func (x *RefsRequest) Reset() {
+	*x = RefsRequest{}
+}
+
+func (*RefsRequest) ProtoMessage() {}
+
+func (x *RefsRequest) GetRefs() []*block.BlockRef {
+	if x != nil {
+		return x.Refs
+	}
+	return nil
+}
+
+// MarkRootsCompleteResponse reports that the proofs are recorded.
+type MarkRootsCompleteResponse struct {
+	unknownFields []byte
+}
+
+func (x *MarkRootsCompleteResponse) Reset() {
+	*x = MarkRootsCompleteResponse{}
+}
+
+func (*MarkRootsCompleteResponse) ProtoMessage() {}
+
+// RootsCompleteResponse reports a completion proof per block.
+type RootsCompleteResponse struct {
+	unknownFields []byte
+	// Complete reports, for each block in order, whether it has a proof.
+	Complete []bool `protobuf:"varint,1,rep,packed,name=complete,proto3" json:"complete,omitempty"`
+}
+
+func (x *RootsCompleteResponse) Reset() {
+	*x = RootsCompleteResponse{}
+}
+
+func (*RootsCompleteResponse) ProtoMessage() {}
+
+func (x *RootsCompleteResponse) GetComplete() []bool {
+	if x != nil {
+		return x.Complete
+	}
+	return nil
+}
+
 func (m *WatchVolumeInfoRequest) CloneVT() *WatchVolumeInfoRequest {
 	if m == nil {
 		return (*WatchVolumeInfoRequest)(nil)
@@ -1122,6 +1683,366 @@ func (m *GetStorageStatsResponse) CloneVT() *GetStorageStatsResponse {
 }
 
 func (m *GetStorageStatsResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *GetBucketRootRequest) CloneVT() *GetBucketRootRequest {
+	if m == nil {
+		return (*GetBucketRootRequest)(nil)
+	}
+	r := new(GetBucketRootRequest)
+	r.BucketId = m.BucketId
+	r.Name = m.Name
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GetBucketRootRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *GetBucketRootResponse) CloneVT() *GetBucketRootResponse {
+	if m == nil {
+		return (*GetBucketRootResponse)(nil)
+	}
+	r := new(GetBucketRootResponse)
+	r.Ref = protobuf_go_lite.CloneVTValue(m.Ref)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GetBucketRootResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ListBucketRootsRequest) CloneVT() *ListBucketRootsRequest {
+	if m == nil {
+		return (*ListBucketRootsRequest)(nil)
+	}
+	r := new(ListBucketRootsRequest)
+	r.BucketId = m.BucketId
+	r.Prefix = m.Prefix
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ListBucketRootsRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ListBucketRootsResponse) CloneVT() *ListBucketRootsResponse {
+	if m == nil {
+		return (*ListBucketRootsResponse)(nil)
+	}
+	r := new(ListBucketRootsResponse)
+	r.Root = protobuf_go_lite.CloneVTValue(m.Root)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ListBucketRootsResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *NamedRoot) CloneVT() *NamedRoot {
+	if m == nil {
+		return (*NamedRoot)(nil)
+	}
+	r := new(NamedRoot)
+	r.Name = m.Name
+	r.ExpiresUnixMilli = m.ExpiresUnixMilli
+	r.Ref = protobuf_go_lite.CloneVTValue(m.Ref)
+	r.Previous = protobuf_go_lite.CloneVTValue(m.Previous)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *NamedRoot) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SetBucketRootsRequest) CloneVT() *SetBucketRootsRequest {
+	if m == nil {
+		return (*SetBucketRootsRequest)(nil)
+	}
+	r := new(SetBucketRootsRequest)
+	r.BucketId = m.BucketId
+	r.Entries = protobuf_go_lite.CloneVTSlice(m.Entries)
+	r.Roots = protobuf_go_lite.CloneVTSlice(m.Roots)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetBucketRootsRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SetBucketRootsResponse) CloneVT() *SetBucketRootsResponse {
+	if m == nil {
+		return (*SetBucketRootsResponse)(nil)
+	}
+	r := new(SetBucketRootsResponse)
+	r.Result = m.Result
+	r.Name = m.Name
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetBucketRootsResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *GetRootRetentionRequest) CloneVT() *GetRootRetentionRequest {
+	if m == nil {
+		return (*GetRootRetentionRequest)(nil)
+	}
+	r := new(GetRootRetentionRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GetRootRetentionRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *GetRootRetentionResponse) CloneVT() *GetRootRetentionResponse {
+	if m == nil {
+		return (*GetRootRetentionResponse)(nil)
+	}
+	r := new(GetRootRetentionResponse)
+	r.Supported = m.Supported
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GetRootRetentionResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *HoldPinRequest) CloneVT() *HoldPinRequest {
+	if m == nil {
+		return (*HoldPinRequest)(nil)
+	}
+	r := new(HoldPinRequest)
+	r.Ref = protobuf_go_lite.CloneVTValue(m.Ref)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *HoldPinRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *HoldPinResponse) CloneVT() *HoldPinResponse {
+	if m == nil {
+		return (*HoldPinResponse)(nil)
+	}
+	r := new(HoldPinResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *HoldPinResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *HoldStageRequest) CloneVT() *HoldStageRequest {
+	if m == nil {
+		return (*HoldStageRequest)(nil)
+	}
+	r := new(HoldStageRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *HoldStageRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *HoldStageResponse) CloneVT() *HoldStageResponse {
+	if m == nil {
+		return (*HoldStageResponse)(nil)
+	}
+	r := new(HoldStageResponse)
+	r.Stage = m.Stage
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *HoldStageResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *PrepareStagedBlockRequest) CloneVT() *PrepareStagedBlockRequest {
+	if m == nil {
+		return (*PrepareStagedBlockRequest)(nil)
+	}
+	r := new(PrepareStagedBlockRequest)
+	r.Stage = m.Stage
+	r.Data = protobuf_go_lite.CloneBytes(m.Data)
+	r.Opts = protobuf_go_lite.CloneVTValue(m.Opts)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *PrepareStagedBlockRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *PrepareStagedBlockResponse) CloneVT() *PrepareStagedBlockResponse {
+	if m == nil {
+		return (*PrepareStagedBlockResponse)(nil)
+	}
+	r := new(PrepareStagedBlockResponse)
+	r.Existed = m.Existed
+	r.Ref = protobuf_go_lite.CloneVTValue(m.Ref)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *PrepareStagedBlockResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *PrepareStagedBlockBatchRequest) CloneVT() *PrepareStagedBlockBatchRequest {
+	if m == nil {
+		return (*PrepareStagedBlockBatchRequest)(nil)
+	}
+	r := new(PrepareStagedBlockBatchRequest)
+	r.Stage = m.Stage
+	r.Entries = protobuf_go_lite.CloneVTSlice(m.Entries)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *PrepareStagedBlockBatchRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *PrepareStagedBlockBatchResponse) CloneVT() *PrepareStagedBlockBatchResponse {
+	if m == nil {
+		return (*PrepareStagedBlockBatchResponse)(nil)
+	}
+	r := new(PrepareStagedBlockBatchResponse)
+	r.Existed = protobuf_go_lite.CloneSlice(m.Existed)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *PrepareStagedBlockBatchResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *StageRefsRequest) CloneVT() *StageRefsRequest {
+	if m == nil {
+		return (*StageRefsRequest)(nil)
+	}
+	r := new(StageRefsRequest)
+	r.Stage = m.Stage
+	r.Refs = protobuf_go_lite.CloneVTSlice(m.Refs)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *StageRefsRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReleaseStageRootsResponse) CloneVT() *ReleaseStageRootsResponse {
+	if m == nil {
+		return (*ReleaseStageRootsResponse)(nil)
+	}
+	r := new(ReleaseStageRootsResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReleaseStageRootsResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RefsRequest) CloneVT() *RefsRequest {
+	if m == nil {
+		return (*RefsRequest)(nil)
+	}
+	r := new(RefsRequest)
+	r.Refs = protobuf_go_lite.CloneVTSlice(m.Refs)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RefsRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *MarkRootsCompleteResponse) CloneVT() *MarkRootsCompleteResponse {
+	if m == nil {
+		return (*MarkRootsCompleteResponse)(nil)
+	}
+	r := new(MarkRootsCompleteResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *MarkRootsCompleteResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RootsCompleteResponse) CloneVT() *RootsCompleteResponse {
+	if m == nil {
+		return (*RootsCompleteResponse)(nil)
+	}
+	r := new(RootsCompleteResponse)
+	r.Complete = protobuf_go_lite.CloneSlice(m.Complete)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RootsCompleteResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -1686,6 +2607,510 @@ func (this *GetStorageStatsResponse) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+func (this *GetBucketRootRequest) EqualVT(that *GetBucketRootRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.BucketId != that.BucketId {
+		return false
+	}
+	if this.Name != that.Name {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GetBucketRootRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GetBucketRootRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *GetBucketRootResponse) EqualVT(that *GetBucketRootResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Ref, that.Ref) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GetBucketRootResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GetBucketRootResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ListBucketRootsRequest) EqualVT(that *ListBucketRootsRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.BucketId != that.BucketId {
+		return false
+	}
+	if this.Prefix != that.Prefix {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ListBucketRootsRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ListBucketRootsRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ListBucketRootsResponse) EqualVT(that *ListBucketRootsResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Root, that.Root) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ListBucketRootsResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ListBucketRootsResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *NamedRoot) EqualVT(that *NamedRoot) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Name != that.Name {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Ref, that.Ref) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Previous, that.Previous) {
+		return false
+	}
+	if this.ExpiresUnixMilli != that.ExpiresUnixMilli {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *NamedRoot) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*NamedRoot)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SetBucketRootsRequest) EqualVT(that *SetBucketRootsRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.BucketId != that.BucketId {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Entries, that.Entries, func() *rpc.PutBlockBatchEntry { return &rpc.PutBlockBatchEntry{} }) {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Roots, that.Roots, func() *NamedRoot { return &NamedRoot{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetBucketRootsRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetBucketRootsRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SetBucketRootsResponse) EqualVT(that *SetBucketRootsResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Result != that.Result {
+		return false
+	}
+	if this.Name != that.Name {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetBucketRootsResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetBucketRootsResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *GetRootRetentionRequest) EqualVT(that *GetRootRetentionRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GetRootRetentionRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GetRootRetentionRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *GetRootRetentionResponse) EqualVT(that *GetRootRetentionResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Supported != that.Supported {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GetRootRetentionResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GetRootRetentionResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *HoldPinRequest) EqualVT(that *HoldPinRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Ref, that.Ref) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *HoldPinRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*HoldPinRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *HoldPinResponse) EqualVT(that *HoldPinResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *HoldPinResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*HoldPinResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *HoldStageRequest) EqualVT(that *HoldStageRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *HoldStageRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*HoldStageRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *HoldStageResponse) EqualVT(that *HoldStageResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Stage != that.Stage {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *HoldStageResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*HoldStageResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *PrepareStagedBlockRequest) EqualVT(that *PrepareStagedBlockRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Stage != that.Stage {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Data, that.Data) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Opts, that.Opts) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *PrepareStagedBlockRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*PrepareStagedBlockRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *PrepareStagedBlockResponse) EqualVT(that *PrepareStagedBlockResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Ref, that.Ref) {
+		return false
+	}
+	if this.Existed != that.Existed {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *PrepareStagedBlockResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*PrepareStagedBlockResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *PrepareStagedBlockBatchRequest) EqualVT(that *PrepareStagedBlockBatchRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Stage != that.Stage {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Entries, that.Entries, func() *rpc.PutBlockBatchEntry { return &rpc.PutBlockBatchEntry{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *PrepareStagedBlockBatchRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*PrepareStagedBlockBatchRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *PrepareStagedBlockBatchResponse) EqualVT(that *PrepareStagedBlockBatchResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.Existed, that.Existed) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *PrepareStagedBlockBatchResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*PrepareStagedBlockBatchResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *StageRefsRequest) EqualVT(that *StageRefsRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Stage != that.Stage {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Refs, that.Refs, func() *block.BlockRef { return &block.BlockRef{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *StageRefsRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*StageRefsRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReleaseStageRootsResponse) EqualVT(that *ReleaseStageRootsResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReleaseStageRootsResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReleaseStageRootsResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RefsRequest) EqualVT(that *RefsRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Refs, that.Refs, func() *block.BlockRef { return &block.BlockRef{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RefsRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RefsRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *MarkRootsCompleteResponse) EqualVT(that *MarkRootsCompleteResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *MarkRootsCompleteResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*MarkRootsCompleteResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RootsCompleteResponse) EqualVT(that *RootsCompleteResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.Complete, that.Complete) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RootsCompleteResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RootsCompleteResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the SetBucketRootsResult to JSON.
+func (x SetBucketRootsResult) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), SetBucketRootsResult_name)
+}
+
+// MarshalText marshals the SetBucketRootsResult to text.
+func (x SetBucketRootsResult) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), SetBucketRootsResult_name)), nil
+}
+
+// MarshalJSON marshals the SetBucketRootsResult to JSON.
+func (x SetBucketRootsResult) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetBucketRootsResult from JSON.
+func (x *SetBucketRootsResult) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(SetBucketRootsResult_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read SetBucketRootsResult enum: %v", err)
+		return
+	}
+	*x = SetBucketRootsResult(v)
+}
+
+// UnmarshalText unmarshals the SetBucketRootsResult from text.
+func (x *SetBucketRootsResult) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), SetBucketRootsResult_value)
+	if err != nil {
+		return err
+	}
+	*x = SetBucketRootsResult(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the SetBucketRootsResult from JSON.
+func (x *SetBucketRootsResult) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the WatchVolumeInfoRequest message to JSON.
@@ -2950,6 +4375,1115 @@ func (x *GetStorageStatsResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the GetBucketRootRequest message to JSON.
+func (x *GetBucketRootRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.BucketId != "" || s.HasField("bucketId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("bucketId")
+		s.WriteString(x.BucketId)
+	}
+	if x.Name != "" || s.HasField("name") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("name")
+		s.WriteString(x.Name)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GetBucketRootRequest to JSON.
+func (x *GetBucketRootRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GetBucketRootRequest message from JSON.
+func (x *GetBucketRootRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "bucket_id", "bucketId":
+			s.AddField("bucket_id")
+			x.BucketId = s.ReadString()
+		case "name":
+			s.AddField("name")
+			x.Name = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the GetBucketRootRequest from JSON.
+func (x *GetBucketRootRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the GetBucketRootResponse message to JSON.
+func (x *GetBucketRootResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Ref != nil || s.HasField("ref") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("ref")
+		x.Ref.MarshalProtoJSON(s.WithField("ref"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GetBucketRootResponse to JSON.
+func (x *GetBucketRootResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GetBucketRootResponse message from JSON.
+func (x *GetBucketRootResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "ref":
+			if s.ReadNil() {
+				x.Ref = nil
+				return
+			}
+			x.Ref = &block.BlockRef{}
+			x.Ref.UnmarshalProtoJSON(s.WithField("ref", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the GetBucketRootResponse from JSON.
+func (x *GetBucketRootResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ListBucketRootsRequest message to JSON.
+func (x *ListBucketRootsRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.BucketId != "" || s.HasField("bucketId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("bucketId")
+		s.WriteString(x.BucketId)
+	}
+	if x.Prefix != "" || s.HasField("prefix") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("prefix")
+		s.WriteString(x.Prefix)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ListBucketRootsRequest to JSON.
+func (x *ListBucketRootsRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ListBucketRootsRequest message from JSON.
+func (x *ListBucketRootsRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "bucket_id", "bucketId":
+			s.AddField("bucket_id")
+			x.BucketId = s.ReadString()
+		case "prefix":
+			s.AddField("prefix")
+			x.Prefix = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ListBucketRootsRequest from JSON.
+func (x *ListBucketRootsRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ListBucketRootsResponse message to JSON.
+func (x *ListBucketRootsResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Root != nil || s.HasField("root") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("root")
+		x.Root.MarshalProtoJSON(s.WithField("root"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ListBucketRootsResponse to JSON.
+func (x *ListBucketRootsResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ListBucketRootsResponse message from JSON.
+func (x *ListBucketRootsResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "root":
+			if s.ReadNil() {
+				x.Root = nil
+				return
+			}
+			x.Root = &NamedRoot{}
+			x.Root.UnmarshalProtoJSON(s.WithField("root", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ListBucketRootsResponse from JSON.
+func (x *ListBucketRootsResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the NamedRoot message to JSON.
+func (x *NamedRoot) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Name != "" || s.HasField("name") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("name")
+		s.WriteString(x.Name)
+	}
+	if x.Ref != nil || s.HasField("ref") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("ref")
+		x.Ref.MarshalProtoJSON(s.WithField("ref"))
+	}
+	if x.Previous != nil || s.HasField("previous") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("previous")
+		x.Previous.MarshalProtoJSON(s.WithField("previous"))
+	}
+	if x.ExpiresUnixMilli != 0 || s.HasField("expiresUnixMilli") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("expiresUnixMilli")
+		s.WriteInt64(x.ExpiresUnixMilli)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the NamedRoot to JSON.
+func (x *NamedRoot) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the NamedRoot message from JSON.
+func (x *NamedRoot) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "name":
+			s.AddField("name")
+			x.Name = s.ReadString()
+		case "ref":
+			if s.ReadNil() {
+				x.Ref = nil
+				return
+			}
+			x.Ref = &block.BlockRef{}
+			x.Ref.UnmarshalProtoJSON(s.WithField("ref", true))
+		case "previous":
+			if s.ReadNil() {
+				x.Previous = nil
+				return
+			}
+			x.Previous = &block.BlockRef{}
+			x.Previous.UnmarshalProtoJSON(s.WithField("previous", true))
+		case "expires_unix_milli", "expiresUnixMilli":
+			s.AddField("expires_unix_milli")
+			x.ExpiresUnixMilli = s.ReadInt64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the NamedRoot from JSON.
+func (x *NamedRoot) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SetBucketRootsRequest message to JSON.
+func (x *SetBucketRootsRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.BucketId != "" || s.HasField("bucketId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("bucketId")
+		s.WriteString(x.BucketId)
+	}
+	if len(x.Entries) > 0 || s.HasField("entries") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("entries")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Entries {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("entries"))
+		}
+		s.WriteArrayEnd()
+	}
+	if len(x.Roots) > 0 || s.HasField("roots") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("roots")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Roots {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("roots"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetBucketRootsRequest to JSON.
+func (x *SetBucketRootsRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetBucketRootsRequest message from JSON.
+func (x *SetBucketRootsRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "bucket_id", "bucketId":
+			s.AddField("bucket_id")
+			x.BucketId = s.ReadString()
+		case "entries":
+			s.AddField("entries")
+			if s.ReadNil() {
+				x.Entries = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Entries = append(x.Entries, nil)
+					return
+				}
+				v := &rpc.PutBlockBatchEntry{}
+				v.UnmarshalProtoJSON(s.WithField("entries", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Entries = append(x.Entries, v)
+			})
+		case "roots":
+			s.AddField("roots")
+			if s.ReadNil() {
+				x.Roots = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Roots = append(x.Roots, nil)
+					return
+				}
+				v := &NamedRoot{}
+				v.UnmarshalProtoJSON(s.WithField("roots", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Roots = append(x.Roots, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SetBucketRootsRequest from JSON.
+func (x *SetBucketRootsRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SetBucketRootsResponse message to JSON.
+func (x *SetBucketRootsResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Result != 0 || s.HasField("result") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("result")
+		x.Result.MarshalProtoJSON(s)
+	}
+	if x.Name != "" || s.HasField("name") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("name")
+		s.WriteString(x.Name)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetBucketRootsResponse to JSON.
+func (x *SetBucketRootsResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetBucketRootsResponse message from JSON.
+func (x *SetBucketRootsResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "result":
+			s.AddField("result")
+			x.Result.UnmarshalProtoJSON(s)
+		case "name":
+			s.AddField("name")
+			x.Name = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SetBucketRootsResponse from JSON.
+func (x *SetBucketRootsResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the GetRootRetentionRequest message to JSON.
+func (x *GetRootRetentionRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GetRootRetentionRequest to JSON.
+func (x *GetRootRetentionRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GetRootRetentionRequest message from JSON.
+func (x *GetRootRetentionRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the GetRootRetentionRequest from JSON.
+func (x *GetRootRetentionRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the GetRootRetentionResponse message to JSON.
+func (x *GetRootRetentionResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Supported || s.HasField("supported") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("supported")
+		s.WriteBool(x.Supported)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GetRootRetentionResponse to JSON.
+func (x *GetRootRetentionResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GetRootRetentionResponse message from JSON.
+func (x *GetRootRetentionResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "supported":
+			s.AddField("supported")
+			x.Supported = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the GetRootRetentionResponse from JSON.
+func (x *GetRootRetentionResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the HoldPinRequest message to JSON.
+func (x *HoldPinRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Ref != nil || s.HasField("ref") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("ref")
+		x.Ref.MarshalProtoJSON(s.WithField("ref"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the HoldPinRequest to JSON.
+func (x *HoldPinRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the HoldPinRequest message from JSON.
+func (x *HoldPinRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "ref":
+			if s.ReadNil() {
+				x.Ref = nil
+				return
+			}
+			x.Ref = &block.BlockRef{}
+			x.Ref.UnmarshalProtoJSON(s.WithField("ref", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the HoldPinRequest from JSON.
+func (x *HoldPinRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the HoldPinResponse message to JSON.
+func (x *HoldPinResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the HoldPinResponse to JSON.
+func (x *HoldPinResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the HoldPinResponse message from JSON.
+func (x *HoldPinResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the HoldPinResponse from JSON.
+func (x *HoldPinResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the HoldStageRequest message to JSON.
+func (x *HoldStageRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the HoldStageRequest to JSON.
+func (x *HoldStageRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the HoldStageRequest message from JSON.
+func (x *HoldStageRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the HoldStageRequest from JSON.
+func (x *HoldStageRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the HoldStageResponse message to JSON.
+func (x *HoldStageResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Stage != "" || s.HasField("stage") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("stage")
+		s.WriteString(x.Stage)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the HoldStageResponse to JSON.
+func (x *HoldStageResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the HoldStageResponse message from JSON.
+func (x *HoldStageResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "stage":
+			s.AddField("stage")
+			x.Stage = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the HoldStageResponse from JSON.
+func (x *HoldStageResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the PrepareStagedBlockRequest message to JSON.
+func (x *PrepareStagedBlockRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Stage != "" || s.HasField("stage") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("stage")
+		s.WriteString(x.Stage)
+	}
+	if len(x.Data) > 0 || s.HasField("data") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("data")
+		s.WriteBytes(x.Data)
+	}
+	if x.Opts != nil || s.HasField("opts") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("opts")
+		x.Opts.MarshalProtoJSON(s.WithField("opts"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the PrepareStagedBlockRequest to JSON.
+func (x *PrepareStagedBlockRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PrepareStagedBlockRequest message from JSON.
+func (x *PrepareStagedBlockRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "stage":
+			s.AddField("stage")
+			x.Stage = s.ReadString()
+		case "data":
+			s.AddField("data")
+			x.Data = s.ReadBytes()
+		case "opts":
+			if s.ReadNil() {
+				x.Opts = nil
+				return
+			}
+			x.Opts = &block.PutOpts{}
+			x.Opts.UnmarshalProtoJSON(s.WithField("opts", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the PrepareStagedBlockRequest from JSON.
+func (x *PrepareStagedBlockRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the PrepareStagedBlockResponse message to JSON.
+func (x *PrepareStagedBlockResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Ref != nil || s.HasField("ref") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("ref")
+		x.Ref.MarshalProtoJSON(s.WithField("ref"))
+	}
+	if x.Existed || s.HasField("existed") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("existed")
+		s.WriteBool(x.Existed)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the PrepareStagedBlockResponse to JSON.
+func (x *PrepareStagedBlockResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PrepareStagedBlockResponse message from JSON.
+func (x *PrepareStagedBlockResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "ref":
+			if s.ReadNil() {
+				x.Ref = nil
+				return
+			}
+			x.Ref = &block.BlockRef{}
+			x.Ref.UnmarshalProtoJSON(s.WithField("ref", true))
+		case "existed":
+			s.AddField("existed")
+			x.Existed = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the PrepareStagedBlockResponse from JSON.
+func (x *PrepareStagedBlockResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the PrepareStagedBlockBatchRequest message to JSON.
+func (x *PrepareStagedBlockBatchRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Stage != "" || s.HasField("stage") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("stage")
+		s.WriteString(x.Stage)
+	}
+	if len(x.Entries) > 0 || s.HasField("entries") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("entries")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Entries {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("entries"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the PrepareStagedBlockBatchRequest to JSON.
+func (x *PrepareStagedBlockBatchRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PrepareStagedBlockBatchRequest message from JSON.
+func (x *PrepareStagedBlockBatchRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "stage":
+			s.AddField("stage")
+			x.Stage = s.ReadString()
+		case "entries":
+			s.AddField("entries")
+			if s.ReadNil() {
+				x.Entries = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Entries = append(x.Entries, nil)
+					return
+				}
+				v := &rpc.PutBlockBatchEntry{}
+				v.UnmarshalProtoJSON(s.WithField("entries", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Entries = append(x.Entries, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the PrepareStagedBlockBatchRequest from JSON.
+func (x *PrepareStagedBlockBatchRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the PrepareStagedBlockBatchResponse message to JSON.
+func (x *PrepareStagedBlockBatchResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Existed) > 0 || s.HasField("existed") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("existed")
+		s.WriteBoolArray(x.Existed)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the PrepareStagedBlockBatchResponse to JSON.
+func (x *PrepareStagedBlockBatchResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PrepareStagedBlockBatchResponse message from JSON.
+func (x *PrepareStagedBlockBatchResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "existed":
+			s.AddField("existed")
+			if s.ReadNil() {
+				x.Existed = nil
+				return
+			}
+			x.Existed = s.ReadBoolArray()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the PrepareStagedBlockBatchResponse from JSON.
+func (x *PrepareStagedBlockBatchResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the StageRefsRequest message to JSON.
+func (x *StageRefsRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Stage != "" || s.HasField("stage") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("stage")
+		s.WriteString(x.Stage)
+	}
+	if len(x.Refs) > 0 || s.HasField("refs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("refs")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Refs {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("refs"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the StageRefsRequest to JSON.
+func (x *StageRefsRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the StageRefsRequest message from JSON.
+func (x *StageRefsRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "stage":
+			s.AddField("stage")
+			x.Stage = s.ReadString()
+		case "refs":
+			s.AddField("refs")
+			if s.ReadNil() {
+				x.Refs = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Refs = append(x.Refs, nil)
+					return
+				}
+				v := &block.BlockRef{}
+				v.UnmarshalProtoJSON(s.WithField("refs", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Refs = append(x.Refs, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the StageRefsRequest from JSON.
+func (x *StageRefsRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReleaseStageRootsResponse message to JSON.
+func (x *ReleaseStageRootsResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReleaseStageRootsResponse to JSON.
+func (x *ReleaseStageRootsResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReleaseStageRootsResponse message from JSON.
+func (x *ReleaseStageRootsResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the ReleaseStageRootsResponse from JSON.
+func (x *ReleaseStageRootsResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RefsRequest message to JSON.
+func (x *RefsRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Refs) > 0 || s.HasField("refs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("refs")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Refs {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("refs"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RefsRequest to JSON.
+func (x *RefsRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RefsRequest message from JSON.
+func (x *RefsRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "refs":
+			s.AddField("refs")
+			if s.ReadNil() {
+				x.Refs = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Refs = append(x.Refs, nil)
+					return
+				}
+				v := &block.BlockRef{}
+				v.UnmarshalProtoJSON(s.WithField("refs", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Refs = append(x.Refs, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RefsRequest from JSON.
+func (x *RefsRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the MarkRootsCompleteResponse message to JSON.
+func (x *MarkRootsCompleteResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the MarkRootsCompleteResponse to JSON.
+func (x *MarkRootsCompleteResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the MarkRootsCompleteResponse message from JSON.
+func (x *MarkRootsCompleteResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the MarkRootsCompleteResponse from JSON.
+func (x *MarkRootsCompleteResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RootsCompleteResponse message to JSON.
+func (x *RootsCompleteResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Complete) > 0 || s.HasField("complete") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("complete")
+		s.WriteBoolArray(x.Complete)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RootsCompleteResponse to JSON.
+func (x *RootsCompleteResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RootsCompleteResponse message from JSON.
+func (x *RootsCompleteResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "complete":
+			s.AddField("complete")
+			if s.ReadNil() {
+				x.Complete = nil
+				return
+			}
+			x.Complete = s.ReadBoolArray()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RootsCompleteResponse from JSON.
+func (x *RootsCompleteResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *WatchVolumeInfoRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -4055,6 +6589,936 @@ func (m *GetStorageStatsResponse) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 	return len(dAtA) - i, nil
 }
 
+func (m *GetBucketRootRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetBucketRootRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GetBucketRootRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Name) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Name)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.BucketId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.BucketId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GetBucketRootResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetBucketRootResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GetBucketRootResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Ref != nil {
+		size, err := m.Ref.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ListBucketRootsRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ListBucketRootsRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ListBucketRootsRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Prefix) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Prefix)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.BucketId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.BucketId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ListBucketRootsResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ListBucketRootsResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ListBucketRootsResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Root != nil {
+		size, err := m.Root.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *NamedRoot) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *NamedRoot) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *NamedRoot) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.ExpiresUnixMilli != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ExpiresUnixMilli))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.Previous != nil {
+		size, err := m.Previous.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Ref != nil {
+		size, err := m.Ref.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Name) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Name)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SetBucketRootsRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetBucketRootsRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetBucketRootsRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Roots) > 0 {
+		for iNdEx := len(m.Roots) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Roots[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if len(m.Entries) > 0 {
+		for iNdEx := len(m.Entries) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Entries[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.BucketId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.BucketId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SetBucketRootsResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetBucketRootsResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetBucketRootsResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Name) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Name)
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Result != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Result))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GetRootRetentionRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetRootRetentionRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GetRootRetentionRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GetRootRetentionResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetRootRetentionResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GetRootRetentionResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Supported {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Supported)
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *HoldPinRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *HoldPinRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *HoldPinRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Ref != nil {
+		size, err := m.Ref.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *HoldPinResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *HoldPinResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *HoldPinResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *HoldStageRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *HoldStageRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *HoldStageRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *HoldStageResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *HoldStageResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *HoldStageResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Stage) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Stage)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *PrepareStagedBlockRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PrepareStagedBlockRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PrepareStagedBlockRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Opts != nil {
+		size, err := m.Opts.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Data) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Data)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Stage) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Stage)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *PrepareStagedBlockResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PrepareStagedBlockResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PrepareStagedBlockResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Existed {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Existed)
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Ref != nil {
+		size, err := m.Ref.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *PrepareStagedBlockBatchRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PrepareStagedBlockBatchRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PrepareStagedBlockBatchRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Entries) > 0 {
+		for iNdEx := len(m.Entries) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Entries[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.Stage) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Stage)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *PrepareStagedBlockBatchResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PrepareStagedBlockBatchResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PrepareStagedBlockBatchResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Existed) > 0 {
+		for iNdEx := len(m.Existed) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeBool(dAtA, i, m.Existed[iNdEx])
+		}
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Existed)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *StageRefsRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *StageRefsRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *StageRefsRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Refs) > 0 {
+		for iNdEx := len(m.Refs) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Refs[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.Stage) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Stage)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReleaseStageRootsResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReleaseStageRootsResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReleaseStageRootsResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RefsRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RefsRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RefsRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Refs) > 0 {
+		for iNdEx := len(m.Refs) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Refs[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *MarkRootsCompleteResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MarkRootsCompleteResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *MarkRootsCompleteResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RootsCompleteResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RootsCompleteResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RootsCompleteResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Complete) > 0 {
+		for iNdEx := len(m.Complete) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeBool(dAtA, i, m.Complete[iNdEx])
+		}
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Complete)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *WatchVolumeInfoRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -4394,6 +7858,296 @@ func (m *GetStorageStatsResponse) SizeVT() (n int) {
 	}
 	n += len(m.unknownFields)
 	return n
+}
+
+func (m *GetBucketRootRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.BucketId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Name)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GetBucketRootResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Ref != nil {
+		l = m.Ref.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ListBucketRootsRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.BucketId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Prefix)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ListBucketRootsResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Root != nil {
+		l = m.Root.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *NamedRoot) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Name)
+	if m.Ref != nil {
+		l = m.Ref.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.Previous != nil {
+		l = m.Previous.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ExpiresUnixMilli)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SetBucketRootsRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.BucketId)
+	for _, e := range m.Entries {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	for _, e := range m.Roots {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SetBucketRootsResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Result)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Name)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GetRootRetentionRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GetRootRetentionResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Supported)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *HoldPinRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Ref != nil {
+		l = m.Ref.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *HoldPinResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *HoldStageRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *HoldStageResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Stage)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *PrepareStagedBlockRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Stage)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Data)
+	if m.Opts != nil {
+		l = m.Opts.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *PrepareStagedBlockResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Ref != nil {
+		l = m.Ref.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Existed)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *PrepareStagedBlockBatchRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Stage)
+	for _, e := range m.Entries {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *PrepareStagedBlockBatchResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBoolPacked(1, m.Existed)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *StageRefsRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Stage)
+	for _, e := range m.Refs {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReleaseStageRootsResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RefsRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	for _, e := range m.Refs {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *MarkRootsCompleteResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RootsCompleteResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBoolPacked(1, m.Complete)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (x SetBucketRootsResult) MarshalProtoText() string {
+	return x.String()
 }
 
 func (x *WatchVolumeInfoRequest) MarshalProtoText() string {
@@ -4827,6 +8581,394 @@ func (x *GetStorageStatsResponse) MarshalProtoText() string {
 }
 
 func (x *GetStorageStatsResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *GetBucketRootRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "GetBucketRootRequest")
+	if x.BucketId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "bucket_id")
+		protobuf_go_lite.TextWriteString(&sb, x.BucketId)
+	}
+	if x.Name != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "name")
+		protobuf_go_lite.TextWriteString(&sb, x.Name)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *GetBucketRootRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *GetBucketRootResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "GetBucketRootResponse")
+	if x.Ref != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "ref")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Ref)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *GetBucketRootResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ListBucketRootsRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ListBucketRootsRequest")
+	if x.BucketId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "bucket_id")
+		protobuf_go_lite.TextWriteString(&sb, x.BucketId)
+	}
+	if x.Prefix != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "prefix")
+		protobuf_go_lite.TextWriteString(&sb, x.Prefix)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ListBucketRootsRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ListBucketRootsResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ListBucketRootsResponse")
+	if x.Root != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "root")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Root)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ListBucketRootsResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *NamedRoot) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "NamedRoot")
+	if x.Name != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "name")
+		protobuf_go_lite.TextWriteString(&sb, x.Name)
+	}
+	if x.Ref != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "ref")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Ref)
+	}
+	if x.Previous != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "previous")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Previous)
+	}
+	if x.ExpiresUnixMilli != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "expires_unix_milli")
+		protobuf_go_lite.TextWriteInt(&sb, x.ExpiresUnixMilli)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *NamedRoot) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetBucketRootsRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SetBucketRootsRequest")
+	if x.BucketId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "bucket_id")
+		protobuf_go_lite.TextWriteString(&sb, x.BucketId)
+	}
+	if len(x.Entries) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "entries")
+		for i, v := range x.Entries {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &rpc.PutBlockBatchEntry{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if len(x.Roots) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "roots")
+		for i, v := range x.Roots {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &NamedRoot{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SetBucketRootsRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetBucketRootsResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SetBucketRootsResponse")
+	if x.Result != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "result")
+		protobuf_go_lite.TextWriteStringer(&sb, SetBucketRootsResult(x.Result))
+	}
+	if x.Name != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "name")
+		protobuf_go_lite.TextWriteString(&sb, x.Name)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SetBucketRootsResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *GetRootRetentionRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "GetRootRetentionRequest")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *GetRootRetentionRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *GetRootRetentionResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "GetRootRetentionResponse")
+	if x.Supported != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "supported")
+		protobuf_go_lite.TextWriteBool(&sb, x.Supported)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *GetRootRetentionResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *HoldPinRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "HoldPinRequest")
+	if x.Ref != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "ref")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Ref)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *HoldPinRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *HoldPinResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "HoldPinResponse")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *HoldPinResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *HoldStageRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "HoldStageRequest")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *HoldStageRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *HoldStageResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "HoldStageResponse")
+	if x.Stage != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "stage")
+		protobuf_go_lite.TextWriteString(&sb, x.Stage)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *HoldStageResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *PrepareStagedBlockRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PrepareStagedBlockRequest")
+	if x.Stage != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "stage")
+		protobuf_go_lite.TextWriteString(&sb, x.Stage)
+	}
+	if len(x.Data) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "data")
+		protobuf_go_lite.TextWriteBytes(&sb, x.Data)
+	}
+	if x.Opts != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "opts")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Opts)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *PrepareStagedBlockRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *PrepareStagedBlockResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PrepareStagedBlockResponse")
+	if x.Ref != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "ref")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Ref)
+	}
+	if x.Existed != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "existed")
+		protobuf_go_lite.TextWriteBool(&sb, x.Existed)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *PrepareStagedBlockResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *PrepareStagedBlockBatchRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PrepareStagedBlockBatchRequest")
+	if x.Stage != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "stage")
+		protobuf_go_lite.TextWriteString(&sb, x.Stage)
+	}
+	if len(x.Entries) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "entries")
+		for i, v := range x.Entries {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &rpc.PutBlockBatchEntry{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *PrepareStagedBlockBatchRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *PrepareStagedBlockBatchResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PrepareStagedBlockBatchResponse")
+	if len(x.Existed) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "existed")
+		for i, v := range x.Existed {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteBool(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *PrepareStagedBlockBatchResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *StageRefsRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "StageRefsRequest")
+	if x.Stage != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "stage")
+		protobuf_go_lite.TextWriteString(&sb, x.Stage)
+	}
+	if len(x.Refs) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "refs")
+		for i, v := range x.Refs {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &block.BlockRef{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *StageRefsRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReleaseStageRootsResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "ReleaseStageRootsResponse")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReleaseStageRootsResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RefsRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RefsRequest")
+	if len(x.Refs) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "refs")
+		for i, v := range x.Refs {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &block.BlockRef{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RefsRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *MarkRootsCompleteResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "MarkRootsCompleteResponse")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *MarkRootsCompleteResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RootsCompleteResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RootsCompleteResponse")
+	if len(x.Complete) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "complete")
+		for i, v := range x.Complete {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteBool(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RootsCompleteResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -6411,6 +10553,1340 @@ func (m *GetStorageStatsResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *GetBucketRootRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetBucketRootRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetBucketRootRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BucketId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.BucketId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Name = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *GetBucketRootResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetBucketRootResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetBucketRootResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Ref", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Ref == nil {
+				m.Ref = &block.BlockRef{}
+			}
+			if err := m.Ref.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ListBucketRootsRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ListBucketRootsRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ListBucketRootsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BucketId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.BucketId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Prefix", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Prefix = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ListBucketRootsResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ListBucketRootsResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ListBucketRootsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Root", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Root == nil {
+				m.Root = &NamedRoot{}
+			}
+			if err := m.Root.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *NamedRoot) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: NamedRoot: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: NamedRoot: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Name = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Ref", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Ref == nil {
+				m.Ref = &block.BlockRef{}
+			}
+			if err := m.Ref.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Previous", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Previous == nil {
+				m.Previous = &block.BlockRef{}
+			}
+			if err := m.Previous.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExpiresUnixMilli", wireType)
+			}
+			m.ExpiresUnixMilli = 0
+			m.ExpiresUnixMilli, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetBucketRootsRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetBucketRootsRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetBucketRootsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BucketId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.BucketId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Entries", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Entries = append(m.Entries, &rpc.PutBlockBatchEntry{})
+			if err := m.Entries[len(m.Entries)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Roots", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Roots = append(m.Roots, &NamedRoot{})
+			if err := m.Roots[len(m.Roots)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetBucketRootsResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetBucketRootsResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetBucketRootsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Result", wireType)
+			}
+			m.Result = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Result = SetBucketRootsResult(_v)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Name = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *GetRootRetentionRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetRootRetentionRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetRootRetentionRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *GetRootRetentionResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetRootRetentionResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetRootRetentionResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Supported", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Supported = bool(v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *HoldPinRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: HoldPinRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: HoldPinRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Ref", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Ref == nil {
+				m.Ref = &block.BlockRef{}
+			}
+			if err := m.Ref.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *HoldPinResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: HoldPinResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: HoldPinResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *HoldStageRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: HoldStageRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: HoldStageRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *HoldStageResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: HoldStageResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: HoldStageResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Stage", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Stage = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *PrepareStagedBlockRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PrepareStagedBlockRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PrepareStagedBlockRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Stage", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Stage = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
+			}
+			m.Data, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Data, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Opts", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Opts == nil {
+				m.Opts = &block.PutOpts{}
+			}
+			if err := m.Opts.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *PrepareStagedBlockResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PrepareStagedBlockResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PrepareStagedBlockResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Ref", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Ref == nil {
+				m.Ref = &block.BlockRef{}
+			}
+			if err := m.Ref.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Existed", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Existed = bool(v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *PrepareStagedBlockBatchRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PrepareStagedBlockBatchRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PrepareStagedBlockBatchRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Stage", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Stage = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Entries", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Entries = append(m.Entries, &rpc.PutBlockBatchEntry{})
+			if err := m.Entries[len(m.Entries)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *PrepareStagedBlockBatchResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PrepareStagedBlockBatchResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PrepareStagedBlockBatchResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType == 0 {
+				var v bool
+				v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+				if err != nil {
+					return err
+				}
+				m.Existed = append(m.Existed, bool(v))
+			} else if wireType == 2 {
+				packedStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+				if err != nil {
+					return err
+				}
+				iNdEx = packedStart
+				var elementCount int
+				elementCount = protobuf_go_lite.PackedFixedElementCount(dAtA[iNdEx:postIndex], 1)
+				if elementCount != 0 && len(m.Existed) == 0 {
+					m.Existed = make([]bool, 0, elementCount)
+				}
+				for iNdEx < postIndex {
+					var v bool
+					v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+					if err != nil {
+						return err
+					}
+					m.Existed = append(m.Existed, bool(v))
+				}
+			} else {
+				return fmt.Errorf("proto: wrong wireType = %d for field Existed", wireType)
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *StageRefsRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: StageRefsRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: StageRefsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Stage", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Stage = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Refs", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Refs = append(m.Refs, &block.BlockRef{})
+			if err := m.Refs[len(m.Refs)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReleaseStageRootsResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReleaseStageRootsResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReleaseStageRootsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RefsRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RefsRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RefsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Refs", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Refs = append(m.Refs, &block.BlockRef{})
+			if err := m.Refs[len(m.Refs)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *MarkRootsCompleteResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MarkRootsCompleteResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MarkRootsCompleteResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RootsCompleteResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RootsCompleteResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RootsCompleteResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType == 0 {
+				var v bool
+				v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+				if err != nil {
+					return err
+				}
+				m.Complete = append(m.Complete, bool(v))
+			} else if wireType == 2 {
+				packedStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+				if err != nil {
+					return err
+				}
+				iNdEx = packedStart
+				var elementCount int
+				elementCount = protobuf_go_lite.PackedFixedElementCount(dAtA[iNdEx:postIndex], 1)
+				if elementCount != 0 && len(m.Complete) == 0 {
+					m.Complete = make([]bool, 0, elementCount)
+				}
+				for iNdEx < postIndex {
+					var v bool
+					v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+					if err != nil {
+						return err
+					}
+					m.Complete = append(m.Complete, bool(v))
+				}
+			} else {
+				return fmt.Errorf("proto: wrong wireType = %d for field Complete", wireType)
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

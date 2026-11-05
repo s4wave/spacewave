@@ -202,7 +202,7 @@ func (b *bucketHandle) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 
 	// A stage owns the writes of a staged handle.
 	if b.stage != "" {
-		ref, existed, err := b.v.(bucketRootVolume).PrepareStagedBlock(ctx, b.stage, data, putOpts)
+		ref, existed, err := b.v.PrepareStagedBlock(ctx, b.stage, data, putOpts)
 		if err == nil && syncRequested {
 			_, err = b.Sync(ctx)
 		}
@@ -286,7 +286,7 @@ func (b *bucketHandle) putReleasing(ctx context.Context, entries []*block.PutBat
 	}
 
 	// Store the puts under the stage or as the bucket's writes.
-	vol, _ := b.v.(bucketRootVolume)
+	vol := b.v
 	var stored []bool
 	var err error
 	switch {

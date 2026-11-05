@@ -2,10 +2,47 @@
 // @generated from file github.com/s4wave/spacewave/db/volume/rpc/volume.proto (package volume.rpc, syntax proto3)
 /* eslint-disable */
 
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { StorageStats, VolumeInfo } from '../volume.pb.js'
 import { ObjectRef } from '../../bucket/bucket.pb.js'
+import { BlockRef, PutOpts } from '../../block/block.pb.js'
+import { PutBlockBatchEntry } from '../../block/rpc/block.pb.js'
+
+/**
+ * SetBucketRootsResult is the outcome of a SetBucketRoots call that reached
+ * the volume.
+ *
+ * @generated from enum volume.rpc.SetBucketRootsResult
+ */
+export enum SetBucketRootsResult {
+  /**
+   * SET_BUCKET_ROOTS_RESULT_OK means the blocks are stored and the roots moved.
+   */
+  OK = 0,
+
+  /**
+   * SET_BUCKET_ROOTS_RESULT_ROOT_MOVED means a root did not hold its
+   * Previous, and nothing was written.
+   */
+  ROOT_MOVED = 1,
+
+  /**
+   * SET_BUCKET_ROOTS_RESULT_UNHELD means the volume holds no roots and
+   * refused a root that would hold a block.
+   */
+  UNHELD = 2,
+}
+
+export const SetBucketRootsResult_Enum = /* @__PURE__ */ createEnumType(
+  'volume.rpc.SetBucketRootsResult',
+  [
+    [0, 'SET_BUCKET_ROOTS_RESULT_OK'],
+    [1, 'SET_BUCKET_ROOTS_RESULT_ROOT_MOVED'],
+    [2, 'SET_BUCKET_ROOTS_RESULT_UNHELD'],
+  ],
+)
 
 /**
  * WatchVolumeInfoRequest is a request to watch volume information.
@@ -576,4 +613,458 @@ export const GetStorageStatsResponse: MessageType<GetStorageStatsResponse> =
   /* @__PURE__ */ createMessageType<GetStorageStatsResponse>(
     'volume.rpc.GetStorageStatsResponse',
     () => [[1, 'storage_stats', 11, 0, StorageStats.codec]],
+  )
+
+/**
+ * GetBucketRootRequest reads a named root of a bucket.
+ *
+ * @generated from message volume.rpc.GetBucketRootRequest
+ */
+export interface GetBucketRootRequest {
+  /**
+   * BucketId is the bucket.
+   */
+  bucketId?: string
+  /**
+   * Name is the root name.
+   */
+  name?: string
+}
+
+export const GetBucketRootRequest: MessageType<GetBucketRootRequest> =
+  /* @__PURE__ */ createMessageType<GetBucketRootRequest>(
+    'volume.rpc.GetBucketRootRequest',
+    () => [
+      [1, 'bucket_id', 9],
+      [2, 'name', 9],
+    ],
+  )
+
+/**
+ * GetBucketRootResponse is the block a named root holds.
+ *
+ * @generated from message volume.rpc.GetBucketRootResponse
+ */
+export interface GetBucketRootResponse {
+  /**
+   * Ref is the block the root holds, empty when the name is free.
+   */
+  ref?: BlockRef
+}
+
+export const GetBucketRootResponse: MessageType<GetBucketRootResponse> =
+  /* @__PURE__ */ createMessageType<GetBucketRootResponse>(
+    'volume.rpc.GetBucketRootResponse',
+    () => [[1, 'ref', 11, 0, BlockRef.codec]],
+  )
+
+/**
+ * ListBucketRootsRequest lists the named roots of a bucket under a prefix.
+ *
+ * @generated from message volume.rpc.ListBucketRootsRequest
+ */
+export interface ListBucketRootsRequest {
+  /**
+   * BucketId is the bucket.
+   */
+  bucketId?: string
+  /**
+   * Prefix filters the root names.
+   */
+  prefix?: string
+}
+
+export const ListBucketRootsRequest: MessageType<ListBucketRootsRequest> =
+  /* @__PURE__ */ createMessageType<ListBucketRootsRequest>(
+    'volume.rpc.ListBucketRootsRequest',
+    () => [
+      [1, 'bucket_id', 9],
+      [2, 'prefix', 9],
+    ],
+  )
+
+/**
+ * ListBucketRootsResponse is one named root of the listing.
+ *
+ * @generated from message volume.rpc.ListBucketRootsResponse
+ */
+export interface ListBucketRootsResponse {
+  /**
+   * Root is the named root.
+   */
+  root?: NamedRoot
+}
+
+export const ListBucketRootsResponse: MessageType<ListBucketRootsResponse> =
+  /* @__PURE__ */ createMessageType<ListBucketRootsResponse>(
+    'volume.rpc.ListBucketRootsResponse',
+    () => [[1, 'root', 11, 0, NamedRoot.codec]],
+  )
+
+/**
+ * NamedRoot is a named root, or a move of one.
+ *
+ * @generated from message volume.rpc.NamedRoot
+ */
+export interface NamedRoot {
+  /**
+   * Name is the root name.
+   */
+  name?: string
+  /**
+   * Ref is the block the name holds, or after the move, empty to release.
+   */
+  ref?: BlockRef
+  /**
+   * Previous is the block the name must hold before the move, empty when it
+   * must be free.
+   */
+  previous?: BlockRef
+  /**
+   * ExpiresUnixMilli is when the volume releases a leased root, zero for one
+   * held until released.
+   */
+  expiresUnixMilli?: bigint
+}
+
+export const NamedRoot: MessageType<NamedRoot> =
+  /* @__PURE__ */ createMessageType<NamedRoot>('volume.rpc.NamedRoot', () => [
+    [1, 'name', 9],
+    [2, 'ref', 11, 0, BlockRef.codec],
+    [3, 'previous', 11, 0, BlockRef.codec],
+    [4, 'expires_unix_milli', 3],
+  ])
+
+/**
+ * SetBucketRootsRequest stores blocks and moves named roots of a bucket.
+ *
+ * @generated from message volume.rpc.SetBucketRootsRequest
+ */
+export interface SetBucketRootsRequest {
+  /**
+   * BucketId is the bucket.
+   */
+  bucketId?: string
+  /**
+   * Entries are the blocks to store with the moves.
+   */
+  entries?: PutBlockBatchEntry[]
+  /**
+   * Roots are the moves.
+   */
+  roots?: NamedRoot[]
+}
+
+export const SetBucketRootsRequest: MessageType<SetBucketRootsRequest> =
+  /* @__PURE__ */ createMessageType<SetBucketRootsRequest>(
+    'volume.rpc.SetBucketRootsRequest',
+    () => [
+      [1, 'bucket_id', 9],
+      [2, 'entries', 11, 1, PutBlockBatchEntry.codec],
+      [3, 'roots', 11, 1, NamedRoot.codec],
+    ],
+  )
+
+/**
+ * SetBucketRootsResponse is the outcome of a SetBucketRoots call.
+ *
+ * @generated from message volume.rpc.SetBucketRootsResponse
+ */
+export interface SetBucketRootsResponse {
+  /**
+   * Result is the outcome.
+   */
+  result?: SetBucketRootsResult
+  /**
+   * Name is the root a refusal names.
+   */
+  name?: string
+}
+
+export const SetBucketRootsResponse: MessageType<SetBucketRootsResponse> =
+  /* @__PURE__ */ createMessageType<SetBucketRootsResponse>(
+    'volume.rpc.SetBucketRootsResponse',
+    () => [
+      [1, 'result', 14, 0, SetBucketRootsResult_Enum],
+      [2, 'name', 9],
+    ],
+  )
+
+/**
+ * GetRootRetentionRequest asks whether the volume holds roots.
+ *
+ * @generated from message volume.rpc.GetRootRetentionRequest
+ */
+export interface GetRootRetentionRequest {}
+
+export const GetRootRetentionRequest: MessageType<GetRootRetentionRequest> =
+  /* @__PURE__ */ createMessageType<GetRootRetentionRequest>(
+    'volume.rpc.GetRootRetentionRequest',
+    () => [],
+  )
+
+/**
+ * GetRootRetentionResponse reports whether the volume holds roots.
+ *
+ * @generated from message volume.rpc.GetRootRetentionResponse
+ */
+export interface GetRootRetentionResponse {
+  /**
+   * Supported reports that the volume holds roots, pins and stages.
+   */
+  supported?: boolean
+}
+
+export const GetRootRetentionResponse: MessageType<GetRootRetentionResponse> =
+  /* @__PURE__ */ createMessageType<GetRootRetentionResponse>(
+    'volume.rpc.GetRootRetentionResponse',
+    () => [[1, 'supported', 8]],
+  )
+
+/**
+ * HoldPinRequest pins a reader's root.
+ *
+ * @generated from message volume.rpc.HoldPinRequest
+ */
+export interface HoldPinRequest {
+  /**
+   * Ref is the root to pin.
+   */
+  ref?: BlockRef
+}
+
+export const HoldPinRequest: MessageType<HoldPinRequest> =
+  /* @__PURE__ */ createMessageType<HoldPinRequest>(
+    'volume.rpc.HoldPinRequest',
+    () => [[1, 'ref', 11, 0, BlockRef.codec]],
+  )
+
+/**
+ * HoldPinResponse reports that the pin is held.
+ *
+ * @generated from message volume.rpc.HoldPinResponse
+ */
+export interface HoldPinResponse {}
+
+export const HoldPinResponse: MessageType<HoldPinResponse> =
+  /* @__PURE__ */ createMessageType<HoldPinResponse>(
+    'volume.rpc.HoldPinResponse',
+    () => [],
+  )
+
+/**
+ * HoldStageRequest opens a stage.
+ *
+ * @generated from message volume.rpc.HoldStageRequest
+ */
+export interface HoldStageRequest {}
+
+export const HoldStageRequest: MessageType<HoldStageRequest> =
+  /* @__PURE__ */ createMessageType<HoldStageRequest>(
+    'volume.rpc.HoldStageRequest',
+    () => [],
+  )
+
+/**
+ * HoldStageResponse names the stage the stream holds.
+ *
+ * @generated from message volume.rpc.HoldStageResponse
+ */
+export interface HoldStageResponse {
+  /**
+   * Stage is the stage's name.
+   */
+  stage?: string
+}
+
+export const HoldStageResponse: MessageType<HoldStageResponse> =
+  /* @__PURE__ */ createMessageType<HoldStageResponse>(
+    'volume.rpc.HoldStageResponse',
+    () => [[1, 'stage', 9]],
+  )
+
+/**
+ * PrepareStagedBlockRequest writes one block a stage holds.
+ *
+ * @generated from message volume.rpc.PrepareStagedBlockRequest
+ */
+export interface PrepareStagedBlockRequest {
+  /**
+   * Stage is a stage this connection holds.
+   */
+  stage?: string
+  /**
+   * Data is the encoded block.
+   */
+  data?: Uint8Array
+  /**
+   * Opts are the put options.
+   */
+  opts?: PutOpts
+}
+
+export const PrepareStagedBlockRequest: MessageType<PrepareStagedBlockRequest> =
+  /* @__PURE__ */ createMessageType<PrepareStagedBlockRequest>(
+    'volume.rpc.PrepareStagedBlockRequest',
+    () => [
+      [1, 'stage', 9],
+      [2, 'data', 12],
+      [3, 'opts', 11, 0, PutOpts.codec],
+    ],
+  )
+
+/**
+ * PrepareStagedBlockResponse is the stored block.
+ *
+ * @generated from message volume.rpc.PrepareStagedBlockResponse
+ */
+export interface PrepareStagedBlockResponse {
+  /**
+   * Ref is the block's reference.
+   */
+  ref?: BlockRef
+  /**
+   * Existed reports that the block was stored before.
+   */
+  existed?: boolean
+}
+
+export const PrepareStagedBlockResponse: MessageType<PrepareStagedBlockResponse> =
+  /* @__PURE__ */ createMessageType<PrepareStagedBlockResponse>(
+    'volume.rpc.PrepareStagedBlockResponse',
+    () => [
+      [1, 'ref', 11, 0, BlockRef.codec],
+      [2, 'existed', 8],
+    ],
+  )
+
+/**
+ * PrepareStagedBlockBatchRequest writes a batch a stage holds.
+ *
+ * @generated from message volume.rpc.PrepareStagedBlockBatchRequest
+ */
+export interface PrepareStagedBlockBatchRequest {
+  /**
+   * Stage is a stage this connection holds.
+   */
+  stage?: string
+  /**
+   * Entries are the blocks.
+   */
+  entries?: PutBlockBatchEntry[]
+}
+
+export const PrepareStagedBlockBatchRequest: MessageType<PrepareStagedBlockBatchRequest> =
+  /* @__PURE__ */ createMessageType<PrepareStagedBlockBatchRequest>(
+    'volume.rpc.PrepareStagedBlockBatchRequest',
+    () => [
+      [1, 'stage', 9],
+      [2, 'entries', 11, 1, PutBlockBatchEntry.codec],
+    ],
+  )
+
+/**
+ * PrepareStagedBlockBatchResponse reports which blocks were stored before.
+ *
+ * @generated from message volume.rpc.PrepareStagedBlockBatchResponse
+ */
+export interface PrepareStagedBlockBatchResponse {
+  /**
+   * Existed reports, for each entry in order, that its block was stored
+   * before.
+   */
+  existed?: boolean[]
+}
+
+export const PrepareStagedBlockBatchResponse: MessageType<PrepareStagedBlockBatchResponse> =
+  /* @__PURE__ */ createMessageType<PrepareStagedBlockBatchResponse>(
+    'volume.rpc.PrepareStagedBlockBatchResponse',
+    () => [[1, 'existed', 8, 3]],
+  )
+
+/**
+ * StageRefsRequest names blocks of a stage.
+ *
+ * @generated from message volume.rpc.StageRefsRequest
+ */
+export interface StageRefsRequest {
+  /**
+   * Stage is a stage this connection holds.
+   */
+  stage?: string
+  /**
+   * Refs are the blocks.
+   */
+  refs?: BlockRef[]
+}
+
+export const StageRefsRequest: MessageType<StageRefsRequest> =
+  /* @__PURE__ */ createMessageType<StageRefsRequest>(
+    'volume.rpc.StageRefsRequest',
+    () => [
+      [1, 'stage', 9],
+      [2, 'refs', 11, 1, BlockRef.codec],
+    ],
+  )
+
+/**
+ * ReleaseStageRootsResponse reports that the holds are dropped.
+ *
+ * @generated from message volume.rpc.ReleaseStageRootsResponse
+ */
+export interface ReleaseStageRootsResponse {}
+
+export const ReleaseStageRootsResponse: MessageType<ReleaseStageRootsResponse> =
+  /* @__PURE__ */ createMessageType<ReleaseStageRootsResponse>(
+    'volume.rpc.ReleaseStageRootsResponse',
+    () => [],
+  )
+
+/**
+ * RefsRequest names blocks.
+ *
+ * @generated from message volume.rpc.RefsRequest
+ */
+export interface RefsRequest {
+  /**
+   * Refs are the blocks.
+   */
+  refs?: BlockRef[]
+}
+
+export const RefsRequest: MessageType<RefsRequest> =
+  /* @__PURE__ */ createMessageType<RefsRequest>(
+    'volume.rpc.RefsRequest',
+    () => [[1, 'refs', 11, 1, BlockRef.codec]],
+  )
+
+/**
+ * MarkRootsCompleteResponse reports that the proofs are recorded.
+ *
+ * @generated from message volume.rpc.MarkRootsCompleteResponse
+ */
+export interface MarkRootsCompleteResponse {}
+
+export const MarkRootsCompleteResponse: MessageType<MarkRootsCompleteResponse> =
+  /* @__PURE__ */ createMessageType<MarkRootsCompleteResponse>(
+    'volume.rpc.MarkRootsCompleteResponse',
+    () => [],
+  )
+
+/**
+ * RootsCompleteResponse reports a completion proof per block.
+ *
+ * @generated from message volume.rpc.RootsCompleteResponse
+ */
+export interface RootsCompleteResponse {
+  /**
+   * Complete reports, for each block in order, whether it has a proof.
+   */
+  complete?: boolean[]
+}
+
+export const RootsCompleteResponse: MessageType<RootsCompleteResponse> =
+  /* @__PURE__ */ createMessageType<RootsCompleteResponse>(
+    'volume.rpc.RootsCompleteResponse',
+    () => [[1, 'complete', 8, 3]],
   )

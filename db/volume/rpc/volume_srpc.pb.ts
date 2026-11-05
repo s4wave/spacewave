@@ -6,18 +6,39 @@ import {
   AcquireCoordinatorWriteLeaseResponse,
   CoordinatorWriteLeaseRequest,
   CoordinatorWriteLeaseSnapshotResponse,
+  GetBucketRootRequest,
+  GetBucketRootResponse,
   GetCoordinatorCapabilityRequest,
   GetCoordinatorCapabilityResponse,
   GetCoordinatorSnapshotRequest,
   GetCoordinatorSnapshotResponse,
   GetPeerPrivRequest,
   GetPeerPrivResponse,
+  GetRootRetentionRequest,
+  GetRootRetentionResponse,
   GetStorageStatsRequest,
   GetStorageStatsResponse,
   GetVolumeInfoRequest,
   GetVolumeInfoResponse,
+  HoldPinRequest,
+  HoldPinResponse,
+  HoldStageRequest,
+  HoldStageResponse,
+  ListBucketRootsRequest,
+  ListBucketRootsResponse,
+  MarkRootsCompleteResponse,
+  PrepareStagedBlockBatchRequest,
+  PrepareStagedBlockBatchResponse,
+  PrepareStagedBlockRequest,
+  PrepareStagedBlockResponse,
   PublishCoordinatorWriteLeaseRequest,
+  RefsRequest,
   ReleaseCoordinatorWriteLeaseResponse,
+  ReleaseStageRootsResponse,
+  RootsCompleteResponse,
+  SetBucketRootsRequest,
+  SetBucketRootsResponse,
+  StageRefsRequest,
   TryAcquireCoordinatorWriteLeaseRequest,
   WaitAcquireCoordinatorWriteLeaseRequest,
   WatchCoordinatorEventsRequest,
@@ -323,6 +344,142 @@ export const ProxyVolumeDefinition = {
       O: GetStorageStatsResponse,
       kind: MethodKind.Unary,
     },
+    /**
+     * GetBucketRoot returns the block a named root of a bucket holds.
+     *
+     * @generated from rpc volume.rpc.ProxyVolume.GetBucketRoot
+     */
+    GetBucketRoot: {
+      name: 'GetBucketRoot',
+      I: GetBucketRootRequest,
+      O: GetBucketRootResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * ListBucketRoots streams the named roots of a bucket under a prefix.
+     *
+     * @generated from rpc volume.rpc.ProxyVolume.ListBucketRoots
+     */
+    ListBucketRoots: {
+      name: 'ListBucketRoots',
+      I: ListBucketRootsRequest,
+      O: ListBucketRootsResponse,
+      kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * SetBucketRoots stores blocks and moves named roots of a bucket in one
+     * transaction of the volume.
+     *
+     * @generated from rpc volume.rpc.ProxyVolume.SetBucketRoots
+     */
+    SetBucketRoots: {
+      name: 'SetBucketRoots',
+      I: SetBucketRootsRequest,
+      O: SetBucketRootsResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * GetRootRetention reports whether the volume holds roots, pins and stages.
+     *
+     * @generated from rpc volume.rpc.ProxyVolume.GetRootRetention
+     */
+    GetRootRetention: {
+      name: 'GetRootRetention',
+      I: GetRootRetentionRequest,
+      O: GetRootRetentionResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * HoldPin pins a reader's root, sends one message once pinned, and holds
+     * the pin until the client ends the stream.
+     *
+     * @generated from rpc volume.rpc.ProxyVolume.HoldPin
+     */
+    HoldPin: {
+      name: 'HoldPin',
+      I: HoldPinRequest,
+      O: HoldPinResponse,
+      kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * HoldStage opens a stage, sends its name, and holds it until the client
+     * ends the stream.
+     *
+     * @generated from rpc volume.rpc.ProxyVolume.HoldStage
+     */
+    HoldStage: {
+      name: 'HoldStage',
+      I: HoldStageRequest,
+      O: HoldStageResponse,
+      kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * PrepareStagedBlock writes a block a stage this connection holds keeps.
+     *
+     * @generated from rpc volume.rpc.ProxyVolume.PrepareStagedBlock
+     */
+    PrepareStagedBlock: {
+      name: 'PrepareStagedBlock',
+      I: PrepareStagedBlockRequest,
+      O: PrepareStagedBlockResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * PrepareStagedBlockBatch writes a batch a stage this connection holds keeps.
+     *
+     * @generated from rpc volume.rpc.ProxyVolume.PrepareStagedBlockBatch
+     */
+    PrepareStagedBlockBatch: {
+      name: 'PrepareStagedBlockBatch',
+      I: PrepareStagedBlockBatchRequest,
+      O: PrepareStagedBlockBatchResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * ReleaseStageRoots drops a stage's holds on blocks.
+     *
+     * @generated from rpc volume.rpc.ProxyVolume.ReleaseStageRoots
+     */
+    ReleaseStageRoots: {
+      name: 'ReleaseStageRoots',
+      I: StageRefsRequest,
+      O: ReleaseStageRootsResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * HoldStageCompleteRoots makes a stage hold each proved root, and reports
+     * which roots have a completion proof.
+     *
+     * @generated from rpc volume.rpc.ProxyVolume.HoldStageCompleteRoots
+     */
+    HoldStageCompleteRoots: {
+      name: 'HoldStageCompleteRoots',
+      I: StageRefsRequest,
+      O: RootsCompleteResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * MarkRootsComplete records completion proofs for stored roots.
+     *
+     * @generated from rpc volume.rpc.ProxyVolume.MarkRootsComplete
+     */
+    MarkRootsComplete: {
+      name: 'MarkRootsComplete',
+      I: RefsRequest,
+      O: MarkRootsCompleteResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * RootsComplete reports which roots have a completion proof.
+     *
+     * @generated from rpc volume.rpc.ProxyVolume.RootsComplete
+     */
+    RootsComplete: {
+      name: 'RootsComplete',
+      I: RefsRequest,
+      O: RootsCompleteResponse,
+      kind: MethodKind.Unary,
+    },
   },
 } as const
 
@@ -447,6 +604,130 @@ export interface ProxyVolume {
     request: GetStorageStatsRequest,
     abortSignal?: AbortSignal,
   ): Promise<GetStorageStatsResponse>
+
+  /**
+   * GetBucketRoot returns the block a named root of a bucket holds.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.GetBucketRoot
+   */
+  GetBucketRoot(
+    request: GetBucketRootRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetBucketRootResponse>
+
+  /**
+   * ListBucketRoots streams the named roots of a bucket under a prefix.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.ListBucketRoots
+   */
+  ListBucketRoots(
+    request: ListBucketRootsRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<ListBucketRootsResponse>
+
+  /**
+   * SetBucketRoots stores blocks and moves named roots of a bucket in one
+   * transaction of the volume.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.SetBucketRoots
+   */
+  SetBucketRoots(
+    request: SetBucketRootsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SetBucketRootsResponse>
+
+  /**
+   * GetRootRetention reports whether the volume holds roots, pins and stages.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.GetRootRetention
+   */
+  GetRootRetention(
+    request: GetRootRetentionRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetRootRetentionResponse>
+
+  /**
+   * HoldPin pins a reader's root, sends one message once pinned, and holds
+   * the pin until the client ends the stream.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.HoldPin
+   */
+  HoldPin(
+    request: HoldPinRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<HoldPinResponse>
+
+  /**
+   * HoldStage opens a stage, sends its name, and holds it until the client
+   * ends the stream.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.HoldStage
+   */
+  HoldStage(
+    request: HoldStageRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<HoldStageResponse>
+
+  /**
+   * PrepareStagedBlock writes a block a stage this connection holds keeps.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.PrepareStagedBlock
+   */
+  PrepareStagedBlock(
+    request: PrepareStagedBlockRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<PrepareStagedBlockResponse>
+
+  /**
+   * PrepareStagedBlockBatch writes a batch a stage this connection holds keeps.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.PrepareStagedBlockBatch
+   */
+  PrepareStagedBlockBatch(
+    request: PrepareStagedBlockBatchRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<PrepareStagedBlockBatchResponse>
+
+  /**
+   * ReleaseStageRoots drops a stage's holds on blocks.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.ReleaseStageRoots
+   */
+  ReleaseStageRoots(
+    request: StageRefsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ReleaseStageRootsResponse>
+
+  /**
+   * HoldStageCompleteRoots makes a stage hold each proved root, and reports
+   * which roots have a completion proof.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.HoldStageCompleteRoots
+   */
+  HoldStageCompleteRoots(
+    request: StageRefsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<RootsCompleteResponse>
+
+  /**
+   * MarkRootsComplete records completion proofs for stored roots.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.MarkRootsComplete
+   */
+  MarkRootsComplete(
+    request: RefsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<MarkRootsCompleteResponse>
+
+  /**
+   * RootsComplete reports which roots have a completion proof.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.RootsComplete
+   */
+  RootsComplete(
+    request: RefsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<RootsCompleteResponse>
 }
 
 /**
@@ -581,6 +862,142 @@ export interface ProxyVolumeHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): Promise<GetStorageStatsResponse>
+
+  /**
+   * GetBucketRoot returns the block a named root of a bucket holds.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.GetBucketRoot
+   */
+  GetBucketRoot(
+    request: GetBucketRootRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetBucketRootResponse>
+
+  /**
+   * ListBucketRoots streams the named roots of a bucket under a prefix.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.ListBucketRoots
+   */
+  ListBucketRoots(
+    request: ListBucketRootsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<ListBucketRootsResponse>
+
+  /**
+   * SetBucketRoots stores blocks and moves named roots of a bucket in one
+   * transaction of the volume.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.SetBucketRoots
+   */
+  SetBucketRoots(
+    request: SetBucketRootsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetBucketRootsResponse>
+
+  /**
+   * GetRootRetention reports whether the volume holds roots, pins and stages.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.GetRootRetention
+   */
+  GetRootRetention(
+    request: GetRootRetentionRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetRootRetentionResponse>
+
+  /**
+   * HoldPin pins a reader's root, sends one message once pinned, and holds
+   * the pin until the client ends the stream.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.HoldPin
+   */
+  HoldPin(
+    request: HoldPinRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<HoldPinResponse>
+
+  /**
+   * HoldStage opens a stage, sends its name, and holds it until the client
+   * ends the stream.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.HoldStage
+   */
+  HoldStage(
+    request: HoldStageRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<HoldStageResponse>
+
+  /**
+   * PrepareStagedBlock writes a block a stage this connection holds keeps.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.PrepareStagedBlock
+   */
+  PrepareStagedBlock(
+    request: PrepareStagedBlockRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<PrepareStagedBlockResponse>
+
+  /**
+   * PrepareStagedBlockBatch writes a batch a stage this connection holds keeps.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.PrepareStagedBlockBatch
+   */
+  PrepareStagedBlockBatch(
+    request: PrepareStagedBlockBatchRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<PrepareStagedBlockBatchResponse>
+
+  /**
+   * ReleaseStageRoots drops a stage's holds on blocks.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.ReleaseStageRoots
+   */
+  ReleaseStageRoots(
+    request: StageRefsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ReleaseStageRootsResponse>
+
+  /**
+   * HoldStageCompleteRoots makes a stage hold each proved root, and reports
+   * which roots have a completion proof.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.HoldStageCompleteRoots
+   */
+  HoldStageCompleteRoots(
+    request: StageRefsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RootsCompleteResponse>
+
+  /**
+   * MarkRootsComplete records completion proofs for stored roots.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.MarkRootsComplete
+   */
+  MarkRootsComplete(
+    request: RefsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<MarkRootsCompleteResponse>
+
+  /**
+   * RootsComplete reports which roots have a completion proof.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.RootsComplete
+   */
+  RootsComplete(
+    request: RefsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RootsCompleteResponse>
 }
 
 export const ProxyVolumeServiceName = ProxyVolumeDefinition.typeName
@@ -607,6 +1024,18 @@ export class ProxyVolumeClient implements ProxyVolume {
       this.ReleaseCoordinatorWriteLease.bind(this)
     this.GetPeerPriv = this.GetPeerPriv.bind(this)
     this.GetStorageStats = this.GetStorageStats.bind(this)
+    this.GetBucketRoot = this.GetBucketRoot.bind(this)
+    this.ListBucketRoots = this.ListBucketRoots.bind(this)
+    this.SetBucketRoots = this.SetBucketRoots.bind(this)
+    this.GetRootRetention = this.GetRootRetention.bind(this)
+    this.HoldPin = this.HoldPin.bind(this)
+    this.HoldStage = this.HoldStage.bind(this)
+    this.PrepareStagedBlock = this.PrepareStagedBlock.bind(this)
+    this.PrepareStagedBlockBatch = this.PrepareStagedBlockBatch.bind(this)
+    this.ReleaseStageRoots = this.ReleaseStageRoots.bind(this)
+    this.HoldStageCompleteRoots = this.HoldStageCompleteRoots.bind(this)
+    this.MarkRootsComplete = this.MarkRootsComplete.bind(this)
+    this.RootsComplete = this.RootsComplete.bind(this)
   }
   /**
    * GetVolumeInfo returns the basic volume information.
@@ -820,5 +1249,237 @@ export class ProxyVolumeClient implements ProxyVolume {
       abortSignal || undefined,
     )
     return GetStorageStatsResponse.fromBinary(result)
+  }
+
+  /**
+   * GetBucketRoot returns the block a named root of a bucket holds.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.GetBucketRoot
+   */
+  async GetBucketRoot(
+    request: GetBucketRootRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetBucketRootResponse> {
+    const requestMsg = GetBucketRootRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      ProxyVolumeDefinition.methods.GetBucketRoot.name,
+      GetBucketRootRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return GetBucketRootResponse.fromBinary(result)
+  }
+
+  /**
+   * ListBucketRoots streams the named roots of a bucket under a prefix.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.ListBucketRoots
+   */
+  ListBucketRoots(
+    request: ListBucketRootsRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<ListBucketRootsResponse> {
+    const requestMsg = ListBucketRootsRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      ProxyVolumeDefinition.methods.ListBucketRoots.name,
+      ListBucketRootsRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(ListBucketRootsResponse)(result)
+  }
+
+  /**
+   * SetBucketRoots stores blocks and moves named roots of a bucket in one
+   * transaction of the volume.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.SetBucketRoots
+   */
+  async SetBucketRoots(
+    request: SetBucketRootsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SetBucketRootsResponse> {
+    const requestMsg = SetBucketRootsRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      ProxyVolumeDefinition.methods.SetBucketRoots.name,
+      SetBucketRootsRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return SetBucketRootsResponse.fromBinary(result)
+  }
+
+  /**
+   * GetRootRetention reports whether the volume holds roots, pins and stages.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.GetRootRetention
+   */
+  async GetRootRetention(
+    request: GetRootRetentionRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetRootRetentionResponse> {
+    const requestMsg = GetRootRetentionRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      ProxyVolumeDefinition.methods.GetRootRetention.name,
+      GetRootRetentionRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return GetRootRetentionResponse.fromBinary(result)
+  }
+
+  /**
+   * HoldPin pins a reader's root, sends one message once pinned, and holds
+   * the pin until the client ends the stream.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.HoldPin
+   */
+  HoldPin(
+    request: HoldPinRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<HoldPinResponse> {
+    const requestMsg = HoldPinRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      ProxyVolumeDefinition.methods.HoldPin.name,
+      HoldPinRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(HoldPinResponse)(result)
+  }
+
+  /**
+   * HoldStage opens a stage, sends its name, and holds it until the client
+   * ends the stream.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.HoldStage
+   */
+  HoldStage(
+    request: HoldStageRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<HoldStageResponse> {
+    const requestMsg = HoldStageRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      ProxyVolumeDefinition.methods.HoldStage.name,
+      HoldStageRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(HoldStageResponse)(result)
+  }
+
+  /**
+   * PrepareStagedBlock writes a block a stage this connection holds keeps.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.PrepareStagedBlock
+   */
+  async PrepareStagedBlock(
+    request: PrepareStagedBlockRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<PrepareStagedBlockResponse> {
+    const requestMsg = PrepareStagedBlockRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      ProxyVolumeDefinition.methods.PrepareStagedBlock.name,
+      PrepareStagedBlockRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return PrepareStagedBlockResponse.fromBinary(result)
+  }
+
+  /**
+   * PrepareStagedBlockBatch writes a batch a stage this connection holds keeps.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.PrepareStagedBlockBatch
+   */
+  async PrepareStagedBlockBatch(
+    request: PrepareStagedBlockBatchRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<PrepareStagedBlockBatchResponse> {
+    const requestMsg = PrepareStagedBlockBatchRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      ProxyVolumeDefinition.methods.PrepareStagedBlockBatch.name,
+      PrepareStagedBlockBatchRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return PrepareStagedBlockBatchResponse.fromBinary(result)
+  }
+
+  /**
+   * ReleaseStageRoots drops a stage's holds on blocks.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.ReleaseStageRoots
+   */
+  async ReleaseStageRoots(
+    request: StageRefsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ReleaseStageRootsResponse> {
+    const requestMsg = StageRefsRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      ProxyVolumeDefinition.methods.ReleaseStageRoots.name,
+      StageRefsRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ReleaseStageRootsResponse.fromBinary(result)
+  }
+
+  /**
+   * HoldStageCompleteRoots makes a stage hold each proved root, and reports
+   * which roots have a completion proof.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.HoldStageCompleteRoots
+   */
+  async HoldStageCompleteRoots(
+    request: StageRefsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<RootsCompleteResponse> {
+    const requestMsg = StageRefsRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      ProxyVolumeDefinition.methods.HoldStageCompleteRoots.name,
+      StageRefsRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return RootsCompleteResponse.fromBinary(result)
+  }
+
+  /**
+   * MarkRootsComplete records completion proofs for stored roots.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.MarkRootsComplete
+   */
+  async MarkRootsComplete(
+    request: RefsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<MarkRootsCompleteResponse> {
+    const requestMsg = RefsRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      ProxyVolumeDefinition.methods.MarkRootsComplete.name,
+      RefsRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return MarkRootsCompleteResponse.fromBinary(result)
+  }
+
+  /**
+   * RootsComplete reports which roots have a completion proof.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.RootsComplete
+   */
+  async RootsComplete(
+    request: RefsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<RootsCompleteResponse> {
+    const requestMsg = RefsRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      ProxyVolumeDefinition.methods.RootsComplete.name,
+      RefsRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return RootsCompleteResponse.fromBinary(result)
   }
 }
