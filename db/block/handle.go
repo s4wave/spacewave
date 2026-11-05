@@ -23,9 +23,6 @@ type handle struct {
 	shared bool
 	// blkPreWrite transforms the decoded block before writing.
 	blkPreWrite func(b any) error
-	// base is the stored page the position holds, with the refs it names,
-	// while the transaction records replacements. nil when unknown.
-	base *pageBase
 }
 
 // Clone clones the handle object.

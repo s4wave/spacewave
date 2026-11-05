@@ -255,10 +255,7 @@ func (c *Controller) executeWorld(
 		return err
 	}
 	defer blkEngine.Release()
-	if replay.recordsDeaths() {
-		replay.deaths = newWorldDeaths(replay.storedRoot(headRef.GetRootRef()))
-	}
-	admitted, err := c.buildBlkEngine(ctx, le, replay.store(), headRef, transformConf, replay.transitions()...)
+	admitted, err := c.buildBlkEngine(ctx, le, replay.store(), headRef, transformConf)
 	if err != nil {
 		return err
 	}

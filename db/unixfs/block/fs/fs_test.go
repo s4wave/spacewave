@@ -9,8 +9,6 @@ import (
 	"time"
 
 	billy_util "github.com/go-git/go-billy/v6/util"
-	"github.com/s4wave/spacewave/db/block"
-	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
@@ -33,9 +31,8 @@ func TestFS(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// Build a fresh writable filesystem handle for each interface case, with a
-	// check that the pages each write replaced match the diff of the roots.
-	buildFsHandle := func() (*unixfs.FSHandle, func(t *testing.T, name string)) {
+	// Build a fresh writable filesystem handle for each interface case.
+	buildFsHandle := func() *unixfs.FSHandle {
 		// Open an empty bucket cursor for the filesystem root.
 		oc, err := tb.BuildEmptyCursor(ctx)
 		if err != nil {
@@ -57,17 +54,6 @@ func TestFS(t *testing.T) {
 		}
 		oc.SetRootRef(rootRef)
 
-		// Record what each write replaces, checked against the diff of the roots.
-		log := block.NewReplacementLog(rootRef)
-		oc.SetReplacementLog(log)
-		check := func(t *testing.T, name string) {
-			to := oc.GetRef().GetRootRef()
-			if err := block_mock.CheckReplacements(ctx, oc.GetBucket(), rootRef, to, log.Take(to).Net(nil)); err != nil {
-				t.Fatalf("%s: %v", name, err)
-			}
-			rootRef = to
-		}
-
 		// construct the fscursor
 		wr := NewFSWriter()
 		fs := NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, oc, wr)
@@ -87,11 +73,11 @@ func TestFS(t *testing.T) {
 			fsHandle.Release()
 			t.Fail()
 		}
-		return fsHandle, check
+		return fsHandle
 	}
 
 	// Exercise directory creation and file readback through a filesystem handle.
-	testFsHandle := func(t *testing.T, h *unixfs.FSHandle, check func(t *testing.T, name string)) {
+	testFsHandle := func(t *testing.T, h *unixfs.FSHandle) {
 		// Check that a missing filesystem entry returns ErrNotExist.
 		_, err = h.Lookup(ctx, "does-not-exist")
 		if err != unixfs_errors.ErrNotExist {
@@ -111,7 +97,6 @@ func TestFS(t *testing.T) {
 		if err != nil {
 			t.Fatal(err.Error())
 		}
-		check(t, "mkdir")
 
 		// Open the new directory for file creation.
 		dirHandle, err := h.Lookup(ctx, testDirName)
@@ -132,7 +117,6 @@ func TestFS(t *testing.T) {
 		); err != nil {
 			t.Fatal(err.Error())
 		}
-		check(t, "mknod")
 
 		// Resolve the new file through its path from the root.
 		fileContents := []byte("hello world")
@@ -154,7 +138,6 @@ func TestFS(t *testing.T) {
 			if err := h.Sync(ctx); err != nil {
 				t.Fatal(err.Error())
 			}
-			check(t, name)
 		}
 		sync("write")
 
@@ -195,17 +178,17 @@ func TestFS(t *testing.T) {
 	// First try accessing fsHandle directly.
 	t.Run("fsHandle", func(t *testing.T) {
 		// Open a fresh filesystem handle for the direct interface case.
-		fsHandle, check := buildFsHandle()
+		fsHandle := buildFsHandle()
 		defer fsHandle.Release()
 
 		// Exercise directory creation and file readback on the direct handle.
-		testFsHandle(t, fsHandle, check)
+		testFsHandle(t, fsHandle)
 	})
 
 	// Test accessing via the FSHandle FSCursor.
 	t.Run("fsHandle_FSCursor", func(t *testing.T) {
 		// Open a fresh filesystem handle for the cursor adapter case.
-		fsHandle, check := buildFsHandle()
+		fsHandle := buildFsHandle()
 
 		// NOTE: we pass releaseHandle to true below: the fsHandleCursor will release the fs handle.
 		// defer fsHandle.Release()
@@ -219,13 +202,13 @@ func TestFS(t *testing.T) {
 		defer fsHandleCursorHandle.Release()
 
 		// Exercise directory creation and file readback through the cursor adapter.
-		testFsHandle(t, fsHandleCursorHandle, check)
+		testFsHandle(t, fsHandleCursorHandle)
 	})
 
 	// Test accessing via the FSHandle FSCursor.
 	t.Run("fsHandle_FSCursor_WithGetter", func(t *testing.T) {
 		// Open a fresh filesystem handle for the cursor getter case.
-		fsHandle, check := buildFsHandle()
+		fsHandle := buildFsHandle()
 		defer fsHandle.Release()
 
 		// Provide cursors by cloning the live filesystem handle.
@@ -251,6 +234,6 @@ func TestFS(t *testing.T) {
 		defer fsHandleCursorHandle.Release()
 
 		// Exercise directory creation and file readback through the cursor getter.
-		testFsHandle(t, fsHandleCursorHandle, check)
+		testFsHandle(t, fsHandleCursorHandle)
 	})
 }

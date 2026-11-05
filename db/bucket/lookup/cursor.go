@@ -49,9 +49,6 @@ type Cursor struct {
 	// storeWrappers rebuild transactionStore, in order, over the store of each
 	// bucket the cursor enters.
 	storeWrappers []StoreWrapper
-	// replacements records the pages the cursor's block transactions replace
-	// in the current bucket, or nil.
-	replacements *block.ReplacementLog
 	// rel is a release function
 	rel func()
 }
@@ -343,14 +340,6 @@ func (c *Cursor) SetTransactionStore(store block.StoreOps) {
 	c.storeWrappers = nil
 }
 
-// SetReplacementLog makes block transactions built from this cursor record the
-// stored pages they replace into log, or stop recording when log is nil. The
-// log belongs to the current bucket: following a ref into another bucket stops
-// recording.
-func (c *Cursor) SetReplacementLog(log *block.ReplacementLog) {
-	c.replacements = log
-}
-
 // WrapTransactionStore wraps the store block transactions use. Following a
 // ref into another bucket applies wrap again, after earlier wrappers, to that
 // bucket's store, so the wrapping holds in every bucket the cursor reaches.
@@ -386,9 +375,6 @@ func (c *Cursor) BuildTransactionAtRefWithStore(putOpts *block.PutOpts, ref *blo
 	// Build the transaction with the cursor's decoded-block cache.
 	tx, cursor := block.NewTransaction(store, c.xfrm, ref, putOpts)
 	tx.SetDecodedBlockCache(c.decodedBlocks)
-	if c.replacements != nil {
-		tx.RecordReplacements(c.replacements)
-	}
 	return tx, cursor
 }
 
@@ -562,11 +548,10 @@ func (c *Cursor) followRefWithOpArgs(
 	}
 
 	// Rebuild the transaction store over the destination bucket, since the
-	// source store and replacement log belong to the source bucket.
+	// source store belongs to the source bucket.
 	ncc := c.clone()
 	ncc.bkt = bkt
 	if switchingBucket {
-		ncc.replacements = nil
 		ncc.transactionStore = nil
 		for _, wrap := range c.storeWrappers {
 			store, err := wrap(ctx, ncc.GetBlockStore())
@@ -665,13 +650,11 @@ func (c *Cursor) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEnt
 			return nil, err
 		}
 		transformed[i] = &block.PutBatchEntry{
-			Ref:        entry.Ref,
-			Data:       data,
-			Refs:       entry.Refs,
-			RefsKnown:  entry.RefsKnown,
-			Tombstone:  entry.Tombstone,
-			Counted:    entry.Counted,
-			HoldsRoots: entry.HoldsRoots,
+			Ref:       entry.Ref,
+			Data:      data,
+			Refs:      entry.Refs,
+			RefsKnown: entry.RefsKnown,
+			Tombstone: entry.Tombstone,
 		}
 	}
 	return c.GetBlockStore().PutBlockBatch(ctx, transformed)
@@ -814,6 +797,5 @@ func (c *Cursor) clone() *Cursor {
 		bucketIDOverride: c.bucketIDOverride,
 		transactionStore: c.transactionStore,
 		storeWrappers:    c.storeWrappers,
-		replacements:     c.replacements,
 	}
 }

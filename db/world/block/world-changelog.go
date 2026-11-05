@@ -85,7 +85,6 @@ func (t *WorldState) SetChangelogDisabled(ctx context.Context, disable bool) (bo
 	if err := t.flushWorldChanges(ctx, r); err != nil {
 		return false, err
 	}
-	t.forfeitReplacements()
 
 	// Keep only the seqno: its bare head entry marks the start of history.
 	r.LastChangeDisable = disable
@@ -96,16 +95,6 @@ func (t *WorldState) SetChangelogDisabled(ctx context.Context, disable bool) (bo
 	lastChangeBcs.ClearAllRefs()
 	lastChangeBcs.SetBlock(r.LastChange, true)
 	return true, nil
-}
-
-// forfeitReplacements gives up the replacement record of the commit in
-// progress. The changelog names the Object blocks the object tree names, a
-// second parent the record does not count, so a commit that writes or drops
-// changelog entries leaks what it replaced instead of reporting it.
-func (t *WorldState) forfeitReplacements() {
-	if log := t.btx.GetReplacementLog(); log != nil {
-		log.Forfeit()
-	}
 }
 
 // flushWorldChanges flushes the queued world changes to the log.
@@ -203,9 +192,6 @@ func (t *WorldState) appendChangelogEntry(ctx context.Context, w *World, changes
 		t.bcs.SetRef(7, lastChangeBcs.Detach(true))
 		prevBcs = nil
 	}
-
-	// An entry gives the Object blocks it names a second parent.
-	t.forfeitReplacements()
 
 	// Append the changelog node and store it as the last change.
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/world-state/append-changelog-entry/append-change-log")

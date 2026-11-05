@@ -13,7 +13,6 @@ import (
 	"github.com/s4wave/spacewave/db/kvtx"
 	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/db/world"
-	world_block "github.com/s4wave/spacewave/db/world/block"
 )
 
 // replayBaseRootName names the local root that holds the checkpoint's World,
@@ -173,9 +172,6 @@ type replayer struct {
 	baseHeight uint64
 	// baseRoots are the World roots baseHold names when pages is set.
 	baseRoots []*block.BlockRef
-	// deaths gathers the World transitions the engine's block engines commit,
-	// or is nil before the engine starts and when recordsDeaths is false.
-	deaths *worldDeaths
 	// ledger tracks the deadlist records of the named Worlds when pages is
 	// set and the store holds named roots.
 	ledger deadlistLedger
@@ -332,8 +328,7 @@ func (r *replayer) holdBase(ctx context.Context) error {
 	for _, w := range r.pendingWorlds {
 		roots = append(roots, w.root)
 	}
-	waiting, spans := r.ledger.waiting()
-	roots = append(roots, waiting...)
+	spans := r.ledger.droppedSpans()
 	var named []*block.BlockRef
 	seen := make(map[string]struct{}, len(roots))
 	for _, root := range roots {
@@ -400,17 +395,6 @@ func (r *replayer) liveRoots(heads ...*block.BlockRef) []*block.BlockRef {
 		live = append(live, pos.state.GetHeadRef().GetRootRef())
 	}
 	return append(live, heads...)
-}
-
-// storedRoot returns root when the store holds its World, or nil. Every World
-// is stored without the page view; with it, only the Worlds the replay base
-// names are, and a head only kept in memory, such as one replay rebuilt after
-// a restart, is not.
-func (r *replayer) storedRoot(root *block.BlockRef) *block.BlockRef {
-	if r.pages == nil || slices.ContainsFunc(r.baseRoots, root.EqualsRef) {
-		return root
-	}
-	return nil
 }
 
 // positionsAbove returns the positions after the last one whose World is
@@ -660,7 +644,7 @@ func (r *replayer) holdSpan(ctx context.Context, hold *rootHold) error {
 		// An operation payload may reuse metadata held only in the page view.
 		// Its complete physical graph must precede a durable replay save.
 		hold.entries = append(hold.entries, r.pages.payloadPages(nil, entry.Refs)...)
-		if err := hold.refBlock(ctx, ReplaySpanRootName, entry.Data, entry.Refs, false); err != nil {
+		if err := hold.refBlock(ctx, ReplaySpanRootName, entry.Data, entry.Refs); err != nil {
 			return err
 		}
 	case span == nil:
@@ -717,10 +701,6 @@ func (r *replayer) pendingSave(ctx context.Context, publisher sobject.StatePubli
 		// Payload publication must materialize every reused kept descendant in
 		// this same receipt. These are ordinary payload edges, not netted pages.
 		entries = append(r.pages.payloadPages(candidate, entry.Refs), entry)
-		entries, err = carryNamed(ctx, r.store(), entries, candidate, entry.Refs)
-		if err != nil {
-			return nil, nil, nil, err
-		}
 		roots = []block.NamedRoot{{Name: ReplaySpanRootName, Ref: span}}
 	case span == nil:
 		roots = []block.NamedRoot{{Name: ReplaySpanRootName}}
@@ -894,7 +874,6 @@ func (r *replayer) replay(
 		store = r.pages.keeping()
 	}
 	w := newReplayWorld(r.c, store)
-	w.opts = r.transitions()
 	defer func() {
 		if cerr := w.close(ctx); cerr != nil {
 			state, outcomes, err = nil, nil, cerr
@@ -1029,58 +1008,6 @@ func (r *replayer) leavesOut(set *sobject.SOOperationSet, dropped []replayPositi
 	return false
 }
 
-// transitions returns the engine options that hand each World commit's
-// transition to deaths, or none before the engine starts.
-func (r *replayer) transitions() []world_block.EngineOption {
-	if r.deaths == nil {
-		return nil
-	}
-	return []world_block.EngineOption{world_block.WithTransitions(r.deaths.add)}
-}
-
-// recordsDeaths reports whether the replayer records World deaths: only the
-// page view names roots, and only a store that keeps shared counts can check
-// a deadlist record. Without it the engine gathers no deaths at all, since
-// each pending interval links the one before it until a publication seals it,
-// and an interval nothing records is never sealed.
-func (r *replayer) recordsDeaths() bool {
-	return r.pages != nil && r.pages.KeepsHoldCounts()
-}
-
-// composeDeaths joins the interval from the last named World to the World at
-// root and adds its deadlist entry, whose record a later save carries once the
-// interval's puts resolve. It returns the interval for the naming publication
-// to seal, or nil when the replayer records no deaths. A forfeited interval
-// leaks.
-func (r *replayer) composeDeaths(root *block.BlockRef) *pendingNet {
-	// Join and record an interval only when the replayer retains its ledger.
-	if r.deaths == nil {
-		return nil
-	}
-	from, net := r.deaths.take(root)
-	r.changed = true
-	r.ledger.name(from, root, net)
-	return net
-}
-
-// netted marks the World pages among entries Netted, as markNetted describes,
-// when the replayer records deaths, whose records count their edges. It
-// returns entries and pages unchanged otherwise.
-func (r *replayer) netted(entries, pages []*block.PutBatchEntry) ([]*block.PutBatchEntry, []*block.PutBatchEntry) {
-	if r.deaths == nil || len(pages) == 0 {
-		return entries, pages
-	}
-	return markNetted(entries, pages)
-}
-
-// addWorldPut records a publication that put the World pages among entries,
-// whose puts report the pages the store already held.
-func (r *replayer) addWorldPut(receipt *block.PublicationReceipt, entries, pages []*block.PutBatchEntry) {
-	if r.deaths != nil && len(pages) != 0 {
-		r.deaths.addPut(newWorldPut(receipt, entries, pages, r.ledger.recounts))
-	}
-}
-
 // adoptDeadlists records that the base adopted its World, and stamps the
 // reader pins taken from now on with the adopted record.
 func (r *replayer) adoptDeadlists() {
@@ -1091,21 +1018,16 @@ func (r *replayer) adoptDeadlists() {
 	r.pages.stamps.setEpoch(r.ledger.adopted)
 }
 
-// advanceDeadlists encodes the records whose puts resolved and moves the
-// records no reader pin holds back to due, marking the replay changed when any
-// changed.
+// advanceDeadlists moves the records no reader pin holds back to due, marking
+// the replay changed when any moved.
 func (r *replayer) advanceDeadlists() error {
 	// Store-every mode keeps no records.
 	if r.pages == nil {
 		return nil
 	}
 
-	// Encode the resolved records, then move the unpinned ones to due.
-	resolved, err := r.ledger.resolve()
-	if err != nil {
-		return err
-	}
-	if r.ledger.advance(r.pages.stamps.oldest()) || resolved {
+	// Move the unpinned records to due.
+	if r.ledger.advance(r.pages.stamps.oldest()) {
 		r.changed = true
 	}
 	return nil

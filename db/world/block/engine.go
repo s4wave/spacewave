@@ -239,8 +239,6 @@ type Engine struct {
 	// authority or write-then-exit need durable-on-write semantics. Ignored when
 	// a write coordinator is configured (coordinator mode stays durable-on-write).
 	deferDurability bool
-	// transitions receives each committed World transition, or is nil.
-	transitions TransitionSink
 	// writeCoordinator gates standalone ObjectStore-backed writers.
 	writeCoordinator coord.Coordinator
 	// writeCoordScope identifies this engine's durable ObjectStore head.
@@ -303,22 +301,6 @@ type EngineOption func(*Engine)
 func WithDeferredDurability() EngineOption {
 	return func(e *Engine) {
 		e.deferDurability = true
-	}
-}
-
-// TransitionSink receives a World commit's transition: the root it started
-// from, the root it made, and what its writes did to the stored pages between
-// them, or nil when the commit forfeited its record. Netting the step needs
-// the found pages its puts report, so the sink joins steps along the chain it
-// names and nets them once. It is called with the World state's commit lock
-// held, once per commit, in commit order for one state.
-type TransitionSink func(from, to *block.BlockRef, step *block.ReplacementStep)
-
-// WithTransitions makes each writable World state record the pages its commits
-// replace and hand each commit's transition to sink.
-func WithTransitions(sink TransitionSink) EngineOption {
-	return func(e *Engine) {
-		e.transitions = sink
 	}
 }
 
@@ -1867,12 +1849,6 @@ func (e *Engine) newWorldState(
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/engine/build-world-state")
 	defer task.End()
 
-	// A recorded write starts its log at the root before reading it.
-	if !readOnly && e.transitions != nil {
-		root = root.Clone()
-		root.SetReplacementLog(block.NewReplacementLog(root.GetRef().GetRootRef()))
-	}
-
 	// Build the transaction and seed the decoded root.
 	btx, bcs := root.BuildTransactionWithStore(nil, store)
 	if rootBlock != nil {
@@ -1892,9 +1868,6 @@ func (e *Engine) newWorldState(
 	}
 
 	// The state owns the root pin and resolves same-bucket objects locally.
-	if !readOnly {
-		ws.transitions = e.transitions
-	}
 	ws.readRelease = releaseRoot
 	ws.localBucketID = root.GetRefWithOpArgs().GetBucketId()
 	return ws, nil

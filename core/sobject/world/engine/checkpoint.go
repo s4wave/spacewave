@@ -164,31 +164,19 @@ type stableCheckpoint struct {
 // nil when it already does. ok is false when the World is not readable. The
 // receipt is only waited on. The caller holds the writer lock.
 //
-// The interval since the last named World waits for the publication's puts
-// before its deadlist record is encoded. A page of the tree that interval
-// began at, written back to its old ref, is put counted: the store already
-// counts its holders.
-//
 // Without the page view every World is stored by the publication that admitted
 // it, so the store holds it once the last admitted publication lands: each
 // publication follows the one before it, and a failed one fails its successors.
 func (e *soEngine) nameWorld(ctx context.Context, world *InnerState, n int, height uint64) (*block.PublicationReceipt, bool, error) {
-	// Join the interval since the last named World.
+	// Name only a readable World, and leave a World the admitted
+	// publications store to them.
 	r := e.replay
 	if r.pages != nil && !r.readable(n) {
 		return nil, false, nil
 	}
 	root := world.GetHeadRef().GetRootRef()
-	net := r.composeDeaths(root)
 	if r.pages == nil {
 		return e.lastReceipt(), true, nil
-	}
-
-	// Seal the interval with the naming publication's puts, or none when it
-	// is not submitted.
-	var named *worldPut
-	if net != nil {
-		defer func() { net.seal(named) }()
 	}
 
 	// A World a save carried is named once that save lands.
@@ -216,14 +204,8 @@ func (e *soEngine) nameWorld(ctx context.Context, world *InnerState, n int, heig
 	}
 
 	// Publish it after the admitted publications, splitting the kept pages
-	// from the save first: a receipt may store and drop them meanwhile. Mark
-	// the original pages counted and the rest Netted on copies, leaving the
-	// kept pages unchanged.
+	// from the save first: a receipt may store and drop them meanwhile.
 	pages, save := r.pages.split(entries)
-	if net != nil {
-		net.steps.MarkOriginal(entries)
-	}
-	entries, netted := r.netted(entries, pages)
 	receipt, err := r.pages.SubmitAtomic(ctx, &block.AtomicPublication{
 		Entries: entries,
 		Heads:   []*block.AtomicHeadUpdate{countHead(cursor, WriteKindReplay)},
@@ -235,10 +217,6 @@ func (e *soEngine) nameWorld(ctx context.Context, world *InnerState, n int, heig
 		return nil, false, err
 	}
 	countPublication(nil, pages, save)
-
-	// Hand the naming put to the interval's record.
-	put := newWorldPut(receipt, entries, netted, r.ledger.recounts)
-	named = &put
 	e.admit(receipt, e.retained, seqno)
 	go receipt.Release()
 	return receipt, true, nil

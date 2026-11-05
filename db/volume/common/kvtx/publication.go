@@ -12,12 +12,6 @@ func (v *Volume) SupportsAtomicPublication() bool {
 	return v.publications != nil
 }
 
-// KeepsHoldCounts reports false: the Volume keeps no shared counts for
-// deadlist records, so a writer names none.
-func (v *Volume) KeepsHoldCounts() bool {
-	return false
-}
-
 // SubmitAtomic admits an atomic publication and returns its completion receipt.
 // Admission is not durability: await the receipt for the durable result.
 func (v *Volume) SubmitAtomic(ctx context.Context, p *block.AtomicPublication) (*block.PublicationReceipt, error) {
