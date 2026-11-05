@@ -60,25 +60,113 @@ func (v *Volume) withDirectAtomic(ctx context.Context, fn func(block.StoreOps, *
 	if err == nil {
 		err = p.rg.SettleOwnerCounts(ctx)
 	}
-	committed := false
-	if err == nil && p.wrote() {
-		// Commit using the Volume write-ordering contract.
-		if v.ordered != nil {
-			err = kvtx.CommitOrdered(ctx, p.tx)
-		} else {
-			err = p.tx.Commit(ctx)
-		}
-		committed = err == nil
+	d := &directTx{v: v, p: p}
+	if err == nil {
+		err = d.Commit(ctx)
 	}
 
 	// Settle the deferred edits, report the committed markers and wake Volume
 	// statistics watchers.
-	v.settleDeferred(edits, committed)
-	if committed {
-		p.blocks.marks.committed()
-		v.broadcastStorageStatsChanged()
+	v.settleDeferred(edits, d.committed)
+	d.settle()
+	return err
+}
+
+// withDirectFill runs fn as withDirectAtomic does, for cache fills, in a
+// transaction the store may open optimistically: fn reads without the
+// store's writer, so a fill reading cold pages after a restart delays no
+// other writer, and a commit after its snapshot that changed a record it read
+// runs it again. After repeated conflicts, or while kvtx.OptimisticEnv is
+// "off", it holds the writer throughout as withDirectAtomic does.
+//
+// A fill must never commit ownership of a block a later commit removed, nor
+// let a block pass miss a block it adopts. Both hold because a fill commits
+// only when no commit after its snapshot changed a record it read: every
+// block it found stored, every edge it found and the sharing phase it acted on
+// are still current at its commit. The appends every writer makes, to the
+// young and adopt logs and the shared counts, read their heads at the commit
+// through kvtx.AtCommit, so a pass that opened before the fill commits finds
+// the fill's adoption in its log.
+//
+// It carries no deferred edits: they reserve in-memory pins once per
+// transaction, and the writers holding the store's writer carry them. fn runs
+// once per attempt and must be safe to run again; fills that mark their blocks
+// write the marker's queue, which every marked write changes, and belong in
+// withDirectAtomic.
+func (v *Volume) withDirectFill(ctx context.Context, fn func(block.StoreOps, *block_gc.RefGraph) error) error {
+	// Join direct Volume operations and reject writes after storage closes.
+	v.directMu.RLock()
+	defer v.directMu.RUnlock()
+	if v.directClosed {
+		return block.ErrPublicationClosed
+	}
+
+	// Run fn and settle its counts in each attempt, keeping the last.
+	var last *directTx
+	open := func(ctx context.Context) (*directTx, error) {
+		p, err := v.openPhysical(ctx)
+		if err != nil {
+			return nil, err
+		}
+		last = &directTx{v: v, p: p}
+		return last, nil
+	}
+	err := kvtx.RunOptimisticTransaction(ctx, open, func(ctx context.Context, d *directTx) error {
+		if err := fn(d.p.blocks, d.p.rg); err != nil {
+			return err
+		}
+		return d.p.rg.SettleOwnerCounts(ctx)
+	}, func(error) bool { return false })
+
+	// Report the committed markers and wake Volume statistics watchers.
+	if last != nil {
+		last.settle()
 	}
 	return err
+}
+
+// directTx commits a physical transaction under the Volume's write-ordering
+// contract.
+type directTx struct {
+	// v is the Volume.
+	v *Volume
+	// p is the transaction.
+	p *physicalTx
+	// committed records that Commit committed p.
+	committed bool
+}
+
+// Commit commits p with write ordering when the Volume orders writes, and
+// ends an unchanged transaction without a commit.
+func (d *directTx) Commit(ctx context.Context) error {
+	// Skip the commit of an unchanged transaction.
+	if !d.p.wrote() {
+		return nil
+	}
+
+	// Commit using the Volume write-ordering contract.
+	var err error
+	if d.v.ordered != nil {
+		err = kvtx.CommitOrdered(ctx, d.p.tx)
+	} else {
+		err = d.p.tx.Commit(ctx)
+	}
+	d.committed = err == nil
+	return err
+}
+
+// Discard ends p.
+func (d *directTx) Discard() {
+	d.p.discard()
+}
+
+// settle reports the committed markers and wakes Volume statistics watchers
+// once p committed.
+func (d *directTx) settle() {
+	if d.committed {
+		d.p.blocks.marks.committed()
+		d.v.broadcastStorageStatsChanged()
+	}
 }
 
 // PrepareOwnedBlock durably prepares a potentially oversized body together with
@@ -95,7 +183,7 @@ func (v *Volume) PrepareOwnedBlock(ctx context.Context, bucketID string, data []
 	v.noteUnknownRefs(putOwned, data, putOpts)
 
 	// Write the block under the bucket's ownership and count it.
-	err = v.prepareOwned(ctx, bucketOwner(bucketID), len(data), claimBucket, func(store block.StoreOps) error {
+	err = v.prepareOwned(ctx, v.withDirectAtomic, bucketOwner(bucketID), len(data), claimBucket, func(store block.StoreOps) error {
 		ref, existed, err = store.PutBlock(ctx, data, putOpts)
 		return err
 	})
@@ -116,7 +204,7 @@ func (v *Volume) PrepareOwnedBlockBatch(ctx context.Context, bucketID string, en
 
 	// Write the entries under the bucket's ownership and count them.
 	v.noteUnknownRefsBatch(putOwned, entries)
-	err = v.prepareOwned(ctx, bucketOwner(bucketID), batchBytes(entries), claimBucket, func(store block.StoreOps) error {
+	err = v.prepareOwned(ctx, v.withDirectAtomic, bucketOwner(bucketID), batchBytes(entries), claimBucket, func(store block.StoreOps) error {
 		existed, err = store.PutBlockBatch(ctx, entries)
 		return err
 	})
@@ -141,13 +229,14 @@ func claimBucket(ctx context.Context, rg *block_gc.RefGraph, bucket string) erro
 }
 
 // prepareOwned writes blocks and their ownership by owner in one physical
-// transaction. claim checks or roots the owner first. An empty owner writes the
+// transaction that direct runs, withDirectAtomic or withDirectFill. claim checks or roots the owner first. An empty owner writes the
 // blocks without ownership. size is the length of the data put writes. The
 // blocks put finds stored gain their shared counts, as addExistedHolds
 // describes. It returns volume.ErrReserve while the volume is in the reserve
 // state.
 func (v *Volume) prepareOwned(
 	ctx context.Context,
+	direct func(context.Context, func(block.StoreOps, *block_gc.RefGraph) error) error,
 	owner string,
 	size int,
 	claim func(context.Context, *block_gc.RefGraph, string) error,
@@ -162,7 +251,7 @@ func (v *Volume) prepareOwned(
 	}
 
 	// Write the blocks and their ownership in one transaction.
-	return v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) error {
+	return direct(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) error {
 		// Write unowned blocks directly in the shared transaction.
 		if owner == "" {
 			return put(blocks)

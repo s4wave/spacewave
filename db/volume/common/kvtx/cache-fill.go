@@ -137,12 +137,16 @@ func (v *Volume) writeCacheFills(ctx context.Context, owner string, fills []*cac
 // prepareCacheFills writes fills of one owner in one transaction and records
 // each fill's ref and existence.
 func (v *Volume) prepareCacheFills(ctx context.Context, owner string, fills []*cacheFill) error {
-	// Write the fills.
+	// Write the fills, without the store's writer unless one marks its block.
 	size := 0
+	direct := v.withDirectFill
 	for _, fill := range fills {
 		size += len(fill.data)
+		if fill.mark != nil {
+			direct = v.withDirectAtomic
+		}
 	}
-	err := v.prepareOwned(ctx, owner, size, claimBucket, func(store block.StoreOps) error {
+	err := v.prepareOwned(ctx, direct, owner, size, claimBucket, func(store block.StoreOps) error {
 		for _, fill := range fills {
 			ref, existed, err := store.PutBlock(kvtx.WithBlockMarkRequest(ctx, fill.mark), fill.data, fill.opts)
 			if err != nil {

@@ -119,7 +119,7 @@ func (v *Volume) PrepareStagedBlock(ctx context.Context, stage string, data []by
 	// Note a block without references, then write it under the stage.
 	putOpts, _ := block.PutOptsWithoutSync(opts)
 	v.noteUnknownRefs(putStaged, data, putOpts)
-	err = v.prepareOwned(ctx, stage, len(data), v.claimStage, func(store block.StoreOps) error {
+	err = v.prepareOwned(ctx, v.withDirectAtomic, stage, len(data), v.claimStage, func(store block.StoreOps) error {
 		ref, existed, err = store.PutBlock(ctx, data, putOpts)
 		return err
 	})
@@ -141,7 +141,7 @@ func (v *Volume) PrepareStagedBlockBatch(ctx context.Context, stage string, entr
 
 	// Note blocks without references, then write the batch under the stage.
 	v.noteUnknownRefsBatch(putStaged, entries)
-	err = v.prepareOwned(ctx, stage, batchBytes(entries), v.claimStage, func(store block.StoreOps) error {
+	err = v.prepareOwned(ctx, v.withDirectAtomic, stage, batchBytes(entries), v.claimStage, func(store block.StoreOps) error {
 		existed, err = store.PutBlockBatch(ctx, entries)
 		return err
 	})
