@@ -22,9 +22,60 @@ func (b *BlockStore) ListRoots(ctx context.Context, prefix string, fn func(block
 	return b.store.ListRoots(ctx, prefix, fn)
 }
 
-// SetRoots moves the roots on the underlying store.
+// SetRoots moves the roots on the underlying store. A root moving onto a
+// block the local store lacks, such as a follower's replay base on a World
+// another device wrote, brings the block's bytes and refs from the read path
+// into the same change, so the local store never holds a root on a block it
+// has not stored. A block the read path holds without its refs refuses the
+// change.
 func (b *BlockStore) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	// Index the blocks the change stores itself.
+	batch := make(map[string]struct{}, len(entries))
+	for _, e := range entries {
+		batch[e.Ref.MarshalString()] = struct{}{}
+	}
+
+	// Bring each other root block the local store lacks.
+	for _, root := range roots {
+		if root.Ref.GetEmpty() {
+			continue
+		}
+		if _, ok := batch[root.Ref.MarshalString()]; ok {
+			continue
+		}
+		entry, err := b.localRootEntry(ctx, root.Ref)
+		if err != nil {
+			return err
+		}
+		if entry != nil {
+			entries = append(entries, entry)
+			batch[root.Ref.MarshalString()] = struct{}{}
+		}
+	}
 	return b.store.SetRoots(ctx, entries, roots)
+}
+
+// localRootEntry returns the entry that stores ref locally with its refs, or
+// nil when the local store holds it.
+func (b *BlockStore) localRootEntry(ctx context.Context, ref *block.BlockRef) (*block.PutBatchEntry, error) {
+	// Skip a block the local store holds.
+	found, err := b.store.GetBlockExists(ctx, ref)
+	if err != nil || found {
+		return nil, err
+	}
+
+	// Read it with its refs from the read path.
+	stored, err := b.readOwner().GetStoredBlock(ctx, ref)
+	if err != nil {
+		return nil, err
+	}
+	if stored == nil {
+		return nil, fmt.Errorf("local provider root: %w", block.NotFoundError(ref))
+	}
+	if !stored.RefsKnown {
+		return nil, errors.Wrap(block.ErrRefsUnknown, ref.MarshalString())
+	}
+	return &block.PutBatchEntry{Ref: ref, Data: stored.Data, Refs: stored.Refs, RefsKnown: true}, nil
 }
 
 // PinRoot forwards a reader pin to the underlying store.
