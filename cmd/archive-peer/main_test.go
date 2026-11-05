@@ -14,20 +14,29 @@ import (
 	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/db/block"
 	dex_solicit "github.com/s4wave/spacewave/db/dex/solicit"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/s4db"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
+	store_kvtx_bolt "github.com/s4wave/spacewave/db/store/kvtx/bolt"
 	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	bifrost_crypto "github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 
-// TestArchivePeerServesBlocks serves a stopped file holding a parent block
-// with one child edge and an untracked leaf, and reads them from another
-// peer through the block exchange: the parent with its child ref, the leaf
-// with its refs unknown, a missing block as not found. The file is unchanged
-// and a second archive refuses it while the first holds it.
+// TestArchivePeerServesBlocks serves a stopped file of each format holding a
+// parent block with one child edge and an untracked leaf, and reads them from
+// another peer through the block exchange: the parent with its child ref, the
+// leaf with its refs unknown, a missing block as not found. The file is
+// unchanged and a second archive refuses it while the first holds it.
 func TestArchivePeerServesBlocks(t *testing.T) {
+	for _, format := range []string{formatS4db, formatBolt} {
+		t.Run(format, func(t *testing.T) { testArchivePeerServes(t, format) })
+	}
+}
+
+// testArchivePeerServes runs TestArchivePeerServesBlocks on one format.
+func testArchivePeerServes(t *testing.T, format string) {
 	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
 	defer cancel()
 	le := logrus.NewEntry(logrus.StandardLogger())
@@ -35,8 +44,8 @@ func TestArchivePeerServesBlocks(t *testing.T) {
 	// Write the stopped file: a child, a parent that refs it, and a leaf the
 	// graph does not track.
 	dir := t.TempDir()
-	file := filepath.Join(dir, "archive.s4wave")
-	childRef, parentRef, leafRef := writeArchive(ctx, t, file)
+	file := filepath.Join(dir, "archive."+format)
+	childRef, parentRef, leafRef := writeArchive(ctx, t, file, format)
 	before, err := os.ReadFile(file)
 	if err != nil {
 		t.Fatal(err)
@@ -91,6 +100,7 @@ func TestArchivePeerServesBlocks(t *testing.T) {
 	// Serve the file to the reading peer.
 	args := &Args{
 		File:            file,
+		Format:          format,
 		Key:             key,
 		Listen:          "127.0.0.1:0",
 		Peer:            reader.GetPeerID().String() + "@" + addr.String(),
@@ -144,14 +154,25 @@ func TestArchivePeerServesBlocks(t *testing.T) {
 }
 
 // writeArchive writes a child, a parent with an edge to it, and an untracked
-// leaf to a new s4db file, and closes it.
-func writeArchive(ctx context.Context, t *testing.T, file string) (child, parent, leaf *block.BlockRef) {
+// leaf to a new file of the format, and closes it.
+func writeArchive(ctx context.Context, t *testing.T, file, format string) (child, parent, leaf *block.BlockRef) {
 	t.Helper()
-	db, err := s4db.Open(file, s4db.Options{})
-	if err != nil {
-		t.Fatal(err)
+	var db kvtx.Store
+	if format == formatBolt {
+		store, err := store_kvtx_bolt.Open(file, 0o644, nil, boltBucket)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer store.Close()
+		db = store
+	} else {
+		store, err := s4db.Open(file, s4db.Options{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer store.Close()
+		db = store
 	}
-	defer db.Close()
 	tx, err := db.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
