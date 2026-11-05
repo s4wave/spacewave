@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
+	"golang.org/x/sync/errgroup"
 )
 
 // defaultFillQueueBytes bounds the block bytes awaiting the drain when the
@@ -178,17 +179,25 @@ func (s *Store) writeFills(ctx context.Context, batch []fill) error {
 		}
 	}
 
-	// Store the cache fills with their refs. Each put is its own call, which
-	// a volume groups with the fills queued beside it.
+	// Store the cache fills with their refs, all at once. A volume groups the
+	// fills queued at once into one transaction, and each of its commits
+	// flushes the file on a platform without a write barrier, so puts made in
+	// turn would flush once per block and every durable commit of the store
+	// would queue behind those flushes.
+	var puts errgroup.Group
 	for _, f := range batch {
 		if f.refill {
 			continue
 		}
-		opts := f.stored.PutOpts(f.ref)
-		opts.CacheFill = true
-		if _, _, err := s.local.PutBlock(ctx, f.stored.Data, opts); err != nil {
-			return errors.Wrap(err, "cache remote block")
-		}
+		puts.Go(func() error {
+			opts := f.stored.PutOpts(f.ref)
+			opts.CacheFill = true
+			_, _, err := s.local.PutBlock(ctx, f.stored.Data, opts)
+			return err
+		})
+	}
+	if err := puts.Wait(); err != nil {
+		return errors.Wrap(err, "cache remote block")
 	}
 
 	// Queue the step's values for eviction at the current epoch, counting
