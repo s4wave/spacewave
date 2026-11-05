@@ -24,15 +24,20 @@
 \* Not modeled: the lock queue (WriterLock.tla), how long holds last
 \* (WriterStall.tla), and crash and recovery (Durability.tla).
 \*
+\* A deferred write runs at the commit, after validation and holding the
+\* lock, and reads the state there; its reads join no read set.
+\*
 \* The transactions: scan reads the prefix of keys 1 and 2 and writes what
 \* it found to key 3; insert writes key 2 into the scanned range without
-\* reading; bump reads key 3 and writes it back, racing scan's write.
+\* reading; bump reads key 3 and writes it back, racing scan's write; add
+\* defers adding one to key 3, so it never conflicts with them.
 EXTENDS Naturals, Sequences, FiniteSets
 CONSTANTS Retries, Jumps, LogMax
-Txs == {"scan", "insert", "bump"}
+Txs == {"scan", "insert", "bump", "add"}
 Keys == {1, 2, 3}
-Reads == [t \in Txs |-> CASE t = "scan" -> {1, 2} [] t = "insert" -> {} [] t = "bump" -> {3}]
-Writes == [t \in Txs |-> CASE t = "scan" -> {3} [] t = "insert" -> {2} [] t = "bump" -> {3}]
+Reads == [t \in Txs |-> CASE t = "scan" -> {1, 2} [] t = "bump" -> {3} [] OTHER -> {}]
+Writes == [t \in Txs |-> CASE t = "scan" -> {3} [] t = "insert" -> {2} [] t = "bump" -> {3} [] OTHER -> {}]
+Defers == [t \in Txs |-> IF t = "add" THEN {3} ELSE {}]
 
 VARIABLES val, serial, seq, log, from, lock, pc, snapSeq, snapVal, tries, jumps
 vars == <<val, serial, seq, log, from, lock, pc, snapSeq, snapVal, tries, jumps>>
@@ -43,9 +48,11 @@ SumOf(v, S) ==
   IF S = {} THEN 0
   ELSE LET k == CHOOSE x \in S : TRUE IN v[k] + SumOf(v, S \ {k})
 
-\* The store after t commits having read the values r.
+\* The store after t commits having read the values r, then runs its
+\* deferred writes on the result.
 Apply(v, t, r) ==
-  [k \in Keys |-> IF k \in Writes[t] THEN SumOf(r, Reads[t]) + 1 ELSE v[k]]
+  LET w == [k \in Keys |-> IF k \in Writes[t] THEN SumOf(r, Reads[t]) + 1 ELSE v[k]]
+  IN [k \in Keys |-> IF k \in Defers[t] THEN w[k] + 1 ELSE w[k]]
 
 \* Whether a logged commit after s changed a key in R, or the log cannot
 \* tell because it starts after s.
@@ -87,7 +94,7 @@ Validate(t) ==
      THEN /\ pc' = [pc EXCEPT ![t] = "idle"]
           /\ tries' = [tries EXCEPT ![t] = @ + 1]
           /\ UNCHANGED <<val, serial, seq, log>>
-     ELSE /\ Commit(Writes[t], Apply(val, t, snapVal[t]), Apply(serial, t, serial))
+     ELSE /\ Commit(Writes[t] \cup Defers[t], Apply(val, t, snapVal[t]), Apply(serial, t, serial))
           /\ pc' = [pc EXCEPT ![t] = "done"]
           /\ UNCHANGED tries
   /\ UNCHANGED <<from, lock, snapSeq, snapVal, jumps>>
@@ -104,7 +111,7 @@ Lock(t) ==
 \* Commit under the lock held since the reads, then release it.
 LockedCommit(t) ==
   /\ pc[t] = "locked"
-  /\ Commit(Writes[t], Apply(val, t, snapVal[t]), Apply(serial, t, serial))
+  /\ Commit(Writes[t] \cup Defers[t], Apply(val, t, snapVal[t]), Apply(serial, t, serial))
   /\ lock' = "none"
   /\ pc' = [pc EXCEPT ![t] = "done"]
   /\ UNCHANGED <<from, snapSeq, snapVal, tries, jumps>>

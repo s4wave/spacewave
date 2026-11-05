@@ -65,6 +65,14 @@ func (t *tx) Prefetch(ctx context.Context, keys [][]byte) error {
 	return kvtx.Prefetch(ctx, t.lower, prefixed)
 }
 
+// AtCommit defers fn to the commit of the lower transaction, giving it the
+// same prefixed view of the lower transaction it commits in.
+func (t *tx) AtCommit(ctx context.Context, fn func(ctx context.Context, tx kvtx.Tx) error) error {
+	return kvtx.AtCommit(ctx, t.lower, func(ctx context.Context, lower kvtx.Tx) error {
+		return fn(ctx, newTx(lower, t.prefix))
+	})
+}
+
 // Size returns the number of keys in the tree.
 func (t *tx) Size(ctx context.Context) (uint64, error) {
 	return t.lower.Size(ctx)
@@ -156,4 +164,5 @@ func (t *tx) Discard() {
 var (
 	_ kvtx.OrderedCommitTx = (*tx)(nil)
 	_ kvtx.PrefetchTxOps   = (*tx)(nil)
+	_ kvtx.AtCommitTxOps   = (*tx)(nil)
 )

@@ -84,6 +84,27 @@ func (t *TxStoreTx) Prefetch(ctx context.Context, keys [][]byte) error {
 	return Prefetch(ctx, t.tx, keys)
 }
 
+// AtCommit defers fn to the commit of the underlying transaction, or runs it
+// at once when that transaction does not defer. The deferred write counts as
+// a write of the owning store.
+func (t *TxStoreTx) AtCommit(ctx context.Context, fn func(ctx context.Context, tx Tx) error) error {
+	// Hold the virtual transaction lifecycle lock.
+	t.rmtx.RLock()
+	defer t.rmtx.RUnlock()
+
+	// Reject access through a discarded virtual transaction.
+	if t.discarded {
+		return tx.ErrDiscarded
+	}
+
+	// Defer to the underlying transaction, or run against this one.
+	t.markWrote()
+	if d, ok := t.tx.(AtCommitTxOps); ok {
+		return d.AtCommit(ctx, fn)
+	}
+	return fn(ctx, t)
+}
+
 // Size returns the number of keys in the store.
 func (t *TxStoreTx) Size(ctx context.Context) (uint64, error) {
 	t.rmtx.RLock()
@@ -251,4 +272,5 @@ func (t *TxStoreTx) discardOnce() error {
 var (
 	_ Tx            = (*TxStoreTx)(nil)
 	_ PrefetchTxOps = (*TxStoreTx)(nil)
+	_ AtCommitTxOps = (*TxStoreTx)(nil)
 )

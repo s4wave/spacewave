@@ -13,8 +13,9 @@ import (
 // TestOptimisticCommit walks optimistic write transactions through the
 // cases Commit decides: a body reading while another writer commits without
 // waiting, a commit into a scanned prefix forcing a rerun, a disjoint commit
-// passing validation, repeated conflicts falling back to the writer lock,
-// and a failed body releasing nothing it never took.
+// passing validation, a deferred write reading at the commit without a
+// conflict, repeated conflicts falling back to the writer lock, and a failed
+// body releasing nothing it never took.
 func TestOptimisticCommit(t *testing.T) {
 	ctx := context.Background()
 	db := openTest(t, filepath.Join(t.TempDir(), "optimistic.s4wave"), Options{})
@@ -114,6 +115,18 @@ func TestOptimisticCommit(t *testing.T) {
 	r = run(bump("a"), func(int) { set("b", 1) })
 	if r.err != nil || r.attempts != 1 || read("a") != 1 {
 		t.Fatalf("disjoint: %d attempts, a %d, err %v; want 1 attempt, a 1", r.attempts, read("a"), r.err)
+	}
+
+	// A write deferred to the commit reads the key there, so a commit to it
+	// while the body reads forces no rerun, and both writes count.
+	add := func(ctx context.Context, tx kvtx.Tx, attempt int) error {
+		return kvtx.AtCommit(ctx, tx, func(ctx context.Context, tx kvtx.Tx) error {
+			return tx.Set(ctx, []byte("n"), []byte(strconv.Itoa(get(tx, "n")+1)))
+		})
+	}
+	r = run(add, func(int) { set("n", 5) })
+	if r.err != nil || r.attempts != 1 || read("n") != 6 {
+		t.Fatalf("deferred: %d attempts, n %d, err %v; want 1 attempt, n 6", r.attempts, read("n"), r.err)
 	}
 
 	// A body conflicting on every optimistic attempt runs the last one

@@ -25,6 +25,9 @@ type Tx struct {
 	// reads records the snapshot reads of an optimistic write transaction;
 	// nil otherwise.
 	reads *readSet
+	// atCommit holds the writes an optimistic transaction deferred to its
+	// commit, in order.
+	atCommit []func(context.Context, kvtx.Tx) error
 	// done is set after Commit or Discard.
 	done bool
 }
@@ -341,28 +344,39 @@ func (t *Tx) commit(ctx context.Context, ordered bool) error {
 		return nil
 	}
 
+	// Take the writer lock now for an optimistic transaction, moving it onto
+	// the current state when its reads still hold there, then run the writes
+	// it deferred to this point.
+	db := t.db
+	if t.reads != nil {
+		// Reads alone serialize at the snapshot.
+		if t.changes.Len() == 0 && len(t.atCommit) == 0 {
+			t.Discard()
+			return nil
+		}
+		if err := t.lockValidated(ctx); err != nil {
+			t.done = true
+			db.endWrite()
+			return err
+		}
+		t.reads = nil
+		for _, fn := range t.atCommit {
+			if err := fn(ctx, t); err != nil {
+				t.Discard()
+				return err
+			}
+		}
+		t.atCommit = nil
+	}
+
 	// Collect the changes in key order, counting the bytes they write.
 	t.done = true
-	db := t.db
+	defer db.endWrite()
 	changes := make([]tentry, 0, t.changes.Len())
 	t.changes.Scan(func(c tentry) bool {
 		changes = append(changes, c)
 		return true
 	})
-
-	// Take the writer lock now for an optimistic transaction, moving it onto
-	// the current state when its reads still hold there.
-	defer db.endWrite()
-	if t.reads != nil {
-		// Reads alone serialize at the snapshot.
-		if len(changes) == 0 {
-			db.release(t.st, t.stripe)
-			return nil
-		}
-		if err := t.lockValidated(ctx, changes); err != nil {
-			return err
-		}
-	}
 
 	// Write them, then run checkpoint and compaction work with the snapshot
 	// released, release the writer lock, and wait for a checkpoint the
@@ -392,13 +406,14 @@ func (t *Tx) commit(ctx context.Context, ordered bool) error {
 // snapshot and returns kvtx.ErrConflict. Before the lock it reads the index
 // pages the commit resolves its changes in, so the commit finds them warm
 // unless a checkpoint replaced the tree meanwhile.
-func (t *Tx) lockValidated(ctx context.Context, changes []tentry) error {
+func (t *Tx) lockValidated(ctx context.Context) error {
 	// Warm the commit's pages; a failed read leaves them to the commit.
 	db := t.db
-	keys := make([][]byte, len(changes))
-	for i, c := range changes {
-		keys[i] = c.key
-	}
+	keys := make([][]byte, 0, t.changes.Len())
+	t.changes.Scan(func(c tentry) bool {
+		keys = append(keys, c.key)
+		return true
+	})
 	_ = db.p.prefetch(ctx, t.st.root, keys)
 
 	// Take the lock and the state it caught up to, in place of the
@@ -418,6 +433,26 @@ func (t *Tx) lockValidated(ctx context.Context, changes []tentry) error {
 		db.w.unlock(nil)
 		return kvtx.ErrConflict
 	}
+	return nil
+}
+
+// AtCommit defers fn to the commit of an optimistic transaction, after its
+// reads validate, holding the writer lock, against the current state and this
+// transaction's writes. A transaction holding the lock runs fn at once.
+func (t *Tx) AtCommit(ctx context.Context, fn func(context.Context, kvtx.Tx) error) error {
+	// Require a live write transaction.
+	switch {
+	case t.done:
+		return kvtx.ErrDiscarded
+	case t.changes == nil:
+		return kvtx.ErrNotWrite
+	}
+
+	// Run fn now under the lock, or keep it for the commit.
+	if t.reads == nil {
+		return fn(ctx, t)
+	}
+	t.atCommit = append(t.atCommit, fn)
 	return nil
 }
 
@@ -454,4 +489,5 @@ var (
 	_ kvtx.OrderedCommitTx = (*Tx)(nil)
 	_ kvtx.BatchTxOps      = (*Tx)(nil)
 	_ kvtx.PrefetchTxOps   = (*Tx)(nil)
+	_ kvtx.AtCommitTxOps   = (*Tx)(nil)
 )
