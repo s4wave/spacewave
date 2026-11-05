@@ -515,3 +515,15 @@ func (a *ProviderAccount) SetEvictAdmit(admit block_store_writeback.EvictAdmit) 
 	}
 	a.evictAdmit.Store(&admit)
 }
+
+// SetUploadAdmit sets the hook that paces the upload rounds of the account's
+// placed block stores, as block_store_writeback.UploadAdmit describes; nil
+// uploads each round at once. A round already admitted runs; the next one
+// reads the new hook.
+func (a *ProviderAccount) SetUploadAdmit(admit block_store_writeback.UploadAdmit) {
+	if admit == nil {
+		a.uploadAdmit.Store(nil)
+		return
+	}
+	a.uploadAdmit.Store(&admit)
+}
