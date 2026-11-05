@@ -12,7 +12,8 @@ func (k *KVTx) GetRoot(context.Context, string) (*block.BlockRef, error) { retur
 // ListRoots reports no roots.
 func (k *KVTx) ListRoots(context.Context, string, func(block.NamedRoot) error) error { return nil }
 
-// SetRoots stores the entries and drops the roots.
-func (k *KVTx) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, _ []block.NamedRoot) error {
-	return block.SetRootsUnheld(ctx, k, entries)
+// SetRoots stores the entries and refuses a root that would hold a block:
+// this store holds no roots.
+func (k *KVTx) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	return block.SetRootsUnheld(ctx, k, entries, roots)
 }

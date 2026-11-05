@@ -269,7 +269,8 @@ func (e *worldHolesError) probe(ctx context.Context, store block.StoreOps) (bool
 func (a *ProviderAccount) copyAndPersistAccountWorld(ctx context.Context, so sobject.SharedObject, state *p2pSyncState, local kvtx.Store, head *bucket.ObjectRef) error {
 	// Read the persisted progress record for this head.
 	progress := &AccountReplicaCopyState{}
-	err := kvtx.RunTransaction(ctx, false, func(ctx context.Context) (kvtx.Tx, error) { return local.NewTransaction(ctx, false) }, func(ctx context.Context, tx kvtx.Tx) error {
+	openRead := func(ctx context.Context) (kvtx.Tx, error) { return local.NewTransaction(ctx, false) }
+	err := kvtx.RunTransaction(ctx, false, openRead, func(ctx context.Context, tx kvtx.Tx) error {
 		data, found, err := tx.Get(ctx, []byte("account-replica-copy/progress"))
 		if err == nil && found {
 			err = progress.UnmarshalVT(data)
@@ -282,7 +283,7 @@ func (a *ProviderAccount) copyAndPersistAccountWorld(ctx context.Context, so sob
 
 	// Retain the head and republish when this head already completed.
 	if progress.GetComplete() && progress.GetHead().EqualVT(head) {
-		if err := block.OverwriteRoots(ctx, so.GetBlockStore(), nil, []block.NamedRoot{{Name: "account-world", Ref: head.GetRootRef()}}); err != nil {
+		if err := holdAccountWorld(ctx, so.GetBlockStore(), head.GetRootRef()); err != nil {
 			return err
 		}
 		state.publishCopyProgress(progress)
@@ -294,7 +295,7 @@ func (a *ProviderAccount) copyAndPersistAccountWorld(ctx context.Context, so sob
 	state.publishCopyProgress(progress)
 	err = a.copyAccountWorld(ctx, so, progress, func() { state.publishCopyProgress(progress) })
 	if err == nil {
-		err = block.OverwriteRoots(ctx, so.GetBlockStore(), nil, []block.NamedRoot{{Name: "account-world", Ref: head.GetRootRef()}})
+		err = holdAccountWorld(ctx, so.GetBlockStore(), head.GetRootRef())
 	}
 
 	// Record the outcome in the progress state.
@@ -309,7 +310,8 @@ func (a *ProviderAccount) copyAndPersistAccountWorld(ctx context.Context, so sob
 
 	// The block fence precedes this transaction, so a crash cannot retain
 	// a completion claim whose data was still buffered.
-	persistErr := kvtx.RunTransaction(ctx, true, func(ctx context.Context) (kvtx.Tx, error) { return local.NewTransaction(ctx, true) }, func(ctx context.Context, tx kvtx.Tx) error {
+	openWrite := func(ctx context.Context) (kvtx.Tx, error) { return local.NewTransaction(ctx, true) }
+	persistErr := kvtx.RunTransaction(ctx, true, openWrite, func(ctx context.Context, tx kvtx.Tx) error {
 		data, err := progress.MarshalVT()
 		if err != nil {
 			return err
@@ -407,4 +409,14 @@ func (a *ProviderAccount) GetAccountCopyProgress() ([]*AccountReplicaCopyState, 
 		}
 	})
 	return out, wait
+}
+
+// holdAccountWorld holds the copied account World under its root. A store
+// that holds no roots keeps every block it stores, so it needs no hold.
+func holdAccountWorld(ctx context.Context, store block.StoreOps, root *block.BlockRef) error {
+	err := block.OverwriteRoots(ctx, store, nil, []block.NamedRoot{{Name: "account-world", Ref: root}})
+	if errors.Is(err, block.ErrRootsUnheld) {
+		return nil
+	}
+	return err
 }

@@ -14,7 +14,8 @@ func (b *blockStore) ListRoots(context.Context, string, func(block.NamedRoot) er
 	return nil
 }
 
-// SetRoots stores the entries and drops the roots.
-func (b *blockStore) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, _ []block.NamedRoot) error {
-	return block.SetRootsUnheld(ctx, b, entries)
+// SetRoots stores the entries and refuses a root that would hold a block:
+// this store holds no roots.
+func (b *blockStore) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	return block.SetRootsUnheld(ctx, b, entries, roots)
 }

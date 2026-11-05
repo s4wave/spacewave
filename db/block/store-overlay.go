@@ -458,9 +458,10 @@ func (o *StoreOverlay) GetRoot(context.Context, string) (*BlockRef, error) { ret
 // ListRoots reports no roots.
 func (o *StoreOverlay) ListRoots(context.Context, string, func(NamedRoot) error) error { return nil }
 
-// SetRoots stores the entries and drops the roots.
-func (o *StoreOverlay) SetRoots(ctx context.Context, entries []*PutBatchEntry, _ []NamedRoot) error {
-	return SetRootsUnheld(ctx, o, entries)
+// SetRoots stores the entries and refuses a root that would hold a block:
+// this store holds no roots.
+func (o *StoreOverlay) SetRoots(ctx context.Context, entries []*PutBatchEntry, roots []NamedRoot) error {
+	return SetRootsUnheld(ctx, o, entries, roots)
 }
 
 // Sync fences both overlay stores; it reports fenced only when both did.

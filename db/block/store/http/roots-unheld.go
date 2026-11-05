@@ -12,7 +12,8 @@ func (b *HTTPBlock) GetRoot(context.Context, string) (*block.BlockRef, error) { 
 // ListRoots reports no roots.
 func (b *HTTPBlock) ListRoots(context.Context, string, func(block.NamedRoot) error) error { return nil }
 
-// SetRoots stores the entries and drops the roots.
-func (b *HTTPBlock) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, _ []block.NamedRoot) error {
-	return block.SetRootsUnheld(ctx, b, entries)
+// SetRoots stores the entries and refuses a root that would hold a block:
+// this store holds no roots.
+func (b *HTTPBlock) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	return block.SetRootsUnheld(ctx, b, entries, roots)
 }

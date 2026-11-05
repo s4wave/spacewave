@@ -14,7 +14,8 @@ func (r publicationReader) ListRoots(context.Context, string, func(block.NamedRo
 	return nil
 }
 
-// SetRoots stores the entries and drops the roots.
-func (r publicationReader) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, _ []block.NamedRoot) error {
-	return block.SetRootsUnheld(ctx, r, entries)
+// SetRoots stores the entries and refuses a root that would hold a block:
+// this store holds no roots.
+func (r publicationReader) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	return block.SetRootsUnheld(ctx, r, entries, roots)
 }

@@ -12,7 +12,8 @@ func (s *PackStore) GetRoot(context.Context, string) (*block.BlockRef, error) { 
 // ListRoots reports no roots.
 func (s *PackStore) ListRoots(context.Context, string, func(block.NamedRoot) error) error { return nil }
 
-// SetRoots stores the entries and drops the roots.
-func (s *PackStore) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, _ []block.NamedRoot) error {
-	return block.SetRootsUnheld(ctx, s, entries)
+// SetRoots stores the entries and refuses a root that would hold a block:
+// this store holds no roots.
+func (s *PackStore) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	return block.SetRootsUnheld(ctx, s, entries, roots)
 }

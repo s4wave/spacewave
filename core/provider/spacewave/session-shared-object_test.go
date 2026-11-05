@@ -43,9 +43,10 @@ func (s *sessionLookupTestLower) ListRoots(context.Context, string, func(block.N
 	return nil
 }
 
-// SetRoots stores the entries and drops the roots.
-func (s *sessionLookupTestLower) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, _ []block.NamedRoot) error {
-	return block.SetRootsUnheld(ctx, s, entries)
+// SetRoots stores the entries and refuses a root that would hold a block:
+// this store holds no roots.
+func (s *sessionLookupTestLower) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	return block.SetRootsUnheld(ctx, s, entries, roots)
 }
 
 func (s *sessionLookupTestLower) GetHashType() hash.HashType {

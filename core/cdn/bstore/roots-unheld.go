@@ -14,9 +14,10 @@ func (s *CdnBlockStore) ListRoots(context.Context, string, func(block.NamedRoot)
 	return nil
 }
 
-// SetRoots stores the entries and drops the roots.
-func (s *CdnBlockStore) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, _ []block.NamedRoot) error {
-	return block.SetRootsUnheld(ctx, s, entries)
+// SetRoots stores the entries and refuses a root that would hold a block:
+// this store holds no roots.
+func (s *CdnBlockStore) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	return block.SetRootsUnheld(ctx, s, entries, roots)
 }
 
 // GetRoot reports that no name is held: this store holds no roots.
@@ -29,7 +30,8 @@ func (s *SuppliedBlockStore) ListRoots(context.Context, string, func(block.Named
 	return nil
 }
 
-// SetRoots stores the entries and drops the roots.
-func (s *SuppliedBlockStore) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, _ []block.NamedRoot) error {
-	return block.SetRootsUnheld(ctx, s, entries)
+// SetRoots stores the entries and refuses a root that would hold a block:
+// this store holds no roots.
+func (s *SuppliedBlockStore) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	return block.SetRootsUnheld(ctx, s, entries, roots)
 }
