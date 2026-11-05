@@ -34,6 +34,9 @@ var (
 	ErrEmptyChange = errors.New("changelog entry cannot be empty")
 	// ErrEmptyEngineID is returned if the engine id was empty.
 	ErrEmptyEngineID = errors.New("engine id cannot be empty")
+	// ErrSuperseded is returned for a candidate another candidate replaced as
+	// the head after its base. The writer rebases and runs its change again.
+	ErrSuperseded = errors.New("world candidate superseded")
 	// ErrUnexpectedChangeType is returned when a change with an unexpected
 	// ChangeType is encountered. Typically wrapped with name of type.
 	ErrUnexpectedChangeType = errors.New("change type was unexpected")
