@@ -141,13 +141,19 @@ type LivenessState struct {
 	// Cursor is the sequence number of the oldest record the collector has not
 	// netted.
 	Cursor uint64 `protobuf:"varint,3,opt,name=cursor,proto3" json:"cursor,omitempty"`
-	// LastAtUnixMilli is the time of the last journal record, so record times
-	// never decrease when the clock steps back.
-	LastAtUnixMilli int64 `protobuf:"varint,4,opt,name=last_at_unix_milli,json=lastAtUnixMilli,proto3" json:"lastAtUnixMilli,omitempty"`
 	// LegacyGraph reports that records of the reference graph of a store
 	// format before 7 remain, which a background sweep deletes in slices.
 	// Nothing reads them.
 	LegacyGraph bool `protobuf:"varint,5,opt,name=legacy_graph,json=legacyGraph,proto3" json:"legacyGraph,omitempty"`
+	// AdoptionRun names the adoption that marked the Volume adopting, or the
+	// one that abandoned it. Each transaction of an adoption refuses to write
+	// unless the Volume is still in its run, so a run another superseded writes
+	// nothing more.
+	AdoptionRun string `protobuf:"bytes,6,opt,name=adoption_run,json=adoptionRun,proto3" json:"adoptionRun,omitempty"`
+	// UnverifiedLists reports that the child lists came from a store format
+	// before 7, whose lists may lack a child the block names. Adopt refuses
+	// until a repair rebuilds them from the blocks and clears it.
+	UnverifiedLists bool `protobuf:"varint,7,opt,name=unverified_lists,json=unverifiedLists,proto3" json:"unverifiedLists,omitempty"`
 }
 
 func (x *LivenessState) Reset() {
@@ -177,16 +183,23 @@ func (x *LivenessState) GetCursor() uint64 {
 	return 0
 }
 
-func (x *LivenessState) GetLastAtUnixMilli() int64 {
-	if x != nil {
-		return x.LastAtUnixMilli
-	}
-	return 0
-}
-
 func (x *LivenessState) GetLegacyGraph() bool {
 	if x != nil {
 		return x.LegacyGraph
+	}
+	return false
+}
+
+func (x *LivenessState) GetAdoptionRun() string {
+	if x != nil {
+		return x.AdoptionRun
+	}
+	return ""
+}
+
+func (x *LivenessState) GetUnverifiedLists() bool {
+	if x != nil {
+		return x.UnverifiedLists
 	}
 	return false
 }
@@ -234,8 +247,9 @@ func (m *LivenessState) CloneVT() *LivenessState {
 	r.Adoption = m.Adoption
 	r.NextSeq = m.NextSeq
 	r.Cursor = m.Cursor
-	r.LastAtUnixMilli = m.LastAtUnixMilli
 	r.LegacyGraph = m.LegacyGraph
+	r.AdoptionRun = m.AdoptionRun
+	r.UnverifiedLists = m.UnverifiedLists
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -310,10 +324,13 @@ func (this *LivenessState) EqualVT(that *LivenessState) bool {
 	if this.Cursor != that.Cursor {
 		return false
 	}
-	if this.LastAtUnixMilli != that.LastAtUnixMilli {
+	if this.LegacyGraph != that.LegacyGraph {
 		return false
 	}
-	if this.LegacyGraph != that.LegacyGraph {
+	if this.AdoptionRun != that.AdoptionRun {
+		return false
+	}
+	if this.UnverifiedLists != that.UnverifiedLists {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -506,15 +523,20 @@ func (x *LivenessState) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("cursor")
 		s.WriteUint64(x.Cursor)
 	}
-	if x.LastAtUnixMilli != 0 || s.HasField("lastAtUnixMilli") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("lastAtUnixMilli")
-		s.WriteInt64(x.LastAtUnixMilli)
-	}
 	if x.LegacyGraph || s.HasField("legacyGraph") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("legacyGraph")
 		s.WriteBool(x.LegacyGraph)
+	}
+	if x.AdoptionRun != "" || s.HasField("adoptionRun") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("adoptionRun")
+		s.WriteString(x.AdoptionRun)
+	}
+	if x.UnverifiedLists || s.HasField("unverifiedLists") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("unverifiedLists")
+		s.WriteBool(x.UnverifiedLists)
 	}
 	s.WriteObjectEnd()
 }
@@ -542,12 +564,15 @@ func (x *LivenessState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "cursor":
 			s.AddField("cursor")
 			x.Cursor = s.ReadUint64()
-		case "last_at_unix_milli", "lastAtUnixMilli":
-			s.AddField("last_at_unix_milli")
-			x.LastAtUnixMilli = s.ReadInt64()
 		case "legacy_graph", "legacyGraph":
 			s.AddField("legacy_graph")
 			x.LegacyGraph = s.ReadBool()
+		case "adoption_run", "adoptionRun":
+			s.AddField("adoption_run")
+			x.AdoptionRun = s.ReadString()
+		case "unverified_lists", "unverifiedLists":
+			s.AddField("unverified_lists")
+			x.UnverifiedLists = s.ReadBool()
 		}
 	})
 }
@@ -679,15 +704,20 @@ func (m *LivenessState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.UnverifiedLists {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.UnverifiedLists)
+		i--
+		dAtA[i] = 0x38
+	}
+	if len(m.AdoptionRun) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.AdoptionRun)
+		i--
+		dAtA[i] = 0x32
+	}
 	if m.LegacyGraph {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.LegacyGraph)
 		i--
 		dAtA[i] = 0x28
-	}
-	if m.LastAtUnixMilli != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.LastAtUnixMilli))
-		i--
-		dAtA[i] = 0x20
 	}
 	if m.Cursor != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Cursor))
@@ -741,8 +771,9 @@ func (m *LivenessState) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Adoption)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.NextSeq)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Cursor)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.LastAtUnixMilli)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.LegacyGraph)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.AdoptionRun)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.UnverifiedLists)
 	n += len(m.unknownFields)
 	return n
 }
@@ -814,13 +845,17 @@ func (x *LivenessState) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "cursor")
 		protobuf_go_lite.TextWriteUint(&sb, x.Cursor)
 	}
-	if x.LastAtUnixMilli != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "last_at_unix_milli")
-		protobuf_go_lite.TextWriteInt(&sb, x.LastAtUnixMilli)
-	}
 	if x.LegacyGraph != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "legacy_graph")
 		protobuf_go_lite.TextWriteBool(&sb, x.LegacyGraph)
+	}
+	if x.AdoptionRun != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "adoption_run")
+		protobuf_go_lite.TextWriteString(&sb, x.AdoptionRun)
+	}
+	if x.UnverifiedLists != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "unverified_lists")
+		protobuf_go_lite.TextWriteBool(&sb, x.UnverifiedLists)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1010,15 +1045,6 @@ func (m *LivenessState) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field LastAtUnixMilli", wireType)
-			}
-			m.LastAtUnixMilli = 0
-			m.LastAtUnixMilli, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
 		case 5:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field LegacyGraph", wireType)
@@ -1029,6 +1055,26 @@ func (m *LivenessState) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.LegacyGraph = bool(v)
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AdoptionRun", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.AdoptionRun = v
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UnverifiedLists", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.UnverifiedLists = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -21,7 +21,12 @@ const rootProofCarryLimit = 256
 const rootProofBacklog = 4 * rootProofCarryLimit
 
 // MarkRootsComplete records completion proofs for stored roots: the graph
-// under each is stored. A proof stays pending in memory until a changing
+// under each is stored. A proof outlives the eviction of a block below its
+// root, which RmBlock makes only for bytes the store can fetch again, such as
+// the writeback cache's blocks its remote holds: eviction keeps the block's
+// child list and count, so the proved graph stays whole in liveness and a
+// read refills the bytes. The World copy, the one consumer, skips and holds a
+// proved subtree on that basis. The collector deletes a proof with its block. A proof stays pending in memory until a changing
 // direct transaction carries it, so marking usually costs no write barrier of
 // its own. Past rootProofBacklog the marker carries batches itself. A crash
 // loses only pending proofs, which a later copy recomputes.

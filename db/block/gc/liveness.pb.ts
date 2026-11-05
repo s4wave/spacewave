@@ -119,16 +119,24 @@ export interface LivenessState {
    */
   cursor?: bigint
   /**
-   * LastAtUnixMilli is the time of the last journal record, so record times
-   * never decrease when the clock steps back.
-   */
-  lastAtUnixMilli?: bigint
-  /**
    * LegacyGraph reports that records of the reference graph of a store
    * format before 7 remain, which a background sweep deletes in slices.
    * Nothing reads them.
    */
   legacyGraph?: boolean
+  /**
+   * AdoptionRun names the adoption that marked the Volume adopting, or the
+   * one that abandoned it. Each transaction of an adoption refuses to write
+   * unless the Volume is still in its run, so a run another superseded writes
+   * nothing more.
+   */
+  adoptionRun?: string
+  /**
+   * UnverifiedLists reports that the child lists came from a store format
+   * before 7, whose lists may lack a child the block names. Adopt refuses
+   * until a repair rebuilds them from the blocks and clears it.
+   */
+  unverifiedLists?: boolean
 }
 
 export const LivenessState: MessageType<LivenessState> =
@@ -138,7 +146,8 @@ export const LivenessState: MessageType<LivenessState> =
       [1, 'adoption', 14, 0, Adoption_Enum],
       [2, 'next_seq', 4],
       [3, 'cursor', 4],
-      [4, 'last_at_unix_milli', 3],
       [5, 'legacy_graph', 8],
+      [6, 'adoption_run', 9],
+      [7, 'unverified_lists', 8],
     ],
   )

@@ -2,6 +2,8 @@ package block_gc
 
 import (
 	"context"
+	"maps"
+	"slices"
 	"time"
 
 	"github.com/pkg/errors"
@@ -36,7 +38,9 @@ import (
 // and roots and appends nothing, and an adoption counts every holder from
 // them. An adopting or adopted Volume refuses a block that names a child whose
 // bytes it holds without a child list, and a root onto such a block, because
-// the children that block names would hold nothing.
+// the children that block names would hold nothing. While an adoption counts
+// the Volume, Land also marks each block it gives birth to and records the
+// block each root it moves held when the adoption began, as Adopt reads.
 func Land(
 	ctx context.Context,
 	rec *Records,
@@ -52,10 +56,12 @@ func Land(
 		return nil, err
 	}
 	l := &lander{
-		rec:     rec,
-		blocks:  blocks,
-		journal: state.GetAdoption() != Adoption_ADOPTION_UNADOPTED,
-		born:    make(map[string]*bornBlock),
+		rec:      rec,
+		blocks:   blocks,
+		journal:  state.GetAdoption() != Adoption_ADOPTION_UNADOPTED,
+		adopting: state.GetAdoption() == Adoption_ADOPTION_ADOPTING,
+		born:     make(map[string]*bornBlock),
+		touched:  make(map[string]struct{}),
 	}
 
 	// Check every root before writing anything.
@@ -112,6 +118,12 @@ type lander struct {
 	blocks block.StoreOps
 	// journal reports that the Volume is adopting or adopted.
 	journal bool
+	// adopting reports that an adoption is counting the Volume, so Land marks
+	// the blocks it gives birth to and the roots it moves, as Adopt reads.
+	adopting bool
+	// touched holds the block keys of the entries already stored, whose put
+	// the journal records as an up and a down pair.
+	touched map[string]struct{}
 	// born are the born blocks by block key.
 	born map[string]*bornBlock
 	// order are the born blocks in entry order.
@@ -175,11 +187,13 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 		if err != nil {
 			return nil, err
 		}
-		if !stored {
-			b := &bornBlock{ref: entry.Ref, children: entry.Refs}
-			l.born[key] = b
-			l.order = append(l.order, b)
+		if stored {
+			l.touched[key] = struct{}{}
+			continue
 		}
+		b := &bornBlock{ref: entry.Ref, children: entry.Refs}
+		l.born[key] = b
+		l.order = append(l.order, b)
 	}
 
 	// Store the bytes, which also evicts the tombstones' bytes.
@@ -208,6 +222,11 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 		b.reput = i < len(existed) && existed[i]
 		if err := l.rec.PutChildren(ctx, b.ref, b.children); err != nil {
 			return nil, err
+		}
+		if l.adopting {
+			if err := l.rec.MarkAdoptBorn(ctx, b.ref); err != nil {
+				return nil, err
+			}
 		}
 	}
 	return existed, nil
@@ -269,6 +288,13 @@ func (l *lander) moveRoot(ctx context.Context, bucketID string, root block.Named
 	entry := &RootEntry{Ref: BlockKey(root.Ref), ExpiresUnixMilli: unixMilli(root.Expires)}
 	if !root.Ref.GetEmpty() && SameRef(root.Ref, held) {
 		return l.rec.SetRoot(ctx, bucketID, root.Name, entry)
+	}
+
+	// Note the block the name held when a running adoption began.
+	if l.adopting {
+		if err := l.rec.NoteAdoptRoot(ctx, bucketID, root.Name, held); err != nil {
+			return err
+		}
 	}
 
 	// Count the holder the root adds to its new block.
@@ -346,19 +372,25 @@ func (l *lander) appendJournal(ctx context.Context, state *LivenessState, now ti
 			l.up = append(l.up, BlockKey(b.ref))
 		}
 	}
+
+	// Record each put of a block already stored as an up and a down pair. It
+	// changes no count, but the collector's tail check keeps the block until
+	// the record ages past the grace period, so a writer that puts a tree
+	// across several batches restarts the grace of each block it puts again.
+	for _, key := range slices.Sorted(maps.Keys(l.touched)) {
+		l.up = append(l.up, []byte(key))
+		l.down = append(l.down, []byte(key))
+	}
 	if len(l.up) == 0 && len(l.down) == 0 {
 		return nil
 	}
 
-	// Write the record at the next sequence number, at a time that never
-	// steps back.
-	at := max(now.UnixMilli(), state.GetLastAtUnixMilli())
-	rec := &JournalRecord{AtUnixMilli: at, Up: l.up, Down: l.down}
+	// Write the record at the next sequence number, stamped with the clock.
+	rec := &JournalRecord{AtUnixMilli: now.UnixMilli(), Up: l.up, Down: l.down}
 	if err := l.rec.PutJournal(ctx, state.GetNextSeq(), rec); err != nil {
 		return err
 	}
 	state.NextSeq++
-	state.LastAtUnixMilli = at
 	return l.rec.SetState(ctx, state)
 }
 

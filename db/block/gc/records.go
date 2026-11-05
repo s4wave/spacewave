@@ -39,6 +39,14 @@ const (
 	kindProof byte = 'P'
 	// kindState is the one LivenessState record.
 	kindState byte = 'S'
+	// kindAdoptBorn keys a block Land gave birth to while the Volume adopts,
+	// by the block. It holds no value and lasts until the adoption ends.
+	kindAdoptBorn byte = 'B'
+	// kindAdoptRoot keys a root Land moved while the Volume adopts, by its
+	// bucket and name. Its value is the block key the name held when the
+	// adoption began, empty when the name was free, and it lasts until the
+	// adoption ends.
+	kindAdoptRoot byte = 'A'
 )
 
 // The kinds a copy of a Volume's liveness records reads.
@@ -227,7 +235,23 @@ func (r *Records) SetCount(ctx context.Context, ref *block.BlockRef, n uint64) e
 
 // rootKey returns the key of the root named name in bucketID.
 func (r *Records) rootKey(bucketID, name string) []byte {
-	return r.key(kindRoot, binary.AppendUvarint(nil, uint64(len(bucketID))), []byte(bucketID), []byte(name))
+	return r.namedKey(kindRoot, bucketID, name)
+}
+
+// namedKey returns the key of kind for the name in bucketID: the bucket's
+// length as a uvarint, the bucket and the name.
+func (r *Records) namedKey(kind byte, bucketID, name string) []byte {
+	return r.key(kind, binary.AppendUvarint(nil, uint64(len(bucketID))), []byte(bucketID), []byte(name))
+}
+
+// parseNamedKey splits the part of a namedKey after its kind into the bucket
+// and the name.
+func parseNamedKey(rest []byte) (string, string, error) {
+	n, size := binary.Uvarint(rest)
+	if size <= 0 || uint64(len(rest)-size) < n { //nolint:gosec // size > 0 and at most len(rest).
+		return "", "", errors.New("liveness root record is malformed")
+	}
+	return string(rest[size : size+int(n)]), string(rest[size+int(n):]), nil //nolint:gosec // n fits the key.
 }
 
 // GetRoot returns the entry of the root named name in bucketID, or nil when
@@ -285,12 +309,10 @@ func (r *Records) ScanRoots(ctx context.Context, fn func(bucketID, name string, 
 	prefix := r.key(kindRoot)
 	return r.tx.ScanPrefix(ctx, prefix, func(key, value []byte) error {
 		// Split the bucket from the name.
-		rest := key[len(prefix):]
-		n, size := binary.Uvarint(rest)
-		if size <= 0 || uint64(len(rest)-size) < n { //nolint:gosec // size > 0 and at most len(rest).
-			return errors.New("liveness root record is malformed")
+		bucketID, name, err := parseNamedKey(key[len(prefix):])
+		if err != nil {
+			return err
 		}
-		bucketID, name := string(rest[size:size+int(n)]), string(rest[size+int(n):]) //nolint:gosec // n fits the key.
 
 		// Decode the entry.
 		entry := &RootEntry{}
