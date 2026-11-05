@@ -127,10 +127,8 @@ func (l *commitLog) changed(snap, base uint64, reads *readSet) bool {
 		if reads.all {
 			return true
 		}
-		for _, key := range e.keys {
-			if reads.has(key) {
-				return true
-			}
+		if slices.ContainsFunc(e.keys, reads.has) {
+			return true
 		}
 	}
 	return false
