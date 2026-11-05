@@ -23,6 +23,7 @@ service RootResourceService {
   rpc WatchSessionMetadata(WatchSessionMetadataRequest) returns (stream WatchSessionMetadataResponse);
   rpc UnlockSession(UnlockSessionByIdxRequest) returns (UnlockSessionByIdxResponse);
   rpc DeleteSession(DeleteSessionRequest) returns (DeleteSessionResponse);
+  rpc MoveSession(MoveSessionRequest) returns (MoveSessionResponse);
   rpc ResetSession(ResetSessionByIdxRequest) returns (ResetSessionByIdxResponse);
 
   rpc AccessStateAtom(AccessStateAtomRequest) returns (AccessStateAtomResponse);
@@ -211,6 +212,20 @@ message DeleteSessionRequest {
 
 // DeleteSessionResponse is the response type for DeleteSession.
 message DeleteSessionResponse {}
+
+// MoveSessionRequest is the request type for MoveSession.
+message MoveSessionRequest {
+  // FromIdx is the index of the session to move.
+  uint32 from_idx = 1;
+  // ToIdx is the free index the session takes.
+  uint32 to_idx = 2;
+}
+
+// MoveSessionResponse is the response type for MoveSession.
+message MoveSessionResponse {
+  // Session is the moved session's entry at its new index.
+  .session.SessionListEntry session = 1;
+}
 
 // ResetSessionByIdxRequest is the request type for ResetSession.
 message ResetSessionByIdxRequest {

@@ -31,6 +31,7 @@ func newSessionCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 			newSessionPairCommand(),
 			newSessionLogoutCommand(),
 			newSessionRevokeCommand(),
+			newSessionMoveCommand(),
 		},
 	}
 }
@@ -409,6 +410,54 @@ func confirmSessionLogout(entry *core_session.SessionListEntry) (bool, error) {
 }
 
 // newSessionRevokeCommand builds the session revoke command.
+// newSessionMoveCommand builds the command that gives a session another index.
+func newSessionMoveCommand() *cli.Command {
+	var statePath string
+	return &cli.Command{
+		Name:      "move",
+		Usage:     "give a session another, free index",
+		ArgsUsage: "<from-index> <to-index>",
+		Description: "Moves a session to a free index, such as an account added back after a sign-out, so " +
+			"tools and links that name its old index find it again. Its mounts restart at the new index. " +
+			"A link that named the target index for a session signed out earlier names the moved one.",
+		Flags: []cli.Flag{statePathFlag(&statePath)},
+		Action: func(c *cli.Context) error {
+			// Require the two indexes.
+			if c.Args().Len() != 2 {
+				return errors.New("usage: session move <from-index> <to-index>")
+			}
+
+			// Parse the source and target indexes.
+			from, err := strconv.ParseUint(c.Args().Get(0), 10, 32)
+			if err != nil {
+				return errors.Wrap(err, "from index")
+			}
+			to, err := strconv.ParseUint(c.Args().Get(1), 10, 32)
+			if err != nil {
+				return errors.Wrap(err, "to index")
+			}
+
+			// Connect to the daemon.
+			ctx := c.Context
+			client, err := connectDaemonFromContext(ctx, c, statePath)
+			if err != nil {
+				return err
+			}
+			defer client.close()
+
+			// Move the session and report where it went.
+			moved, err := client.root.MoveSession(ctx, uint32(from), uint32(to))
+			if err != nil {
+				return errors.Wrap(err, "move session")
+			}
+			ref := moved.GetSessionRef().GetProviderResourceRef()
+			os.Stdout.WriteString("moved session " + strconv.FormatUint(from, 10) + " to index " +
+				strconv.FormatUint(uint64(moved.GetSessionIndex()), 10) + " (" + ref.GetProviderId() + " " + ref.GetProviderAccountId() + ")\n")
+			return nil
+		},
+	}
+}
+
 func newSessionRevokeCommand() *cli.Command {
 	var statePath string
 	var sessionIdx uint

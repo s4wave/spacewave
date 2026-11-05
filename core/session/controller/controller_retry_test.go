@@ -368,3 +368,60 @@ func TestDeleteSessionRetriesGenerationChangeDuringScan(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// TestMoveSession signs out the first of two sessions and moves the second
+// into its index, as an account added back after a sign-out is moved home. The
+// entry and its metadata must arrive at the new index and leave the old one,
+// and a move into a taken index or from an empty one must change nothing.
+func TestMoveSession(t *testing.T) {
+	// Register two sessions with metadata and sign out the first.
+	ctx := context.Background()
+	controller := &Controller{objStore: store_kvtx_inmem.NewStore()}
+	first := &session.SessionRef{ProviderResourceRef: &provider.ProviderResourceRef{Id: "first"}}
+	second := &session.SessionRef{ProviderResourceRef: &provider.ProviderResourceRef{Id: "second"}}
+	third := &session.SessionRef{ProviderResourceRef: &provider.ProviderResourceRef{Id: "third"}}
+	for _, ref := range []*session.SessionRef{first, second, third} {
+		if _, err := controller.RegisterSession(ctx, ref, &session.SessionMetadata{ProviderAccountId: ref.GetProviderResourceRef().GetId()}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := controller.DeleteSession(ctx, first); err != nil {
+		t.Fatal(err)
+	}
+
+	// A move into a taken index or from an empty one is refused.
+	if _, err := controller.MoveSession(ctx, 2, 3); err == nil {
+		t.Fatal("move into a taken index succeeded")
+	}
+	if _, err := controller.MoveSession(ctx, 1, 4); err == nil {
+		t.Fatal("move from an empty index succeeded")
+	}
+
+	// Move the second session home to index 1.
+	moved, err := controller.MoveSession(ctx, 2, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if moved.GetSessionIndex() != 1 || !moved.GetSessionRef().EqualVT(second) {
+		t.Fatalf("moved = %v; want the second session at index 1", moved)
+	}
+
+	// The registry holds it at 1 with its metadata, and nothing at 2.
+	at1, err := controller.GetSessionByIdx(ctx, 1)
+	if err != nil || !at1.GetSessionRef().EqualVT(second) {
+		t.Fatalf("index 1 = %v, %v; want the second session", at1, err)
+	}
+	if at2, err := controller.GetSessionByIdx(ctx, 2); err != nil || at2 != nil {
+		t.Fatalf("index 2 = %v, %v; want empty", at2, err)
+	}
+	meta, err := controller.GetSessionMetadata(ctx, 1)
+	if err != nil || meta.GetProviderAccountId() != "second" {
+		t.Fatalf("index 1 metadata = %v, %v; want the second session's", meta, err)
+	}
+	if meta, err := controller.GetSessionMetadata(ctx, 2); err != nil || meta != nil {
+		t.Fatalf("index 2 metadata = %v, %v; want none", meta, err)
+	}
+	if entries, err := controller.ListSessions(ctx); err != nil || len(entries) != 2 {
+		t.Fatalf("sessions = %v, %v; want two", entries, err)
+	}
+}

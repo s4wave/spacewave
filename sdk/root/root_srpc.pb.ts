@@ -39,6 +39,8 @@ import {
   MountSessionByIdxResponse,
   MountSessionRequest,
   MountSessionResponse,
+  MoveSessionRequest,
+  MoveSessionResponse,
   ParseHashRequest,
   ParseHashResponse,
   ReclaimRuntimeRequest,
@@ -196,6 +198,15 @@ export const RootResourceServiceDefinition = {
       name: 'DeleteSession',
       I: DeleteSessionRequest,
       O: DeleteSessionResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.root.RootResourceService.MoveSession
+     */
+    MoveSession: {
+      name: 'MoveSession',
+      I: MoveSessionRequest,
+      O: MoveSessionResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -518,6 +529,14 @@ export interface RootResourceService {
   ): Promise<DeleteSessionResponse>
 
   /**
+   * @generated from rpc s4wave.root.RootResourceService.MoveSession
+   */
+  MoveSession(
+    request: MoveSessionRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<MoveSessionResponse>
+
+  /**
    * @generated from rpc s4wave.root.RootResourceService.ResetSession
    */
   ResetSession(
@@ -823,6 +842,15 @@ export interface RootResourceServiceHandler {
   ): Promise<DeleteSessionResponse>
 
   /**
+   * @generated from rpc s4wave.root.RootResourceService.MoveSession
+   */
+  MoveSession(
+    request: MoveSessionRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<MoveSessionResponse>
+
+  /**
    * @generated from rpc s4wave.root.RootResourceService.ResetSession
    */
   ResetSession(
@@ -1060,6 +1088,7 @@ export class RootResourceServiceClient implements RootResourceService {
     this.WatchSessionMetadata = this.WatchSessionMetadata.bind(this)
     this.UnlockSession = this.UnlockSession.bind(this)
     this.DeleteSession = this.DeleteSession.bind(this)
+    this.MoveSession = this.MoveSession.bind(this)
     this.ResetSession = this.ResetSession.bind(this)
     this.AccessStateAtom = this.AccessStateAtom.bind(this)
     this.WatchStateAtoms = this.WatchStateAtoms.bind(this)
@@ -1288,6 +1317,23 @@ export class RootResourceServiceClient implements RootResourceService {
       abortSignal || undefined,
     )
     return DeleteSessionResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.MoveSession
+   */
+  async MoveSession(
+    request: MoveSessionRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<MoveSessionResponse> {
+    const requestMsg = MoveSessionRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      RootResourceServiceDefinition.methods.MoveSession.name,
+      MoveSessionRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return MoveSessionResponse.fromBinary(result)
   }
 
   /**
