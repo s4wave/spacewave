@@ -274,16 +274,13 @@ func (r *Reconciler) compilePlaced(ctx context.Context, reads *world.ReadSet) (m
 
 	// Look up the types of the allowed nodes.
 	pass := &compilePass{
-		allowed: make(map[string]struct{}),
+		policy:  r.policy.Snapshot(),
 		entries: make(map[string]config.Config),
 		claims:  make(map[string]string),
 	}
-	for _, typeID := range r.policy.Snapshot().GetNodeTypeId() {
-		pass.allowed[typeID] = struct{}{}
-	}
 	wanted := make(map[string]struct{})
 	for _, node := range placed {
-		if _, ok := pass.allowed[node.Node.GetTypeId()]; ok {
+		if pass.policy.PermitsNodeType(node.Node.GetTypeId()) {
 			wanted[node.Node.GetTypeId()] = struct{}{}
 		}
 	}
@@ -425,8 +422,8 @@ func (r *Reconciler) loadDevice(ctx context.Context, tx world.WorldState) (world
 
 // compilePass is the state shared by the nodes compiled in one reconcile.
 type compilePass struct {
-	// allowed contains the node type IDs the policy allows.
-	allowed map[string]struct{}
+	// policy is the Device policy snapshot the pass admits node types by.
+	policy *device_policy.DevicePolicy
 	// entries contains the entries of the accepted nodes by ConfigSet key.
 	entries map[string]config.Config
 	// claims contains the Flowgraph key and node ID of the node that shows each
@@ -447,7 +444,7 @@ func (r *Reconciler) compile(
 	// Reject a node whose type the policy does not allow.
 	report := &nodeReport{node: node}
 	typeID := node.Node.GetTypeId()
-	if _, ok := pass.allowed[typeID]; !ok {
+	if !pass.policy.PermitsNodeType(typeID) {
 		report.err = errors.Errorf("node type %q is not allowed by the Device policy", typeID)
 		return report
 	}

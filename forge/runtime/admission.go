@@ -110,6 +110,28 @@ var (
 	ErrCapacityDraining = errors.New("worker capacity is draining")
 )
 
+// refusals are the errors that refuse a request without changing the ledger.
+var refusals = [...]error{
+	ErrCapacityExhausted,
+	ErrBackendUnsupported,
+	ErrCapacityDraining,
+	ErrCapacityOwnerExpired,
+	ErrCapacityOwned,
+}
+
+// IsRefusal reports whether admission refused a request because the Worker
+// cannot take it now: its capacity or backends do not fit, it is draining, or
+// its owner claim expired or belongs to another Device. The ledger is
+// unchanged, and a change to the capacity record the caller read wakes a retry.
+func IsRefusal(err error) bool {
+	for _, refusal := range refusals {
+		if errors.Is(err, refusal) {
+			return true
+		}
+	}
+	return false
+}
+
 // Cleanup reasons recorded on receipts.
 const (
 	// CleanupReasonStop records a caller-requested stop of a live runtime.

@@ -3,6 +3,7 @@ package device_policy
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -14,6 +15,12 @@ const (
 	// StateFile is the generated-JSON policy file name under StateDir.
 	StateFile = "policy.json"
 )
+
+// PermitsNodeType reports whether the policy allows nodes of typeID on this
+// Device. The allow list holds a few hand-written entries, so a scan is cheap.
+func (p *DevicePolicy) PermitsNodeType(typeID string) bool {
+	return slices.Contains(p.GetNodeTypeId(), typeID)
+}
 
 // FilePath returns the Device policy file path under stateRoot.
 func FilePath(stateRoot string) string {

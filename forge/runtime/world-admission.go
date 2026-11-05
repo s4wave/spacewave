@@ -69,6 +69,16 @@ func NewWorldRuntimeAdmission(eng world.Engine, stopper RuntimeStopper, lease, o
 	}
 }
 
+// NewTxAdmission constructs an admission for the InTx methods, which run in
+// the caller's World transaction and read only the clock and the default
+// leases. It has no engine, stopper or Worker locks in use, so call only
+// ReserveInTx and ReleaseInTx on it.
+func NewTxAdmission(now func() time.Time) *WorldRuntimeAdmission {
+	a := NewWorldRuntimeAdmission(nil, nil, 0, 0)
+	a.now = now
+	return a
+}
+
 // SetTimeNow overrides the clock; tests use this to drive expiry.
 func (a *WorldRuntimeAdmission) SetTimeNow(now func() time.Time) {
 	a.now = now
@@ -692,11 +702,8 @@ func (a *WorldRuntimeAdmission) ReserveInTx(
 	if err := capacity.OwnerClaimActive(a.now()); err != nil {
 		return nil, err
 	}
-	if !capacity.SupportsBackend(request.Backend) {
-		return nil, errors.Wrapf(ErrBackendUnsupported, "backend %q", request.Backend)
-	}
-	if remainingMilliCPU(capacity) < request.MilliCPU || remainingMemoryBytes(capacity) < request.MemoryBytes {
-		return nil, errors.Wrapf(ErrCapacityExhausted, "worker %s", workerObjectKey)
+	if err := capacity.Admits(request); err != nil {
+		return nil, errors.Wrapf(err, "worker %s", workerObjectKey)
 	}
 
 	// Build the leased reservation. A released reservation means the

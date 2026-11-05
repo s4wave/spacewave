@@ -3,6 +3,7 @@ package s4wave_flowgraph
 import (
 	"context"
 	"strconv"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/world"
@@ -33,8 +34,7 @@ func ReleaseNodeCapacity(ctx context.Context, ws world.WorldState, graphKey, nod
 	}
 
 	// Credit the same ledger entry as the placement edge disappears.
-	admission := forge_runtime.NewWorldRuntimeAdmission(nil, nil, 0, 0)
-	_, err = admission.ReleaseInTx(ctx, ws, reservation.ObjectKey(), holder, "", reservation.Generation, true, forge_runtime.CleanupReasonStop)
+	_, err = forge_runtime.NewTxAdmission(time.Now).ReleaseInTx(ctx, ws, reservation.ObjectKey(), holder, "", reservation.Generation, true, forge_runtime.CleanupReasonStop)
 	return err
 }
 

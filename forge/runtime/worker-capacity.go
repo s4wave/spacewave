@@ -87,6 +87,19 @@ func (w *WorkerCapacity) SupportsBackend(backend string) bool {
 	return slices.Contains(w.Backends, backend)
 }
 
+// Admits reports whether the Worker's unreserved capacity and declared
+// backends fit request. It returns ErrBackendUnsupported or
+// ErrCapacityExhausted; the owner claim is checked separately.
+func (w *WorkerCapacity) Admits(request ResourceRequest) error {
+	if !w.SupportsBackend(request.Backend) {
+		return errors.Wrapf(ErrBackendUnsupported, "backend %q", request.Backend)
+	}
+	if remainingMilliCPU(w) < request.MilliCPU || remainingMemoryBytes(w) < request.MemoryBytes {
+		return ErrCapacityExhausted
+	}
+	return nil
+}
+
 // Validate validates the capacity record. Every owner field must be set, so
 // a half-written claim can never decode as available.
 func (w *WorkerCapacity) Validate() error {
