@@ -85,10 +85,25 @@ jobs:
             ;;
           esac
 
+  # Each model checks on one core. A model that takes minutes gets its own
+  # job, named in the models job's skip list, so no job nears the timeout;
+  # every other config, including a new one, checks in the models job.
   specs:
-    name: TLA+ specs
+    name: TLA+ specs (${{ matrix.name }})
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: models
+            skip: db/block/gc/Journal.cfg db/block/gc/Journal-writers.cfg db/block/gc/Journal-writers-staged.cfg
+          - name: Journal
+            config: db/block/gc/Journal.cfg
+          - name: Journal-writers
+            config: db/block/gc/Journal-writers.cfg
+          - name: Journal-writers-staged
+            config: db/block/gc/Journal-writers-staged.cfg
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -98,7 +113,19 @@ jobs:
         run: bun install --frozen-lockfile --ignore-scripts
 
       - name: Check specs
-        run: bun run check:tla
+        env:
+          CONFIG: ${{ matrix.config }}
+          SKIP: ${{ matrix.skip }}
+        run: |
+          if [ -n "$CONFIG" ]; then
+            set -- "$CONFIG"
+          else
+            excludes=()
+            for cfg in $SKIP; do excludes+=(":!:$cfg"); done
+            mapfile -t configs < <(git ls-files '*.cfg' ':!:**/testdata/**' "${excludes[@]}")
+            set -- "${configs[@]}"
+          fi
+          bun run check:tla "$@"
 
   member-ci:
     name: CI (${{ matrix.name }})
