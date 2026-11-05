@@ -8,6 +8,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/kvtx"
+	"github.com/s4wave/spacewave/db/volume"
 )
 
 // maxFillBatch bounds the cache fills one transaction writes, so a commit
@@ -121,7 +122,7 @@ func (v *Volume) drainCacheFills(ctx context.Context) {
 // bad fill does not fail the others.
 func (v *Volume) writeCacheFills(ctx context.Context, owner string, fills []*cacheFill) {
 	err := v.prepareCacheFills(ctx, owner, fills)
-	if err != nil && len(fills) > 1 && !errors.Is(err, block.ErrPublicationClosed) {
+	if err != nil && len(fills) > 1 && !errors.Is(err, volume.ErrVolumeClosed) {
 		for _, fill := range fills {
 			v.writeCacheFills(ctx, owner, []*cacheFill{fill})
 		}

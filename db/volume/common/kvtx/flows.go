@@ -20,8 +20,6 @@ type putPath int
 const (
 	// putDirect is PutBlock and PutBlockBatch.
 	putDirect putPath = iota
-	// putPublication is the atomic publications.
-	putPublication
 	// putOwned is PrepareOwnedBlock and PrepareOwnedBlockBatch, other than
 	// cache fills.
 	putOwned
@@ -36,7 +34,7 @@ const (
 )
 
 // putPathNames are the names the flows report the write paths under.
-var putPathNames = [numPutPaths]string{"direct", "publication", "owned", "fill", "staged", "roots"}
+var putPathNames = [numPutPaths]string{"direct", "owned", "fill", "staged", "roots"}
 
 // putCount accumulates one write path's flow.
 type putCount struct {

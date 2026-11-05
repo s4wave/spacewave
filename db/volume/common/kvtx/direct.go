@@ -7,6 +7,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/kvtx"
+	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/net/hash"
 )
 
@@ -42,7 +43,7 @@ func (v *Volume) withDirect(ctx context.Context, durable bool, fn func(p *physic
 	v.directMu.RLock()
 	defer v.directMu.RUnlock()
 	if v.directClosed {
-		return block.ErrPublicationClosed
+		return volume.ErrVolumeClosed
 	}
 	if err := ctx.Err(); err != nil {
 		return err
@@ -99,7 +100,7 @@ func (v *Volume) withDirectFill(ctx context.Context, fn func(p *physicalTx) erro
 	v.directMu.RLock()
 	defer v.directMu.RUnlock()
 	if v.directClosed {
-		return block.ErrPublicationClosed
+		return volume.ErrVolumeClosed
 	}
 
 	// Run fn in each attempt, keeping the last.
@@ -224,7 +225,7 @@ func (v *Volume) PrepareOwnedBlock(ctx context.Context, bucketID string, data []
 // PrepareOwnedBlock does for one block.
 func (v *Volume) PrepareOwnedBlockBatch(ctx context.Context, _ string, entries []*block.PutBatchEntry) (existed []bool, err error) {
 	// An empty batch writes nothing.
-	if len(entries) == 0 && v.SupportsAtomicPublication() {
+	if len(entries) == 0 && v.SupportsRootRetention() {
 		return nil, nil
 	}
 
@@ -248,8 +249,8 @@ func (v *Volume) putEntries(
 ) ([]bool, error) {
 	// Require atomic publication, refuse new data below the disk reserve and
 	// refuse a block without its child list.
-	if !v.SupportsAtomicPublication() {
-		return nil, block.ErrAtomicPublicationUnsupported
+	if !v.SupportsRootRetention() {
+		return nil, block.ErrAtomicCommitUnsupported
 	}
 	if !onlyTombstones(entries) {
 		if err := v.checkReserve(ctx, batchBytes(entries)); err != nil {

@@ -13,4 +13,6 @@ var (
 	// disk free to it is below its reserve. Reads, collection and deletes
 	// continue, and writes resume once collection frees space.
 	ErrReserve = errors.New("volume is below its disk reserve")
+	// ErrVolumeClosed is returned by a write to a Volume that closed.
+	ErrVolumeClosed = errors.New("volume is closed")
 )

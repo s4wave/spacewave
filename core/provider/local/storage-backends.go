@@ -321,29 +321,6 @@ func (a *ProviderAccount) WatchUploadStatus(ctx context.Context, sharedObjectID 
 	return watchTrackerUploadStatus(ctx, tkr, fn)
 }
 
-// SQLPublishStats returns the SQL publisher's counters of a SharedObject's
-// mounted block store, false when the store is not mounted or does not
-// publish to a primary SQL backend. It mounts nothing. The counters restart
-// with each mount.
-func (a *ProviderAccount) SQLPublishStats(sharedObjectID string) (SQLPublishStats, bool) {
-	// Find the mounted block store.
-	blockStoreID := a.lookupSharedObjectBlockStoreID(sharedObjectID)
-	if blockStoreID == "" {
-		return SQLPublishStats{}, false
-	}
-	tkr, ok := a.bstores.GetKey(blockStoreID)
-	if !ok || tkr == nil {
-		return SQLPublishStats{}, false
-	}
-
-	// Read its publisher's counters, if it has one.
-	bs := tkr.bstoreCtr.GetValue()
-	if bs == nil || bs.placement == nil || bs.placement.sqlPublish == nil {
-		return SQLPublishStats{}, false
-	}
-	return bs.placement.sqlPublish.getStats(), true
-}
-
 // watchTrackerUploadStatus calls fn with each upload status of the tracker's
 // mounted handle, following the handle across remounts.
 func watchTrackerUploadStatus(ctx context.Context, tkr *bstoreTracker, fn func(UploadStatus) error) error {

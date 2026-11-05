@@ -12,7 +12,7 @@ import (
 // collection asks, and no longer after Close.
 func TestHealthSizes(t *testing.T) {
 	// Measure a growing file.
-	v, _ := newPublicationTestVolume(t)
+	v, _ := newTestVolume(t)
 	var calls atomic.Int64
 	measured := make(chan struct{}, 8)
 	v.SetHealthSizes(func(context.Context) (HealthSizes, error) {
@@ -61,7 +61,7 @@ func TestHealthSizes(t *testing.T) {
 func TestHealthDirectWrites(t *testing.T) {
 	// Measure a 16 MiB free disk, so 2 MiB of writes are due a measurement,
 	// reporting the count of measurements as the file length.
-	v, _ := newPublicationTestVolume(t)
+	v, _ := newTestVolume(t)
 	ctx := t.Context()
 	var calls atomic.Uint64
 	v.SetHealthSizes(func(context.Context) (HealthSizes, error) {

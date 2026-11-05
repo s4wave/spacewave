@@ -210,12 +210,10 @@ func (b *bucketHandle) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 	}
 
 	// Store the block with its child list in one physical transaction when
-	// the volume supports it. This synchronous path does not put large bodies
-	// in the bounded publication queue and preserves PutBlock's existence
-	// result.
-	if prepare, ok := b.v.(block.AtomicBlockPreparer); ok && b.SupportsAtomicPublication() {
+	// the volume supports it, preserving PutBlock's existence result.
+	if prepare, ok := b.v.(block.AtomicBlockPreparer); ok && b.preparesOwned() {
 		ref, existed, err := prepare.PrepareOwnedBlock(ctx, b.GetID(), data, putOpts)
-		if !errors.Is(err, block.ErrAtomicPublicationUnsupported) {
+		if !errors.Is(err, block.ErrAtomicCommitUnsupported) {
 			if err == nil && syncRequested {
 				_, err = b.Sync(ctx)
 			}
@@ -468,51 +466,18 @@ func (b *bucketHandle) Sync(ctx context.Context) (bool, error) {
 	return b.v.Sync(ctx)
 }
 
-// SupportsAtomicPublication describes this handle's normal write domain, not a
-// transient read scope. No capability is manufactured for a remote/custom store.
-func (b *bucketHandle) SupportsAtomicPublication() bool {
+// preparesOwned reports whether the handle stores a block with its bucket
+// ownership in one Volume transaction: its normal write domain, not a
+// transient read scope, on a Volume that keeps liveness.
+func (b *bucketHandle) preparesOwned() bool {
 	if b.err != nil || b.readOps != nil || b.v == nil {
 		return false
 	}
-	publisher, ok := b.v.(block.AtomicPublisher)
-	return ok && publisher.SupportsAtomicPublication()
+	return block.SupportsRootRetention(b.v)
 }
 
-// SubmitAtomic forwards admission to the underlying volume, scoping the
-// publication to this bucket's ownership.
-func (b *bucketHandle) SubmitAtomic(ctx context.Context, p *block.AtomicPublication) (*block.PublicationReceipt, error) {
-	// Reject publications the handle or volume cannot support.
-	if !b.SupportsAtomicPublication() {
-		return nil, block.ErrAtomicPublicationUnsupported
-	}
-	if p == nil {
-		return nil, block.ErrAtomicPublicationUnsupported
-	}
-
-	// Copy the envelope only. Entries remain borrowed until the returned receipt.
-	pub := *p
-	pub.BucketID = b.t.bucketID
-	pub.TrackGC = true
-	return b.v.(block.AtomicPublisher).SubmitAtomic(ctx, &pub)
-}
-
-// PublishAtomic submits the publication and waits for its durable result with
-// cancellation disabled after admission.
-func (b *bucketHandle) PublishAtomic(ctx context.Context, p *block.AtomicPublication) error {
-	receipt, err := b.SubmitAtomic(ctx, p)
-	if err != nil {
-		return err
-	}
-	defer receipt.Release()
-	return receipt.Wait(context.WithoutCancel(ctx))
-}
-
-// AtomicPublicationVolumeID returns the underlying volume's publication namespace.
-func (b *bucketHandle) AtomicPublicationVolumeID() string { return b.v.GetID() }
-
-// _ asserts the bucket and publication contracts.
+// _ asserts the bucket contracts.
 var (
-	_ bucket.Bucket         = (*bucketHandle)(nil)
-	_ bucket.BucketHandle   = (*bucketHandle)(nil)
-	_ block.AtomicPublisher = (*bucketHandle)(nil)
+	_ bucket.Bucket       = (*bucketHandle)(nil)
+	_ bucket.BucketHandle = (*bucketHandle)(nil)
 )
