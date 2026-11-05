@@ -15,28 +15,44 @@ import (
 // hang its reader; past this wait the read fails with block.ErrUnavailable.
 const peerReadWait = 3 * time.Second
 
+// peerMissReport is the shortest interval between two reports of the blocks
+// that reached the peers. A replica that backfills reads every block from
+// peers, so a report per block would log millions of lines.
+const peerMissReport = time.Minute
+
 // peerMissLog is the peer source of a placed store's reads. A read reaches it
 // only after the local store, the backend and the read fallback all missed, so
-// it warns once per block with the block's ref before asking peers, and gives
-// the peers peerReadWait to serve it.
+// it reports the misses, at most once per peerMissReport with their count and
+// the latest ref, before asking peers, and gives the peers peerReadWait to
+// serve it.
 type peerMissLog struct {
 	// StoreOps is the peer store.
 	block.StoreOps
 	// le logs the misses.
 	le *logrus.Entry
-	// seen holds the refs already logged, keyed by their marshaled string.
-	seen *sync.Map
+	// misses counts the misses between reports.
+	misses *peerMisses
 }
 
-// newPeerMissSource wraps peers so each block that reaches it is logged once.
+// peerMisses counts the misses since the last report.
+type peerMisses struct {
+	// mtx guards the fields below.
+	mtx sync.Mutex
+	// n is the number of misses since the last report.
+	n uint64
+	// last is when the last report was logged.
+	last time.Time
+}
+
+// newPeerMissSource wraps peers so the blocks that reach them are reported.
 func newPeerMissSource(le *logrus.Entry, peers func() block.StoreOps) func() block.StoreOps {
-	seen := &sync.Map{}
+	misses := &peerMisses{}
 	return func() block.StoreOps {
 		store := peers()
 		if store == nil {
 			return nil
 		}
-		return &peerMissLog{StoreOps: store, le: le, seen: seen}
+		return &peerMissLog{StoreOps: store, le: le, misses: misses}
 	}
 }
 
@@ -48,7 +64,7 @@ func (p *peerMissLog) BeginReadOperation(ctx context.Context) (block.StoreOps, f
 	if err != nil {
 		return nil, nil, err
 	}
-	return &peerMissLog{StoreOps: scoped, le: p.le, seen: p.seen}, release, nil
+	return &peerMissLog{StoreOps: scoped, le: p.le, misses: p.misses}, release, nil
 }
 
 // GetBlock logs the miss and reads the block from peers.
@@ -84,11 +100,23 @@ func peerReadErr(ctx context.Context, err error) error {
 	return err
 }
 
-// logMiss warns the first time ref reaches the peers.
+// logMiss counts ref reaching the peers and reports the count once per
+// peerMissReport.
 func (p *peerMissLog) logMiss(ref *block.BlockRef) {
-	key := ref.MarshalString()
-	if _, loaded := p.seen.LoadOrStore(key, struct{}{}); loaded {
+	// Count the miss and take the count when a report is due.
+	m := p.misses
+	m.mtx.Lock()
+	m.n++
+	now := time.Now()
+	if now.Sub(m.last) < peerMissReport {
+		m.mtx.Unlock()
 		return
 	}
-	p.le.WithField("ref", key).Warn("block missing from the local store, the backend and the fallback; asking peers")
+	n := m.n
+	m.n, m.last = 0, now
+	m.mtx.Unlock()
+
+	// Report it with the latest ref.
+	p.le.WithField("ref", ref.MarshalString()).WithField("misses", n).
+		Warn("blocks missing from the local store, the backend and the fallback; asking peers")
 }
