@@ -111,8 +111,8 @@ func TestCleaner(t *testing.T) {
 		t.Fatalf("replay opened hot %d cold %d, closed with hot %d cold %d", opened.hot, opened.cold, closed.hot, closed.cold)
 	}
 	for _, c := range []uint64{opened.hot, opened.cold} {
-		if c != 0 && opened.table.at(c).kind != chunkValue {
-			t.Fatalf("open chunk %d is %v, not a value chunk", c, opened.table.at(c).kind)
+		if c != 0 && opened.table.get(c).kind != chunkValue {
+			t.Fatalf("open chunk %d is %v, not a value chunk", c, opened.table.get(c).kind)
 		}
 	}
 }

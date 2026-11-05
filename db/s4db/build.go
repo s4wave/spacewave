@@ -158,7 +158,7 @@ func (b *builder) finish(opts Options) error {
 	start := b.m.table.end()
 	var mb []byte
 	for n := uint64(1); ; n++ {
-		*b.m.table.at(start + n - 1) = chunkEntry{kind: chunkManifest, owner: b.m.version}
+		b.m.table.set(start+n-1, chunkEntry{kind: chunkManifest, owner: b.m.version})
 		if mb = b.m.encode(); chunksFor(uint64(len(mb))) <= n {
 			break
 		}

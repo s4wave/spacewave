@@ -207,7 +207,7 @@ func TestTwoProcesses(t *testing.T) {
 	}
 
 	// Tailing must agree on both ownership and the producer's new standby.
-	if st := db.cur.Load(); st.spare != childSpare || st.replay.spare != childSpare || st.m.table.at(childSpare).kind != chunkLog {
+	if st := db.cur.Load(); st.spare != childSpare || st.replay.spare != childSpare || st.m.table.get(childSpare).kind != chunkLog {
 		t.Fatal("processes disagree on the standby")
 	}
 	m := make(model)

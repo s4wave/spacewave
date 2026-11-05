@@ -151,7 +151,7 @@ func TestLogReserve(t *testing.T) {
 	if err := db.w.free(ctx, reserved); err != nil {
 		t.Fatal(err)
 	}
-	if st := db.cur.Load(); st.spare != 0 || st.m.table.at(reserved[0]).kind != chunkFree {
+	if st := db.cur.Load(); st.spare != 0 || st.m.table.get(reserved[0]).kind != chunkFree {
 		t.Fatal("cleanup did not consume the standby and free its reservation")
 	}
 	if err := db.Sync(ctx); err != nil {

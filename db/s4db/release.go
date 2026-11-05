@@ -46,15 +46,16 @@ func (s *scheduler) releaseStep(ctx context.Context) error {
 		db.superMtx.Unlock()
 
 		// Collect the chunks both conditions allow.
-		if s.releaseRemaining == 0 || s.releaseRemaining > len(st.m.table.entries) {
-			s.releaseRemaining = len(st.m.table.entries)
+		n := int(st.m.table.end()) // #nosec G115 -- a chunk count.
+		if s.releaseRemaining == 0 || s.releaseRemaining > n {
+			s.releaseRemaining = n
 		}
 		var free []uint64
 		for scanned := 0; s.releaseRemaining > 0 && len(free) < freeBatch && scanned < releaseScan; scanned++ {
 			s.releaseRemaining--
-			c := s.releaseCursor % len(st.m.table.entries)
-			s.releaseCursor = (c + 1) % len(st.m.table.entries)
-			e := st.m.table.entries[c]
+			c := s.releaseCursor % n
+			s.releaseCursor = (c + 1) % n
+			e := st.m.table.get(uint64(c)) // #nosec G115 -- a table index.
 			switch e.kind {
 			case chunkPending:
 				durable := logged

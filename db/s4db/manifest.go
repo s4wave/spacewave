@@ -46,7 +46,7 @@ func (m *manifest) clone() *manifest {
 // encode returns the manifest as one checksummed record.
 func (m *manifest) encode() []byte {
 	// Write the fields.
-	b := make([]byte, 0, 64+len(m.runs)*64+len(m.table.entries)*chunkEntrySize)
+	b := make([]byte, 0, 64+len(m.runs)*64+len(m.table.pages)*chunkPageLen*chunkEntrySize)
 	b = binary.AppendUvarint(b, m.version)
 	b = binary.AppendVarint(b, m.count)
 	b = binary.AppendUvarint(b, m.hot)

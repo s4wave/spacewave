@@ -66,7 +66,7 @@ func (db *DB) Stats(ctx context.Context) (Stats, error) {
 		Flushes:           db.flush.flushes.Load(),
 		CollectBytes:      4*db.budget + runTarget*(1+levelRatio) + 4*chunkSize,
 	}
-	for c, e := range st.m.table.entries {
+	for c, e := range st.m.table.all() {
 		if c == 0 {
 			continue
 		}

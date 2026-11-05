@@ -20,7 +20,7 @@ func (w *writer) appendRecord(ctx context.Context, r *record) (*state, error) {
 	// The reservation record has not yet been applied to the public state.
 	if r.kind == kindReserve {
 		for _, c := range r.chunks {
-			*next.m.table.at(c) = chunkEntry{kind: chunkReserved, owner: db.id}
+			next.m.table.set(c, chunkEntry{kind: chunkReserved, owner: db.id})
 		}
 	}
 	r.writer, r.prevWriter = db.id, base.writer
@@ -124,7 +124,7 @@ func (w *writer) free(ctx context.Context, chunks []uint64) error {
 			table := w.db.cur.Load().m.table
 			var unused []uint64
 			for _, c := range batch {
-				if c < table.end() && table.at(c).kind == chunkReserved && table.at(c).owner == w.db.id {
+				if e := table.get(c); e.kind == chunkReserved && e.owner == w.db.id {
 					unused = append(unused, c)
 				}
 			}

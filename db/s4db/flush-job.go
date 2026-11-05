@@ -27,8 +27,8 @@ func (j *flushJob) run(ctx context.Context) error {
 	}
 
 	// Reserve the run's chunks and the manifest's.
-	need := chunksFor(uint64(st.mem.bytes)) + 1                                // #nosec G115 -- bytes are not negative.
-	mneed := chunksFor(uint64(len(st.m.table.entries))*chunkEntrySize*5/4) + 1 // #nosec G115 -- a count.
+	need := chunksFor(uint64(st.mem.bytes)) + 1 // #nosec G115 -- bytes are not negative.
+	mneed := chunksFor(st.m.table.end()*chunkEntrySize*5/4) + 1
 	reserved, err := db.w.reserve(ctx, need+mneed)
 	if err != nil {
 		return err

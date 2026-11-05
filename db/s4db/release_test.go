@@ -49,7 +49,7 @@ func TestReleaseBacklog(t *testing.T) {
 		t.Fatal(err)
 	}
 	err = db.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
-		for _, e := range db.cur.Load().m.table.entries {
+		for _, e := range db.cur.Load().m.table.all() {
 			if e.kind == chunkReserved {
 				return false, nil
 			}
