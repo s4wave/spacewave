@@ -438,6 +438,25 @@ export const ReplayPayloads: MessageType<ReplayPayloads> =
   )
 
 /**
+ * BackfillRoots is the block the backfill root holds: the installed World
+ * and the retained roots a backfill copied. Its outgoing refs are the roots.
+ *
+ * @generated from message space.world.BackfillRoots
+ */
+export interface BackfillRoots {
+  /**
+   * Roots are the copied roots.
+   */
+  roots?: BlockRef[]
+}
+
+export const BackfillRoots: MessageType<BackfillRoots> =
+  /* @__PURE__ */ createMessageType<BackfillRoots>(
+    'space.world.BackfillRoots',
+    () => [[1, 'roots', 11, 1, BlockRef.codec]],
+  )
+
+/**
  * ReplayCursor is the replay a Space engine last saved on this device, so a
  * remount resumes after it instead of replaying from the checkpoint. It names
  * a head World only once the replay cursor root holds that World.
