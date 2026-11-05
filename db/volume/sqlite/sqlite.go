@@ -58,16 +58,19 @@ type Store interface {
 	skvtx.Store
 	// GetDB returns the pool owned by this store.
 	GetDB() *sql.DB
+	// Close flushes pending commits, stops the store's background work and
+	// closes the pool.
+	Close() error
 }
 
 // NewWithStore takes ownership of an opened SQLite store, including on failure.
 // The opener configures durability and coordinates access to the backing path.
 func NewWithStore(ctx context.Context, le *logrus.Entry, conf *Config, store Store, deleteFn func() error) (*Sqlite, error) {
-	// Configure the volume key namespace while taking ownership of the SQLite pool.
+	// Configure the volume key namespace while taking ownership of the store.
 	db := store.GetDB()
 	kvkey, err := kvkey.NewKVKey(conf.GetKvKeyOpts())
 	if err != nil {
-		_ = db.Close()
+		_ = store.Close()
 		return nil, err
 	}
 
@@ -112,11 +115,11 @@ func NewWithStore(ctx context.Context, le *logrus.Entry, conf *Config, store Sto
 				BlockCount: count,
 			}, nil
 		},
-		db.Close,
+		store.Close,
 		deleteFn,
 	)
 	if err != nil {
-		_ = db.Close()
+		_ = store.Close()
 		return nil, err
 	}
 	return vol, nil

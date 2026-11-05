@@ -3,7 +3,7 @@ package common
 import (
 	"context"
 	"database/sql"
-	"errors"
+	"database/sql/driver"
 	"sync"
 	"sync/atomic"
 
@@ -112,7 +112,8 @@ func (t *Tx) queryer(ctx context.Context) (sqliteQueryer, error) {
 		return nil, err
 	}
 	if _, err := conn.ExecContext(ctx, "BEGIN"); err != nil {
-		return nil, errors.Join(err, conn.Close())
+		discardConn(conn)
+		return nil, err
 	}
 	t.conn = conn
 	return conn, nil
@@ -306,12 +307,14 @@ func (t *Tx) CommitOrdered(ctx context.Context) error {
 	// Commit on the transaction's connection, rolling back a refused commit
 	// so the connection returns to the pool outside a transaction.
 	_, err := t.conn.ExecContext(context.Background(), "COMMIT")
-	if err != nil {
-		_, _ = t.conn.ExecContext(context.Background(), "ROLLBACK")
+	clean := err == nil
+	if !clean {
+		_, rerr := t.conn.ExecContext(context.Background(), "ROLLBACK")
+		clean = rerr == nil
 	}
 
 	// End the writer turn, then count the commit for the flusher.
-	t.endWrite()
+	t.endWrite(clean)
 	if err != nil {
 		return err
 	}
@@ -333,8 +336,8 @@ func (t *Tx) Discard() {
 	}
 
 	// Roll back and end the writer turn.
-	_, _ = t.conn.ExecContext(context.Background(), "ROLLBACK")
-	t.endWrite()
+	_, err := t.conn.ExecContext(context.Background(), "ROLLBACK")
+	t.endWrite(err == nil)
 }
 
 // endRead ends a snapshot read's transaction and returns its connection.
@@ -342,15 +345,29 @@ func (t *Tx) endRead() {
 	if t.conn == nil {
 		return
 	}
-	_, _ = t.conn.ExecContext(context.Background(), "ROLLBACK")
+	if _, err := t.conn.ExecContext(context.Background(), "ROLLBACK"); err != nil {
+		discardConn(t.conn)
+		return
+	}
 	_ = t.conn.Close()
 }
 
-// endWrite returns the write transaction's connection and ends its writer
-// turn.
-func (t *Tx) endWrite() {
-	_ = t.conn.Close()
+// endWrite returns the write transaction's connection to the pool, or
+// discards it unless clean, and ends its writer turn.
+func (t *Tx) endWrite(clean bool) {
+	if clean {
+		_ = t.conn.Close()
+	} else {
+		discardConn(t.conn)
+	}
 	t.release()
+}
+
+// discardConn closes conn instead of returning it to the pool. A connection
+// whose BEGIN, COMMIT or ROLLBACK failed may still be inside a transaction,
+// holding SQLite's write lock, and the pool would hand it out again.
+func discardConn(conn *sql.Conn) {
+	_ = conn.Raw(func(any) error { return driver.ErrBadConn })
 }
 
 // _ is a type assertion
