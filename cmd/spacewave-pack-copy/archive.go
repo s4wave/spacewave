@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"os"
+	"strings"
 
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
@@ -17,43 +18,68 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// archiveArgs configures reading from an archive-peer. The archive dials this
-// process, so a run logs its peer id and address for archive-peer's --peer.
+// archiveArgs configures reading from archive-peers. Each archive dials this
+// process at its own address, so a run logs this peer's id and each address
+// for archive-peer's --peer.
 type archiveArgs struct {
 	// key is this peer's PEM private key.
 	key string
-	// listen is the UDP host:port to listen on.
-	listen string
-	// peerID is the archive's peer id.
-	peerID string
-	// bucketID is the block store bucket the archive serves.
+	// archives are the archives, as peer id@UDP host:port to listen on for
+	// that archive's dial, in the order a copy asks them.
+	archives cli.StringSlice
+	// bucketID is the block store bucket the archives serve.
 	bucketID string
-	// protocolContext is the block exchange context the archive uses.
+	// protocolContext is the block exchange context the archives use.
 	protocolContext string
 }
 
-// flags binds the archive's flags.
+// flags binds the archives' flags.
 func (a *archiveArgs) flags() []cli.Flag {
 	return []cli.Flag{
-		&cli.StringFlag{Name: "archive-peer", Usage: "archive-peer's peer id; empty reads no archive", Destination: &a.peerID},
+		&cli.StringSliceFlag{Name: "archive", Usage: "archive-peer to ask, as peer-id@host:port to listen on for its dial; repeat for each, in the order to ask them", Destination: &a.archives},
 		&cli.StringFlag{Name: "archive-key", Usage: "PEM private key of this peer", Destination: &a.key},
-		&cli.StringFlag{Name: "archive-listen", Usage: "UDP host:port the archive dials", Value: ":4103", Destination: &a.listen},
-		&cli.StringFlag{Name: "archive-bucket-id", Usage: "block store bucket the archive serves", Destination: &a.bucketID},
+		&cli.StringFlag{Name: "archive-bucket-id", Usage: "block store bucket the archives serve", Destination: &a.bucketID},
 		&cli.StringFlag{Name: "archive-protocol-context", Usage: "block exchange protocol context, as given to archive-peer", Destination: &a.protocolContext},
 	}
 }
 
-// enabled reports whether a run reads an archive.
-func (a *archiveArgs) enabled() bool {
-	return a.peerID != ""
+// open starts a peer for each archive and returns sources that ask them, in
+// order, with the function that stops them.
+func (a *archiveArgs) open(ctx context.Context, le *logrus.Entry) ([]packcopy.Source, func(), error) {
+	// Collect the sources and what stops each.
+	var sources []packcopy.Source
+	var releases []func()
+	release := func() {
+		for _, r := range releases {
+			r()
+		}
+	}
+
+	// Start a peer for each archive, in order.
+	for _, spec := range a.archives.Value() {
+		id, listen, ok := strings.Cut(spec, "@")
+		if !ok {
+			release()
+			return nil, nil, errors.Errorf("--archive %q must be peer-id@host:port", spec)
+		}
+		src, rel, err := a.openOne(ctx, le, id, listen)
+		if err != nil {
+			release()
+			return nil, nil, err
+		}
+		sources = append(sources, src)
+		releases = append(releases, rel)
+	}
+	return sources, release, nil
 }
 
-// open starts this peer and returns a source that asks the archive.
-func (a *archiveArgs) open(ctx context.Context, le *logrus.Entry) (packcopy.Source, func(), error) {
+// openOne starts a peer that listens on listen for the archive id and returns
+// a source that asks it.
+func (a *archiveArgs) openOne(ctx context.Context, le *logrus.Entry, id, listen string) (packcopy.Source, func(), error) {
 	// Parse the archive's id and this peer's key.
-	archiveID, err := peer.IDB58Decode(a.peerID)
+	archiveID, err := peer.IDB58Decode(id)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "parse --archive-peer")
+		return nil, nil, errors.Wrap(err, "parse --archive peer id")
 	}
 	pemData, err := os.ReadFile(a.key)
 	if err != nil {
@@ -91,7 +117,7 @@ func (a *archiveArgs) open(ctx context.Context, le *logrus.Entry) (packcopy.Sour
 
 	// Listen for the archive's dial and report where.
 	addr, err := st.StartUDP(ctx, transport.UDPConfig{
-		ListenAddr: a.listen,
+		ListenAddr: listen,
 		Peers:      map[peer.ID]string{archiveID: ""},
 		NamedOnly:  true,
 	})

@@ -1,9 +1,11 @@
 // Package packcopy copies what a set of roots reaches into a pack store.
 //
 // A copy reads each block once, parents first, follows the refs stored with
-// it, and fills whole packs. It never decodes a block. A block no source can
-// serve becomes a hole: the walk goes on, the hole goes on a list, and the
-// blocks above it stay unproven until a later pass fills it.
+// it, and fills whole packs. It never decodes a block. A source that holds a
+// block without its refs passes it to the next source, which may know them. A
+// block no source can serve with its refs becomes a hole: the walk goes on,
+// the hole goes on a list, and the blocks above it stay unproven until a later
+// pass fills it.
 //
 // A proof says a block and everything under it are durable in the target.
 // Proofs commit only after the packs that hold their blocks, so a copy killed
@@ -34,8 +36,8 @@ const (
 	// ReasonCorrupt is a block whose bytes fail their hash in every source
 	// that held it.
 	ReasonCorrupt = "corrupt"
-	// ReasonRefsUnknown is a block held only without its refs. A pack cannot
-	// store that, and a leaf would hide its children.
+	// ReasonRefsUnknown is a block every source that held it served without
+	// its refs. Copying it as a leaf would hide its children.
 	ReasonRefsUnknown = "refs-unknown"
 	// ReasonError is a block whose reads failed.
 	ReasonError = "error"

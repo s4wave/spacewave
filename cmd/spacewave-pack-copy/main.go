@@ -1,9 +1,11 @@
 // Command spacewave-pack-copy copies what a set of roots reaches from one pack
 // store to a clean one, within a connection cap and a byte budget.
 //
-// It reads the source over SFTP and writes packs to an S3 bucket. Everything it
-// must remember between runs lives in one scratch file, so a stopped copy
-// resumes where its last durable pack left it.
+// It reads the source over SFTP, finding blocks through a copy of the source's
+// pack index file, and writes packs to an S3 bucket, keeping their index in a
+// pack index file an owner of the clean store opens as it is. The proofs and
+// byte count it remembers between runs live in one scratch file, so a stopped
+// copy resumes where its last durable pack left it.
 package main
 
 import (
@@ -20,12 +22,6 @@ func main() {
 	app.Name = "spacewave-pack-copy"
 	app.Usage = "copy what a set of roots reaches into a clean pack store"
 	app.Commands = []*cli.Command{
-		{
-			Name:   "index",
-			Usage:  "build the scratch index of both stores, recording its time",
-			Flags:  args.storeFlags(),
-			Action: args.runIndex,
-		},
 		{
 			Name:   "copy",
 			Usage:  "run one pass, writing what no source could serve to the holes list",
