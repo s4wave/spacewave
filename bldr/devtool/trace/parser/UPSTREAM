@@ -1,5 +1,0 @@
-Source: $(go env GOROOT)/src/internal/trace
-Go commit: 1bb0931eff4f7d6129b65bddc5ac080f07b0526e
-Go commit date: 2026-04-06 16:54:18 -0700
-Sync date: 2026-04-08
-Module rewrite: internal/trace -> github.com/s4wave/spacewave/bldr/devtool/trace/parser

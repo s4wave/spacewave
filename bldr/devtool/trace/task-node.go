@@ -3,7 +3,7 @@ package trace
 import (
 	"time"
 
-	parser "github.com/s4wave/spacewave/bldr/devtool/trace/parser"
+	parser "golang.org/x/exp/trace"
 )
 
 // TaskNode represents a single task instance in the critical path tree.

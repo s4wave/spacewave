@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	parser "github.com/s4wave/spacewave/bldr/devtool/trace/parser"
+	parser "golang.org/x/exp/trace"
 )
 
 // Options selects the tasks Analyze records.
