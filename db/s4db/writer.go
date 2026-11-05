@@ -139,9 +139,9 @@ func (w *writer) create() error {
 
 	// Write the manifest of an empty file: its own chunk and the log chunk.
 	m := newManifest()
-	*m.table.at(1) = chunkEntry{kind: chunkManifest, owner: m.version}
-	*m.table.at(2) = chunkEntry{kind: chunkLog}
-	*m.table.at(3) = chunkEntry{kind: chunkLog}
+	m.table.set(1, chunkEntry{kind: chunkManifest, owner: m.version})
+	m.table.set(2, chunkEntry{kind: chunkLog})
+	m.table.set(3, chunkEntry{kind: chunkLog})
 	if err := backLog(s, 2, 2); err != nil {
 		return err
 	}
@@ -318,7 +318,7 @@ func (w *writer) place(m *manifest, r *record, key, data []byte, writes []valueW
 	case n > chunkSize:
 		off = chunkStart(m.table.alloc(chunksFor(n), chunkValue, 0))
 	default:
-		if *open == 0 || uint64(m.table.at(*open).used)+n > chunkSize {
+		if *open == 0 || uint64(m.table.get(*open).used)+n > chunkSize {
 			*open = m.table.alloc(1, chunkValue, 0)
 		}
 		e := m.table.at(*open)

@@ -186,7 +186,7 @@ func (s *scheduler) clean() bool {
 
 // hasPending reports whether the table holds pending or reserved chunks.
 func (s *scheduler) hasPending(st *state) bool {
-	for _, e := range st.m.table.entries {
+	for _, e := range st.m.table.all() {
 		if e.kind == chunkPending || e.kind == chunkReserved {
 			return true
 		}

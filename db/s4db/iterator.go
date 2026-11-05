@@ -52,8 +52,10 @@ type Iterator struct {
 	started bool
 	// ok reports whether the iterator is on an entry.
 	ok bool
-	// cur is the current key.
+	// cur is the current key, owned by the iterator.
 	cur []byte
+	// skip holds a deleted key while settle steps past it.
+	skip []byte
 	// ent is the current entry.
 	ent ientry
 	// err is the first error.
@@ -242,12 +244,14 @@ func (it *Iterator) settle() bool {
 			return false
 		}
 
-		// Skip a deleted key, else stand on it.
+		// Skip a deleted key, else stand on a copy of it: a layer's key lasts
+		// only until the layer loads its next block.
 		if ent.del {
-			it.stepPast(best)
+			it.skip = append(it.skip[:0], best...)
+			it.stepPast(it.skip)
 			continue
 		}
-		it.cur, it.ent, it.ok = best, ent, true
+		it.cur, it.ent, it.ok = bytes.Clone(best), ent, true
 		return true
 	}
 }

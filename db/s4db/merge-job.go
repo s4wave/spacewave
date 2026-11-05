@@ -136,19 +136,19 @@ func (m *manifest) topRun() (runMeta, bool) {
 	// The last chunk must be a run chunk with a free chunk below it.
 	t := m.table
 	end := t.end()
-	if end <= firstChunk || t.entries[end-1].kind != chunkRun {
+	if end <= firstChunk || t.get(end-1).kind != chunkRun {
 		return runMeta{}, false
 	}
 	free := false
 	for c := uint64(firstChunk); c < end-1 && !free; c++ {
-		free = t.entries[c].kind == chunkFree
+		free = t.get(c).kind == chunkFree
 	}
 	if !free {
 		return runMeta{}, false
 	}
 
 	// Find the run.
-	id := t.entries[end-1].owner
+	id := t.get(end - 1).owner
 	for _, r := range m.runs {
 		if r.id == id {
 			return r, true
@@ -174,7 +174,7 @@ func (j *mergeJob) run(ctx context.Context) error {
 		inBytes += uint64(len(r.chunks)) * chunkSize
 	}
 	need := chunksFor(inBytes) + 1
-	mneed := chunksFor(uint64(len(st.m.table.entries))*chunkEntrySize*5/4) + 1 // #nosec G115 -- a count.
+	mneed := chunksFor(st.m.table.end()*chunkEntrySize*5/4) + 1
 	reserved, err := db.w.reserve(ctx, need+mneed)
 	if err != nil {
 		return err
@@ -259,9 +259,11 @@ func (j *mergeJob) merge(pick mergePick, chunks []uint64, more func() (uint64, e
 	}
 
 	// Write entries in order into runs of runTarget each; each run takes the
-	// chunks the one before it left.
+	// chunks the one before it left. key holds the current key past the step
+	// that may reload its layer's block; the run builder copies what it keeps.
 	var outputs []runMeta
 	var rb *runBuilder
+	var key []byte
 	for {
 		// Find the smallest key and the newest layer holding it.
 		var best []byte
@@ -277,7 +279,7 @@ func (j *mergeJob) merge(pick mergePick, chunks []uint64, more func() (uint64, e
 		if best == nil {
 			break
 		}
-		key := bytes.Clone(best)
+		key = append(key[:0], best...)
 		for _, l := range layers {
 			if l.valid() && bytes.Equal(l.key(), key) {
 				l.step(false)
