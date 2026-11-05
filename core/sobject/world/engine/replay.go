@@ -891,6 +891,19 @@ func (r *replayer) replay(
 		n = 0
 	}
 
+	// A removal that pinned an author below operations already placed, such
+	// as a cut through a chosen nonce, rejects them now: replay again from the
+	// first one, so every member derives the same World.
+	if n != 0 {
+		cfg, err := snap.GetConfig(ctx)
+		if err != nil {
+			return nil, nil, err
+		}
+		if len(cfg.GetRemovedAuthors()) != 0 {
+			n = admittedPrefix(set, cfg, r.positions[:n])
+		}
+	}
+
 	// Remember the rest of a served replay, which a stop behind it restores.
 	var dropped []replayPosition
 	changed, deferred, span, spanLen, written := r.changed, r.deferred, r.span, r.spanLen, r.written
@@ -1139,4 +1152,21 @@ func outcomeReason(outcomes []replayOutcome, h []byte) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+// admittedPrefix returns the number of leading positions whose applied
+// operations cfg still admits. A position replay rejected applied nothing and
+// stays; an operation set does not hold, such as an acknowledgment of the
+// checkpoint, stays too.
+func admittedPrefix(set *sobject.SOOperationSet, cfg *sobject.SharedObjectConfig, positions []replayPosition) int {
+	for i, pos := range positions {
+		if pos.outcome.reason != "" {
+			continue
+		}
+		inner := set.Get(pos.outcome.hash)
+		if inner != nil && !cfg.AdmitsOperation(inner.GetPeerId(), inner.GetNonce()) {
+			return i
+		}
+	}
+	return len(positions)
 }

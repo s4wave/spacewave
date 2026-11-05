@@ -5,6 +5,7 @@ import (
 	"context"
 	"slices"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/aperturerobotics/util/ccontainer"
@@ -117,6 +118,8 @@ type replayTestSnapshot struct {
 	// snapshot holds.
 	checkpoint *sobject.SOCheckpointInner
 	set        *sobject.SOOperationSet
+	// previous, when set, is an earlier config operations may still name.
+	previous *sobject.SharedObjectConfig
 }
 
 // GetCheckpoint returns the held checkpoint.
@@ -152,6 +155,9 @@ func (s *replayTestSnapshot) GetConfig(context.Context) (*sobject.SharedObjectCo
 
 // GetConfigByHash returns the config when hash names it.
 func (s *replayTestSnapshot) GetConfigByHash(_ context.Context, hash []byte) (*sobject.SharedObjectConfig, error) {
+	if s.previous != nil && bytes.Equal(hash, s.previous.GetConfigChainHash()) {
+		return s.previous, nil
+	}
 	if !bytes.Equal(hash, s.config.GetConfigChainHash()) {
 		return nil, errors.New("unknown config")
 	}
@@ -238,6 +244,48 @@ func (m *replayTestMember) adopt(height uint64, world *InnerState, heads ...*sob
 	m.snap.checkpoint, m.snap.set = checkpoint, set
 	if _, _, err := m.replayer.sync(context.Background(), m.snap, nil); err != nil {
 		t.Fatal(err.Error())
+	}
+}
+
+// TestReplayRejectsPlacedOperationsACutRemoves applies a member's operations,
+// then removes the member through its first operation, as a cut through a
+// chosen nonce does when the later ones name payloads nobody holds. The next
+// replay of a member that already applied the later operation must reject it,
+// and reach the same World and outcomes as a member replaying from genesis.
+func TestReplayRejectsPlacedOperationsACutRemoves(t *testing.T) {
+	// Build the Space and its two writers.
+	privA, pidA := newReplayTestKey(t)
+	privB, pidB := newReplayTestKey(t)
+	space := newReplayTestSpace(t, pidA, pidB)
+	a1 := space.sign("a1", privA, "object-a1", &sobject.SOOperationLink{Nonce: 1})
+	b1 := space.sign("b1", privB, "object-b1", &sobject.SOOperationLink{Nonce: 1})
+	b2 := space.sign("b2", privB, "object-b2", &sobject.SOOperationLink{Nonce: 2, PrevOpHash: b1.Hash()})
+	a2 := space.sign("a2", privA, "object-a2", &sobject.SOOperationLink{Nonce: 2, PrevOpHash: a1.Hash()})
+
+	// The warm member applies every operation of both writers.
+	warm := space.member(pidA, false)
+	if res := warm.deliver(a1, b1, b2); slices.ContainsFunc(res.outcomes, func(o string) bool { return !strings.HasSuffix(o, ": applied") }) {
+		t.Fatalf("before the cut: %q; want every operation applied", res.outcomes)
+	}
+
+	// Remove B through b1.
+	cut := space.config.CloneVT()
+	cut.ConfigChainHash = bytes.Repeat([]byte{8}, 32)
+	cut.Participants = slices.DeleteFunc(cut.Participants, func(p *sobject.SOParticipantConfig) bool { return p.GetPeerId() == pidB.String() })
+	cut.RemovedAuthors = []*sobject.SOOperationPosition{{PeerId: pidB.String(), Nonce: 1, OpHash: b1.Hash()}}
+	cold := space.member(pidA, true)
+	for _, m := range []*replayTestMember{warm, cold} {
+		m.snap.previous, m.snap.config = space.config, cut
+	}
+
+	// Both replay with the cut config and agree, with b2 rejected.
+	cold.deliver(a1, b1, b2)
+	got, want := warm.deliver(a2), cold.deliver(a2)
+	if !got.state.EqualVT(want.state) || !slices.Equal(got.outcomes, want.outcomes) {
+		t.Fatalf("warm member diverged after the cut:\n  warm %q\n  cold %q", got.outcomes, want.outcomes)
+	}
+	if !slices.Contains(got.outcomes, "b2: "+sobject.ReasonRemoved) || !slices.Contains(got.outcomes, "b1: applied") || !slices.Contains(got.outcomes, "a2: applied") {
+		t.Fatalf("after the cut: %q; want b1 and a2 applied and b2 removed", got.outcomes)
 	}
 }
 

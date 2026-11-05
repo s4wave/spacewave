@@ -6,6 +6,7 @@ import (
 	"context"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/aperturerobotics/cli"
@@ -69,6 +70,8 @@ func newSpaceMembersCommand(statePath *string, sessionIdx *uint) *cli.Command {
 
 // newSpaceMembersRemoveCommand builds the space members remove subcommand.
 func newSpaceMembersRemoveCommand(statePath *string, sessionIdx *uint) *cli.Command {
+	var admitThrough uint64
+	var dryRun bool
 	return &cli.Command{
 		Name:      "remove",
 		Usage:     "remove members from a space",
@@ -78,7 +81,22 @@ func newSpaceMembersRemoveCommand(statePath *string, sessionIdx *uint) *cli.Comm
 			"An account ID the list does not show is resolved to its session " +
 			"peers through the cloud and removed in its own change. With one " +
 			"argument it names a member of the default space; with more, the " +
-			"first names the space.",
+			"first names the space. --admit-through keeps only the removed " +
+			"members' operations through that nonce: use it when a member's " +
+			"later operations name payloads no member holds, which stops " +
+			"replay. --dry-run reports the cut without removing anyone.",
+		Flags: []cli.Flag{
+			&cli.Uint64Flag{
+				Name:        "admit-through",
+				Usage:       "apply only the removed members' operations through this nonce",
+				Destination: &admitThrough,
+			},
+			&cli.BoolFlag{
+				Name:        "dry-run",
+				Usage:       "with --admit-through, report the cut without removing anyone",
+				Destination: &dryRun,
+			},
+		},
 		Action: func(c *cli.Context) error {
 			// Split the Space from the members.
 			args := c.Args().Slice()
@@ -117,6 +135,46 @@ func newSpaceMembersRemoveCommand(statePath *string, sessionIdx *uint) *cli.Comm
 			peerIDs, accountIDs, err := memberPeerIDs(state.GetParticipantInfo(), args)
 			if err != nil {
 				return err
+			}
+
+			// Cut the listed members' operations when asked; the cloud path
+			// below has no cut.
+			cut := c.IsSet("admit-through")
+			if dryRun && !cut {
+				return errors.New("--dry-run needs --admit-through")
+			}
+			if cut && len(accountIDs) != 0 {
+				return errors.New("--admit-through needs members the list shows")
+			}
+			if cut {
+				through := make(map[string]uint64, len(peerIDs))
+				for _, peerID := range peerIDs {
+					through[peerID] = admitThrough
+				}
+				resp, err := sess.CutSpaceParticipants(ctx, spaceID, peerIDs, through, dryRun)
+				if err != nil {
+					return err
+				}
+				rows := [][]string{{"PEER", "ADMIT THROUGH", "HEAD", "CHECKPOINT", "CUT OPS"}}
+				for _, cut := range resp.GetCuts() {
+					rows = append(rows, []string{
+						cut.GetPeerId(),
+						strconv.FormatUint(cut.GetAdmitThrough(), 10),
+						strconv.FormatUint(cut.GetHeadNonce(), 10),
+						strconv.FormatUint(cut.GetCheckpointNonce(), 10),
+						strconv.FormatUint(uint64(cut.GetCutOperations()), 10),
+					})
+				}
+				writeTable(os.Stdout, "", rows)
+				switch {
+				case dryRun:
+					os.Stdout.WriteString("Dry run: nobody removed\n")
+				case resp.GetAwaitingGroup():
+					os.Stdout.WriteString(awaitingGroupMessage)
+				default:
+					os.Stdout.WriteString("Removed " + strings.Join(resp.GetRemovedPeerIds(), ", ") + "\n")
+				}
+				return nil
 			}
 
 			// Remove the listed members in one change.

@@ -393,6 +393,37 @@ func (s *SOOperationSet) AuthorHead(peerID string) (uint64, []byte) {
 	return nonce, head
 }
 
+// CoveredNonce returns the nonce through which the checkpoint below the set
+// covers peerID's chain, 0 when it covers none of it.
+func (s *SOOperationSet) CoveredNonce(peerID string) uint64 {
+	return s.authors[peerID].GetNonce()
+}
+
+// CountAbove returns the number of peerID's operations in the set above nonce.
+func (s *SOOperationSet) CountAbove(peerID string, nonce uint64) int {
+	var n int
+	for _, inner := range s.ops {
+		if inner.GetPeerId() == peerID && inner.GetNonce() > nonce {
+			n++
+		}
+	}
+	return n
+}
+
+// AuthorAt returns the hash of peerID's operation at nonce in the set. It
+// fails when the set holds none there, or several, which is equivocation.
+func (s *SOOperationSet) AuthorAt(peerID string, nonce uint64) ([]byte, error) {
+	keys := s.byAuthorSeq[soAuthorSeq{author: peerID, nonce: nonce}]
+	switch len(keys) {
+	case 0:
+		return nil, errors.Errorf("no operation of %s at nonce %d above the checkpoint", peerID, nonce)
+	case 1:
+		return []byte(keys[0]), nil
+	default:
+		return nil, errors.Errorf("%s signed %d operations at nonce %d", peerID, len(keys), nonce)
+	}
+}
+
 // Get returns the verified body of the operation with hash h, or nil.
 func (s *SOOperationSet) Get(h []byte) *SOOperationInner {
 	return s.ops[string(h)]
