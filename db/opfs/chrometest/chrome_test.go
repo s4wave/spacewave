@@ -710,22 +710,22 @@ func TestOpfsChromeWorldInitUnixFS(t *testing.T) {
 	})
 }
 
-// TestOpfsChromeWorldDeferredCrashRecovery checks recovery at the last explicit world Sync.
-func TestOpfsChromeWorldDeferredCrashRecovery(t *testing.T) {
+// TestOpfsChromeWorldCrashRecovery checks that a World recovers at its last commit.
+func TestOpfsChromeWorldCrashRecovery(t *testing.T) {
 	// Open a browser session for the selected OPFS worker scenario.
 	requireChromeProfile(t, chromeSmoke)
 	h := newChromeHarness(t)
 	s := h.newSession(t)
 	defer s.close(t)
 
-	// Verify World recovery at the last explicit sync in a fresh OPFS root.
-	root := "opfs-chrome-world-deferred-crash-" + time.Now().Format("150405.000000000")
+	// Verify World recovery at the last commit in a fresh OPFS root.
+	root := "opfs-chrome-world-crash-" + time.Now().Format("150405.000000000")
 	s.runWorker(t, workerArgs{
 		scenario: "clear",
 		root:     root,
 	})
 	s.runWorker(t, workerArgs{
-		scenario: "world-deferred-crash-recovery",
+		scenario: "world-crash-recovery",
 		root:     root,
 	})
 }

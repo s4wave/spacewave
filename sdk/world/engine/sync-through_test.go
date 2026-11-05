@@ -4,7 +4,6 @@ package sdk_world_engine_test
 
 import (
 	"context"
-	"errors"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -15,7 +14,6 @@ import (
 	resource_testbed "github.com/s4wave/spacewave/core/resource/testbed"
 	resource_world "github.com/s4wave/spacewave/core/resource/world"
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/testbed"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
@@ -29,53 +27,59 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// gatedPublisher holds one armed publication before its validation, so it is
-// admitted by the engine but not durable.
-type gatedPublisher struct {
-	block.AtomicPublisher
+// gatedAuthority holds one armed commit at its Admit, so the engine has
+// sealed it but it is not durable.
+type gatedAuthority struct {
+	*world_block.LocalAuthority
 	mu      sync.Mutex
 	entered chan struct{}
 	release chan struct{}
 }
 
-// arm holds the next publication until the returned release function runs.
-func (p *gatedPublisher) arm() (entered <-chan struct{}, release func()) {
+// arm holds the next commit until the returned release function runs.
+func (a *gatedAuthority) arm() (entered <-chan struct{}, release func()) {
 	// Replace the gate under the lock.
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	p.entered, p.release = make(chan struct{}), make(chan struct{})
-	rel := p.release
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.entered, a.release = make(chan struct{}), make(chan struct{})
+	rel := a.release
 	var once sync.Once
-	return p.entered, func() { once.Do(func() { close(rel) }) }
+	return a.entered, func() { once.Do(func() { close(rel) }) }
 }
 
-// SubmitAtomic gates the armed publication's validation.
-func (p *gatedPublisher) SubmitAtomic(ctx context.Context, publication *block.AtomicPublication) (*block.PublicationReceipt, error) {
-	// Take the armed gate so only one publication is held.
-	p.mu.Lock()
-	entered, release := p.entered, p.release
-	p.entered, p.release = nil, nil
-	p.mu.Unlock()
-	if entered == nil {
-		return p.AtomicPublisher.SubmitAtomic(ctx, publication)
+// Begin opens the local turn and gates its Admit.
+func (a *gatedAuthority) Begin(ctx context.Context) (world.Turn, error) {
+	turn, err := a.LocalAuthority.Begin(ctx)
+	if err != nil {
+		return nil, err
 	}
+	return &gatedTurn{Turn: turn, a: a}, nil
+}
 
-	// Hold the publication in validation until released.
-	held := *publication
-	validate := publication.Validate
-	held.Validate = func(ctx context.Context, store block.StoreOps) error {
+// gatedTurn is a turn of a gatedAuthority.
+type gatedTurn struct {
+	world.Turn
+	a *gatedAuthority
+}
+
+// Admit holds an armed commit until released, then admits it.
+func (t *gatedTurn) Admit(ctx context.Context, candidate world.Candidate) (world.Admission, error) {
+	// Take the armed gate so only one commit is held.
+	t.a.mu.Lock()
+	entered, release := t.a.entered, t.a.release
+	t.a.entered, t.a.release = nil, nil
+	t.a.mu.Unlock()
+
+	// Hold the commit until released.
+	if entered != nil {
 		close(entered)
 		select {
 		case <-release:
 		case <-ctx.Done():
-			return ctx.Err()
+			return nil, ctx.Err()
 		}
-		if validate == nil {
-			return nil
-		}
-		return validate(ctx, store)
 	}
-	return p.AtomicPublisher.SubmitAtomic(ctx, &held)
+	return t.Turn.Admit(ctx, candidate)
 }
 
 // engineRoot serves one prebuilt World engine as the root resource's CreateWorld.
@@ -100,13 +104,13 @@ func (r *engineRoot) CreateWorld(ctx context.Context, _ *s4wave_testbed.CreateWo
 	return &s4wave_testbed.CreateWorldResponse{ResourceId: id}, nil
 }
 
-// syncThroughFixture is a coordinated engine whose publications can be held,
-// served over the resource RPC.
+// syncThroughFixture is an engine whose commits can be held at its
+// authority, served over the resource RPC.
 type syncThroughFixture struct {
 	engine    *world_block.Engine
-	publisher *gatedPublisher
+	authority *gatedAuthority
 	sdk       *sdk_world_engine.SDKEngine
-	load      func(context.Context) (*bucket.ObjectRef, error)
+	load      func(context.Context) (*block.BlockRef, error)
 }
 
 // newSyncThroughFixture builds the engine and attaches an SDKEngine to it.
@@ -119,7 +123,7 @@ func newSyncThroughFixture(t *testing.T) *syncThroughFixture {
 	log.SetLevel(logrus.ErrorLevel)
 	le := logrus.NewEntry(log)
 
-	// Open a native volume whose bucket supports atomic publication.
+	// Open a native volume whose bucket holds roots.
 	tb, err := testbed.NewTestbed(ctx, le, testbed.WithVolumeConfig(&volume_s4db.Config{
 		Path: filepath.Join(t.TempDir(), "sync-through.s4wave"), VolumeConfig: &volume_controller.Config{GcIntervalDur: "1h"},
 	}))
@@ -132,40 +136,17 @@ func newSyncThroughFixture(t *testing.T) *syncThroughFixture {
 		t.Fatal(err)
 	}
 	t.Cleanup(cursor.Release)
-	inner, ok := cursor.GetBucket().(block.AtomicPublisher)
-	if !ok || !inner.SupportsAtomicPublication() {
-		t.Fatal("native synced bucket must support publication")
-	}
 
-	// Keep the durable head in an object store updated by compare-and-swap.
-	store, rel, err := tb.Volume.AccessObjectStore(ctx, "sync-through-head", nil)
-	if err != nil {
-		t.Fatal(err)
+	// Open the engine on the gated local authority, whose root holds the
+	// durable head.
+	authority := &gatedAuthority{LocalAuthority: world_block.NewLocalAuthority(le, cursor, "world:sync-through", tb.Volume,
+		coord.Scope{VolumeID: tb.Volume.GetID(), ObjectStoreID: "world:sync-through", ParticipantID: "sync-through"})}
+	f := &syncThroughFixture{authority: authority}
+	f.load = func(ctx context.Context) (*block.BlockRef, error) {
+		head, err := authority.Head(ctx)
+		return head.Root, err
 	}
-	t.Cleanup(rel)
-	f := &syncThroughFixture{publisher: &gatedPublisher{AtomicPublisher: inner}}
-	f.load = func(ctx context.Context) (*bucket.ObjectRef, error) {
-		// Read the stored head, if any.
-		tx, err := store.NewTransaction(ctx, false)
-		if err != nil {
-			return nil, err
-		}
-		defer tx.Discard()
-		data, found, err := tx.Get(ctx, []byte("head"))
-		if err != nil || !found {
-			return nil, err
-		}
-		ref := &bucket.ObjectRef{}
-		return ref, ref.UnmarshalVT(data)
-	}
-
-	// Open the coordinated engine on the gated publisher.
-	f.engine, err = world_block.NewEngine(ctx, le, cursor, world_mock.LookupMockOp,
-		func(context.Context, *bucket.ObjectRef, *bucket.ObjectRef) error {
-			return errors.New("coordinated commits publish through the atomic head update")
-		}, false,
-		world_block.WithWriteCoordinator(tb.Volume, coord.Scope{VolumeID: tb.Volume.GetID(), ObjectStoreID: "sync-through-head", ParticipantID: "sync-through"}, []byte("head"), f.load),
-		world_block.WithAtomicPublication(f.publisher, headUpdate))
+	f.engine, err = world_block.NewEngine(ctx, le, cursor, world_mock.LookupMockOp, authority, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -204,32 +185,6 @@ func newSyncThroughFixture(t *testing.T) *syncThroughFixture {
 	return f
 }
 
-// headUpdate builds the compare-and-swap that moves the durable head from base
-// to next in the same publication as the blocks.
-func headUpdate(base, next *bucket.ObjectRef) *block.AtomicHeadUpdate {
-	// Reject the swap unless the stored head is still base.
-	base, next = base.Clone(), next.Clone()
-	return &block.AtomicHeadUpdate{ObjectStoreID: "sync-through-head", Key: []byte("head"), Replace: func(_ context.Context, data []byte, found bool) ([]byte, error) {
-		// With no stored head, base must be the empty world.
-		if !found {
-			if !base.GetRootRef().GetEmpty() {
-				return nil, coord.ErrStaleGeneration
-			}
-			return next.MarshalVT()
-		}
-
-		// A stored head must equal base.
-		old := &bucket.ObjectRef{}
-		if err := old.UnmarshalVT(data); err != nil {
-			return nil, err
-		}
-		if !old.EqualsRef(base) {
-			return nil, coord.ErrStaleGeneration
-		}
-		return next.MarshalVT()
-	}}
-}
-
 // commit creates one object in a write transaction and commits it.
 func (f *syncThroughFixture) commit(ctx context.Context, key string) error {
 	// Create the object in a write transaction.
@@ -247,10 +202,10 @@ func (f *syncThroughFixture) commit(ctx context.Context, key string) error {
 }
 
 // TestSDKEngine_SyncThroughSkipsLaterWriter checks that SyncThrough for the
-// first writer's seqno returns while a second writer holds an admitted but
-// undurable commit, which Sync waits for, and that the first commit is durable.
+// first writer's seqno returns while a second writer holds a sealed but
+// undurable commit, and that the first commit is durable.
 func TestSDKEngine_SyncThroughSkipsLaterWriter(t *testing.T) {
-	// Start from an empty coordinated world.
+	// Start from an empty world.
 	ctx := t.Context()
 	f := newSyncThroughFixture(t)
 
@@ -264,23 +219,15 @@ func TestSDKEngine_SyncThroughSkipsLaterWriter(t *testing.T) {
 	}
 	firstHead := f.engine.GetRootRef()
 
-	// The second writer's commit is admitted and held before it is durable.
-	entered, release := f.publisher.arm()
+	// The second writer's commit is sealed and held before it is durable.
+	entered, release := f.authority.arm()
 	t.Cleanup(release)
 	secondDone := make(chan error, 1)
 	go func() { secondDone <- f.commit(ctx, "second") }()
 	select {
 	case <-entered:
 	case <-time.After(5 * time.Second):
-		t.Fatal("second publication never reached the gate")
-	}
-
-	// Sync joins the held commit, so it cannot return.
-	syncCtx, cancel := context.WithTimeout(ctx, 100*time.Millisecond)
-	_, err = f.sdk.Sync(syncCtx)
-	cancel()
-	if err == nil {
-		t.Fatal("Sync returned while the second writer's commit was undurable")
+		t.Fatal("second commit never reached the gate")
 	}
 
 	// SyncThrough for the first writer returns without it.
@@ -298,7 +245,7 @@ func TestSDKEngine_SyncThroughSkipsLaterWriter(t *testing.T) {
 
 	// The first writer's commit is in the durable head.
 	head, err := f.load(ctx)
-	if err != nil || !head.EqualsRef(firstHead) {
+	if err != nil || !head.EqualsRef(firstHead.GetRootRef()) {
 		t.Fatalf("durable head %v, %v; want the first commit's head %v", head, err, firstHead)
 	}
 

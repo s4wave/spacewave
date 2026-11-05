@@ -32,6 +32,17 @@ func (s *BufferedStore) DrainReachable(ctx context.Context, roots ...*BlockRef) 
 	return s.drainAll(ctx)
 }
 
+// TakeReachable discards pending writes outside roots and borrows the rest,
+// children before parents, without writing them, so a caller can store them
+// in one transaction of its own. Ownership is as for SyncReachable, and the
+// borrow is as for TakePending.
+func (s *BufferedStore) TakeReachable(ctx context.Context, roots ...*BlockRef) (*PendingBatch, error) {
+	if err := s.keepReachable(ctx, roots); err != nil {
+		return nil, err
+	}
+	return s.TakePending(ctx)
+}
+
 // keepReachable drops every pending block that neither roots nor a reader pin
 // reach and queues the rest with children before parents.
 func (s *BufferedStore) keepReachable(ctx context.Context, roots []*BlockRef) error {

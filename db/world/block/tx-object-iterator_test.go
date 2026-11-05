@@ -13,7 +13,7 @@ import (
 func newIteratorTestTx(t *testing.T, ctx context.Context) *Tx {
 	// Lock the engine head.
 	t.Helper()
-	engine := newRetirementTestEngine(t, ctx)
+	engine := newRetirementTestEngine(t, ctx, nil)
 	locked := engine.bcast.Lock()
 	head := engine.head.readTx
 	locked.Unlock()

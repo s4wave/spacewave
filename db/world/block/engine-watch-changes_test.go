@@ -24,7 +24,7 @@ var errWindowRead = errors.New("read one change window")
 func TestWatchChanges(t *testing.T) {
 	// Create the objects the changes touch and one they leave alone.
 	ctx := t.Context()
-	e := newRetirementTestEngine(t, ctx)
+	e := newRetirementTestEngine(t, ctx, nil)
 	ws := world.NewEngineWorldState(e, true)
 	createWatchTestObject(t, ctx, ws, "watch/kept")
 	createWatchTestObject(t, ctx, ws, "watch/deleted")
@@ -87,7 +87,7 @@ func TestWatchChanges(t *testing.T) {
 func TestWatchChangesImportedRoot(t *testing.T) {
 	// Watch from the head the Engine opens at.
 	ctx := t.Context()
-	e := newRetirementTestEngine(t, ctx)
+	e := newRetirementTestEngine(t, ctx, nil)
 	after := headSeqno(t, ctx, e)
 
 	// Import a World with more operations than the head and install it.
@@ -132,7 +132,7 @@ func TestWatchChangesLive(t *testing.T) {
 	// Start two subscribers from the current head.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
-	e := newRetirementTestEngine(t, ctx)
+	e := newRetirementTestEngine(t, ctx, nil)
 	ws := world.NewEngineWorldState(e, true)
 	after := headSeqno(t, ctx, e)
 	reports := make(chan []string)
@@ -178,7 +178,7 @@ func TestWatchChangesRecorded(t *testing.T) {
 	// Keep a live subscriber so the change watch runs and lists each commit.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
-	e := newRetirementTestEngine(t, ctx)
+	e := newRetirementTestEngine(t, ctx, nil)
 	ws := world.NewEngineWorldState(e, true)
 	after := headSeqno(t, ctx, e)
 	reported := make(chan uint64)
@@ -224,7 +224,7 @@ func TestWatchChangesShareCatchUp(t *testing.T) {
 	// Commit a first head to watch from, since an empty root takes no pin.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
-	e := newSessionFixture(t).engine
+	e := newVolumeFixture(t).engine
 	ws := world.NewEngineWorldState(e, true)
 	createWatchTestObject(t, ctx, ws, "share/first")
 	after := headSeqno(t, ctx, e)
@@ -309,7 +309,7 @@ func TestWatchChangesFilter(t *testing.T) {
 	// Keep an unfiltered subscriber that reports each compared seqno.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
-	e := newRetirementTestEngine(t, ctx)
+	e := newRetirementTestEngine(t, ctx, nil)
 	ws := world.NewEngineWorldState(e, true)
 	after := headSeqno(t, ctx, e)
 	reported := make(chan uint64, 16)
@@ -382,7 +382,7 @@ func TestWatchChangesFilter(t *testing.T) {
 func TestWatchChangesEvicted(t *testing.T) {
 	// Watch from the current head, then publish past the retention bound.
 	ctx := t.Context()
-	e := newRetirementTestEngine(t, ctx)
+	e := newRetirementTestEngine(t, ctx, nil)
 	ws := world.NewEngineWorldState(e, true)
 	after := headSeqno(t, ctx, e)
 	for i := range changeWatchHeads {
@@ -399,10 +399,10 @@ func TestWatchChangesEvicted(t *testing.T) {
 // collected sees unknown changes rather than a partial list.
 func TestWatchChangesCollectedBase(t *testing.T) {
 	// Commit an object and watch from that head.
-	f := newSessionFixture(t)
+	f := newVolumeFixture(t)
 	ctx := t.Context()
-	w := sessionWriter(t, f)
-	sessionObject(t, w, "collected/first")
+	w := fixtureWriter(t, f.engine)
+	fixtureObject(t, w, "collected/first", "collected/first")
 	if err := w.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -410,8 +410,8 @@ func TestWatchChangesCollectedBase(t *testing.T) {
 	base := f.engine.GetRootRef().GetRootRef()
 
 	// Supersede the head and collect it.
-	w = sessionWriter(t, f)
-	sessionObject(t, w, "collected/second")
+	w = fixtureWriter(t, f.engine)
+	fixtureObject(t, w, "collected/second", "collected/second")
 	if err := w.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -455,11 +455,11 @@ func setPin(e *Engine, pin func(ctx context.Context, ref *block.BlockRef) (func(
 // peer could serve sees unknown changes without waiting for the peer.
 func TestWatchChangesPeerBase(t *testing.T) {
 	// Commit an object and watch from that head.
-	f := newSessionFixture(t)
+	f := newVolumeFixture(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
-	w := sessionWriter(t, f)
-	sessionObject(t, w, "peer/first")
+	w := fixtureWriter(t, f.engine)
+	fixtureObject(t, w, "peer/first", "peer/first")
 	if err := w.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -468,8 +468,8 @@ func TestWatchChangesPeerBase(t *testing.T) {
 
 	// Supersede the head and leave the base only on an absent peer: a pin
 	// that may wait for the peer blocks, and one that may not fails.
-	w = sessionWriter(t, f)
-	sessionObject(t, w, "peer/second")
+	w = fixtureWriter(t, f.engine)
+	fixtureObject(t, w, "peer/second", "peer/second")
 	if err := w.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -499,11 +499,11 @@ func TestWatchChangesPeerBase(t *testing.T) {
 // again under the publication lock.
 func TestHeadHoldersSharePublicationPin(t *testing.T) {
 	// Publish a head, then make every later pin block.
-	f := newSessionFixture(t)
+	f := newVolumeFixture(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
-	w := sessionWriter(t, f)
-	sessionObject(t, w, "pin/first")
+	w := fixtureWriter(t, f.engine)
+	fixtureObject(t, w, "pin/first", "pin/first")
 	if err := w.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -594,11 +594,11 @@ func (s *getFuncStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byt
 // subscribers instead of waiting for the peer.
 func TestWatchChangesMissingBlockNoPeer(t *testing.T) {
 	// Commit an object to watch from.
-	f := newSessionFixture(t)
+	f := newVolumeFixture(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
-	w := sessionWriter(t, f)
-	sessionObject(t, w, "hole/first")
+	w := fixtureWriter(t, f.engine)
+	fixtureObject(t, w, "hole/first", "hole/first")
 	if err := w.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -617,8 +617,8 @@ func TestWatchChangesMissingBlockNoPeer(t *testing.T) {
 		})
 	}()
 	armed.Store(true)
-	w = sessionWriter(t, f)
-	sessionObject(t, w, "hole/second")
+	w = fixtureWriter(t, f.engine)
+	fixtureObject(t, w, "hole/second", "hole/second")
 	if err := w.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -639,11 +639,11 @@ func TestWatchChangesMissingBlockNoPeer(t *testing.T) {
 // instead of waiting for the peer.
 func TestWatchChangesCatchUpMissingBlockNoPeer(t *testing.T) {
 	// Commit an object to catch up from.
-	f := newSessionFixture(t)
+	f := newVolumeFixture(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
-	w := sessionWriter(t, f)
-	sessionObject(t, w, "hole/first")
+	w := fixtureWriter(t, f.engine)
+	fixtureObject(t, w, "hole/first", "hole/first")
 	if err := w.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -652,8 +652,8 @@ func TestWatchChangesCatchUpMissingBlockNoPeer(t *testing.T) {
 
 	// Commit past it and start the watch there, so it records no span from
 	// the first head.
-	w = sessionWriter(t, f)
-	sessionObject(t, w, "hole/second")
+	w = fixtureWriter(t, f.engine)
+	fixtureObject(t, w, "hole/second", "hole/second")
 	if err := w.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}

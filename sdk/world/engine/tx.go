@@ -71,8 +71,8 @@ func (tx *SDKTx) CommitMutations(
 // returns its error and writes nothing. The request ignores ctx's cancellation
 // from the call on, so a caller's deadline does not abandon a commit that
 // started; closing the transport still ends the call. A commit rejected
-// because another writer advanced the World returns an error matching
-// coord.ErrStaleGeneration.
+// because another writer advanced the World returns an error
+// world.IsSuperseded matches.
 func (tx *SDKTx) Commit(ctx context.Context) error {
 	// Refuse a caller that has already stopped waiting, then release the resource.
 	if err := ctx.Err(); err != nil {

@@ -8,7 +8,6 @@ import (
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block/quad"
-	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/world"
 )
 
@@ -113,7 +112,7 @@ func (a *WorldRuntimeAdmission) withTx(
 			return err
 		}
 		err = world.ExecTransaction(ctx, a.eng, write, cb)
-		if !write || !errors.Is(err, coord.ErrStaleGeneration) {
+		if !write || !world.IsSuperseded(err) {
 			return err
 		}
 	}

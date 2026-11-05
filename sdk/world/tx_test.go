@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/s4wave/spacewave/db/coord"
+	"github.com/s4wave/spacewave/db/world"
 )
 
 // TestCommitErrorRestoresStaleGeneration classifies a flattened remote stale
@@ -20,6 +21,12 @@ func TestCommitErrorRestoresStaleGeneration(t *testing.T) {
 	}
 	if err.Error() != remote.Error() {
 		t.Fatalf("CommitError message = %q, want %q", err.Error(), remote.Error())
+	}
+
+	// Restore a flattened superseded commit too.
+	superseded := errors.New("head moved to seqno 3: world candidate superseded")
+	if err := CommitError(superseded); !world.IsSuperseded(err) || err.Error() != superseded.Error() {
+		t.Fatalf("CommitError(%q) = %v, want a superseded error", superseded, err)
 	}
 
 	// Construct a commit error unrelated to stale generations.

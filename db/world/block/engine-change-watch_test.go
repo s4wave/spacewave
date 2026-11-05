@@ -28,7 +28,7 @@ func TestEngineChangeWatchWakesOnlyChangedKeys(t *testing.T) {
 func testChangeWatchWakesOnlyChangedKeys(t *testing.T, bulk int) {
 	// Create two objects on a real block Engine.
 	ctx := t.Context()
-	e := newRetirementTestEngine(t, ctx)
+	e := newRetirementTestEngine(t, ctx, nil)
 	ws := world.NewEngineWorldState(e, true)
 	createWatchTestObject(t, ctx, ws, "watch/quiet")
 	createWatchTestObject(t, ctx, ws, "watch/busy")
@@ -101,7 +101,7 @@ func testChangeWatchWakesOnlyChangedKeys(t *testing.T, bulk int) {
 func TestEngineWaitObjectRev(t *testing.T) {
 	// Create the watched object on a real block Engine.
 	ctx := t.Context()
-	e := newRetirementTestEngine(t, ctx)
+	e := newRetirementTestEngine(t, ctx, nil)
 	ws := world.NewEngineWorldState(e, true)
 	rev := createWatchTestObject(t, ctx, ws, "watch/object")
 

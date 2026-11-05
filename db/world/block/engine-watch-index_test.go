@@ -20,7 +20,7 @@ func TestWatchIndexedReadSetGrows(t *testing.T) {
 	// Create the object a view reads.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
-	e := newRetirementTestEngine(t, ctx)
+	e := newRetirementTestEngine(t, ctx, nil)
 	ws := world.NewEngineWorldState(e, true)
 	createWatchTestObject(t, ctx, ws, "grow/read")
 
@@ -68,7 +68,7 @@ func TestWatchIndexedReadSetGrows(t *testing.T) {
 func TestWatchViewKeepsSubscription(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
-	e := newRetirementTestEngine(t, ctx)
+	e := newRetirementTestEngine(t, ctx, nil)
 	ws := world.NewEngineWorldState(e, true)
 
 	// Run a view that reads keep/a, then keep/b while the test holds it, then
@@ -156,7 +156,7 @@ func TestWatchIndexWriteNotBlocked(t *testing.T) {
 	// Open an Engine with one object.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
-	e := newRetirementTestEngine(t, ctx)
+	e := newRetirementTestEngine(t, ctx, nil)
 	ws := world.NewEngineWorldState(e, true)
 	createWatchTestObject(t, ctx, ws, "busy/base")
 

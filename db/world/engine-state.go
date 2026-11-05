@@ -3,10 +3,8 @@ package world
 import (
 	"context"
 
-	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
-	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/net/peer"
@@ -294,10 +292,10 @@ func (e *engineWorldState) HasObject(ctx context.Context, key string) (bool, err
 }
 
 // retryWorldOp reports whether a failed World operation may replay in a fresh
-// transaction: another writer moved the coordinated head, or the storage
-// snapshot became invalid.
+// transaction: another writer moved the head, or the storage snapshot became
+// invalid.
 func retryWorldOp(err error) bool {
-	return errors.Is(err, coord.ErrStaleGeneration) || kvtx.RetryInvalidSnapshot(err)
+	return IsSuperseded(err) || kvtx.RetryInvalidSnapshot(err)
 }
 
 // performOp replays a complete operation in a fresh transaction after either a

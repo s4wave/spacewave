@@ -10,7 +10,7 @@ import (
 func TestRenameGraphFieldBoundaries(t *testing.T) {
 	// Create every endpoint in the existing World engine testbed.
 	ctx := t.Context()
-	engine := newRetirementTestEngine(t, ctx)
+	engine := newRetirementTestEngine(t, ctx, nil)
 	writer, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)

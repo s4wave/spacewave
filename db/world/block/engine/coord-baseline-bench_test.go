@@ -13,7 +13,6 @@ import (
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
 	"github.com/s4wave/spacewave/db/bucket"
 	db_testbed "github.com/s4wave/spacewave/db/testbed"
-	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/util/blockenc"
 	"github.com/s4wave/spacewave/db/world"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
@@ -21,71 +20,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/zeebo/blake3"
 )
-
-func TestWorldEngineStaleHeadPublicationRejectsOpenWriter(t *testing.T) {
-	// Open the baseline World engine and its root publication controls.
-	ctx := context.Background()
-	eng, cleanup := setupWorldEngineCoordBaseline(t, ctx)
-	defer cleanup()
-	rootOwner := blockEngine(ctx, t, eng)
-
-	// Commit the initial World root to retain its publication reference.
-	initialTx, err := eng.NewTransaction(ctx, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	{
-		createdObject, err := initialTx.CreateObject(ctx, "coord-baseline/stale-head/initial", &bucket.ObjectRef{BucketId: "coord-baseline-bucket"})
-		world.ReleaseObjectState(createdObject)
-		if err != nil {
-			initialTx.Discard()
-			t.Fatal(err)
-		}
-	}
-	if err := initialTx.Commit(ctx); err != nil {
-		t.Fatal(err)
-	}
-	firstRoot := rootOwner.GetRootRef()
-
-	// Commit a fresh World root before preparing the stale writer.
-	freshTx, err := eng.NewTransaction(ctx, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	{
-		createdObject2, err := freshTx.CreateObject(ctx, "coord-baseline/stale-head/fresh", &bucket.ObjectRef{BucketId: "coord-baseline-bucket"})
-		world.ReleaseObjectState(createdObject2)
-		if err != nil {
-			freshTx.Discard()
-			t.Fatal(err)
-		}
-	}
-	if err := freshTx.Commit(ctx); err != nil {
-		t.Fatal(err)
-	}
-
-	// Prepare an open World writer with an uncommitted object.
-	staleTx, err := eng.NewTransaction(ctx, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer staleTx.Discard()
-	{
-		createdObject3, err := staleTx.CreateObject(ctx, "coord-baseline/stale-head/rejected", &bucket.ObjectRef{BucketId: "coord-baseline-bucket"})
-		world.ReleaseObjectState(createdObject3)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	// Publish the old World root and require the open writer to be discarded.
-	if err := rootOwner.SetRootRef(ctx, firstRoot); err != nil {
-		t.Fatal(err)
-	}
-	if err := staleTx.Commit(ctx); err != tx.ErrDiscarded {
-		t.Fatalf("expected stale writer to reject after root publication, got %v", err)
-	}
-}
 
 func BenchmarkWorldEngineOneWriterBaseline(b *testing.B) {
 	// Open the baseline World engine for the timed writer.

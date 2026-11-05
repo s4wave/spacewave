@@ -14,7 +14,7 @@ func TestDeleteGraphQuadRevisions(t *testing.T) {
 		t.Run(target, func(t *testing.T) {
 			// Create endpoints and distinct objects whose keys contain IRI delimiters.
 			ctx := t.Context()
-			engine := newRetirementTestEngine(t, ctx)
+			engine := newRetirementTestEngine(t, ctx, nil)
 			writer, err := engine.NewTransaction(ctx, true)
 			if err != nil {
 				t.Fatal(err)

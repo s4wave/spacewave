@@ -3,6 +3,8 @@ package world
 import (
 	"errors"
 
+	"github.com/s4wave/spacewave/db/coord"
+
 	"github.com/aperturerobotics/cayley/graph"
 )
 
@@ -70,3 +72,12 @@ var (
 	// ErrNotIRI is returned if the format <object-key> is not used for the graph key.
 	ErrNotIRI = errors.New("quad value must be valid object IRIs")
 )
+
+// IsSuperseded reports whether err says another writer moved the head after
+// the write's base, so the write may run again from a new transaction. Every
+// retry site matches through it, so a change of the sentinel reaches them all.
+// The SharedObject World engine still reports a stale base as
+// coord.ErrStaleGeneration.
+func IsSuperseded(err error) bool {
+	return errors.Is(err, ErrSuperseded) || errors.Is(err, coord.ErrStaleGeneration)
+}

@@ -8,16 +8,15 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
 )
 
 // TestReadOpensWhileWriterHoldsEngineLock runs many readers while a commit
-// holds the Engine lock in its commitFn. Every reader opens a snapshot, reads
-// it, and discards it while the writer still holds the lock, and reads the
-// head published before the commit. A snapshot opened before the commit keeps
+// is held at its Authority's Admit. Every reader opens a snapshot, reads it,
+// and discards it while the writer is held, and reads the head published
+// before the commit. A snapshot opened before the commit keeps
 // reading that head's storage after the commit publishes a newer head.
 func TestReadOpensWhileWriterHoldsEngineLock(t *testing.T) {
 	// Open a testbed with an empty cursor.
@@ -34,20 +33,23 @@ func TestReadOpensWhileWriterHoldsEngineLock(t *testing.T) {
 	}
 	defer base.Release()
 
-	// Block commitFn, which runs under the Engine lock, on demand.
+	// Hold the commit at Admit on demand.
 	var block atomic.Bool
 	entered := make(chan struct{})
 	releaseCommit := make(chan struct{})
-	commitFn := func(context.Context, *bucket.ObjectRef, *bucket.ObjectRef) error {
-		if block.Load() {
-			close(entered)
-			<-releaseCommit
-		}
-		return nil
+	authority := &hookAuthority{
+		Authority: newTestAuthority(t, le, base, "world:lockfree"),
+		admit: func(context.Context, world.Candidate) error {
+			if block.Load() {
+				close(entered)
+				<-releaseCommit
+			}
+			return nil
+		},
 	}
 
-	// Open the engine with the blocking commitFn.
-	eng, err := NewEngine(ctx, le, base, nil, commitFn, false)
+	// Open the engine on the gated authority.
+	eng, err := NewEngine(ctx, le, base, nil, authority, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,18 +87,13 @@ func TestReadOpensWhileWriterHoldsEngineLock(t *testing.T) {
 	}
 	defer held.Discard()
 
-	// Start a commit that holds the Engine lock inside commitFn.
+	// Start a commit and hold it at its Authority's Admit.
 	block.Store(true)
 	writerDone := make(chan error, 1)
 	go func() { writerDone <- createObject("lockfree/during") }()
 	<-entered
-	if locked, ok := eng.bcast.TryLock(); ok {
-		locked.Unlock()
-		t.Fatal("the writer does not hold the Engine lock in commitFn")
-	}
 
-	// Run many readers against the published head while the writer holds
-	// the lock.
+	// Run many readers against the published head while the writer is held.
 	const readers = 64
 	var completed atomic.Int64
 	readErrs := make(chan error, readers)
@@ -116,14 +113,14 @@ func TestReadOpensWhileWriterHoldsEngineLock(t *testing.T) {
 		close(readersDone)
 	}()
 
-	// Every reader must finish while commitFn still blocks the writer. The
+	// Every reader must finish while Admit still holds the writer. The
 	// deadline only bounds a failing run.
 	select {
 	case <-readersDone:
 	case <-time.After(30 * time.Second):
 		close(releaseCommit)
 		<-writerDone
-		t.Fatalf("%d of %d readers finished; the rest waited on the writer's Engine lock", completed.Load(), readers)
+		t.Fatalf("%d of %d readers finished; the rest waited on the writer", completed.Load(), readers)
 	}
 	close(readErrs)
 	for err := range readErrs {
@@ -134,7 +131,7 @@ func TestReadOpensWhileWriterHoldsEngineLock(t *testing.T) {
 	}
 	select {
 	case err := <-writerDone:
-		t.Fatalf("the writer finished before its commitFn was released: %v", err)
+		t.Fatalf("the writer finished before its Admit was released: %v", err)
 	default:
 	}
 

@@ -14,7 +14,7 @@ import (
 func TestChangedObjectKeys(t *testing.T) {
 	// Create three objects and record the World root.
 	ctx := t.Context()
-	e := newRetirementTestEngine(t, ctx)
+	e := newRetirementTestEngine(t, ctx, nil)
 	ws := world.NewEngineWorldState(e, true)
 	createWatchTestObject(t, ctx, ws, "diff/kept")
 	createWatchTestObject(t, ctx, ws, "diff/changed")

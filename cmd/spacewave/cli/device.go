@@ -27,7 +27,6 @@ import (
 	core_session "github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/s4wave/spacewave/net/crypto"
@@ -1134,7 +1133,7 @@ func upsertLinkedDeviceObjectInWorld(
 		if ctx.Err() != nil {
 			return "", ctx.Err()
 		}
-		if errors.Is(err, coord.ErrStaleGeneration) {
+		if world.IsSuperseded(err) {
 			stale++
 			if stale < 10 {
 				continue

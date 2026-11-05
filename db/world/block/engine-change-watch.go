@@ -101,11 +101,6 @@ type objectKeyWake struct {
 // revision. The change watch wakes the waiter only when a published head
 // changes the object's record, so unrelated commits cost the waiter nothing.
 func (e *Engine) WaitObjectRev(ctx context.Context, key string, rev uint64, ignoreNotFound bool) (uint64, error) {
-	// Discover durable commits that preceded this wait.
-	if err := e.refreshWaitHead(ctx); err != nil {
-		return 0, err
-	}
-
 	// Register before the first read so the watch compares from a head at or
 	// before every head this waiter reads.
 	locked := e.bcast.Lock()
@@ -129,7 +124,6 @@ func (e *Engine) WaitObjectRev(ctx context.Context, key string, rev uint64, igno
 			return 0, err
 		}
 		readTx := e.head.readTx
-		watchErr := e.headWatchErr
 		woken := wake.ch
 		locked.Unlock()
 
@@ -142,17 +136,13 @@ func (e *Engine) WaitObjectRev(ctx context.Context, key string, rev uint64, igno
 			return 0, err
 		}
 
-		// Return a satisfied revision before considering observation failure.
+		// Return a satisfied revision.
 		if found && currRev >= rev {
 			return currRev, nil
 		}
 		if !found && !ignoreNotFound {
 			return 0, world.ErrObjectNotFound
 		}
-		if watchErr != nil {
-			return 0, watchErr
-		}
-
 		// Sleep until a head changes this object or the watch loses track.
 		select {
 		case <-ctx.Done():
@@ -254,12 +244,6 @@ func (e *Engine) runChangeWatch(w *engineChangeWatch) {
 			case <-wait:
 			case <-idle:
 			}
-
-			locked = e.bcast.Lock()
-			if !e.closed && e.headWatchErr != nil {
-				w.wakeAllLocked()
-			}
-			locked.Unlock()
 			continue
 		}
 

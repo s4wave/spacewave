@@ -345,7 +345,7 @@ func (e *Engine) changeWatchErr() error {
 	if e.closed {
 		return ErrEngineClosed
 	}
-	return e.headWatchErr
+	return nil
 }
 
 // signal wakes the subscriber without blocking.
