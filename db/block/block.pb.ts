@@ -189,15 +189,22 @@ export interface BlockObject {
    */
   data?: Uint8Array
   /**
-   * Refs are the block's outgoing refs. Empty means a leaf.
+   * Refs are the block's outgoing refs. Empty means a leaf unless
+   * refs_unknown is set.
    */
   refs?: BlockRef[]
+  /**
+   * RefsUnknown marks a block stored without its refs, which a reader must
+   * not take for a leaf.
+   */
+  refsUnknown?: boolean
 }
 
 export const BlockObject: MessageType<BlockObject> =
   /* @__PURE__ */ createMessageType<BlockObject>('block.BlockObject', () => [
     [1, 'data', 12],
     [2, 'refs', 11, 1, BlockRef.codec],
+    [3, 'refs_unknown', 8],
   ])
 
 /**

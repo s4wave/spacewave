@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/go-kvfile"
-	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/bloom"
 	"github.com/s4wave/spacewave/db/packfile"
@@ -160,12 +159,32 @@ func TestPackBlocks(t *testing.T) {
 		t.Fatal("expected error from iterator")
 	}
 
-	// Verify a block without known refs is rejected.
-	_, err = PackBlocks(io.Discard, func() (*hash.Hash, *block.StoredBlock, error) {
-		return blocks[0].hash, &block.StoredBlock{Data: blocks[0].data}, nil
+	// Verify a block without known refs packs marked so, and does not read
+	// back as a leaf.
+	var unknownBuf bytes.Buffer
+	sent := false
+	_, err = PackBlocks(&unknownBuf, func() (*hash.Hash, *block.StoredBlock, error) {
+		if sent {
+			return nil, nil, nil
+		}
+		sent = true
+		return blocks[0].hash, &block.StoredBlock{Data: blocks[0].data, Refs: blocks[0].refs}, nil
 	})
-	if !errors.Is(err, block.ErrRefsUnknown) {
-		t.Fatalf("pack byte-only block err = %v, want ErrRefsUnknown", err)
+	if err != nil {
+		t.Fatal(err)
+	}
+	unknownReader, err := kvfile.BuildReader(bytes.NewReader(unknownBuf.Bytes()), uint64(unknownBuf.Len()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	key := packfile.BlockKey(blocks[0].hash)
+	value, found, err := unknownReader.Get(key)
+	if err != nil || !found {
+		t.Fatalf("byte-only block = %v, %v", found, err)
+	}
+	_, stored, err := packfile.DecodeBlockValue(key, value)
+	if err != nil || stored.GetRefsKnown() || len(stored.GetRefs()) != 0 || !bytes.Equal(stored.GetData(), blocks[0].data) {
+		t.Fatalf("byte-only block decoded = %+v, %v, want data with refs unknown", stored, err)
 	}
 }
 

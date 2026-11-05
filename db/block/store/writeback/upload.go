@@ -432,8 +432,9 @@ func (s *Store) uploadChunk(ctx context.Context, remote block.StoreOps, batch []
 }
 
 // readPending reads the pending block with its refs from the local store. It
-// marks a block the store no longer holds dropped and returns nil, and fails
-// on a block held without its refs, since the remote would keep it as a leaf.
+// marks a block the store no longer holds dropped and returns nil. A block
+// held without its refs uploads with its refs unknown, which the remote
+// keeps as unknown rather than as a leaf.
 func (s *Store) readPending(ctx context.Context, pending *pendingBlock) (*block.PutBatchEntry, error) {
 	// Read the block, marking it dropped when gone.
 	stored, err := s.local.GetStoredBlock(ctx, pending.ref)
@@ -444,10 +445,5 @@ func (s *Store) readPending(ctx context.Context, pending *pendingBlock) (*block.
 		pending.dropped = true
 		return nil, nil
 	}
-
-	// Upload only a block whose refs are known.
-	if !stored.RefsKnown {
-		return nil, errors.Wrapf(block.ErrRefsUnknown, "upload block %s", pending.ref.MarshalString())
-	}
-	return &block.PutBatchEntry{Ref: pending.ref, Data: stored.Data, Refs: stored.Refs, RefsKnown: true}, nil
+	return &block.PutBatchEntry{Ref: pending.ref, Data: stored.Data, Refs: stored.Refs, RefsKnown: stored.RefsKnown}, nil
 }

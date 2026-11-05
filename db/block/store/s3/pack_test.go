@@ -42,8 +42,8 @@ func TestPackStoreBatch(t *testing.T) {
 
 	// Write the root and child together with their reference edge.
 	_, err = writer.PutBlockBatch(ctx, []*block.PutBatchEntry{
-		{Ref: childRef, Data: child},
-		{Ref: rootRef, Data: root, Refs: []*block.BlockRef{childRef}},
+		{Ref: childRef, Data: child, RefsKnown: true},
+		{Ref: rootRef, Data: root, Refs: []*block.BlockRef{childRef}, RefsKnown: true},
 	})
 	if err != nil {
 		t.Fatal(err)

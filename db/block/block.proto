@@ -16,8 +16,12 @@ message BlockRef {
 message BlockObject {
   // Data is the encoded block.
   bytes data = 1;
-  // Refs are the block's outgoing refs. Empty means a leaf.
+  // Refs are the block's outgoing refs. Empty means a leaf unless
+  // refs_unknown is set.
   repeated BlockRef refs = 2;
+  // RefsUnknown marks a block stored without its refs, which a reader must
+  // not take for a leaf.
+  bool refs_unknown = 3;
 }
 
 // AccessLog lists the blocks an operation read, once each, in the order of
