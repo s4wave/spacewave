@@ -180,27 +180,48 @@ func (rr *runReader) get(key []byte) (value, bool, error) {
 	if err != nil {
 		return value{}, false, err
 	}
-	e, ok := blk.seek(key)
-	if !ok || !bytes.Equal(e.key, key) {
-		return value{}, false, nil
-	}
-	return e.val, true, nil
+	v, ok := blk.find(key)
+	return v, ok, nil
 }
 
 // lookupRuns returns the value of key in the newest run of st that holds it.
-// A tombstone found first hides the key.
+// A tombstone found first hides the key. Level 0's runs overlap and are read
+// newest first; each lower level's runs do not, so only the one whose range
+// covers the key is read, found by bisection. A lookup reads R0 + L runs at
+// most, and tests each one's range before it touches the run's reader.
 func (db *DB) lookupRuns(st *state, key []byte) (value, bool, error) {
-	for _, m := range st.m.runs {
-		rr, err := db.reader(m)
-		if err != nil {
-			return value{}, false, err
+	runs := st.m.runs
+	for len(runs) != 0 {
+		// Split off the next level, which lookupOrder keeps contiguous.
+		level := runs[0].level
+		n := sort.Search(len(runs), func(i int) bool { return runs[i].level != level })
+		lv := runs[:n]
+		runs = runs[n:]
+
+		// A lower level holds key in at most its first run ending at or
+		// after it.
+		if level != 0 {
+			i := sort.Search(len(lv), func(i int) bool { return bytes.Compare(lv[i].largest, key) >= 0 })
+			lv = lv[i:min(i+1, len(lv))]
 		}
-		v, ok, err := rr.get(key)
-		if err != nil {
-			return value{}, false, err
-		}
-		if ok {
-			return v, v.kind != valueDeleted, nil
+
+		// Read each candidate run whose range holds key.
+		for i := range lv {
+			m := &lv[i]
+			if bytes.Compare(key, m.smallest) < 0 || bytes.Compare(key, m.largest) > 0 {
+				continue
+			}
+			rr, err := db.reader(*m)
+			if err != nil {
+				return value{}, false, err
+			}
+			v, ok, err := rr.get(key)
+			if err != nil {
+				return value{}, false, err
+			}
+			if ok {
+				return v, v.kind != valueDeleted, nil
+			}
 		}
 	}
 	return value{}, false, nil
@@ -230,15 +251,42 @@ func lookupOrder(a, b runMeta) int {
 }
 
 // runLayers returns one merge layer per run of st that may hold keys under
-// prefix, newest first.
+// prefix, newest first. Level 0's runs are tested one by one; in each lower
+// level, whose runs are in key order and do not overlap, the first run ending
+// at or after the prefix is found by bisection and the runs from it are taken
+// while they start before the prefix's end, so the pass grows with the levels
+// and the runs taken, not with every run.
 func (db *DB) runLayers(st *state, prefix []byte) []layer {
+	// Walk the levels in lookup order.
 	var layers []layer
 	end := prefixEnd(prefix)
-	for _, m := range st.m.runs {
-		if bytes.Compare(m.largest, prefix) < 0 || (end != nil && bytes.Compare(m.smallest, end) >= 0) {
-			continue
+	runs := st.m.runs
+	for len(runs) != 0 {
+		// Split off the next level, which lookupOrder keeps contiguous.
+		level := runs[0].level
+		n := sort.Search(len(runs), func(i int) bool { return runs[i].level != level })
+		lv := runs[:n]
+		runs = runs[n:]
+
+		// Skip a lower level's runs that end before the prefix.
+		if level != 0 {
+			lv = lv[sort.Search(len(lv), func(i int) bool { return bytes.Compare(lv[i].largest, prefix) >= 0 }):]
 		}
-		layers = append(layers, &runIter{db: db, meta: m, cache: true})
+
+		// Take each run whose range meets the prefix; a lower level's runs
+		// past the prefix's end are all past it.
+		for _, m := range lv {
+			if end != nil && bytes.Compare(m.smallest, end) >= 0 {
+				if level != 0 {
+					break
+				}
+				continue
+			}
+			if bytes.Compare(m.largest, prefix) < 0 {
+				continue
+			}
+			layers = append(layers, &runIter{db: db, meta: m, cache: true})
+		}
 	}
 	return layers
 }
