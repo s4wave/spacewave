@@ -260,9 +260,11 @@ func (s *Store) markDurable(n uint64) {
 	})
 }
 
-// SupportsAtomicCommit excludes unsafe or externally deferred durability modes.
+// SupportsAtomicCommit reports true: a bolt write transaction commits all of
+// its writes or none of them, and holds the database writer lock across its
+// reads and writes. NoSync and NoFreelistSync weaken durability, not atomicity.
 func (s *Store) SupportsAtomicCommit() bool {
-	return !s.db.NoSync && !s.db.NoFreelistSync
+	return true
 }
 
 // _ is a type assertion

@@ -334,10 +334,21 @@ func (s *Store[T]) Execute(ctx context.Context) error {
 	return nil
 }
 
+// SupportsAtomicCommit reports true: a write transaction is one SQLite
+// transaction that takes the reserved lock when it opens, so its reads see
+// every committed write and no other writer commits until it ends, and its
+// Commit lands all of its writes or none of them.
+func (s *Store[T]) SupportsAtomicCommit() bool {
+	return true
+}
+
 // Close closes the database.
 func (s *Store[T]) Close() error {
 	return s.db.Close()
 }
 
 // _ is a type assertion
-var _ kvtx.Store = (*Store[SQLiteDriverConfig])(nil)
+var (
+	_ kvtx.Store             = (*Store[SQLiteDriverConfig])(nil)
+	_ kvtx.AtomicCommitStore = (*Store[SQLiteDriverConfig])(nil)
+)
