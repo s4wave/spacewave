@@ -349,10 +349,16 @@ func (t *Tx) commit(ctx context.Context, ordered bool) error {
 	// it deferred to this point.
 	db := t.db
 	if t.reads != nil {
-		// Reads alone serialize at the snapshot.
+		// Reads alone serialize at the snapshot. A durable commit still
+		// makes the commits its snapshot holds durable, as a locked one
+		// does, so a caller that commits to flush what came before gets it.
 		if t.changes.Len() == 0 && len(t.atCommit) == 0 {
+			seq := t.st.seq
 			t.Discard()
-			return nil
+			if ordered {
+				return nil
+			}
+			return db.flush.syncThrough(ctx, seq, 0)
 		}
 		if err := t.lockValidated(ctx); err != nil {
 			t.done = true
