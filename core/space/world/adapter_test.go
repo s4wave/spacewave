@@ -3,6 +3,7 @@ package space_world_test
 import (
 	"context"
 	"os"
+	"slices"
 	"strconv"
 	"sync"
 	"testing"
@@ -17,6 +18,7 @@ import (
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
 	space_world "github.com/s4wave/spacewave/core/space/world"
+	"github.com/s4wave/spacewave/db/block"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	"github.com/s4wave/spacewave/db/volume"
@@ -42,6 +44,8 @@ type adapterFixture struct {
 	freed uint64
 	// maxPending bounds the pages the adapter keeps, zero for its default.
 	maxPending uint64
+	// acc is the provider account.
+	acc *provider_local.ProviderAccount
 }
 
 // fixtureOpts selects how a fixture stores its Space.
@@ -165,7 +169,7 @@ func newAdapterFixtureOn(t *testing.T, opts fixtureOpts) *adapterFixture {
 			t.Fatal(err)
 		}
 	}
-	return &adapterFixture{tb: tb, ref: ref, engineID: "test-space-world", volume: acc.GetVolume(), frees: opts.frees, maxPending: opts.maxPending}
+	return &adapterFixture{tb: tb, ref: ref, engineID: "test-space-world", volume: acc.GetVolume(), frees: opts.frees, maxPending: opts.maxPending, acc: acc}
 }
 
 // start starts the engine controller and returns its engine.
@@ -405,16 +409,34 @@ func runAdapterThrough(t *testing.T, f *adapterFixture) {
 		t.Fatalf("snapshot listing after the checkpoint: %v", err)
 	}
 
-	// The replay base holds the checkpoint's World, and the checkpoint root
-	// is released once the checkpoint is installed.
+	// The replay base holds the checkpoint's World, and once the checkpoint
+	// is installed the checkpoint root no longer holds that World.
+	heldByCheckpoint := func(world *block.BlockRef) bool {
+		ref, err := store.GetRoot(ctx, space_world.RootCheckpoint)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if ref.GetEmpty() {
+			return false
+		}
+		data, found, err := store.GetBlock(ctx, ref)
+		if err != nil || !found {
+			t.Fatalf("checkpoint root block: %v, %v", found, err)
+		}
+		held := &space_world.HeldRoots{}
+		if err := held.UnmarshalVT(data); err != nil {
+			t.Fatal(err)
+		}
+		return slices.ContainsFunc(held.GetRoots(), world.EqualsRef)
+	}
 	deadline := time.Now().Add(10 * time.Second)
 	for {
-		base, berr := store.GetRoot(ctx, space_world.RootReplayBase)
-		pending, perr := store.GetRoot(ctx, space_world.RootCheckpoint)
-		if berr != nil || perr != nil {
-			t.Fatal(berr, perr)
+		base, err := store.GetRoot(ctx, space_world.RootReplayBase)
+		if err != nil {
+			t.Fatal(err)
 		}
-		if !base.GetEmpty() && pending.GetEmpty() {
+		pending := heldByCheckpoint(base)
+		if !base.GetEmpty() && !pending {
 			break
 		}
 		if time.Now().After(deadline) {
@@ -432,6 +454,61 @@ func runAdapterThrough(t *testing.T, f *adapterFixture) {
 	keys := []string{"test-object", "pipe-0", "pipe-" + strconv.Itoa(sobject.MinCheckpointOperations-1)}
 	if err := world.AccessEngine(ctx, eng, func(ctx context.Context, eng world.Engine) error {
 		return hasObjects(ctx, eng, keys...)
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if f.frees {
+		deleteSpace(ctx, t, f, engRef)
+	}
+}
+
+// deleteSpace deletes f's Space beside a second Space on the account, and
+// checks that a collection frees the deleted Space's blocks and keeps every
+// object of the other.
+func deleteSpace(ctx context.Context, t *testing.T, f *adapterFixture, engRef directive.Reference) {
+	// Write an object to a second Space.
+	t.Helper()
+	other, err := f.acc.CreateSharedObject(ctx, "other-space", &sobject.SharedObjectMeta{BodyType: "test"}, "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	otherEng, otherRef, err := world.StartEngine(ctx, f.tb.Bus, space_world.NewConfig("other-space-world", other), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer otherRef.Release()
+	if err := world.ExecTransaction(ctx, otherEng, true, func(ctx context.Context, ws world.WorldState) error {
+		obj, err := ws.CreateObject(ctx, "other-object", nil)
+		world.ReleaseObjectState(obj)
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Delete the first Space and collect.
+	base, err := f.space(t).GetBlockStore().GetRoot(ctx, space_world.RootReplayBase)
+	if err != nil || base.GetEmpty() {
+		t.Fatalf("replay base before the deletion: %v, %v", base, err)
+	}
+	engRef.Release()
+	if err := f.acc.DeleteSharedObject(ctx, f.ref.GetProviderResourceRef().GetId()); err != nil {
+		t.Fatal(err)
+	}
+	f.collect(t)
+
+	// The deleted Space's World is gone, and the other Space reads its
+	// object after a remount.
+	if found, err := f.volume.GetBlockExists(ctx, base); err != nil || found {
+		t.Fatalf("the deleted Space's World root after a collection: %v, %v", found, err)
+	}
+	otherRef.Release()
+	otherEng, otherRef, err = world.StartEngine(ctx, f.tb.Bus, space_world.NewConfig("other-space-world", other), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer otherRef.Release()
+	if err := world.AccessEngine(ctx, otherEng, func(ctx context.Context, eng world.Engine) error {
+		return hasObjects(ctx, eng, "other-object")
 	}); err != nil {
 		t.Fatal(err)
 	}

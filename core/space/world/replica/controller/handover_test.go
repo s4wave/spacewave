@@ -176,12 +176,14 @@ func buildLargeWorld(ctx context.Context, t *testing.T, b bus.Bus, acc *provider
 		}
 	}
 
-	// Report what the passes swept. A World's writes hold nothing in the
-	// Volume until its engine holds them through named roots, and the
-	// collector frees only behind its switch, so the passes may sweep none.
+	// The passes must have swept replaced payloads, or the store spans no
+	// block pass that mattered.
 	swept := fix.sweptReplaced(ctx, t, acc.GetVolume())
 	t.Logf("large World: %d live objects, %d deleted, %d commits, %d block passes removed %d blocks, %d of %d replaced payload roots swept, in %v",
 		len(fix.live), len(fix.deleted), fixtureRounds+fixtureChurn, passes, removed, swept, len(fix.replaced), time.Since(start))
+	if swept == 0 {
+		t.Fatal("no block pass swept a replaced payload")
+	}
 	return fix
 }
 

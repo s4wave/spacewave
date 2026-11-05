@@ -684,7 +684,7 @@ func (a *Adapter) Install(ctx context.Context, checkpoint *sobject.SOCheckpointI
 		return false, errors.Wrap(err, "checkpoint World state")
 	}
 
-	// Hold it as the replay base, releasing the checkpoint root.
+	// Hold it as the replay base.
 	baseRoot := base.GetHeadRef().GetRootRef()
 	if err := a.holdBase(ctx, baseRoot); err != nil {
 		return false, err
@@ -730,29 +730,17 @@ func (a *Adapter) Install(ctx context.Context, checkpoint *sobject.SOCheckpointI
 	return kept, nil
 }
 
-// holdBase moves the replay base onto root and releases the checkpoint root
-// in one change.
+// holdBase moves the replay base onto root. The checkpoint root keeps the
+// other Worlds Root returned until trimHistories finds no kept World is one.
 func (a *Adapter) holdBase(ctx context.Context, root *block.BlockRef) error {
-	// Take the root lock.
-	release, err := a.rootMtx.Lock(ctx)
-	if err != nil {
-		return err
-	}
-	defer release()
-
-	// Move both roots, and forget the checkpoint Worlds.
-	err = a.moveRootsLocked(ctx, nil,
-		block.NamedRoot{Name: RootReplayBase, Ref: root},
-		block.NamedRoot{Name: RootCheckpoint},
-	)
-	if err == nil {
-		a.checkpointWorlds.roots = nil
-	}
-	return err
+	return a.moveRoots(ctx, nil, block.NamedRoot{Name: RootReplayBase, Ref: root})
 }
 
-// trimHistories releases from the cursor and pending histories every World
-// that no kept position, pending candidate or the installed head still is.
+// trimHistories releases from the cursor, pending and checkpoint histories
+// the replay base's World, which its own root holds, and every World that no
+// kept position, pending candidate or the installed head still is. A World Root returned past the adopted checkpoint stays held
+// while a later position still is that World, since Root stored its pages
+// and dropped them from memory.
 func (a *Adapter) trimHistories(ctx context.Context) error {
 	// Gather the Worlds still kept.
 	var live []*block.BlockRef
@@ -765,7 +753,10 @@ func (a *Adapter) trimHistories(ctx context.Context) error {
 			live = append(live, adm.candidate.Root)
 		}
 	})
-	keep := func(root *block.BlockRef) bool { return slices.ContainsFunc(live, root.EqualsRef) }
+	base := a.replay.base.GetHeadRef().GetRootRef()
+	keep := func(root *block.BlockRef) bool {
+		return !root.EqualsRef(base) && slices.ContainsFunc(live, root.EqualsRef)
+	}
 
 	// Trim both histories.
 	release, err := a.rootMtx.Lock(ctx)
@@ -773,10 +764,12 @@ func (a *Adapter) trimHistories(ctx context.Context) error {
 		return err
 	}
 	defer release()
-	if err := a.trimHistory(ctx, &a.cursorWorlds, keep); err != nil {
-		return err
+	for _, h := range []*worldHistory{&a.cursorWorlds, &a.pendingWorlds, &a.checkpointWorlds} {
+		if err := a.trimHistory(ctx, h, keep); err != nil {
+			return err
+		}
 	}
-	return a.trimHistory(ctx, &a.pendingWorlds, keep)
+	return nil
 }
 
 // missAbove notes as missing every applied position whose operation is still

@@ -140,3 +140,59 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 		t.Fatalf("payloads after the reset = %v, want the admission's", a.payloads)
 	}
 }
+
+// TestInstallKeepsLaterCheckpointWorlds checks that an install of an earlier
+// checkpoint keeps holding a later World Root returned while a kept position
+// still is that World: Root stored its pages and dropped them from memory, so
+// releasing it would leave the position naming unheld pages.
+func TestInstallKeepsLaterCheckpointWorlds(t *testing.T) {
+	// Build an adapter whose checkpoint root holds an earlier and a later
+	// World, with a position at the later one.
+	ctx := t.Context()
+	store := &flakyRootStore{StoreOps: block_mock.NewMockStore(0), roots: make(map[string]*block.BlockRef)}
+	a := &Adapter{
+		le:               logrus.NewEntry(logrus.New()),
+		pages:            block.NewPendingStore(store, 1<<20),
+		held:             make(map[string]*block.BlockRef),
+		checkpointWorlds: worldHistory{name: RootCheckpoint},
+		cursorWorlds:     worldHistory{name: RootReplayCursor},
+		pendingWorlds:    worldHistory{name: RootPending},
+	}
+	earlier, err := block.BuildBlockRef([]byte("earlier World"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	later, err := block.BuildBlockRef([]byte("later World"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.replay = &spaceReplay{a: a, base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: earlier}}}
+	a.replay.positions = []spacePosition{{state: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: later}}}}
+	release, err := a.rootMtx.Lock(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := a.addHistory(ctx, &a.checkpointWorlds, earlier); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.addHistory(ctx, &a.checkpointWorlds, later); err != nil {
+		t.Fatal(err)
+	}
+	release()
+
+	// Install the earlier one as the replay base.
+	if err := a.holdBase(ctx, earlier); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.trimHistories(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	// The checkpoint root still holds the later World, and only it.
+	if store.roots[RootCheckpoint].GetEmpty() || !a.checkpointWorlds.holds(later) || a.checkpointWorlds.holds(earlier) {
+		t.Fatalf("checkpoint history after the install = %v", a.checkpointWorlds.roots)
+	}
+	if !store.roots[RootReplayBase].EqualsRef(earlier) {
+		t.Fatal("the install did not hold the replay base")
+	}
+}
