@@ -7,6 +7,9 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	block_transform "github.com/s4wave/spacewave/db/block/transform"
+	"github.com/s4wave/spacewave/db/kvtx"
+	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/sirupsen/logrus"
 )
 
@@ -46,6 +49,9 @@ type BodyDriver struct {
 	body Body
 	// report receives what the health shows when it changes, or is nil.
 	report func(*BodyReport)
+	// checkpointer signs this device's checkpoints, or is nil for a device
+	// that signs none.
+	checkpointer *bodyCheckpointer
 
 	// installed is the checkpoint the body holds, or nil before the first
 	// Install.
@@ -73,6 +79,16 @@ func NewBodyDriver(le *logrus.Entry, so SharedObject, body Body, report func(*Bo
 		report:  report,
 		applied: make(map[string]struct{}),
 	}
+}
+
+// SetCheckpointer has the driver sign, through host as privKey, the
+// checkpoints this device owes: as the checkpointer of an owner-controlled
+// Space, a checkpoint over the stable prefix once MinCheckpointOperations
+// operations are stable, or once one is when it also orders them. The body's
+// Root holds the state each one carries. sfs builds the key epoch transforms
+// that encrypt it. Call it before Execute.
+func (d *BodyDriver) SetCheckpointer(host *SOHost, privKey crypto.PrivKey, sfs *block_transform.StepFactorySet) {
+	d.checkpointer = &bodyCheckpointer{host: host, privKey: privKey, sfs: sfs}
 }
 
 // Execute steps the body to each state of so until ctx ends. After an error
@@ -170,7 +186,52 @@ func (d *BodyDriver) Step(ctx context.Context, snap SharedObjectStateSnapshot) e
 			return err
 		}
 	}
-	return nil
+
+	// Sign the checkpoint this device owes.
+	return d.checkpoint(ctx, ev)
+}
+
+// checkpoint signs and adopts the checkpoint over ev's stable prefix when this
+// device owes it and the body applied the prefix. A state that moved past the
+// prefix meanwhile skips it; the next step checkpoints again.
+func (d *BodyDriver) checkpoint(ctx context.Context, ev *OrderEvent) error {
+	// Only the checkpointer of an owner-controlled Space signs, and not while
+	// handing over. Group control decides checkpoints by vote.
+	c := d.checkpointer
+	self := d.so.GetPeerID().String()
+	if c == nil || ev.Config.IsGroupControl() || ev.Config.Checkpointer() != self {
+		return nil
+	}
+	own, err := ev.Snapshot.GetOwnership(ctx)
+	if err != nil || own.Departing(self) {
+		return err
+	}
+
+	// Wait for enough stable operations the body applied. The leader
+	// checkpoints every ordered batch, since the others install its
+	// checkpoints instead of replaying.
+	minStable := MinCheckpointOperations
+	if ev.Config.Leader() == self {
+		minStable = 1
+	}
+	if ev.Stable < minStable || len(d.positions) < ev.Stable {
+		return nil
+	}
+	data, err := d.body.Root(ctx, ev.Stable)
+	if err != nil || data == nil {
+		return err
+	}
+
+	// Sign and adopt it on the held state.
+	prefix := ev.Order[:ev.Stable]
+	height := ev.Checkpoint.GetHeight()
+	err = c.host.UpdateSOState(kvtx.WithOrderedCommitContext(ctx), func(state *SOState) error {
+		return c.adopt(ctx, d.le, d.so, state, prefix, data, height)
+	})
+	if errors.Is(err, errCheckpointStale) {
+		return nil
+	}
+	return err
 }
 
 // install resets the body to ev's checkpoint, keeping the positions after the
@@ -230,11 +291,11 @@ func (d *BodyDriver) apply(ctx context.Context, ev *OrderEvent, i int) error {
 		op.Refused = ReasonEquivocated
 	case inner.IsAcknowledgment():
 	default:
-		_, data, reason, err := PrepareReplayOp(ctx, ev.Snapshot, inner)
+		author, data, reason, err := PrepareReplayOp(ctx, ev.Snapshot, inner)
 		if err != nil {
 			return err
 		}
-		op.Data, op.Refused = data, reason
+		op.Author, op.Data, op.Refused = author, data, reason
 	}
 
 	// Apply it and record its outcome.

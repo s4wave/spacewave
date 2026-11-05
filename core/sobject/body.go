@@ -47,6 +47,9 @@ type OrderedOperation struct {
 	Hash []byte
 	// Inner is the verified operation, with its data still encoded.
 	Inner *SOOperationInner
+	// Author is the author's participant entry in the config the operation
+	// was written under, or nil when the operation applies nothing.
+	Author *SOParticipantConfig
 	// Data is the operation's decoded data, or nil when it applies nothing: an
 	// acknowledgment, or an operation every member refuses.
 	Data []byte
