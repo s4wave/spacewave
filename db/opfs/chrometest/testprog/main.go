@@ -1845,6 +1845,21 @@ func (d *probeDirtyTrackingStore) GetHashType() hash.HashType {
 	return d.store.GetHashType()
 }
 
+// GetRoot reads a named root from the underlying store.
+func (d *probeDirtyTrackingStore) GetRoot(ctx context.Context, name string) (*block.BlockRef, error) {
+	return d.store.GetRoot(ctx, name)
+}
+
+// ListRoots lists the underlying store's named roots.
+func (d *probeDirtyTrackingStore) ListRoots(ctx context.Context, prefix string, fn func(block.NamedRoot) error) error {
+	return d.store.ListRoots(ctx, prefix, fn)
+}
+
+// SetRoots moves named roots on the underlying store.
+func (d *probeDirtyTrackingStore) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	return d.store.SetRoots(ctx, entries, roots)
+}
+
 // GetSupportedFeatures returns the underlying store's advertised capabilities.
 func (d *probeDirtyTrackingStore) GetSupportedFeatures() block.StoreFeature {
 	return d.store.GetSupportedFeatures()
