@@ -30,7 +30,8 @@ import (
 //     bound puts the kept blocks below it first, in the same batch.
 //   - A kept block leaves memory only once the inner store holds it under a
 //     root moved in the same transaction, or when no root Sweep is given
-//     reaches it.
+//     reaches it and no open stage put it: a writer's tree is held while it
+//     builds, before any root names it.
 //   - A pin on a kept block stores the tree below it before the pin, so the
 //     collector never sees a pinned block without its children.
 type PendingStore struct {
@@ -38,10 +39,20 @@ type PendingStore struct {
 	// pass through to it.
 	StoreOps
 
-	// mtx guards kept and keptBytes. It is never held across I/O.
+	// mtx guards kept, keptBytes, held and each open stage's keys. It is never
+	// held across I/O.
 	mtx sync.Mutex
 	// kept holds the blocks put and not yet stored, by reference.
 	kept map[string]*PutBatchEntry
+	// held counts, by key, the open stages that put each kept block. Sweep
+	// keeps a held block and what it reaches: its writer has not named its
+	// root yet.
+	held map[string]int
+	// keptAt is the put sequence at which each kept block was kept. A sweep
+	// drops only blocks kept before its mark.
+	keptAt map[string]uint64
+	// seq counts the puts that kept a block.
+	seq uint64
 	// keptBytes is the total data length of kept.
 	keptBytes int
 	// maxBytes bounds keptBytes. A put past it goes to the inner store.
@@ -51,7 +62,7 @@ type PendingStore struct {
 // NewPendingStore returns a PendingStore over inner that keeps at most
 // maxBytes of blocks in memory.
 func NewPendingStore(inner StoreOps, maxBytes int) *PendingStore {
-	return &PendingStore{StoreOps: inner, kept: make(map[string]*PutBatchEntry), maxBytes: maxBytes}
+	return &PendingStore{StoreOps: inner, kept: make(map[string]*PutBatchEntry), held: make(map[string]int), keptAt: make(map[string]uint64), maxBytes: maxBytes}
 }
 
 // Full reports whether the kept blocks reached half the bound, so the writer
@@ -95,7 +106,7 @@ func (s *PendingStore) PutBlock(ctx context.Context, data []byte, opts *PutOpts)
 	if err != nil {
 		return nil, false, err
 	}
-	existed, err := s.put(ctx, s.StoreOps, []*PutBatchEntry{{Ref: ref, Data: data, Refs: opts.GetRefs(), RefsKnown: true}})
+	existed, err := s.put(ctx, s.StoreOps, nil, []*PutBatchEntry{{Ref: ref, Data: data, Refs: opts.GetRefs(), RefsKnown: true}})
 	if err != nil {
 		return nil, false, err
 	}
@@ -106,30 +117,37 @@ func (s *PendingStore) PutBlock(ctx context.Context, data []byte, opts *PutOpts)
 // allows, and puts the rest to the inner store. A kept entry reports whether
 // it was kept already.
 func (s *PendingStore) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) ([]bool, error) {
-	return s.put(ctx, s.StoreOps, entries)
+	return s.put(ctx, s.StoreOps, nil, entries)
 }
 
-// put keeps the entries it can and puts the rest to dst.
-func (s *PendingStore) put(ctx context.Context, dst StoreOps, entries []*PutBatchEntry) ([]bool, error) {
+// put keeps the entries it can and puts the rest to dst. Each entry kept
+// through stage, when set, is held until the stage is released.
+func (s *PendingStore) put(ctx context.Context, dst StoreOps, stage *pendingStage, entries []*PutBatchEntry) ([]bool, error) {
 	// Keep each entry with a child list that fits, in order.
 	out := make([]bool, len(entries))
 	var rest []*PutBatchEntry
 	var restIdx []int
 	s.mtx.Lock()
 	for i, e := range entries {
-		key := e.Ref.MarshalString()
+		key := pendingKey(e.Ref)
 		switch {
 		case e.Tombstone:
 			if prev := s.kept[key]; prev != nil {
 				s.keptBytes -= len(prev.Data)
 				delete(s.kept, key)
+				delete(s.keptAt, key)
 			}
 			rest, restIdx = append(rest, e), append(restIdx, i)
 		case s.kept[key] != nil:
 			out[i] = true
+			s.seq++
+			s.keptAt[key] = s.seq
+			s.holdLocked(stage, key)
 		case e.RefsKnown && s.keptBytes+len(e.Data) <= s.maxBytes:
-			s.kept[key] = e
+			s.seq++
+			s.kept[key], s.keptAt[key] = e, s.seq
 			s.keptBytes += len(e.Data)
+			s.holdLocked(stage, key)
 		default:
 			rest, restIdx = append(rest, e), append(restIdx, i)
 		}
@@ -159,14 +177,54 @@ func (s *PendingStore) put(ctx context.Context, dst StoreOps, entries []*PutBatc
 	return out, nil
 }
 
+// pendingKey returns the key of ref in kept: its hash type and digest. A read
+// of every block passes through lookup, so the key avoids the base58 encoding
+// of MarshalString.
+func pendingKey(ref *BlockRef) string {
+	h := ref.GetHash()
+	return string(rune(h.GetHashType())) + string(h.GetHash())
+}
+
+// holdLocked records that stage put the kept block key, once per stage. The
+// caller holds mtx.
+func (s *PendingStore) holdLocked(stage *pendingStage, key string) {
+	if stage == nil {
+		return
+	}
+	if _, ok := stage.keys[key]; ok {
+		return
+	}
+	stage.keys[key] = struct{}{}
+	s.held[key]++
+}
+
+// releaseStage drops the holds stage took, so Sweep may forget the blocks it
+// put once no live root reaches them.
+func (s *PendingStore) releaseStage(stage *pendingStage) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	for key := range stage.keys {
+		if s.held[key]--; s.held[key] <= 0 {
+			delete(s.held, key)
+		}
+	}
+	stage.keys = nil
+}
+
 // lookup returns the kept entry of ref, or nil.
 func (s *PendingStore) lookup(ref *BlockRef) *PutBatchEntry {
+	// Skip the key when nothing is kept.
 	if ref.GetEmpty() {
 		return nil
 	}
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
-	return s.kept[ref.MarshalString()]
+	if len(s.kept) == 0 {
+		return nil
+	}
+
+	// Find the kept entry.
+	return s.kept[pendingKey(ref)]
 }
 
 // GetBlock serves a kept block, or reads the inner store.
@@ -233,7 +291,7 @@ func (s *PendingStore) StatBlock(ctx context.Context, ref *BlockRef) (*BlockStat
 
 // RmBlock drops a kept block and removes it from the inner store.
 func (s *PendingStore) RmBlock(ctx context.Context, ref *BlockRef) error {
-	s.drop([]string{ref.MarshalString()})
+	s.drop([]string{pendingKey(ref)})
 	return s.StoreOps.RmBlock(ctx, ref)
 }
 
@@ -279,7 +337,7 @@ func (s *PendingStore) reach(roots []*BlockRef) ([]*PutBatchEntry, []string) {
 		if root.GetEmpty() {
 			continue
 		}
-		key := root.MarshalString()
+		key := pendingKey(root)
 		e := s.kept[key]
 		if _, ok := seen[key]; ok || e == nil {
 			continue
@@ -291,7 +349,7 @@ func (s *PendingStore) reach(roots []*BlockRef) ([]*PutBatchEntry, []string) {
 			if top.child < len(top.e.Refs) {
 				ref := top.e.Refs[top.child]
 				top.child++
-				ckey := ref.MarshalString()
+				ckey := pendingKey(ref)
 				if _, ok := seen[ckey]; ok {
 					continue
 				}
@@ -316,12 +374,32 @@ func (s *PendingStore) drop(keys []string) {
 		if e := s.kept[key]; e != nil {
 			s.keptBytes -= len(e.Data)
 			delete(s.kept, key)
+			delete(s.keptAt, key)
 		}
 	}
 }
 
-// Sweep drops the kept blocks none of live reaches.
-func (s *PendingStore) Sweep(live []*BlockRef) {
+// SweepMark returns the mark a caller takes before it gathers the live roots
+// of a Sweep. Blocks kept after the mark belong to roots the caller may not
+// have seen, so the Sweep keeps them.
+func (s *PendingStore) SweepMark() uint64 {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	return s.seq
+}
+
+// Sweep drops the kept blocks kept at or before mark that none of live
+// reaches, keeping every block an open stage put and what it reaches.
+func (s *PendingStore) Sweep(live []*BlockRef, mark uint64) {
+	// Add the held blocks to the live roots.
+	s.mtx.Lock()
+	for key := range s.held {
+		if e := s.kept[key]; e != nil {
+			live = append(live, e.Ref)
+		}
+	}
+	s.mtx.Unlock()
+
 	// Mark what the live roots reach.
 	_, keys := s.reach(live)
 	reached := make(map[string]struct{}, len(keys))
@@ -333,9 +411,10 @@ func (s *PendingStore) Sweep(live []*BlockRef) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	for key, e := range s.kept {
-		if _, ok := reached[key]; !ok {
+		if _, ok := reached[key]; !ok && s.keptAt[key] <= mark {
 			s.keptBytes -= len(e.Data)
 			delete(s.kept, key)
+			delete(s.keptAt, key)
 		}
 	}
 }
@@ -371,7 +450,11 @@ func (s *PendingStore) OpenStage(ctx context.Context) (StoreOps, func(), error) 
 	if err != nil {
 		return nil, nil, err
 	}
-	return &pendingStage{PendingStore: s, stage: stage}, release, nil
+	ps := &pendingStage{PendingStore: s, stage: stage, keys: make(map[string]struct{})}
+	return ps, func() {
+		s.releaseStage(ps)
+		release()
+	}, nil
 }
 
 // ReleaseRoots forwards staging release to the inner store.
