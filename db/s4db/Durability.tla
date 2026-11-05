@@ -238,11 +238,13 @@ Reopen ==
   /\ released' = {}
   /\ down' = FALSE /\ UNCHANGED drive
 
+\* The run ends down once every writer has reopened the file.
+Done == down /\ writer = MaxWriters /\ UNCHANGED vars
+
 Next ==
   \/ Commit("durable") \/ Commit("ordered") \/ Flush
   \/ RunWrite \/ RunFlush \/ SuperWrite \/ ReleaseLog
-  \/ Crash \/ Reopen
-  \/ UNCHANGED vars
+  \/ Crash \/ Reopen \/ Done
 Spec == Init /\ [][Next]_vars
 
 \* Every crash view recovers every acknowledged commit as a prefix with
