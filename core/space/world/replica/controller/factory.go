@@ -1,4 +1,4 @@
-package sobject_replica_controller
+package space_world_replica_controller
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
-	sobject_replica "github.com/s4wave/spacewave/core/sobject/replica"
+	space_world_replica "github.com/s4wave/spacewave/core/space/world/replica"
 )
 
 // Factory constructs replica controllers. It belongs on a Session's bus, where
@@ -23,7 +23,7 @@ func NewFactory(bus bus.Bus) *Factory {
 
 // GetConfigID returns the unique ID for the config.
 func (f *Factory) GetConfigID() string {
-	return sobject_replica.ConfigID
+	return space_world_replica.ConfigID
 }
 
 // GetControllerID returns the unique ID for the controller.
@@ -33,7 +33,7 @@ func (f *Factory) GetControllerID() string {
 
 // ConstructConfig constructs an instance of the controller configuration.
 func (f *Factory) ConstructConfig() config.Config {
-	return &sobject_replica.Config{}
+	return &space_world_replica.Config{}
 }
 
 // Construct constructs the replica controller for a config.
@@ -42,7 +42,7 @@ func (f *Factory) Construct(
 	conf config.Config,
 	opts controller.ConstructOpts,
 ) (controller.Controller, error) {
-	return NewController(opts.GetLogger(), f.bus, conf.(*sobject_replica.Config))
+	return NewController(opts.GetLogger(), f.bus, conf.(*space_world_replica.Config))
 }
 
 // GetVersion returns the version of this controller.

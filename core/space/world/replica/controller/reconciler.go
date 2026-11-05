@@ -1,4 +1,4 @@
-package sobject_replica_controller
+package space_world_replica_controller
 
 import (
 	"context"
@@ -8,8 +8,8 @@ import (
 	"github.com/aperturerobotics/util/ccontainer"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_replica "github.com/s4wave/spacewave/core/sobject/replica"
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	space_world_replica "github.com/s4wave/spacewave/core/space/world/replica"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/sirupsen/logrus"
 )
@@ -33,7 +33,7 @@ type reconciler struct {
 	// for. Only a later outcome comes from the recheck.
 	recheckBase *sobject_world_engine.BackfillState
 	// step is the last step taken, logged when it changes.
-	step sobject_replica.ReplicaStep
+	step space_world_replica.ReplicaStep
 }
 
 // newReconciler constructs a reconciler for acc acting with the Session key.
@@ -86,7 +86,7 @@ func (r *reconciler) pass(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	step := sobject_replica.NextStep(obs)
+	step := space_world_replica.NextStep(obs)
 	if step != r.step {
 		var owners []string
 		if obs.Ownership != nil {
@@ -106,11 +106,11 @@ func (r *reconciler) pass(ctx context.Context) error {
 
 // observe returns what this node sees: both specs, the ownership, the invite,
 // the copy's outcome and whether the other node's proof holds.
-func (r *reconciler) observe(ctx context.Context) (*sobject_replica.Observation, error) {
+func (r *reconciler) observe(ctx context.Context) (*space_world_replica.Observation, error) {
 	// Read the specs and the invite.
 	spec := r.c.conf.GetSpec()
 	peerState := r.c.getPeerState()
-	obs := &sobject_replica.Observation{
+	obs := &space_world_replica.Observation{
 		LocalPeerID:    r.c.local.String(),
 		Spec:           spec,
 		PeerSpec:       peerState.GetSpec(),
@@ -194,7 +194,7 @@ func (r *reconciler) freshBackfill(st *sobject_world_engine.BackfillState) *sobj
 
 // proofAccepted reports whether the other node's proof names the desired
 // owner on the stream and covers the World this Device has installed.
-func (r *reconciler) proofAccepted(ctx context.Context, be sobject_world_engine.BackfillEngine, signed *sobject_replica.SignedSOReplicaProof) (bool, error) {
+func (r *reconciler) proofAccepted(ctx context.Context, be sobject_world_engine.BackfillEngine, signed *space_world_replica.SignedSOReplicaProof) (bool, error) {
 	// Check who signed it and for what.
 	spec := r.c.conf.GetSpec()
 	proof, err := signed.Verify(spec.GetSharedObjectId(), spec.GetDesiredOwnerPeerId(), r.c.remote.String())

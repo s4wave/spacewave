@@ -1,6 +1,6 @@
 //go:build !tinygo
 
-package sobject_replica_controller_test
+package space_world_replica_controller_test
 
 import (
 	"context"
@@ -17,10 +17,10 @@ import (
 	"github.com/s4wave/spacewave/core/provider"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
-	sobject_replica "github.com/s4wave/spacewave/core/sobject/replica"
-	sobject_replica_controller "github.com/s4wave/spacewave/core/sobject/replica/controller"
 	"github.com/s4wave/spacewave/core/space"
 	space_sobject "github.com/s4wave/spacewave/core/space/sobject"
+	space_world_replica "github.com/s4wave/spacewave/core/space/world/replica"
+	space_world_replica_controller "github.com/s4wave/spacewave/core/space/world/replica/controller"
 	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
@@ -77,7 +77,7 @@ func startTestbed(ctx context.Context, t *testing.T) *testbed.Testbed {
 		t.Fatal(err)
 	}
 	t.Cleanup(tb.Release)
-	replicaFactory := func(b bus.Bus) controller.Factory { return sobject_replica_controller.NewFactory(b) }
+	replicaFactory := func(b bus.Bus) controller.Factory { return space_world_replica_controller.NewFactory(b) }
 	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus, transport.WithChildFactories(replicaFactory)))
 	tb.StaticResolver.AddFactory(space_sobject.NewFactory(tb.Bus))
 
@@ -173,7 +173,7 @@ func startFlowgraph(ctx context.Context, t *testing.T, tb *testbed.Testbed, aPee
 
 	// Allow the replica node type on each Device and run its reconciler.
 	stateRoot := t.TempDir()
-	if err := device_policy.WriteFile(stateRoot, &device_policy.DevicePolicy{NodeTypeId: []string{sobject_replica.NodeTypeID}}); err != nil {
+	if err := device_policy.WriteFile(stateRoot, &device_policy.DevicePolicy{NodeTypeId: []string{space_world_replica.NodeTypeID}}); err != nil {
 		t.Fatal(err)
 	}
 	policy, err := device_policy.NewPolicyStore(stateRoot)
@@ -200,12 +200,12 @@ func placePair(ctx context.Context, t *testing.T, engine world.Engine, id, desir
 	t.Helper()
 	node := func() *s4wave_flowgraph.FlowgraphNode {
 		return &s4wave_flowgraph.FlowgraphNode{
-			TypeId: sobject_replica.NodeTypeID,
+			TypeId: space_world_replica.NodeTypeID,
 			Parameters: map[string]string{
-				sobject_replica.ParamSharedObject: id,
-				sobject_replica.ParamDesiredOwner: desired,
+				space_world_replica.ParamSharedObject: id,
+				space_world_replica.ParamDesiredOwner: desired,
 			},
-			Ports: sobject_replica.NodeType{}.GetPorts(),
+			Ports: space_world_replica.NodeType{}.GetPorts(),
 		}
 	}
 	placement := func(key string) *s4wave_flowgraph.FlowgraphPlacement {
@@ -217,8 +217,8 @@ func placePair(ctx context.Context, t *testing.T, engine world.Engine, id, desir
 		_, err := s4wave_flowgraph.UpdateFlowgraph(ctx, tx, flowgraphKey, &s4wave_flowgraph.UpdateFlowgraphRequest{
 			SetNodes: map[string]*s4wave_flowgraph.FlowgraphNode{"a": node(), "b": node()},
 			SetConnections: map[string]*s4wave_flowgraph.FlowgraphConnection{"c1": {
-				OutputNode: "a", OutputPort: sobject_replica.PortOut,
-				InputNode: "b", InputPort: sobject_replica.PortIn,
+				OutputNode: "a", OutputPort: space_world_replica.PortOut,
+				InputNode: "b", InputPort: space_world_replica.PortIn,
 			}},
 			SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacements{"a": {Copies: []*s4wave_flowgraph.FlowgraphPlacement{placement(deviceAKey)}}, "b": {Copies: []*s4wave_flowgraph.FlowgraphPlacement{placement(deviceBKey)}}},
 		})

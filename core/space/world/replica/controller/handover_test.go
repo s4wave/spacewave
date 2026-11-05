@@ -1,6 +1,6 @@
 //go:build !tinygo
 
-package sobject_replica_controller_test
+package space_world_replica_controller_test
 
 import (
 	"context"

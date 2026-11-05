@@ -16,8 +16,8 @@ import (
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
 	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
 	resource_root_controller "github.com/s4wave/spacewave/core/resource/root/controller"
-	sobject_replica_controller "github.com/s4wave/spacewave/core/sobject/replica/controller"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
+	space_world_replica_controller "github.com/s4wave/spacewave/core/space/world/replica/controller"
 	terminal_remoteshell "github.com/s4wave/spacewave/core/terminal/remoteshell"
 	"github.com/s4wave/spacewave/core/transport"
 )
@@ -37,7 +37,7 @@ func composeNative(composition *compose.Composition) {
 	// Session's bus.
 	transportOptions := []transport.SessionTransportOption{transport.WithChildFactories(
 		func(b bus.Bus) controller.Factory { return terminal_remoteshell.NewFactory(b) },
-		func(b bus.Bus) controller.Factory { return sobject_replica_controller.NewFactory(b) },
+		func(b bus.Bus) controller.Factory { return space_world_replica_controller.NewFactory(b) },
 	)}
 	composition.Factories = append(composition.Factories, func(b bus.Bus) []controller.Factory {
 		return []controller.Factory{

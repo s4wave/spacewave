@@ -1,4 +1,4 @@
-package sobject_replica
+package space_world_replica
 
 import "github.com/pkg/errors"
 

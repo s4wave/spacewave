@@ -1,4 +1,4 @@
-package sobject_replica_controller
+package space_world_replica_controller
 
 import (
 	"context"
