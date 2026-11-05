@@ -190,9 +190,9 @@ func (d *BodyDriver) Step(ctx context.Context, snap SharedObjectStateSnapshot) e
 		return d.follow(ctx, ev)
 	}
 
-	// Keep the applied operations the order still places first, and apply
-	// the rest.
-	keep := SharedPrefix(d.hashes(), ev.Order)
+	// Keep the applied operations the order still places first and the
+	// config still admits, and apply the rest.
+	keep := d.admittedPrefix(ev, SharedPrefix(d.hashes(), ev.Order))
 	d.positions = d.positions[:keep]
 	d.set = ev.Set
 	for i := keep; i < len(ev.Order); i++ {
@@ -547,6 +547,29 @@ func (d *BodyDriver) concurrentAuthors(set *SOOperationSet, earlier []bodyPositi
 		return nil
 	}
 	return slices.Sorted(maps.Keys(authors))
+}
+
+// admittedPrefix returns how many of the first n positions keep their
+// outcome under ev's config. A removal that pinned an author below
+// operations already applied, such as a cut through a chosen nonce, rejects
+// them now, so the body applies again from the first one and reaches the
+// World a member replaying from the checkpoint reaches. A refused position
+// applied nothing and stays. The check runs only while the config pins
+// removed authors: one binary search per position above the checkpoint.
+func (d *BodyDriver) admittedPrefix(ev *OrderEvent, n int) int {
+	if len(ev.Config.GetRemovedAuthors()) == 0 {
+		return n
+	}
+	for i, pos := range d.positions[:n] {
+		if pos.reason != "" {
+			continue
+		}
+		inner := ev.Set.Get(pos.hash)
+		if inner != nil && !ev.Config.AdmitsOperation(inner.GetPeerId(), inner.GetNonce()) {
+			return i
+		}
+	}
+	return n
 }
 
 // hashes returns the hashes of the applied positions, in order.
