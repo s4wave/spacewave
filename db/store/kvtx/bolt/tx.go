@@ -169,10 +169,15 @@ func (t *Tx) Delete(ctx context.Context, key []byte) (err error) {
 	return bkt.Delete(key)
 }
 
-// Commit commits the transaction to storage.
-// Can return an error to indicate tx failure.
-// Will return error if called after Discard()
+// Commit commits the transaction and returns once it is durable, or commits
+// it ordered when ctx carries kvtx.WithOrderedCommitContext. It returns an
+// error after Discard.
 func (t *Tx) Commit(ctx context.Context) error {
+	// A write a crash may lose commits ordered, as the caller marked it.
+	if kvtx.IsOrderedCommitContext(ctx) {
+		return t.CommitOrdered(ctx)
+	}
+
 	// Bolt serializes writers, so every ordered commit counted before this
 	// one completes is flushed by its sync.
 	flushes := t.store != nil && !t.store.db.NoSync

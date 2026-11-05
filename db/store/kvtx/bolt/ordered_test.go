@@ -73,6 +73,21 @@ func TestStoreSyncCoversOrderedCommits(t *testing.T) {
 	checkPending(t, s, true)
 	commitTestKey(t, s, "d", false)
 	checkPending(t, s, false)
+
+	// Verify Commit with a context marked for ordered commits commits ordered.
+	ctx := kvtx.WithOrderedCommitContext(t.Context())
+	tx, err := s.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	if err := tx.Set(ctx, []byte("e"), []byte("e")); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	checkPending(t, s, true)
 }
 
 // TestStoreDeadlineFlushesOrderedCommits proves WaitDurable returns once the
