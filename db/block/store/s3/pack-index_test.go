@@ -91,8 +91,12 @@ func TestPackStoreIndex(t *testing.T) {
 	}
 	waitFor(t, "cold start indexes the packs", func() bool { return len(store.index.pendingIDs()) == 0 })
 
-	// The indexer keeps each pack's index tail, though only one pack was read.
-	waitFor(t, "the indexer keeps the tails", func() bool { return rowCount(t, kv, indexTailPrefix) == 3 })
+	// The indexer writes each block's extent into its row, though only one
+	// pack was read, and stores no tail.
+	waitFor(t, "the indexer writes the extents", func() bool { return extentRows(t, kv) == 60 })
+	if n := rowCount(t, kv, indexTailPrefix); n != 0 {
+		t.Fatalf("index holds %d tails, want none", n)
+	}
 
 	// A lookup finds the pack through the index, without a bloom filter.
 	for _, ref := range refs {
@@ -295,8 +299,8 @@ func TestPackStoreIndex(t *testing.T) {
 		t.Fatalf("removed pack's row after restart = %q, %v, %v", id, found, err)
 	}
 
-	// A pack the indexed store writes keeps its tail as it is indexed.
-	tails := rowCount(t, kv, indexTailPrefix)
+	// A pack the indexed store writes gives its blocks' rows their extents.
+	extents := extentRows(t, kv)
 	own := []byte("written by the indexed store")
 	ownRef, err := block.BuildBlockRef(own, nil)
 	if err != nil {
@@ -305,7 +309,7 @@ func TestPackStoreIndex(t *testing.T) {
 	if _, err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ownRef, Data: own}}); err != nil {
 		t.Fatal(err)
 	}
-	waitFor(t, "the written pack keeps its tail", func() bool { return rowCount(t, kv, indexTailPrefix) == tails+1 })
+	waitFor(t, "the written pack's row holds its extent", func() bool { return extentRows(t, kv) == extents+1 })
 }
 
 // setRow points the h row of ref at pack number num.
@@ -344,6 +348,26 @@ func rowCount(t *testing.T, kv kvtx.Store, prefix string) int {
 	defer tx.Discard()
 	n := 0
 	if err := tx.ScanPrefixKeys(t.Context(), []byte(prefix), func([]byte) error { n++; return nil }); err != nil {
+		t.Fatal(err)
+	}
+	return n
+}
+
+// extentRows counts the h rows that hold their block's extent.
+func extentRows(t *testing.T, kv kvtx.Store) int {
+	tx, err := kv.NewTransaction(t.Context(), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	n := 0
+	err = tx.ScanPrefix(t.Context(), []byte(indexHashPrefix), func(_, value []byte) error {
+		if row, ok := parseHashValue(value); ok && row.extent {
+			n++
+		}
+		return nil
+	})
+	if err != nil {
 		t.Fatal(err)
 	}
 	return n
@@ -424,6 +448,7 @@ func TestPackStoreLazyLookup(t *testing.T) {
 		t.Fatalf("cold read = %v, %v", found, err)
 	}
 	waitFor(t, "cold start indexes the packs", func() bool { return len(store.index.pendingIDs()) == 0 })
+	waitFor(t, "cold start writes the extents", func() bool { return extentRows(t, kv) == 30 })
 	store.Close()
 	flaky := &flakyKV{Store: kv}
 	flaky.fail.Store(1)
@@ -454,8 +479,9 @@ func TestPackStoreLazyLookup(t *testing.T) {
 		t.Fatalf("miss published %d entries, full %v", n, store.full.Load())
 	}
 
-	// Every block reads, each pack published on its first read, and no entry
-	// was read from the bucket.
+	// Every block reads with one range read of its pack through the extent
+	// its row holds, publishing no more packs and reading no entry or tail.
+	before := objs.rangeReads.Load()
 	for _, pack := range refs {
 		for _, ref := range pack {
 			if _, found, err := store.GetBlock(ctx, ref); err != nil || !found {
@@ -463,11 +489,51 @@ func TestPackStoreLazyLookup(t *testing.T) {
 			}
 		}
 	}
-	if n := published(); n != 3 || store.full.Load() {
-		t.Fatalf("published %d entries, full %v, want 3 lazily", n, store.full.Load())
+	if got := objs.rangeReads.Load() - before; got != 30 {
+		t.Fatalf("read the blocks with %d range reads, want 30", got)
+	}
+	if n := published(); n != 1 || store.full.Load() {
+		t.Fatalf("published %d entries, full %v, want 1", n, store.full.Load())
 	}
 	if got := objs.entryReads.Load(); got != 0 {
 		t.Fatalf("read %d entries from the bucket, want 0", got)
+	}
+
+	// Off, the extents go unused, and the reads go through the pack readers.
+	SetIndexExtentReads(false)
+	for _, ref := range refs[2] {
+		if _, found, err := store.GetBlock(ctx, ref); err != nil || !found {
+			t.Fatalf("read with extent reads off = %v, %v", found, err)
+		}
+	}
+	SetIndexExtentReads(true)
+	if n := published(); n != 2 {
+		t.Fatalf("published %d entries with extent reads off, want 2", n)
+	}
+
+	// A row whose extent names the wrong bytes still reads the right block:
+	// the bytes fail the block's hash, and the pack readers find it.
+	wrong := refs[0][4]
+	rowKey := hashRowKey(hashKey(wrong))
+	rtx, err := kv.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	value, found, err := rtx.Get(ctx, rowKey)
+	row, ok := parseHashValue(value)
+	if err != nil || !found || !ok || !row.extent {
+		t.Fatalf("row of %s = %v, %v, extent %v", wrong.MarshalString(), found, err, row.extent)
+	}
+	row.off++
+	if err := rtx.Set(ctx, rowKey, row.marshal()); err != nil {
+		t.Fatal(err)
+	}
+	if err := rtx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	rtx.Discard()
+	if data, found, err := store.GetBlock(ctx, wrong); err != nil || !found || string(data) != "pack 0 block 4" {
+		t.Fatalf("read through a wrong extent = %q, %v, %v", data, found, err)
 	}
 	store.Close()
 

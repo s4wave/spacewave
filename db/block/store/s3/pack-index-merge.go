@@ -5,7 +5,6 @@ package block_store_s3
 import (
 	"bytes"
 	"context"
-	"encoding/binary"
 	"slices"
 
 	"github.com/pkg/errors"
@@ -169,8 +168,8 @@ func MergePackIndex(ctx context.Context, dst kvtx.Store, src ReadFunc, progress 
 func copyHashRows(ctx context.Context, dst kvtx.Store, src ReadFunc, numbers map[uint32]packRow, p *MergeProgress, progress func(MergeProgress)) error {
 	// Track the source cursor and the destination pack number for each row.
 	type hashRow struct {
-		key []byte
-		num uint32
+		key   []byte
+		value hashValue
 	}
 	prefix := []byte(indexHashPrefix)
 	var after []byte
@@ -201,11 +200,13 @@ func copyHashRows(ctx context.Context, dst kvtx.Store, src ReadFunc, numbers map
 				if err != nil {
 					return err
 				}
-				if len(value) != 4 {
+				parsed, ok := parseHashValue(value)
+				if !ok {
 					continue
 				}
-				if row, ok := numbers[binary.BigEndian.Uint32(value)]; ok {
-					batch = append(batch, hashRow{key: next, num: row.num})
+				if row, ok := numbers[parsed.num]; ok {
+					parsed.num = row.num
+					batch = append(batch, hashRow{key: next, value: parsed})
 				}
 			}
 			return it.Err()
@@ -228,7 +229,7 @@ func copyHashRows(ctx context.Context, dst kvtx.Store, src ReadFunc, numbers map
 				return err
 			}
 			for _, row := range batch {
-				if err := tx.Set(ctx, row.key, binary.BigEndian.AppendUint32(nil, row.num)); err != nil {
+				if err := tx.Set(ctx, row.key, row.value.marshal()); err != nil {
 					tx.Discard()
 					return err
 				}

@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/binary"
+	"math"
 	"slices"
 	"sync"
 	"sync/atomic"
@@ -526,6 +527,46 @@ func (x *packIndex) writeSlice(ctx context.Context, entry *packfile.PackfileEntr
 	return tx.Commit(ctx)
 }
 
+// hashValueExtentBytes is the length of an h row value that holds its
+// block's extent: the pack number, then the block's offset and size in that
+// pack. A row of only the pack number is four bytes.
+const hashValueExtentBytes = 16
+
+// hashValue is a decoded h row value.
+type hashValue struct {
+	// num is the number of the pack the row names.
+	num uint32
+	// off and size are the block's bytes in the pack, when extent is set.
+	off  uint64
+	size uint32
+	// extent reports that off and size hold the block's extent.
+	extent bool
+}
+
+// parseHashValue decodes an h row value; ok is false for a malformed one.
+func parseHashValue(value []byte) (v hashValue, ok bool) {
+	if len(value) < 4 {
+		return hashValue{}, false
+	}
+	v.num = binary.BigEndian.Uint32(value)
+	if len(value) >= hashValueExtentBytes {
+		v.off = binary.BigEndian.Uint64(value[4:12])
+		v.size = binary.BigEndian.Uint32(value[12:16])
+		v.extent = true
+	}
+	return v, true
+}
+
+// marshal encodes the value, with its extent when it has one.
+func (v hashValue) marshal() []byte {
+	b := binary.BigEndian.AppendUint32(make([]byte, 0, hashValueExtentBytes), v.num)
+	if v.extent {
+		b = binary.BigEndian.AppendUint64(b, v.off)
+		b = binary.BigEndian.AppendUint32(b, v.size)
+	}
+	return b
+}
+
 // hashRowKey returns the h row key of a block key.
 func hashRowKey(key []byte) []byte {
 	return append([]byte(indexHashPrefix), key[max(len(key)-indexKeyBytes, 0):]...)
@@ -536,10 +577,14 @@ func hashRowKey(key []byte) []byte {
 func (x *packIndex) namesLivePack(ctx context.Context, tx kvtx.Tx, rowKey []byte, num uint32) (bool, error) {
 	// Read the row; a missing row or one of this pack is free to write.
 	value, ok, err := tx.Get(ctx, rowKey)
-	if err != nil || !ok || len(value) != 4 {
+	if err != nil || !ok {
 		return false, err
 	}
-	at := binary.BigEndian.Uint32(value)
+	row, ok := parseHashValue(value)
+	if !ok {
+		return false, nil
+	}
+	at := row.num
 	if at == num {
 		return false, nil
 	}
@@ -625,10 +670,11 @@ func (x *packIndex) Get(ctx context.Context, packID string) ([]byte, bool, error
 	return bytes.Clone(data), true, nil
 }
 
-// Set stores the index tail of a pack, as the packfile store's index cache.
-// It queues the row for a background write in batches and returns at once:
-// each write transaction of the index flushes it, and the store shares the
-// disk with the reads and commits players wait on.
+// Set takes the index tail of a pack, as the packfile store's index cache. It
+// queues the tail for a background drain that writes each listed block's
+// extent into its h row, so the block's next read needs neither the tail nor
+// the pack's entry, and returns at once. Until the drain takes it, Get serves
+// it; the tail itself is not stored.
 func (x *packIndex) Set(ctx context.Context, packID string, data []byte) error {
 	x.queueTail(packID, bytes.Clone(data))
 	return nil
@@ -654,18 +700,51 @@ func (x *packIndex) Locate(ctx context.Context, key []byte) (string, bool, error
 	}
 	defer tx.Discard()
 	value, ok, err := tx.Get(ctx, hashRowKey(key))
-	if err != nil || !ok || len(value) != 4 {
+	if err != nil || !ok {
 		return "", false, err
+	}
+	row, ok := parseHashValue(value)
+	if !ok {
+		return "", false, nil
 	}
 
 	// Name its pack, or none when the pack was removed.
-	num := binary.BigEndian.Uint32(value)
+	num := row.num
 	x.mtx.RLock()
 	defer x.mtx.RUnlock()
 	if int(num) >= len(x.ids) {
 		return "", true, nil
 	}
 	return x.ids[num], true, nil
+}
+
+// locateExtent returns the pack and byte range of a block key when its h row
+// holds the block's extent and names a pack the table holds. A pack that
+// shares its number with another may be the wrong one; the caller checks the
+// bytes against the block's hash.
+func (x *packIndex) locateExtent(ctx context.Context, key []byte) (id string, off int64, size int, ok bool, err error) {
+	// Read the key's h row.
+	tx, err := x.store.NewTransaction(ctx, false)
+	if err != nil {
+		return "", 0, 0, false, err
+	}
+	defer tx.Discard()
+	value, found, err := tx.Get(ctx, hashRowKey(key))
+	if err != nil || !found {
+		return "", 0, 0, false, err
+	}
+	row, valid := parseHashValue(value)
+	if !valid || !row.extent || row.off > math.MaxInt64 {
+		return "", 0, 0, false, nil
+	}
+
+	// Name its pack, which must still be in the table.
+	x.mtx.RLock()
+	defer x.mtx.RUnlock()
+	if int(row.num) >= len(x.ids) || x.ids[row.num] == "" {
+		return "", 0, 0, false, nil
+	}
+	return x.ids[row.num], int64(row.off), int(row.size), true, nil
 }
 
 // locate reads the rows of keys in one snapshot, sets placed for each key
@@ -689,11 +768,12 @@ func (x *packIndex) locate(ctx context.Context, keys [][]byte, placed []bool) ([
 		if err != nil {
 			return nil, err
 		}
-		if !ok || len(value) != 4 {
+		row, valid := parseHashValue(value)
+		if !ok || !valid {
 			continue
 		}
 		placed[i] = true
-		num := binary.BigEndian.Uint32(value)
+		num := row.num
 		x.mtx.RLock()
 		if int(num) < len(x.ids) {
 			ids[i] = x.ids[num]

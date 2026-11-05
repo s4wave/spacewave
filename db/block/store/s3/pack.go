@@ -28,6 +28,7 @@ import (
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/singleflight"
 )
 
 // batchConcurrency bounds the concurrent requests of one batch call.
@@ -88,6 +89,9 @@ var ErrPackImmutable = errors.New("bucket packfiles do not remove blocks")
 type PackStore struct {
 	// le is the logger.
 	le *logrus.Entry
+	// extentReads shares one range read among concurrent reads of a block
+	// whose h row holds its extent.
+	extentReads singleflight.Group
 	// client stores the objects.
 	client ObjectStore
 	// bucket is the bucket holding the objects.
@@ -478,6 +482,9 @@ func (s *PackStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*b
 	if ref.GetEmpty() {
 		return nil, block.ErrEmptyBlockRef
 	}
+	if stored := s.readExtent(ctx, ref); stored != nil {
+		return stored, nil
+	}
 	var stored *block.StoredBlock
 	err := s.lookup(ctx, []*block.BlockRef{ref}, func(placed []bool) (bool, error) {
 		var err error
@@ -485,6 +492,58 @@ func (s *PackStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*b
 		return stored == nil && placed[0], err
 	})
 	return stored, err
+}
+
+// extentReadsOn turns on the extent read path of every PackStore; see
+// SetIndexExtentReads.
+var extentReadsOn atomic.Bool
+
+func init() {
+	extentReadsOn.Store(true)
+}
+
+// SetIndexExtentReads turns the extent read path of every PackStore on or
+// off. On, a block whose index row holds its offset and size in its pack
+// reads with one range read of the pack, without the pack's entry or index
+// tail; off, every read goes through the pack readers, as before the rows
+// held extents.
+func SetIndexExtentReads(on bool) {
+	extentReadsOn.Store(on)
+}
+
+// readExtent reads the block with one range read of its pack when its h row
+// holds its extent, and returns nil when it does not, or when the bytes read
+// do not hold the block: a row of a pack sharing its number may name the
+// wrong pack, and the lookup through the pack readers finds the right one.
+// Concurrent reads of one block share the range read.
+func (s *PackStore) readExtent(ctx context.Context, ref *block.BlockRef) *block.StoredBlock {
+	// Find the extent.
+	if s.index == nil || !extentReadsOn.Load() || ref.GetHash() == nil {
+		return nil
+	}
+	key := packfile.BlockKey(ref.GetHash())
+	id, off, size, ok, err := s.index.locateExtent(ctx, key)
+	if err != nil || !ok {
+		return nil
+	}
+
+	// Read and verify the block's bytes, once for every concurrent reader.
+	value, _, _ := s.extentReads.Do(string(key), func() (any, error) {
+		data, err := s.client.GetObjectRange(ctx, s.bucket, s.prefix+packDir+id, off, size)
+		if err != nil {
+			return nil, err
+		}
+		stored, err := block.DecodeBlockObject(data)
+		if err != nil {
+			return nil, err
+		}
+		if err := ref.VerifyData(stored.Data, false); err != nil {
+			return nil, err
+		}
+		return stored, nil
+	})
+	stored, _ := value.(*block.StoredBlock)
+	return stored
 }
 
 // GetBlockExists checks the packfiles for the block.

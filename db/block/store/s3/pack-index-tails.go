@@ -2,16 +2,19 @@ package block_store_s3
 
 import (
 	"context"
+	"math"
 
+	"github.com/aperturerobotics/go-kvfile"
 	"github.com/s4wave/spacewave/db/kvtx"
+	"github.com/s4wave/spacewave/db/packfile"
 )
 
-// tailQueueBytes bounds the index tail bytes awaiting their write. A tail
-// past it is dropped: the row is a cache, and the pack's next cold read
-// reads its tail from the bucket again.
+// tailQueueBytes bounds the index tail bytes awaiting the drain. A tail past
+// it is dropped: its blocks' h rows keep only their pack, and the pack's next
+// cold read reads its tail from the bucket again.
 const tailQueueBytes = 64 << 20
 
-// tailBatchRows bounds the tails one drain step writes in a transaction.
+// tailBatchRows bounds the tails one drain step upgrades in a transaction.
 const tailBatchRows = 256
 
 // tailQueue holds index tails awaiting their write, one per pack. The fields
@@ -71,14 +74,19 @@ func (x *packIndex) forgetQueuedTailsLocked(ids []string) {
 	}
 }
 
-// drainTails writes the queued tails in transactions of up to tailBatchRows
-// until none are left. Each row is a cache of bytes the bucket holds, so its
-// commit is ordered rather than flushed, and a failed step drops its tails.
+// drainTails writes the extents the queued tails hold into their blocks' h
+// rows, in transactions of up to tailBatchRows tails, until none are left. A
+// row is upgraded only while it names the tail's pack and holds no extent, so
+// a row a later pack took keeps naming that pack. The tails themselves are
+// not stored: a row with its extent reads its block without the tail. Each
+// row is derived from bytes the bucket holds, so the commit is ordered rather
+// than flushed, and a failed step drops its tails.
 func (x *packIndex) drainTails() {
 	ctx := kvtx.WithBackgroundWriteContext(kvtx.WithOrderedCommitContext(context.Background()))
 	for {
-		// Take the next step, or end the drain on an empty queue. A tail
-		// stays queued, and readable, until its step is written.
+		// Take the next step with each tail's pack number, or end the drain on
+		// an empty queue. A tail stays queued, and readable, until its step is
+		// written.
 		x.mtx.Lock()
 		q := &x.tails
 		if len(q.pending) == 0 {
@@ -86,21 +94,30 @@ func (x *packIndex) drainTails() {
 			x.mtx.Unlock()
 			return
 		}
-		step := make(map[string][]byte, min(len(q.pending), tailBatchRows))
+		n := min(len(q.pending), tailBatchRows)
+		step := make(map[string][]byte, n)
+		nums := make(map[string]uint32, n)
 		for id, data := range q.pending {
 			if len(step) == tailBatchRows {
 				break
 			}
 			step[id] = data
+			if row, ok := x.rows[id]; ok {
+				nums[id] = row.num
+			}
 		}
 		x.mtx.Unlock()
 
-		// Write the step in one transaction.
+		// Upgrade the step's rows in one transaction.
 		_ = kvtx.RunTransaction(ctx, true, func(ctx context.Context) (kvtx.Tx, error) {
 			return x.store.NewTransaction(ctx, true)
 		}, func(ctx context.Context, tx kvtx.Tx) error {
 			for id, data := range step {
-				if err := tx.Set(ctx, []byte(indexTailPrefix+id), data); err != nil {
+				num, ok := nums[id]
+				if !ok {
+					continue
+				}
+				if err := upgradeHashRows(ctx, tx, id, num, data); err != nil {
 					return err
 				}
 			}
@@ -112,6 +129,39 @@ func (x *packIndex) drainTails() {
 		x.forgetQueuedTailsLocked(mapKeys(step))
 		x.mtx.Unlock()
 	}
+}
+
+// upgradeHashRows writes the extent of each block the tail of pack id lists
+// into its h row, where the row names the pack as num and holds no extent.
+// The pack's size, which the tail's offsets need, comes from its entry row.
+func upgradeHashRows(ctx context.Context, tx kvtx.Tx, id string, num uint32, tail []byte) error {
+	// Read the pack's size.
+	data, found, err := tx.Get(ctx, []byte(indexEntryPrefix+id))
+	if err != nil || !found {
+		return err
+	}
+	entry := &packfile.PackfileEntry{}
+	if err := entry.UnmarshalVT(data); err != nil {
+		return nil
+	}
+
+	// Upgrade each row that names this pack without an extent.
+	return packfile.ScanIndexTail(tail, entry.GetSizeBytes(), func(ie *kvfile.IndexEntry) error {
+		if ie.GetSize() > math.MaxUint32 {
+			return nil
+		}
+		rowKey := hashRowKey(ie.GetKey())
+		value, ok, err := tx.Get(ctx, rowKey)
+		if err != nil || !ok {
+			return err
+		}
+		row, ok := parseHashValue(value)
+		if !ok || row.num != num || row.extent {
+			return nil
+		}
+		row.off, row.size, row.extent = ie.GetOffset(), uint32(ie.GetSize()), true
+		return tx.Set(ctx, rowKey, row.marshal())
+	})
 }
 
 // mapKeys returns the keys of m.
