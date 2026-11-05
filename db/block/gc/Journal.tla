@@ -13,8 +13,9 @@
 \* including dead blocks the collector has not freed yet. Nothing above the
 \* Volume writes a count.
 \*
-\* The journal. Each SetRoots transaction appends at most one record, and the
-\* record carries only what changes a holder count:
+\* The journal. Each SetRoots transaction of an adopting or adopted Volume
+\* appends at most one record, and the record carries only what changes a
+\* holder count:
 \*   up    pairs <<holder, block>> that add a holder:
 \*         - <<parent, child>> for each child a block the batch stored for the
 \*           first time names and that the store already held. A child the
@@ -35,14 +36,48 @@
 \* block whose holders reach zero on the free queue. Delete frees one queued
 \* block and decrements its children, which the cascade then finds at zero in
 \* turn. A child in a dead page and a born page of one interval nets to no
-\* change and keeps its implied holder unwritten.
+\* change and keeps its implied holder unwritten. Neither runs until the
+\* Volume is adopted.
+\*
+\* Adoption. A Volume older than the journal starts unadopted: its child lists
+\* and roots are stored, its count records and free queue are whatever an
+\* older format or an abandoned run left, and Land journals nothing. An Adopt
+\* run claims the Volume under its run id, clears the old counts, queue and
+\* marks, then marks the Volume adopting at the journal's end, the cursor.
+\* From then on Land journals, marks each block it gives birth to (born), and
+\* records the block each root it moves first held (moved). The run counts
+\* the Volume as it stood at the cursor, one record per transaction, while
+\* writers land between any two: each root at its moved mark or else its table
+\* entry, then the children of each child list the born marks do not name. It
+\* settles each such list's block, queueing one with no holder and dropping
+\* the implied holder of any other, and marks the Volume adopted. Every step
+\* after the claim first checks that the Volume still names its run, so a run
+\* another claim or a Volume opening superseded writes nothing more. A crash
+\* stops a run anywhere; the next opening returns an adopting Volume to
+\* unadopted, and a later run starts over.
+\*
+\* Stage leases. A stage owner, the process behind stage:<proc>/<ulid>, builds
+\* a tree bottom up: it puts T under the leased root sT, then puts S over T
+\* under sS, releasing sT in the same transaction, and the World writer moves
+\* main onto S and releases sS. The owner keeps its own record of the roots it
+\* holds. Its renewal moves each one's expiry forward, and holds a root that
+\* lapsed and was swept again while its block is stored, as reader pins are;
+\* when the block is gone, the stage fails and its writes are refused. A put
+\* that builds on a root the stage holds releases it with the owner's record
+\* as its Previous, so a put over a root a sweep took is refused. Renewal may
+\* stall for any time: the clock runs on while the owner does nothing.
+\* Sweep releases any lapsed lease, as another process's collector does. A
+\* process's own collector renews its own leases first, so it releases only
+\* those of owners that are gone, which is a subset of these behaviors.
 \*
 \* Mapping to Go, one action to one transaction:
-\*   Land            Volume.SetRoots(entries, roots) in db/volume/common/kvtx:
-\*                   checks each root's Previous (ErrRootMoved), refuses a
-\*                   born block whose child the store lacks, stores the
-\*                   entries with their child lists, moves the roots and
-\*                   appends the journal record, all in one write transaction.
+\*   Land            Volume.SetRoots(entries, roots) in db/volume/common/kvtx,
+\*                   which is block_gc.Land: checks each root's Previous
+\*                   (ErrRootMoved), refuses a born block whose child the
+\*                   store lacks, stores the entries with their child lists,
+\*                   moves the roots and appends the journal record, all in
+\*                   one write transaction; while adopting, also
+\*                   Records.MarkAdoptBorn and Records.NoteAdoptRoot.
 \*     Commit        the World engine's head swap: main moves by compare and
 \*                   swap from the head the writer observed.
 \*     StageWrite    a writer outside the World writer holding stage:<ulid>,
@@ -51,16 +86,37 @@
 \*                   the stage in one SetRoots.
 \*     ReaderPin     a reader holding the root it saw as a leased root.
 \*     Drop          a lease holder releasing its root.
-\*     Sweep         the collector releasing a root whose lease lapsed; it
-\*                   reads the root inside its own transaction.
-\*   Net(k)          Collector.Collect: read the journal from the cursor to the
-\*                   grace horizon, net per block, write the count records and
-\*                   free queue entries that changed, advance the cursor.
+\*     Sweep         Collector.sweepLeases releasing a root whose lease lapsed;
+\*                   it reads the root inside its own transaction.
+\*     StagePut1     Volume.PrepareStagedBlockBatch: prepareStaged with
+\*     StagePut2     stageMoves, holding each put block the batch does not
+\*                   name and releasing the stage's root on each it names.
+\*     StagePublish  the World writer's SetRoots onto the stage's top with
+\*                   Volume.ReleaseStageRoots, in one transaction.
+\*     StageRenew    Volume.renewRoots from runRootRenewal, and at the start
+\*                   of Volume.Collect.
+\*   Net(k)          Collector.netSlice: read the journal from the cursor to
+\*                   the grace horizon, net per block, write the count records
+\*                   and free queue entries that changed, advance the cursor.
 \*   Delete(b)       one free queue entry in a collector slice: the tail check,
 \*                   then delete the block with its child list and count
 \*                   record and decrement its children. A slice yields to a
 \*                   waiting writer between these transactions, so writers
 \*                   interleave anywhere between two Deletes.
+\*   AdoptStart(r)   block_gc.Adopt's resetAdoption: report an adopted Volume,
+\*                   otherwise return it to unadopted and claim it for r.
+\*   AdoptClear(r)   Adopt's clearKinds of the count, queue and mark records.
+\*   AdoptMark(r)    Adopt's transaction that marks the Volume adopting in run
+\*                   r at the cursor.
+\*   AdoptRoot(r)    one name of adoption.countRoots.
+\*   AdoptList(r)    one child list of the first forSlices scan in
+\*                   adoption.count, with adoption.listed and adoption.hold.
+\*   AdoptSettle(r)  one child list of the settle scan in adoption.count.
+\*   AdoptEnd(r)     deleteJournalBefore and the transaction that marks the
+\*                   Volume adopted, then the clearKinds of the marks.
+\*   AdoptCrash(r)   the process running r dies, or r fails: it stops.
+\*   Open            block_gc.ResetAdoption from NewVolume, in a restarted
+\*                   process or another one on the same store.
 \*   Punch(b)        a hole: a block the store lost with its child list.
 \*   Tick            the clock Grace, Window and leases are read on.
 \*
@@ -79,9 +135,9 @@
 \* is the write amplification lazy netting exists to remove.
 \*
 \* Switches, each set to the rule the Go collector must keep in every config
-\* here. Flipping one frees a block a held root reaches (NoFreedRead), in the
-\* config named and in the run TLC reports, which shows the rule is load
-\* bearing; CAS is the exception.
+\* here. Flipping one breaks a rule in the config named, in the run TLC
+\* reports, which shows the rule is load bearing; CAS is the exception. The
+\* configs under testdata/ flip the adoption and stage switches and fail.
 \*   TailCheck  FALSE trusts the netted count. Journal.cfg: main moves R1 to
 \*              R2 and back to R1 inside Grace, a pass nets only the first
 \*              record, and R1 is freed while main names it again.
@@ -91,7 +147,9 @@
 \*   Refuse     FALSE lets a born block name a child the store lacks.
 \*              Journal.cfg: main moves from R1 to N, the collector frees R1's
 \*              tree, and a writer that still has R1 as its observed head
-\*              stages R2 over it, naming the freed F.
+\*              stages R2 over it, naming the freed F. Journal-stage.cfg sets
+\*              it FALSE, as the Go Land is, and passes: a stage's writes rest
+\*              on StageCAS instead.
 \*   HoleStop   FALSE decrements a lost block's children from a remembered
 \*              child list. Journal-hole.cfg: C, named by R1 and R3, is lost;
 \*              R1 dies and its cascade frees F and E under R3.
@@ -108,33 +166,72 @@
 \*              release read inside the transaction and on Refuse, and
 \*              compare and swap is the World's guard against two writers
 \*              both moving one root, not the collector's.
+\*   RunCheck   FALSE lets a run's count, settle and end steps write after
+\*              another run superseded it. testdata/Journal-adopt-norun.cfg:
+\*              run A counts main at R1, run B's start returns the Volume to
+\*              unadopted, the World writer moves main onto the stage R3 and
+\*              releases it with nothing journaled, A counts no holder of R3,
+\*              settles it onto the free queue, marks the Volume adopted, and
+\*              the collector frees R3 under main.
+\*   Claim      FALSE clears before the run claims the Volume, unchecked, and
+\*              marks it adopting over any state.
+\*              testdata/Journal-adopt-noclaim.cfg: run A clears, run B
+\*              starts while the Volume is still unadopted, so it supersedes
+\*              nothing, A marks adopting and counts, B's clear deletes A's
+\*              counts, A settles R1 onto the free queue, marks the Volume
+\*              adopted, and the collector frees R1 under main.
+\*   BornMark   FALSE drops the born marks. testdata/Journal-adopt-noborn.cfg:
+\*              main moves onto N, born while the run scans, the settle scan
+\*              reads N's child list as one that predates the run, finds no
+\*              holder and queues it, and N is freed under main.
+\*   RootMark   FALSE drops the moved-root marks.
+\*              testdata/Journal-adopt-noroot.cfg: the root scan reads main
+\*              at R1, the World writer then moves main onto R3 and releases
+\*              the stage that held R3, the scan finds no stage root to count,
+\*              and R3 settles onto the free queue and is freed under main.
+\*   Rehold     FALSE renews only the stage roots still in the table.
+\*              testdata/Journal-stage-norehold.cfg: sT lapses and is swept,
+\*              the renewal finds nothing to renew and reports success, and T
+\*              is freed while the owner builds on it.
+\*   StageCAS   FALSE releases a stage root only when the table holds it.
+\*              testdata/Journal-stage-nocas.cfg: the owner stalls past
+\*              Lease and Grace, T is freed, and its next put lands S over
+\*              the freed T.
 \*
-\* Left out: the format 7 upgrade and Adopt (a Volume starts here with every
-\* block listed, and an unadopted Volume frees nothing), the audit, lease
-\* renewal (a holder that outlives its lease reads at its own risk), slices
-\* smaller than one block, and crashes: every action is one transaction and
-\* the free queue is durable, so a crash between two actions loses nothing
-\* the model does not already interleave.
+\* Left out: the format 7 upgrade (an unadopted Volume here holds every
+\* child list it names), the audit, the refusal of blocks stored without a
+\* child list, slices larger than one record (they are runs of one-record
+\* slices with no writer between), an abandoned run's cleanup (an unadopted
+\* Volume's counts are cleared by the next run before they are read), a
+\* stage released without publishing, and crashes other than an adoption's:
+\* every action is one transaction and the free queue is durable, so a crash
+\* between two actions loses nothing the model does not already interleave.
 
 EXTENDS Integers, FiniteSets, Sequences, TLC
 
 CONSTANTS Writers, MaxTxns, MaxNow, Grace, Window, Lease, MaxHoles,
           MainRoots, StageRoots, Reader,
-          TailCheck, Held, Refuse, HoleStop, Reput, CAS
+          TailCheck, Held, Refuse, HoleStop, Reput, CAS,
+          Runs, MaxOpens, RunCheck, Claim, BornMark, RootMark,
+          Stage, Rehold, StageCAS
 
 None == "none"
+Unmoved == "unmoved"
 
 \* main is the World root, moved by the writers by compare and swap. rdr is a
 \* reader's pin of an old root and stg a stage, stage:<ulid>, held by a writer
-\* outside the World writer; both are leased roots.
-Names == {"main", "rdr", "stg"}
-Leases == {"rdr", "stg"}
+\* outside the World writer; sT and sS are the roots of the stage owner's
+\* build. All but main are leased roots, and Drop reaches only rdr and stg.
+Names == {"main", "rdr", "stg", "sT", "sS"}
+Leases == {"rdr", "stg", "sT", "sS"}
+Dropped == {"rdr", "stg"}
 
 \* Two versions of a tree R -> C -> {E, F} -> G: C2 keeps F, and with it G,
 \* and drops E. R3 is a second page over the same C, and N an empty tree.
 \* Every tree gives each page one parent. F has two holders while both
-\* versions are stored, and G is its only child.
-Blocks == {"R1", "R2", "R3", "C", "C2", "E", "F", "G", "N"}
+\* versions are stored, and G is its only child. S -> T is the stage owner's
+\* build.
+Blocks == {"R1", "R2", "R3", "C", "C2", "E", "F", "G", "N", "S", "T"}
 Kids(b) ==
   CASE b = "R1" -> {"C"}
     [] b = "R2" -> {"C2"}
@@ -142,40 +239,68 @@ Kids(b) ==
     [] b = "C" -> {"E", "F"}
     [] b = "C2" -> {"F"}
     [] b = "F" -> {"G"}
+    [] b = "S" -> {"T"}
     [] OTHER -> {}
+
+\* The key order of the child list and root records an adoption scans.
+BlockKeys == <<"C", "C2", "E", "F", "G", "N", "R1", "R2", "R3", "S", "T">>
+NameKeys == <<"main", "rdr", "sS", "sT", "stg">>
 
 RECURSIVE Reach(_)
 Reach(b) == {b} \cup UNION {Reach(k) : k \in Kids(b)}
 ReachOf(x) == IF x = None THEN {} ELSE Reach(x)
 
 Perms == Permutations(Writers)
+RunPerms == Permutations(Runs)
+
+\* A Volume adopted from the start is the model of every config without an
+\* adoption run. With runs, it starts unadopted, with a stage R3 that predates
+\* the journal and the stale records an older format left: a count on E and
+\* G on the free queue.
+Unadopted == Runs # {}
 
 VARIABLES
-  root,     \* each named root's block, or None
-  expires,  \* each leased root's expiry on the clock
-  stored,   \* blocks with a child list in the store
-  lost,     \* blocks the store lost that no put stored again
-  cnt,      \* each block's count record: holders minus one, 0 for none
-  zero,     \* the free queue: stored blocks whose netted holders are zero
-  jr,       \* the journal past the collector's cursor, oldest first
-  under,    \* some transaction took a holder from a block that had none
-  now,      \* the clock
-  obs,      \* each writer's observed head of main
-  seen,     \* the head of main the reader saw and has not pinned, or None
-  seenAt,   \* when the reader saw it
-  txns,     \* write transactions spent, which keeps every run finite
-  holes     \* blocks punched
+  root,      \* each named root's block, or None
+  expires,   \* each leased root's expiry on the clock
+  stored,    \* blocks with a child list in the store
+  lost,      \* blocks the store lost that no put stored again
+  cnt,       \* each block's count record: holders minus one, 0 for none;
+             \* during an adoption, the holders the run has counted
+  zero,      \* the free queue: stored blocks whose netted holders are zero
+  jr,        \* the journal past the collector's cursor, oldest first
+  under,     \* some transaction took a holder from a block that had none
+  now,       \* the clock
+  obs,       \* each writer's observed head of main
+  seen,      \* the head of main the reader saw and has not pinned, or None
+  seenAt,    \* when the reader saw it
+  txns,      \* write transactions spent, which keeps every run finite
+  holes,     \* blocks punched
+  adoption,  \* "unadopted", "adopting" or "adopted"
+  owner,     \* the run the state record names, or None
+  pc,        \* each run's step
+  pos,       \* each run's scan position, an index into the scanned keys
+  born,      \* blocks Land gave birth to while adopting
+  moved,     \* each root's block when it first moved while adopting
+  opens,     \* Volume openings
+  stage,     \* the stage owner's build: "none", "T", "S", "done", "failed"
+  renewed    \* when the stage owner last renewed or wrote
 gcVars == <<cnt, zero, under>>
+markVars == <<born, moved>>
+adoptVars == <<adoption, owner, pc, pos, opens>>
+stageVars == <<stage, renewed>>
 vars == <<root, expires, stored, lost, cnt, zero, jr, under, now, obs, seen,
-          seenAt, txns, holes>>
+          seenAt, txns, holes, adoption, owner, pc, pos, born, moved, opens,
+          stage, renewed>>
 
 Init ==
-  /\ root = [n \in Names |-> IF n = "main" THEN "R1" ELSE None]
+  /\ root = [n \in Names |->
+               IF n = "main" THEN "R1"
+               ELSE IF n = "stg" /\ Unadopted THEN "R3" ELSE None]
   /\ expires = [n \in Leases |-> 0]
-  /\ stored = Reach("R1")
+  /\ stored = Reach("R1") \cup (IF Unadopted THEN {"R3"} ELSE {})
   /\ lost = {}
-  /\ cnt = [b \in Blocks |-> 0]
-  /\ zero = {}
+  /\ cnt = [b \in Blocks |-> IF b = "E" /\ Unadopted THEN 1 ELSE 0]
+  /\ zero = IF Unadopted THEN {"G"} ELSE {}
   /\ jr = <<>>
   /\ under = FALSE
   /\ now = 0
@@ -184,6 +309,15 @@ Init ==
   /\ seenAt = 0
   /\ txns = 0
   /\ holes = 0
+  /\ adoption = IF Unadopted THEN "unadopted" ELSE "adopted"
+  /\ owner = None
+  /\ pc = [r \in Runs |-> "idle"]
+  /\ pos = [r \in Runs |-> 0]
+  /\ born = {}
+  /\ moved = [n \in Names |-> Unmoved]
+  /\ opens = 0
+  /\ stage = "none"
+  /\ renewed = 0
 
 \* The holders the netted counts give b.
 Holders(b) == IF b \in zero THEN 0 ELSE cnt[b] + 1
@@ -215,35 +349,43 @@ Live == now + Grace <= MaxNow /\ txns < MaxTxns
 \* Land is SetRoots(batch, moves). moves is a set of [n, from, to] root moves,
 \* from the root's Previous; batch is the blocks the caller puts. born, up and
 \* down are computed against the store and the root table as they stand
-\* inside the transaction.
+\* inside the transaction. An unadopted Volume journals nothing; an adopting
+\* one also marks the blocks it gives birth to and each root's first move.
 Land(batch, moves) ==
-  LET born == batch \ stored
-      found == UNION {{<<p, k>> : k \in Kids(p) \cap stored} : p \in born}
+  LET new == batch \ stored
+      found == UNION {{<<p, k>> : k \in Kids(p) \cap stored} : p \in new}
       held == {<<m.n, m.to>> : m \in {x \in moves : x.to \in stored}}
       up == found \cup (IF Held THEN held ELSE {})
       down == {<<m.n, root[m.n]>> : m \in {x \in moves : root[x.n] # None}}
+      adopting == adoption = "adopting"
   IN /\ Live
      /\ \A m \in moves : m.to # root[m.n]
      /\ CAS => \A m \in moves : root[m.n] = m.from
      \* A root names a block the store holds or the batch stores.
      /\ \A m \in moves : m.to = None \/ m.to \in stored \cup batch
      \* A born block names only children the store holds or the batch stores.
-     /\ Refuse => \A p \in born : Kids(p) \subseteq stored \cup batch
+     /\ Refuse => \A p \in new : Kids(p) \subseteq stored \cup batch
      /\ ~Reput => batch \cap lost = {}
      /\ stored' = stored \cup batch
      /\ lost' = lost \ batch
      /\ root' = [n \in Names |->
                    IF \E m \in moves : m.n = n
                    THEN (CHOOSE m \in moves : m.n = n).to ELSE root[n]]
-     /\ jr' = IF up \cup down = {} THEN jr
+     /\ jr' = IF adoption = "unadopted" \/ up \cup down = {} THEN jr
               ELSE Append(jr, [at |-> now, up |-> up, down |-> down])
+     /\ born' = IF adopting /\ BornMark THEN born \cup new ELSE born
+     /\ moved' = IF adopting /\ RootMark
+                 THEN [n \in Names |->
+                         IF moved[n] = Unmoved /\ \E m \in moves : m.n = n
+                         THEN root[n] ELSE moved[n]]
+                 ELSE moved
      /\ txns' = txns + 1
 
 \* Observe reads the head of main, as a writer does before it builds a tree.
 Observe(w) ==
   /\ obs' = [obs EXCEPT ![w] = root["main"]]
   /\ UNCHANGED <<root, expires, stored, lost, gcVars, jr, now, seen, seenAt,
-                 txns, holes>>
+                 txns, holes, markVars, adoptVars, stageVars>>
 
 \* Commit moves main from the head the writer observed to r. The writer puts
 \* the pages of r its observed head does not reach; the pages they share it
@@ -251,7 +393,8 @@ Observe(w) ==
 Commit(w, r) ==
   /\ obs[w] # None /\ r # obs[w]
   /\ Land(Reach(r) \ Reach(obs[w]), {[n |-> "main", from |-> obs[w], to |-> r]})
-  /\ UNCHANGED <<expires, gcVars, now, obs, seen, seenAt, holes>>
+  /\ UNCHANGED <<expires, gcVars, now, obs, seen, seenAt, holes, adoptVars,
+                 stageVars>>
 
 \* StageWrite holds a stage tree r built over the head of main the writer
 \* observed, under a free stage root, and starts its lease. The pages r shares
@@ -260,7 +403,7 @@ StageWrite(w, r) ==
   /\ obs[w] # None
   /\ Land(Reach(r) \ Reach(obs[w]), {[n |-> "stg", from |-> None, to |-> r]})
   /\ expires' = [expires EXCEPT !["stg"] = now + Lease]
-  /\ UNCHANGED <<gcVars, now, obs, seen, seenAt, holes>>
+  /\ UNCHANGED <<gcVars, now, obs, seen, seenAt, holes, adoptVars, stageVars>>
 
 \* AdoptStage moves main from the observed head to stage s and releases the
 \* stage in the same transaction, so s never has zero holders between.
@@ -268,7 +411,8 @@ AdoptStage(w, s) ==
   /\ obs[w] # None
   /\ Land({}, {[n |-> "main", from |-> obs[w], to |-> s],
                [n |-> "stg", from |-> s, to |-> None]})
-  /\ UNCHANGED <<expires, gcVars, now, obs, seen, seenAt, holes>>
+  /\ UNCHANGED <<expires, gcVars, now, obs, seen, seenAt, holes, adoptVars,
+                 stageVars>>
 
 \* ReaderSee: a reader learns the head of main and reads its tree without a
 \* pin until it pins, which it must do within Window.
@@ -276,7 +420,8 @@ ReaderSee ==
   /\ Reader /\ seen = None /\ root["rdr"] = None
   /\ seen' = root["main"]
   /\ seenAt' = now
-  /\ UNCHANGED <<root, expires, stored, lost, gcVars, jr, now, obs, txns, holes>>
+  /\ UNCHANGED <<root, expires, stored, lost, gcVars, jr, now, obs, txns, holes,
+                 markVars, adoptVars, stageVars>>
 
 \* ReaderPin holds the block the reader saw as a leased root. SetRoots refuses
 \* it when the block is gone, which Grace keeps from happening inside Window.
@@ -285,32 +430,102 @@ ReaderPin ==
   /\ Land({}, {[n |-> "rdr", from |-> None, to |-> seen]})
   /\ expires' = [expires EXCEPT !["rdr"] = now + Lease]
   /\ seen' = None
-  /\ UNCHANGED <<gcVars, now, obs, seenAt, holes>>
+  /\ UNCHANGED <<gcVars, now, obs, seenAt, holes, adoptVars, stageVars>>
 
 \* ReaderLate: a reader that missed its window gives up its unpinned read.
 ReaderLate ==
   /\ seen # None /\ now > seenAt + Window
   /\ seen' = None
   /\ UNCHANGED <<root, expires, stored, lost, gcVars, jr, now, obs, seenAt,
-                 txns, holes>>
+                 txns, holes, markVars, adoptVars, stageVars>>
 
 \* Drop releases a leased root, as its holder does when it is done.
 Drop(n) ==
   /\ root[n] # None
   /\ Land({}, {[n |-> n, from |-> root[n], to |-> None]})
-  /\ UNCHANGED <<expires, gcVars, now, obs, seen, seenAt, holes>>
+  /\ UNCHANGED <<expires, gcVars, now, obs, seen, seenAt, holes, adoptVars,
+                 stageVars>>
 
-\* Sweep is the collector releasing a root whose lease lapsed.
+\* Sweep is the collector releasing a root whose lease lapsed, whoever holds
+\* it and whether or not its owner still runs.
 Sweep(n) ==
   /\ root[n] # None /\ now > expires[n]
   /\ Land({}, {[n |-> n, from |-> root[n], to |-> None]})
-  /\ UNCHANGED <<expires, gcVars, now, obs, seen, seenAt, holes>>
+  /\ UNCHANGED <<expires, gcVars, now, obs, seen, seenAt, holes, adoptVars,
+                 stageVars>>
+
+\* ---------------------------------------------------------------------------
+\* The stage owner: a tree S -> T built in two puts under leased roots.
+
+\* The root the owner's record says it holds, and its block.
+StageName == IF stage = "T" THEN "sT" ELSE "sS"
+StageTop == IF stage = "T" THEN "T" ELSE "S"
+Building == stage \in {"T", "S"}
+
+\* StagePut1 is prepareStaged storing T under the new root sT.
+StagePut1 ==
+  /\ Stage /\ stage = "none"
+  /\ Land({"T"}, {[n |-> "sT", from |-> None, to |-> "T"]})
+  /\ expires' = [expires EXCEPT !["sT"] = now + Lease]
+  /\ stage' = "T" /\ renewed' = now
+  /\ UNCHANGED <<gcVars, now, obs, seen, seenAt, holes, adoptVars>>
+
+\* StagePut2 is prepareStaged storing S, which names T, under the new root sS
+\* and releasing sT, whose holder S now is. With StageCAS the release carries
+\* the owner's own record of sT as its Previous, so the put is refused once a
+\* sweep took sT; without it the put releases sT only if the table still
+\* holds it.
+StagePut2 ==
+  /\ stage = "T"
+  /\ Land({"S"}, {[n |-> "sS", from |-> None, to |-> "S"]} \cup
+                 (IF StageCAS \/ root["sT"] = "T"
+                  THEN {[n |-> "sT", from |-> "T", to |-> None]} ELSE {}))
+  /\ expires' = [expires EXCEPT !["sS"] = now + Lease]
+  /\ stage' = "S" /\ renewed' = now
+  /\ UNCHANGED <<gcVars, now, obs, seen, seenAt, holes, adoptVars>>
+
+\* StagePublish moves main from the head the World writer observed onto S
+\* and releases sS in one transaction.
+StagePublish(w) ==
+  /\ stage = "S" /\ obs[w] # None
+  /\ Land({}, {[n |-> "main", from |-> obs[w], to |-> "S"],
+               [n |-> "sS", from |-> "S", to |-> None]})
+  /\ stage' = "done"
+  /\ UNCHANGED <<expires, gcVars, now, obs, seen, seenAt, holes, adoptVars,
+                 renewed>>
+
+\* StageRenew moves the owner's root's expiry forward. A root a sweep took is
+\* held again while its block is stored, through Land, which journals the up
+\* pair the tail check reads; when the block is gone the stage fails. Without
+\* Rehold the renewal renews only what the table still holds and reports
+\* success.
+StageRenew ==
+  /\ Building
+  /\ \/ /\ root[StageName] = StageTop
+        /\ expires' = [expires EXCEPT ![StageName] = now + Lease]
+        /\ renewed' = now
+        /\ UNCHANGED <<root, stored, lost, gcVars, jr, txns, markVars, stage>>
+     \/ /\ root[StageName] = None /\ Rehold /\ StageTop \in stored
+        /\ Land({}, {[n |-> StageName, from |-> None, to |-> StageTop]})
+        /\ expires' = [expires EXCEPT ![StageName] = now + Lease]
+        /\ renewed' = now
+        /\ UNCHANGED <<gcVars, stage>>
+     \/ /\ root[StageName] = None /\ Rehold /\ StageTop \notin stored
+        /\ stage' = "failed"
+        /\ UNCHANGED <<root, expires, stored, lost, gcVars, jr, txns, markVars,
+                       renewed>>
+     \/ /\ root[StageName] = None /\ ~Rehold
+        /\ renewed' = now
+        /\ UNCHANGED <<root, expires, stored, lost, gcVars, jr, txns, markVars,
+                       stage>>
+  /\ UNCHANGED <<now, obs, seen, seenAt, holes, adoptVars>>
 
 \* ---------------------------------------------------------------------------
 \* The collector.
 
 \* Net consumes the first k records as one interval; every one has aged Grace.
 Net(k) ==
+  /\ adoption = "adopted"
   /\ \A i \in 1..k : jr[i].at + Grace <= now
   /\ LET s == Step(stored, [b \in Blocks |-> Ups(1..k, b) - Downs(1..k, b)])
      IN /\ cnt' = s.cnt
@@ -318,7 +533,7 @@ Net(k) ==
         /\ under' = (under \/ s.under)
   /\ jr' = SubSeq(jr, k + 1, Len(jr))
   /\ UNCHANGED <<root, expires, stored, lost, now, obs, seen, seenAt, txns,
-                 holes>>
+                 holes, markVars, adoptVars, stageVars>>
 
 \* What Delete decrements: the children of the freed block. A lost child has
 \* no child list, so HoleStop keeps its children; the cascade stops there.
@@ -329,6 +544,7 @@ Decrement(b) ==
 \* Delete frees queued block b and decrements its children, which may queue
 \* them. With TailCheck it refuses while an up pair in the tail names b.
 Delete(b) ==
+  /\ adoption = "adopted"
   /\ b \in zero
   /\ TailCheck => Ups(Pending, b) = 0
   /\ LET d == [c \in Blocks |-> IF c \in Decrement(b) THEN -1 ELSE 0]
@@ -337,7 +553,157 @@ Delete(b) ==
         /\ cnt' = [s.cnt EXCEPT ![b] = 0]
         /\ zero' = s.zero
         /\ under' = (under \/ s.under)
-  /\ UNCHANGED <<root, expires, lost, jr, now, obs, seen, seenAt, txns, holes>>
+  /\ UNCHANGED <<root, expires, lost, jr, now, obs, seen, seenAt, txns, holes,
+                 markVars, adoptVars, stageVars>>
+
+\* ---------------------------------------------------------------------------
+\* Adoption: runs r of block_gc.Adopt, one transaction per action.
+
+\* The least index past p whose key is in set, or 0 when none is.
+NextKey(keys, p, set) ==
+  LET later == {i \in (p + 1)..Len(keys) : keys[i] \in set}
+  IN IF later = {} THEN 0 ELSE CHOOSE i \in later : \A j \in later : i <= j
+
+\* r holds its claim: the Volume is unadopted and names r.
+Claimed(r) == adoption = "unadopted" /\ owner = r
+\* r still owns the adoption: the Volume is adopting in r.
+InRun(r) == adoption = "adopting" /\ owner = r
+
+\* A superseded run returns ErrAdoptSuperseded and writes nothing.
+Superseded(r) ==
+  /\ pc' = [pc EXCEPT ![r] = "dead"]
+  /\ UNCHANGED <<root, expires, stored, lost, gcVars, jr, now, obs, seen,
+                 seenAt, txns, holes, markVars, adoption, owner, pos, opens,
+                 stageVars>>
+
+\* Go moves r to the next step, leaving the records alone.
+Go(r, step) ==
+  /\ pc' = [pc EXCEPT ![r] = step]
+  /\ UNCHANGED <<root, expires, stored, lost, gcVars, jr, now, obs, seen,
+                 seenAt, txns, holes, markVars, adoption, owner, opens,
+                 stageVars>>
+
+AdoptUnchanged ==
+  UNCHANGED <<root, expires, stored, lost, under, jr, now, obs, seen, seenAt,
+              txns, holes, opens, stageVars>>
+
+\* AdoptStart reports an adopted Volume, and otherwise returns it to
+\* unadopted, superseding any run, and with Claim names r in it.
+AdoptStart(r) ==
+  /\ pc[r] = "idle"
+  /\ IF adoption = "adopted"
+     THEN Go(r, "done") /\ UNCHANGED pos
+     ELSE /\ adoption' = "unadopted"
+          /\ owner' = IF Claim THEN r ELSE None
+          /\ pc' = [pc EXCEPT ![r] = "clear"]
+          /\ UNCHANGED <<cnt, zero, markVars, pos>>
+          /\ AdoptUnchanged
+
+\* AdoptClear deletes every count, queue entry and mark while r holds its
+\* claim; without Claim it deletes them whatever the state.
+AdoptClear(r) ==
+  /\ pc[r] = "clear"
+  /\ IF Claim /\ ~Claimed(r)
+     THEN Superseded(r)
+     ELSE /\ cnt' = [b \in Blocks |-> 0]
+          /\ zero' = {}
+          /\ born' = {}
+          /\ moved' = [n \in Names |-> Unmoved]
+          /\ pc' = [pc EXCEPT ![r] = "mark"]
+          /\ UNCHANGED <<adoption, owner, pos>>
+          /\ AdoptUnchanged
+
+\* AdoptMark marks the Volume adopting in r at the journal's end. The
+\* collector's cursor moves there, and the records before it, which the
+\* counts will reflect, are never read again.
+AdoptMark(r) ==
+  /\ pc[r] = "mark"
+  /\ IF Claim /\ ~Claimed(r)
+     THEN Superseded(r)
+     ELSE /\ adoption' = "adopting"
+          /\ owner' = r
+          /\ jr' = <<>>
+          /\ pc' = [pc EXCEPT ![r] = "roots"]
+          /\ pos' = [pos EXCEPT ![r] = 0]
+          /\ UNCHANGED <<gcVars, markVars, root, expires, stored, lost, now,
+                         obs, seen, seenAt, txns, holes, opens, stageVars>>
+
+\* A count, settle or end step of r: with RunCheck it first checks that the
+\* Volume is still adopting in r.
+Owned(r) == RunCheck => InRun(r)
+
+\* AdoptRoot counts the next name, in key order, of the root table and the
+\* moved marks, at the block it held when the adoption began: its mark, or
+\* else its table entry.
+AdoptRoot(r) ==
+  /\ pc[r] = "roots"
+  /\ IF ~Owned(r) THEN Superseded(r)
+     ELSE LET i == NextKey(NameKeys, pos[r],
+                           {n \in Names : root[n] # None \/ moved[n] # Unmoved})
+              n == NameKeys[i]
+              start == IF moved[n] # Unmoved THEN moved[n] ELSE root[n]
+          IN IF i = 0 THEN Go(r, "lists") /\ pos' = [pos EXCEPT ![r] = 0]
+             ELSE /\ cnt' = IF start = None THEN cnt
+                            ELSE [cnt EXCEPT ![start] = @ + 1]
+                  /\ pos' = [pos EXCEPT ![r] = i]
+                  /\ UNCHANGED <<zero, markVars, adoption, owner, pc>>
+                  /\ AdoptUnchanged
+
+\* AdoptList counts a holder of each child of the next child list, in key
+\* order, that no born mark names.
+AdoptList(r) ==
+  /\ pc[r] = "lists"
+  /\ IF ~Owned(r) THEN Superseded(r)
+     ELSE LET i == NextKey(BlockKeys, pos[r], stored)
+              b == BlockKeys[i]
+          IN IF i = 0 THEN Go(r, "settle") /\ pos' = [pos EXCEPT ![r] = 0]
+             ELSE /\ cnt' = IF b \in born THEN cnt
+                            ELSE [c \in Blocks |->
+                                    cnt[c] + IF c \in Kids(b) THEN 1 ELSE 0]
+                  /\ pos' = [pos EXCEPT ![r] = i]
+                  /\ UNCHANGED <<zero, markVars, adoption, owner, pc>>
+                  /\ AdoptUnchanged
+
+\* AdoptSettle settles the block of the next child list no born mark names:
+\* one with no holder goes on the free queue, and any other drops the holder
+\* its child list implies.
+AdoptSettle(r) ==
+  /\ pc[r] = "settle"
+  /\ IF ~Owned(r) THEN Superseded(r)
+     ELSE LET i == NextKey(BlockKeys, pos[r], stored)
+              b == BlockKeys[i]
+          IN IF i = 0 THEN Go(r, "end") /\ UNCHANGED pos
+             ELSE /\ IF b \in born THEN UNCHANGED <<cnt, zero>>
+                     ELSE IF cnt[b] = 0
+                     THEN zero' = zero \cup {b} /\ UNCHANGED cnt
+                     ELSE cnt' = [cnt EXCEPT ![b] = @ - 1] /\ UNCHANGED zero
+                  /\ pos' = [pos EXCEPT ![r] = i]
+                  /\ UNCHANGED <<markVars, adoption, owner, pc>>
+                  /\ AdoptUnchanged
+
+\* AdoptEnd marks the Volume adopted and deletes the marks, which nothing
+\* reads once it is.
+AdoptEnd(r) ==
+  /\ pc[r] = "end"
+  /\ IF ~Owned(r) THEN Superseded(r)
+     ELSE /\ adoption' = "adopted"
+          /\ born' = {}
+          /\ moved' = [n \in Names |-> Unmoved]
+          /\ pc' = [pc EXCEPT ![r] = "done"]
+          /\ UNCHANGED <<gcVars, owner, pos>>
+          /\ AdoptUnchanged
+
+\* AdoptCrash stops r at any step.
+AdoptCrash(r) ==
+  /\ pc[r] \in {"clear", "mark", "roots", "lists", "settle", "end"}
+  /\ Go(r, "dead") /\ UNCHANGED pos
+
+\* Open returns an adopting Volume to unadopted, superseding its run.
+Open ==
+  /\ opens < MaxOpens /\ adoption = "adopting"
+  /\ adoption' = "unadopted" /\ owner' = None /\ opens' = opens + 1
+  /\ UNCHANGED <<root, expires, stored, lost, gcVars, jr, now, obs, seen,
+                 seenAt, txns, holes, markVars, pc, pos, stageVars>>
 
 \* ---------------------------------------------------------------------------
 \* The environment.
@@ -349,12 +715,13 @@ Punch(b) ==
   /\ stored' = stored \ {b} /\ lost' = lost \cup {b}
   /\ cnt' = [cnt EXCEPT ![b] = 0] /\ zero' = zero \ {b}
   /\ holes' = holes + 1
-  /\ UNCHANGED <<root, expires, jr, under, now, obs, seen, seenAt, txns>>
+  /\ UNCHANGED <<root, expires, jr, under, now, obs, seen, seenAt, txns,
+                 markVars, adoptVars, stageVars>>
 
 Tick ==
   /\ now < MaxNow /\ now' = now + 1
   /\ UNCHANGED <<root, expires, stored, lost, gcVars, jr, obs, seen, seenAt,
-                 txns, holes>>
+                 txns, holes, markVars, adoptVars, stageVars>>
 
 NetAny == \E k \in 1..Len(jr) : Net(k)
 DeleteAny == \E b \in Blocks : Delete(b)
@@ -364,8 +731,15 @@ Next ==
        \/ Observe(w)
        \/ \E r \in MainRoots : Commit(w, r)
        \/ \E r \in StageRoots : StageWrite(w, r) \/ AdoptStage(w, r)
+       \/ StagePublish(w)
   \/ ReaderSee \/ ReaderPin \/ ReaderLate
-  \/ \E n \in Leases : Drop(n) \/ Sweep(n)
+  \/ \E n \in Dropped : Drop(n)
+  \/ \E n \in Leases : Sweep(n)
+  \/ StagePut1 \/ StagePut2 \/ StageRenew
+  \/ \E r \in Runs :
+       \/ AdoptStart(r) \/ AdoptClear(r) \/ AdoptMark(r) \/ AdoptRoot(r)
+       \/ AdoptList(r) \/ AdoptSettle(r) \/ AdoptEnd(r) \/ AdoptCrash(r)
+  \/ Open
   \/ \E b \in Blocks : Punch(b)
   \/ Tick
   \/ NetAny
@@ -380,10 +754,11 @@ Spec == Init /\ [][Next]_vars /\ WF_vars(Tick) /\ WF_vars(NetAny)
 HeldBlocks == {root[n] : n \in Names} \ {None}
 LiveSet == UNION {Reach(b) : b \in HeldBlocks}
 BelowLost == UNION {Reach(h) \ {h} : h \in lost}
+Adopted == adoption = "adopted"
 
 \* No block a held root reaches is freed: it is stored, or the store lost it.
 \* This covers main moved by compare and swap while a pass ran, a reader's
-\* pin and a stage.
+\* pin, a stage, and every adoption.
 NoFreedRead == LiveSet \subseteq stored \cup lost
 
 \* A reader that saw a head and still has time to pin it finds all of it.
@@ -403,21 +778,29 @@ TrueHolders(b) ==
 \* The netted holders plus the journal past the cursor.
 JournalHolders(b) == Holders(b) + Ups(Pending, b) - Downs(Pending, b)
 
-\* The journal never counts fewer holders than a block has: fewer frees a
-\* live block. More leaks, which only a hole may cause.
-CountsCover == \A b \in stored : JournalHolders(b) >= TrueHolders(b)
+\* Once adopted, the journal never counts fewer holders than a block has:
+\* fewer frees a live block. More leaks, which only a hole may cause.
+CountsCover == Adopted => \A b \in stored : JournalHolders(b) >= TrueHolders(b)
 
-\* With no hole, the journal counts each block's holders exactly.
-CountsExact == lost = {} => \A b \in stored : JournalHolders(b) = TrueHolders(b)
+\* Once adopted with no hole, the journal counts each block's holders
+\* exactly.
+CountsExact ==
+  Adopted /\ lost = {} => \A b \in stored : JournalHolders(b) = TrueHolders(b)
 
 \* A lost block's children stay stored: the cascade stopped at the hole.
 HoleKeeps == \A h \in lost : Kids(h) \subseteq stored \cup lost
 
-Quiet == jr = <<>> /\ zero = {}
+Quiet == Adopted /\ jr = <<>> /\ zero = {}
 
 \* Once the journal is consumed and the free queue empty, the store holds what
 \* the roots reach and what lies below a hole: the audit's Leaked.
 NoLeak == Quiet => stored \subseteq LiveSet \cup BelowLost
+
+\* An owner that renewed or wrote within Lease and Grace finds every block
+\* of the tree its record holds: a stall shorter than that loses nothing,
+\* and after a longer one the renewal fails the stage or holds it again.
+StageKept ==
+  Building /\ now <= renewed + Lease + Grace => Reach(StageTop) \subseteq stored
 
 \* Every block no root reaches is freed in the end, but those below a hole.
 Collected == <>[](Quiet /\ stored \subseteq LiveSet \cup BelowLost)
