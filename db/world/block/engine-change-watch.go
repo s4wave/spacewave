@@ -269,10 +269,12 @@ func (e *Engine) runChangeWatch(w *engineChangeWatch) {
 		listChanges := len(w.subs) != 0
 		locked.Unlock()
 
-		// Compare the World trees outside the publication lock. A block only
-		// an absent peer could serve fails the comparison instead of waiting
-		// for the peer, since every subscriber waits behind it.
-		compareCtx, _ := block.WithoutPeerWait(w.ctx)
+		// Compare the World trees outside the publication lock. Every
+		// subscriber, and so every view and every write's rehearsal, waits
+		// behind the comparison, so its reads go ahead of other reads on a
+		// bounded link (block.ReadUrgent), and a block only an absent peer
+		// could serve fails it instead of waiting for the peer.
+		compareCtx, _ := block.WithoutPeerWait(block.WithReadClass(w.ctx, block.ReadUrgent))
 		keys, changes, err := e.compareChangeWatchHeads(compareCtx, w, w.base, next, listChanges)
 		if err != nil && w.ctx.Err() == nil {
 			e.le.WithError(err).Warn("world change comparison failed; waking every watcher")
