@@ -12,6 +12,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	storage_inmem "github.com/s4wave/spacewave/bldr/storage/inmem"
 	device_flowgraph "github.com/s4wave/spacewave/core/device/flowgraph"
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	"github.com/s4wave/spacewave/core/provider"
@@ -23,6 +24,7 @@ import (
 	space_world_replica_controller "github.com/s4wave/spacewave/core/space/world/replica/controller"
 	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/db/block"
+	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
@@ -71,8 +73,8 @@ func TestReplicaMovesOwnershipOverAndBack(t *testing.T) {
 // startTestbed starts a testbed running the local provider, whose Session
 // transports run the replica controller, and the Space body controller.
 func startTestbed(ctx context.Context, t *testing.T) *testbed.Testbed {
-	// Register the factories.
-	tb, err := testbed.Default(ctx)
+	storeConf := &store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: "1s"}
+	tb, err := testbed.Default(ctx, testbed.WithStorages(storage_inmem.NewInmemStorageWithStoreConfig("default", storeConf)))
 	if err != nil {
 		t.Fatal(err)
 	}

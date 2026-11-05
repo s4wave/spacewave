@@ -176,8 +176,10 @@ func TestRootsStayInView(t *testing.T) {
 }
 
 // TestStagesStayInView checks that a stage opened through the view holds its
-// blocks on a host that frees at once, until the view releases it, and that
-// the view refuses a stage it did not open.
+// blocks on a host that frees at once, until the view releases it, that the
+// view refuses a stage it did not open, and that the host collects a view's
+// block once the view releases its root while keeping another view's and its
+// own.
 func TestStagesStayInView(t *testing.T) {
 	// Build a view over a host volume that frees at once.
 	ctx := t.Context()
@@ -238,5 +240,32 @@ func TestStagesStayInView(t *testing.T) {
 	collect()
 	if found, err := host.GetBlockExists(ctx, ref); err != nil || found {
 		t.Fatalf("a released stage's block survived: %v %v", found, err)
+	}
+
+	// Two views of the host and the host itself each hold a block under a
+	// root; when one view releases its root, the host's collection frees
+	// that view's block and only it.
+	holds := make(map[string]*block.BlockRef)
+	views := map[string]block.StoreOps{"kept": volume_scoped.NewVolume(tb.Volume, "kept/"), "dropped": volume_scoped.NewVolume(tb.Volume, "dropped/"), "host": tb.Volume}
+	for name, v := range views {
+		data := []byte("held by " + name)
+		ref, err := block.BuildBlockRef(data, nil)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		entries := []*block.PutBatchEntry{{Ref: ref, Data: data, RefsKnown: true}}
+		if err := v.SetRoots(ctx, entries, []block.NamedRoot{{Name: "head", Ref: ref}}); err != nil {
+			t.Fatal(err.Error())
+		}
+		holds[name] = ref
+	}
+	if err := views["dropped"].SetRoots(ctx, nil, []block.NamedRoot{{Name: "head", Previous: holds["dropped"]}}); err != nil {
+		t.Fatal(err.Error())
+	}
+	collect()
+	for name, want := range map[string]bool{"kept": true, "dropped": false, "host": true} {
+		if found, err := host.GetBlockExists(ctx, holds[name]); err != nil || found != want {
+			t.Fatalf("%s block after the collection: %v %v, want %v", name, found, err, want)
+		}
 	}
 }
