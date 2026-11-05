@@ -21,7 +21,6 @@ import (
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_store "github.com/s4wave/spacewave/db/bucket/store"
-	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
 	kvtx_block_iavl "github.com/s4wave/spacewave/db/kvtx/block/iavl"
 	kvtx_block_okra "github.com/s4wave/spacewave/db/kvtx/block/okra"
@@ -46,8 +45,6 @@ const (
 	refRepairProgress = 100_000
 	// refRepairSample limits the listless blocks printed in the report.
 	refRepairSample = 10
-	// refRepairListBatch bounds the child lists one transaction writes.
-	refRepairListBatch = 4096
 )
 
 // refRepairNode is a block the ref repair walks, with what decodes it.
@@ -107,8 +104,8 @@ type refRepairResult struct {
 	lacking uint64
 	// edges is the number of children those lists name.
 	edges uint64
-	// written is the number of child lists written.
-	written uint64
+	// rebuild is what the list rebuild verified and wrote, empty on a dry run.
+	rebuild block_gc.ListRebuildResult
 	// untyped counts the refs whose type the walk cannot name, by reason.
 	// Their edges are recorded; the blocks below them are not walked.
 	untyped map[string]uint64
@@ -124,11 +121,12 @@ type refRepairResult struct {
 }
 
 // refRepair walks the World graphs the Spaces of a stopped volume retain,
-// decoding each block by its type, and collects the child lists of the blocks
-// stored without one. A block's list is the refs block.ExtractBlockRefs reads
-// from the decoded block, which are the refs a write records for it. The
-// repair only adds lists, and only to an unadopted volume, whose adoption then
-// counts their holders.
+// decoding each block by its type, and hands each decoded block's refs to a
+// list rebuild, which writes the list when it is missing or differs and marks
+// it verified. A block's list is the refs block.ExtractBlockRefs reads from
+// the decoded block, which are the refs a write records for it. The rebuild
+// runs only on an unadopted volume, whose adoption then counts the lists'
+// holders.
 type refRepair struct {
 	// le is the logger.
 	le *logrus.Entry
@@ -140,8 +138,8 @@ type refRepair struct {
 	buckets bucket_store.Store
 	// visited holds the keys of the blocks already walked.
 	visited map[string]struct{}
-	// lists are the child lists found missing, in walk order.
-	lists []block.PutBatchEntry
+	// rebuild verifies the decoded blocks' lists, nil on a dry run.
+	rebuild *block_gc.ListRebuild
 	// types caches object type IDs by object key across Worlds.
 	types map[string]string
 	// xfrms caches transformers by their marshaled config.
@@ -438,7 +436,7 @@ func (r *refRepair) visit(ctx context.Context, rd *refRepairRead) ([]refRepairNo
 		r.le.Infof("walked %d blocks", r.res.blocks)
 	}
 	if rd.leaf {
-		return nil, nil
+		return nil, r.verify(ctx, rd.node.ref, nil)
 	}
 	if rd.decodeErr != nil {
 		r.le.WithError(rd.decodeErr).Warnf("cannot decode %s", rd.node.ref.MarshalString())
@@ -446,10 +444,21 @@ func (r *refRepair) visit(ctx context.Context, rd *refRepairRead) ([]refRepairNo
 		return nil, nil
 	}
 
-	// Plan the child list a write records for the block, then return its
-	// children.
+	// Count and verify the block's list, then return its children.
 	r.recordList(rd)
+	if err := r.verify(ctx, rd.node.ref, rd.refs); err != nil {
+		return nil, err
+	}
 	return r.children(ctx, rd.blk, rd.node, rd.node.values)
+}
+
+// verify hands a decoded block's refs to the list rebuild, unless this is a
+// dry run.
+func (r *refRepair) verify(ctx context.Context, ref *block.BlockRef, refs []*block.BlockRef) error {
+	if r.rebuild == nil {
+		return nil
+	}
+	return r.rebuild.Verify(ctx, ref, refs)
 }
 
 // decodeRefRepairNode decodes the stored bytes of n by its type.
@@ -472,12 +481,11 @@ func decodeRefRepairNode(n refRepairNode, data []byte) (any, error) {
 	return blk, blk.UnmarshalVT(data)
 }
 
-// recordList plans the child list of a block the volume stores without one.
+// recordList counts a block the volume stores without a child list.
 func (r *refRepair) recordList(rd *refRepairRead) {
 	if rd.listed {
 		return
 	}
-	r.lists = append(r.lists, block.PutBatchEntry{Ref: rd.node.ref, Refs: rd.refs, RefsKnown: true})
 	r.res.lacking++
 	r.res.edges += uint64(len(rd.refs))
 }
@@ -717,45 +725,4 @@ func (r *refRepair) transformer(conf *block_transform.Config) (block.Transformer
 	}
 	r.xfrms[string(data)] = xfrm
 	return xfrm, nil
-}
-
-// apply writes the planned child lists in bounded transactions. It refuses an
-// adopting or adopted volume: a list written outside a put records no holder
-// in the journal, so only an adoption that follows may count them.
-func (r *refRepair) apply(ctx context.Context) error {
-	// Write each chunk of lists in one transaction and count it.
-	for chunk := range slices.Chunk(r.lists, refRepairListBatch) {
-		err := kvtx.RunTransaction(ctx, true, func(ctx context.Context) (kvtx.Tx, error) {
-			return r.vol.GetKvtxStore().NewTransaction(ctx, true)
-		}, func(ctx context.Context, tx kvtx.Tx) error {
-			// Refuse a volume that journals holders.
-			rec := volume_kvtx.OpenRecords(tx)
-			state, err := rec.GetState(ctx)
-			if err != nil {
-				return err
-			}
-			if state.GetAdoption() != block_gc.Adoption_ADOPTION_UNADOPTED {
-				return errors.New("the volume is adopted; repair child lists only before adoption")
-			}
-
-			// Write the lists the volume lacks.
-			for _, entry := range chunk {
-				listed, err := rec.HasChildren(ctx, entry.Ref)
-				if err != nil {
-					return err
-				}
-				if !listed {
-					if err := rec.PutChildren(ctx, entry.Ref, entry.Refs); err != nil {
-						return err
-					}
-				}
-			}
-			return nil
-		})
-		if err != nil {
-			return errors.Wrap(err, "write child lists")
-		}
-		r.res.written += uint64(len(chunk))
-	}
-	return nil
 }

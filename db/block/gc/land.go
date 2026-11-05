@@ -95,6 +95,7 @@ func Land(
 		blocks:   blocks,
 		journal:  state.GetAdoption() != Adoption_ADOPTION_UNADOPTED,
 		adopting: state.GetAdoption() == Adoption_ADOPTION_ADOPTING,
+		verify:   state.GetUnverifiedLists(),
 		born:     make(map[string]*bornBlock),
 		touched:  make(map[string]struct{}),
 	}
@@ -160,6 +161,9 @@ type lander struct {
 	// adopting reports that an adoption is counting the Volume, so Land marks
 	// the blocks it gives birth to and the roots it moves, as Adopt reads.
 	adopting bool
+	// verify reports that the Volume's lists are unverified, so Land marks
+	// each list it writes verified: it writes them from the put's refs.
+	verify bool
 	// touched holds the block keys of the entries already stored, whose put
 	// the journal records as an up and a down pair.
 	touched map[string]struct{}
@@ -259,7 +263,7 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 		return nil, err
 	}
 	for _, entry := range l.refills {
-		if err := l.rec.PutChildren(ctx, entry.Ref, entry.Refs); err != nil {
+		if err := l.putList(ctx, entry.Ref, entry.Refs); err != nil {
 			return nil, err
 		}
 		if err := l.rec.DeleteHole(ctx, entry.Ref); err != nil {
@@ -285,7 +289,7 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 		}
 		b.written = true
 		b.reput = i < len(existed) && existed[i]
-		if err := l.rec.PutChildren(ctx, b.ref, b.children); err != nil {
+		if err := l.putList(ctx, b.ref, b.children); err != nil {
 			return nil, err
 		}
 		if l.adopting {
@@ -295,6 +299,15 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 		}
 	}
 	return existed, nil
+}
+
+// putList writes ref's child list, marking it verified while the Volume's
+// lists are unverified.
+func (l *lander) putList(ctx context.Context, ref *block.BlockRef, children []*block.BlockRef) error {
+	if err := l.rec.PutChildren(ctx, ref, children); err != nil || !l.verify {
+		return err
+	}
+	return l.rec.tx.Set(ctx, l.rec.key(kindVerified, BlockKey(ref)), nil)
 }
 
 // holdChildren counts the holder each born block gives each child: an
