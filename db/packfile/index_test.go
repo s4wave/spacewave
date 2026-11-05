@@ -51,38 +51,41 @@ func TestReadIndexTail(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			// Read it backwards and record each range.
-			type readRange struct{ off, end int64 }
-			var reads []readRange
-			got, err := ReadIndexTail(t.Context(), size, func(_ context.Context, off int64, length int) ([]byte, error) {
-				reads = append(reads, readRange{off, off + int64(length)})
-				return pack[off : off+int64(length)], nil
-			})
-			if err != nil {
-				t.Fatal(err)
-			}
-			if !bytes.Equal(got, want) {
-				t.Fatalf("tail = %d bytes, want %d", len(got), len(want))
-			}
-
-			// The first read ends the pack; each later read ends where the last began.
-			if reads[0].end != int64(size) || reads[0].end-reads[0].off != IndexTailFirstRead {
-				t.Fatalf("first read = %+v, want the last %d bytes", reads[0], IndexTailFirstRead)
-			}
-			for i := 1; i < len(reads); i++ {
-				if reads[i].end != reads[i-1].off {
-					t.Fatalf("read %d = %+v, want it to end at %d", i, reads[i], reads[i-1].off)
+			// Read it backwards and record each range, first with an unknown
+			// block count, then with the first read sized from the count.
+			for _, firstRead := range []uint64{IndexTailFirstRead, IndexTailReadSize(uint64(tc.keys))} {
+				type readRange struct{ off, end int64 }
+				var reads []readRange
+				got, err := ReadIndexTail(t.Context(), size, firstRead, func(_ context.Context, off int64, length int) ([]byte, error) {
+					reads = append(reads, readRange{off, off + int64(length)})
+					return pack[off : off+int64(length)], nil
+				})
+				if err != nil {
+					t.Fatal(err)
 				}
-			}
-			first := reads[len(reads)-1].off
-			if over := int64(size) - int64(len(want)) - first; len(want) > IndexTailFirstRead && (over < 0 || over > maxIndexEntrySize) {
-				t.Fatalf("read %d bytes below the tail, want at most %d", over, maxIndexEntrySize)
-			}
-			if len(reads) > 3 {
-				t.Fatalf("%d reads, want at most 3", len(reads))
-			}
-			if tc.name == "backwards" && len(reads) == 1 {
-				t.Fatalf("tail of %d bytes fit the first read; grow the test keys", len(want))
+				if !bytes.Equal(got, want) {
+					t.Fatalf("tail = %d bytes, want %d", len(got), len(want))
+				}
+
+				// The first read ends the pack; each later read ends where the last began.
+				if reads[0].end != int64(size) || uint64(reads[0].end-reads[0].off) != firstRead {
+					t.Fatalf("first read = %+v, want the last %d bytes", reads[0], firstRead)
+				}
+				for i := 1; i < len(reads); i++ {
+					if reads[i].end != reads[i-1].off {
+						t.Fatalf("read %d = %+v, want it to end at %d", i, reads[i], reads[i-1].off)
+					}
+				}
+				first := reads[len(reads)-1].off
+				if over := int64(size) - int64(len(want)) - first; uint64(len(want)) > firstRead && (over < 0 || over > maxIndexEntrySize) {
+					t.Fatalf("read %d bytes below the tail, want at most %d", over, maxIndexEntrySize)
+				}
+				if len(reads) > 3 {
+					t.Fatalf("%d reads, want at most 3", len(reads))
+				}
+				if tc.name == "backwards" && len(reads) == 1 {
+					t.Fatalf("tail of %d bytes fit the first read; grow the test keys", len(want))
+				}
 			}
 		})
 	}

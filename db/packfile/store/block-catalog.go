@@ -301,7 +301,11 @@ func (e *PackReader) readIndex(ctx context.Context, parsed bool) ([]byte, blockI
 	if e.size < 0 {
 		return nil, nil, errors.Errorf("negative pack size %d", e.size)
 	}
-	tail, err := packfile.ReadIndexTail(ctx, uint64(e.size), e.fetchIndexTail)
+	var blockCount uint64
+	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		blockCount = e.blockCount
+	})
+	tail, err := packfile.ReadIndexTail(ctx, uint64(e.size), packfile.IndexTailReadSize(blockCount), e.fetchIndexTail)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "read kvfile index tail")
 	}
