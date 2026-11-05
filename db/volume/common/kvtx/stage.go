@@ -2,8 +2,12 @@ package kvtx
 
 import (
 	"context"
+	"maps"
+	"slices"
+	"time"
 
 	"github.com/aperturerobotics/util/ulid"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 )
@@ -13,6 +17,61 @@ type openStage struct {
 	// released records that the stage's release was called; the next changing
 	// direct transaction releases its roots.
 	released bool
+	// roots are the roots the stage's committed transactions hold, by name.
+	// Renewal holds a root again from here when a collector released it for
+	// a lapsed lease while the stage was open, and a put releases a root it
+	// names with this record's block as the root's Previous.
+	roots map[string]*block.BlockRef
+	// lost records that a root the stage held is gone with its block: its
+	// process stalled past the lease and the grace period, so the stage can
+	// no longer build on what it wrote.
+	lost bool
+}
+
+// errStageLost rejects a write through a stage that lost a root it held.
+var errStageLost = errors.Wrap(block.ErrStageReleased, "stage lost a root it held while its process stalled past the lease and grace period")
+
+// stageRoots returns a copy of the roots the stage's record holds.
+func (v *Volume) stageRoots(stage string) map[string]*block.BlockRef {
+	unlock, _ := v.rootPinMu.Lock(context.Background())
+	defer unlock()
+	if st := v.stages[stage]; st != nil {
+		return maps.Clone(st.roots)
+	}
+	return nil
+}
+
+// loseStage marks a stage lost, so every later write through it fails.
+func (v *Volume) loseStage(stage string) {
+	unlock, _ := v.rootPinMu.Lock(context.Background())
+	defer unlock()
+	if st := v.stages[stage]; st != nil {
+		st.lost = true
+	}
+}
+
+// noteStageRoots records the root moves a committed transaction of stage
+// made, under the pin lock.
+func (v *Volume) noteStageRoots(stage string, moves []block.NamedRoot) {
+	// Find the open stage under the pin lock.
+	unlock, _ := v.rootPinMu.Lock(context.Background())
+	defer unlock()
+	st := v.stages[stage]
+	if st == nil {
+		return
+	}
+
+	// Apply each move to its record.
+	for _, move := range moves {
+		if move.Ref.GetEmpty() {
+			delete(st.roots, move.Name)
+			continue
+		}
+		if st.roots == nil {
+			st.roots = make(map[string]*block.BlockRef)
+		}
+		st.roots[move.Name] = move.Ref
+	}
 }
 
 // OpenStage opens a stage of this process and returns its name. A stage holds
@@ -51,7 +110,8 @@ func (v *Volume) releaseStage(stage string) {
 }
 
 // useStage returns block.ErrStageReleased unless the stage is open: a released
-// stage's roots would hold blocks nothing reaches.
+// stage's roots would hold blocks nothing reaches, and a lost one's writes
+// would name blocks the collector freed.
 func (v *Volume) useStage(ctx context.Context, stage string) error {
 	// Read the stage under the pin lock.
 	unlock, err := v.rootPinMu.Lock(ctx)
@@ -59,8 +119,12 @@ func (v *Volume) useStage(ctx context.Context, stage string) error {
 		return err
 	}
 	defer unlock()
-	if st := v.stages[stage]; st == nil || st.released {
+	st := v.stages[stage]
+	switch {
+	case st == nil || st.released:
 		return block.ErrStageReleased
+	case st.lost:
+		return errStageLost
 	}
 	return nil
 }
@@ -154,72 +218,73 @@ func (v *Volume) prepareStaged(ctx context.Context, stage string, entries []*blo
 		}
 	}
 
-	// Store the entries and move the stage's roots in one transaction.
+	// Store the entries and move the stage's roots in one transaction, then
+	// record the moves. A root the stage's record holds that the table no
+	// longer does refuses the put, and the stage is lost.
+	held := v.stageRoots(stage)
+	roots := stageMoves(stage, held, entries, v.leaseExpiry())
 	var existed []bool
 	err := v.withDirectAtomic(ctx, func(p *physicalTx) error {
-		roots, err := v.stageMoves(ctx, p, stage, entries)
-		if err != nil {
-			return err
-		}
+		var err error
 		existed, err = v.land(ctx, p, "", entries, roots)
 		return err
 	})
+	switch {
+	case err == nil:
+		v.noteStageRoots(stage, roots)
+	case isRootMoved(err):
+		v.loseStage(stage)
+		return nil, errors.Wrap(errStageLost, err.Error())
+	}
 	return existed, err
 }
 
 // stageMoves returns the root moves that hold each entry under stage and
-// release the stage's roots on the blocks the entries name.
-func (v *Volume) stageMoves(ctx context.Context, p *physicalTx, stage string, entries []*block.PutBatchEntry) ([]block.NamedRoot, error) {
+// release the stage's roots on the blocks the entries name. held is the
+// stage's record of its roots: a release carries the record's block as its
+// Previous, so a root a collector took refuses the put rather than leaving the
+// parent over a freed block.
+func stageMoves(stage string, held map[string]*block.BlockRef, entries []*block.PutBatchEntry, expires time.Time) []block.NamedRoot {
 	// Find the entries and the blocks they name.
-	expires := v.leaseExpiry()
 	put := make(map[string]*block.BlockRef)
-	named := make(map[string]*block.BlockRef)
+	named := make(map[string]struct{})
 	for _, entry := range entries {
 		if entry == nil || entry.Tombstone || len(entry.Data) == 0 {
 			continue
 		}
 		put[stageRootName(stage, entry.Ref)] = entry.Ref
 		for _, child := range entry.Refs {
-			named[stageRootName(stage, child)] = child
+			named[stageRootName(stage, child)] = struct{}{}
 		}
 	}
 
 	// Hold each entry the stage does not hold yet, unless another entry
 	// names it.
 	var roots []block.NamedRoot
-	for name, ref := range put {
-		if _, ok := named[name]; ok {
-			continue
-		}
-		entry, err := p.rec.GetRoot(ctx, "", name)
-		if err != nil {
-			return nil, err
-		}
-		if entry == nil {
-			roots = append(roots, block.NamedRoot{Name: name, Ref: ref, Expires: expires})
+	for _, name := range slices.Sorted(maps.Keys(put)) {
+		_, isNamed := named[name]
+		if _, isHeld := held[name]; !isNamed && !isHeld {
+			roots = append(roots, block.NamedRoot{Name: name, Ref: put[name], Expires: expires})
 		}
 	}
 
 	// Release the stage's roots on the named blocks.
-	for name, ref := range named {
-		entry, err := p.rec.GetRoot(ctx, "", name)
-		if err != nil {
-			return nil, err
-		}
-		if entry != nil {
+	for _, name := range slices.Sorted(maps.Keys(named)) {
+		if ref, isHeld := held[name]; isHeld {
 			roots = append(roots, block.NamedRoot{Name: name, Previous: ref})
 		}
 	}
-	return roots, nil
+	return roots
 }
 
 // ReleaseStageRoots releases the open stage's roots on refs in one
 // transaction, once a parent written outside the stage holds them. The stage
 // stays open.
 func (v *Volume) ReleaseStageRoots(ctx context.Context, stage string, refs []*block.BlockRef) error {
-	return v.withDirectAtomic(ctx, func(p *physicalTx) error {
+	var releases []block.NamedRoot
+	err := v.withDirectAtomic(ctx, func(p *physicalTx) error {
 		// Find the stage roots held on refs.
-		var releases []block.NamedRoot
+		releases = nil
 		for _, ref := range refs {
 			if ref.GetEmpty() {
 				continue
@@ -241,6 +306,10 @@ func (v *Volume) ReleaseStageRoots(ctx context.Context, stage string, refs []*bl
 		_, err := v.land(ctx, p, "", nil, releases)
 		return err
 	})
+	if err == nil {
+		v.noteStageRoots(stage, releases)
+	}
+	return err
 }
 
 // HoldStageCompleteRoots reports which roots have a completion proof, durable
@@ -255,10 +324,11 @@ func (v *Volume) HoldStageCompleteRoots(ctx context.Context, stage string, refs 
 
 	// Check the proofs and hold the proved roots in one transaction.
 	complete := make([]bool, len(refs))
+	var holds []block.NamedRoot
 	err := v.withDirectAtomic(ctx, func(p *physicalTx) error {
 		// Hold each root whose proof is recorded or pending.
 		expires := v.leaseExpiry()
-		var holds []block.NamedRoot
+		holds = nil
 		for i, ref := range refs {
 			if ref.GetEmpty() {
 				continue
@@ -289,5 +359,6 @@ func (v *Volume) HoldStageCompleteRoots(ctx context.Context, stage string, refs 
 	if err != nil {
 		return nil, err
 	}
+	v.noteStageRoots(stage, holds)
 	return complete, nil
 }

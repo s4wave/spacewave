@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // MarkAdoptBorn records that Land gave birth to ref while the Volume adopts,
@@ -50,9 +51,7 @@ func (r *Records) scanAfter(ctx context.Context, kind byte, after []byte, limit 
 	prefix := r.key(kind)
 	it := r.tx.Iterate(ctx, prefix, true, false)
 	defer it.Close()
-	if after == nil {
-		it.Next()
-	} else if err := it.Seek(append(r.key(kind, after), 0)); err != nil {
+	if err := seekPast(it, r.key(kind, after), after == nil); err != nil {
 		return nil, err
 	}
 
@@ -89,4 +88,14 @@ func (r *Records) scanNamesAfter(ctx context.Context, after []byte, limit int, k
 	slices.SortFunc(names, bytes.Compare)
 	names = slices.CompactFunc(names, bytes.Equal)
 	return names[:min(len(names), limit)], nil
+}
+
+// seekPast positions it at its first key when first is set, and otherwise at
+// the first key after key.
+func seekPast(it kvtx.Iterator, key []byte, first bool) error {
+	if first {
+		it.Next()
+		return nil
+	}
+	return it.Seek(append(key, 0))
 }

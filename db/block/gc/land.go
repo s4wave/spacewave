@@ -10,8 +10,17 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 )
 
-// Land stores entries and moves roots of bucketID in one write transaction,
-// with the liveness records in rec and the block bytes in blocks. It returns,
+// BucketRoots are the root moves of one bucket a Land makes.
+type BucketRoots struct {
+	// BucketID is the bucket.
+	BucketID string
+	// Roots are the moves.
+	Roots []block.NamedRoot
+}
+
+// Land stores entries and moves the roots of each bucket in moves in one
+// write transaction, with the liveness records in rec and the block bytes in
+// blocks, appending one journal record for all of them. It returns,
 // for each entry, whether blocks held its bytes before. It is the one write
 // path that changes holders, so Journal.tla's Land action is this function.
 //
@@ -34,6 +43,19 @@ import (
 // and count, so a cache that evicts a live block leaves a hole the collector
 // steps over, and only the collector frees.
 //
+// A block's place in the graph is its child list record, not its bytes. A
+// put that finds the list without the bytes, such as a block a cache evicted,
+// counts the block as already stored: it stores the bytes, journals the put
+// as an up and a down pair, which restarts the block's grace, and adds the
+// holders the batch gives it. A block the store lost together with its list is
+// a hole whose parents' lists still name it and whose children's counts still
+// include it. The audit records each hole it finds under a live root and
+// restores its count from the holders it found, and a put of a recorded hole
+// counts it as stored too: Land writes its list back, and its children gain no
+// holder. The one gap is a block lost with its list and put again before any
+// audit records it: the put counts it as a new block with one implied holder,
+// fewer than its parents give it, and the next audit reports the undercount.
+//
 // A Volume that is not adopted keeps no journal: Land writes the child lists
 // and roots and appends nothing, and an adoption counts every holder from
 // them. An adopting or adopted Volume refuses a block that names a child whose
@@ -41,14 +63,23 @@ import (
 // the children that block names would hold nothing. While an adoption counts
 // the Volume, Land also marks each block it gives birth to and records the
 // block each root it moves held when the adoption began, as Adopt reads.
+//
+// Cost per call: the state record; per entry, its child list record and, for
+// one without a list, its hole record; per child a born block names outside
+// its batch, its child list record and, for an unlisted child, a block
+// existence read, with one up pair appended for each, a blind append on reads
+// it already makes; per moved root, its entry and its lease index record. It
+// writes each born block's list, one journal record and the state record. The
+// pairs are eager, as Journal.tla models them: the collector nets each later,
+// writing the shared child's count, and decrements it again in the cascade
+// that frees the old parent.
 func Land(
 	ctx context.Context,
 	rec *Records,
 	blocks block.StoreOps,
 	now time.Time,
-	bucketID string,
 	entries []*block.PutBatchEntry,
-	roots []block.NamedRoot,
+	moves ...BucketRoots,
 ) ([]bool, error) {
 	// Read the journal position and adoption.
 	state, err := rec.GetState(ctx)
@@ -65,9 +96,11 @@ func Land(
 	}
 
 	// Check every root before writing anything.
-	held, err := l.checkRoots(ctx, bucketID, roots)
-	if err != nil {
-		return nil, err
+	held := make([][]*block.BlockRef, len(moves))
+	for i, move := range moves {
+		if held[i], err = l.checkRoots(ctx, move.BucketID, move.Roots); err != nil {
+			return nil, err
+		}
 	}
 
 	// Store the entries and find the blocks they give birth to.
@@ -82,9 +115,11 @@ func Land(
 	}
 
 	// Move the roots.
-	for i, root := range roots {
-		if err := l.moveRoot(ctx, bucketID, root, held[i]); err != nil {
-			return nil, err
+	for i, move := range moves {
+		for j, root := range move.Roots {
+			if err := l.moveRoot(ctx, move.BucketID, root, held[i][j]); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -124,6 +159,9 @@ type lander struct {
 	// touched holds the block keys of the entries already stored, whose put
 	// the journal records as an up and a down pair.
 	touched map[string]struct{}
+	// refills are the entries that put a recorded hole, whose child lists
+	// Land writes back.
+	refills []*block.PutBatchEntry
 	// born are the born blocks by block key.
 	born map[string]*bornBlock
 	// order are the born blocks in entry order.
@@ -166,8 +204,11 @@ func (l *lander) checkRoots(ctx context.Context, bucketID string, roots []block.
 func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Name each entry and find the blocks without a child list.
 	for _, entry := range entries {
-		if entry == nil || entry.Tombstone || len(entry.Data) == 0 {
+		if entry == nil || entry.Tombstone {
 			continue
+		}
+		if len(entry.Data) == 0 {
+			return nil, block.ErrEmptyBlock
 		}
 		if !entry.RefsKnown {
 			return nil, errors.Wrap(block.ErrRefsUnknown, entry.Ref.MarshalString())
@@ -191,15 +232,35 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 			l.touched[key] = struct{}{}
 			continue
 		}
-		b := &bornBlock{ref: entry.Ref, children: entry.Refs}
+
+		// A recorded hole is stored too: the put refills it.
+		hole, err := l.rec.IsHole(ctx, entry.Ref)
+		if err != nil {
+			return nil, err
+		}
+		if hole {
+			l.touched[key] = struct{}{}
+			l.refills = append(l.refills, entry)
+			continue
+		}
+		b := &bornBlock{ref: entry.Ref, children: normalizeChildren(entry.Refs)}
 		l.born[key] = b
 		l.order = append(l.order, b)
 	}
 
-	// Store the bytes, which also evicts the tombstones' bytes.
+	// Store the bytes, which also evicts the tombstones' bytes, then write the
+	// child lists of the refilled holes back.
 	existed, err := l.blocks.PutBlockBatch(ctx, entries)
 	if err != nil {
 		return nil, err
+	}
+	for _, entry := range l.refills {
+		if err := l.rec.PutChildren(ctx, entry.Ref, entry.Refs); err != nil {
+			return nil, err
+		}
+		if err := l.rec.DeleteHole(ctx, entry.Ref); err != nil {
+			return nil, err
+		}
 	}
 
 	// Write each born block's child list once, and drop the evicted blocks'

@@ -3,9 +3,8 @@ package kvtx
 import (
 	"bytes"
 	"context"
-	"errors"
-	"fmt"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -90,7 +89,7 @@ func CopyReachable(ctx context.Context, src, dst kvtx.Store, keys *store_kvkey.K
 		return err
 	}
 	if version != store_kvkey.FormatVersion {
-		return fmt.Errorf("reachable copy needs store format version %d, found %d; open it to upgrade it first", store_kvkey.FormatVersion, version)
+		return errors.Errorf("reachable copy needs store format version %d, found %d; open it to upgrade it first", store_kvkey.FormatVersion, version)
 	}
 	return copyStore(ctx, src, dst, keys, &opts, SplitOptions{}, progress)
 }
@@ -140,14 +139,15 @@ func copyStore(
 			return stx.Exists(ctx, keys.GetBlockKey(rm))
 		})
 		if err != nil {
-			return fmt.Errorf("walk from the named roots: %w", err)
+			return errors.Wrap(err, "walk from the named roots")
 		}
 		w.mark = mark
 		w.counts.AbsentBlocks = uint64(mark.Absent)   //nolint:gosec // counts are never negative.
 		w.counts.UnknownBlocks = uint64(mark.Unknown) //nolint:gosec // counts are never negative.
 		w.report()
 		if mark.Unknown != 0 && !reachable.AllowUnknown {
-			return fmt.Errorf("%d reached blocks have no child list, so the blocks they name may be live and would be dropped; sample %v", mark.Unknown, mark.UnknownSample)
+			return errors.Errorf("%d reached blocks have no child list, so the blocks they name may be live and would be dropped; sample %v",
+				mark.Unknown, mark.UnknownSample)
 		}
 	}
 
@@ -323,7 +323,7 @@ func (w *copyWriter) checkHeld(ctx context.Context, stx kvtx.Tx, batch []keyValu
 	for i, key := range w.held {
 		refs[i] = &block.BlockRef{}
 		if err := refs[i].UnmarshalVT(key[len(w.blockPrefix):]); err != nil {
-			return nil, 0, fmt.Errorf("decode block key %q: %w", key, err)
+			return nil, 0, errors.Wrapf(err, "decode block key %q", key)
 		}
 	}
 
@@ -333,7 +333,7 @@ func (w *copyWriter) checkHeld(ctx context.Context, stx kvtx.Tx, batch []keyValu
 		return nil, 0, err
 	}
 	if len(dropped) != len(refs) {
-		return nil, 0, fmt.Errorf("drop check answered %d of %d blocks", len(dropped), len(refs))
+		return nil, 0, errors.Errorf("drop check answered %d of %d blocks", len(dropped), len(refs))
 	}
 
 	// Count the dropped blocks and read the values of the rest.
@@ -348,7 +348,7 @@ func (w *copyWriter) checkHeld(ctx context.Context, stx kvtx.Tx, batch []keyValu
 			return nil, 0, err
 		}
 		if !found {
-			return nil, 0, fmt.Errorf("block key %q left the snapshot", key)
+			return nil, 0, errors.Errorf("block key %q left the snapshot", key)
 		}
 		value = bytes.Clone(value)
 		batch = append(batch, keyValue{key: key, value: value})
@@ -395,7 +395,7 @@ func (w *copyWriter) keep(key []byte) (bool, error) {
 	}
 	ref := &block.BlockRef{}
 	if err := ref.UnmarshalVT(data); err != nil {
-		return false, fmt.Errorf("decode block key %q: %w", key, err)
+		return false, errors.Wrapf(err, "decode block key %q", key)
 	}
 	if w.mark.Has(ref) {
 		return true, nil
@@ -416,7 +416,7 @@ func (w *copyWriter) keepRecord(record []byte) (bool, error) {
 	case block_gc.ChildrenRecordKind, block_gc.ProofRecordKind:
 		ref, rest, err := block_gc.ParseBlockKey(record[1:])
 		if err != nil || len(rest) != 0 {
-			return false, fmt.Errorf("liveness record %x names no block", record)
+			return false, errors.Errorf("liveness record %x names no block", record)
 		}
 		return w.mark.Has(ref), nil
 	}

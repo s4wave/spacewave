@@ -154,6 +154,10 @@ type LivenessState struct {
 	// before 7, whose lists may lack a child the block names. Adopt refuses
 	// until a repair rebuilds them from the blocks and clears it.
 	UnverifiedLists bool `protobuf:"varint,7,opt,name=unverified_lists,json=unverifiedLists,proto3" json:"unverifiedLists,omitempty"`
+	// NetOffset is how many of the pairs of the record at the cursor, its up
+	// pairs then its down pairs, the collector has netted: a slice nets a
+	// bounded number of pairs, so it splits a large record across slices.
+	NetOffset uint64 `protobuf:"varint,8,opt,name=net_offset,json=netOffset,proto3" json:"netOffset,omitempty"`
 }
 
 func (x *LivenessState) Reset() {
@@ -204,6 +208,13 @@ func (x *LivenessState) GetUnverifiedLists() bool {
 	return false
 }
 
+func (x *LivenessState) GetNetOffset() uint64 {
+	if x != nil {
+		return x.NetOffset
+	}
+	return 0
+}
+
 func (m *RootEntry) CloneVT() *RootEntry {
 	if m == nil {
 		return (*RootEntry)(nil)
@@ -250,6 +261,7 @@ func (m *LivenessState) CloneVT() *LivenessState {
 	r.LegacyGraph = m.LegacyGraph
 	r.AdoptionRun = m.AdoptionRun
 	r.UnverifiedLists = m.UnverifiedLists
+	r.NetOffset = m.NetOffset
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -331,6 +343,9 @@ func (this *LivenessState) EqualVT(that *LivenessState) bool {
 		return false
 	}
 	if this.UnverifiedLists != that.UnverifiedLists {
+		return false
+	}
+	if this.NetOffset != that.NetOffset {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -538,6 +553,11 @@ func (x *LivenessState) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("unverifiedLists")
 		s.WriteBool(x.UnverifiedLists)
 	}
+	if x.NetOffset != 0 || s.HasField("netOffset") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("netOffset")
+		s.WriteUint64(x.NetOffset)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -573,6 +593,9 @@ func (x *LivenessState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "unverified_lists", "unverifiedLists":
 			s.AddField("unverified_lists")
 			x.UnverifiedLists = s.ReadBool()
+		case "net_offset", "netOffset":
+			s.AddField("net_offset")
+			x.NetOffset = s.ReadUint64()
 		}
 	})
 }
@@ -704,6 +727,11 @@ func (m *LivenessState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.NetOffset != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.NetOffset))
+		i--
+		dAtA[i] = 0x40
+	}
 	if m.UnverifiedLists {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.UnverifiedLists)
 		i--
@@ -774,6 +802,7 @@ func (m *LivenessState) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.LegacyGraph)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.AdoptionRun)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.UnverifiedLists)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.NetOffset)
 	n += len(m.unknownFields)
 	return n
 }
@@ -856,6 +885,10 @@ func (x *LivenessState) MarshalProtoText() string {
 	if x.UnverifiedLists != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "unverified_lists")
 		protobuf_go_lite.TextWriteBool(&sb, x.UnverifiedLists)
+	}
+	if x.NetOffset != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "net_offset")
+		protobuf_go_lite.TextWriteUint(&sb, x.NetOffset)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1075,6 +1108,15 @@ func (m *LivenessState) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.UnverifiedLists = bool(v)
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NetOffset", wireType)
+			}
+			m.NetOffset = 0
+			m.NetOffset, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

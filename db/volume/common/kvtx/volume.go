@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"errors"
-	"fmt"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -245,7 +244,7 @@ func parseGrace(dur string) (time.Duration, error) {
 
 	// Require a grace past the root lease outside tests.
 	if grace <= rootLease && !testing.Testing() {
-		return 0, fmt.Errorf("collector_grace_dur %v must exceed the root lease of %v", grace, rootLease)
+		return 0, errors.New("collector_grace_dur " + grace.String() + " must exceed the root lease of " + rootLease.String())
 	}
 	return grace, nil
 }
@@ -254,11 +253,6 @@ func parseGrace(dur string) (time.Duration, error) {
 // Volume an adoption left adopting to unadopted and, when the format 7
 // upgrade left an old graph's records, starts their background sweep.
 func (v *Volume) startLiveness(ctx context.Context) error {
-	// Renew the leased roots this process will hold.
-	renewCtx, cancel := context.WithCancel(context.WithoutCancel(ctx))
-	v.renewCancel, v.renewDone = cancel, make(chan struct{})
-	go v.runRootRenewal(renewCtx)
-
 	// Read the liveness state, and return a Volume an adoption that died with
 	// its process left adopting to unadopted.
 	var state *block_gc.LivenessState
@@ -277,12 +271,17 @@ func (v *Volume) startLiveness(ctx context.Context) error {
 	}
 
 	// Sweep an old graph's records when they remain.
-	if !state.GetLegacyGraph() {
-		return nil
+	if state.GetLegacyGraph() {
+		sweepCtx, cancelSweep := context.WithCancel(context.WithoutCancel(ctx))
+		v.legacyCancel, v.legacyDone = cancelSweep, make(chan struct{})
+		go v.runLegacySweep(sweepCtx)
 	}
-	sweepCtx, cancelSweep := context.WithCancel(context.WithoutCancel(ctx))
-	v.legacyCancel, v.legacyDone = cancelSweep, make(chan struct{})
-	go v.runLegacySweep(sweepCtx)
+
+	// Renew the leased roots this process will hold, last, so a failed open
+	// leaves no renewal running.
+	renewCtx, cancel := context.WithCancel(context.WithoutCancel(ctx))
+	v.renewCancel, v.renewDone = cancel, make(chan struct{})
+	go v.runRootRenewal(renewCtx)
 	return nil
 }
 

@@ -23,6 +23,8 @@ type Mark struct {
 	// Absent counts the reached blocks the store holds neither the bytes nor
 	// the child list of: holes, which name nothing a reader can reach.
 	Absent int
+	// AbsentRefs names every absent block.
+	AbsentRefs []*block.BlockRef
 }
 
 // Has reports whether the walk reached ref.
@@ -92,6 +94,7 @@ func (m *Mark) noteUnlisted(ctx context.Context, ref *block.BlockRef, stored fun
 	}
 	if !found {
 		m.Absent++
+		m.AbsentRefs = append(m.AbsentRefs, ref)
 		return nil
 	}
 

@@ -279,9 +279,9 @@ func (b *bucketHandle) putReleasing(ctx context.Context, entries []*block.PutBat
 		for _, entry := range entries {
 			if isTombstone(entry) {
 				released = append(released, entry.Ref)
-			} else {
-				puts = append(puts, entry)
+				continue
 			}
+			puts = append(puts, entry)
 		}
 	}
 
@@ -294,11 +294,7 @@ func (b *bucketHandle) putReleasing(ctx context.Context, entries []*block.PutBat
 	case b.stage != "":
 		stored, err = vol.PrepareStagedBlockBatch(ctx, b.stage, puts)
 	default:
-		if prepare, ok := b.v.(block.AtomicBlockPreparer); ok {
-			stored, err = prepare.PrepareOwnedBlockBatch(ctx, b.GetID(), puts)
-		} else {
-			stored, err = b.v.PutBlockBatch(ctx, puts)
-		}
+		stored, err = b.putOwned(ctx, puts)
 	}
 	if err != nil {
 		return nil, err
@@ -323,6 +319,15 @@ func (b *bucketHandle) putReleasing(ctx context.Context, entries []*block.PutBat
 		}
 	}
 	return existed, nil
+}
+
+// putOwned stores puts as the bucket's writes, in one physical transaction
+// when the volume prepares owned batches.
+func (b *bucketHandle) putOwned(ctx context.Context, puts []*block.PutBatchEntry) ([]bool, error) {
+	if prepare, ok := b.v.(block.AtomicBlockPreparer); ok {
+		return prepare.PrepareOwnedBlockBatch(ctx, b.GetID(), puts)
+	}
+	return b.v.PutBlockBatch(ctx, puts)
 }
 
 // isTombstone reports whether entry deletes its block.

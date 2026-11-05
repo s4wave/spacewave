@@ -3,9 +3,7 @@ package kvtx
 import (
 	"bytes"
 	"context"
-	"time"
 
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
@@ -19,10 +17,6 @@ var legacyGraphKinds = []byte{'a', 'f', 'g', 'h', 'i', 'l', 'm', 'n', 'p', 'r', 
 // legacySweepKeys bounds the keys one legacy sweep transaction deletes.
 const legacySweepKeys = 2048
 
-// legacySweepPause is how long the legacy sweep waits after a transaction that
-// let a waiting writer in, before it takes the store's writer again.
-const legacySweepPause = 50 * time.Millisecond
-
 // runLegacySweep deletes the records of an old reference graph left by the
 // format 7 upgrade, a bounded batch per transaction, letting a waiting writer
 // in between, and then clears the state's LegacyGraph. It deletes only the
@@ -32,7 +26,7 @@ const legacySweepPause = 50 * time.Millisecond
 func (v *Volume) runLegacySweep(ctx context.Context) {
 	// Delete the legacy kinds under the liveness prefix, as background work.
 	defer close(v.legacyDone)
-	ctx = block.WithBackground(ctx)
+	ctx = backgroundPass(ctx)
 	for _, kind := range legacyGraphKinds {
 		prefix := append(bytes.Clone(livenessPrefix), kind)
 		if err := v.sweepLegacyPrefix(ctx, prefix); err != nil {
@@ -60,8 +54,9 @@ func (v *Volume) runLegacySweep(ctx context.Context) {
 // sweepLegacyPrefix deletes every key under prefix, legacySweepKeys per
 // transaction.
 func (v *Volume) sweepLegacyPrefix(ctx context.Context, prefix []byte) error {
+	var after []byte
 	for {
-		// Delete the next batch.
+		// Delete the next batch, from the last key the batch before reached.
 		var deleted int
 		err := v.withDirectAtomic(ctx, func(p *physicalTx) error {
 			// Delete through a view of the transaction that records its
@@ -70,44 +65,43 @@ func (v *Volume) sweepLegacyPrefix(ctx context.Context, prefix []byte) error {
 			if err != nil {
 				return err
 			}
-			deleted, err = deletePrefixBatch(ctx, vtx, prefix, legacySweepKeys)
+			deleted, after, err = deletePrefixBatch(ctx, vtx, prefix, after, legacySweepKeys)
 			return err
 		})
 		if err != nil || deleted < legacySweepKeys {
 			return err
 		}
-
-		// Let a waiting writer in before the next batch.
-		if v.writersWaiting() {
-			select {
-			case <-ctx.Done():
-				return context.Cause(ctx)
-			case <-time.After(legacySweepPause):
-			}
+		if err := context.Cause(ctx); err != nil {
+			return err
 		}
 	}
 }
 
-// deletePrefixBatch deletes up to limit keys under prefix in tx and returns
-// how many it deleted.
-func deletePrefixBatch(ctx context.Context, tx kvtx.Tx, prefix []byte, limit int) (int, error) {
+// deletePrefixBatch deletes up to limit keys under prefix after the key
+// after, nil for the first, in tx, and returns how many it deleted and the
+// last.
+func deletePrefixBatch(ctx context.Context, tx kvtx.Tx, prefix, after []byte, limit int) (int, []byte, error) {
 	// Collect the next keys.
 	it := tx.Iterate(ctx, prefix, true, false)
+	if err := seekPastKey(it, after); err != nil {
+		it.Close()
+		return 0, nil, err
+	}
 	var keys [][]byte
-	for it.Next(); it.Valid() && len(keys) < limit; it.Next() {
+	for ; it.Valid() && len(keys) < limit; it.Next() {
 		keys = append(keys, bytes.Clone(it.Key()))
 	}
 	err := it.Err()
 	it.Close()
-	if err != nil {
-		return 0, err
+	if err != nil || len(keys) == 0 {
+		return 0, nil, err
 	}
 
 	// Delete them.
 	for _, key := range keys {
 		if err := tx.Delete(ctx, key); err != nil {
-			return 0, err
+			return 0, nil, err
 		}
 	}
-	return len(keys), nil
+	return len(keys), keys[len(keys)-1], nil
 }

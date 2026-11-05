@@ -137,6 +137,12 @@ export interface LivenessState {
    * until a repair rebuilds them from the blocks and clears it.
    */
   unverifiedLists?: boolean
+  /**
+   * NetOffset is how many of the pairs of the record at the cursor, its up
+   * pairs then its down pairs, the collector has netted: a slice nets a
+   * bounded number of pairs, so it splits a large record across slices.
+   */
+  netOffset?: bigint
 }
 
 export const LivenessState: MessageType<LivenessState> =
@@ -149,5 +155,6 @@ export const LivenessState: MessageType<LivenessState> =
       [5, 'legacy_graph', 8],
       [6, 'adoption_run', 9],
       [7, 'unverified_lists', 8],
+      [8, 'net_offset', 4],
     ],
   )

@@ -13,6 +13,9 @@ type AdoptStore interface {
 	Store
 	// BlockStored reports whether the Volume holds the bytes of ref.
 	BlockStored(ctx context.Context, ref *block.BlockRef) (bool, error)
+	// ScanBlocks calls fn with runs of the blocks whose bytes the Volume
+	// holds, in key order, each run read in a snapshot of its own.
+	ScanBlocks(ctx context.Context, fn func(refs []*block.BlockRef) error) error
 }
 
 // AdoptResult is what an adoption counted.
@@ -75,13 +78,13 @@ var ErrAdoptSuperseded = errors.New("another adoption superseded this one")
 // It refuses with ErrAdoptUnknown, returning the Volume to unadopted, when a
 // root or a stored block names a block stored without a child list, and with
 // ErrAdoptUnverified, before it begins, while the child lists come from an
-// older store format. An
-// adoption that fails or is interrupted returns the Volume to unadopted, as
-// does reopening the Volume after a crash, and a later Adopt starts over and
-// reaches the same counts. Each run names itself in the adopting state, and
-// every one of its transactions refuses to write unless the Volume is still
-// adopting in its run, so a run another superseded writes nothing more and
-// returns ErrAdoptSuperseded.
+// older store format. An adoption that fails or is interrupted returns the
+// Volume to unadopted, as does reopening the Volume after a crash, and a later
+// Adopt starts over and reaches the same counts. Each run first claims the
+// unadopted Volume under its name, clears only while its claim stands, and
+// marks it adopting only from its own claim; every later transaction refuses
+// to write unless the Volume is still adopting in its run. A run another
+// claimed or superseded writes nothing more and returns ErrAdoptSuperseded.
 //
 // Adoption counts only child lists and named roots. A block that older code
 // held another way, such as through a bucket's ownership, has no holder here,
@@ -89,9 +92,10 @@ var ErrAdoptSuperseded = errors.New("another adoption superseded this one")
 // under named roots.
 func Adopt(ctx context.Context, store Store) (AdoptResult, error) {
 	// Report an adopted Volume, after deleting what a finished adoption may
-	// have left; otherwise return it to unadopted and start over.
+	// have left; otherwise claim it unadopted for a new run.
 	var res AdoptResult
-	adopted, err := resetAdoption(ctx, store)
+	run := ulid.NewULID()
+	adopted, err := claimAdoption(ctx, store, run)
 	if err != nil {
 		return res, err
 	}
@@ -99,27 +103,35 @@ func Adopt(ctx context.Context, store Store) (AdoptResult, error) {
 		res.Already = true
 		return res, clearKinds(ctx, store, nil, kindAdoptBorn, kindAdoptRoot)
 	}
-	if err := clearKinds(ctx, store, nil, kindCount, kindQueue, kindAdoptBorn, kindAdoptRoot); err != nil {
+
+	// Clear what an earlier run left while the claim stands.
+	claimed := func(state *LivenessState) bool {
+		return state.GetAdoption() == Adoption_ADOPTION_UNADOPTED && state.GetAdoptionRun() == run
+	}
+	if err := clearKinds(ctx, store, claimed, kindCount, kindQueue, kindAdoptBorn, kindAdoptRoot); err != nil {
 		return res, err
 	}
 
-	// Mark the Volume adopting in a new run, at the cursor.
-	run := ulid.NewULID()
+	// Mark the Volume adopting in the run, at the cursor.
 	var cursor uint64
 	err = store.Update(ctx, func(rec *Records, _ block.StoreOps) error {
-		// Refuse unverified child lists, then start the cursor at the next
-		// journal record.
+		// Refuse a lost claim and unverified child lists.
 		state, err := rec.GetState(ctx)
 		if err != nil {
 			return err
 		}
+		if !claimed(state) {
+			return ErrAdoptSuperseded
+		}
 		if state.GetUnverifiedLists() {
 			return ErrAdoptUnverified
 		}
+
+		// Start the cursor at the next journal record.
 		cursor = state.GetNextSeq()
 		state.Adoption = Adoption_ADOPTION_ADOPTING
 		state.AdoptionRun = run
-		state.Cursor = cursor
+		state.Cursor, state.NetOffset = cursor, 0
 		return rec.SetState(ctx, state)
 	})
 	if err != nil {
@@ -180,21 +192,31 @@ func ResetAdoption(ctx context.Context, store Store) error {
 // resetAdoption returns an adopting Volume to unadopted, superseding the run
 // that marked it, and reports whether the Volume is adopted.
 func resetAdoption(ctx context.Context, store Store) (bool, error) {
+	return claimAdoption(ctx, store, "")
+}
+
+// claimAdoption returns a Volume that is not adopted to unadopted under run,
+// superseding any run that marked or claimed it, and reports whether the
+// Volume is adopted. An empty run claims it for none.
+func claimAdoption(ctx context.Context, store Store, run string) (bool, error) {
 	var adopted bool
 	err := store.Update(ctx, func(rec *Records, _ block.StoreOps) error {
+		// Leave an adopted Volume, and one already in the claim.
 		state, err := rec.GetState(ctx)
 		if err != nil {
 			return err
 		}
-		switch state.GetAdoption() {
-		case Adoption_ADOPTION_ADOPTED:
-			adopted = true
-		case Adoption_ADOPTION_ADOPTING:
-			state.Adoption = Adoption_ADOPTION_UNADOPTED
-			state.AdoptionRun = ""
-			return rec.SetState(ctx, state)
+		if adopted = state.GetAdoption() == Adoption_ADOPTION_ADOPTED; adopted {
+			return nil
 		}
-		return nil
+		if state.GetAdoption() == Adoption_ADOPTION_UNADOPTED && state.GetAdoptionRun() == run {
+			return nil
+		}
+
+		// Claim it.
+		state.Adoption = Adoption_ADOPTION_UNADOPTED
+		state.AdoptionRun = run
+		return rec.SetState(ctx, state)
 	})
 	return adopted, err
 }
@@ -261,10 +283,14 @@ func (a *adoption) count(ctx context.Context) error {
 			return err
 		}
 
-		// Count a holder of each child.
+		// Count a holder of each child, which also gives a list a cache fill
+		// wrote its children's holders, so its fill mark goes.
 		children, err := DecodeChildren(r.value)
 		if err != nil {
 			return errors.Wrapf(err, "child list of %s", ref.MarshalString())
+		}
+		if _, err := rec.takeFillMark(ctx, ref); err != nil {
+			return err
 		}
 		for _, child := range children {
 			if err := a.hold(ctx, rec, blocks, BlockKey(child)); err != nil {
@@ -366,7 +392,7 @@ func (a *adoption) countRoots(ctx context.Context) error {
 
 		// Move past them and let a waiting writer in.
 		after = last
-		if err := yieldWriters(ctx, a.store); err != nil {
+		if err := yieldWriters(ctx); err != nil {
 			return err
 		}
 	}
@@ -449,7 +475,7 @@ func forSlices(ctx context.Context, store Store, run string, kind byte, fn func(
 
 		// Move past it and let a waiting writer in.
 		after = last
-		if err := yieldWriters(ctx, store); err != nil {
+		if err := yieldWriters(ctx); err != nil {
 			return err
 		}
 	}
@@ -459,6 +485,7 @@ func forSlices(ctx context.Context, store Store, run string, kind byte, fn func(
 // adoption's counts reflect, sliceRecords per transaction while run holds the
 // Volume.
 func deleteJournalBefore(ctx context.Context, store Store, run string, cursor uint64) error {
+	var from uint64
 	for {
 		// Delete the next records before the cursor.
 		var n int
@@ -469,7 +496,7 @@ func deleteJournalBefore(ctx context.Context, store Store, run string, cursor ui
 				return err
 			}
 			var seqs []uint64
-			err := rec.ScanJournal(ctx, 0, func(seq uint64, _ *JournalRecord) (bool, error) {
+			err := rec.ScanJournal(ctx, from, func(seq uint64, _ *JournalRecord) (bool, error) {
 				if seq >= cursor || len(seqs) == sliceRecords {
 					return false, nil
 				}
@@ -480,6 +507,9 @@ func deleteJournalBefore(ctx context.Context, store Store, run string, cursor ui
 				return err
 			}
 			n = len(seqs)
+			if n != 0 {
+				from = seqs[n-1] + 1
+			}
 			for _, seq := range seqs {
 				if err := rec.DeleteJournal(ctx, seq); err != nil {
 					return err
@@ -492,7 +522,7 @@ func deleteJournalBefore(ctx context.Context, store Store, run string, cursor ui
 		}
 
 		// Let a waiting writer in.
-		if err := yieldWriters(ctx, store); err != nil {
+		if err := yieldWriters(ctx); err != nil {
 			return err
 		}
 	}
@@ -504,9 +534,10 @@ func deleteJournalBefore(ctx context.Context, store Store, run string, cursor ui
 // keep refuses.
 func clearKinds(ctx context.Context, store Store, keep func(*LivenessState) bool, kinds ...byte) error {
 	for _, kind := range kinds {
+		var after []byte
 		for {
 			// Delete the next records of the kind while keep accepts the
-			// state.
+			// state, from the last key the slice before reached.
 			var n int
 			var stop bool
 			err := store.Update(ctx, func(rec *Records, _ block.StoreOps) error {
@@ -520,7 +551,7 @@ func clearKinds(ctx context.Context, store Store, keep func(*LivenessState) bool
 						return nil
 					}
 				}
-				recs, err := rec.scanAfter(ctx, kind, nil, sliceRecords)
+				recs, err := rec.scanAfter(ctx, kind, after, sliceRecords)
 				if err != nil {
 					return err
 				}
@@ -529,6 +560,9 @@ func clearKinds(ctx context.Context, store Store, keep func(*LivenessState) bool
 					if err := rec.tx.Delete(ctx, rec.key(kind, r.key)); err != nil {
 						return err
 					}
+				}
+				if n != 0 {
+					after = recs[n-1].key
 				}
 				return nil
 			})
@@ -540,7 +574,7 @@ func clearKinds(ctx context.Context, store Store, keep func(*LivenessState) bool
 			}
 
 			// Let a waiting writer in.
-			if err := yieldWriters(ctx, store); err != nil {
+			if err := yieldWriters(ctx); err != nil {
 				return err
 			}
 		}

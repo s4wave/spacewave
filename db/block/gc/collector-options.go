@@ -41,12 +41,16 @@ const DefaultBudget = time.Second
 // sliceRecords bounds the journal records one net transaction nets.
 const sliceRecords = 256
 
+// slicePairs bounds the pairs one net transaction applies, so one large
+// commit's record splits across slices instead of making one long one.
+const slicePairs = 4096
+
 // sliceFrees bounds the queued blocks one free transaction examines.
 const sliceFrees = 128
 
+// sliceReleases bounds the children one free transaction releases: it stops
+// after the block that reaches it.
+const sliceReleases = 4096
+
 // sliceLeases bounds the lapsed leased roots one transaction releases.
 const sliceLeases = 256
-
-// yieldPause is how long a pass waits after a transaction a writer waited
-// behind, so the writer takes the store's writer before the next slice.
-const yieldPause = 2 * time.Millisecond

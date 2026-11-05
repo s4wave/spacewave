@@ -46,9 +46,14 @@ func (v *Volume) runRootRenewal(ctx context.Context) {
 }
 
 // renewRoots moves the expiry of every reader pin and stage root this process
-// holds a lease forward, in one transaction.
+// holds a lease forward, in one transaction. A pin or stage root a collector
+// released for a lapsed lease while this process still holds it, after a
+// stall longer than the lease, is held again while its block is stored. A
+// stage whose released root's block is gone is lost, as Journal.tla's
+// StageRenew fails it: its later writes would name a freed block.
 func (v *Volume) renewRoots(ctx context.Context) error {
-	// Collect the pins with readers and the open stages.
+	// Collect the pins with readers and the open stages' roots, noting the
+	// stage of each stage root.
 	unlock, err := v.rootPinMu.Lock(ctx)
 	if err != nil {
 		return err
@@ -59,65 +64,106 @@ func (v *Volume) renewRoots(ctx context.Context) error {
 			pins = append(pins, block.NamedRoot{Name: name, Ref: pin.ref, Previous: pin.ref})
 		}
 	}
-	var stages []string
+	stageOf := make(map[string]string)
 	for stage, st := range v.stages {
-		if !st.released {
-			stages = append(stages, stage)
+		if st.released || st.lost {
+			continue
+		}
+		for name, ref := range st.roots {
+			pins = append(pins, block.NamedRoot{Name: name, Ref: ref, Previous: ref})
+			stageOf[name] = stage
 		}
 	}
 	unlock()
-	if len(pins) == 0 && len(stages) == 0 {
+	if len(pins) == 0 {
 		return nil
 	}
 
-	// Write the later expiry of each pin and stage root. A pin the collector
-	// released for a lapsed lease is held again while its block is stored, and
-	// dropped otherwise: its reader stalled past the lease and the grace
-	// period.
+	// Write the later expiry of each pin and stage root. One a collector
+	// released is held again while its block is stored, and dropped
+	// otherwise: its holder stalled past the lease and the grace period.
 	expires := v.leaseExpiry()
-	return v.withDirectAtomic(ctx, func(p *physicalTx) error {
-		// Renew each pin, or hold a lapsed one again.
+	var lost []string
+	err = v.withDirectAtomic(ctx, func(p *physicalTx) error {
+		// Keep only the roots this process still holds: a reader may have
+		// released its pin, or a stage may have moved or released a root,
+		// since the snapshot.
+		current, err := v.stillHeld(ctx, pins, stageOf)
+		if err != nil {
+			return err
+		}
+
+		// Renew each root, or hold a released one again.
 		var renew []block.NamedRoot
-		for _, pin := range pins {
-			held, err := heldRoot(ctx, p, "", pin.Name)
+		lost = lost[:0]
+		for _, root := range current {
+			held, err := heldRoot(ctx, p, "", root.Name)
 			if err != nil {
 				return err
 			}
-			if held.GetEmpty() {
-				listed, err := p.rec.HasChildren(ctx, pin.Ref)
+			switch {
+			case block_gc.SameRef(held, root.Ref):
+			case !held.GetEmpty():
+				continue
+			default:
+				listed, err := p.rec.HasChildren(ctx, root.Ref)
 				if err != nil {
 					return err
 				}
 				if !listed {
+					if stage, ok := stageOf[root.Name]; ok {
+						lost = append(lost, stage)
+					}
 					continue
 				}
-				pin.Previous = nil
+				root.Previous = nil
 			}
-			renew = append(renew, pin)
-		}
-
-		// Renew each open stage's roots.
-		for _, stage := range stages {
-			err := p.rec.ListRoots(ctx, "", stage+"/", func(name string, entry *block_gc.RootEntry) error {
-				ref, _, err := block_gc.ParseBlockKey(entry.GetRef())
-				if err != nil {
-					return err
-				}
-				renew = append(renew, block.NamedRoot{Name: name, Ref: ref, Previous: ref})
-				return nil
-			})
-			if err != nil {
-				return err
-			}
+			root.Expires = expires
+			renew = append(renew, root)
 		}
 
 		// Write them all with the later expiry.
-		for i := range renew {
-			renew[i].Expires = expires
-		}
-		_, err := v.land(ctx, p, "", nil, renew)
+		_, err = v.land(ctx, p, "", nil, renew)
 		return err
 	})
+
+	// Fail the stages that lost a root with its block.
+	if err == nil {
+		for _, stage := range lost {
+			v.loseStage(stage)
+		}
+	}
+	return err
+}
+
+// stillHeld returns the roots among roots this process still holds, read
+// under the pin lock inside the renewal's transaction: a pin with a reader
+// on the same block, or a root an open stage's record holds on the same
+// block. stageOf names the stage of each stage root.
+func (v *Volume) stillHeld(ctx context.Context, roots []block.NamedRoot, stageOf map[string]string) ([]block.NamedRoot, error) {
+	// Read the pins and stages under the pin lock.
+	unlock, err := v.rootPinMu.Lock(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer unlock()
+
+	// Keep each root its pin or stage still holds on the same block.
+	var out []block.NamedRoot
+	for _, root := range roots {
+		var ref *block.BlockRef
+		if stage, ok := stageOf[root.Name]; ok {
+			if st := v.stages[stage]; st != nil && !st.released && !st.lost {
+				ref = st.roots[root.Name]
+			}
+		} else if pin := v.rootPins[root.Name]; pin != nil && pin.count != 0 && pin.settled == nil {
+			ref = pin.ref
+		}
+		if block_gc.SameRef(ref, root.Ref) && !ref.GetEmpty() {
+			out = append(out, root)
+		}
+	}
+	return out, nil
 }
 
 // unixMilliTime returns the time ms Unix milliseconds name, or the zero time

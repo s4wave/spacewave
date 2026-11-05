@@ -15,12 +15,6 @@ import (
 // them.
 var livenessPrefix = []byte{2}
 
-// LivenessPrefixes returns the key prefixes of the Volume's liveness records,
-// for a copy that starts them empty.
-func LivenessPrefixes() [][]byte {
-	return [][]byte{livenessPrefix}
-}
-
 // OpenRecords returns the liveness records of the Volume store whose
 // transaction is tx.
 func OpenRecords(tx kvtx.TxOps) *block_gc.Records {

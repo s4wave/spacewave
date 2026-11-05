@@ -613,24 +613,22 @@ func (w *publicationWriter) apply(
 		roots[i].Previous = held
 	}
 
-	// Store the entries and move the roots.
-	var err error
-	if req.existed, err = w.volume.land(ctx, p, pub.BucketID, pub.Entries, roots); err != nil {
-		return err
-	}
-
-	// Pin the published root until its consumer takes its own pin, and
-	// record that its graph is stored.
+	// Pin the published root until its consumer takes its own pin.
+	moves := []block_gc.BucketRoots{{BucketID: pub.BucketID, Roots: roots}}
 	if req.rootOwner != "" {
-		pin := []block.NamedRoot{{Name: req.rootOwner, Ref: pub.Root, Expires: w.volume.leaseExpiry()}}
 		held, err := heldRoot(ctx, p, "", req.rootOwner)
 		if err != nil {
 			return err
 		}
-		pin[0].Previous = held
-		if _, err := w.volume.land(ctx, p, "", nil, pin); err != nil {
-			return err
-		}
+		pin := block.NamedRoot{Name: req.rootOwner, Ref: pub.Root, Previous: held, Expires: w.volume.leaseExpiry()}
+		moves = append(moves, block_gc.BucketRoots{Roots: []block.NamedRoot{pin}})
+	}
+
+	// Store the entries and move the roots and the pin in one Land, then
+	// record that the published graph is stored.
+	var err error
+	if req.existed, err = w.volume.landMoves(ctx, p, pub.Entries, moves...); err != nil {
+		return err
 	}
 	if pub.RootName != "" && !pub.Root.GetEmpty() {
 		if err := p.rec.SetProof(ctx, pub.Root); err != nil {
