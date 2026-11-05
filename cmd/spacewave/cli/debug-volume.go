@@ -122,18 +122,19 @@ func runDebugVolumeUsage(
 		return errors.Wrap(err, "read stats")
 	}
 
-	// Read every key and value from one snapshot. The snapshot holds back
-	// the space a running daemon frees.
-	tx, err := db.NewTransaction(ctx, false)
+	// Read every key from one snapshot. The snapshot holds back the space
+	// a running daemon frees, so the scan reads only the index.
+	ktx, err := db.NewTransaction(ctx, false)
 	if err != nil {
 		return err
 	}
-	defer tx.Discard()
+	defer ktx.Discard()
+	tx := ktx.(*s4db.Tx)
 
 	// Group every key under the prefix by its class.
 	classes := make(map[string]*volumeKeyClass)
 	var total volumeKeyClass
-	err = tx.ScanPrefix(ctx, prefix, func(k, v []byte) error {
+	err = tx.ScanPrefixLens(ctx, prefix, func(k []byte, n int) error {
 		// Find or add the key's class.
 		class := volumeKeyClassOf(k[len(prefix):], separator, depth, width)
 		kc := classes[class]
@@ -145,7 +146,7 @@ func runDebugVolumeUsage(
 		// Count the key and its bytes.
 		kc.keys++
 		kc.keyBytes += uint64(len(k))
-		kc.valueBytes += uint64(len(v))
+		kc.valueBytes += uint64(n) //nolint:gosec // Value lengths are never negative.
 		return nil
 	})
 	if err != nil {

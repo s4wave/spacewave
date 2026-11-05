@@ -80,7 +80,7 @@ func TestBuild(t *testing.T) {
 		t.Fatalf("stats %+v", st)
 	}
 
-	// Read every key back.
+	// Read every key and its length from the index back.
 	checkKeys := func(extra int) {
 		// Iterate the whole key space on a read transaction.
 		tx, err := db.NewTransaction(ctx, false)
@@ -104,6 +104,9 @@ func TestBuild(t *testing.T) {
 			}
 			if !bytes.Equal(it.Key(), key(n)) || !bytes.Equal(got, want) {
 				t.Fatalf("key %d: got %q (%d bytes), want %d bytes", n, it.Key(), len(got), len(want))
+			}
+			if l := it.(*Iterator).ValueLen(); l != len(want) {
+				t.Fatalf("key %d: index length %d, want %d", n, l, len(want))
 			}
 			n++
 		}
